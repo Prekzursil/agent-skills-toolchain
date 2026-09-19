@@ -85,22 +85,33 @@ TOOLS = [
 
 class Client:
     def __init__(self) -> None:
-        self.keys = [
-            os.environ[n]
-            for n in ("ZAI_API_KEY_A", "ZAI_API_KEY_B")
-            if os.environ.get(n)
-        ]
+        # AGENT_API_KEY/AGENT_ENDPOINT = generic single-key backend (e.g. the
+        # free OpenRouter GLM tier); otherwise the dual Z.AI plan keys.
+        if os.environ.get("AGENT_API_KEY"):
+            self.keys = [os.environ["AGENT_API_KEY"]]
+        else:
+            self.keys = [
+                os.environ[n]
+                for n in ("ZAI_API_KEY_A", "ZAI_API_KEY_B")
+                if os.environ.get(n)
+            ]
         if not self.keys:
-            raise SystemExit("FAILED:glm-agent no ZAI_API_KEY_A/B in env")
+            raise SystemExit("FAILED:glm-agent no ZAI_API_KEY_A/B or AGENT_API_KEY in env")
         self.active = 0
+        self.endpoint = os.environ.get(
+            "AGENT_ENDPOINT", ENDPOINT
+        )
 
     def chat(self, messages: list[dict], model: str) -> dict:
         body = json.dumps(
             {"model": model, "messages": messages, "tools": TOOLS, "stream": False}
         ).encode()
-        for attempt in range(len(self.keys) * 2):
+        # free single-key tiers (OpenRouter :free) 429 on transient upstream
+        # saturation, not quota death — be patient with those
+        max_attempts = len(self.keys) * 2 if len(self.keys) > 1 else 12
+        for attempt in range(max_attempts):
             req = urllib.request.Request(
-                ENDPOINT,
+                self.endpoint,
                 data=body,
                 headers={
                     "Authorization": f"Bearer {self.keys[self.active]}",
@@ -118,6 +129,11 @@ class Client:
                 except Exception:
                     pass
                 if e.code == 429 or any(m in detail.lower() for m in EXHAUST_MARKERS):
+                    if len(self.keys) == 1:
+                        wait = min(20 + attempt * 15, 120)
+                        print(f"[free-tier 429] transient upstream saturation; retry in {wait}s (attempt {attempt + 1})", flush=True)
+                        time.sleep(wait)
+                        continue
                     prev = self.active
                     self.active = (self.active + 1) % len(self.keys)
                     print(f"[failover] key#{prev} exhausted -> key#{self.active}", flush=True)
