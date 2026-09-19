@@ -1,0 +1,105 @@
+name: p2-agent-runner
+
+# CONTINUOUS P2 delivery chain (owner-armed 2026-09-19, no schedule).
+# Each run: [goal check] -> [mechanical recipes] -> [GLM agent batch on the
+# owner's two Z.AI coding-plan keys with failover] -> [runner commits+pushes
+# via PAT so CI re-triggers] -> [goal check] -> p2_done: dispatch pr-reconcile
+# and END; else dispatch the successor run. The agent never writes git; the
+# runner shell does every write.
+
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "GLM model slug"
+        default: "glm-4.6"
+      budget_min:
+        description: "agent minutes per run"
+        default: "270"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: p2-agent-runner
+  cancel-in-progress: false
+
+jobs:
+  agent-chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: cursor/p2-loop-to-green-0db0
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: preflight secrets
+        env:
+          A: ${{ secrets.ZAI_API_KEY_A }}
+          B: ${{ secrets.ZAI_API_KEY_B }}
+          P: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: '[ -n "$A" ] && [ -n "$B" ] && [ -n "$P" ] || { echo "::error::ZAI_API_KEY_A/B or CODEX_RUNNER_PAT missing"; exit 1; }'
+      - name: goal check (start)
+        id: goal0
+        run: |
+          python command-center/p2-loop/p2_goal.py | tee /tmp/goal0.json
+          echo "p2_done=$(python -c "import json;print(str(json.load(open('/tmp/goal0.json'))['p2_done']).lower())")" >> "$GITHUB_OUTPUT"
+      - name: mechanical gate recipes
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          git config user.name "p2-loop-runner"; git config user.email "p2-loop-runner@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${RUNNER_PAT}@github.com/Prekzursil/agent-skills-toolchain.git"
+          pip install pytest numpy jsonschema --quiet
+          for GATE in "gate-tests-coverage (python packages)" "gate-unit-artifact-manifest" "gate-lint-format (ruff)" "gate-no-runtime-junk"; do
+            python command-center/p2-loop/apply_recipe.py "$GATE" || true
+          done
+          git add -A; git commit -m "chore(p2-agent): mechanical recipes pre-batch" || echo "nothing to pre-fix"
+      - name: pick a healthy Z.AI plan key (dual-key failover)
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
+          ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
+        run: python tools/zai/zai_failover_runner.py
+      - name: GLM agent batch (contract-bound, tools, failover)
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
+          ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
+          GLM_MODEL: ${{ inputs.model || 'glm-4.6' }}
+        run: |
+          python command-center/p2-loop/glm_agent.py \
+            --contract command-center/p2-loop/agent_contract.md \
+            --budget-min "${{ inputs.budget_min || '270' }}" \
+            --model "$GLM_MODEL" 2>&1 | tail -120
+      - name: runner commits the agent's tree (agent never writes git)
+        if: steps.goal0.outputs.p2_done != 'true'
+        run: |
+          git add -A
+          git commit -m "feat(p2-agent): GLM delivery batch $(date -u +%Y%m%dT%H%M) per agent contract" || { echo "agent produced no changes"; }
+          git push origin HEAD:cursor/p2-loop-to-green-0db0 || echo "push skipped (no new commits)"
+      - name: goal check (end) + chain transition
+        id: goal1
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          python command-center/p2-loop/p2_goal.py | tee /tmp/goal1.json
+          P2_DONE=$(python -c "import json;print(str(json.load(open('/tmp/goal1.json'))['p2_done']).lower())")
+          echo "p2_done=$P2_DONE" >> "$GITHUB_OUTPUT"
+          if [ "$P2_DONE" = "true" ]; then
+            echo "P2 goal reached — dispatching pr-reconcile and ending the chain"
+            curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/pr-reconcile.yml/dispatches \
+              -d '{"ref":"main"}'
+          else
+            echo "P2 not done — dispatching successor run (continuous chain)"
+            curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/p2-agent-runner.yml/dispatches \
+              -d '{"ref":"main"}'
+          fi
