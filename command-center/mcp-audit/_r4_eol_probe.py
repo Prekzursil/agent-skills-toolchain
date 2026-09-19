@@ -34,6 +34,10 @@ import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parents[2]
 
+# Set by PART A (A6): the `git ls-files --eol` parser saw w/crlf in the throwaway
+# repo, where this probe controls the attribute regime. main() gates on this.
+EOL_PARSER_CONTROL_OK = False
+
 # (rev, path, the number the shipped doc printed beside it)
 ROUND3_CLAIMS = [
     ("0d3c9e93", "docs/mcp-audit/ROUND3-DEFECT-CLOSURE.md", 278),
@@ -88,8 +92,9 @@ def part_a() -> bool:
         (tmp / ".gitattributes").write_bytes(b"* -text\n")
         (tmp / "crlf.md").write_bytes(crlf_buf)
         (tmp / "lf.md").write_bytes(lf_buf)
+        (tmp / "ctrl.ps1").write_bytes(crlf_buf)
         subprocess.run(
-            [*run, "add", ".gitattributes", "crlf.md", "lf.md"],
+            [*run, "add", ".gitattributes", "crlf.md", "lf.md", "ctrl.ps1"],
             cwd=tmp,
             check=True,
             capture_output=True,
@@ -107,6 +112,22 @@ def part_a() -> bool:
         print(f"  A3 REAL CRLF blob via git show -> {got_crlf}  want (3, 3)  ok={a3}")
         print(f"  A4 REAL LF   blob via git show -> {got_lf}  want (0, 3)  ok={a4}")
         ok = ok and a3 and a4
+
+        # A6 is PART C's parser control, relocated here on purpose. IMP-0017 pins
+        # *.ps1 eol=lf, so no path in THIS repo checks out CRLF anymore and a
+        # repo-side "0 *.ps1 read w/crlf" is POLICY, not a blind parser. This
+        # throwaway repo sets * -text and commits REAL CRLF bytes, so a healthy
+        # `git ls-files --eol` MUST report w/crlf for ctrl.ps1 through the exact
+        # parsing code PART C uses.
+        global EOL_PARSER_CONTROL_OK
+        eol_out = git_bytes(["git", "ls-files", "--eol"], tmp).decode("utf-8", "replace")
+        ps1_lines = [ln for ln in eol_out.splitlines() if ln.rstrip().endswith(".ps1")]
+        EOL_PARSER_CONTROL_OK = bool(ps1_lines) and any(" w/crlf" in ln for ln in ps1_lines)
+        print(
+            f"  A6 parser control: {len(ps1_lines)} *.ps1 in the throwaway repo, "
+            f"w/crlf seen={EOL_PARSER_CONTROL_OK}  ok={EOL_PARSER_CONTROL_OK}"
+        )
+        ok = ok and EOL_PARSER_CONTROL_OK
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -203,14 +224,15 @@ def part_c() -> tuple[int, int, int]:
         print(
             "  A5 skipped: no i/crlf blob in the index right now (A3 still carries it)"
         )
-    # Control: the detector must be able to SEE a crlf attribute somewhere, or a zero is
-    # just a broken parser.  *.ps1 is pinned eol=crlf in .gitattributes, so its WORKTREE
-    # column must read w/crlf even though its blob is LF.
+    # Info only since IMP-0017 (all-LF checkout policy): every *.ps1 checks out LF,
+    # so w_crlf == 0 here is POLICY, not a blind parser. The parser control itself
+    # lives in PART A (A6), where the throwaway repo commits real CRLF bytes under
+    # * -text and the same parsing code MUST see w/crlf.
     ps1 = [ln for ln in out.splitlines() if ln.rstrip().endswith(".ps1")]
     w_crlf = sum(1 for ln in ps1 if " w/crlf" in ln)
     print(
-        f"  control: {w_crlf}/{len(ps1)} *.ps1 read w/crlf in the WORKTREE column "
-        f"-> the parser can see crlf when it is there"
+        f"  info: {w_crlf}/{len(ps1)} *.ps1 read w/crlf (expected 0 since IMP-0017 "
+        f"all-LF; the parser control is A6 in PART A)"
     )
     return n_crlf, n_mixed, w_crlf
 
@@ -221,8 +243,8 @@ def main() -> int:
         return 1
     rows = part_b()
     n_crlf, n_mixed, w_crlf = part_c()
-    if w_crlf == 0:
-        print("FAILED:r4-eol part-C control never saw a crlf attribute")
+    if not EOL_PARSER_CONTROL_OK:
+        print("FAILED:r4-eol A6 parser control never saw a crlf attribute")
         return 1
     bad = [r for r in rows if r["hypothesis"] == "H1 CRLF-count"]
     print(

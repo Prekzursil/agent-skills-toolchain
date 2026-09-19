@@ -112,7 +112,11 @@ class Engine:
         best = ""
         for i in range(loc.count()):
             t = (loc.nth(i).inner_text() or "").strip()
-            if t and prompt[:40] not in t and t not in ("Thinking...", "Thinking", "Thought Process", "..."):
+            if (
+                t
+                and prompt[:40] not in t
+                and t not in ("Thinking...", "Thinking", "Thought Process", "...")
+            ):
                 best = t
         return best.replace("Thought Process\n\n", "", 1).strip()
 
@@ -191,14 +195,16 @@ class Engine:
         }
 
     def vision(self, prompt: str, image_path: str) -> dict:
-        import urllib.request as _u, urllib.error as _e
         with self.chat_lock:
             page = self.ensure()
             page.goto(BASE + "/", wait_until="domcontentloaded", timeout=45000)
             page.wait_for_timeout(1500)
             try:
-                for btn in page.locator("button[aria-label='Close'], button:has-text('Maybe Later')").all()[:2]:
-                    btn.click(timeout=1500); page.wait_for_timeout(300)
+                for btn in page.locator(
+                    "button[aria-label='Close'], button:has-text('Maybe Later')"
+                ).all()[:2]:
+                    btn.click(timeout=1500)
+                    page.wait_for_timeout(300)
             except Exception:
                 pass
             fi = page.locator("input[type='file']").first
@@ -226,15 +232,20 @@ class Engine:
             return {"ok": bool(last_txt), "reply": last_txt[:12000]}
 
     def cleanup(self) -> dict:
-        import urllib.request as _u, urllib.error as _e
+        import urllib.error as _e
+        import urllib.request as _u
+
         tok = ""
         if SESSION_FILE.exists():
             tok = json.loads(SESSION_FILE.read_text(encoding="utf-8")).get("token", "")
         results = {}
         for ref, cid in list(self.chats.items()):
             try:
-                r = _u.Request(f"{BASE}/api/v1/chats/{cid}", method="DELETE",
-                               headers={"Authorization": "Bearer " + tok})
+                r = _u.Request(
+                    f"{BASE}/api/v1/chats/{cid}",
+                    method="DELETE",
+                    headers={"Authorization": "Bearer " + tok},
+                )
                 with _u.urlopen(r, timeout=20) as resp:
                     results[ref] = resp.status
             except _e.HTTPError as e:
@@ -402,13 +413,39 @@ def run_mcp_stdio():
                         }
                     )
                 elif name == "glm_vision":
-                    out = ENGINE.vision(str(args.get("prompt", "")), str(args.get("image_path", "")))
-                    send({"jsonrpc": "2.0", "id": mid, "result": {
-                        "content": [{"type": "text", "text": out.get("reply") or json.dumps(out)}],
-                        "isError": not out.get("ok")}})
+                    out = ENGINE.vision(
+                        str(args.get("prompt", "")), str(args.get("image_path", ""))
+                    )
+                    send(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": mid,
+                            "result": {
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": out.get("reply") or json.dumps(out),
+                                    }
+                                ],
+                                "isError": not out.get("ok"),
+                            },
+                        }
+                    )
                 elif name == "glm_cleanup":
-                    send({"jsonrpc": "2.0", "id": mid, "result": {
-                        "content": [{"type": "text", "text": json.dumps(ENGINE.cleanup())}]}})
+                    send(
+                        {
+                            "jsonrpc": "2.0",
+                            "id": mid,
+                            "result": {
+                                "content": [
+                                    {
+                                        "type": "text",
+                                        "text": json.dumps(ENGINE.cleanup()),
+                                    }
+                                ]
+                            },
+                        }
+                    )
                 elif name == "glm_conversations":
                     send(
                         {
