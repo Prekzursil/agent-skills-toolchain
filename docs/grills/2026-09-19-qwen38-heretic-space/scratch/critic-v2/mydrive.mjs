@@ -52,9 +52,10 @@ function fullPlan() {
     card('platform-08a-worker-pure', ['platform-03a-types-fake'], ['worker/encode.py']),
     card('platform-08b-worker-backend', ['platform-08a-worker-pure', 'platform-04-streamparser'], ['worker/app.py']),
     card('product-13a-catalog', ['platform-03b-thin-slice'], ['core/catalog.py']),
-    card('product-13b-personas-readme', ['platform-05b-agent-session', 'product-13a-catalog'], ['core/personas.py'])]
+    card('product-13b-personas-readme', ['platform-05b-agent-session', 'product-13a-catalog'], ['core/personas.py']),
+    card('platform-14-promotion-ci', ['platform-08b-worker-backend'], ['tools/promote.py'])]
 }
-const N_CARDS = 11
+const N_CARDS = 12
 
 function makeHarness(scn, args) {
   const calls = [], logs = [], batches = []
@@ -147,7 +148,7 @@ const findCall = (r, re) => r.calls.find(c => re.test(c.label))
 // M2 RECEIPT_RE probe — verifier notes "will report back when done" (a remaining RECEIPT_RE alternative)
 {
   const st = state(fullPlan())
-  const r = await runScenario('M2 receipt-shaped notes', baseArgs(), { reply: ctx => { const x = happy(ctx, st); if (ctx.role === 'verifier' && ctx.mode === 'verify' && x && x.notes !== undefined) { x.notes = 'will report back when the run ends'; } return x } })
+  const r = await runScenario('M2 receipt-shaped notes', baseArgs(), { reply: ctx => { const x = happy(ctx, st); if (ctx.role === 'verifier' && ctx.mode === 'verify' && x) { x.strongest_disagreement = 'will report back when the run ends'; } return x } })
   // CODE behaviour: the return is nulled (receipt-shaped) -> card parks agent-null:verifier
   assert('M2 CODE: receipt-shaped verifier notes NULL the return -> parked agent-null:verifier', row(r, 'platform-01-gate') && /agent-null:verifier/.test(row(r, 'platform-01-gate').reason), JSON.stringify(rowsOf(r)))
   // PROSE (§9/§12.2/§12.7) says: "a receipt-shaped fragment is now only logged". Contradiction recorded as V-gap.
@@ -248,16 +249,16 @@ const findCall = (r, re) => r.calls.find(c => re.test(c.label))
 {
   const finding = { id: 'EV-1', title: 'canary failed 3/3', file: 'canary.json', severity: 'critical', kind: 'staging-evidence', reproduction: { command: 'jq .pass canary.json', exit_code: 1, output_tail: 'false' }, corrected_claim: 'canary fails', verification_level: 'staging-required' }
   const stS = state(fullPlan(), { mergedOnGit: fullPlan().map(c => c.id), evidenceFindings: () => [finding], refuteOverride: (ctx, s) => verdict('refute', ctx.id, s.head, 'holds', { findings: [Object.assign({}, finding)] }) })
-  const rS = await runScenario('M12 stage with failed canary', baseArgs({ stage: 'stage', integration_sha_at_launch: stS.head, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { staging_evidence_dir: '/g/ev', production_space_head: BASE }) }), { reply: ctx => happy(ctx, stS) })
+  const rS = await runScenario('M12 stage with failed canary', baseArgs({ stage: 'stage', integration_sha_at_launch: stS.head, last_clean_gate: { head_sha: stS.head, digest: HEX(4) }, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { staging_evidence_dir: '/g/ev', production_space_head: BASE }) }), { reply: ctx => happy(ctx, stS) })
   assert('M12 NO promote-production; stop blocked-on-owner:staging-evidence; not ready (C-6)', !rS.out.actions.some(a => a.kind === 'promote-production') && rS.out.stop_reason === 'blocked-on-owner:staging-evidence' && rS.out.status !== 'ready', JSON.stringify([rS.out.actions.map(a => a.kind), rS.out.stop_reason, rS.out.status]))
   assert('M12 stage stays stage (C-9)', rS.out.next_args.stage === 'stage')
   const stP = state(fullPlan(), { mergedOnGit: fullPlan().map(c => c.id), evidenceFindings: () => [finding], refuteOverride: (ctx, s) => verdict('refute', ctx.id, s.head, 'holds', { findings: [Object.assign({}, finding)] }) })
-  const rP = await runScenario('M12b promote with critical finding', baseArgs({ stage: 'promote', integration_sha_at_launch: stP.head, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { production_evidence_dir: '/g/ev' }) }), { reply: ctx => happy(ctx, stP) })
+  const rP = await runScenario('M12b promote with critical finding', baseArgs({ stage: 'promote', integration_sha_at_launch: stP.head, last_clean_gate: { head_sha: stP.head, digest: HEX(4) }, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { production_evidence_dir: '/g/ev' }) }), { reply: ctx => happy(ctx, stP) })
   assert('M12b rollback emitted with the finding id; stage pinned at promote (C-6/C-9)', rP.out.actions.some(a => a.kind === 'rollback' && JSON.stringify(a).includes('EV-1')) && rP.out.next_args.stage === 'promote' && rP.out.status !== 'ready', JSON.stringify([rP.out.actions.map(a => a.kind), rP.out.next_args.stage]))
   // medium/low accepted carve (Q10): accepted medium -> deferred, ready reachable
   const medFind = Object.assign({}, finding, { id: 'EV-2', severity: 'medium' })
   const stM = state(fullPlan(), { mergedOnGit: fullPlan().map(c => c.id), evidenceFindings: () => [medFind], refuteOverride: (ctx, s) => verdict('refute', ctx.id, s.head, 'holds', { findings: [Object.assign({}, medFind)] }) })
-  const rM = await runScenario('M12c accepted medium finding', baseArgs({ stage: 'stage', integration_sha_at_launch: stM.head, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { staging_evidence_dir: '/g/ev', production_space_head: BASE, accepted_findings: ['EV-2'] }) }), { reply: ctx => happy(ctx, stM) })
+  const rM = await runScenario('M12c accepted medium finding', baseArgs({ stage: 'stage', integration_sha_at_launch: stM.head, last_clean_gate: { head_sha: stM.head, digest: HEX(4) }, owner_approvals: Object.assign({}, baseArgs().owner_approvals, { staging_evidence_dir: '/g/ev', production_space_head: BASE, accepted_findings: ['EV-2'] }) }), { reply: ctx => happy(ctx, stM) })
   assert('M12c accepted medium/low finding deferred, NOT blocking; ready reachable (Q10/C-6)', rM.out.actions.some(a => a.kind === 'promote-production') && rM.out.status === 'ready', JSON.stringify([rM.out.actions.map(a => a.kind), rM.out.status, rM.out.stop_reason]))
 }
 
@@ -267,7 +268,7 @@ const findCall = (r, re) => r.calls.find(c => re.test(c.label))
   const r = await runScenario('M13 bogus already-merged', baseArgs({ integration_sha_at_launch: SHA(3) }), { reply: ctx => { const x = happy(ctx, st); if (ctx.role === 'integrator' && ctx.mode === 'merge' && /platform-02-pins/.test(ctx.label)) { Object.assign(x, { status: 'already-merged', head_sha: SHA(77), gate_exit_code: 1, cherry_unmerged: ['x'] }) } return x } })
   assert('M13 unevidenced already-merged -> blocked already-merged-unproven; head never jumps (C-20)', row(r, 'platform-02-pins') && /already-merged-unproven/.test(row(r, 'platform-02-pins').reason), JSON.stringify(rowsOf(r)))
   const st2 = state(fullPlan())
-  const r2 = await runScenario('M13b proven already-merged', baseArgs(), { reply: ctx => { const x = happy(ctx, st2); if (ctx.role === 'integrator' && ctx.mode === 'merge' && /platform-02-pins/.test(ctx.label)) { Object.assign(x, { status: 'already-merged', head_sha: st2.head, gate_digest: HEX(12), cherry_unmerged: [], patch_ids_missing: [] }) } return x } })
+  const r2 = await runScenario('M13b proven already-merged', baseArgs(), { reply: ctx => { const preHead = /is at ([0-9a-f]{40})/.exec(ctx.prompt); const x = happy(ctx, st2); if (ctx.role === 'integrator' && ctx.mode === 'merge' && /platform-02-pins/.test(ctx.label) && preHead) { Object.assign(x, { status: 'already-merged', head_sha: preHead[1], gate_digest: HEX(12), cherry_unmerged: [], patch_ids_missing: [] }) } return x } })
   assert('M13b evidenced already-merged counts as merged (C-20)', row(r2, 'platform-02-pins').state === 'merged+gate-green' && /already-merged\(proven\)/.test(row(r2, 'platform-02-pins').reason), JSON.stringify(rowsOf(r2)))
 }
 
@@ -319,7 +320,8 @@ const findCall = (r, re) => r.calls.find(c => re.test(c.label))
 // M18 synthesizer after budget-ceiling HALT (C-7/CG-20)
 {
   const st = state(fullPlan())
-  const r = await runScenario('M18 agent throws budget ceiling', baseArgs(), { throwOn: l => l.startsWith('builder:build:platform-02-pins'), throwMsg: 'budget ceiling exceeded' })
+  const st18 = state(fullPlan())
+  const r = await runScenario('M18 agent throws budget ceiling', baseArgs(), { reply: ctx => happy(ctx, st18), throwOn: l => l.startsWith('builder:build:platform-02-pins'), throwMsg: 'budget ceiling exceeded' })
   assert('M18 HALT budget-exhausted, synthesizer still ran, no retry fan-out', /budget-exhausted/.test(String(r.out.halt)) && findCall(r, /^synthesizer:synth:/) && r.calls.filter(c => c.label.includes('retry')).length === 0, JSON.stringify([r.out.halt, labels(r).slice(-3)]))
 }
 

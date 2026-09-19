@@ -8,12 +8,19 @@ const GATE_SHA = HEX(7), BASE_SHA = HEX(8), BASE = SHA(1)
 const R = '/workspaces/space-build', WT = R + '-wt'
 const COMMON = { repo_toplevel: WT + '/x', git_common_dir: R + '/.git', outward_actions_taken: [], installed_packages: [], notes: 'ok' }
 
+// the SCRIPT's own MANIFEST_MIN (§13) — the plan must cover it exactly (C-14)
 const MANIFEST_MIN = {
-  'platform-01-gate': ['tools/gate.sh', 'tools/gate.pin', 'tools/baseline.json', 'tests/protected.txt', 'tests/test_constants_pin.py', 'config.py', 'tests/journeys/conftest.py', 'tools/make_boundary_fixture.py'],
-  'platform-03a-types-fake': ['core/types.py', 'core/engine.py', 'backends/fake.py'],
-  'platform-03b-thin-slice': ['api/app.py', 'app.py', 'build_info.json'],
-  'platform-04-streamparser': ['core/parsing.py'],
+  'platform-01-gate': ['tools/gate.sh', 'tools/gate.pin', 'tools/baseline.json', 'tools/baseline.pin', 'tests/protected.txt', 'tests/test_constants_pin.py', 'tests/test_import_contract.py', 'tests/fixtures/gate/false-claim.patch', 'tests/fixtures/gate/false-claim-target.txt', 'tests/journeys/conftest.py', 'tools/make_boundary_fixture.py', 'tools/stubs/torch/__init__.py', 'tools/stubs/transformers/__init__.py', 'tools/stubs/spaces/__init__.py', 'config.py', 'ruff.toml', 'pytest.ini', '.gitattributes', '.editorconfig', '.gitignore'],
+  'platform-03a-types-fake': ['core/types.py', 'core/engine.py', 'backends/base.py', 'backends/fake.py', 'tools/record_fixture.py', 'tests/conformance/conftest.py'],
+  'platform-03b-thin-slice': ['app.py', 'api/app.py', 'backends/hosted.py', 'models.yaml', 'build_info.json'],
+  'platform-04-streamparser': ['core/parsing.py', 'core/events.py'],
+  'platform-05a-registry': ['core/tools/registry.py', 'tests/test_python_eval_surfaces.py'],
+  'platform-05b-agent-session': ['core/agent.py', 'core/session.py'],
+  'platform-08a-worker-pure': ['worker/encode.py', 'worker/lease.py'],
+  'platform-08b-worker-backend': ['worker/app.py', 'backends/worker.py'],
+  'product-13a-catalog': ['tools/render_readme.py', 'core/catalog.py', 'tests/test_catalog_policy.py', 'evidence/catalog/README.md'],
   'product-13b-personas-readme': ['core/personas.py', 'tests/test_personas.py', 'tests/fixtures/persona_boundary.json'],
+  'platform-14-promotion-ci': ['.github/workflows/gate.yml', '.github/workflows/deploy-staging.yml', '.github/workflows/promote.yml', '.github/workflows/health.yml', 'tools/promote.py', 'tools/expected.py'],
 }
 const DEC5 = ['G-1', 'G-3', 'G-2', 'M-5', 'G-15+G-24'].map(id => ({ id, decided_value: 'x', against_recommendation: true, consequences: [], dq_line: 85 }))
 
@@ -33,15 +40,22 @@ function card(id, deps, files, extra) {
   return Object.assign({ id, path: 'plan/cards/' + id + '.json', step: 1, depends_on: deps, files_allowed: files, tests_allowed: [], new_modules: [], required_files: MANIFEST_MIN[id] || [], deps_allowed: [], xfail_allowed: [], expected_green_tests: [], tests_removed_expected: 0, est_lines: 100, est_minutes: 20,
     dod: [{ id: 'D1', command: 'pytest tests/unit/t.py', expect: 'exit0', verification_level: 'local-stub' }], size: 'S', risk: 'none', protected_touch: id === 'platform-01-gate', bootstrap: false, decision_ids: [], finding_ids: [], apis_expected: [], owner_precondition: pre }, extra || {})
 }
-// 6-card plan: 01 -> {02, 03a} -> 03b -> 04 ; 13b depends on 04
+// 11-card plan covering the script's MANIFEST_MIN (02-pins is the extra non-manifest card)
 function fullPlan() {
   return [card('platform-01-gate', [], ['tools/gate.sh']),
     card('platform-02-pins', ['platform-01-gate'], ['core/prompting.py']),
     card('platform-03a-types-fake', ['platform-01-gate'], ['core/types.py']),
     card('platform-03b-thin-slice', ['platform-03a-types-fake'], ['api/app.py']),
     card('platform-04-streamparser', ['platform-03b-thin-slice'], ['core/parsing.py']),
-    card('product-13b-personas-readme', ['platform-04-streamparser'], ['core/personas.py'])]
+    card('platform-05a-registry', ['platform-04-streamparser'], ['core/tools/registry.py']),
+    card('platform-05b-agent-session', ['platform-05a-registry'], ['core/agent.py']),
+    card('platform-08a-worker-pure', ['platform-03a-types-fake'], ['worker/encode.py']),
+    card('platform-08b-worker-backend', ['platform-08a-worker-pure', 'platform-04-streamparser'], ['worker/app.py']),
+    card('product-13a-catalog', ['platform-03b-thin-slice'], ['core/catalog.py']),
+    card('product-13b-personas-readme', ['platform-05b-agent-session', 'product-13a-catalog'], ['core/personas.py']),
+    card('platform-14-promotion-ci', ['platform-08b-worker-backend'], ['tools/promote.py'])]
 }
+const N_CARDS = 12
 
 function makeHarness(scn, args) {
   const calls = [], logs = [], batches = []
