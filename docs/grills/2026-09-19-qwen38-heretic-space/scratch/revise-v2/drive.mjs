@@ -21,6 +21,7 @@ const MANIFEST_MIN = {
   'platform-14-promotion-ci': ['.github/workflows/gate.yml', '.github/workflows/deploy-staging.yml', '.github/workflows/promote.yml', '.github/workflows/health.yml', 'tools/promote.py', 'tools/expected.py'],
 }
 const OA_HAPPY = { github_repo_url: null, staging_space_ids: [], fixture1_path: '/owner/fixture1.json', persona_boundary_fixture_path: '/owner/pb.json', persona_boundary_fixture_sha256: HEX(11), worker_checkpoint_decision: { candidate: 'x', needs_export: false } }
+const DEC5 = ['G-1', 'G-3', 'G-2', 'M-5', 'G-15+G-24'].map(id => ({ id, decided_value: 'x', against_recommendation: true, consequences: [], dq_line: 85 }))   // checkPlan (C-19/F-9) requires these five rows — a valid plan carries them
 function baseArgs(extra) {
   return Object.assign({
     stage: 'build', run_nonce: 'r1a', launched_at: '2026-09-19T00:00:00Z', cap: 2, wave_size: 2,
@@ -70,7 +71,7 @@ function happy(ctx, st) {
   const { role, mode, id } = ctx
   const cid = id.replace(/:.*$/, '')
   if (role === 'integrator' && mode === 'setup') return Object.assign({ status: 'SUCCESS', venv_python: '3.12.3', nproc: 4, base_sha_ok: true, gate_sha256: GATE_SHA, baseline_sha256: BASE_SHA, baseline_collected: 73, baseline_skipped: 0, red_proof: { broken_red: true, false_claim_red: 'fixture-not-yet-delivered', digest: HEX(1) }, integration_head_live: st.head, plan_merged: true, branch_heads: [], merged_on_integration: st.mergedOnGit || [], remotes: [], prior_rows: st.priorRows || [], seen_keys: st.seenKeys || [], toolchain_status_sha256: HEX(9), worktrees_pruned: 0 }, st.setupOverride || {})
-  if (role === 'verifier' && mode === 'index') return { status: 'SUCCESS', plan_sha: SHA(2), decisions_path: 'plan/decisions.json', api_ledger_path: 'plan/api-ledger.json', preverified_path: 'plan/preverified.json', decisions: [], preverified: st.preverified || [], cards: st.cards, unmapped_finding_ids: [] }
+  if (role === 'verifier' && mode === 'index') return { status: 'SUCCESS', plan_sha: SHA(2), decisions_path: 'plan/decisions.json', api_ledger_path: 'plan/api-ledger.json', preverified_path: 'plan/preverified.json', decisions: DEC5, preverified: st.preverified || [], cards: st.cards, unmapped_finding_ids: [] }
   if (role === 'author' && mode === 'tests') return { status: 'SUCCESS', card_id: cid, branch: 'tests/' + cid + '-r1a', base_sha: st.head, tests_head: SHA(10 + st.seq(cid, 'tests')), test_paths: ['tests/unit/test_' + cid + '.py'], commits_made: 1, red_command: 'gate.sh --only-tests', red_exit_code: 1, red_excerpt: 'FAILED', gate_digest: HEX(2), known_bads_xfail: [], mutants_suggested: [] }
   if (role === 'author' && mode === 'journeys') return { status: 'SUCCESS', card_id: 'journeys', branch: 'task/journeys', base_sha: st.head, tests_head: SHA(70 + (st.j = (st.j || 0) + 1)), test_paths: ['tests/journeys/test_h.py'], commits_made: 1, red_command: 'x', red_exit_code: 0, red_excerpt: '', gate_digest: HEX(2) }
   if (role === 'verifier' && mode === 'red') { const th = /at ([0-9a-f]{40})\./.exec(ctx.prompt); return verdict('red', cid, th ? th[1] : SHA(0), 'pass', { gate_digest: HEX(2) }) }
@@ -88,7 +89,7 @@ function happy(ctx, st) {
   if (role === 'verifier' && mode === 'preverify') return verdict('preverify', id, BASE, 'refuted', { findings: [{ id, title: 't', file: 'f', severity: 'low', kind: 'correctness', reproduction: { command: 'c', exit_code: 1, output_tail: '' }, corrected_claim: 'nope', verification_level: 'local-mechanical' }] })
   if (role === 'planner' && mode === 'apiledger') return verdict('plan', 'ledger', SHA(2), 'pass', {})
   if (role === 'verifier' && mode === 'catalog') return verdict('catalog', 'cat', 'none', 'pass', { findings: [] })
-  if (role === 'planner' && mode === 'plan') return { status: 'SUCCESS', plan_sha: SHA(2), decisions_path: 'p', api_ledger_path: 'p', preverified_path: 'p', decisions: [{ id: 'G-1', decided_value: 'x', against_recommendation: true, consequences: [], dq_line: 85 }], preverified: [], cards: st.cards, unmapped_finding_ids: [] }
+  if (role === 'planner' && mode === 'plan') return { status: 'SUCCESS', plan_sha: SHA(2), decisions_path: 'p', api_ledger_path: 'p', preverified_path: 'p', decisions: DEC5, preverified: [], cards: st.cards, unmapped_finding_ids: [] }
   if (role === 'verifier' && mode === 'plan') return verdict('plan', 'index', SHA(2), 'pass', {})
   return null
 }
@@ -119,7 +120,7 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
   assert('S1 all cards merged', mergedCount(r) === N_CARDS, JSON.stringify(rowsOf(r)))
   assert('S1 checkpoint status ready [flipped: the critic marked its own "blocked" expectation as a mistake; C1 actions are actions, not blockers]', r.out && r.out.status === 'ready', r.out && r.out.status)
   assert('S1 stop_reason satisfied', r.out && r.out.stop_reason === 'satisfied', r.out && r.out.stop_reason)
-  assert('S1 wave 1 = [01] alone, wave 2 = [02, 03a]', JSON.stringify(r.batches.slice(0, 2)) === JSON.stringify([['platform-01-gate'], ['platform-02-pins', 'platform-03a-types-fake']]), JSON.stringify(r.batches.slice(0, 3)))
+  assert('S1 wave 1 = [01] alone, wave 2 = [03a, 02] by rank desc (C-24: 03a carries the deeper dependents) [corrected, not a flip: my first draft wrote the critic\'s id order, which is not the rank order]', JSON.stringify(r.batches.slice(0, 2)) === JSON.stringify([['platform-01-gate'], ['platform-03a-types-fake', 'platform-02-pins']]), JSON.stringify(r.batches.slice(0, 3)))
   const labels = r.calls.map(c => c.label); assert('S1 labels unique', new Set(labels).size === labels.length)
   assert('S1 every agent call has phase+schema', r.calls.every(c => c.opts && c.opts.phase && c.opts.schema))
   const vp = r.calls.find(c => c.label.startsWith('verifier:verify:')).prompt

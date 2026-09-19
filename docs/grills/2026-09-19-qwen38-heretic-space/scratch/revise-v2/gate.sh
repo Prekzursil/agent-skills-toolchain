@@ -380,10 +380,11 @@ changed = git("diff", "--name-only", f"{base}..HEAD").split()
 added = git("diff", "--name-only", "--diff-filter=A", f"{base}..HEAD").split()
 prot = [l.strip() for l in pathlib.Path("tests/protected.txt").read_text().splitlines() if l.strip()] if pathlib.Path("tests/protected.txt").exists() else []
 allowed = set(card.get("files_allowed", [])) | set(card.get("new_modules", []))
+req = set(card.get("new_modules", [])) | set(card.get("required_files", []))   # C-21: a card OWNS a protected path its manifest must deliver; platform-01-gate owns the rest via protected_touch
 bad = []
 for f in changed:
     if f.startswith("plan/") and not f.startswith("plan/status/"): bad.append(f"plan/ is immutable during a run (plan/fixes/ is written only by the integrator, outside any card range): {f}")
-    elif f in prot and not card.get("protected_touch"): bad.append(f"protected file touched: {f}")
+    elif f in prot and not (card.get("protected_touch") or f in req): bad.append(f"protected file touched outside its owner card: {f}")
     elif f not in allowed and not (f in added and f.startswith("tests/unit/")): bad.append(f"outside files_allowed: {f}")
 for f in changed:
     if not f.endswith(".py") or not pathlib.Path(f).exists(): continue
