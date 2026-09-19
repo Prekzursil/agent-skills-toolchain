@@ -42,7 +42,10 @@ def api(path: str) -> object:
     tok = os.environ["RUNNER_PAT"]
     req = urllib.request.Request(
         f"https://api.github.com/{path}",
-        headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"},
+        headers={
+            "Authorization": f"Bearer {tok}",
+            "Accept": "application/vnd.github+json",
+        },
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return json.loads(resp.read())
@@ -63,7 +66,9 @@ def checks(sha: str) -> list[dict]:
 
 
 def main() -> int:
-    playbook = json.loads((ROOT / "command-center/p2-loop/FIXPLAYBOOK.json").read_text())
+    playbook = json.loads(
+        (ROOT / "command-center/p2-loop/FIXPLAYBOOK.json").read_text()
+    )
     for it in range(1, MAX_ITER + 1):
         sha = run(["git", "rev-parse", "HEAD"])[1].strip()
         # wait for terminal
@@ -75,39 +80,58 @@ def main() -> int:
         cs = checks(sha)
         failing = [c["name"] for c in cs if c["conclusion"] == "failure"]
         pending = [c["name"] for c in cs if c["status"] != "completed"]
-        print(f"[iter {it}] head={sha[:9]} failing={failing} pending={len(pending)}", flush=True)
+        print(
+            f"[iter {it}] head={sha[:9]} failing={failing} pending={len(pending)}",
+            flush=True,
+        )
         if not failing and not pending:
             print(f"SUCCESS:p2-cloud-loop all gates green at {sha[:9]}")
             return 0
         fixed_any = False
         unresolved: list[str] = []
         for gate in failing:
-            recipe = playbook.get(gate)
-            if not recipe:
+            if gate in playbook.get("owner_action_gates", {}):
+                unresolved.append(
+                    f"{gate}: OWNER ACTION ({playbook['owner_action_gates'][gate][:120]})"
+                )
+                continue
+            if gate not in playbook.get("routing", {}):
                 unresolved.append(f"{gate}: no playbook recipe")
                 continue
-            if recipe.get("owner_action"):
-                unresolved.append(f"{gate}: OWNER ACTION ({recipe['why']})")
-                continue
-            rc, out = run(["bash", "-lc", recipe["fix"]])
+            rc, out = run(
+                ["python", "command-center/p2-loop/apply_recipe.py", gate]
+            )
             print(f"[fix {gate}] rc={rc}\n{out[-1500:]}", flush=True)
-            if rc != 0:
-                unresolved.append(f"{gate}: fix rc={rc}")
+            if rc == 3:
+                unresolved.append(f"{gate}: UNRESOLVED signature (see log above)")
                 run(["git", "reset", "--hard", "HEAD"])
                 continue
-            msg = recipe.get("message", f"fix(p2-cloud): {gate} per playbook")
-            rc1, _ = run(["git", "add", "-A"])
-            rc2, _ = run(["git", "commit", "-m", msg])
+            if rc != 0:
+                unresolved.append(f"{gate}: recipe rc={rc}")
+                run(["git", "reset", "--hard", "HEAD"])
+                continue
+            run(["git", "add", "-A"])
+            rc2, _ = run(
+                ["git", "commit", "-m", f"fix(p2-cloud): {gate} per playbook recipe"]
+            )
             if rc2 == 0:
-                rc3, out3 = run(["git", "push", f"https://x-access-token:{os.environ['RUNNER_PAT']}@github.com/{REPO}.git", f"HEAD:{BRANCH}"])
+                rc3, out3 = run(
+                    [
+                        "git",
+                        "push",
+                        f"https://x-access-token:{os.environ['RUNNER_PAT']}@github.com/{REPO}.git",
+                        f"HEAD:{BRANCH}",
+                    ]
+                )
                 if rc3 == 0:
                     fixed_any = True
                     print(f"[push] {gate} fix pushed", flush=True)
                 else:
                     unresolved.append(f"{gate}: push failed {out3[-200:]}")
             else:
-                # nothing to commit -> recipe says green-by-regen already clean
-                fixed_any = fixed_any or recipe.get("recheck_without_push", False)
+                # recipe verified green and the tree is already clean: next
+                # iteration re-checks the same head; treat as progress
+                fixed_any = True
         if unresolved and not fixed_any:
             print("FAILED:p2-cloud-loop unresolved: " + "; ".join(unresolved))
             return 1
