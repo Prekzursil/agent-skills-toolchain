@@ -512,3 +512,8 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   need `LocalContext.request.set(gr.Request(fastapi_request))` before the first yield); **BROKE** `spaces.GPU(gpu_size=…)` silently
   swallowed by `**kwargs: Unpack[EmptyKwargs]` — size only via the decorator's `size=` param; plus duration_factor 1.5 on Blackwell
   and >42 GiB models auto-flipping to xlarge. All three grounding agents complete; card drafting begins.
+- R0 critique: **critic-1 (completeness/decisions): needs-repair** — 3 blocking (c01 missing maintenance/ in its write_set while its
+  DoD deletes it; c03's expected_green_tests name tests the card itself creates → confirm-RED unclosable; c17 cites decision ids
+  never transcribed into decisions.json) · 2 major (c21 undeclared protected writes; c10-d3's total continue_final_message ban
+  stricter than CLAR-2 and undeclared) · 10 minor. Mechanical backbone confirmed sound: corrected_text 0 mismatches, DAG/waves/
+  tallies clean, deferred DoDs honestly annotated. Bounded repair runs after critic-2 (feasibility) lands, closing both lists at once.
