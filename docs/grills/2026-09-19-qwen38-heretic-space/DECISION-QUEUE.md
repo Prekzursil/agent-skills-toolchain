@@ -430,3 +430,14 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1â
   external `gate.sh` copy unpinned; structured returns not secret-scanned before entering prompts; persona history reachable via
   `git show`; outward-action detection by self-report only; `/healthz` git-sha source inside a Space; one-scoped-token decision vs
   two backends; `presence_penalty` fate; fixture #1 as a merge precondition; `admission: pending` catalog policy; VLM-class export job.
+
+## Session state note (2026-09-19 ~06:02Z, after restart)
+- The weekly model limit killed the v2 reviser mid-run; session restarted (now on glm-5.3 max effort; claude.ai MCP connectors
+  disconnected). The reviser's transcript survived in full and has been resumed; it was told its scratch (assembled v2 script, gate,
+  drive, schema checks â€” and the critic's drive) was lost with the volatile scratchpad and must be recreated under
+  `scratch/revise-v2/` in this folder, which the auto-sync loop now versions.
+- Auto-sync loop restarted after the restart (`save-to-repo.sh`); PR #336 stays current.
+- Also lost with the scratchpad (to recreate during build setup, as the design already specifies): the pinned gradio/spaces/
+  transformers wheels under `libsrc/`, the Space clones (`space-src` @17dce0c, `space-latest` @f88b120), and the local test venv.
+  Re-clone/re-download to a durable path before the build runs; the Space HEAD must be re-checked before anything is planned
+  against it (it was changing minute to minute on 2026-09-18/19).
