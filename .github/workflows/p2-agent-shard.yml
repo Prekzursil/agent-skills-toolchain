@@ -20,6 +20,9 @@ on:
       model:
         description: "GLM model slug"
         default: "glm-4.6"
+      backend:
+        description: "agent backend: glm | claude"
+        default: "glm"
       budget_min:
         description: "agent minutes per run"
         default: "270"
@@ -70,14 +73,23 @@ jobs:
             python command-center/p2-loop/apply_recipe.py "$GATE" || true
           done
           git add -A; git commit -m "chore(p2-shard0): mechanical recipes pre-batch" || echo "nothing to pre-fix"
-      - name: pick a healthy Z.AI plan key
-        if: steps.goal0.outputs.p2_done != 'true'
+      - name: pick a healthy Z.AI plan key (glm backend only)
+        if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'glm'
         env:
           ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
           ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
         run: python tools/zai/zai_failover_runner.py
-      - name: GLM agent batch (shard ${{ inputs.shard }}/${{ inputs.shards }})
-        if: steps.goal0.outputs.p2_done != 'true'
+      - name: claude backend setup (install + credentials)
+        if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'claude'
+        env:
+          CLAUDE_CREDENTIALS: ${{ secrets.CLAUDE_CREDENTIALS }}
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          mkdir -p ~/.claude && printf '%s' "$CLAUDE_CREDENTIALS" > ~/.claude/.credentials.json
+          chmod 600 ~/.claude/.credentials.json
+          claude --version
+      - name: agent batch — backend ${{ inputs.backend }} (shard ${{ inputs.shard }}/${{ inputs.shards }})
+        if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'glm'
         env:
           ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
           ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
@@ -91,6 +103,25 @@ jobs:
             --model "$GLM_MODEL" \
             --shard "${{ inputs.shard }}" \
             --shards "${{ inputs.shards }}"
+      - name: agent batch — backend claude (shard ${{ inputs.shard }}/${{ inputs.shards }})
+        if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'claude'
+        run: |
+          git config user.name "p2-shard${{ inputs.shard }}-runner" || true
+          git config user.email "p2-shard${{ inputs.shard }}-runner@users.noreply.github.com" || true
+          python - > /tmp/prompt.txt <<'PY'
+          import json, subprocess, sys
+          from pathlib import Path
+          contract = Path("command-center/p2-loop/agent_contract.md").read_text(encoding="utf-8")
+          goal = subprocess.run([sys.executable, "command-center/p2-loop/p2_goal.py"], capture_output=True, text=True).stdout
+          cat = json.loads(Path("command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
+          unbuilt = sorted(u["id"] for u in cat["work_units"])
+          SHARD, SHARDS = int(sys.argv[1]), int(sys.argv[2])
+          mine = [uid for i, uid in enumerate(unbuilt) if i % SHARDS == SHARD]
+          print(contract)
+          print(f"\n\n## SHARD ASSIGNMENT (shard {SHARD} of {SHARDS})\nYou MUST only deliver/review units from this list ({len(mine)} units):\n" + ", ".join(mine[:400]) + "\nUnits outside this list belong to sibling shards; do not touch them.")
+          print("\n## Goal function output right now\n```json\n" + goal + "\n```\nWork within this repo root. NEVER run git write commands (the runner commits for you). End with your structured report.")
+          PY
+          timeout 280 claude -p "$(cat /tmp/prompt.txt)" --dangerously-skip-permissions --max-turns 150 2>&1 | tail -60
       - name: commit + push with rebase-retry (concurrent shards share the branch)
         if: steps.goal0.outputs.p2_done != 'true'
         env:
@@ -119,10 +150,11 @@ jobs:
             curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
               https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/pr-reconcile.yml/dispatches -d '{"ref":"main"}'
           else
-            echo "re-arming all $SHARDS shards"
+            echo "re-arming all $SHARDS shards (0-2 glm, 3+ claude)"
             for S in $(seq 0 $((SHARDS-1))); do
+              BACKEND=$([ "$S" -ge 3 ] && echo claude || echo glm)
               curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
                 https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/p2-agent-shard.yml/dispatches \
-                -d "{\"ref\":\"main\",\"inputs\":{\"shard\":\"$S\",\"shards\":\"$SHARDS\"}}"
+                -d "{\"ref\":\"main\",\"inputs\":{\"shard\":\"$S\",\"shards\":\"$SHARDS\",\"backend\":\"$BACKEND\"}}"
             done
           fi
