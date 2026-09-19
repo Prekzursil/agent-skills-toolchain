@@ -390,3 +390,24 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   through the router with a tool and thinking on, recorded as fixture #1, decides whether the provider returns structured
   `tool_calls`/`reasoning_content` or raw markup, i.e. where the parser lives; it becomes the first case of the conformance suite every
   backend (fake, hosted, worker) must pass.
+
+## Orchestration research index (deep-think before authoring the implementation workflow; all in `evidence/orchestration/`)
+| File | What | Size |
+|---|---|---|
+| `WORKFLOW_TOOL_REFERENCE.md` | Workflow tool contract + empirical notes from this session | reference |
+| `research-1-doctrine.md` | owner's skills doctrine: 30 principles D-1..D-30, 17 anti-patterns, 9 conflict resolutions, **20 candidate skill upgrades** (input to the gem-hunt PR) | 325 lines |
+| `research-2-tool-native.md` | Workflow-tool-native architecture: 25 principles T-1..T-25, 12 anti-patterns, full JS skeletons, FIFO scheduling data (cap-14 projection ≈ 26 min vs 52.5 min for the review run) | 689 lines |
+| `research-3-external-sota.md` | external SOTA via web search: 25 principles S-1..S-25, 14 anti-patterns, 55 sources | — |
+| `research-3-external-sota-DEEP.md` | external SOTA via the `deep-research` skill harness (Exa/Consensus/Context7/HF docs; Firecrawl/Tavily unavailable here): 22 principles, 12 anti-patterns, 88 graded sources | 92 KB |
+| `research-4-red-team.md` | 47 failure modes F-1..F-47 with detection / guard / where; testability table; `gate.sh` spec; 8 script-level invariants | — |
+| `DESIGN_BRIEF.md` | shared brief for the judge panel: inputs, non-negotiables, the 15 required sections | 42 lines |
+| `design-A1-reliability-first.md`, `design-A2-throughput-first.md`, `design-A3-minimal-scaffold.md` | three independent designs (in progress) → judged → synthesized → critiqued → `design-v2-final.md` | pending |
+- Security note from research-2: the review workflow's trigger message (the owner's first message, which contained a pasted
+  credential) was relayed verbatim to its 11 subagents and is present in their local transcripts under `~/.claude/projects/`.
+  Nothing was pushed; the credential must be revoked (already advised). Rule adopted for every later run: **the launch message of a
+  workflow must never contain a secret** (T-2 / S-21).
+- Cross-lens convergence worth noting (highest confidence): test author ≠ implementer with an oracle lock (D-6/D-15, T-6, S-4/S-5,
+  DEEP S-3/S-5, F-18); refute-first with mandatory reproduction and default-refuted schema (D-16, S-11, DEEP S-8, F-12); deterministic
+  gates decide, LLM judges only veto (D-24, S-17, DEEP S-9); bounded loops with typed `blocked` and dry counters (D-23, T-4/T-5,
+  S-16, DEEP S-14, F-27); claims reconciled against the diff (D-17, S-20, DEEP S-20, F-19); owner checkpoints between runs for every
+  outward action (D-28, T-1, S-19, DEEP S-19, F-35); replay-safe pure-function prompts pinned to a SHA (T-13/T-14, S-18, DEEP S-17/S-18, F-43).
