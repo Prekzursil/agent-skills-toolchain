@@ -148,4 +148,352 @@ LENS-4 §D is the seed; six area authors produce cards; the card critic and thre
 ### 4.6 Held-out compositional seams (authored from the spec, hidden from implementers)
 H1 tool loop × streaming × Continue (turn 2 contains turn 1's tool results; `finish_reason:'length'` → Continue resumes at token level); H2 `/v1` × identity (`x-ip-token` bound inside the generator body; 429 on the non-blocking semaphore); H3 MCP `ask → poll → status → preflight` with `chat` hidden; H4 `python_eval` × operator flag × every surface (UI checkbox alone cannot enable it; unreachable over `/v1` and MCP); H5 catalog admission × `models.yaml` schema × harness zero-call; H6 session isolation × TTL sweep × no rmtree on unload; H7 error taxonomy (quota/illegal-duration/abort) → titled notice in UI, `{"error":…}` event on `/v1`, partial text kept. Each is applied by the verifier and by the integration tester exactly like SWE-bench applies gold tests (checkout of the oracle paths from the held-out bundle before `pytest`).
 
+---
+
+## 5. Inner loop per card — exact counters and exit conditions
+
+Constants (from `args`, with defaults): `MAX_FIX = 3` (verify→fix attempts), `MAX_AUDIT_FIX = 2`, `MAX_CRITIC_FIX = 1`, `MAX_NULL_RETRY = 1` (one narrower retry; then park), `MAX_REDECOMPOSE = 1` per card, `MAX_TAMPER = 1` (one tamper finding → fixer; a second → `blocked:'tamper'`). Every counter is per card and lives in the returned result object (replay-safe: derived from results, not closures).
+
+```
+S0  state probe          base sha exists; branch names free                                → else blocked:'stale-base'
+S1  test author  ‖ heldout author        (parallel thunks under settle(); both fresh)
+S2  red-confirmer        tests fail on base for the expected reason; collected>0          → else back to S1 once (fresh author), then blocked:'no-red'
+S3  implementer          worktree, commits ≥1, gate.sh digest, dod[] with exit codes       → null ⇒ retry once (narrower, model per C-F) ⇒ blocked:'impl-null'
+S4  verifier             re-run gate (digest equality), revert-proof, held-out, mutants,
+                         tamper scan, locked-path diff, claim-vs-diff, acceptance re-run   → pass | fail(evidence) | unverifiable
+S5  fix loop             attempt a=1..MAX_FIX; fingerprint fp(a) = fnv(sorted failing ids + first error line)
+                           a==2 && fp(2)==fp(1)  → pivot agent → fixer with chosen alternative
+                           a==3 && still failing → re-decomposer (once) → sub-cards into DAG, card closed as 'split'
+                           P2P regression detected by verifier → fixer prompt begins with `git revert <fix_sha>`
+                           tamper flagged → tamper judge → if confirmed: fixer (counts as a strike) / second time blocked:'tamper'
+S6  refuter panel ×3     each must cite an executed command; majority refuted ⇒ back to S5 with the refutation as evidence
+                         (a refuter-triggered fix consumes a MAX_FIX attempt; refuters re-run after every fix)
+S7  auditor              deviations critical/high or claim_vs_diff non-empty or scope violation ⇒ fixer (a ≤ MAX_AUDIT_FIX) then verifier again
+S8  critic               blocking (critical/high AND reproduced) ⇒ ONE fix pass ⇒ verifier again; residue → review round input
+S9  postcondition probe  artifacts exist, sentinel, anchors; state probe of head_sha
+S10 unitDone()           the ONLY exit to 'built'; else typed blocked with reason enum
+```
+
+Exit conditions (typed, never silent): `built` (all 12 predicate conditions true) · `blocked` with `reason ∈ {stale-base, no-red, impl-null, safeguard, oversize, fix-exhausted, tamper, audit-exhausted, critic-fix-failed, reverify-failed, unverifiable, budget, agent-cap, chain-threw}` · `split` (re-decomposed; sub-card ids listed). Each transition is `log()`ged with the reason and the attempt counters.
+
+The 12-condition `unitDone()` predicate (D-12; one shared JS reducer, §13): (1) bundle artifact exists and is non-empty (postcondition probe); (2) `head_sha` resolvable and branch points at it (state probe); (3) every stage returned `repo_toplevel === args.build_repo`; (4) `impl.gate_digest === verify.gate_digest` — two independent executions of `gate.sh` on the same sha produced the same deterministic digest; (5) gate ledger `head_sha === impl.head_sha`, all step exit codes 0, `pytest.collected ≥ baseline − tests_removed`; (6) every acceptance id has `exit_code 0` in `impl.dod` AND in `verify.acceptance_reruns`; (7) `red_proof.failed_for_expected_reason && verify.revert_proof.failed_when_reverted`; (8) `verify.mutants.killed ≥ verify.mutants.total` (every scripted mutant killed) AND `tamper.signals == 0` (or tamper judge cleared) AND `locked_paths_diff == []`; (9) held-out tests `passed` (or the card declares no seams); (10) refuter majority `refuted:false`, each survivor citing an executed command; (11) audit: no open critical/high deviation, `claim_vs_diff == []`, `scope_violations == []`; (12) no open reproduced blocking critic finding; `outward_actions_taken` and `installed_packages` empty on every stage. The narrator line prints the 12 booleans (`1✓2✓…8✗`) so a partial predicate is visible.
+
+---
+
+## 6. Outer loop per wave and for the whole tree
+
+Per wave (after serial integration): `integration tester` (fresh clone, full gate + conformance + journeys) → 5 reviewers (lenses: correctness · security-and-secrets · zerogpu-quota-and-cost · api-contract · tests-gate-and-claims) with `KNOWN` = sorted `seen` keys → dedup in JS (`fkey = file + '::' + normalised title`, vs `seen`, never vs `confirmed`; T/AP-5) → each fresh finding to 3 refuters (default refuted; executed evidence required) → survivors (≥2 of 3 not refuted) become `rf<round>-<id>` cards through the SAME inner loop and serial integration → judge panel ×3 (veto-only). Per-wave `MAX_WAVE_ROUNDS = 2`.
+
+For the whole tree (after the last wave): the same round with `MAX_TREE_ROUNDS = 4`. Stop conditions, evaluated in this order and each logged: (a) `verdict === 'satisfied'` — requires 3/3 judges not vetoing (not a majority: reliability-first), zero blocked cards, fresh-clone gate green, zero open reproduced blocking findings, every DoD row with two mechanically independent signals; (b) `round ≥ MAX_TREE_ROUNDS`; (c) `dry ≥ 2` where a round is dry iff it confirmed 0 findings AND changed 0 fingerprints — then ONE inversion scout runs with the list of every probe already used (forbidden to reuse); only if it returns 0 reproduced findings does the loop close as `converged`; (d) budget reserve: `budget.total && budget.remaining() < Math.max(RESERVE, 0.15 * budget.total)`; (e) agent-count reserve: `agentCount > 800` (lifetime cap 1000). A judge verdict `blocked-needs-owner` ends the loop immediately with the owner list. Judge dissent is logged verbatim; a 2/3 "satisfied" is recorded as `not-satisfied` with the dissent as the next round's first item (D-24/C-2).
+
+Overclaim termination (D-17): a finding of kind `overclaim` whose fixer disposition is `sentence_rewritten` with a scoped residual is closed, not re-opened; a `pushed_back` disposition goes to a resolver that reads both probes and names the winning probe (never averages); a finding id re-opened after a close goes to the arbiter (F-27).
+
+---
+
+## 7. Deterministic gates — `gate.sh` and where each runs
+
+`gate.sh` lives at `$DURABLE/gate.sh` (installed by `setup`, copied into the repo by card `c01c` as `tools/gate.sh`, listed in `tests/protected.txt`). It runs ONLY under the 3.12 venv, records every step, never stops at the first failure (so the ledger is complete), writes `.gate/last_run.json` (with a UTC timestamp) and `.gate/last_run.digest` (sha256 over the timestamp-free canonical part — two independent runs on the same sha must produce the same digest, which is condition 4 of `unitDone()`), and exits non-zero if any blocking step failed. Warnings (idiom lint) are recorded and must be cleared by a named reviewer in the card's audit.
+
+```bash
+#!/usr/bin/env bash
+# gate.sh — the only admissible evidence of verification (red-team §3, D-9, D-14, F-12, F-28).
+# Usage: gate.sh --tree <path> --base <sha> --mode worktree|merged|clean [--oracle <ref>] [--baseline <n>]
+set -u
+TREE=""; BASE=""; MODE="worktree"; ORACLE=""; BASELINE=""
+while [ $# -gt 0 ]; do case "$1" in
+  --tree) TREE="$2"; shift 2;; --base) BASE="$2"; shift 2;; --mode) MODE="$2"; shift 2;;
+  --oracle) ORACLE="$2"; shift 2;; --baseline) BASELINE="$2"; shift 2;; *) echo "unknown arg $1"; exit 64;; esac; done
+VENV="${VENV:?VENV required}"; PY="$VENV/bin/python"
+[ -d "$TREE/.git" ] || [ -f "$TREE/.git" ] || { echo "not a git tree: $TREE"; exit 65; }
+case "$("$PY" -V 2>&1)" in "Python 3.12."*) ;; *) echo "REFUSED: gate requires the 3.12 venv, got $("$PY" -V)"; exit 66;; esac
+HEAD_SHA="$(git -C "$TREE" rev-parse HEAD)"; mkdir -p "$TREE/.gate"; STEPS=(); FAIL=0; WARN=0
+step() { # name, blocking(1|0), cmd...
+  local name="$1" blocking="$2"; shift 2; local out rc
+  out="$("$@" 2>&1)"; rc=$?
+  printf '%s\n' "$out" > "$TREE/.gate/step-$name.log"
+  STEPS+=("{\"name\":\"$name\",\"exit_code\":$rc,\"blocking\":$blocking,\"summary\":$(printf '%s' "$out" | tail -n 5 | "$PY" -c 'import json,sys;print(json.dumps(sys.stdin.read()))')}")
+  if [ "$rc" -ne 0 ]; then if [ "$blocking" = 1 ]; then FAIL=1; else WARN=1; fi; fi
+  echo "gate: $name exit=$rc"
+}
+# 0. pre-step: stray listeners from this build root, stale index.lock (F-26, F-42)
+step prestep 1 bash -c '
+  for p in $(ss -ltnp 2>/dev/null | grep -o "pid=[0-9]*" | cut -d= -f2 | sort -u); do
+    if tr "\0" " " < /proc/$p/cmdline 2>/dev/null | grep -q "'"$(dirname "$TREE")"'"; then kill "$p" 2>/dev/null && echo "killed stray listener $p"; fi; done
+  f="'"$TREE"'/.git/index.lock"; if [ -f "$f" ] && [ $(( $(date +%s) - $(stat -c %Y "$f") )) -gt 600 ]; then rm -f "$f"; echo "removed stale index.lock"; fi; true'
+# 1. hygiene: line endings, LFS, blob cap, forbidden paths (F-21, F-22)
+step eol 1 bash -c 'cd "'"$TREE"'" && ! git ls-files --eol | grep -E "w/crlf|w/mixed|i/crlf"'
+step lfs 1 bash -c 'cd "'"$TREE"'" && [ -z "$(git lfs ls-files 2>/dev/null)" ]'
+step blobcap 1 bash -c 'cd "'"$TREE"'" && ! git rev-list --objects "'"$BASE"'"..HEAD | git cat-file --batch-check="%(objecttype) %(objectsize) %(rest)" | awk "\$1==\"blob\" && \$2>5242880 {print; f=1} END {exit f}"'
+step junk 1 bash -c 'cd "'"$TREE"'" && ! git ls-files | grep -E "(^|/)__pycache__/|\.pyc$|(^|/)\.venv/|\.whl$|\.log$|^idx\.json$|^runlog_tail\.txt$"'
+# 2. undefined names, syntax, target version (F-19, F-23)
+step ruff 1 "$VENV/bin/ruff" check --select F821,F811,F401,E9 --target-version py312 "$TREE"
+step compileall 1 "$PY" -m compileall -q "$TREE"
+# 3. locked oracle: reset protected/locked paths to the oracle ref, then any diff there is a violation (S-5, F-18, F-28)
+if [ -n "$ORACLE" ]; then
+  step locked-paths 1 bash -c 'cd "'"$TREE"'" && violations=$(git diff --name-only "'"$BASE"'"..HEAD -- $(cat tests/protected.txt 2>/dev/null) tests/acceptance conftest.py pytest.ini ruff.toml .github tools/gate.sh tools/claim_lint.py tools/tamper_scan.py 2>/dev/null); [ -z "$violations" ] || { echo "locked paths modified:"; echo "$violations"; exit 1; }; git checkout "'"$ORACLE"'" -- tests/acceptance 2>/dev/null || true'
+fi
+# 4. apicheck: every apis_used entry resolves in the pinned wheels with its kwargs (F-8)
+step apicheck 1 "$PY" "$TREE/tools/apicheck.py" --tree "$TREE" --ledger "$TREE/plan/api-ledger.json"
+# 5. tamper scan: assertion loss, skips, loosened matchers, swallowed errors, pytest-detection idioms, -k/--deselect in commands (S-6, F-18)
+step tamper 1 "$PY" "$TREE/tools/tamper_scan.py" --tree "$TREE" --base "$BASE" --baseline "${BASELINE:-0}"
+# 6. tests, twice, offline, only exit 0 is green; counts recorded (F-12, F-29)
+run_pytest() { cd "$TREE" && "$PY" -m pytest -q -p no:cacheprovider --disable-socket --allow-hosts=127.0.0.1 -o junit_family=xunit2 --junitxml="$TREE/.gate/junit-$1.xml" 2>&1; }
+step pytest-1 1 bash -c 'run_pytest 1'; step pytest-2 1 bash -c 'run_pytest 2'
+step pytest-identical 1 bash -c 'cd "'"$TREE"'/.gate" && "'"$PY"'" - <<EOF
+import xml.etree.ElementTree as E,json,sys
+def counts(p):
+    r=E.parse(p).getroot(); s=r if r.tag=="testsuite" else r[0]
+    return {k:int(s.get(k,0)) for k in ("tests","failures","errors","skipped")}
+a,b=counts("junit-1.xml"),counts("junit-2.xml"); json.dump({"run1":a,"run2":b},open("pytest-counts.json","w"))
+sys.exit(0 if a==b and a["tests"]>0 and a["failures"]==0 and a["errors"]==0 else 1)
+EOF'
+step collected-floor 1 bash -c '"'"$PY"'" -c "
+import json,subprocess,sys; c=json.load(open(\"'"$TREE"'/.gate/pytest-counts.json\"))[\"run1\"][\"tests\"]
+base=int(\"'"${BASELINE:-0}"'\"); removed=subprocess.run([\"git\",\"-C\",\"'"$TREE"'\",\"log\",\"--format=%B\",\"'"$BASE"'..HEAD\"],capture_output=True,text=True).stdout.count(\"Tests-Removed:\")
+sys.exit(0 if c >= base - removed else 1)"'
+# 7. import smoke without the platform: CPU front must not load models; worker importable with stubs; import contract (LENS-4 §B rule)
+step import-smoke 1 bash -c 'cd "'"$TREE"'" && env -u SPACES_ZERO_GPU QWEN_STUB=1 timeout 60 "'"$PY"'" -c "import app" && env -u SPACES_ZERO_GPU timeout 60 "'"$PY"'" -c "import worker.app" '
+step import-contract 1 bash -c 'cd "'"$TREE"'" && "'"$PY"'" -m pytest -q -p no:cacheprovider tests/test_import_contract.py'
+# 8. claims vs diff over every commit in the range (G-29, F-19, F-24)
+step claim-lint 1 "$PY" "$TREE/tools/claim_lint.py" --tree "$TREE" --range "$BASE..HEAD"
+# 9. idiom lint (warnings the named reviewer must clear) (F-10)
+step idiom-lint 0 "$PY" "$TREE/tools/idiom_lint.py" --tree "$TREE" --range "$BASE..HEAD"
+# 10. generated README, constants pin, persona absence, catalog schema + provenance files (F-17, F-24, F-25)
+step readme-check 1 "$PY" "$TREE/tools/render_readme.py" --check
+step protected-tests 1 bash -c 'cd "'"$TREE"'" && "'"$PY"'" -m pytest -q -p no:cacheprovider tests/test_constants_pin.py tests/test_personas_absence.py tests/test_catalog_schema.py'
+# 11. secrets regex over the range (F-7); gitleaks if present
+step secrets 1 bash -c 'cd "'"$TREE"'" && if command -v gitleaks >/dev/null; then gitleaks detect --no-banner --log-opts="'"$BASE"'..HEAD"; else ! git diff "'"$BASE"'"..HEAD | grep -E "ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|hf_[A-Za-z0-9]{20,}"; fi'
+# 12. red-proofs of the gate itself, only in merged/clean mode (D-14, F-28): RED on the f88b120 fixture and on the false-claim fixture, GREEN on the cleaned base
+if [ "$MODE" != "worktree" ]; then step redproof 1 bash -c '"'"$TREE"'/tools/gate_redproof.sh" "'"$TREE"'"'; fi
+# ledger + digest
+PYV="$("$PY" -V 2>&1)"; NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"; COUNTS="$(cat "$TREE/.gate/pytest-counts.json" 2>/dev/null || echo '{}')"
+printf '{"head_sha":"%s","base_sha":"%s","mode":"%s","python":"%s","started_at":"%s","steps":[%s],"pytest":%s,"fail":%s,"warn":%s}\n' \
+  "$HEAD_SHA" "$BASE" "$MODE" "$PYV" "$NOW" "$(IFS=,; echo "${STEPS[*]}")" "$COUNTS" "$FAIL" "$WARN" > "$TREE/.gate/last_run.json"
+"$PY" - "$TREE/.gate/last_run.json" <<'EOF' > "$TREE/.gate/last_run.digest"
+import json,sys,hashlib
+d=json.load(open(sys.argv[1])); canon={k:d[k] for k in ("head_sha","base_sha","mode","python","pytest","fail","warn")}
+canon["steps"]=[{"name":s["name"],"exit_code":s["exit_code"]} for s in d["steps"]]
+print(hashlib.sha256(json.dumps(canon,sort_keys=True,separators=(",",":")).encode()).hexdigest())
+EOF
+echo "gate: head=$HEAD_SHA fail=$FAIL warn=$WARN digest=$(cat "$TREE/.gate/last_run.digest")"
+exit $FAIL
+```
+
+Contracts of the tools the gate calls (all deliverables of card `c01c`, each shipped with a both-states fixture under `tests/gate_fixtures/{broken,fixed}/` and a self-test that fails if a detector is silent in both states, D-14): `tools/apicheck.py` (imports each `apis_used` symbol from the pinned wheels; every kwarg must be in `inspect.signature(...).parameters` or, for generate kwargs, in `GenerationConfig().__dict__`; unknown symbol → non-zero); `tools/tamper_scan.py` (per test file Δ assert count, new `skip|xfail|skipif`, `approx` widening, `is not None` replacing equality, `except Exception: pass|return`, `sys.exit(0)`, `PYTEST_CURRENT_TEST`/`sys.modules.get("pytest")` in non-test modules, `-k/--deselect/--ignore/-x` in any recorded command, `conftest.py` edits, deleted test files, collected-count drop without trailer → JSON report + non-zero); `tools/claim_lint.py` (every path/symbol/number/"N tests" in a commit message must appear in the whitespace-insensitive diff; `Renormalize-Only: yes` and one `Claim-Waiver: <reviewer>` trailer per card allowed; fails 5 of the 6 known over-claiming commits, the 6th via the constants pin); `tools/idiom_lint.py` (`preexec_fn=`, `__wrapped__`, `shutil.rmtree` inside an unload handler, `prefill_chunk_size` while `AutoModelForImageTextToText`, `lease_s - 30`, `max_retries` default in an `openai` client, `trust_remote_code=True`); `tools/render_readme.py --check` (model table from `models.yaml`, tool count from the registry, test count from `pytest --collect-only`); `tools/gate_redproof.sh` (worktree of the `f88b120` fixture must make `ruff` red; the false-claim fixture commit must make `claim-lint` red; the cleaned base must be green — results recorded into the ledger); `tools/no_lost_hunks.sh` (integration).
+
+**Where each gate runs.**
+
+| Location | Who | Mode | What is added |
+|---|---|---|---|
+| In-worktree, pre-merge | implementer (L0/L1 after each step; full before returning) then the **verifier** independently on a worktree built from the bundle | `--mode worktree --oracle tests/<id>-<nonce>` | verifier adds revert-proof, held-out tests (from the held-out bundle), `mutants.json` execution, acceptance re-runs; digest equality is asserted in JS |
+| On the merged tree | integrator after every merge | `--mode merged` | `no_lost_hunks.sh`; a red merged tree → integration fixer (≤2) → revert |
+| From a clean checkout | integration tester after every wave; the R1 final judge input | `--mode clean` (fresh `git clone`) | conformance suite (3 backends, skips counted), journeys J1–J6, red-proofs of the gate itself, `verification_level` aggregation |
+| Pre-flight (P0) | setup agent | `--mode clean` on the cleaned base | proves the gate is RED on `f88b120` and GREEN on the base before any card is launched (D-9) |
+
+---
+
+## 8. Testability table and how staging/promotion requests are represented
+
+| Level | Proven locally (3.12 venv, no GPU, no tokens, `--disable-socket`) | Requires the staging Space(s) | Requires the owner |
+|---|---|---|---|
+| Static | ruff F821/F811/F401/E9 (py312), compileall, claim-vs-diff, tamper scan, idiom lint, EOL/LFS/blob/junk, secrets regex, import contract, apicheck against pinned wheels, README render check, catalog schema + provenance file existence, persona absence test, constants pin | — | — |
+| Unit / stub engine | the 73 baseline tests (persona-archive test made repo-local), 10 characterisation pins, `FakeEngine`/`backends/fake`, StreamParser golden + property tests (`hypothesis`, `derandomize=True`), tool_parse fixes, SSRF opener (recorder handlers, no sockets), regex/calculator timeouts, archive caps, `python_eval` red-proofs with a canary env var (allowlist, `/proc/<ppid>/environ` EACCES after `PR_SET_DUMPABLE=0`, rlimits trip, killpg leaves no orphan, flag off on every surface), session TTL sweep, harness `--dry-run` zero-call test, `models.yaml` schema, promotion scripts against fakes | — | — |
+| Local integration (journeys J1–J6) | J1 `QWEN_STUB=1` boot serves UI + `/healthz{git_sha}` in < 10 s on a free port; J2 turn 2 contains turn 1's tool transcript; J3 two sessions → different benches; J4 `/v1` streams, `finish_reason:'length'` on truncation, `{"error":…}` event mid-stream, stops on disconnect (watcher), 429 when busy; J5 MCP schema lists only `ask/poll/status/preflight`; J6 `python_eval` unreachable over `/v1` and MCP and inert without the operator flag. Also `gradio_client==2.6.1` against a local server with `/healthz` sha equality (F-26); worker `encode`/`lease` pure modules (estimator rows, `max_time` arithmetic, resume encode with `continue_final_message="reasoning_content"`) | — | — |
+| Platform behaviour (`staging-required`) | nothing (`spaces.GPU` is a no-op off-platform) | CPU Space boot + `/healthz` sha == pushed sha; worker import-time load under CUDA emulation; lease sizing, cold-start margin, measured tok/s and prefill rate; quota bucket of `gradio_client` calls with the scoped token (quota before/after one 16-token call); fla/Triton inside the forked worker; FP8 (with visual tensors, Q6) vs GPTQ on `large`; requirements resolution on rebuild; MCP over HTTP with a real client; canary pass^3; rollback rehearsal (redeploy last-known-good sha) | the owner creates the Spaces and the scoped token; CI (Trusted Publisher) deploys |
+| Money / identity (`owner-required`) | nothing | — | ONE metered streamed router call (tool + thinking on) → fixture #1 and the parser-placement decision; the real 12-prompt harness under `--i-accept-cost`; the quantisation/export HF Job; GitHub repo + OIDC publishers + `production` environment; secrets; revoking the pasted token and the other agent's token; disabling its Windows scheduled tasks; Dev Mode off; production promotion |
+
+**Representation.** Every acceptance criterion and every claim carries `level ∈ {local-mechanical, local-stub, staging-required, owner-required, unverified}` (F-37); a keyword list (lease, quota, ZeroGPU, worker fork, Triton, `x-ip-token`, MCP transport, Space rebuild, tok/s, cold start) forces ≥ `staging-required` in JS regardless of what an agent wrote. Staging and promotion needs are `checkpoint` objects (§9 `SYNTH.checkpoint`) rendered into `$RUN_DIR/RUNBOOK.md` (one numbered step per staging-required claim: the exact measurement, the number to record, the file CI must write) and `PROMOTION_REQUEST.md` (what/why/evidence/rollback). The owner's answers come back as `args.owner_approvals` fields (data) and as CI-written evidence files under `args.staging_evidence_dir`; the R2 evidence reader marks any missing file `unverified`.
+
+---
+
+## 9. Schemas for every stage (JSON Schema; root object; `required ⊆ properties`; enum verdicts; `sha` wherever code was read)
+
+Design rules (T-18, D/AP-9, F-46): small objects (paths, shas, enums, counts, short strings ≤ 2 k chars), `minItems` on evidence arrays, no blobs (full artifacts go to disk, D-11), and the script re-validates semantics in JS (`done === every dod exit_code 0`, `pass` with empty evidence → `unverified`). A shared **envelope** is merged into every stage schema so the JS assertions are uniform (red-team §2 invariant 3).
+
+```js
+// ---- shared envelope (merged into every stage schema) ----
+const VERIFICATION_LEVEL = ['local-mechanical', 'local-stub', 'staging-required', 'owner-required', 'unverified']
+const SEV = ['critical', 'high', 'medium', 'low']
+const CMD = { type: 'object', properties: { command: { type: 'string' }, cwd: { type: 'string' }, exit_code: { type: 'integer' }, output_tail: { type: 'string', description: '≤ 40 lines, verbatim' } }, required: ['command', 'exit_code', 'output_tail'] }
+const ANCHOR = { type: 'string', pattern: '^[^:]+:[0-9]+@[0-9a-f]{7,40}$', description: 'path:line@sha' }
+const ENVELOPE_PROPS = {
+  status: { type: 'string', enum: ['SUCCESS', 'FAILED', 'BLOCKED_ON_OWNER'] },
+  id: { type: 'string' }, reason: { type: 'string', description: 'required when status != SUCCESS (enforced in JS)' },
+  repo_toplevel: { type: 'string', description: 'git rev-parse --show-toplevel of the tree you touched or read; "" if none' },
+  outward_actions_taken: { type: 'array', items: { type: 'string' }, description: 'MUST be empty; any entry aborts the run' },
+  installed_packages: { type: 'array', items: { type: 'string' }, description: 'MUST be empty' },
+  commands_run: { type: 'array', items: CMD },
+  artifacts: { type: 'array', items: { type: 'object', properties: { path: { type: 'string' }, bytes: { type: 'integer' }, sha256: { type: 'string' } }, required: ['path', 'bytes', 'sha256'] } },
+  unverified_claims: { type: 'array', items: { type: 'string' } },
+  terminal: { type: 'string', pattern: '^(SUCCESS|FAILED|BLOCKED_ON_OWNER):' },
+}
+const ENVELOPE_REQ = ['status', 'id', 'repo_toplevel', 'outward_actions_taken', 'installed_packages', 'commands_run', 'artifacts', 'terminal']
+const env = (props, req) => ({ type: 'object', properties: Object.assign({}, ENVELOPE_PROPS, props), required: ENVELOPE_REQ.concat(req) })
+
+// ---- P0 / plan ----
+const SETUP = env({ venv: { type: 'string' }, python_version: { type: 'string', pattern: '^3\\.12\\.' }, gate_sh: { type: 'string' }, libsrc_durable: { type: 'string' },
+  wheels_installed: { type: 'array', items: { type: 'string' } }, base_sha: { type: 'string', pattern: '^[0-9a-f]{40}$' }, baseline_collected: { type: 'integer' },
+  redproof: { type: 'object', properties: { red_on_broken: { type: 'boolean' }, green_on_base: { type: 'boolean' }, ledger_digest: { type: 'string' } }, required: ['red_on_broken', 'green_on_base', 'ledger_digest'] } },
+  ['venv', 'python_version', 'gate_sh', 'libsrc_durable', 'base_sha', 'baseline_collected', 'redproof'])
+const GROUND = env({ base_sha: { type: 'string' }, facts: { type: 'array', items: { type: 'object', properties: { claim: { type: 'string' }, probe: { type: 'string' }, ts: { type: 'string' } }, required: ['claim', 'probe', 'ts'] } },
+  assumptions: { type: 'array', items: { type: 'object', properties: { text: { type: 'string' }, confidence: { type: 'string', enum: ['high', 'medium', 'low'] }, load_bearing: { type: 'boolean' } }, required: ['text', 'confidence', 'load_bearing'] } },
+  codex_rail_available: { type: 'boolean' }, toolchain_status_snapshot: { type: 'string' }, grounding_pack_path: { type: 'string' } },
+  ['base_sha', 'facts', 'assumptions', 'codex_rail_available', 'toolchain_status_snapshot', 'grounding_pack_path'])
+const DECISION_SHEET = env({ sheet_path: { type: 'string' }, rows: { type: 'array', minItems: 20, items: { type: 'object', properties: { id: { type: 'string' }, decided_value: { type: 'string' }, against_recommendation: { type: 'boolean' }, consequences: { type: 'string' }, dq_line: { type: 'integer' } }, required: ['id', 'decided_value', 'against_recommendation', 'consequences', 'dq_line'] } } }, ['sheet_path', 'rows'])
+const API_LEDGER = env({ ledger_path: { type: 'string' }, symbols: { type: 'array', minItems: 30, items: { type: 'object', properties: { module: { type: 'string' }, symbol: { type: 'string' }, kwargs: { type: 'array', items: { type: 'string' } }, libsrc_anchor: { type: 'string' }, trap: { type: 'string' } }, required: ['module', 'symbol', 'kwargs', 'libsrc_anchor'] } } }, ['ledger_path', 'symbols'])
+const SYMBOLS = env({ base_sha: { type: 'string' }, map: { type: 'array', items: { type: 'object', properties: { finding_id: { type: 'string' }, symbol: { type: 'string', description: 'file::function' }, anchor: ANCHOR, verdict_at_snapshot: { type: 'string', enum: ['confirmed', 'partially-confirmed', 'UNVERIFIED', 'refuted'] } }, required: ['finding_id', 'symbol', 'anchor', 'verdict_at_snapshot'] } } }, ['base_sha', 'map'])
+const VERIFY_FINDING = env({ finding_id: { type: 'string' }, verdict: { type: 'string', enum: ['CONFIRMED', 'REFUTED', 'UNVERIFIED'] }, source_probe: { type: 'object', properties: { tool: { type: 'string' }, engine: { type: 'string' }, shell: { type: 'string' }, field: { type: 'string' } }, required: ['tool', 'engine', 'shell', 'field'] },
+  verify_probe: { type: 'object', properties: { tool: { type: 'string' }, engine: { type: 'string' }, shell: { type: 'string' }, field: { type: 'string' }, command: { type: 'string' } }, required: ['tool', 'engine', 'shell', 'field', 'command'] }, evidence: { type: 'array', minItems: 1, items: CMD }, corrected_claim: { type: 'string' }, sha: { type: 'string' } },
+  ['finding_id', 'verdict', 'source_probe', 'verify_probe', 'evidence', 'corrected_claim', 'sha'])
+const CARD = { type: 'object', properties: {
+  id: { type: 'string', pattern: '^(c[0-9]{2}[a-z]?|rf[0-9]+)-[a-z0-9-]+$' }, title: { type: 'string' }, area: { type: 'string', enum: ['platform', 'core', 'backends', 'api', 'ui', 'tools', 'worker', 'ci', 'docs', 'eval'] },
+  tier: { type: 'string', enum: ['trivial', 'small', 'medium', 'large'] }, depends_on: { type: 'array', items: { type: 'string' } }, files_allowed: { type: 'array', minItems: 1, items: { type: 'string' } }, files_read: { type: 'array', items: { type: 'string' } },
+  deps_allowed: { type: 'array', items: { type: 'string' } }, in_scope: { type: 'array', minItems: 1, items: { type: 'string' } }, out_of_scope: { type: 'array', items: { type: 'string' } },
+  decision_ids: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, decided_value: { type: 'string' } }, required: ['id', 'decided_value'] } },
+  finding_ids: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, corrected_text: { type: 'string' } }, required: ['id', 'corrected_text'] } },
+  symbols: { type: 'array', items: { type: 'string' } },
+  acceptance: { type: 'array', minItems: 1, items: { type: 'object', properties: { id: { type: 'string' }, check: { type: 'string' }, expect: { type: 'string' }, level: { type: 'string', enum: VERIFICATION_LEVEL } }, required: ['id', 'check', 'expect', 'level'] } },
+  must_not_change: { type: 'array', items: { type: 'string' } }, journeys: { type: 'array', items: { type: 'string' } }, heldout_seams: { type: 'array', items: { type: 'string' } },
+  protected_paths_touched: { type: 'array', items: { type: 'string' } }, outward_facing: { type: 'boolean' }, needs_gpu: { type: 'boolean' }, owner_approval_required: { type: 'boolean' },
+  size_budget: { type: 'object', properties: { max_changed_lines: { type: 'integer' }, max_files: { type: 'integer' } }, required: ['max_changed_lines', 'max_files'] } },
+  required: ['id', 'title', 'area', 'tier', 'depends_on', 'files_allowed', 'in_scope', 'decision_ids', 'finding_ids', 'acceptance', 'must_not_change', 'journeys', 'heldout_seams', 'protected_paths_touched', 'outward_facing', 'needs_gpu', 'owner_approval_required', 'size_budget'] }
+const CARD_GRAPH = env({ cards: { type: 'array', minItems: 1, items: CARD }, coverage_notes: { type: 'string' }, unmapped_finding_ids: { type: 'array', items: { type: 'string' } } }, ['cards', 'coverage_notes', 'unmapped_finding_ids'])
+const PLAN_JUDGE = env({ verdict: { type: 'string', enum: ['ready', 'not-ready', 'blocked-needs-owner'] }, must_fix: { type: 'array', items: { type: 'object', properties: { card_id: { type: 'string' }, what: { type: 'string' }, evidence: { type: 'string' }, severity: { type: 'string', enum: SEV } }, required: ['card_id', 'what', 'evidence', 'severity'] } }, plan_hash_seen: { type: 'string' } }, ['verdict', 'must_fix', 'plan_hash_seen'])
+
+// ---- build: tests ----
+const TESTS_WRITTEN = env({ card_id: { type: 'string' }, branch: { type: 'string' }, base_sha: { type: 'string' }, head_sha: { type: 'string' }, bundle_path: { type: 'string' },
+  test_paths: { type: 'array', minItems: 1, items: { type: 'string' } }, command: { type: 'string' }, acceptance_ids_covered: { type: 'array', minItems: 1, items: { type: 'string' } },
+  mutants_path: { type: 'string', description: 'mutants.json: ≥1 scripted one-line mutant per acceptance id' }, properties_written: { type: 'array', items: { type: 'string' } }, known_bads_xfail: { type: 'array', items: { type: 'string' } } },
+  ['card_id', 'branch', 'base_sha', 'head_sha', 'bundle_path', 'test_paths', 'command', 'acceptance_ids_covered', 'mutants_path'])
+const RED_PROOF = env({ card_id: { type: 'string' }, tests_head_sha: { type: 'string' }, base_sha: { type: 'string' }, collected: { type: 'integer' }, failed: { type: 'integer' }, errors: { type: 'integer' },
+  failed_for_expected_reason: { type: 'boolean' }, reasons: { type: 'array', items: { type: 'string', enum: ['AssertionError', 'NotImplementedError', 'ImportError-new-symbol', 'AttributeError-new-symbol', 'other'] } }, evidence: { type: 'array', minItems: 1, items: CMD } },
+  ['card_id', 'tests_head_sha', 'base_sha', 'collected', 'failed', 'errors', 'failed_for_expected_reason', 'reasons', 'evidence'])
+
+// ---- build: implement / verify / refute / fix ----
+const IMPL = env({ card_id: { type: 'string' }, impl_status: { type: 'string', enum: ['done', 'partial', 'failed', 'reused'] }, worktree: { type: 'string' }, branch: { type: 'string' }, base_sha: { type: 'string' }, head_sha: { type: 'string' },
+  bundle_path: { type: 'string' }, commits_made: { type: 'integer' }, changed_files: { type: 'array', items: { type: 'string' } },
+  dod: { type: 'array', minItems: 1, items: { type: 'object', properties: { acceptance_id: { type: 'string' }, command: { type: 'string' }, exit_code: { type: 'integer' }, evidence_path: { type: 'string' } }, required: ['acceptance_id', 'command', 'exit_code'] } },
+  apis_used: { type: 'array', items: { type: 'object', properties: { module: { type: 'string' }, symbol: { type: 'string' }, kwargs_used: { type: 'array', items: { type: 'string' } }, ledger_anchor: { type: 'string' } }, required: ['module', 'symbol', 'kwargs_used', 'ledger_anchor'] } },
+  claims: { type: 'array', items: { type: 'string' }, description: 'each must be visible in the diff' }, gate_digest: { type: 'string' }, gate_ledger_path: { type: 'string' },
+  handoff: { type: 'object', properties: { decisions: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, why: { type: 'string' }, alternatives_rejected: { type: 'string' } }, required: ['what', 'why'] } }, invariants: { type: 'array', items: { type: 'string' } }, open_problems: { type: 'array', items: { type: 'string' } }, next_step: { type: 'string' } }, required: ['decisions', 'invariants', 'open_problems', 'next_step'] },
+  verification_level: { type: 'string', enum: VERIFICATION_LEVEL } },
+  ['card_id', 'impl_status', 'worktree', 'branch', 'base_sha', 'head_sha', 'bundle_path', 'commits_made', 'changed_files', 'dod', 'apis_used', 'claims', 'gate_digest', 'gate_ledger_path', 'handoff', 'verification_level'])
+const VERIFY = env({ card_id: { type: 'string' }, sha_tested: { type: 'string' }, verdict: { type: 'string', enum: ['pass', 'fail', 'unverifiable'] }, gate_digest: { type: 'string' }, gate_fail: { type: 'integer' },
+  pytest: { type: 'object', properties: { collected: { type: 'integer' }, passed: { type: 'integer' }, failed: { type: 'integer' }, skipped: { type: 'integer' }, xfailed: { type: 'integer' } }, required: ['collected', 'passed', 'failed', 'skipped', 'xfailed'] },
+  changed_lines: { type: 'integer' }, files_changed: { type: 'integer' },
+  acceptance_reruns: { type: 'array', minItems: 1, items: { type: 'object', properties: { acceptance_id: { type: 'string' }, exit_code: { type: 'integer' }, evidence: CMD }, required: ['acceptance_id', 'exit_code', 'evidence'] } },
+  revert_proof: { type: 'object', properties: { failed_when_reverted: { type: 'boolean' }, evidence: CMD }, required: ['failed_when_reverted', 'evidence'] },
+  heldout: { type: 'object', properties: { applicable: { type: 'boolean' }, passed: { type: 'boolean' }, evidence: CMD }, required: ['applicable', 'passed'] },
+  mutants: { type: 'object', properties: { total: { type: 'integer' }, killed: { type: 'integer' }, survivors: { type: 'array', items: { type: 'string' } } }, required: ['total', 'killed', 'survivors'] },
+  tamper_signals: { type: 'integer' }, locked_paths_diff: { type: 'array', items: { type: 'string' } }, claim_vs_diff: { type: 'array', items: { type: 'string' } }, p2p_regression: { type: 'boolean' },
+  failures: { type: 'array', items: { type: 'object', properties: { check: { type: 'string' }, first_error_line: { type: 'string' }, evidence: CMD }, required: ['check', 'first_error_line', 'evidence'] } },
+  negative_control: { type: 'object', properties: { mutation: { type: 'string' }, expected: { type: 'string', enum: ['red'] }, observed: { type: 'string', enum: ['red', 'green', 'unrunnable'] } }, required: ['mutation', 'expected', 'observed'] } },
+  ['card_id', 'sha_tested', 'verdict', 'gate_digest', 'gate_fail', 'pytest', 'changed_lines', 'files_changed', 'acceptance_reruns', 'revert_proof', 'heldout', 'mutants', 'tamper_signals', 'locked_paths_diff', 'claim_vs_diff', 'p2p_regression', 'failures', 'negative_control'])
+const REFUTE = env({ target_id: { type: 'string' }, lens: { type: 'string', enum: ['correctness-reproduce', 'security-secrets', 'decision-fidelity'] }, refuted: { type: 'boolean', description: 'default true if uncertain' },
+  evidence: { type: 'array', minItems: 1, items: CMD }, strongest_disagreement: { type: 'string' }, severity_after: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'none'] }, sha: { type: 'string' } },
+  ['target_id', 'lens', 'refuted', 'evidence', 'strongest_disagreement', 'severity_after', 'sha'])
+const FIX = env(Object.assign({}, IMPL.properties, {
+  attempt: { type: 'integer' }, reproduced_first: { type: 'boolean' }, root_cause: { type: 'object', properties: { statement: { type: 'string' }, evidence_anchor: ANCHOR }, required: ['statement', 'evidence_anchor'] },
+  hypothesis: { type: 'string' }, disposition: { type: 'string', enum: ['fixed', 'sentence_rewritten', 'pushed_back', 'needs_clarification', 'reverted_regression'] }, revised_text: { type: 'string' }, pushback_evidence: { type: 'array', items: CMD } }),
+  IMPL.required.filter(k => !ENVELOPE_REQ.includes(k)).concat(['attempt', 'reproduced_first', 'root_cause', 'hypothesis', 'disposition']))
+const PIVOT = env({ card_id: { type: 'string' }, fingerprint: { type: 'string' }, alternatives: { type: 'array', minItems: 2, items: { type: 'object', properties: { approach: { type: 'string' }, why_different: { type: 'string' } }, required: ['approach', 'why_different'] } }, chosen: { type: 'integer' }, reason: { type: 'string' } }, ['card_id', 'fingerprint', 'alternatives', 'chosen'])
+const REDECOMPOSE = env({ card_id: { type: 'string' }, sub_cards: { type: 'array', minItems: 2, items: CARD }, why: { type: 'string' } }, ['card_id', 'sub_cards', 'why'])
+const ARBITER = env({ finding_id: { type: 'string' }, decision: { type: 'string', enum: ['side_a', 'side_b', 'accepted_risk', 'needs_owner'] }, rationale: { type: 'string' }, evidence: { type: 'array', minItems: 1, items: CMD } }, ['finding_id', 'decision', 'rationale', 'evidence'])
+
+// ---- build: audit / critic / tamper ----
+const AUDIT = env({ card_id: { type: 'string' }, sha_audited: { type: 'string' }, verdict: { type: 'string', enum: ['compliant', 'deviations', 'reject'] },
+  deviations: { type: 'array', items: { type: 'object', properties: { decision_or_finding: { type: 'string' }, what_the_diff_does: { type: 'string' }, what_it_should_do: { type: 'string' }, severity: { type: 'string', enum: SEV }, anchor: ANCHOR }, required: ['decision_or_finding', 'what_the_diff_does', 'what_it_should_do', 'severity', 'anchor'] } },
+  claim_vs_diff: { type: 'array', items: { type: 'string' } }, scope_violations: { type: 'array', items: { type: 'string' } }, deps_violations: { type: 'array', items: { type: 'string' } },
+  deletions_blast_radius: { type: 'array', items: { type: 'object', properties: { symbol: { type: 'string' }, consumers: { type: 'array', items: { type: 'string' } }, both_states_probe: { type: 'string' } }, required: ['symbol', 'consumers', 'both_states_probe'] } }, idiom_warnings_cleared_by: { type: 'string' } },
+  ['card_id', 'sha_audited', 'verdict', 'deviations', 'claim_vs_diff', 'scope_violations', 'deps_violations', 'deletions_blast_radius'])
+const CRITIC = env({ card_id: { type: 'string' }, sha: { type: 'string' }, hunks_cited: { type: 'array', items: ANCHOR },
+  missing: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, kind: { type: 'string', enum: ['untested-path', 'unhandled-error', 'decision-not-implemented', 'interaction', 'security', 'perf', 'modality-not-run', 'claim-unverified', 'source-unread', 'omitted-obligation', 'boundary'] }, severity: { type: 'string', enum: SEV }, reproduced: { type: 'boolean' }, evidence: CMD, anchor: ANCHOR }, required: ['id', 'title', 'kind', 'severity', 'reproduced', 'evidence', 'anchor'] } },
+  coverage_notes: { type: 'string' } }, ['card_id', 'sha', 'hunks_cited', 'missing', 'coverage_notes'])
+const TAMPER = env({ card_id: { type: 'string' }, sha: { type: 'string' }, signals: { type: 'array', minItems: 1, items: { type: 'object', properties: { signal: { type: 'string' }, hunk_anchor: ANCHOR, classification: { type: 'string', enum: ['tamper', 'legitimate', 'cannot-see-hunk'] }, reason: { type: 'string' } }, required: ['signal', 'hunk_anchor', 'classification', 'reason'] } } }, ['card_id', 'sha', 'signals'])
+
+// ---- integrate / review / judge ----
+const INTEGRATION = env({ card_id: { type: 'string' }, int_status: { type: 'string', enum: ['merged', 'conflict', 'gate-failed', 'skipped', 'reverted'] }, branch: { type: 'string' }, head_sha: { type: 'string' }, merged_sha: { type: 'string' },
+  conflicts: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, ours: { type: 'string' }, theirs: { type: 'string' } }, required: ['file', 'ours', 'theirs'] } },
+  cherry_unmerged: { type: 'array', items: { type: 'string' } }, patch_id_missing: { type: 'array', items: { type: 'string' } }, gate_digest: { type: 'string' }, gate_fail: { type: 'integer' }, checkpoint_bundle: { type: 'string' }, bundle_bytes: { type: 'integer' } },
+  ['card_id', 'int_status', 'branch', 'head_sha', 'conflicts', 'cherry_unmerged', 'patch_id_missing', 'gate_digest', 'gate_fail'])
+const REVIEW_FINDINGS = env({ lens: { type: 'string' }, sha_reviewed: { type: 'string' }, findings: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, file: { type: 'string' }, anchor: ANCHOR, evidence: CMD, severity: { type: 'string', enum: SEV }, kind: { type: 'string', enum: ['bug', 'security', 'decision-deviation', 'overclaim', 'missing-test', 'perf', 'cost'] }, affects_correctness_or_requirement: { type: 'boolean' }, recommendation: { type: 'string' }, corrected_claim: { type: 'string' } }, required: ['id', 'title', 'file', 'anchor', 'evidence', 'severity', 'kind', 'affects_correctness_or_requirement', 'recommendation'] } }, probes_used: { type: 'array', items: { type: 'string' } }, coverage_notes: { type: 'string' } }, ['lens', 'sha_reviewed', 'findings', 'probes_used', 'coverage_notes'])
+const JUDGE = env({ lens: { type: 'string', enum: ['spec-compliance', 'test-evidence', 'release-readiness'] }, sha_reviewed: { type: 'string' }, verdict: { type: 'string', enum: ['satisfied', 'not-satisfied', 'blocked-needs-owner'] },
+  dod_items: { type: 'array', minItems: 1, items: { type: 'object', properties: { id: { type: 'string' }, type: { type: 'string', enum: ['deterministic', 'subjective'] }, opinion: { type: 'string', enum: ['YES', 'NO', 'UNBACKED'] }, citation: { type: 'string' }, receipt: { type: 'string', enum: ['reproduced', 'not-reproduced', 'unrunnable'] } }, required: ['id', 'type', 'opinion', 'citation', 'receipt'] } },
+  vetoes: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, title: { type: 'string' }, anchor: ANCHOR, evidence: CMD, reproduced: { type: 'boolean' }, severity: { type: 'string', enum: SEV } }, required: ['id', 'title', 'anchor', 'evidence', 'reproduced', 'severity'] } }, dissent: { type: 'string' } },
+  ['lens', 'sha_reviewed', 'verdict', 'dod_items', 'vetoes', 'dissent'])
+const POSTCONDITION = env({ target_id: { type: 'string' }, checks: { type: 'array', minItems: 1, items: { type: 'object', properties: { name: { type: 'string', enum: ['exists', 'nonempty', 'parses', 'sentinel', 'anchors', 'bundle_verifies'] }, ok: { type: 'boolean' }, evidence: CMD }, required: ['name', 'ok', 'evidence'] } } }, ['target_id', 'checks'])
+const STATE_PROBE = env({ sha: { type: 'string' }, branch: { type: 'string' }, sha_exists: { type: 'boolean' }, branch_points_at_sha: { type: 'boolean' }, worktree_clean: { type: 'boolean' }, evidence: { type: 'array', minItems: 1, items: CMD } }, ['sha', 'branch', 'sha_exists', 'branch_points_at_sha', 'worktree_clean', 'evidence'])
+const STAGE_CLAIM = env({ claim_id: { type: 'string' }, level: { type: 'string', enum: VERIFICATION_LEVEL }, evidence_path: { type: 'string' }, evidence_present: { type: 'boolean' }, measured_value: { type: 'string' }, expected: { type: 'string' }, verdict: { type: 'string', enum: ['pass', 'fail', 'unverified'] }, deployed_sha: { type: 'string' } }, ['claim_id', 'level', 'evidence_path', 'evidence_present', 'measured_value', 'expected', 'verdict', 'deployed_sha'])
+
+// ---- synthesis ----
+const CHECKPOINT = { type: 'object', properties: { action: { type: 'string', enum: ['none', 'approve-smoke', 'approve-plan', 'create-github-repo-and-push', 'create-staging-spaces', 'set-secrets', 'record-fixture-1', 'run-hf-job', 'run-harness', 'approve-hf-job-and-promotion-rehearsal', 'promote-production', 'other'] },
+  why: { type: 'string' }, exact_steps: { type: 'array', minItems: 1, items: { type: 'string' } }, blast_radius: { type: 'string' }, rollback: { type: 'string' }, cost_estimate: { type: 'string' }, evidence_paths: { type: 'array', items: { type: 'string' } }, required_owner_approvals_fields: { type: 'array', items: { type: 'string' } } },
+  required: ['action', 'why', 'exact_steps', 'blast_radius', 'rollback', 'cost_estimate', 'evidence_paths', 'required_owner_approvals_fields'] }
+const SYNTH = env({ stage: { type: 'string' }, head_sha: { type: 'string' }, stop_reason: { type: 'string' },
+  rows: { type: 'array', minItems: 1, items: { type: 'object', properties: { card_id: { type: 'string' }, row_status: { type: 'string', enum: ['merged+gate-green', 'merged+gate-red', 'built-not-merged', 'parked', 'reverted', 'split', 'blocked_on_owner', 'dropped_null', 'not_attempted'] }, reason: { type: 'string' }, head_sha: { type: 'string' }, dod_done: { type: 'integer' }, dod_total: { type: 'integer' } }, required: ['card_id', 'row_status', 'reason', 'dod_done', 'dod_total'] } },
+  dod_status: { type: 'array', items: { type: 'object', properties: { id: { type: 'string' }, pass: { type: 'boolean' }, evidence_a: { type: 'string' }, evidence_b: { type: 'string' }, level: { type: 'string', enum: VERIFICATION_LEVEL } }, required: ['id', 'pass', 'evidence_a', 'evidence_b', 'level'] } },
+  skipped_conformance_rows: { type: 'integer' }, owner_actions: { type: 'array', items: { type: 'string' } }, checkpoint: CHECKPOINT, report_path: { type: 'string' }, runbook_path: { type: 'string' } },
+  ['stage', 'head_sha', 'stop_reason', 'rows', 'dod_status', 'skipped_conformance_rows', 'owner_actions', 'checkpoint', 'report_path', 'runbook_path'])
+const SYNTH_VERIFY = env({ rows_checked: { type: 'integer' }, rows_rewritten: { type: 'array', items: { type: 'object', properties: { card_id: { type: 'string' }, was: { type: 'string' }, now: { type: 'string' }, evidence: CMD }, required: ['card_id', 'was', 'now', 'evidence'] } }, git_log_head: { type: 'string' }, ledger_entries: { type: 'integer' }, verdict: { type: 'string', enum: ['consistent', 'rewritten', 'inconsistent-unresolved'] } }, ['rows_checked', 'rows_rewritten', 'git_log_head', 'ledger_entries', 'verdict'])
+```
+
+JS-side semantic checks applied to every return (F-46): `status !== 'SUCCESS'` requires a non-empty `reason`; `outward_actions_taken.length > 0` aborts the run after logging; `installed_packages.length > 0` → the stage is `FAILED:installed`; `repo_toplevel` must equal `args.build_repo` or `''` (read-only agents); `pass` verdicts with empty evidence arrays are downgraded to `unverified`; any acceptance/claim whose text matches the staging keyword list has its `level` raised to `staging-required` regardless of the agent's value.
+
+---
+
+## 10. Replay/resume, null results, safeguard kills and concurrency
+
+**Replay and resume (T-13..T-16, D-22, S-18, F-43).**
+- `args` are computed by the orchestrator immediately before every invocation with `git rev-parse` and `sha256sum`, never inside the script: `{stage, runTag, run_nonce, launched_at, build_repo, wt_root, venv, gate_sh, durable, run_dir, libsrc, base_sha (40-hex), integration_sha_at_launch, plan_hash, toolchain_status_snapshot_sha, fleet, waveSize, maxFix, maxAuditFix, maxTreeRounds, reserveTokens, judge_perm, owner_approvals{…}, monitor_findings[], smoke}`. A moved repo changes `integration_sha_at_launch`, which appears in every code-reading prompt → the cache misses exactly where it must.
+- Prompts are pure functions of `args` and prior typed results; arrays are sorted by id before `JSON.stringify(x, null, 1)`; no completion order, no `budget.spent()` value and no path that differs per session ever enters a prompt. Constants that may need tuning between runs live in `args`.
+- Only completed `result` events replay; a kill mid-card re-runs the in-flight agents. Mitigations: PR-sized cards; commit-per-step; the implementer prompt's first instruction is "inspect `git -C $BUILD_REPO log card/<id>-<nonce>`; if the branch exists at a commit whose tree passes the card's acceptance, report `impl_status:'reused'`".
+- Every cached result that carries a sha is consumed only after a **state probe** (`git cat-file -e <sha>`, `git rev-parse <branch>`); mismatch → the script logs `stale` and re-runs that stage live by appending a nonce-free but sha-bearing suffix to the prompt (`state:<live_sha>`), which is a deliberate cache miss.
+- Resume from `resumeFromRunId` is allowed only if `args.integration_sha_at_launch` still equals the live integration head (checked by the first state probe); otherwise the orchestrator starts a fresh run with new args (the plan phase replays from cache because its prompts do not contain the integration sha).
+
+**Null results and drop receipts (T-17, D-21, F-41).** Every `agent()` goes through `safeAgent()` (§13): it wraps the call in `withTimeout` (H6, pasted verbatim), converts `null`/timeout/throw into a typed `{status:'null'|'timeout'|'threw', reason}` object, appends `{card, stage, status, reason, label}` to `ledger[]`, and `log()`s it. Stage callbacks branch on `status`; nothing is `.filter(Boolean)`-ed without pushing the removed entries to `dropped[]`. Retry policy: implementer/critic/verifier null → ONE retry with a narrower reading list (and `model:'fable'` on hardening cards); a second null parks the card `blocked:'safeguard'` (F-42). Verifiers and refuters are never retried more than once; a null refuter counts as "did not refute" only if the other two ran and cited evidence, else the panel is `unverifiable` → fix loop input, not a pass. H6's honest scope is kept: a timed-out agent is dropped from the barrier but keeps running and its slot; the script logs the receipt and never counts it green.
+
+**Safeguard kills (F-31, F-42).** Hardening cards are three small cards with narrow reading lists; their prompts are framed as "what the guard must refuse, with red-proof tests" and carry `model:'fable'`; a killed implementer's retry starts from the last commit (`git status`; discard only non-compiling partial edits); the gate pre-step removes stale `index.lock` and stray listeners. Two consecutive nulls on one card → park, and the synthesizer lists it under `needs_owner`.
+
+**Concurrency (T-7, T-8, F-44).** `pipeline(wave, buildCard)` per wave (no barrier inside a card chain except the three-refuter `settle()` and the two test authors' `settle()`); a barrier exists only at the wave boundary (integration needs all of them), at the five-reviewer join and the three-judge join, all through `settle()` with typed drops. Wave size from `args.waveSize` (2 at cap 2; ≤6 at cap 14 — the DAG width, not the cap, limits it). Enqueue order = topological order with the spine first. At cap 2 the per-card chain is strictly sequential inside the two slots, so the script also `log()`s an estimated remaining wall-clock at each wave boundary from the agent-reported `date -u` durations (F-44). The Codespace resize (cap 14) must happen BEFORE the `build` run: `args.waveSize` changes the partition of `agent()` calls and therefore invalidates the cache for everything after the plan phase; resizing mid-run means a cache-cold resume (stated in §15 Q5).
+
+**Budget and lifetime cap (T-20, F-45).** Loops are bounded by counters first, budget second: `budgetOk()` returns false when `budget.total && budget.remaining() < Math.max(RESERVE, 0.15 * budget.total)` or when `agentCount > 800`; the synthesizer + synthesis verifier always run (wrapped in try/catch so a throw still logs the ledger). With no `+Nk` directive `budget.total` is null and the counter caps are the backstop; the script logs this at start.
+
+---
+
+## 11. Budget and effort plan by role; agent counts and wall-clock at cap 2 and cap 14
+
+**Effort by role.** `low`: setup, postcondition/state probes, bundle export. `medium`: test authors, red-confirmer, verifier, refuters, tamper judge, integration tester, staging evidence reader. `high`: ground, decision sheet, api ledger, card authors, implementer, fixer, pivot, re-decomposer, auditor, critic, integrator, reviewers, inversion scout, synthesizer, synthesis verifier. `xhigh`: card critic, plan judges, arbiter, conflict resolver, judge panel. `model` inherited everywhere except `model:'fable'` on the three hardening cards' implementer/fixer/verifier/critic (C-F).
+
+**Agent count (derived; implementer durations are UNVERIFIED — no implementer has run under this tool yet; verifier/finder durations are the measured 4–5 min / 13–16 min from `wf_f47ecf9e-916`).**
+
+| Phase | Agents per unit | Units | Subtotal |
+|---|---|---|---|
+| Smoke run | setup, ground, 1 trivial card through every stage (≈ 14), postcondition | 1 | ≈ 17 |
+| Plan (R0) | setup (cached), ground, decision sheet, api ledger, symbolizer, 5 pre-verifiers (critic-1..5), 6 card authors, card critic, repair, 3 plan judges, plan-hash probe | 1 | ≈ 21 |
+| Build per card (no fix) | state probe, test author, held-out author (≈ 40 % of cards), red-confirmer, implementer, verifier, 3 refuters, auditor, critic, postcondition probe | 24 cards | 11.4 × 24 ≈ 274 |
+| Fix rounds | fixer + verifier + 3 refuters (+ pivot at strike 2) ≈ 5.3 per round; assume 1.2 rounds/card average (own history: 19 of 45 findings partially wrong on first pass) | 24 | ≈ 153 |
+| Audit/critic fixes | fixer + verifier ≈ 2 per event; assume 0.5 events/card | 24 | ≈ 24 |
+| Integration | integrator per card (+ conflict resolver 0.25 + ff) + integration tester per wave (≈ 12 waves at cap 2, 7 at cap 14) + postcondition | 24 | ≈ 45 (cap 2) / 40 (cap 14) |
+| Review rounds | 5 reviewers + ≈ 6 fresh findings × 3 refuters + ≈ 3 fix cards × 16 + 3 judges (+ inversion scout once) | 3 rounds (cap MAX 4) | ≈ 225 |
+| Synthesis | synthesizer + synthesis verifier + journal-export secrets scan | 1 | 3 |
+| **Total R1** | | | **≈ 740 (cap 2) / ≈ 735 (cap 14)** — inside the 1000 lifetime cap; the `agentCount > 800` reserve stops scheduling new cards before P8 |
+| R2 `stage` | 1 evidence reader per staging-required claim (≈ 12) + fix cards (≈ 3 × 16) + 3 judges + synth ×2 | 1 | ≈ 65 |
+| R3 `promote` | evidence readers (≈ 6) + judges 3 + synth ×2 | 1 | ≈ 11 |
+
+Token cost: with the measured 90–110 k tokens per verifier-class agent and 150–230 k per finder-class agent, and assuming implementers at the finder class, R1 lands around **90–120 M tokens** (≈ 3× a lean design's count; the extra is verification diversity, C-J). If a `+Nk` budget directive is set, `RESERVE` should be ≥ 15 % of it.
+
+**Wall-clock.** Per-card critical chain: authors ‖ (8 min) → red 4 → impl 20 (UNVERIFIED) → verify 6 → refuters 5 ‖ → audit 6 → critic 5 → probes 2 ≈ 56 min with parallel legs, ≈ 70 min serialised at cap 2; one fix round adds ≈ 30 min. The spine `c01a…c05c` (≈ 11 cards) is serial by dependency at any cap.
+
+| | Cap 2 (now) | Cap 14 (after resize) |
+|---|---|---|
+| Smoke + plan | ≈ 1.5 h | ≈ 0.7 h |
+| Spine (11 serial cards, ≈ 1.2 fix rounds) | ≈ 11 × 1.6 h ≈ 17 h | ≈ 11 × 1.2 h ≈ 13 h (only intra-card parallelism helps) |
+| Fan-out (13 cards) | 7 waves × ≈ 1.8 h ≈ 12.5 h | 2–3 waves × ≈ 1.4 h ≈ 3.5 h |
+| Integration + wave gates | ≈ 3 h | ≈ 2 h |
+| Review rounds (3) | ≈ 3 × 2.5 h ≈ 7.5 h | ≈ 3 × 1.2 h ≈ 3.5 h |
+| **R1 total** | **≈ 41 h** (several resumes across Codespace sessions; bundles after every merge make that safe) | **≈ 22 h** |
+| R2 / R3 | ≈ 4 h / ≈ 1 h | ≈ 2 h / ≈ 0.5 h |
+
+Honest reading: the serial spine dominates; the cap-14 resize buys ≈ 2× on fan-out and panels but not on the spine. The price of the reliability angle is stated, not hidden: ≈ 740 agents and ≈ 22–41 h for R1 versus roughly a third of that for a lean design. The design accepts it because every one of the measured failure classes (verification theater, tampering, over-claiming, stale-sha replay, lost hunks) is guarded by a mechanism rather than a prompt.
+
 <!-- CONTINUE -->
