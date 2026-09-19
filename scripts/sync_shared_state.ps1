@@ -166,6 +166,14 @@ if (-not (Test-Path -LiteralPath $skillsLink)) {
     Write-Host "  .claude\skills link OK -> $($item.Target)"
 }
 
+Write-Host '==> harness integrity gate (H3, 2026-09-19)'
+& $resolvedPython (Join-Path $agentsDir 'scripts\check_harness_integrity.py')
+if ($LASTEXITCODE -ne 0) { Write-Warning 'INTEGRITY violation - fix surfaces or set INTEGRITY=warn' }
+
+Write-Host '==> pin-drift gate (pin-all policy 2026-09-19)'
+& $resolvedPython (Join-Path $agentsDir 'scripts\check_pin_drift.py')
+if ($LASTEXITCODE -ne 0) { Write-Warning 'PIN DRIFT detected - pin or set PIN_DRIFT=warn' }
+
 Write-Host '==> validate shared MCP registry and reference-only credentials'
 Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $validatorScript -Arguments @('--agents-config', $agentsConfig)
 
@@ -213,15 +221,15 @@ if (Test-Path $hermesSkillsSync) {
     Write-Host '  WARN: sync_hermes_skills.ps1 missing - skip Hermes skills sync'
 }
 
-Write-Host '
-Write-Host '==> materialize gemini MCP surface (D7 stage, added 2026-09-19)'
+Write-Host '==> materialize gemini MCP surface (D7 stage, added 2026-09-19; region repaired 2026-09-19 H3 — was string-swallowed since D12 splice)'
 $geminiMerge = Join-Path $agentsDir 'scripts\merge_generated_gemini_mcp.py'
 if (Test-Path $geminiMerge) {
     & $resolvedPython $geminiMerge --write
 } else {
     Write-Warning "merge_generated_gemini_mcp.py not found"
 }
-==> materialize shared rules (D12 stage, added 2026-09-19)'
+
+Write-Host '==> materialize shared rules (D12 stage, added 2026-09-19)'
 $rulesSync = Join-Path $agentsDir 'scripts\sync-rules.ps1'
 if (Test-Path $rulesSync) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File $rulesSync
