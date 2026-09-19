@@ -1,0 +1,86 @@
+{
+ "evidence": [
+  "C:/Users/Prekzursil/.agents/agents.json (SSOT, 92 servers) \u2014 lane URLs quoted verbatim: context7 -> https://mcp.context7.com/mcp; exa -> https://mcp.exa.ai/mcp; notion -> https://mcp.notion.com/mcp; linear -> https://mcp.linear.app/mcp; huggingface -> https://huggingface.co/mcp?login; github -> https://api.githubcopilot.com/mcp; web-reader -> https://api.z.ai/api/mcp/web_reader/mcp; web-search-prime -> https://api.z.ai/api/mcp/web_search_prime/mcp; zread -> https://api.z.ai/api/mcp/zread/mcp; tavily -> stdio command npx args [-y, tavily-mcp@0.2.15]",
+  "C:/Users/Prekzursil/.claude.json mcpServers (87 entries) \u2014 same 9 http URLs, zero URL drift vs registry; live-only extras: github+context7+huggingface+web-reader+web-search-prime+zread carry Authorization headers, registry copies of github/huggingface carry NONE",
+  "context7 probe: HTTP 200 text/event-stream 399ms; serverInfo {name: Context7, version: 4.1.1}; pv_returned 2025-06-18 when 2025-06-18 requested, 2024-11-05 when 2024-11-05 requested (negotiation honored)",
+  "exa probe (no auth in config, none sent): HTTP 200 text/event-stream 214ms; serverInfo {name: exa-search-server, title: Exa, version: 3.2.1}; pv_returned 2025-06-18 (dual probe)",
+  "github probe chain: no-auth 401; stored raw header -> HTTP 400 body [bad request: Authorization header is badly formatted]; expanded GITHUB_MCP_PAT -> HTTP 200 SSE; serverInfo [github-mcp-server, github-mcp-server/remote-7835a232463c42f2f33cb50b3f4fa043cf66697c]; caps [completions, prompts, resources, tools]; pv 2025-06-18 (dual probe)",
+  "huggingface probe chain: stored raw header -> HTTP 401 Unauthorized (WWW-Authenticate: Bearer resource_metadata=https://huggingface.co/.well-known/oauth-pro...); expanded HUGGINGFACE_TOKEN -> HTTP 200 application/json; serverInfo [huggingface.co/mcp, 0.4.20]; caps [extensions, resources, tools]; pv 2025-06-18 on BOTH https://huggingface.co/mcp?login and https://huggingface.co/mcp (two independent requests agree)",
+  "header-shape evidence (values never printed): live github Authorization len=24 Bearer-prefix brace=true -> regex-extracted env name GITHUB_MCP_PAT; live huggingface Authorization len=27 brace=true -> HUGGINGFACE_TOKEN; cross-confirmed by registry env_keys: github_cli lists GITHUB_MCP_PAT, glm53-space lists HUGGINGFACE_TOKEN; both env vars present in process environment",
+  "linear probe: HTTP 401 application/json body [{error: invalid_token, error_description: Missing or invalid access token}]; WWW-Authenticate: Bearer realm=OAuth, resource_metadata=https://mcp.linear.app/.well-... (RFC 9727); identical with plain and browser UA; no credentials in either config surface; no mcp__linear__ tools present in session",
+  "notion probe: python UA -> HTTP 403 Cloudflare error 1010 (browser-signature ban, developers.cloudflare.com error-1010 link in body); browser UA -> HTTP 401 [{error: invalid_token}]; WWW-Authenticate: Bearer realm=OAuth resource_metadata=https://mcp.notion.com/.well-...; no credentials configured; no mcp__notion__ tools in session",
+  "z.ai trio probe matrix (auth header present, from registry config): POST initialize -> HTTP 405 text/html zh-cn error page; GET (Accept: text/event-stream) -> HTTP 405 same page; OPTIONS -> HTTP 405 same page; ~110-135ms each; third signal: Claude Code session banner reports web-reader/web-search-prime/zread as failed-to-connect with the same 405 zh-cn HTML \u2014 three independent methods plus client corroboration all agree",
+  "npm registry evidence: npm view tavily-mcp version -> 0.2.22 (latest); npm view tavily-mcp@0.2.15 version -> 0.2.15 (pin resolves); drift = 7 patch releases, all patch-level (0.2.x line)",
+  "staleness sweep result: ZERO servers returned protocolVersion < 2024-11-05; 4 of 4 reachable handshakes returned exactly 2025-06-18 (current spec revision); mcp-protocol-version HTTP response header was null/absent on all 200 responses (all four servers predate or omit the response-header feature)",
+  "probe scripts (reproducible, tokens handled in-process only): C:/Users/Prekzursil/AppData/Local/Temp/v4_extract.py, v4_probe.py, v4_probe2.py, v4_probe3.py, v4_probe4.py, v4_probe5.py"
+ ],
+ "item": "V4 lane \u2014 mcp-refresh-audit 2026-09-19: POST-initialize protocol-freshness probe of the http remote MCP servers (context7, exa, notion, linear, tavily, huggingface, github Copilot-MCP, z.ai trio). Verdict summary: 0 servers stale (< 2024-11-05); context7, exa, github, huggingface all negotiate 2025-06-18 (current); linear + notion alive but auth-gated with NO credentials configured anywhere; z.ai trio (web-reader, web-search-prime, zread) fully dead \u2014 405 HTML for POST/GET/OPTIONS; tavily is NOT http in SSOT (stdio npx pin).",
+ "open_questions": [
+  "UNVERIFIED \u2014 linear protocolVersion: endpoint is alive and MCP-speaking but every request 401s. Settling experiment: complete the advertised OAuth flow (resource_metadata https://mcp.linear.app/.well-known/oauth-protected-resource) or obtain a Linear API/OAuth token, then re-POST initialize and read result.protocolVersion.",
+  "UNVERIFIED \u2014 notion protocolVersion: same shape; Cloudflare 1010 blocks non-browser UAs, browser UA reaches a clean 401 invalid_token. Settling experiment: complete Notion MCP OAuth (resource_metadata https://mcp.notion.com/.well-known/...) then re-probe with a browser-like UA and valid bearer.",
+  "UNVERIFIED \u2014 whether a replacement z.ai MCP route exists: 405 on POST+GET+OPTIONS proves the configured /api/mcp/<name>/mcp paths are dead, not whether MCP moved elsewhere on api.z.ai. Settling experiment: fetch current Z.AI MCP docs (out of scope for this no-web-tool lane) or probe the /api/mcp/ root to distinguish route-retirement (404/405 map) from geo-gateway behavior.",
+  "UNVERIFIED \u2014 exa tool-call auth: initialize succeeds anonymous, but tool execution may still demand EXA_API_KEY (which the estate holds only inside search-hub envs, not on the exa entry). Settling experiment: send notifications/initialized + tools/call search without auth and observe 401 vs 200.",
+  "UNVERIFIED \u2014 whether Claude Code itself expands ${GITHUB_MCP_PAT}/${HUGGINGFACE_TOKEN} in http headers or the session github/huggingface connections ride the OAuth cache instead: both servers show working session tools AND both headers are raw templates; which mechanism serves the live session was not directly observable read-only. Settling experiment: inspect the session MCP connection logs / start Claude Code with GITHUB_MCP_PAT and HUGGINGFACE_TOKEN unset and see whether github/huggingface still connect (OAuth) or break (env expansion).",
+  "Not probed (lane boundary): github-security at http://127.0.0.1:31110/mcp is localhost, not a remote \u2014 excluded from V4; tavily plugin-provided duplicate (mcp__McpHub__tavily__*) belongs to the duplicate lane."
+ ],
+ "steps": [
+  {
+   "action": "extract lane configs from SSOT + live surface",
+   "detail": "agents.json mcp.servers (92 total) and ~/.claude.json mcpServers (87 total): 9 http-remote lane targets share IDENTICAL URLs across both surfaces (no endpoint drift). context7 https://mcp.context7.com/mcp, exa https://mcp.exa.ai/mcp, notion https://mcp.notion.com/mcp, linear https://mcp.linear.app/mcp, huggingface https://huggingface.co/mcp?login, github https://api.githubcopilot.com/mcp, z.ai trio https://api.z.ai/api/mcp/{web_reader,web_search_prime,zread}/mcp. tavily is NOT http: registry pins stdio npx -y tavily-mcp@0.2.15.",
+   "risk": "none (read-only)"
+  },
+  {
+   "action": "probe context7 POST initialize (10s timeout)",
+   "detail": "200 text/event-stream in 399ms with configured auth. serverInfo Context7 v4.1.1. protocolVersion 2025-06-18 when 2025-06-18 requested; returns 2024-11-05 when 2024-11-05 requested (standard negotiation echo). No staleness.",
+   "risk": "none",
+   "target": "https://mcp.context7.com/mcp"
+  },
+  {
+   "action": "probe exa POST initialize",
+   "detail": "200 SSE in 214ms, NO auth configured and none needed for handshake. serverInfo exa-search-server v3.2.1. protocolVersion 2025-06-18 (dual probe: echoes 2024-11-05 on old request). UNVERIFIED whether tool CALLS (not handshake) require EXA_API_KEY \u2014 the estate stores EXA_API_KEY only inside search-hub envs.",
+   "risk": "none",
+   "target": "https://mcp.exa.ai/mcp"
+  },
+  {
+   "action": "probe github Copilot-MCP with auth escalation",
+   "detail": "Three-step: (1) registry copy has NO auth header -> 401. (2) live header sent raw = literal Bearer ${GITHUB_MCP_PAT} -> HTTP 400 'bad request: Authorization header is badly formatted'. (3) env-expanded GITHUB_MCP_PAT -> 200 SSE, protocolVersion 2025-06-18, serverInfo github-mcp-server/remote-7835a232463c42f2f33cb50b3f4fa043cf66697c, caps completions/prompts/resources/tools. Endpoint FRESH; the raw template breaks any non-expanding consumer.",
+   "risk": "medium \u2014 auth lives only on live surface as an unexpanded ${ENV} template; registry copy has no header at all",
+   "target": "https://api.githubcopilot.com/mcp (and /mcp/)"
+  },
+  {
+   "action": "probe huggingface with auth escalation",
+   "detail": "Raw template Bearer ${HUGGINGFACE_TOKEN} -> 401. Expanded -> 200 on BOTH /mcp?login and /mcp (two independent probes agree). protocolVersion 2025-06-18, serverInfo huggingface.co/mcp v0.4.20, caps extensions/resources/tools. FRESH.",
+   "risk": "medium \u2014 same template-header pattern as github",
+   "target": "https://huggingface.co/mcp?login + /mcp"
+  },
+  {
+   "action": "probe linear",
+   "detail": "401 invalid_token JSON in 36ms, WWW-Authenticate: Bearer realm=OAuth + RFC9727 resource_metadata. Alive and MCP-speaking but NO credentials in registry OR live config; no linear tools present in this session. protocolVersion UNVERIFIED (auth-gated).",
+   "risk": "medium \u2014 mounted with zero auth; cannot ever connect as configured",
+   "target": "https://mcp.linear.app/mcp"
+  },
+  {
+   "action": "probe notion with UA matrix (both-states test)",
+   "detail": "python UA -> 403 Cloudflare error 1010 (browser-signature block). Browser UA -> 401 invalid_token JSON + OAuth resource_metadata. So notion is ALIVE behind a CF UA gate; no creds configured anywhere; protocolVersion UNVERIFIED (auth-gated).",
+   "risk": "medium \u2014 same unauthenticated-as-mounted class as linear, plus CF UA gating that can 403 non-browser probes",
+   "target": "https://mcp.notion.com/mcp"
+  },
+  {
+   "action": "probe z.ai trio with 3-method matrix",
+   "detail": "web-reader, web-search-prime, zread: POST initialize AND GET (SSE) AND OPTIONS all return HTTP 405 with a zh-cn text/html error page (~110-135ms), WITH the configured Authorization present. Identical signature to the live session's connect failures for these three servers. Root cause is endpoint-level (route not speaking MCP / retired), not auth, not transient. DEAD as configured.",
+   "risk": "high \u2014 3 servers enabled in both surfaces that can never connect; spawn-failure noise every session start",
+   "target": "https://api.z.ai/api/mcp/{web_reader,web_search_prime,zread}/mcp"
+  },
+  {
+   "action": "tavily disposition + npm registry freshness",
+   "detail": "Not an http remote: registry args pin npx -y tavily-mcp@0.2.15 (quoted pin). npm view tavily-mcp version -> 0.2.22 latest; 0.2.15 resolves. Drift = 7 patch releases behind, patch-level upgrade risk (low). Plugin-provided McpHub tavily duplicate exists (lane-B axis).",
+   "risk": "low",
+   "target": "npm registry: tavily-mcp"
+  },
+  {
+   "action": "staleness sweep result",
+   "detail": "ZERO servers returned protocolVersion < 2024-11-05. All 4 reachable handshakes (context7, exa, github, huggingface) negotiate 2025-06-18 \u2014 the current revision. hdr mcp-protocol-version response header was null on every 200 (servers do not emit the post-2025-06-18 response header; minor). 2 servers auth-gated (linear, notion), 3 endpoints dead (z.ai trio) \u2014 for those, protocolVersion is UNVERIFIED/impossible.",
+   "risk": "none"
+  }
+ ]
+}

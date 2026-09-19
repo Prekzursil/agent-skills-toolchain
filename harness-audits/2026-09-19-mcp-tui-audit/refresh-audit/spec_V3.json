@@ -1,0 +1,52 @@
+{
+ "evidence": [
+  "Detector control: tool_search_tool_regex query 'StructuredOutput' -> FOUND (schema returned) \u2014 proves the search mechanism resolves present tools.",
+  "Absence probes (all returned 'No matching deferred tools found'): 'bash|shell|execute|command'; 'file|read|glob|grep'; 'web|fetch|search'; 'send|message|task|team|cron'; '^Write$|^Read$' \u2014 six mechanically distinct patterns, corroborated absence of any execution/file/network tool.",
+  "Spawn-discipline context: 'Servers: exe-based local servers (semgrep.exe, gh-cli-mcp, ralph.exe, frida-mcp.exe, angr-mcp.exe, mitmproxy-mcp.exe, playwright variants, paper-search exe); Focus: V-lane: installed --version output (spawn allowed, 10s cap, one at a time) vs upstream latest' \u2014 from the lane assignment; none of these spawns could be issued.",
+  "Spawn-failure diagnosis (axis D, the only axis partially answerable): ROOT CAUSE = lane launched without execution/file/network tools; NOT an exe-level failure (no exe spawn was ever attempted or observed in this lane), NOT a RAM kill, NOT a registry 404. Settling experiment: re-dispatch lane V3 with Bash+Read enabled and confirm the first 'semgrep.exe --version' spawn returns output within 10s.",
+  "Context-only path fact (UNVERIFIED, not a fresh probe, cited from owner global instructions dated 2026-09-21): paper-search exe = D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe (upstream = PyPI 'paper-search-mcp').",
+  "Tool inventory confirmed via 5th independent probe: additional patterns all empty \u2014 final tally: callable tools in this lane = tool_search_tool_regex + StructuredOutput, nothing else."
+ ],
+ "item": "V-lane (exe-based local servers: semgrep.exe, gh-cli-mcp, ralph.exe, frida-mcp.exe, angr-mcp.exe, mitmproxy-mcp.exe, playwright variants, paper-search exe) \u2014 FAILED-TO-RUN: version-freshness audit could not execute because this lane was spawned with ZERO execution, file-read, or network tools. No exe was spawned, agents.json was not read, no registry was queried. Every installed-pin / upstream-latest / drift value for this lane is UNVERIFIED (0 of 8 servers measured). Honest abort per fail-closed doctrine \u2014 no numbers were fabricated to fill the gap.",
+ "open_questions": [
+  "What are the actual installed --version outputs for all 8 targets, and which (if any) are >2 major versions behind upstream? (Settling experiment: run the re-dispatch matrix above in a lane with Bash+Read.)",
+  "Exact exe paths and args for semgrep.exe, gh-cli-mcp, ralph.exe, frida-mcp.exe, angr-mcp.exe, mitmproxy-mcp.exe, playwright variants as pinned in C:/Users/Prekzursil/.agents/agents.json mcp.servers \u2014 unreadable from this lane.",
+  "Upstream provenance for the locally-built exes (gh-cli-mcp, ralph.exe, frida-mcp.exe, angr-mcp.exe, mitmproxy-mcp.exe): registry package vs agent-skills-toolchain/ReverseTools local build \u2014 determines whether 'upstream latest' is a registry version or a git SHA.",
+  "Which npm package each playwright variant tracks (@playwright/mcp vs @executeautomation/playwright-mcp-server vs @playwright-_extension variant) \u2014 needed before an upstream comparison is meaningful.",
+  "Was the tool-surface starvation lane-specific (V3 spawn config) or workflow-wide (all mcp-refresh-audit lanes starved)? If workflow-wide, every lane's 'no findings' result must be read as FAILED-TO-RUN, not as a clean pass \u2014 check sibling lanes' StructuredOutput for the same signature.",
+  "Cross-surface duplicate check (axis B) for the playwright family and mitmproxy (McpHub children mcp__McpHub__playwright_cdp/__playwright_extension/__playwright AND direct mounts mcp__playwright-cdp/__playwright-extension/__playwright are both live in the session inventory): which of each pair is the SSOT-governed entry and do their pinned versions match?"
+ ],
+ "steps": [
+  {
+   "action": "tool-inventory-probe (executed, passing control)",
+   "detail": "tool_search_tool_regex resolved StructuredOutput (known-present control: FOUND) while six other patterns resolved nothing. Conclusion: absence of Bash/Read/Write/WebFetch/WebSearch/SendMessage is corroborated, not a broken detector. This is the only measurement this lane could take.",
+   "risk": "none \u2014 read-only schema lookup"
+  },
+  {
+   "action": "BLOCKED \u2014 extract lane server configs from SSOT registry",
+   "target": "C:/Users/Prekzursil/.agents/agents.json (mcp.servers, 92 servers)",
+   "detail": "Not executed: no Read/Bash tool exists in this lane, so exact exe paths and quoted pins for semgrep.exe, gh-cli-mcp, ralph.exe, frida-mcp.exe, angr-mcp.exe, mitmproxy-mcp.exe, playwright variants, paper-search exe remain UNVERIFIED. Settling experiment: in a lane with Read+Bash, run a python extract printing only {name, command, args, enabled} for keys matching (semgrep|gh-cli|ralph|frida|angr|mitm|playwright|paper), output capped at 100 lines.",
+   "risk": "Any exe path quoted from memory instead of the registry would be fabrication \u2014 none are asserted here"
+  },
+  {
+   "action": "BLOCKED \u2014 installed-version probes (spawn allowed by task, 10s cap, one at a time)",
+   "detail": "Not executed (no spawn tool). Ready-to-run matrix once a capable lane exists, each with a ~12s timeout, sequential: semgrep.exe --version; gh-cli-mcp --version; ralph.exe --version; frida-mcp.exe --version; angr-mcp.exe --version; mitmproxy-mcp.exe --version; playwright variants --version (all); paper-search-mcp.exe --version. Second mechanism for each load-bearing version (single-signal rule): prefer package metadata over exe self-report \u2014 e.g. for paper-search read D:/ReverseTools/mcp/paper-search-mcp/venv/Lib/site-packages/paper_search_mcp-*.dist-info directory name; for semgrep run semgrep --version AND pip show semgrep in its venv/pipx env.",
+   "risk": "UNVERIFIED: all 8 installed versions. Exe self-report is one signal; a PyInstaller bundle can report a stale embedded string \u2014 require the dist-info/metadata cross-check before recording CONFIRMED"
+  },
+  {
+   "action": "BLOCKED \u2014 upstream-latest registry queries",
+   "detail": "Not executed (no network/exec tool). Planned probes: pip index versions semgrep; pip index versions paper-search-mcp; npm view @playwright/mcp version; npm view @executeautomation/playwright-mcp-server version; npm view @playwright-extension/... (package identity to be read from the registry args first); for locally-built exes (ralph, frida-mcp, angr-mcp, mitmproxy-mcp, gh-cli-mcp if not a published package) upstream is the source repo, not a registry \u2014 resolve provenance from agents.json provenance fields or the 2026-09-19 audit artifacts at C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/AUDIT-SUMMARY.md (READ ONLY the relevant rows).",
+   "risk": "UNVERIFIED: all upstream-latest values; do not trust any version number quoted from this lane's context as if measured"
+  },
+  {
+   "action": "BLOCKED \u2014 drift classification (>2-major flag)",
+   "detail": "Not executed: drift = compare installed vs upstream, classify major/minor/patch, flag >2 major versions behind. Zero servers classified. No server in this lane may be reported as current or stale.",
+   "risk": "Fabrication risk if any drift verdict were emitted without both probes \u2014 none is emitted"
+  },
+  {
+   "action": "spawn-failure diagnosis (axis D) \u2014 partially answerable",
+   "detail": "The only spawn-failure this lane can diagnose is its own: the lane was spawned without execution/file/network tools, so every downstream step failed-open. This is an orchestrator tool-grant defect, not a defect of the exe servers themselves. Re-dispatch lane V3 with Bash+Read+network enabled; the re-dispatch cost is minutes, not the original full lane.",
+   "risk": "Sibling lanes spawned the same way will also silently produce nothing \u2014 orchestrator should check whether other lanes of mcp-refresh-audit got a real tool surface before trusting their empties"
+  }
+ ]
+}

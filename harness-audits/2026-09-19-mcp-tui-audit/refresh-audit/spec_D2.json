@@ -1,0 +1,90 @@
+{
+ "item": "Lane D2 duplicate hunt (mcp-refresh-audit 2026-09-19, post-restart): cross-surface duplicate detection for gemini/zcode/hermes/claude vs the .agents registry, plus the -hub twins. All config reads were read-only; no writes, no commits.",
+ "steps": [
+  {
+   "action": "Enumerate surfaces (disk-verified)",
+   "detail": "Registry 92 servers (targets histogram: claude 79, hermes 17, zcode 15, codex 9, gemini 5). Claude root mcpServers 87, per-project mcpServers 0. Gemini settings.json mcpServers 31. McpHub children 65 (all enabled=true, 0 disabled). Hermes config.yaml mcp_servers 17. zcode cli config mcp.servers 2 (exa, kaggle).",
+   "target": "C:\\Users\\Prekzursil\\.agents\\agents.json ; C:\\Users\\Prekzursil\\.claude.json ; C:\\Users\\Prekzursil\\.gemini\\settings.json ; C:\\Users\\Prekzursil\\.McpHub\\config.json ; C:\\Users\\Prekzursil\\AppData\\Local\\hermes\\config.yaml ; C:\\Users\\Prekzursil\\.zcode\\cli\\config.json",
+   "risk": "none (read-only inventory)"
+  },
+  {
+   "action": "FINDING D2-1: McpHub children vs direct mounts - 57 dual-mount pairs on the SAME consumer surface (claude)",
+   "detail": "57 of 65 McpHub children have a same-named DIRECT mount in claude root mcpServers, i.e. one claude session can load the same server via both paths. Classification after cmd-wrapper unwrap + slash normalization: 44 byte-identical launches; 6 identical modulo path style (claude.json uses forward slashes, .McpHub backslashes: apktool-mcp, jadx-mcp, ocr-suite, openmm-md, qdx-rush, schrodinger); 5 TRANSPORT-DIVERGENT - claude mounts the CyberStrike HTTP hub while McpHub spawns the same server stdio (cloud-audit 127.0.0.1:31118, cve-mcp :31111, github-security :31110, nuclei :31117, osint :31112); 2 LAUNCHER-DIVERGENT (scholarly-access: scholarly-access-mcp.exe vs python -m scholarly_access.server, same venv; rdkit: rdkit_mcp_launch.py vs run_server.py --transport stdio, same venv). All 65 children enabled=true, so all 57 pairs are live double-spawn candidates. 8 children have NO direct mount (biomni-hub, everything, fb-messenger, insta-mcp, markitdown, meta-tool, sliver, tiktok). Second signal (mechanically independent of config reads - this session's own live tool inventory): both families connected simultaneously, e.g. mcp__social_hub__fb_dm_list AND mcp__McpHub__social_hub__fb_dm_list, likewise schrodinger, osint, mitmproxy, searxng, github-security, cloud-audit, playwright-cdp, playwright-extension, claude-code-mcp, paper-search - the duplicate is active, not theoretical; each connected pair doubles that server's tool-schema context cost.",
+   "target": "C:\\Users\\Prekzursil\\.McpHub\\config.json (servers) vs C:\\Users\\Prekzursil\\.claude.json (mcpServers); McpHub mounted as entry 'McpHub' type sse http://127.0.0.1:24680/mcp",
+   "risk": "HIGH bloat: up to 57 double spawns / duplicated tool inventories per session; conflicting pins impossible today (PIN-DRIFT between twin sides = 0) but any future one-sided edit silently diverges the two paths"
+  },
+  {
+   "action": "FINDING D2-2: registry URL-twin pairs (the -hub twins)",
+   "detail": "6 pairs in agents.json mcp.servers point at ONE URL each: github-security[claude]/github-security-hub[hermes] @ http://127.0.0.1:31110/mcp; cve-mcp/cve-mcp-hub @ :31111; osint/osint-hub @ :31112; firecrawl[claude,hermes]/firecrawl-kit[codex,claude] @ :31114; nuclei/nuclei-hub @ :31117; cloud-audit/cloud-audit-hub @ :31118. Five pairs are intentional per-consumer aliases (hermes is the HTTP-hub-only consumer; hermes config.yaml carries exactly the -hub URLs and its 17-server set equals the registry hermes-targeted set exactly). The exception is firecrawl vs firecrawl-kit: BOTH target claude on the same URL - only enabled=false on firecrawl-kit prevents a live same-surface duplicate; one enable flip (or a sync that materializes targeted-but-absent entries) creates it.",
+   "target": "C:\\Users\\Prekzursil\\.agents\\agents.json mcp.servers entries quoted: github-security url=http://127.0.0.1:31110/mcp targets=[claude] enabled=True ; github-security-hub same url targets=[hermes] enabled=True ; firecrawl targets=[claude,hermes] enabled=True ; firecrawl-kit targets=[codex,claude] enabled=False ; (same pattern for cve-mcp/osint/nuclei/cloud-audit pairs)",
+   "risk": "MEDIUM: firecrawl-kit is a latent same-surface duplicate for claude; the 6 alias pairs also bloat the SSOT and can confuse any consumer that ignores targets"
+  },
+  {
+   "action": "FINDING D2-3: same-surface full-key duplicates",
+   "detail": "Within-surface identical-identity duplicates: claude root 0, gemini 0, McpHub children 0, registry 6 (the URL pairs above). Package-level overlaps that are NOT same-server: playwright-cdp + playwright-extension share npm:@playwright/mcp@0.0.78 (two configs of one package - and the pair exists BOTH as claude direct mounts AND as McpHub children = 4 launches of the same pinned package on one surface); postgres + sonarqube share command 'docker' (different containers - not duplicates).",
+   "target": "C:\\Users\\Prekzursil\\.claude.json ; C:\\Users\\Prekzursil\\.McpHub\\config.json",
+   "risk": "LOW-MEDIUM: playwright quadruple-mount is pure context-cost when all connect"
+  },
+  {
+   "action": "Gemini surface vs claude vs registry (31 entries)",
+   "detail": "0 internal duplicates; all 31 names exist in the registry and on the claude surface (cross-surface overlap is expected, not flagged). Governance gap rather than duplication: only 5 registry entries target gemini (context7, github_cli, huggingface, linear, notion) - the other 26 gemini-mounted servers (binary-ninja-mcp, browserstack, cheatengine, chrome-devtools, codacy, codecov, deepsource, digitalocean, docker, excel, figma, firecrawl, frida-mcp, ghidra-mcp, hexstrike-ai, ida-pro-mcp, mcp-graphql, pdf-reader, playwright, ralph-orchestrator, repomix, scrapegraph, semgrep, sentry, sonarqube, tavily) are governed by name only, not by target - no sync path updates them.",
+   "target": "C:\\Users\\Prekzursil\\.gemini\\settings.json mcpServers vs C:\\Users\\Prekzursil\\.agents\\agents.json targets",
+   "risk": "MEDIUM: 26/31 gemini servers drift silently (freshness is lane A, but the governance hole is structural)"
+  },
+  {
+   "action": "zcode vs registry",
+   "detail": "Live zcode MCP surface is 2 servers in .zcode\\cli\\config.json mcp.servers: exa (url https://mcp.exa.ai/mcp) and kaggle (stdio: C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe + script). Registry declares 15 zcode-targeted entries (agent-mail, basic-memory, bedrock-claude, biomni-hub, burp, deepwiki, exa, github, kaggle, openaiDeveloperDocs, scholarly-access, video-agent-kit, web-reader, web-search-prime, zread) - 13 of 15 never materialize in the zcode config. UNVERIFIED whether zcode consumes the registry at runtime; settling experiment: run zcode's MCP-listing command (or check its docs) and see whether the 13 appear. Config-quality note: the kaggle entry points into a Downloads\\bionlp venv - fragile location.",
+   "target": "C:\\Users\\Prekzursil\\.zcode\\cli\\config.json (keys: hooks, mcp, plugins) ; .zcode\\v2\\config.json holds only 'provider'",
+   "risk": "LOW duplication risk (2 servers, no internal dupes); MEDIUM governance mismatch (registry targets vs live config)"
+  },
+  {
+   "action": "hermes vs registry - includes CORRECTION to this morning's audit artifact",
+   "detail": "Hermes MCP config EXISTS at AppData\\Local\\hermes\\config.yaml with mcp_servers: 17 entries, and the set equals the registry hermes-targeted set exactly (both directions verified: only-in-yaml=[], only-in-registry=[]). 0 duplicates, 0 ungoverned extras. CORRECTION: harness-audits/2026-09-19-mcp-tui-audit/tui-inventory.json records hermes as found:[] / mcp_servers:null and zcode likewise - that probe under-searched (missed AppData\\Local\\hermes and .zcode\\cli\\config.json's 'mcp' key shape); both surfaces are real and measured here.",
+   "target": "C:\\Users\\Prekzursil\\AppData\\Local\\hermes\\config.yaml ; C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\harness-audits\\2026-09-19-mcp-tui-audit\\tui-inventory.json",
+   "risk": "none for duplication; the morning artifact's zcode/hermes rows should not be cited as 'no MCP config'"
+  },
+  {
+   "action": "Claude surface ungoverned extras and registry->claude gaps",
+   "detail": "16 claude-root names absent from the registry: McpHub, apktool-mcp, codex, elevenlabs, gitlab, jadx-mcp, mcp-windbg, ocr-suite, openmm-md, perplexity, qdx-rush, rdkit, schrodinger, searxng, serena, zai-mcp-server. 14 of these are ALSO McpHub children (i.e. they participate in D2-1 dual mounts while ungoverned); zai-mcp-server is ungoverned and hub-less. Registry entries targeted claude but absent from claude root (8): firecrawl-kit (disabled), glm53-space, hacktricks, libgen, markitdown, meta-tool, metasploit, sliver-full - markitdown/meta-tool/sliver materialize only as McpHub children. Same-name claude-vs-registry identity drift: 0 (live mounts are faithful to the SSOT wherever the name exists).",
+   "target": "C:\\Users\\Prekzursil\\.claude.json vs C:\\Users\\Prekzursil\\.agents\\agents.json",
+   "risk": "MEDIUM: ungoverned dual-mounted entries escape both SSOT review and sync"
+  },
+  {
+   "action": "Collapse a false twin: the two McpHub config paths are ONE file",
+   "detail": "C:\\Users\\Prekzursil\\.mcphub\\config.json and C:\\Users\\Prekzursil\\.McpHub\\config.json are the same filesystem object (Windows case-insensitive paths; os.path.samefile=True, identical st_ino, identical size 13827 and mtime; 65/65 names, 0 content differences). There is exactly ONE McpHub child config, not two.",
+   "target": "C:\\Users\\Prekzursil\\.McpHub\\config.json",
+   "risk": "none (removes a phantom from the audit surface list)"
+  },
+  {
+   "action": "Method integrity note (detector self-correction)",
+   "detail": "First identity pass collapsed all 'cmd /c ...' Windows wrappers into one 'path:cmd' bucket, producing absurd 23-name match groups (the collection-level-equality tell). Fixed by unwrapping cmd/powershell wrappers, correcting uvx package resolution (--from value / first positional), stripping pip ==pins, and normalizing backslash/forward-slash + env expansion. All numbers reported here come from the corrected pass; the fix was validated against known pairs (social-hub, playwright-cdp became exact matches).",
+   "target": "extraction scripts at C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\d2_extract*.py (scratch, read-only audit helpers)",
+   "risk": "none residual known; slash-style differences were the last false-drift source and are now normalized"
+  }
+ ],
+ "evidence": [
+  "Counts: registry(mcp.servers)=92 @ C:\\Users\\Prekzursil\\.agents\\agents.json ; claude root mcpServers=87 @ C:\\Users\\Prekzursil\\.claude.json (projects with mcpServers: 0) ; gemini mcpServers=31 @ C:\\Users\\Prekzursil\\.gemini\\settings.json ; McpHub servers=65 all enabled=true @ C:\\Users\\Prekzursil\\.McpHub\\config.json ; hermes mcp_servers=17 @ C:\\Users\\Prekzursil\\AppData\\Local\\hermes\\config.yaml ; zcode mcp.servers=2 @ C:\\Users\\Prekzursil\\.zcode\\cli\\config.json",
+  "Registry targets histogram: {claude:79, hermes:17, gemini:5, codex:9, zcode:15} (python extract over agents.json)",
+  "D2-1 dual mounts: 57 name-matched McpHub-child/claude-direct pairs; classes: IDENTICAL=44, SAME-after-slashnorm=6 (apktool-mcp, jadx-mcp, ocr-suite, openmm-md, qdx-rush, schrodinger), TRANSPORT-DIVERGENT=5 (cloud-audit, cve-mcp, github-security, nuclei, osint), LAUNCHER-DIVERGENT=2 (scholarly-access, rdkit); PIN-DRIFT=0",
+  "Twin evidence (verbatim, env redacted): claude.social-hub = {\"command\":\"C:\\\\Python314\\\\python.exe\",\"args\":[\"C:\\\\Users\\\\Prekzursil\\\\source\\\\agent-skills-toolchain\\\\tools\\\\mcp\\\\social-hub\\\\hub.py\"]} and mcphub.social-hub = byte-identical command+args",
+  "Transport-divergent evidence: claude.osint = {\"type\":\"http\",\"url\":\"http://127.0.0.1:31112/mcp\"} vs mcphub.osint = {\"command\":\"cmd\",\"args\":[\"/c\",\"C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Roaming\\\\npm\\\\osint-mcp-server.cmd\"]} - same server, two paths, one surface",
+  "Launcher-divergent evidence: claude.scholarly-access = scholarly-access-mcp.exe (no args) vs mcphub.scholarly-access = .venv\\Scripts\\python.exe -m scholarly_access.server; claude.rdkit = rdkit_mcp_launch.py vs mcphub.rdkit = run_server.py --transport stdio (same venv both sides)",
+  "Quoted pins observed on BOTH twin sides (no drift): @playwright/mcp@0.0.78 (x4 mounts: claude playwright-cdp + playwright-extension, McpHub playwright-cdp + playwright-extension), mcp-searxng@1.8.0, tavily-mcp@0.2.15, @browserstack/mcp-server@1.2.11, scrapegraph-mcp==1.0.1, tooluniverse==1.2.4, mcp-windbg==0.15.0",
+  "Second signal (live session tool inventory, independent of config reads): mcp__social_hub__fb_dm_list AND mcp__McpHub__social_hub__fb_dm_list both present; same duality for schrodinger, osint, mitmproxy, searxng, github-security, cloud-audit, playwright-cdp, playwright-extension, claude-code-mcp, paper-search",
+  "D2-2 registry URL twins (verbatim targets/enabled): github-security url=http://127.0.0.1:31110/mcp targets=[claude] enabled=True ; github-security-hub same url targets=[hermes] enabled=True ; cve-mcp/cve-mcp-hub :31111 ; osint/osint-hub :31112 ; firecrawl targets=[claude,hermes] enabled=True vs firecrawl-kit targets=[codex,claude] enabled=False @ :31114 ; nuclei/nuclei-hub :31117 ; cloud-audit/cloud-audit-hub :31118",
+  "hermes yaml (C:\\Users\\Prekzursil\\AppData\\Local\\hermes\\config.yaml) mcp_servers URLs match the -hub aliases: cloud-audit-hub http://127.0.0.1:31118/mcp, cve-mcp-hub :31111, github-security-hub :31110, firecrawl :31114, plus agent-mail :18812/mcp/ and basic-memory :18765/mcp ; hermes set == registry hermes-targeted set (only-in-yaml=[], only-in-registry=[])",
+  "Same-surface full-key duplicate counts: claude-root=0, gemini=0, mcphub-live=0, registry=6 (the URL pairs); package-level only: npm:@playwright/mcp (playwright-cdp+playwright-extension), path:docker (postgres+sonarqube - different containers, not dupes)",
+  "Gemini: 0 internal dupes; GEMINI-UNGOVERNED-by-name=0; registry gemini-targeted=5 (context7, github_cli, huggingface, linear, notion) so 26/31 gemini-mounted servers lack a gemini target; all 31 names also on claude",
+  "zcode live surface (verbatim): mcp.servers = {exa: {url https://mcp.exa.ai/mcp}, kaggle: {command C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe, args [...]}}; registry zcode-targeted=15 -> 13 unmaterialized in zcode config",
+  "Claude ungoverned (16): McpHub,apktool-mcp,codex,elevenlabs,gitlab,jadx-mcp,mcp-windbg,ocr-suite,openmm-md,perplexity,qdx-rush,rdkit,schrodinger,searxng,serena,zai-mcp-server ; REG->CLAUDE targeted-but-absent (8): firecrawl-kit,glm53-space,hacktricks,libgen,markitdown,meta-tool,metasploit,sliver-full ; same-name claude-vs-registry identity drift = 0",
+  "McpHub single-config proof: os.path.samefile(.mcphub\\config.json, .McpHub\\config.json)=True, identical st_ino, size 13827, 65/65 shared names, 0 content-differing",
+  "Morning-audit correction: tui-inventory.json rows 'zcode: found[]/mcp_servers:null' and 'hermes: found[]/mcp_servers:null' are under-probes; both surfaces exist (paths above) and are fully measured in this lane"
+ ],
+ "open_questions": [
+  "Does zcode consume the .agents registry at runtime (13 of 15 zcode-targeted registry entries absent from its own config)? Settle by running zcode's MCP-list command or reading its loader docs.",
+  "Is the rdkit dual entrypoint intentional (rdkit_mcp_launch.py vs run_server.py --transport stdio in the same venv)? If not, one side is stale.",
+  "Owner decision (recommendation only, no action taken): prune the 57 dual mounts to ONE path per server (direct mount OR McpHub child) - today they are consistent (pin drift 0) but any one-sided edit silently diverges them; the playwright package is mounted 4x on one surface.",
+  "firecrawl-kit (enabled=false, targets codex+claude, same URL as firecrawl): confirm it stays disabled or loses the claude target, otherwise it is one enable-flip from a live same-surface duplicate.",
+  "npm/PyPI upstream freshness for the quoted pins was NOT checked in this lane (belongs to the version-freshness lane A); all pin claims here are config-side only."
+ ]
+}

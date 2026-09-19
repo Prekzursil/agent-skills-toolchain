@@ -1,0 +1,105 @@
+{
+ "item": "V-lane: uvx/PyPI version-freshness audit of MCP servers (registry C:/Users/Prekzursil/.agents/agents.json + live ~/.claude.json), 2026-09-19. 10 PyPI packages double-mechanism verified (PyPI JSON API + pip index versions, full agreement), plus uv-cache third signal. Read-only; no config writes, no commits, no server spawns.",
+ "steps": [
+  {
+   "action": "enumerate",
+   "detail": "Filtered agents.json mcp.servers (92 servers) for uvx/uv/PyPI commands: 7 uvx servers (arxiv, crossref, docker, excel, pubmed-tool, scrapegraph, tooluniverse). Same filter on live ~/.claude.json mcpServers (87 entries) added 3 ungoverned uvx extras (elevenlabs, mcp-windbg, serena) plus 1 venv-based PyPI install (paper-search). Other .venv servers (angr, frida, mitmproxy, apktool, jadx, ocr, rdkit, schrodinger...) are local git/source installs with no PyPI registry pin - out of V-lane scope.",
+   "target": "C:/Users/Prekzursil/.agents/agents.json; C:/Users/Prekzursil/.claude.json"
+  },
+  {
+   "action": "version-audit:tooluniverse [REGISTRY, PINNED]",
+   "detail": "Pin quoted in config: 'tooluniverse==1.2.4'. PyPI latest 1.5.0 (pip index agrees; releases show 1.2.4, 1.2.6, 1.3.0, 1.3.1, 1.4.0, 1.4.1, 1.5.0 above the pin; 1.2.5 absent from the list). Drift: 3 minor releases behind. Cache D:/uv/cache/wheels-v6/pypi/tooluniverse holds BOTH 1.2.4 and 1.3.0 - a second consumer resolved 1.3.0 at some point (origin UNVERIFIED; .codex/config.toml has no mcp_servers entry, only a plugins line 714 'tooluniverse@claude-cowork' - settling experiment: grep McpHub/plugin launch configs for uvx tooluniverse). Also: server reported CONNECTION_CLOSED at this session start (axis D lane).",
+   "risk": "MINOR drift (1.2.4 -> 1.5.0); pinned, so drift is deliberate-but-stale; upgrade = bump pin, forces uv re-resolve + env rebuild on next spawn",
+   "target": "agents.json mcp.servers.tooluniverse args: [\"uvx\",\"tooluniverse==1.2.4\"]"
+  },
+  {
+   "action": "version-audit:scrapegraph [REGISTRY, PINNED]",
+   "detail": "Pin: 'scrapegraph-mcp==1.0.1'. PyPI latest 1.0.1 (only releases: 1.0.1, 1.0.0). Cache holds exactly 1.0.1. Zero drift.",
+   "risk": "none (pin == latest)",
+   "target": "agents.json mcp.servers.scrapegraph args: [\"C:/Users/Prekzursil/.local/bin/uvx.exe\",\"scrapegraph-mcp==1.0.1\"]"
+  },
+  {
+   "action": "version-audit:arxiv [REGISTRY, FLOATING]",
+   "detail": "Floating pin 'uvx arxiv-mcp-server' (no version constraint). PyPI latest 0.7.2; cache holds 0.7.2 -> floating resolution is currently at latest. Un-pinned means the next re-resolve can silently pick up a new 0.x minor (breaking-change-prone range).",
+   "risk": "no current drift; floating = latent uncontrolled upgrade",
+   "target": "agents.json mcp.servers.arxiv args: [\"uvx\",\"arxiv-mcp-server\"]"
+  },
+  {
+   "action": "version-audit:crossref [REGISTRY, FLOATING + dep overlay]",
+   "detail": "Floating pin with dependency overlay '--with mcp<2 crossref-mcp'. PyPI latest 0.1.0 and it is the ONLY release ever published; cache holds 0.1.0. The mcp<2 constraint is the deliberate compat shim recorded in the 2026-09-21 wiring receipt (uvx --with 'mcp<2' crossref-mcp) - keep it on any version bump.",
+   "risk": "no drift possible yet (single upstream release); config-quality: dep overlay is intentional, not cruft",
+   "target": "agents.json mcp.servers.crossref args: [\"uvx\",\"--with\",\"mcp<2\",\"crossref-mcp\"]"
+  },
+  {
+   "action": "version-audit:docker [REGISTRY, FLOATING]",
+   "detail": "Floating pin 'uvx.exe docker-mcp'. PyPI latest 0.2.0 (releases 0.2.0, 0.1.0); cache holds 0.2.0 -> currently at latest.",
+   "risk": "no current drift; floating",
+   "target": "agents.json mcp.servers.docker args: [\"C:/Users/Prekzursil/.local/bin/uvx.exe\",\"docker-mcp\"]"
+  },
+  {
+   "action": "version-audit:excel [REGISTRY, FLOATING]",
+   "detail": "Floating pin 'uvx.exe excel-mcp-server stdio'. PyPI latest 0.1.8; cache holds 0.1.8 -> at latest.",
+   "risk": "no current drift; floating",
+   "target": "agents.json mcp.servers.excel args: [\"C:/Users/Prekzursil/.local/bin/uvx.exe\",\"excel-mcp-server\",\"stdio\"]"
+  },
+  {
+   "action": "version-audit:pubmed-tool [REGISTRY, FLOATING]",
+   "detail": "Floating pin via --from. PyPI latest 0.1.0 (only release); cache holds 0.1.0. Server reported CONNECTION_CLOSED at this session start (axis D lane; wheels are cached so not a download failure).",
+   "risk": "no drift possible yet (single release); floating",
+   "target": "agents.json mcp.servers.pubmed-tool args: [\"uvx\",\"--from\",\"pubmed-mcp-tool\",\"python\",\"-m\",\"main\"]"
+  },
+  {
+   "action": "version-audit:mcp-windbg [LIVE-ONLY, PINNED, MAJOR DRIFT]",
+   "detail": "Ungoverned extra (in ~/.claude.json only, absent from registry). Pin 0.15.0; PyPI latest 1.3.0 (pip index agrees; releases run 0.15.0 -> 1.0.0 -> 1.3.0). Cache holds 0.15.0 AND 1.2.2 - second consumer evidence, origin UNVERIFIED. Biggest drift in lane; 1.x line adds features (transport flag already used here suggests someone tracked upstream once).",
+   "risk": "MAJOR drift (0.15.0 -> 1.3.0); also governance gap: ungoverned surface",
+   "target": "~/.claude.json mcpServers['mcp-windbg'] args: [\"C:/Users/Prekzursil/.local/bin/uvx.exe\",\"--from\",\"mcp-windbg==0.15.0\",\"mcp-windbg\",\"--transport\",\"stdio\"]"
+  },
+  {
+   "action": "version-audit:elevenlabs [LIVE-ONLY, FLOATING]",
+   "detail": "Ungoverned extra. Floating 'uvx elevenlabs-mcp'; PyPI latest 0.12.2; cache holds 0.9.1, 0.10.0, 0.11.0, 0.12.2 - direct evidence that floating uvx pins DO advance to PyPI latest over successive resolutions (not frozen forever). Currently at latest.",
+   "risk": "no current drift; floating; ungoverned surface",
+   "target": "~/.claude.json mcpServers['elevenlabs'] args: [\"uvx\",\"elevenlabs-mcp\"]"
+  },
+  {
+   "action": "version-audit:serena [LIVE-ONLY, GIT REF]",
+   "detail": "Ungoverned extra pinned to a git URL, not PyPI - drift axis is upstream HEAD, unbounded and un-auditable against registries. Settling experiment for anyone adopting: pin a commit hash.",
+   "risk": "unbounded drift (implicit @HEAD); no registry pin exists",
+   "target": "~/.claude.json mcpServers['serena'] args: [\"uvx\",\"--from\",\"git+https://github.com/oraios/serena\",\"serena\",\"start-mcp-server\"]"
+  },
+  {
+   "action": "version-audit:paper-search [REGISTRY, VENV INSTALL]",
+   "detail": "Not uvx: direct venv exe. Installed version read from dist-info on disk: paper_search_mcp-0.1.4 == PyPI latest 0.1.4 (releases 0.1.0-0.1.4). Zero drift. Unlike uvx servers, upgrades here require explicit pip install -U in that venv.",
+   "risk": "none (installed == latest)",
+   "target": "D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe; dist-info D:/ReverseTools/mcp/paper-search-mcp/venv/Lib/site-packages/paper_search_mcp-0.1.4.dist-info"
+  },
+  {
+   "action": "cache-implications (lane focus)",
+   "detail": "uv 0.10.4 (079e3fd05 2026-02-17), cache at D:/uv/cache (wheels-v6, environments-v2, sdists-v9, simple-v20). (1) A pin bump (e.g. tooluniverse 1.2.4->1.5.0) forces uv to fetch the new wheel, rebuild the ephemeral env, and re-lock on the NEXT spawn - first spawn is slower and requires network; stale 1.2.4 entries linger until 'uv cache prune'. (2) Floating pins are not frozen: elevenlabs cache lineage 0.9.1->0.12.2 proves re-resolution advances them to latest; exact re-resolve trigger policy (env-hash miss vs TTL) UNVERIFIED - settling experiment: 'uv tool run --help' / uv docs caching page, or a controlled offline spawn after cache clean in a sandbox. (3) Exact trigger for the historical 1.3.0/1.2.2 out-of-pin resolutions UNVERIFIED (see tooluniverse step).",
+   "risk": "operational: post-bump first-spawn latency + offline failure window on any uvx server whose env needs (re)building",
+   "target": "D:/uv/cache"
+  },
+  {
+   "action": "config-quality notes (axis C, incidental to V-lane)",
+   "detail": "(1) glm53-space uses 'uv run --locked --directory ...' (lockfile-enforced) while qdx-rush uses 'uv run --directory ...' WITHOUT --locked - qdx-rush deps float per uv resolution on spawn; consider --locked for parity. (2) Floating pins on young 0.x packages (arxiv, docker, excel, pubmed-tool, elevenlabs) are the main freshness/fragility trade: pinning gives reproducibility at the cost of manual bumps; current estate pattern works only because re-resolution happens to track latest. (3) mcp-windbg + elevenlabs + serena are ungoverned live extras - V-lane confirms they are also the drift/governance outliers.",
+   "risk": "low (advisory)",
+   "target": "agents.json mcp.servers.glm53-space; live mcpServers['qdx-rush']"
+  }
+ ],
+ "evidence": [
+  "Enumeration (python, C:/Users/Prekzursil/AppData/Local/Temp/vlane_extract.py over C:/Users/Prekzursil/.agents/agents.json): 92 registry servers, uvx subset quoted verbatim: arxiv=[uvx, arxiv-mcp-server]; crossref=[uvx, --with, mcp<2, crossref-mcp]; docker=[uvx.exe, docker-mcp]; excel=[uvx.exe, excel-mcp-server, stdio]; pubmed-tool=[uvx, --from, pubmed-mcp-tool, python, -m, main]; scrapegraph=[uvx.exe, scrapegraph-mcp==1.0.1]; tooluniverse=[uvx, tooluniverse==1.2.4]. Live ~/.claude.json (87 mcpServers) ungoverned uvx extras: elevenlabs, mcp-windbg, serena.",
+  "PyPI JSON API (pypi.org/pypi/<pkg>/json, urllib, script vlane_pypi.py): arxiv-mcp-server 0.7.2; crossref-mcp 0.1.0; docker-mcp 0.2.0; excel-mcp-server 0.1.8; pubmed-mcp-tool 0.1.0; scrapegraph-mcp 1.0.1; tooluniverse 1.5.0; elevenlabs-mcp 0.12.2; mcp-windbg 1.3.0; paper-search-mcp 0.1.4.",
+  "Second mechanism 'python -m pip index versions' (full agreement on all 10): tooluniverse (1.5.0) [releases ... 1.2.4, 1.2.6, 1.3.0, 1.3.1, 1.4.0, 1.4.1, 1.5.0 - no 1.2.5]; scrapegraph-mcp (1.0.1) [1.0.1, 1.0.0]; mcp-windbg (1.3.0) [... 0.15.0, 1.0.1, 1.2.2, 1.3.0]; arxiv-mcp-server (0.7.2); crossref-mcp (0.1.0) single release; docker-mcp (0.2.0) [0.2.0, 0.1.0]; excel-mcp-server (0.1.8); pubmed-mcp-tool (0.1.0) single release; elevenlabs-mcp (0.12.2); paper-search-mcp (0.1.4) [0.1.0-0.1.4].",
+  "Third signal, uv cache wheel dirs (ls D:/uv/cache/wheels-v6/pypi/<pkg>): tooluniverse {1.2.4, 1.3.0}; scrapegraph-mcp {1.0.1}; arxiv-mcp-server {0.7.2}; crossref-mcp {0.1.0}; docker-mcp {0.2.0}; excel-mcp-server {0.1.8}; pubmed-mcp-tool {0.1.0}; elevenlabs-mcp {0.9.1, 0.10.0, 0.11.0, 0.12.2}; mcp-windbg {0.15.0, 1.2.2}. Cache root listing + 'uv tool list' (aider-chat, basic-memory, browser-use - none in this lane).",
+  "paper-search installed version on disk: D:/ReverseTools/mcp/paper-search-mcp/venv/Lib/site-packages/paper_search_mcp-0.1.4.dist-info (+ package dir paper_search_mcp/).",
+  "uv runtime: uv 0.10.4 (079e3fd05 2026-02-17); 'uv cache dir' -> D:\\uv\\cache.",
+  "Consumer search: grep C:/Users/Prekzursil/.codex/config.toml for tooluniverse|mcp-windbg|elevenlabs -> only line 714 [plugins.\"tooluniverse@claude-cowork\"]; no [mcp_servers.*] entries for these three (so Codex TOML is NOT the second consumer of the out-of-pin wheels).",
+  "Session-start hook context (this session): pubmed-tool, tooluniverse, cloud-hub, search-hub, openalex-alt reported CONNECTION_CLOSED - pubmed-tool and tooluniverse are V-lane members; cause not probed here (no spawns performed), deferred to spawn-failure lane."
+ ],
+ "open_questions": [
+  "UNVERIFIED - which consumer resolved tooluniverse 1.3.0 and mcp-windbg 1.2.2 into the uv cache despite both being pinned lower on their known surfaces? Codex TOML excluded (grep empty). Settling experiment: grep McpHub child configs and ~/.claude/plugins/*/launch configs for 'uvx tooluniverse' / 'mcp-windbg' invocations.",
+  "UNVERIFIED - exact uvx re-resolve policy for floating pins (does an existing ephemeral env suppress re-resolution until evicted, or is the index checked per spawn?). Cache lineage proves advancement happens eventually. Settling experiment: uv docs (docs.uv.ai, tool-run caching) or controlled 'uvx --offline elevenlabs-mcp' after 'uv cache clean' in a disposable sandbox - do NOT spawn on the live estate harness.",
+  "UNVERIFIED - tooluniverse 1.2.5 is absent from the release list (gap between 1.2.4 and 1.2.6): yanked or never published? Settling experiment: read releases[]/yanked flags in the PyPI JSON for tooluniverse (data already fetched, flags not printed).",
+  "UNVERIFIED - root cause of this session's CONNECTION_CLOSED for tooluniverse and pubmed-tool (both uvx, both wheels cached, so not a wheel-download failure). Settling experiment for the D lane: manual 'uvx tooluniverse==1.2.4' foreground with stderr capture and a 30s timeout.",
+  "Governance, not version: mcp-windbg, elevenlabs, serena exist only on the live ~/.claude.json surface (~25 ungoverned extras per audit brief); V-lane confirms all three are also the freshness/governance outliers (MAJOR drift, floating, git-HEAD respectively)."
+ ]
+}

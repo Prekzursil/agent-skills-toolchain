@@ -1,0 +1,58 @@
+{
+ "evidence": [
+  "C:/Users/Prekzursil/.McpHub/config.json: servers{} = 65 hyphenated children + settings{} (no per-child enable flags); mtime 2026-09-19 10:43; backups config.json.bak-estate-20260921 and config.json.bak-pre-semgrep both 2026-09-18 22:49",
+  "C:/Users/Prekzursil/.claude.json: top-level mcpServers = 87 incl McpHub (type=http, url+headers); disabledMcpServers list len=131 containing 50 of the 57 overlap names; projects = 43 entries, none defining project-scope mcpServers for the 6 disabled-but-live names; claudeAiMcpEverConnected = 44 remote claude.ai names (separate surface, excluded from math)",
+  "C:/Users/Prekzursil/.agents/agents.json: mcp.servers = 92; hermes-targeted *-hub HTTP entries cloud-audit-hub :31118, cve-mcp-hub :31111, github-security-hub :31110, hexstrike-ai-hub :31113, nuclei-hub :31117, osint-hub :31112, semgrep-hub :31119; biomni-hub targets=[zcode]; markitdown and meta-tool enabled=false",
+  "C:/Users/Prekzursil/.mcp.json: exists, mcpServers count = 0 (project-at-home injection path closed)",
+  "C:/Users/Prekzursil/.claude/settings.json: deniedMcpServers (markitdown, rdkit, serena, gitlab, ...); enabledPlugins includes context7@claude-plugins-official (context7 also a direct mount)",
+  "Scoped Win32_Process query (read-only): angr-mcp.exe PIDs 33332/17636/102396 + python launchers 95440/22104/95652/110152; schrodinger-mcp python PIDs 56412/74652; paper-search-mcp python PIDs 52788/70856 + exe 47952; gh-cli-mcp node PID 44616",
+  "This session deferred-tool surface: 44 mcp__McpHub__<child>__ prefixes = 1114 tools; 31 live direct mcp__<server>__ prefixes; 12 shared names = 352 duplicated tool definitions; session-start notice names 9 failed direct mounts (bedrock-claude, cloud-hub, openalex-alt, pubmed-tool, search-hub, tooluniverse, web-reader, web-search-prime, zread)"
+ ],
+ "item": "D1 duplicate hunt (McpHub children vs direct claude mounts), mcp-refresh-audit 2026-09-19 post-restart: 57 of 65 McpHub children are ALSO directly mounted in ~/.claude.json; 12 are LIVE double-surfaces in this session (352 duplicated tool definitions); 45 more are latent doubles behind an unreliable top-level disabledMcpServers list; McpHub alone injects 1114 tools/session.",
+ "steps": [
+  {
+   "action": "Extract surface name sets via python json probes (read-only)",
+   "detail": "hub children = 65; direct claude = 87 (incl McpHub itself, type=http url+headers); registry = 92; ~/.mcp.json exists but EMPTY (project-at-home injection path from the 2026-09-19 audit is closed)."
+  },
+  {
+   "action": "Intersect hub children with direct mcpServers and registry names (separator-normalized)",
+   "detail": "hub vs direct = 57 of 65 (only 8 hub-only children: biomni-hub, everything, fb-messenger, insta-mcp, markitdown, meta-tool, sliver, tiktok); hub vs registry = 46; 29 direct mounts have no hub child."
+  },
+  {
+   "action": "Classify live double-surfaces from the session tool surface",
+   "detail": "12 live (both sides spawned this session): angr 14+14, claude-code-mcp 1+1, cloud-audit 38+38, github-security 39+39, github_cli 23+23, mitmproxy 24+24, osint 37+37, paper-search 57+57, playwright-cdp 24+24, playwright-extension 24+24, schrodinger 67+67, searxng 4+4 = 352 excess duplicated tool definitions per session."
+  },
+  {
+   "action": "Classify suppressed/latent double-surfaces",
+   "detail": "45 latent: direct entry present AND in top-level disabledMcpServers AND absent from session. Biggest by hub-side tools: hexstrike-ai 150, social-hub 111, rdkit 74, binary-ninja-mcp 53, cve-mcp 41, jadx-mcp 32, ghidra-mcp 27, excel 25, perplexity 25, qdx-rush 21, apktool-mcp 16, frida-mcp 13, openmm-md 8, scholarly-access 8, scrapegraph 8, codecov 5, qlty 5, tavily 4, ida-pro-mcp 3, pdf-reader 3, ocr-suite 6, deepscan 2, semgrep 1, plus browserstack, cheatengine, codacy, deepsource, digitalocean, docker, elevenlabs, figma-rest, gitlab, mcp-windbg, nuclei, postgres, ralph-orchestrator, sentry, serena, sonarqube, tooluniverse."
+  },
+  {
+   "action": "Test the disable mechanism against live evidence",
+   "detail": "50 overlap names sit in top-level disabledMcpServers, yet 6 are STILL LIVE with tools (angr, claude-code-mcp, github_cli, paper-search, schrodinger, searxng), 3 disabled-yet-attempted spawn (cloud-hub, search-hub, tooluniverse, named in the session-start connect-failure notice), 41 silently absent. UNVERIFIED mechanism \u2014 settling experiment: full Claude Code restart then diff live mcp__<name>__ prefixes against the list; check per-project disabledMcpServers keys (2026-07-19 memory: root-scope was inert)."
+  },
+  {
+   "action": "Classify name-variant overlaps",
+   "detail": "(a) rdkit: hub run_server.py vs direct rdkit_mcp_launch.py (different entrypoints, config drift); (b) scholarly-access: hub python -m vs direct console-script exe; (c) cloud-audit/github-security/osint/cve-mcp/nuclei: hub stdio spawn vs direct HTTP 127.0.0.1:311xx shared daemons, same URLs as registry hermes-targeted *-hub entries (cloud-audit-hub :31118, cve-mcp-hub :31111, github-security-hub :31110, nuclei-hub :31117, osint-hub :31112) \u2014 shared-daemon design intentional but double-registered in claude; (d) hub child names hyphenated in config but underscore-sanitized in tool prefixes (mcp__McpHub__cloud_audit__) \u2014 sanitizer location UNVERIFIED (settle via McpHub source or schema-cache.json)."
+  },
+  {
+   "action": "Quantify hub-internal duplication",
+   "detail": "social-hub child (111 tools incl fb_*/ig_*/tiktok_*/wa_*) shadows sibling children fb-messenger (33), insta-mcp (36), tiktok (9) = 78 duplicated tool definitions inside the hub surface alone."
+  },
+  {
+   "action": "Classify intentional overlaps (not defects)",
+   "detail": "the 8 hub-only children; shared-daemon HTTP mounts (one daemon serving claude-direct + hermes); playwright vs playwright-cdp vs playwright-extension profile split (cdp/extension still doubled via hub+direct); github (official API) vs github_cli (gh-CLI wrapper) are genuinely different servers \u2014 but with github-security that is three GitHub tool families live (55+23+23+39+39 tools)."
+  },
+  {
+   "action": "Corroborate double-spawn at process level (scoped Win32_Process)",
+   "detail": "angr-mcp.exe x3 + 4 python launchers; schrodinger-mcp python x2; paper-search-mcp python x2 \u2014 the double-surface spawns literal duplicate server processes, feeding the measured commit-exhaustion freeze driver (per-session stdio MCP duplication on a 31.6GB RAM box)."
+  },
+  {
+   "action": "Record open UNVERIFIED items with settling experiments",
+   "detail": "(1) only 44 of 65 hub children exposed this session \u2014 config mtime 2026-09-19 10:43 with near-identical Sep-18 backups argues app-level child state or spawn failures, not post-start growth; settle via scoped grep of the 21 missing names in serve.err.log or the McpHub management API. (2) tool counts single-source (session deferred-tool surface); rdkit=74 corroborated by the cheminformatics-rdkit skill text; settle via per-server tools/list. (3) disabledMcpServers semantics (mixed 41-absent / 6-live / 3-failed)."
+  },
+  {
+   "action": "Recommendations (no writes made \u2014 read-only audit)",
+   "detail": "(1) collapse the 12 live doubles by removing the redundant direct mounts from ~/.claude.json (hub children already serve them) or excluding those children from McpHub; (2) replace the unreliable top-level disabledMcpServers list with actual entry removal under registry governance; (3) dedupe social-hub vs fb-messenger/insta-mcp/tiktok children; (4) align rdkit and scholarly-access entrypoints to one canonical launcher."
+  }
+ ]
+}

@@ -1,0 +1,43 @@
+{
+ "evidence": [
+  "OBSERVED (source probe: 2x independent ToolSearch calls this session, identical result sets): 9 configured MCP servers failed to connect at session start \u2014 cloud-hub, tooluniverse, search-hub, bedrock-claude, pubmed-tool, openalex-alt (CONNECTION_CLOSED); web-reader, web-search-prime, zread (HTTP 405 with a zh-cn HTML error body, consistent with a dead/repurposed shared endpoint). Fresh axis-D spawn-failure evidence at HOME cwd, where per the 2026-09-19 morning audit ~/.mcp.json loads as PROJECT scope.",
+  "OBSERVED (source probe: enumeration of this session's live MCP tool surface in the SubagentStart deferred-tool listing; verifier: name-by-name cross-check of mcp__<name>__ vs mcp__McpHub__<child>__ families): 10 exact duplicate direct-mount-vs-McpHub-child pairs \u2014 osint, cloud-audit, github-security, schrodinger, paper-search, mitmproxy, searxng, playwright-cdp, playwright-extension, claude-code-mcp. Additionally: functional overlap of social_hub with McpHub children fb_messenger/insta_mcp/tiktok (same fb_*/ig_*/tiktok_* tool families), and 5 browser-automation surfaces total (direct playwright, playwright-cdp, playwright-extension + McpHub playwright_cdp, playwright_extension).",
+  "OBSERVED (contradiction signal, UNVERIFIED root cause): AGENTS.md 2026-09-21 wiring receipt declares pubmed-tool 'launch-validated' and openalex-alt 'launch-validated'; both measured CONNECTION_CLOSED in this session. Either the receipt is stale, the launch environment differs from the session environment, or the failure is transient \u2014 settling experiment: fresh-session reconnect probe + manual spawn of each entry's exact command line.",
+  "BOUNDED FROM OWNER INSTRUCTION (not measurement \u2014 AGENTS.md 2026-09-21 Allowed Tools receipt): paper-search, arxiv, annas-archive, pubmed, openalex, openalex-alt, crossref, pubmed-tool, sci-hub are registry-governed in C:/Users/Prekzursil/.agents/agents.json; therefore the paper-search duplicate pair is governed-side, and the pubmed-tool/openalex-alt failures are governed-server regressions, not ungoverned-extra candidates. UNVERIFIED against the live file this pass.",
+  "NOT MEASURED (lane core blocked \u2014 no execution tool): the ~25-entry ungoverned-extras list itself, dead-path Test-Path results, dead-port socket results, npm/PyPI version pins and drift. No verdict below that depends on these may be treated as final; no config writes were made (none were possible).",
+  "Detector-control note per single-signal-verification: the connect-failure list was sampled twice with identical results (same mechanism, so it is one lens, not two independent signals); the port-probe control (18765 must read LIVE) was designed but could not be run. Treat all liveness claims as single-lens pending the retest experiment."
+ ],
+ "item": "Lane C2 (stale-entry sweep of ~25 claude.json ungoverned extras: dead paths / dead ports / duplicate McpHub children; keep-manual / register / prune verdicts) \u2014 STATUS: FAILED-to-run-core. This lane's runtime exposes no Bash/Read/Write/Task tool (verified with 4 distinct ToolSearch patterns: exact tool names, shell/exec, file/io, task/dispatch \u2014 all 'No matching deferred tools found'), so the required python/jq diff of C:/Users/Prekzursil/.agents/agents.json (mcp.servers, 92) vs C:/Users/Prekzursil/.claude.json (mcpServers, 87), path/port probes, and npm/pip registry queries were NOT executed. No verdict below is registry-diff-grounded; every 'is it an ungoverned extra' premise is UNVERIFIED. What is returned instead: (1) fresh session-level connect-failure evidence for 9 servers, (2) 10 exact duplicate direct-mount-vs-McpHub-child pairs observable from this session's live tool surface, (3) exact settling experiments. No config writes, no commits (none possible).",
+ "open_questions": [
+  "SETTLING EXPERIMENT 1 (the core diff \u2014 unblocks every verdict): python -c comparing sorted(json.load(open(r'C:/Users/Prekzursil/.agents/agents.json'))['mcp']['servers'].keys()) vs sorted(json.load(open(r'C:/Users/Prekzursil/.claude.json'))['mcpServers'].keys()); extras = claude-minus-registry. Then join extras against: (a) os.path.exists on every file-looking element of command+args, (b) python socket connect (0.3s timeout) to every port parsed from extra URLs \u2014 with a detector control that 127.0.0.1:18765 reads LIVE before trusting any dead reading, (c) `npm view <pkg> version` / `pip index versions <pkg>` per pinned package for upstream-existence + drift.",
+  "SETTLING EXPERIMENT 2 (9 connect-failures, transient-vs-dead): in a FRESH session, re-probe cloud-hub, tooluniverse, search-hub, web-reader, web-search-prime, zread, bedrock-claude, pubmed-tool, openalex-alt; any that fails twice across sessions is dead, not transient. For the three 405 servers, also read their URL from config and curl it directly \u2014 a shared dead proxy host would explain the identical zh-cn 405 bodies.",
+  "SETTLING EXPERIMENT 3 (duplicate pairs): after the diff, classify each of the 10 pairs by which leg is ungoverned: direct-mount-ungoverned -> prune the direct leg (keep the governed McpHub side); McpHub-ungoverned -> keep-manual the direct mount and register McpHub per the .agents SSOT policy. Also decide the social_hub vs fb_messenger/insta_mcp/tiktok functional overlap and the 5-surface playwright fan-out (context cost is per-surface; one governed CDP surface is likely sufficient).",
+  "SETTLING EXPERIMENT 4 (receipt contradiction): manually spawn the exact command lines of pubmed-tool and openalex-alt from C:/Users/Prekzursil/.agents/agents.json; if they spawn clean but the session cannot mount them, the defect is in the Claude-side merge/transport, not the server \u2014 which changes the D1-D25 remediation item from 'server repair' to 'merge repair'."
+ ],
+ "steps": [
+  {
+   "action": "attempted: surface execution/file tooling",
+   "detail": "ToolSearch with 4 mechanically distinct patterns (^Bash|^Read|^Write|^Grep|^Glob$; shell|command|execute; read|write|file; task|agent|spawn) \u2014 all returned 'No matching deferred tools found'. No execution, file, or dispatch capability exists in this lane; the audit's read-only python/jq extracts could not start.",
+   "risk": "lane blocker",
+   "target": "deferred tool registry of this subagent"
+  },
+  {
+   "action": "observed: session MCP connect-failures (axis D input)",
+   "detail": "cloud-hub, tooluniverse, search-hub, web-reader, web-search-prime, zread, bedrock-claude, pubmed-tool, openalex-alt failed to connect this session. UNVERIFIED which of these are among the ~25 ungoverned extras vs registry-governed \u2014 settling experiment: the agents.json-vs-claude.json key diff.",
+   "risk": "pruning a governed server on an unverified premise",
+   "target": "session MCP connection state at C:/Users/Prekzursil cwd (HOME, where ~/.mcp.json loads as PROJECT scope)"
+  },
+  {
+   "action": "observed: duplicate mounts across surfaces (axis B input)",
+   "detail": "10 exact direct-vs-McpHub duplicate pairs (osint, cloud-audit, github-security, schrodinger, paper-search, mitmproxy, searxng, playwright-cdp, playwright-extension, claude-code-mcp) + functional social_hub/fb_messenger/insta_mcp/tiktok overlap + 5 total playwright surfaces. UNVERIFIED: which leg of each pair is the ungoverned extra.",
+   "risk": "recommending prune of the wrong leg",
+   "target": "live MCP tool surface exposed to this session"
+  },
+  {
+   "action": "not-run: dead-path / dead-port / registry-version probes",
+   "detail": "Test-Path on stdio command+args paths, socket probes on http extra ports (with live control on 18765), npm view / pip index versions pins \u2014 all require an execution tool this lane lacks. Settling experiments specified in open_questions for a re-equipped lane.",
+   "risk": "if a verdict were issued anyway it would be fabrication",
+   "target": "C:/Users/Prekzursil/.claude.json mcpServers extras"
+  }
+ ]
+}
