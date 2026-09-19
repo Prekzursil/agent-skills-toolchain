@@ -34,10 +34,16 @@ End-to-end recipe (validated 2026-09-19 on a 93-min Romanian conference, produci
 Dump per-clip token ids; hand-write `corrections.json` = `{clip: {token_id: "fixed word", ...}}`. Empty string drops a filler. Only 1:1 token edits keep the karaoke map valid. Fix names (Mișkin, Quijote), garbles (radiofonul, lumânare), colloquial elisions (timpul, ceasul, veacul), drop "ă/da" fillers. Uppercase at render time.
 
 ## 6. OpusClip caption pattern (verified from real outputs)
-UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly one active word in yellow-green #D8E235** (slightly scaled up, pops in/out), thin black outline (3px) + soft shadow, lower-third (~MarginV 420 in 1080×1920), 1-4 words/line, no background box, no hook UI.
-- **Two-layer ASS trick**: Layer 0 = plain white line. Layer 1 = same line, each word wrapped
-  `{\alpha&HFF&\fscx80\fscy80\t(a,a+70,\alpha&H00&\fscx112\fscy112)\t(a+70,a+240,\fscx100\fscy100)\t(b,b+70,\alpha&HFF&\fscx80\fscy80)}WORD`
-  with `a,b` = word start/end ms relative to event. Colors: Primary/Secondary `&H0035E2D8`, white `&H00FFFFFF`. Cues: split at gaps >0.65s / >3.2s / ≥4 words / >26 chars.
+UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly one active word in yellow-green #D8E235** (spoken words revert to white), thin black outline (3px) + soft shadow, lower-third (~MarginV 420 in 1080x1920), 1-4 words/line, no background box, no hook UI.
+- **SINGLE-LAYER recipe (correct — validated 12/12 frames clean):** ONE Dialogue per cue,
+  per-word timed color flip:
+  `{	(a,a+30,\c&H35E2D8&scx106scy106)	(b,b+150,\c&HFFFFFF&scx100scy100)}WORD `
+  with a/b = word start/end ms relative to event start. Color changes cannot shift layout,
+  so there is always exactly ONE subtitle block.
+- **ANTI-PATTERN (owner-reported defect 2026-09-19):** a white base layer + a highlighted
+  overlay layer — the layers wrap differently and render as TWO stacked/duplicated subtitle
+  lines. Same family: alpha-pop overlays (alpha+scale per word) — layout drift.
+- Cues: split at gaps >0.65s / >3.2s / >=4 words / >26 chars.
 - Write ASS as UTF-8 BOM (`utf-8-sig`).
 
 ## 7. Face-tracked 9:16 render
@@ -63,6 +69,15 @@ UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly
   (ffprobe children are unaffected). Symptom: child hangs at zero CPU until timeout.
 - CUDA is opt-in (`VE_ASR_LOCAL_DEVICE=cuda`): lazy CUDA init hangs without cuDNN DLLs.
 - Validated: 40s Romanian → 33s wall, 71 words, word timestamps, quality ≥ cloud channel.
+
+## Caption accuracy validation loop (mandatory before delivery)
+1. Transcribe each RENDERED short with the strongest ASR available (online channel).
+2. Time-align caption tokens vs heard words (nearest within +/-0.6s) and diff with
+   normalized tokens (strip diacritics+punctuation). 3. Judge every mismatch — the
+   validation ASR errs too (both runs may hear "românare" where truth is "lumânare");
+   fix only true garbles as 1:1 token edits in corrections.json, then re-render.
+   Verified catches: a duplicated "ale ale cărora" from an earlier bad fix, and a
+   mis-reconstructed "casetofon" sentence.
 
 ## Gotchas log
 - Filenames with U+2019 ' or & break bash glob/ffmpeg on Git Bash → orchestrate file handling in Python.
