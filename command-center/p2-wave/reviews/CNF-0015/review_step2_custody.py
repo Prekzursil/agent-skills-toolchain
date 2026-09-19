@@ -22,9 +22,10 @@ for art in rec["artifacts"]:
         if raw_ok
         else ("crlf-phantom (normalized-match)" if norm_ok else "REAL DRIFT")
     )
-    print(
-        f"{verdict}: {art['path']} bytes={len(b)} crlf_pairs={crlf} lines~{b.count(b'\n')}"
-    )
+    nl = b.count(
+        b"\n"
+    )  # hoisted out of the f-string: the 3.11 floor rejects inline backslashes
+    print(f"{verdict}: {art['path']} bytes={len(b)} crlf_pairs={crlf} lines~{nl}")
 
 print("\n=== STEP 2b: pytest.out content (on-disk) ===")
 print(
