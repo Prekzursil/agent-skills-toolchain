@@ -466,8 +466,8 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
 
 // S41 (V-11) a journeys author reporting SUCCESS over a red journeys-only gate is refused — never integrated
 {
-  const st = state(fullPlan()); let refused = false
-  const r = await runScenario('S41 (V-11) journeys author SUCCESS with a red gate', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.role === 'author' && ctx.mode === 'journeys' && !refused) { refused = true; h.gate_exit_code = 1 } return h } })
+  const st = state(fullPlan())
+  const r = await runScenario('S41 (V-11) journeys authors report SUCCESS over red gates', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.role === 'author' && ctx.mode === 'journeys') h.gate_exit_code = 1; return h } })
   assert('S41 the refused journeys branch is never integrated (no merge/ff for it)', !r.calls.some(c => /^integrator:(merge|ff):journeys/.test(c.label)), r.calls.filter(c => /journeys/.test(c.label)).map(c => c.label).join(','))
   assert('S41 the refusal is logged with the required-evidence note and the run still ends satisfied', r.logs.some(l => /journeys author .*refused/.test(l)) && r.out.stop_reason === 'satisfied', r.out.stop_reason + ' ' + JSON.stringify(r.logs.filter(l => /journeys author/.test(l)).slice(0, 2)))
 }
