@@ -411,3 +411,22 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   gates decide, LLM judges only veto (D-24, S-17, DEEP S-9); bounded loops with typed `blocked` and dry counters (D-23, T-4/T-5,
   S-16, DEEP S-14, F-27); claims reconciled against the diff (D-17, S-20, DEEP S-20, F-19); owner checkpoints between runs for every
   outward action (D-28, T-1, S-19, DEEP S-19, F-35); replay-safe pure-function prompts pinned to a SHA (T-13/T-14, S-18, DEEP S-17/S-18, F-43).
+
+## Design panel outcome (2026-09-19; files in `evidence/orchestration/`)
+| Design | Angle | Agents (est.) | Wall-clock cap 2 / cap 14 | J1 red-team | J2 tool-contract | J3 program-fit |
+|---|---|---|---|---|---|---|
+| `design-A3-minimal-scaffold.md` | fewest mechanisms that still cover 102 rows; 6 roles | ≈240 | 18-20 h / 14-16 h | **4.20** | **4.15** | **4.40** |
+| `design-A2-throughput-first.md` | admission scheduler, verifier ‖ refuter, cap-aware knobs | ≈325 | 16-18 h / ≈6.5 h | 3.95 | 3.45 | 3.70 |
+| `design-A1-reliability-first.md` | maximal verification, 12-condition reducer | ≈740 | ≈41 h / ≈22 h | 2.90 | 2.80 | 3.40 |
+- Unanimous winner: **A3**, as the base for `design-v1.md` (synthesizer) → `design-v1-critique.md` (blind-spot critic) → `design-v2-final.md`.
+- Every judge reproduced blocking defects in every design (they executed the JS and traced the gates), e.g. A1's build loop throws on
+  wave 2; A2's ledger-hash equality is unsatisfiable and a bare `null` aborts the run; A3's `repo_toplevel` exact match nulls every
+  card, its journeys branch is never merged, and a null clean-gate reverts a good merge. All are on the synthesizer's work list.
+- Grafts converged on by ≥2 judges: A1's timestamp-free gate digest with implementer-vs-verifier equality; A1's oracle reset diffed
+  against the oracle + tamper scan; A1's revert-proof / negative control + mandatory mutants; A1's pre-verifier for UNVERIFIED findings;
+  A2's gate self-test + integrity hash pinned in args + scan of the gate's own logs; A2's `semantic()` JS re-validation and
+  `STAGING_RE` forcing; A2's critical-path ordering inside barrier waves; A2's R0 grounding trio; fail-closed judging.
+- Gaps none of the three handled (now on the work list): timeout ↔ resume replay divergence; queue wait vs timers at cap 2; the
+  external `gate.sh` copy unpinned; structured returns not secret-scanned before entering prompts; persona history reachable via
+  `git show`; outward-action detection by self-report only; `/healthz` git-sha source inside a Space; one-scoped-token decision vs
+  two backends; `presence_penalty` fate; fixture #1 as a merge precondition; `admission: pending` catalog policy; VLM-class export job.
