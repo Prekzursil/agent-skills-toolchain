@@ -348,7 +348,6 @@ _KEY_COLON = re.compile(r"^[ \t]*:")
 _RESULT_NEG_LOOKBACK = 200
 
 
-
 def _embedded_in_snake_identifier(text: str, start: int, end: int) -> bool:
     """True when the match is a substring of a larger snake/kebab identifier.
 
@@ -367,10 +366,9 @@ def _embedded_in_snake_identifier(text: str, start: int, end: int) -> bool:
     while hi < len(text) and (text[hi].isalnum() or text[hi] in "_-"):
         hi += 1
     token = text[lo:hi]
-    return (
-        ("_" in token or "-" in token)
-        and token.casefold() != text[start:end].casefold()
-    )
+    return ("_" in token or "-" in token) and token.casefold() != text[
+        start:end
+    ].casefold()
 
 
 _UNIT_SENTINEL = re.compile(
@@ -394,7 +392,6 @@ def _in_unit_sentinel_token(text: str, start: int, end: int) -> bool:
     while hi < len(text) and (text[hi].isalnum() or text[hi] in "_:-"):
         hi += 1
     return bool(_UNIT_SENTINEL.match(text[lo:hi]))
-
 
 
 def _in_simple_quoted_token(text: str, start: int, end: int) -> bool:

@@ -8,6 +8,7 @@ plus AUD-0058 known_always_on channel when present.
 Both-states control (catalog): omit the dominant file from the enumeration (BAD) and
 confirm relative gap exceeds tolerance; complete set (GOOD) stays within tolerance.
 """
+
 from __future__ import annotations
 
 import json
@@ -84,7 +85,9 @@ def main() -> int:
             "skill-description-metadata-aggregate",
         )
     ]
-    full_model = sum(i.get("tokens_model", i.get("tokens_whitespace", 0)) for i in full_items)
+    full_model = sum(
+        i.get("tokens_model", i.get("tokens_whitespace", 0)) for i in full_items
+    )
     full_c4 = sum(i["tokens_char4"] for i in full_items)
     occ = session_occupancy_proxy()
     b = occ["occupancy_tokens_char4"]

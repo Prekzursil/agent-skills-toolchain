@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -57,11 +56,15 @@ def build() -> dict:
     # Capture a live hand-edit demo for the receipt (names the drifted line).
     # Mutate a temp copy path via GATE against live STATUS after a deliberate edit,
     # then restore — run_controls already did this; reuse its raw output.
-    hand_raw = (L.REPO / PROBE_DIR / "probe-hand-edit.raw.txt").read_text(encoding="utf-8")
+    hand_raw = (L.REPO / PROBE_DIR / "probe-hand-edit.raw.txt").read_text(
+        encoding="utf-8"
+    )
     silent_raw = (L.REPO / PROBE_DIR / "probe-regenerate-silent.raw.txt").read_text(
         encoding="utf-8"
     )
-    det_raw = (L.REPO / PROBE_DIR / "probe-determinism.raw.txt").read_text(encoding="utf-8")
+    det_raw = (L.REPO / PROBE_DIR / "probe-determinism.raw.txt").read_text(
+        encoding="utf-8"
+    )
     empty_raw = (L.REPO / PROBE_DIR / "probe-empty-events.raw.txt").read_text(
         encoding="utf-8"
     )
@@ -445,7 +448,9 @@ def build() -> dict:
     ar.write_json_atomic(OUT, doc)
 
     size = (L.REPO / OUT).stat().st_size
-    print(f"wrote {OUT} ({size} B) state=BLOCKED controls_rc={rc_ctrl} admit_rc={rc_adm}")
+    print(
+        f"wrote {OUT} ({size} B) state=BLOCKED controls_rc={rc_ctrl} admit_rc={rc_adm}"
+    )
     if rc_adm != 0:
         print(out_adm)
         raise SystemExit("receipt_validate rejected CC-0013")

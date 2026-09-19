@@ -35,7 +35,9 @@ def main() -> int:
     OUT_RAW.write_text(raw, encoding="utf-8")
     if proc.returncode != 0:
         OUT_JSON.write_text(
-            json.dumps({"ok": False, "rc": proc.returncode, "raw_tail": raw[-2000:]}, indent=2)
+            json.dumps(
+                {"ok": False, "rc": proc.returncode, "raw_tail": raw[-2000:]}, indent=2
+            )
             + "\n",
             encoding="utf-8",
         )
@@ -45,7 +47,8 @@ def main() -> int:
     report = json.loads(proc.stdout)
     per = report["per_class_detection"]
     summary = {
-        "ok": bool(report.get("ok")) and all(v["detection_rate"] == 1.0 for v in per.values()),
+        "ok": bool(report.get("ok"))
+        and all(v["detection_rate"] == 1.0 for v in per.values()),
         "per_class_detection_rate": {
             k: v["detection_rate"] for k, v in sorted(per.items())
         },
@@ -73,7 +76,9 @@ def main() -> int:
             "embedding": report["embedding_threshold"],
         },
     }
-    OUT_JSON.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
     return 0 if summary["ok"] else 1
 

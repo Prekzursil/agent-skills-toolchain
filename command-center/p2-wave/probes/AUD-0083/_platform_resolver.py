@@ -29,6 +29,7 @@ rather than re-litigated at every call site):
              below), never claimed as a real Windows host execution. It is
              the required substrate for AUD-0083's tests_required control.
 """
+
 from __future__ import annotations
 
 # Default Windows PATHEXT (cmd.exe / CreateProcess "which" search order when a
@@ -105,7 +106,7 @@ def _windows_bare(ext: str, shebang_interpreter: str) -> dict:
                 f"'{ext}' is not in PATHEXT and has no default Windows file "
                 "association; cmd.exe reports "
                 "\"'<name>' is not recognized as an internal or external "
-                "command, operable program or batch file.\" (PowerShell: "
+                'command, operable program or batch file." (PowerShell: '
                 "\"The term '...' is not recognized...\"). The shebang line "
                 "is never inspected -- Windows has no kernel-level shebang "
                 "support at all."
@@ -156,7 +157,9 @@ def _windows_explicit(ext: str, explicit_interpreter: str) -> dict:
     }
 
 
-def _posix_bare(ext: str, has_shebang: bool, shebang_interpreter: str, exec_bit: bool, platform: str) -> dict:
+def _posix_bare(
+    ext: str, has_shebang: bool, shebang_interpreter: str, exec_bit: bool, platform: str
+) -> dict:
     measured = "measured" if platform == "linux" else "inferred-not-measured"
     if not exec_bit:
         return {
@@ -229,7 +232,9 @@ def resolve(
     if platform == "windows":
         if mode == "bare":
             return _windows_bare(ext, shebang_interpreter)
-        return _windows_explicit(ext, explicit_interpreter or shebang_interpreter or "bash")
+        return _windows_explicit(
+            ext, explicit_interpreter or shebang_interpreter or "bash"
+        )
 
     # linux / macos share POSIX kernel exec semantics
     if mode == "bare":

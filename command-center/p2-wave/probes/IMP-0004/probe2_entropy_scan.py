@@ -32,14 +32,14 @@ def main() -> int:
     entropy_flags = S.entropy_flags_token(token)
     # Pattern table (instrument 1) vs entropy (instrument 2) on the same token.
     pattern_findings = S.scan_text(f'token="{token}"\n', relpath="probe2.py")
-    pattern_rules = sorted({f.rule for f in pattern_findings if f.severity == "blocking"})
+    pattern_rules = sorted(
+        {f.rule for f in pattern_findings if f.severity == "blocking"}
+    )
     pattern_fires = "github_token" in pattern_rules
     # Prove instruments are distinct: SECRET_RULES names vs high_entropy_token rule.
     rule_names = {name for name, _ in S.SECRET_RULES}
     entropy_is_separate = "high_entropy_token" not in rule_names
-    report = S.scan_members(
-        [("probe2.py", f'token="{token}"\n'.encode("utf-8"))]
-    )
+    report = S.scan_members([("probe2.py", f'token="{token}"\n'.encode("utf-8"))])
     report_text = report.render_named_report()
     body_hits = report_text.count(body)
     ok = (

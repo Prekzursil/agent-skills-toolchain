@@ -102,11 +102,15 @@ def test_pack_never_invokes_git_archive() -> None:
     src = PACK.read_text(encoding="utf-8")
     assert "git archive" in src.lower() or "archive is forbidden" in src.lower()
     assert '["archive"' not in src
-    assert "git archive" not in [
-        line
-        for line in src.splitlines()
-        if "forbidden" not in line.lower() and "never" not in line.lower()
-    ] or True  # structural: PackError guards archive argv
+    assert (
+        "git archive"
+        not in [
+            line
+            for line in src.splitlines()
+            if "forbidden" not in line.lower() and "never" not in line.lower()
+        ]
+        or True
+    )  # structural: PackError guards archive argv
     # Runtime guard: _git rejects archive subcommand.
     with pytest.raises(pack_mod.PackError, match="archive"):
         pack_mod._git(Path("."), ["archive", "HEAD"])

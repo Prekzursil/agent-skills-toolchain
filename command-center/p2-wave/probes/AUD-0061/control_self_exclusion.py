@@ -28,6 +28,7 @@ this control re-derives the self-exclusion decision straight from raw
 /proc/<pid>/stat starttime, WITHOUT importing or trusting probe1's own
 apply_self_exclusion() function -- it re-implements the comparison inline.
 """
+
 from __future__ import annotations
 
 import json
@@ -48,7 +49,13 @@ def naive_substring_match_would_flag_self(argv: list[str]) -> bool:
 
 
 def run_probe1_and_capture(tag: str) -> tuple[int, dict]:
-    cmd = [sys.executable, "-B", str(HERE / "probe1_process_census.py"), "--self-tag", tag]
+    cmd = [
+        sys.executable,
+        "-B",
+        str(HERE / "probe1_process_census.py"),
+        "--self-tag",
+        tag,
+    ]
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
     doc = json.loads(r.stdout)
     return r.returncode, doc
@@ -62,7 +69,8 @@ def independent_reverify(reported_pid: int, reported_final_pids: list[int]) -> d
     confirm about the LIVE table at control time)."""
     live_pids_now = set(C.list_all_pids())
     return {
-        "reported_child_pid_still_in_final_set_it_returned": reported_pid in reported_final_pids,
+        "reported_child_pid_still_in_final_set_it_returned": reported_pid
+        in reported_final_pids,
         "reported_child_pid_alive_at_control_check_time": reported_pid in live_pids_now,
     }
 
@@ -81,7 +89,13 @@ def main() -> int:
     good_self_in_kept = doc1.get("self_row_present_in_final_kept_set", None)
 
     naive_would_have_flagged_good_argv = naive_substring_match_would_flag_self(
-        [sys.executable, "-B", str(HERE / "probe1_process_census.py"), "--self-tag", tag]
+        [
+            sys.executable,
+            "-B",
+            str(HERE / "probe1_process_census.py"),
+            "--self-tag",
+            tag,
+        ]
     )
 
     # ---- BAD state: re-run the SAME live table through a DELIBERATELY

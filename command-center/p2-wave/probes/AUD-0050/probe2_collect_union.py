@@ -4,6 +4,7 @@
 Selector model (probe 1) is the claim; union of actually-collected node IDs is the
 receipt. Catalog reviewer_requirement: cross-vendor Codex must re-run ONLY this probe.
 """
+
 from __future__ import annotations
 
 import json
@@ -102,7 +103,9 @@ def main() -> int:
     selector_covered = set()
     selector_orphans = set()
     if p1:
-        selector_covered = {r["path"] for r in p1["coverage_rows"] if r["matching_steps"]}
+        selector_covered = {
+            r["path"] for r in p1["coverage_rows"] if r["matching_steps"]
+        }
         selector_orphans = set(p1["orphan_paths"])
 
     # Collection orphans among inventory: inventory files never seen in any collect union
@@ -120,7 +123,9 @@ def main() -> int:
             "is not discriminating."
         ),
         "planted_path": G.PLANTED_ORPHAN,
-        "planted_is_selector_orphan": G.PLANTED_ORPHAN in selector_orphans if p1 else None,
+        "planted_is_selector_orphan": G.PLANTED_ORPHAN in selector_orphans
+        if p1
+        else None,
         "planted_in_collect_union": planted_in_union,
         "planted_is_collect_orphan": planted_collect_orphan,
         "fired_on_bad_state": True,  # discrimination requires non-empty orphan set

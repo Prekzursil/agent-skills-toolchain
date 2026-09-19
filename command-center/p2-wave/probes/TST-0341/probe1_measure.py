@@ -28,7 +28,7 @@ def main() -> int:
         "- CMD-FP-writebody: Write docs quoting `git push --force` / `Remove-Item`.\n"
         "- MRK-FP-inlinecode: naming `TODO` / `FIXME` in backticks.\n"
         "- STUB-FP-negated-absence: 'zero TODO/FIXME/NotImplementedError exist'.\n"
-        "- RES-FP-fieldname: `{\"user_cancelled_or_timedout\": false}`.\n"
+        '- RES-FP-fieldname: `{"user_cancelled_or_timedout": false}`.\n'
         "- RES-FP-snake-prose: user_cancelled_or_timedout examples in unquoted prose.\n"
         "- RES-FP-sentinel: FAILED:TST-0341 blocked-on-independent-review vocabulary.\n"
         "- SEC-FP-declared: synthetic AKIAEXAMPLE / ghp_ FAKE tokens in fixtures.\n"
@@ -44,8 +44,12 @@ def main() -> int:
         live_silent = bool(live["silent"])
     report["ok"] = bool(report["ok"] and self_ref["silent"] and live_silent)
     out = PROBE / "corpus-measure.json"
-    out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"ok": report["ok"], "path": str(out.relative_to(REPO))}, indent=2))
+    out.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        json.dumps({"ok": report["ok"], "path": str(out.relative_to(REPO))}, indent=2)
+    )
     # Human-readable both-numbers table
     print("--- per-scanner FP/TP ---")
     for kind, row in sorted(report["scanners"].items()):
@@ -54,9 +58,7 @@ def main() -> int:
             f"role_tp={row['role_tp_flags']}/{row['tp_corpus_size']} "
             f"raw_fp={row['raw_fp_flags']}"
         )
-    live_bit = (
-        f" live_receipt_silent={live_silent}" if live_path.is_file() else ""
-    )
+    live_bit = f" live_receipt_silent={live_silent}" if live_path.is_file() else ""
     print(
         f"totals: role_fp={report['role_fp_total']} "
         f"role_tp_missed={report['role_tp_missed']} "

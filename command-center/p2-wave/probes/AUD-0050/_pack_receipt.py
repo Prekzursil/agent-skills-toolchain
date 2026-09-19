@@ -4,6 +4,7 @@
 Honest BLOCKED pending cross-vendor Codex re-run of ONLY probe 2
 (catalog reviewer_requirement). Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -327,7 +328,9 @@ def build(primary: dict | None = None) -> dict:
                     "must appear in the orphan list"
                 ),
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0050/probe1_selector_map.py",
-                "result": "PASS" if p1["planted_is_orphan"] and ctrl.get("ok") else "FAIL",
+                "result": "PASS"
+                if p1["planted_is_orphan"] and ctrl.get("ok")
+                else "FAIL",
                 "assertions": 2,
                 "output_tail": raw1[-500:],
             },

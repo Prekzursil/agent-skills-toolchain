@@ -15,6 +15,8 @@ import socket
 
 def test_ground_truth_a_real_network_fetch_changes_outcome() -> None:
     with socket.create_connection(("example.com", 80), timeout=8) as sock:
-        sock.sendall(b"HEAD / HTTP/1.0\r\nHost: example.com\r\nConnection: close\r\n\r\n")
+        sock.sendall(
+            b"HEAD / HTTP/1.0\r\nHost: example.com\r\nConnection: close\r\n\r\n"
+        )
         data = sock.recv(128)
     assert data.startswith(b"HTTP/"), f"unexpected response head: {data!r}"

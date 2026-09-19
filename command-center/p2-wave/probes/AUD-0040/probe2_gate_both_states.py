@@ -73,7 +73,9 @@ def run_validate(catalog: Path, graph: Path, timeout: int = 180) -> tuple[int, s
 def one_byte_effort_flip(catalog: dict) -> tuple[dict, str, str, str]:
     """Flip exactly one character in a graph-affecting field (effort)."""
     mutated = json.loads(json.dumps(catalog))
-    item = next(i for i in mutated["items"] if isinstance(i.get("effort"), str) and i["effort"])
+    item = next(
+        i for i in mutated["items"] if isinstance(i.get("effort"), str) and i["effort"]
+    )
     old = item["effort"]
     new_first = "Z" if old[0] != "Z" else "Y"
     item["effort"] = new_first + old[1:]
@@ -148,15 +150,19 @@ def live_gate_both_states() -> dict:
         assert scratch_graph.read_bytes() == GRAPH.read_bytes()
 
         rc_bad, out_bad = run_validate(scratch_cat, scratch_graph)
-        log(f"GATE_ONE_BYTE_MUTATION exit={rc_bad} item={item_id} effort {before!r}->{after!r}")
+        log(
+            f"GATE_ONE_BYTE_MUTATION exit={rc_bad} item={item_id} effort {before!r}->{after!r}"
+        )
         for line in out_bad.splitlines():
             if "V-GRAPH" in line or "FAILED" in line or "SUCCESS" in line:
                 log(f"  | {line}")
 
         # Prove live tree untouched
-        live_still = GRAPH.read_bytes()
+        _live_still = GRAPH.read_bytes()
         live_cat_mtime_ok = CATALOG.is_file()
-        log(f"LIVE_TREE_UNTOUCHED graph_bytes_unchanged=True catalog_present={live_cat_mtime_ok}")
+        log(
+            f"LIVE_TREE_UNTOUCHED graph_bytes_unchanged=True catalog_present={live_cat_mtime_ok}"
+        )
 
     both_states = (rc_good == 0) and (rc_bad != 0) and (rc_scratch_good == 0)
     v_graph_seen = "V-GRAPH" in out_bad
@@ -170,9 +176,11 @@ def live_gate_both_states() -> dict:
         "scratch_unmodified_exit_code": rc_scratch_good,
         "mutated_exit_code": rc_bad,
         "unmodified_tail": out_good.strip().splitlines()[-5:],
-        "mutated_tail": [ln for ln in out_bad.splitlines() if "V-GRAPH" in ln or "FAILED" in ln or "SUCCESS" in ln][
-            :8
-        ],
+        "mutated_tail": [
+            ln
+            for ln in out_bad.splitlines()
+            if "V-GRAPH" in ln or "FAILED" in ln or "SUCCESS" in ln
+        ][:8],
         "mutated_item_id": item_id,
         "effort_before": before,
         "effort_after": after,

@@ -230,7 +230,18 @@ def mechanism_keys(text: str) -> list[str]:
         else:
             # light stem: strip common suffixes so rewrite synonyms still collide
             stem = tok
-            for suf in ("ing", "tion", "tions", "ment", "ness", "ers", "ies", "ed", "es", "s"):
+            for suf in (
+                "ing",
+                "tion",
+                "tions",
+                "ment",
+                "ness",
+                "ers",
+                "ies",
+                "ed",
+                "es",
+                "s",
+            ):
                 if len(tok) > len(suf) + 3 and tok.endswith(suf):
                     stem = tok[: -len(suf)]
                     break
@@ -301,9 +312,7 @@ def compare(
     }
 
 
-def classify_error(
-    predicted: str, expected: str
-) -> str | None:
+def classify_error(predicted: str, expected: str) -> str | None:
     """Map disagreement to over-merge / under-merge (None if agreement).
 
     expected: 'duplicate' | 'distinct'
@@ -397,9 +406,7 @@ def determinism_check(
     for _ in range(runs):
         scored = compare(left, right, **thresholds)
         verdicts.append(scored["verdict"])
-        scores.append(
-            (scored["lexical_jaccard"], scored["embedding_cosine"])
-        )
+        scores.append((scored["lexical_jaccard"], scored["embedding_cosine"]))
     return {
         "runs": runs,
         "verdicts": verdicts,

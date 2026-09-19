@@ -12,6 +12,7 @@ Remediation (after independent review FAIL): expand has_measured_count vocabular
 (units=/artifacts=/cases/citations/FIRES/...) and exclude --self-test from
 fail_open so the headline is not inflated by classifier false positives.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,7 +48,9 @@ _MEASURED_COUNT = re.compile(
 )
 
 
-def run(cmd: list[str], cwd: Path | None = None, timeout: int = 90, env=None) -> tuple[int, str]:
+def run(
+    cmd: list[str], cwd: Path | None = None, timeout: int = 90, env=None
+) -> tuple[int, str]:
     try:
         r = subprocess.run(
             cmd,
@@ -113,13 +116,17 @@ def main() -> int:
     rc, out = run([sys.executable, "tools/command-center/validate.py"])
     cases.append(classify(rc, out, "validate.py defaults (no --require-complete)"))
 
-    rc2, out2 = run([sys.executable, "tools/command-center/validate.py", "--require-complete"])
+    rc2, out2 = run(
+        [sys.executable, "tools/command-center/validate.py", "--require-complete"]
+    )
     cases.append(classify(rc2, out2, "validate.py --require-complete"))
 
     # Empty catalog input
     with tempfile.TemporaryDirectory() as td:
         empty_cat = Path(td) / "empty-catalog.json"
-        empty_cat.write_text(json.dumps({"items": [], "defaults": {}}), encoding="utf-8")
+        empty_cat.write_text(
+            json.dumps({"items": [], "defaults": {}}), encoding="utf-8"
+        )
         # also need a graph path — point at missing
         missing_graph = Path(td) / "missing-graph.json"
         rc3, out3 = run(
@@ -147,7 +154,9 @@ def main() -> int:
                 str(graph),
             ]
         )
-        cases.append(classify(rc4, out4, "validate.py empty-catalog + empty-graph (known-bad)"))
+        cases.append(
+            classify(rc4, out4, "validate.py empty-catalog + empty-graph (known-bad)")
+        )
 
     # unitgate with no args / help
     if (REPO / "tools/measure-guard/unitgate.py").is_file():
@@ -168,9 +177,15 @@ def main() -> int:
 
     # interpreter_floor_gate
     if (REPO / "command-center/ci/interpreter_floor_gate.py").is_file():
-        cmd = [sys.executable, "command-center/ci/interpreter_floor_gate.py", "--self-test"]
+        cmd = [
+            sys.executable,
+            "command-center/ci/interpreter_floor_gate.py",
+            "--self-test",
+        ]
         rc, out = run(cmd)
-        cases.append(classify(rc, out, "interpreter_floor_gate.py --self-test", cmd=cmd))
+        cases.append(
+            classify(rc, out, "interpreter_floor_gate.py --self-test", cmd=cmd)
+        )
 
     # mcp-audit ci_gate self-test
     if (REPO / "command-center/mcp-audit/ci_gate.py").is_file():
@@ -180,7 +195,11 @@ def main() -> int:
 
     # rail_count_gate
     if (REPO / "command-center/p2-next/rail_count_gate.py").is_file():
-        cmd = [sys.executable, "command-center/p2-next/rail_count_gate.py", "--self-test"]
+        cmd = [
+            sys.executable,
+            "command-center/p2-next/rail_count_gate.py",
+            "--self-test",
+        ]
         rc, out = run(cmd)
         cases.append(classify(rc, out, "rail_count_gate.py --self-test", cmd=cmd))
 
@@ -194,7 +213,11 @@ def main() -> int:
 
     # check_citations
     if (REPO / "command-center/hook-audit/check_citations.py").is_file():
-        cmd = [sys.executable, "command-center/hook-audit/check_citations.py", "--self-test"]
+        cmd = [
+            sys.executable,
+            "command-center/hook-audit/check_citations.py",
+            "--self-test",
+        ]
         rc, out = run(cmd)
         cases.append(classify(rc, out, "check_citations.py --self-test", cmd=cmd))
 
@@ -210,14 +233,14 @@ def main() -> int:
         cases.append(classify(rc, out, "suitefloor.py no-args"))
 
     fail_open_cases = [c for c in cases if c.get("fail_open")]
-    excluded_self_test = [
-        c["label"] for c in cases if c.get("detector_control")
-    ]
+    excluded_self_test = [c["label"] for c in cases if c.get("detector_control")]
     # Control: known-bad empty catalog must be non-zero
     known_bad = next((c for c in cases if "known-bad" in c["label"]), None)
     known_bad_ok = bool(known_bad and known_bad["exit_code"] != 0)
     # Measuring-nothing: exit 0 on both empty and known-bad
-    empty_case = next((c for c in cases if "empty-catalog + missing-graph" in c["label"]), None)
+    empty_case = next(
+        (c for c in cases if "empty-catalog + missing-graph" in c["label"]), None
+    )
     measures_nothing = bool(
         empty_case
         and known_bad
@@ -261,7 +284,9 @@ def main() -> int:
             f"CASE {c['label']}: exit={c['exit_code']} measured={c['measured_count_printed']} "
             f"fail_open={c.get('fail_open')} detector_control={c.get('detector_control', False)}"
         )
-    lines.append("SUCCESS:AUD-0045-probe2" if result["ok"] else "FAILED:AUD-0045-probe2")
+    lines.append(
+        "SUCCESS:AUD-0045-probe2" if result["ok"] else "FAILED:AUD-0045-probe2"
+    )
     raw = "\n".join(lines) + "\n"
     (OUT_DIR / "probe2-execution.raw.txt").write_text(raw, encoding="utf-8")
     sys.stdout.write(raw)

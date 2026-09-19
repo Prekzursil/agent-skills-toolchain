@@ -174,7 +174,7 @@ def parse_pyproject_split(path: Path) -> dict:
                     target.add(n)
 
     # poetry
-    poetry = ((data.get("tool") or {}).get("poetry") or {})
+    poetry = (data.get("tool") or {}).get("poetry") or {}
     for k, v in (poetry.get("dependencies") or {}).items():
         if norm_pip(k) == "python":
             continue
@@ -224,7 +224,9 @@ def parse_package_json_split(path: Path) -> dict:
             return set()
         return {norm_npm(str(k)) for k in v}
 
-    prod = grab("dependencies") | grab("optionalDependencies") | grab("peerDependencies")
+    prod = (
+        grab("dependencies") | grab("optionalDependencies") | grab("peerDependencies")
+    )
     # peer/optional are still runtime-ish for consumers; treat as prod-class for split
     dev = grab("devDependencies")
     return {
@@ -283,13 +285,18 @@ def shippable_python_roots(rec: dict) -> list[Path]:
             roots.append(candidate)
         else:
             for child in sorted(root.iterdir()) if root.is_dir() else []:
-                if child.is_dir() and child.name not in {
-                    "tests",
-                    "test",
-                    "docs",
-                    "scripts",
-                    ".github",
-                } and not child.name.startswith("."):
+                if (
+                    child.is_dir()
+                    and child.name
+                    not in {
+                        "tests",
+                        "test",
+                        "docs",
+                        "scripts",
+                        ".github",
+                    }
+                    and not child.name.startswith(".")
+                ):
                     # only if it looks like a python package
                     if (child / "__init__.py").is_file() or any(child.glob("*.py")):
                         roots.append(child)
@@ -351,7 +358,17 @@ def is_test_path(path: Path, package_root: Path) -> bool:
     name = path.name.lower()
     if name.startswith("test_") or name.endswith("_test.py"):
         return True
-    if name.endswith((".test.js", ".test.mjs", ".test.ts", ".test.tsx", ".spec.js", ".spec.ts", ".spec.mjs")):
+    if name.endswith(
+        (
+            ".test.js",
+            ".test.mjs",
+            ".test.ts",
+            ".test.tsx",
+            ".spec.js",
+            ".spec.ts",
+            ".spec.mjs",
+        )
+    ):
         return True
     if name in {"conftest.py"}:
         return True
@@ -364,7 +381,9 @@ def is_test_path(path: Path, package_root: Path) -> bool:
 
 def python_imports(path: Path) -> list[str]:
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+        tree = ast.parse(
+            path.read_text(encoding="utf-8", errors="replace"), filename=str(path)
+        )
     except SyntaxError:
         return []
     names: list[str] = []
@@ -452,8 +471,12 @@ def iter_shipped_modules(rec: dict) -> list[dict]:
         roots = shippable_node_roots(rec)
         exts = {".js", ".mjs", ".cjs", ".ts", ".tsx"}
         for root in roots:
-            paths = [root] if root.is_file() else sorted(
-                p for p in root.rglob("*") if p.suffix in exts and p.is_file()
+            paths = (
+                [root]
+                if root.is_file()
+                else sorted(
+                    p for p in root.rglob("*") if p.suffix in exts and p.is_file()
+                )
             )
             for path in paths:
                 if any(should_skip_dir(p) for p in path.parts):

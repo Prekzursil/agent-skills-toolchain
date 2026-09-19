@@ -6,7 +6,6 @@ import json
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import sbom as sbom_mod  # noqa: E402
@@ -143,7 +142,9 @@ def test_repo_root_lockfile_set_equality() -> None:
     )
     errs = sbom_mod.validate_cyclonedx(doc, sbom_mod.load_schema(REPO))
     assert errs == [], errs
-    assert sbom_mod.component_names(doc) == sbom_mod.independent_npm_lockfile_names(lock)
+    assert sbom_mod.component_names(doc) == sbom_mod.independent_npm_lockfile_names(
+        lock
+    )
     assert "vendored:tools/editor/ralph-orchestrator/vendor" in (
         sbom_mod.vendored_component_names(doc)
     )

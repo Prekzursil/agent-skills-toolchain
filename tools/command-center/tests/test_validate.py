@@ -442,6 +442,7 @@ def test_ci_workflow_passes_require_complete():
 # CLI - the exit code is what CI reads, so it gets its own both-states pair
 # --------------------------------------------------------------------------
 
+
 def test_cli_exit_zero_on_the_real_tree(capsys):
     assert val.main([]) == 0
     assert "SUCCESS:cc-validate" in capsys.readouterr().out

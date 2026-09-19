@@ -72,7 +72,9 @@ def is_extension_key(key: str) -> bool:
     return key.startswith(EXTENSION_PREFIX)
 
 
-def classify_top_level_keys(doc: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
+def classify_top_level_keys(
+    doc: dict[str, Any],
+) -> tuple[list[str], list[str], list[str]]:
     """Return (frozen_present, extension_keys, unknown_bare_keys)."""
     frozen: list[str] = []
     extensions: list[str] = []
@@ -175,7 +177,9 @@ def assert_frozen_matches_schema(
             )
 
 
-def mutate_bare_unknown(doc: dict[str, Any], key: str = "surprise_unknown_field") -> dict[str, Any]:
+def mutate_bare_unknown(
+    doc: dict[str, Any], key: str = "surprise_unknown_field"
+) -> dict[str, Any]:
     out = copy.deepcopy(doc)
     out[key] = True
     return out
@@ -224,8 +228,7 @@ def accept_reject_pair(doc: dict[str, Any] | None = None) -> dict[str, Any]:
     return {
         "base_ok": base_v.ok,
         "reject_bare_unknown": (not bad_v.ok)
-        and bad_v.error_code
-        in {ERR_UNKNOWN_TOP_LEVEL, ERR_NON_EXTENSION_ADDITIVE},
+        and bad_v.error_code in {ERR_UNKNOWN_TOP_LEVEL, ERR_NON_EXTENSION_ADDITIVE},
         "reject_error_code": bad_v.error_code,
         "reject_unknown_keys": list(bad_v.unknown_keys),
         "accept_under_x": good_v.ok,

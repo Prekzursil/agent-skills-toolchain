@@ -10,6 +10,7 @@ probe; NEVER emits SUCCESS without that review recorded on disk, and NEVER
 invents independent-review.json -- the file simply does not exist for this
 unit, so reviewer.verdict stays NOT-REVIEWED and state stays BLOCKED.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,10 +30,14 @@ REVIEW = PROBE / "independent-review.json"
 
 P1_JSON = "command-center/p2-wave/probes/AUD-0083/probe1-inventory-shebangs.json"
 P2_JSON = "command-center/p2-wave/probes/AUD-0083/probe2-platform-matrix.json"
-CTL_JSON = "command-center/p2-wave/probes/AUD-0083/control-windows-bare-vs-explicit.json"
+CTL_JSON = (
+    "command-center/p2-wave/probes/AUD-0083/control-windows-bare-vs-explicit.json"
+)
 P1_RAW = "command-center/p2-wave/probes/AUD-0083/probe1-inventory-shebangs.raw.txt"
 P2_RAW = "command-center/p2-wave/probes/AUD-0083/probe2-platform-matrix.raw.txt"
-CTL_RAW = "command-center/p2-wave/probes/AUD-0083/control-windows-bare-vs-explicit.raw.txt"
+CTL_RAW = (
+    "command-center/p2-wave/probes/AUD-0083/control-windows-bare-vs-explicit.raw.txt"
+)
 
 
 def load_review() -> dict | None:
@@ -60,12 +65,18 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-inventory-shebangs.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-inventory-shebangs.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads((PROBE / "probe2-platform-matrix.json").read_text(encoding="utf-8"))
-    ctl = json.loads((PROBE / "control-windows-bare-vs-explicit.json").read_text(encoding="utf-8"))
+    ctl = json.loads(
+        (PROBE / "control-windows-bare-vs-explicit.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-inventory-shebangs.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-platform-matrix.raw.txt").read_text(encoding="utf-8")
-    raw_ctl = (PROBE / "control-windows-bare-vs-explicit.raw.txt").read_text(encoding="utf-8")
+    raw_ctl = (PROBE / "control-windows-bare-vs-explicit.raw.txt").read_text(
+        encoding="utf-8"
+    )
     rev = load_review()
     success = rev is not None
     started = "2026-09-08T00:00:00Z"
@@ -87,7 +98,9 @@ def build(primary: dict | None = None) -> dict:
     macos_bare_success = int(mc["macos"]["bare"]["SUCCESS"])
     macos_bare_fail = int(mc["macos"]["bare"]["FAILURE"])
     resolver_verified = bool(p2["resolver_verified_against_real_linux"])
-    windows_bare_would_run_linux_bare = int(p2["windows_bare_would_run_on_linux_bare_count"])
+    windows_bare_would_run_linux_bare = int(
+        p2["windows_bare_would_run_on_linux_bare_count"]
+    )
     rows_resolved = int(p2["rows_resolved"])
 
     control_ok = bool(ctl["ok"])
@@ -105,20 +118,34 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0083/probe1_inventory_scripts.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0083/probe1_inventory_scripts.py",
+            "supporting",
+        ),
         L.art(P1_JSON, "supporting"),
         L.art(P1_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0083/_platform_resolver.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0083/probe2_platform_resolver_matrix.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0083/_platform_resolver.py", "supporting"
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0083/probe2_platform_resolver_matrix.py",
+            "supporting",
+        ),
         L.art(P2_JSON, "supporting"),
         L.art(P2_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0083/control_windows_bare_vs_explicit.py", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0083/control_windows_bare_vs_explicit.py",
+            "control",
+        ),
         L.art(CTL_JSON, "control"),
         L.art(CTL_RAW, "log"),
     ]
     if success:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0083/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0083/independent-review.json",
+                "supporting",
+            )
         )
 
     question = (

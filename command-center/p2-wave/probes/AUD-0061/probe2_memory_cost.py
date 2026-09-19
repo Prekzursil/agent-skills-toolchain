@@ -34,6 +34,7 @@ Real, measured steps (no simulation):
      using the measured node-proxy RSS for the one server we could measure
      and disclosing the other two servers' real RSS as NOT-CHECKED.
 """
+
 from __future__ import annotations
 
 import json
@@ -77,19 +78,31 @@ def measure_idle_node_proxy(settle_seconds: float = 0.35) -> dict[str, object]:
     node_bin = None
     for candidate in ("/exec-daemon/node", "node"):
         try:
-            subprocess.run([candidate, "--version"], capture_output=True, timeout=5, check=True)
+            subprocess.run(
+                [candidate, "--version"], capture_output=True, timeout=5, check=True
+            )
             node_bin = candidate
             break
-        except (FileNotFoundError, subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        except (
+            FileNotFoundError,
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+        ):
             continue
     if node_bin is None:
-        return {"measured": False, "reason": "no node binary found on PATH or at /exec-daemon/node"}
+        return {
+            "measured": False,
+            "reason": "no node binary found on PATH or at /exec-daemon/node",
+        }
 
     script = f"setTimeout(() => process.exit(0), {int(settle_seconds * 1000) + 500});"
     try:
         proc = subprocess.Popen([node_bin, "-e", script])
     except OSError as exc:
-        return {"measured": False, "reason": f"spawn failed: {type(exc).__name__}: {exc}"}
+        return {
+            "measured": False,
+            "reason": f"spawn failed: {type(exc).__name__}: {exc}",
+        }
 
     time.sleep(settle_seconds)
     mem = C.read_status_mem(proc.pid)
@@ -150,14 +163,22 @@ def main() -> int:
     for name, sdef in configured_servers.items():
         for row in kept:
             if C.server_match(row, name, sdef):
-                mcp_live.append({"server_name": name, "pid": row["pid"], "vmrss_kb": row["vmrss_kb"]})
+                mcp_live.append(
+                    {
+                        "server_name": name,
+                        "pid": row["pid"],
+                        "vmrss_kb": row["vmrss_kb"],
+                    }
+                )
     mcp_live_total_rss_kb = sum(m["vmrss_kb"] for m in mcp_live)
 
     plugin_root_check = check_plugin_root_resolvable()
     proxy = measure_idle_node_proxy()
 
     node_backed_server_count = sum(
-        1 for sdef in configured_servers.values() if sdef.get("command") in ("node", "npx")
+        1
+        for sdef in configured_servers.values()
+        if sdef.get("command") in ("node", "npx")
     )
     non_node_server_count = configured_server_count - node_backed_server_count
 

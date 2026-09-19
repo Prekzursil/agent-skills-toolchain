@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -100,7 +99,9 @@ def apply_mutation(wt: Path, case: dict) -> dict:
         field = m["json_field_increment"]
         original = doc[field]
         doc[field] = original + 1
-        target.write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        target.write_text(
+            json.dumps(doc, indent=1, sort_keys=True) + "\n", encoding="utf-8"
+        )
         return {"kind": "file-restore-by-checkout", "path": m["file"]}
 
     if "remove_skill_entry" in m:
@@ -140,7 +141,9 @@ def apply_mutation(wt: Path, case: dict) -> dict:
             if rc != 0:
                 raise MutationError(f"git commit failed: {out}")
         return {
-            "kind": "commit-restore-by-reset" if case.get("commit_required") else "file-restore-by-checkout",
+            "kind": "commit-restore-by-reset"
+            if case.get("commit_required")
+            else "file-restore-by-checkout",
             "path": m["file"],
             "before_sha": before_sha,
         }
@@ -153,7 +156,9 @@ def apply_mutation(wt: Path, case: dict) -> dict:
             # replace only the Nth occurrence (1-indexed)
             parts = text.split(m["find"])
             if len(parts) - 1 < occ:
-                raise MutationError(f"occurrence {occ} of {m['find']!r} not found in {m['file']}")
+                raise MutationError(
+                    f"occurrence {occ} of {m['find']!r} not found in {m['file']}"
+                )
             rebuilt = parts[0]
             for i in range(1, len(parts)):
                 rebuilt += (m["replace"] if i == occ else m["find"]) + parts[i]
@@ -173,7 +178,11 @@ def apply_mutation(wt: Path, case: dict) -> dict:
             )
             if rc != 0:
                 raise MutationError(f"git commit failed: {out}")
-            return {"kind": "commit-restore-by-reset", "path": m["file"], "before_sha": before_sha}
+            return {
+                "kind": "commit-restore-by-reset",
+                "path": m["file"],
+                "before_sha": before_sha,
+            }
         return {"kind": "file-restore-by-checkout", "path": m["file"]}
 
     raise MutationError(f"unrecognised mutation shape: {m}")

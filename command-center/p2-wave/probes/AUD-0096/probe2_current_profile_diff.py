@@ -9,6 +9,7 @@ state." This probe reads probe1's OWN JSON output (not a re-derivation) so the
 diff is computed against what probe1 actually recorded, not an assumption
 about it.
 """
+
 from __future__ import annotations
 
 import json
@@ -41,9 +42,7 @@ def diff_censuses(clean: dict, current: dict) -> dict:
         entry: dict = {"clean": c, "current": cur, "delta": {}}
         for metric in ("skill_count", "file_count", "total_bytes"):
             if metric in c or metric in cur:
-                entry["delta"][metric] = int(cur.get(metric, 0)) - int(
-                    c.get(metric, 0)
-                )
+                entry["delta"][metric] = int(cur.get(metric, 0)) - int(c.get(metric, 0))
         out["components"][key] = entry
     out["total_skill_count_delta"] = int(current["total_skill_count"]) - int(
         clean["total_skill_count"]

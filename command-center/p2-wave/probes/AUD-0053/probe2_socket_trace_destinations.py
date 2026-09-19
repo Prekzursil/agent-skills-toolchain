@@ -59,7 +59,9 @@ def main() -> int:
         "unit=AUD-0053",
     ]
 
-    results_path = REPO / "command-center/p2-wave/probes/AUD-0053/_p2_scratch_results.json"
+    results_path = (
+        REPO / "command-center/p2-wave/probes/AUD-0053/_p2_scratch_results.json"
+    )
     conns_path = REPO / "command-center/p2-wave/probes/AUD-0053/_p2_scratch_conns.json"
     for p in (results_path, conns_path):
         if p.exists():
@@ -96,7 +98,9 @@ def main() -> int:
     lines.append(f"tail:\n{tail}")
 
     connections: list[dict] = (
-        json.loads(conns_path.read_text(encoding="utf-8")) if conns_path.is_file() else []
+        json.loads(conns_path.read_text(encoding="utf-8"))
+        if conns_path.is_file()
+        else []
     )
     results: dict[str, str] = (
         json.loads(results_path.read_text(encoding="utf-8"))
@@ -173,7 +177,9 @@ def main() -> int:
         "cross_reference_ok": cross_ref_ok,
         "cross_reference_missing_from_trace": cross_ref_missing,
     }
-    OUT.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines.append(f"ok={ok}")
     lines.append("SUCCESS:AUD-0053-probe2" if ok else "FAILED:AUD-0053-probe2")

@@ -29,11 +29,11 @@ tests the way an installed console script would?" It does not by itself
 prove a live regression; probe 2 supplies the controlled both-states
 demonstration of WHY the two styles diverge on a packaging defect.
 """
+
 from __future__ import annotations
 
 import json
 import re
-import sys
 from pathlib import Path
 
 import yaml
@@ -96,7 +96,8 @@ def main() -> int:
                 "working_directory": wd,
                 "invocation": kind,
                 "has_pip_install": bool(
-                    isinstance(run_block, str) and re.search(r"\bpip install\b", run_block)
+                    isinstance(run_block, str)
+                    and re.search(r"\bpip install\b", run_block)
                 ),
                 "has_uses": "uses" in step,
             }
@@ -106,9 +107,13 @@ def main() -> int:
     non_gate_steps = [s for s in steps if s not in gate_steps]
 
     total = len(gate_steps)
-    bare_post_install = [s for s in gate_steps if s["invocation"] == "bare-pytest-post-install"]
+    bare_post_install = [
+        s for s in gate_steps if s["invocation"] == "bare-pytest-post-install"
+    ]
     python_m = [s for s in gate_steps if s["invocation"] == "python-dash-m-pytest"]
-    bare_no_install = [s for s in gate_steps if s["invocation"] == "bare-pytest-no-install-seen"]
+    bare_no_install = [
+        s for s in gate_steps if s["invocation"] == "bare-pytest-no-install-seen"
+    ]
     other = [s for s in gate_steps if s["invocation"] == "other"]
 
     # Both-states sanity control over the classifier itself: an engineered run block for

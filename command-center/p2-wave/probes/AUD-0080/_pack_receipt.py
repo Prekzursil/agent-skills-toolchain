@@ -4,6 +4,7 @@
 Honest BLOCKED pending cross-vendor Codex re-run of ONLY probe 2.
 SUCCESS only when independent-review.json records that PASS.
 """
+
 from __future__ import annotations
 
 import json
@@ -61,14 +62,28 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0080/probe1-allow-merge.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0080/probe2-hook-bypass.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0080/probe1-allow-merge.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0080/probe2-hook-bypass.json",
+            "supporting",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0080/probe1-allow.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0080/probe2-bypass.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0080/control-use-vs-mention.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0080/control-use-vs-mention.json",
+            "supporting",
+        ),
     ]
     if success:
-        arts.append(L.art("command-center/p2-wave/probes/AUD-0080/independent-review.json", "supporting"))
+        arts.append(
+            L.art(
+                "command-center/p2-wave/probes/AUD-0080/independent-review.json",
+                "supporting",
+            )
+        )
 
     if success:
         state = "SUCCESS"
@@ -90,10 +105,18 @@ def build(primary: dict | None = None) -> dict:
         }
         failure = None
         defects = [
-            {"id": "AUD-0080-D-REVIEW", "severity": "P1", "status": "resolved",
-             "summary": "Cross-vendor Codex re-run of probe 2 PASS recorded."},
-            {"id": "AUD-0080-D-BASH-PREAPPROVED", "severity": "P2", "status": "open",
-             "summary": f"Bash pre-approved entries={p1.get('bash_preapproved')}; allow_plus_hook_miss_count={p2['allow_plus_hook_miss_count']}."},
+            {
+                "id": "AUD-0080-D-REVIEW",
+                "severity": "P1",
+                "status": "resolved",
+                "summary": "Cross-vendor Codex re-run of probe 2 PASS recorded.",
+            },
+            {
+                "id": "AUD-0080-D-BASH-PREAPPROVED",
+                "severity": "P2",
+                "status": "open",
+                "summary": f"Bash pre-approved entries={p1.get('bash_preapproved')}; allow_plus_hook_miss_count={p2['allow_plus_hook_miss_count']}.",
+            },
         ]
         anti = "SUCCESS-after-cross-vendor-codex-probe2-PASS"
         residual: list[dict] = []
@@ -133,27 +156,41 @@ def build(primary: dict | None = None) -> dict:
             "diagnostic_tail": f"bash_preapproved={p1.get('bash_preapproved')} control_ok={ctrl['ok']}",
             "blocked_on": "Dispatch one cross-vendor Codex reviewer to re-run ONLY probe 2 before PASS.",
             "two_signal_proof": [
-                L.probe("source", "command",
-                        "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
-                        f"miss={p2['allow_plus_hook_miss_count']}", 0),
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
+                    f"miss={p2['allow_plus_hook_miss_count']}",
+                    0,
+                ),
                 L.probe("verifier", "file-read", "reviewer.verdict", "NOT-REVIEWED", 0),
             ],
         }
         defects = [
-            {"id": "AUD-0080-D-REVIEW", "severity": "P1", "status": "open",
-             "summary": "Cross-vendor Codex re-run of probe 2 unpaid."},
-            {"id": "AUD-0080-D-BASH-PREAPPROVED", "severity": "P2", "status": "open",
-             "summary": f"Bash pre-approved entries={p1.get('bash_preapproved')}; allow_plus_hook_miss_count={p2['allow_plus_hook_miss_count']}."},
+            {
+                "id": "AUD-0080-D-REVIEW",
+                "severity": "P1",
+                "status": "open",
+                "summary": "Cross-vendor Codex re-run of probe 2 unpaid.",
+            },
+            {
+                "id": "AUD-0080-D-BASH-PREAPPROVED",
+                "severity": "P2",
+                "status": "open",
+                "summary": f"Bash pre-approved entries={p1.get('bash_preapproved')}; allow_plus_hook_miss_count={p2['allow_plus_hook_miss_count']}.",
+            },
         ]
         anti = "BLOCKED-with-real-probes"
-        residual = [{
-            "claim": "Whether Claude runtime short-circuits PreToolUse when permissions.allow matches before hook dispatch.",
-            "verdict": "NOT-CHECKED",
-            "settling_experiment": (
-                "Instrument a disposable settings fixture with a PreToolUse "
-                "matcher that always denies Bash and confirm allow-list does not suppress the hook."
-            ),
-        }]
+        residual = [
+            {
+                "claim": "Whether Claude runtime short-circuits PreToolUse when permissions.allow matches before hook dispatch.",
+                "verdict": "NOT-CHECKED",
+                "settling_experiment": (
+                    "Instrument a disposable settings fixture with a PreToolUse "
+                    "matcher that always denies Bash and confirm allow-list does not suppress the hook."
+                ),
+            }
+        ]
 
     doc: dict = {
         "schema_version": 1,
@@ -182,13 +219,25 @@ def build(primary: dict | None = None) -> dict:
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0080/probe1-allow.raw.txt",
                 [
-                    L.probe("source", "command",
-                            "python3 -B command-center/p2-wave/probes/AUD-0080/probe1_allow_merge.py",
-                            raw1, 0),
-                    L.probe("verifier", "file-read",
-                            "python3 -c read probe1-allow-merge.json",
-                            json.dumps({"effective_allow_count": p1["effective_allow_count"],
-                                        "bash_preapproved": p1.get("bash_preapproved")}), 0),
+                    L.probe(
+                        "source",
+                        "command",
+                        "python3 -B command-center/p2-wave/probes/AUD-0080/probe1_allow_merge.py",
+                        raw1,
+                        0,
+                    ),
+                    L.probe(
+                        "verifier",
+                        "file-read",
+                        "python3 -c read probe1-allow-merge.json",
+                        json.dumps(
+                            {
+                                "effective_allow_count": p1["effective_allow_count"],
+                                "bash_preapproved": p1.get("bash_preapproved"),
+                            }
+                        ),
+                        0,
+                    ),
                 ],
                 "almost-certain",
             ),
@@ -204,29 +253,48 @@ def build(primary: dict | None = None) -> dict:
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0080/probe2-bypass.raw.txt",
                 [
-                    L.probe("source", "command",
-                            "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
-                            raw2, 0),
-                    L.probe("verifier", "byte-compare",
-                            "python3 -c read probe2-hook-bypass.json",
-                            json.dumps({"allow_plus_hook_miss_count": p2["allow_plus_hook_miss_count"],
-                                        "control_ok": ctrl["ok"]}), 0),
+                    L.probe(
+                        "source",
+                        "command",
+                        "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
+                        raw2,
+                        0,
+                    ),
+                    L.probe(
+                        "verifier",
+                        "byte-compare",
+                        "python3 -c read probe2-hook-bypass.json",
+                        json.dumps(
+                            {
+                                "allow_plus_hook_miss_count": p2[
+                                    "allow_plus_hook_miss_count"
+                                ],
+                                "control_ok": ctrl["ok"],
+                            }
+                        ),
+                        0,
+                    ),
                 ],
                 "almost-certain",
             ),
         ],
-        "tests": [{
-            "id": "AUD-0080-use-vs-mention-control",
-            "name": "Payload mention of danger with benign verb must not flag",
-            "command": "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
-            "result": "PASS" if ctrl["ok"] else "FAIL",
-            "assertions": 2,
-            "output_tail": raw2[-500:],
-        }],
+        "tests": [
+            {
+                "id": "AUD-0080-use-vs-mention-control",
+                "name": "Payload mention of danger with benign verb must not flag",
+                "command": "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
+                "result": "PASS" if ctrl["ok"] else "FAIL",
+                "assertions": 2,
+                "output_tail": raw2[-500:],
+            }
+        ],
         "negative_controls": [
             L.control(
-                "AUD0080-C1", "adversarial-payload", ctrl["description"],
-                bool(ctrl["fired_on_bad_state"]), bool(ctrl["silent_on_good_state"]),
+                "AUD0080-C1",
+                "adversarial-payload",
+                ctrl["description"],
+                bool(ctrl["fired_on_bad_state"]),
+                bool(ctrl["silent_on_good_state"]),
                 bad=f"payload-only flagged={ctrl.get('bad_state_flagged')}",
                 good=f"verb-based flagged={ctrl.get('good_state_flagged')}",
             )
@@ -239,18 +307,22 @@ def build(primary: dict | None = None) -> dict:
             "entry_id": UNIT,
             "registered_at": ended,
         },
-        "downstream_consumers": [{
-            "consumer": "json.loads + audit-finding schema resolver",
-            "artifact_path": OUT,
-            "executed": True,
-            "read_ok": True,
-            "exit_code": 0,
-            "probe": L.probe(
-                "source", "schema-validate",
-                "python3 -B command-center/p2-wave/probes/AUD-0080/_pack_receipt.py",
-                f"state={state}", 0,
-            ),
-        }],
+        "downstream_consumers": [
+            {
+                "consumer": "json.loads + audit-finding schema resolver",
+                "artifact_path": OUT,
+                "executed": True,
+                "read_ok": True,
+                "exit_code": 0,
+                "probe": L.probe(
+                    "source",
+                    "schema-validate",
+                    "python3 -B command-center/p2-wave/probes/AUD-0080/_pack_receipt.py",
+                    f"state={state}",
+                    0,
+                ),
+            }
+        ],
         "timestamps": {"started_at": started, "ended_at": ended},
         "retry": {"count": 1, "policy": "two strikes then pivot (AGENTS.md 4b)"},
         "residual_unknowns": residual,
@@ -263,21 +335,36 @@ def build(primary: dict | None = None) -> dict:
             ),
             "headline": headline,
             "observations": [
-                {"name": "effective_allow_count", "measured": p1["effective_allow_count"],
-                 "method": "union allow minus exact deny across settings scopes",
-                 "anchor": "command-center/p2-wave/probes/AUD-0080/probe1-allow-merge.json"},
-                {"name": "hooks_examined", "measured": p2["hooks_examined"],
-                 "method": "enumerate hooks from agent-self/config/settings.json",
-                 "anchor": "command-center/p2-wave/probes/AUD-0080/probe2-hook-bypass.json"},
-                {"name": "allow_plus_hook_miss_count", "measured": p2["allow_plus_hook_miss_count"],
-                 "method": "matcher miss on intended verb that is also allow-listed",
-                 "anchor": "command-center/p2-wave/probes/AUD-0080/probe2-bypass.raw.txt"},
-                {"name": "bash_preapproved_count", "measured": len(p1.get("bash_preapproved") or []),
-                 "method": "filter effective_allow for Bash*",
-                 "anchor": "command-center/p2-wave/probes/AUD-0080/probe1-allow.raw.txt"},
-                {"name": "use_vs_mention_control_ok", "measured": bool(ctrl["ok"]),
-                 "method": "verb-based silent vs payload-only fire on Read+danger-quote",
-                 "anchor": "command-center/p2-wave/probes/AUD-0080/control-use-vs-mention.json"},
+                {
+                    "name": "effective_allow_count",
+                    "measured": p1["effective_allow_count"],
+                    "method": "union allow minus exact deny across settings scopes",
+                    "anchor": "command-center/p2-wave/probes/AUD-0080/probe1-allow-merge.json",
+                },
+                {
+                    "name": "hooks_examined",
+                    "measured": p2["hooks_examined"],
+                    "method": "enumerate hooks from agent-self/config/settings.json",
+                    "anchor": "command-center/p2-wave/probes/AUD-0080/probe2-hook-bypass.json",
+                },
+                {
+                    "name": "allow_plus_hook_miss_count",
+                    "measured": p2["allow_plus_hook_miss_count"],
+                    "method": "matcher miss on intended verb that is also allow-listed",
+                    "anchor": "command-center/p2-wave/probes/AUD-0080/probe2-bypass.raw.txt",
+                },
+                {
+                    "name": "bash_preapproved_count",
+                    "measured": len(p1.get("bash_preapproved") or []),
+                    "method": "filter effective_allow for Bash*",
+                    "anchor": "command-center/p2-wave/probes/AUD-0080/probe1-allow.raw.txt",
+                },
+                {
+                    "name": "use_vs_mention_control_ok",
+                    "measured": bool(ctrl["ok"]),
+                    "method": "verb-based silent vs payload-only fire on Read+danger-quote",
+                    "anchor": "command-center/p2-wave/probes/AUD-0080/control-use-vs-mention.json",
+                },
             ],
             "control_ids": ["AUD0080-C1"],
         },

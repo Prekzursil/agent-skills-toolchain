@@ -4,6 +4,7 @@
 Promotes to SUCCESS only when independent-review.json has verdict=PASS.
 Otherwise emits BLOCKED (anti-false-green).
 """
+
 from __future__ import annotations
 
 import json
@@ -38,7 +39,9 @@ def load_review() -> dict | None:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-static-findings.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-execution-results.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-execution-results.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-static.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-execution.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
@@ -55,14 +58,23 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0045/probe1-static-findings.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0045/probe2-execution-results.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0045/probe1-static-findings.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0045/probe2-execution-results.json",
+            "supporting",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt", "log"),
     ]
     if success:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0045/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0045/independent-review.json",
+                "supporting",
+            )
         )
     fo = p2["fail_open_count"]
     excluded = p2.get("detector_control_excluded_count", 0)
@@ -287,7 +299,9 @@ def build(primary: dict | None = None) -> dict:
                 "id": "AUD-0045-require-complete-default-off",
                 "name": "validate.py require_complete defaults to False (catalog case)",
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_census.py",
-                "result": "PASS" if p1["validate_require_complete_default_off"] else "FAIL",
+                "result": "PASS"
+                if p1["validate_require_complete_default_off"]
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": raw1[-400:],
             },
@@ -297,7 +311,8 @@ def build(primary: dict | None = None) -> dict:
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
                 "result": (
                     "PASS"
-                    if fo == 1 and p2["fail_open_labels"] == ["ssot_drift_gate.py default"]
+                    if fo == 1
+                    and p2["fail_open_labels"] == ["ssot_drift_gate.py default"]
                     else "FAIL"
                 ),
                 "assertions": 2,

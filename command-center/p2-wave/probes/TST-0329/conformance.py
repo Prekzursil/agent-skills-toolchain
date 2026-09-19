@@ -25,7 +25,6 @@ sys.path.insert(0, str(PLATFORM_LIB))
 from completion_predicate import (  # noqa: E402
     CONDITIONS,
     CONDITION_TEXT,
-    Outcome,
     Verdict,
     evaluate,
 )
@@ -134,11 +133,7 @@ def run_mutation(root: Path, n: int) -> dict[str, Any]:
         "mutation": MUTATION_DESCRIPTIONS[n],
         "is_complete": bool(result.is_complete),
         "verdict": result.verdict.value,
-        "reducer_verdict": (
-            "FALSE"
-            if not result.is_complete
-            else "TRUE"
-        ),
+        "reducer_verdict": ("FALSE" if not result.is_complete else "TRUE"),
         "unsatisfied": unsat,
         "not_checked": not_checked,
         "expected_cascade_not_checked": EXPECTED_CASCADE.get(n, []),
@@ -157,7 +152,9 @@ def run_mutation(root: Path, n: int) -> dict[str, Any]:
 def run_battery(root: Path) -> dict[str, Any]:
     healthy = run_healthy(root)
     rows = [run_mutation(root, n) for n in range(1, 13)]
-    all_false = all(r["reducer_verdict"] == "FALSE" and not r["is_complete"] for r in rows)
+    all_false = all(
+        r["reducer_verdict"] == "FALSE" and not r["is_complete"] for r in rows
+    )
     all_independent = all(r["independent"] for r in rows)
     case_10646 = next(r for r in rows if r["is_10646_case"])
     ok = (
@@ -172,7 +169,9 @@ def run_battery(root: Path) -> dict[str, Any]:
         "unit": "TST-0329",
         "reducer": "platform/lib/completion_predicate.py",
         "dep_cc0003": "command-center/receipts/CC-0003.json",
-        "conditions": [{"n": n, "text": t, "spec_line": line} for n, t, line in CONDITIONS],
+        "conditions": [
+            {"n": n, "text": t, "spec_line": line} for n, t, line in CONDITIONS
+        ],
         "healthy": healthy,
         "rows": rows,
         "row_count": len(rows),

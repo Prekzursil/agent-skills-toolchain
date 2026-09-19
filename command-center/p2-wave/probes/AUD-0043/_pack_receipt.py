@@ -4,6 +4,7 @@
 Emits BLOCKED until an independent fresh-context Claude review PASS is on
 disk (catalog `reviewer_requirement`); then SUCCESS. Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -42,8 +43,12 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-ci-invocation-census.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-scratch-both-states.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-ci-invocation-census.json").read_text(encoding="utf-8")
+    )
+    p2 = json.loads(
+        (PROBE / "probe2-scratch-both-states.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-ci-invocation-census.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-scratch-both-states.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
@@ -327,7 +332,9 @@ def build(primary: dict | None = None) -> dict:
                         json.dumps(
                             {
                                 "both_states": both_states,
-                                "fixture_files_match": p2["control"]["fixture_files_match"],
+                                "fixture_files_match": p2["control"][
+                                    "fixture_files_match"
+                                ],
                                 "ok": p2_ok,
                             }
                         ),

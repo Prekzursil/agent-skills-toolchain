@@ -3,6 +3,7 @@
 
 Writes compare-required-vs-emitted.json (+ .raw.txt).
 """
+
 from __future__ import annotations
 
 import json

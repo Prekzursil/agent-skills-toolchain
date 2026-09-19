@@ -17,7 +17,6 @@ from __future__ import annotations
 import ast
 import json
 import re
-import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -183,7 +182,11 @@ def _resolve_name_to_dict_keys(fn: ast.AST, name: str) -> list[set[str]]:
     for node in ast.walk(fn):
         if isinstance(node, ast.Assign) and len(node.targets) == 1:
             t = node.targets[0]
-            if isinstance(t, ast.Name) and t.id == name and isinstance(node.value, ast.Dict):
+            if (
+                isinstance(t, ast.Name)
+                and t.id == name
+                and isinstance(node.value, ast.Dict)
+            ):
                 out.append(_dict_keys(node.value))
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             if (
@@ -261,15 +264,27 @@ def extract_call_sites(path: Path, target_funcs: set[str]) -> list[dict]:
 
     # Inferred dict-kwargs for classify/artifact_* when **opaque packs exist.
     has_opaque_target = any(
-        s["func"] in {"classify", "artifact_ok", "artifact_text_ok"} and s.get("opaque_kwargs")
+        s["func"] in {"classify", "artifact_ok", "artifact_text_ok"}
+        and s.get("opaque_kwargs")
         for s in sites
     )
     if has_opaque_target or any(
         s["func"] == "classify" and s["form"] == "call" for s in sites
     ):
         for lineno, keys in dict_packs:
-            for fname in sorted(target_funcs & {"classify", "artifact_ok", "artifact_text_ok"}):
-                if not (keys & {"min_bytes", "sentinel", "artifact", "sentinel_tail", "exit_code"}):
+            for fname in sorted(
+                target_funcs & {"classify", "artifact_ok", "artifact_text_ok"}
+            ):
+                if not (
+                    keys
+                    & {
+                        "min_bytes",
+                        "sentinel",
+                        "artifact",
+                        "sentinel_tail",
+                        "exit_code",
+                    }
+                ):
                     continue
                 # Only attribute packs to classify when classify is called with **kwargs.
                 if fname != "classify" and "artifact" not in keys:
@@ -383,9 +398,11 @@ def main() -> int:
         # Risk: DEFAULT_* / min_bytes / threshold / planted
         risk = "low"
         dr = d["default_repr"] or ""
-        if d["param"] in {"min_bytes", "threshold", "sentinel_tail"} or dr.startswith(
-            "DEFAULT_"
-        ) or "PLANTED_" in dr:
+        if (
+            d["param"] in {"min_bytes", "threshold", "sentinel_tail"}
+            or dr.startswith("DEFAULT_")
+            or "PLANTED_" in dr
+        ):
             risk = "high" if status == "UNEXERCISED" else "medium"
 
         planted = None
@@ -423,7 +440,9 @@ def main() -> int:
         or (r["default_repr"] or "").startswith(("DEFAULT_", "PLANTED_"))
     ]
     for d in high_risk_defs:
-        by_file: dict[str, dict[str, int]] = defaultdict(lambda: {"omit": 0, "supply": 0})
+        by_file: dict[str, dict[str, int]] = defaultdict(
+            lambda: {"omit": 0, "supply": 0}
+        )
         for s in by_func.get(d["func"], []):
             v = call_omits_param(s, d["param"], d["param_index"])
             if v is True:
@@ -566,7 +585,9 @@ def main() -> int:
     if len(suite_holes) > 40:
         lines.append(f"  ... ({len(suite_holes) - 40} more)")
     lines.append(
-        "SUCCESS:AUD-0057-probe1" if control_ok else "FAIL:AUD-0057-probe1 planted control miss"
+        "SUCCESS:AUD-0057-probe1"
+        if control_ok
+        else "FAIL:AUD-0057-probe1 planted control miss"
     )
     raw = "\n".join(lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")

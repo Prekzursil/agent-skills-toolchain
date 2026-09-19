@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AUD-0033 Probe 2: git log --all on MISSING identities to separate NEVER-EXISTED vs DELETED."""
+
 from __future__ import annotations
 
 import json
@@ -65,7 +66,9 @@ def main() -> int:
         else:
             klass = "ERROR"
         classes[klass] = classes.get(klass, 0) + 1
-        details.append({"path": path, "class": klass, "commit": commit or "-", "git_exit": rc})
+        details.append(
+            {"path": path, "class": klass, "commit": commit or "-", "git_exit": rc}
+        )
 
     planted = next((d for d in details if d["path"] == PLANTED), None)
     planted_ok = bool(planted and planted["class"] == "NEVER-EXISTED")
@@ -91,8 +94,8 @@ def main() -> int:
 
     lines = [
         "AUD-0033 NAMED PROBE 2: git log --all per MISSING identity",
-        f"unit=AUD-0033",
-        f"stage=linux-local-remeasure",
+        "unit=AUD-0033",
+        "stage=linux-local-remeasure",
         f"repo={REPO}",
         f"git_worktree={result['git_worktree']}",
         f"batch_git_scope=all-max-{MAX_MISSING}",

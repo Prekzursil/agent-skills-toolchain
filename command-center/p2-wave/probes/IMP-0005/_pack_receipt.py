@@ -170,7 +170,9 @@ def build() -> dict:
         encoding="utf-8"
     )
     raw2 = (L.REPO / PROBE_DIR / "probe2-os-unzip.raw.txt").read_text(encoding="utf-8")
-    raw_n = (L.REPO / PROBE_DIR / "negative-control.raw.txt").read_text(encoding="utf-8")
+    raw_n = (L.REPO / PROBE_DIR / "negative-control.raw.txt").read_text(
+        encoding="utf-8"
+    )
 
     bc = m1["budget_checker"]
     p1_src = L.probe(

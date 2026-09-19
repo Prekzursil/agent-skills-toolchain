@@ -1,13 +1,13 @@
-# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 72 of 72 satisfiable units are reviewed
+# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 73 of 80 satisfiable units are reviewed
 
 <!-- RAIL-COUNT
 basis: committed
-blocked_units: 81
+blocked_units: 89
 rail_blocked: 9
 rail_blocked_unfulfilled: 9
 rail_blocked_fulfilled: 0
-satisfiable_now: 72
-reviewed_satisfiable: 72
+satisfiable_now: 80
+reviewed_satisfiable: 73
 catalog_units: 2007
 rail_state: up
 rail_probed: 2026-08-14
@@ -146,14 +146,19 @@ the field.
 | 47 of 51 units *[superseded]* | re-running the producer, round 1 | a resolver bug: this lane's own receipt edits removed the word "Claude" from `failure.blocked_on`, and an ungated rule inverted six same-vendor requirements into cross-vendor demands |
 | 42 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | units, once each, from HEAD blobs — what receipts DEMANDED before the 2026-08-20 delivery-surface curation |
 | 39 of 52 units *[superseded 2026-08-20]* | here, committed basis, pre-curation | the same population minus those already reviewed |
-| **9 of 81 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND after the 2026-08-20 curation returned 38 contract-unsupported SUCCESS claims to BLOCKED |
-| **9 of 81 units** | **here, committed basis** | **the cross-vendor population minus those already served — what is still OWED to the rail; the satisfiable population is 72, of which 72 are reviewed** |
+| **9 of 89 units** | here, committed basis | units, once each, from HEAD blobs — what receipts DEMAND after the 2026-08-20 curation returned 38 contract-unsupported SUCCESS claims to BLOCKED *(re-derived 2026-09-19)* |
+| **9 of 89 units** | **here, committed basis** | **the cross-vendor population minus those already served — what is still OWED to the rail; the satisfiable population is 80, of which 73 are reviewed** |
 
-Two mechanically independent instruments agree on the demand split, which is the only reason it is
-stated without a hedge: `vendor_satisfiability.py` resolves a seven-rule vendor ladder per receipt
-and returns 42 rail-blocked / 10 satisfiable; `split_review_gate.py` classifies from receipt
-*classification tags* plus the catalog `reviewer_requirement` and returns 42 CROSS_VENDOR /
-10 ANY_INDEP / 0 NO_REVIEW_GATE. Different fields, different code, same answer.
+Two mechanically independent instruments agreed on the demand split in round 1, which is the only
+reason it was stated without a hedge: `vendor_satisfiability.py` resolves a seven-rule vendor
+ladder per receipt and returned 42 rail-blocked / 10 satisfiable; `split_review_gate.py` classifies
+from receipt *classification tags* plus the catalog `reviewer_requirement` and returned
+42 CROSS_VENDOR / 10 ANY_INDEP / 0 NO_REVIEW_GATE. Both readings are pre-curation
+*[superseded 2026-08-20]*. On the current committed basis (re-derived 2026-09-19) the two
+instruments DIVERGE: the vendor ladder returns 9 rail-blocked / 80 satisfiable, the split gate
+returns 24 CROSS_VENDOR / 65 ANY_INDEP / 0 NO_REVIEW_GATE. UNVERIFIED which split the owner should
+price; the settling experiment is a unit-by-unit reconciliation of the ladder's rail-blocked 9
+against the split's CROSS_VENDOR 24.
 
 On the authoring box the dirty tree gave 41 of 51 units. *[worktree-observed 2026-08-13]*
 The single difference is ADV-0041: BLOCKED in every commit, SUCCESS only in an uncommitted sibling
@@ -190,18 +195,21 @@ ship. That is escalated separately, with the measurements, in
 
 This is now the *whole* owner decision, and it got simpler: with no measured auth blocker, the
 credential write that was previously priced as the unlock is not on the critical path. Condition 11
-is. The three units that already hold a cross-vendor PASS are the proof — they cleared the review
-gate and still cannot reach DELIVERED.
+is. The three units that already held a cross-vendor PASS were the proof
+*[superseded 2026-09-19: `rail_blocked_fulfilled` is 0 on the current committed basis]* — they
+cleared the review gate and still cannot reach DELIVERED.
 
 ## What was already done without the rail
 
 10 of the 52 blocked units demanded only an *independent* reviewer *[superseded 2026-08-20: the delivery-surface curation re-derived the split]* — all
 10 were reviewed by a fresh-context reviewer that did not build them, with `reviewer.verdict=PASS`
 and `independent=true`. They are AUD-0006, AUD-0020, AUD-0021, AUD-0030, AUD-0041, AUD-0051,
-CC-0002, IMP-0440, TST-0334, TST-0350. After the 2026-08-20 curation the satisfiable population is
-72 of 81 blocked units, 72 of them reviewed — that is the `reviewed_satisfiable` field in the
-block at the top, and CI re-checks it. The gap between the two is NEWLY REACHABLE review work the
-C5 content floor holds open until each unit carries a substantive independent PASS.
+CC-0002, IMP-0440, TST-0334, TST-0350. After the 2026-08-20 curation the satisfiable population was
+72 of 81 blocked units, 72 of them reviewed *[superseded 2026-09-19]*; re-derived at this branch's
+HEAD it is now 80 of 89 blocked units, 73 of them reviewed — that is the `reviewed_satisfiable`
+field in the block at the top, and CI re-checks it. The gap between the two — `satisfiable_now`
+minus `reviewed_satisfiable` on the 2026-09-19 derivation — is NEWLY REACHABLE review work the C5
+content floor holds open until each unit carries a substantive independent PASS.
 
 No same-vendor review was substituted anywhere a receipt demands cross-vendor. That substitution
 would satisfy the gate's letter and defeat its purpose, and the split above exists precisely to

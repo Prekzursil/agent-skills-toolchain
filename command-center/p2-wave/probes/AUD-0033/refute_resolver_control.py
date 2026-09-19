@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AUD-0033 both-states control: good extractor vs any-slash mutant; naive vs fixed resolver."""
+
 from __future__ import annotations
 
 import re
@@ -25,11 +26,15 @@ def good_extract(text: str) -> list[str]:
     for m in FENCED_RE.finditer(text):
         for line in m.group(1).splitlines():
             line = line.strip()
-            if (PATHISH_RE.fullmatch(line) or bare_file.fullmatch(line)) and line not in PROSE_TRAPS:
+            if (
+                PATHISH_RE.fullmatch(line) or bare_file.fullmatch(line)
+            ) and line not in PROSE_TRAPS:
                 found.append(line)
     for m in BACKTICK_RE.finditer(text):
         cand = m.group(1).strip()
-        if (PATHISH_RE.fullmatch(cand) or bare_file.fullmatch(cand)) and cand not in PROSE_TRAPS:
+        if (
+            PATHISH_RE.fullmatch(cand) or bare_file.fullmatch(cand)
+        ) and cand not in PROSE_TRAPS:
             found.append(cand)
     # uniq
     out = []
@@ -90,7 +95,9 @@ def main() -> int:
     detector_good = found_fence_good and not good_prose
     detector_mutant_red = found_fence_mutant and bool(mutant_prose)
     resolver_fixed = fixed_rel == "EXISTS" and fixed_skills == "EXISTS"
-    resolver_naive_bad = naive_rel == "MISSING"  # expected: naive misses source-relative
+    resolver_naive_bad = (
+        naive_rel == "MISSING"
+    )  # expected: naive misses source-relative
 
     fired_on_bad = detector_mutant_red and resolver_naive_bad
     silent_on_good = detector_good and resolver_fixed

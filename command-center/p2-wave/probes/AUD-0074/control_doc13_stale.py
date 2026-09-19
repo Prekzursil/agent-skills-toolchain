@@ -67,14 +67,18 @@ def main() -> int:
     # Re-run probe1 then probe2 against the planted corpus (bad state includes
     # pre-correction citers 17-DECISION-LOG + 15-IMPLEMENTATION-PRECONDITIONS).
     rc1, out1 = run_py(
-        PROBE1, HERE / "probe1-citation-edges.raw.txt", HERE / "probe1-citation-edges.json"
+        PROBE1,
+        HERE / "probe1-citation-edges.raw.txt",
+        HERE / "probe1-citation-edges.json",
     )
     rc2, out2 = run_py(
         PROBE2,
         HERE / "probe2-timestamp-ordering.raw.txt",
         HERE / "probe2-timestamp-ordering.json",
     )
-    p2 = json.loads((HERE / "probe2-timestamp-ordering.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (HERE / "probe2-timestamp-ordering.json").read_text(encoding="utf-8")
+    )
     bad_flags = int(p2.get("doc13_stale_downstream_flag_count") or 0)
     bad_flag_rows = [
         f for f in (p2.get("stale_downstream_flags") or []) if f.get("to") == DOC13
@@ -130,7 +134,9 @@ def main() -> int:
     os.utime(impl, (before, before))
     # Restore probe1/2 outputs to bad-state measurements
     run_py(
-        PROBE1, HERE / "probe1-citation-edges.raw.txt", HERE / "probe1-citation-edges.json"
+        PROBE1,
+        HERE / "probe1-citation-edges.raw.txt",
+        HERE / "probe1-citation-edges.json",
     )
     run_py(
         PROBE2,
@@ -172,9 +178,7 @@ def main() -> int:
     ]
     for f in bad_flag_rows:
         raw_lines.append(f"BAD_FLAG|{json.dumps(f, sort_keys=True)}")
-    raw_lines.append(
-        "SUCCESS:AUD-0074-control" if ok else "FAILED:AUD-0074-control"
-    )
+    raw_lines.append("SUCCESS:AUD-0074-control" if ok else "FAILED:AUD-0074-control")
     raw = "\n".join(raw_lines) + "\n"
     args.raw_output.write_text(raw, encoding="utf-8", newline="\n")
     args.result_json.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")

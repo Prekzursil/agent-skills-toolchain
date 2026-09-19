@@ -23,29 +23,47 @@ def main() -> int:
         "-m",
         "pytest",
         "-q",
-        str(REPO / "tools/plugin/tests/test_pack_determinism.py::test_real_mtimes_breaks_determinism"),
+        str(
+            REPO
+            / "tools/plugin/tests/test_pack_determinism.py::test_real_mtimes_breaks_determinism"
+        ),
         "--tb=short",
     ]
     proc = subprocess.run(
-        cmd, cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", errors="replace"
+        cmd,
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     out = (proc.stdout or "") + (proc.stderr or "")
     lines.append(f"pytest_exit={proc.returncode}")
     lines.append("pytest_output_begin")
     lines.append(out[-4000:])
     lines.append("pytest_output_end")
-    fired = proc.returncode == 0  # test asserts digests diverge → PASS means control fired
+    fired = (
+        proc.returncode == 0
+    )  # test asserts digests diverge → PASS means control fired
     # Also run the positive determinism test to show good state stays green.
     cmd2 = [
         sys.executable,
         "-m",
         "pytest",
         "-q",
-        str(REPO / "tools/plugin/tests/test_pack_determinism.py::test_two_builds_identical"),
+        str(
+            REPO
+            / "tools/plugin/tests/test_pack_determinism.py::test_two_builds_identical"
+        ),
         "--tb=line",
     ]
     proc2 = subprocess.run(
-        cmd2, cwd=str(REPO), capture_output=True, text=True, encoding="utf-8", errors="replace"
+        cmd2,
+        cwd=str(REPO),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
     )
     out2 = (proc2.stdout or "") + (proc2.stderr or "")
     lines.append(f"good_state_pytest_exit={proc2.returncode}")
@@ -65,7 +83,9 @@ def main() -> int:
     lines.append(json.dumps(meas, indent=2, sort_keys=True))
     lines.append("NEGATIVE-CONTROL-COMPLETE:IMP-0002")
     lines.append(
-        "SUCCESS:IMP-0002-negative-control" if ok else "FAILED:IMP-0002-negative-control"
+        "SUCCESS:IMP-0002-negative-control"
+        if ok
+        else "FAILED:IMP-0002-negative-control"
     )
     raw = "\n".join(lines) + "\n"
     (PROBE / "negative-control.raw.txt").write_text(raw, encoding="utf-8")

@@ -22,6 +22,7 @@ PASS requires:
   3. At least one GHSA id is common to BOTH sources' known-vulnerable output
      (cross-source corroboration, not just "both found something").
 """
+
 from __future__ import annotations
 
 import json
@@ -90,7 +91,9 @@ def main() -> int:
     if binary is None:
         doc = {"started_at": started, "ok": False, "error": "osv-scanner not on PATH"}
         OUT_JSON.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
-        OUT_RAW.write_text("FAILED:AUD-0023-control osv-scanner missing\n", encoding="utf-8")
+        OUT_RAW.write_text(
+            "FAILED:AUD-0023-control osv-scanner missing\n", encoding="utf-8"
+        )
         print("FAILED:AUD-0023-control osv-scanner missing")
         return 1
 

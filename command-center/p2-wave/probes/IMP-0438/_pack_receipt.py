@@ -147,12 +147,8 @@ def build() -> dict:
         out,
         rc,
     )
-    p_meas = L.probe(
-        "verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc
-    )
-    p_val = L.probe(
-        "source", "command", f"python3 {VALIDATE}", v_out, v_rc
-    )
+    p_meas = L.probe("verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc)
+    p_val = L.probe("source", "command", f"python3 {VALIDATE}", v_out, v_rc)
 
     # Re-run the adversarial mutant when present so SUCCESS evidence has a
     # distinct SOURCE probe (CONFIRMED requires source+verifier, minItems=2).
@@ -163,9 +159,7 @@ def build() -> dict:
         (L.REPO / PROBE_DIR / "adversarial-mutant.out").write_text(
             a_out, encoding="utf-8"
         )
-        p_adv = L.probe(
-            "source", "command", f"python3 -B {ADV_SCRIPT}", a_out, a_rc
-        )
+        p_adv = L.probe("source", "command", f"python3 -B {ADV_SCRIPT}", a_out, a_rc)
 
     if success:
         state = "SUCCESS"
@@ -463,9 +457,7 @@ def build() -> dict:
             {
                 "id": "pytest-validate-and-battery",
                 "name": "test_validate.py + IMP-0438 test_battery.py pass.",
-                "command": (
-                    f"python3 -m pytest {TESTS_VALIDATE} {TESTS_BATTERY} -q"
-                ),
+                "command": (f"python3 -m pytest {TESTS_VALIDATE} {TESTS_BATTERY} -q"),
                 "result": "PASS" if rc == 0 else "FAIL",
                 "assertions": 1,
                 "output_tail": out[-800:],
@@ -633,9 +625,7 @@ def build() -> dict:
     v_rc2, v_out2 = _run(
         [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
     )
-    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(
-        v_out2, encoding="utf-8"
-    )
+    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(v_out2, encoding="utf-8")
     if v_rc2 != 0 or "ACCEPT" not in v_out2:
         raise SystemExit(f"receipt_validate rejected:\n{v_out2}")
 

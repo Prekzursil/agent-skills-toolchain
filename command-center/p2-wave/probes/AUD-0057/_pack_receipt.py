@@ -384,9 +384,7 @@ def build(primary: dict | None = None) -> dict:
                 "name": "use-vs-mention: string mentions must not inflate call sites",
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0057/probe1_default_census.py",
                 "result": (
-                    "PASS"
-                    if p1["control"]["mention_only_call_hits"] == 0
-                    else "FAIL"
+                    "PASS" if p1["control"]["mention_only_call_hits"] == 0 else "FAIL"
                 ),
                 "assertions": 1,
                 "output_tail": raw1[-400:],

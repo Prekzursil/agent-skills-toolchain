@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AUD-0080 Probe 1: enumerate permissions.allow/deny per settings scope; merge."""
+
 from __future__ import annotations
 
 import json
@@ -20,7 +21,14 @@ SCOPES = [
 def load_perms(rel: str) -> dict:
     p = REPO / rel
     if not p.is_file():
-        return {"path": rel, "exists": False, "allow": [], "deny": [], "ask": [], "hooks": {}}
+        return {
+            "path": rel,
+            "exists": False,
+            "allow": [],
+            "deny": [],
+            "ask": [],
+            "hooks": {},
+        }
     doc = json.loads(p.read_text(encoding="utf-8"))
     perms = doc.get("permissions") or {}
     hooks = doc.get("hooks") or {}
@@ -76,7 +84,8 @@ def main() -> int:
                 "deny": s["deny"],
                 "hook_events": sorted((s.get("hooks") or {}).keys()),
                 "hook_matcher_count": sum(
-                    len(v.get("matchers") or []) for v in (s.get("hooks") or {}).values()
+                    len(v.get("matchers") or [])
+                    for v in (s.get("hooks") or {}).values()
                 ),
             }
             for s in scopes

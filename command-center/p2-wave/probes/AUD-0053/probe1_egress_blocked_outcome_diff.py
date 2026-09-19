@@ -163,7 +163,9 @@ def main() -> int:
             "both_states_control": control,
             "aborted_before_suite_run": True,
         }
-        OUT.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        OUT.write_text(
+            json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         print(RAW.read_text(encoding="utf-8"))
         return 1
 
@@ -202,12 +204,20 @@ def main() -> int:
             )
 
     gt_a_nodeid = next((nid for nid in base_results if GROUND_TRUTH_A in nid), None)
-    gt_a_caught = any(GROUND_TRUTH_A in c["nodeid"] for c in network_dependent_candidates)
-    gt_a_baseline_passed = base_results.get(gt_a_nodeid) == "passed" if gt_a_nodeid else False
+    gt_a_caught = any(
+        GROUND_TRUTH_A in c["nodeid"] for c in network_dependent_candidates
+    )
+    gt_a_baseline_passed = (
+        base_results.get(gt_a_nodeid) == "passed" if gt_a_nodeid else False
+    )
 
     gt_b_nodeid = next((nid for nid in base_results if GROUND_TRUTH_B in nid), None)
-    gt_b_baseline_passed = base_results.get(gt_b_nodeid) == "passed" if gt_b_nodeid else False
-    gt_b_blocked_passed = blocked_results.get(gt_b_nodeid) == "passed" if gt_b_nodeid else False
+    gt_b_baseline_passed = (
+        base_results.get(gt_b_nodeid) == "passed" if gt_b_nodeid else False
+    )
+    gt_b_blocked_passed = (
+        blocked_results.get(gt_b_nodeid) == "passed" if gt_b_nodeid else False
+    )
     gt_b_correctly_missed_by_outcome_diff = (
         gt_b_nodeid is not None
         and gt_b_baseline_passed
@@ -255,7 +265,9 @@ def main() -> int:
             "b_correctly_missed_by_outcome_diff": gt_b_correctly_missed_by_outcome_diff,
         },
     }
-    OUT.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines.append(
         f"network_dependent_candidates_count={len(network_dependent_candidates)} "

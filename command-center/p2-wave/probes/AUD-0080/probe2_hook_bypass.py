@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AUD-0080 Probe 2: allow-list vs hook matcher bypass + use-vs-mention both-states control."""
+
 from __future__ import annotations
 
 import json

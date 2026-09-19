@@ -5,6 +5,7 @@ Honest census with live probes. Emits BLOCKED pending independent fresh-context
 Claude review (catalog reviewer_requirement). Never emits SUCCESS without that
 review — anti-false-green.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,7 +39,9 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-path-filter-eval.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-path-filter-eval.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads((PROBE / "probe2-run-history.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-path-filter-eval.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-run-history.raw.txt").read_text(encoding="utf-8")
@@ -472,8 +475,12 @@ def main() -> int:
         "artifacts": doc["artifacts"],
         "packed_at": doc["timestamps"]["ended_at"],
     }
-    (L.REPO / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-    print(f"packed {OUT} state={doc['state']} live_holes={doc['extensions']['live_workflows']}")
+    (L.REPO / MANIFEST).write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    print(
+        f"packed {OUT} state={doc['state']} live_holes={doc['extensions']['live_workflows']}"
+    )
     print(doc["sentinel"])
     return 0
 

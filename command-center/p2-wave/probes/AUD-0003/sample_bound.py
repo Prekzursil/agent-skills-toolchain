@@ -11,6 +11,7 @@ Bound (documented, not silent truncation):
 Full closed history on this repo is ~310 PRs (Link: rel=last page=310 at
 per_page=1). Residual: PRs outside this 20-row window are NOT-CHECKED.
 """
+
 from __future__ import annotations
 
 import json
@@ -164,7 +165,10 @@ def ensure_head_fetched(head_sha: str, pr_number: int) -> tuple[bool, str]:
     if rc != 0:
         return False, out[:500]
     rc2, _ = run(["git", "cat-file", "-e", f"{head_sha}^{{commit}}"])
-    return rc2 == 0, "fetched-pr-head" if rc2 == 0 else f"fetch-ok-but-sha-missing:{out[:200]}"
+    return (
+        rc2 == 0,
+        "fetched-pr-head" if rc2 == 0 else f"fetch-ok-but-sha-missing:{out[:200]}",
+    )
 
 
 def pr_files(pr_number: int) -> list[str]:
@@ -200,4 +204,13 @@ def is_ancestor(commit: str, tip: str) -> tuple[bool, str]:
 if __name__ == "__main__":
     meta = selection_meta()
     sample = load_sample()
-    print(json.dumps({"meta": meta, "count": len(sample), "numbers": [p["number"] for p in sample]}, indent=2))
+    print(
+        json.dumps(
+            {
+                "meta": meta,
+                "count": len(sample),
+                "numbers": [p["number"] for p in sample],
+            },
+            indent=2,
+        )
+    )

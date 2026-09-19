@@ -26,7 +26,9 @@ def main() -> int:
     predicted = P.predict_live_paths(REPO, home=home)
     consumes = P.consumes_generators(REPO)
     skill_paths = [
-        p for p in predicted if "/skills/" in p.replace("\\", "/") and p.endswith("SKILL.md")
+        p
+        for p in predicted
+        if "/skills/" in p.replace("\\", "/") and p.endswith("SKILL.md")
     ]
     confirmed = (
         not errs

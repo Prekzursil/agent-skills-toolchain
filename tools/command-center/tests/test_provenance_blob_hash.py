@@ -13,7 +13,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -24,9 +23,7 @@ CRLF_BODY = b"alpha\r\nbeta\r\ngamma\r\n"
 
 
 def _git(root: Path, *args: str) -> None:
-    subprocess.run(
-        ["git", "-C", str(root), *args], check=True, capture_output=True
-    )
+    subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
 
 
 def _repo_with_crlf_checkout(tmp_path: Path) -> tuple[Path, Path]:
@@ -69,7 +66,9 @@ def test_working_tree_raw_route_differs_from_blob_on_crlf(tmp_path: Path) -> Non
     _root, cc = _repo_with_crlf_checkout(tmp_path)
     wt_raw = render.working_tree_raw_hash(cc, "PROGRAM-CHARTER.md")
     blob = render.blob_hash(cc, "PROGRAM-CHARTER.md")
-    recorded = hashlib.sha256(render.provenance_bytes(cc, "PROGRAM-CHARTER.md")).hexdigest()
+    recorded = hashlib.sha256(
+        render.provenance_bytes(cc, "PROGRAM-CHARTER.md")
+    ).hexdigest()
     assert blob == recorded
     assert wt_raw != blob, (
         "working-tree raw hash must differ from blob on CRLF checkout — "

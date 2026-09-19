@@ -33,9 +33,9 @@ def write_json_atomic(path: str | Path, doc: Mapping[str, Any]) -> Path:
         target = Path.cwd() / target
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    payload = (json.dumps(doc, indent=2, ensure_ascii=False, sort_keys=False) + "\n").encode(
-        "utf-8"
-    )
+    payload = (
+        json.dumps(doc, indent=2, ensure_ascii=False, sort_keys=False) + "\n"
+    ).encode("utf-8")
 
     fd, tmp_name = tempfile.mkstemp(
         prefix=f".{target.name}.",

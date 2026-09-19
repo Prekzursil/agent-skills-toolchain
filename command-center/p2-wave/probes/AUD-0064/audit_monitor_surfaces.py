@@ -10,6 +10,7 @@ detection). LIVE requires nonempty render bytes and two distinct digests after
 volatile clock text is stripped. Tracebacks / import failures are EMPTY, not
 renders. Stall detection from mtimes alone is banned.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -89,7 +90,9 @@ def strip_clock(text: str) -> str:
 
 
 def digest(text: str) -> str:
-    return hashlib.sha256(strip_clock(text).encode("utf-8", errors="replace")).hexdigest()
+    return hashlib.sha256(
+        strip_clock(text).encode("utf-8", errors="replace")
+    ).hexdigest()
 
 
 def write_json(path: Path, doc: Any) -> None:
@@ -173,7 +176,9 @@ def run_probe1(raw_path: Path, json_path: Path) -> dict[str, Any]:
     mon = shutil.which("mon")
     pwsh = shutil.which("pwsh")
     mon_cmd = REPO / "skills/monitor-launcher/mon.cmd"
-    lines.append(f"CURRENT_DISPATCHER|command=mon|resolved={'PRESENT' if mon else 'ABSENT'}")
+    lines.append(
+        f"CURRENT_DISPATCHER|command=mon|resolved={'PRESENT' if mon else 'ABSENT'}"
+    )
     lines.append(f"RUNTIME|pwsh={'PRESENT' if pwsh else 'ABSENT'}")
     lines.append(f"RUNTIME|python={sys.executable}")
     lines.append(f"RUNTIME|mon_cmd_in_repo={mon_cmd.is_file()}")
@@ -338,8 +343,12 @@ def run_probe2(
         time.sleep(0.35)
         b = launch_once(entry_path, args, timeout)
 
-        cls_a = classify_render(a["stdout"], a["stderr"], a["exit_code"], a["timed_out"])
-        cls_b = classify_render(b["stdout"], b["stderr"], b["exit_code"], b["timed_out"])
+        cls_a = classify_render(
+            a["stdout"], a["stderr"], a["exit_code"], a["timed_out"]
+        )
+        cls_b = classify_render(
+            b["stdout"], b["stderr"], b["exit_code"], b["timed_out"]
+        )
         dig_a = digest(a["stdout"])
         dig_b = digest(b["stdout"])
         changed = dig_a != dig_b
@@ -405,7 +414,9 @@ def run_probe2(
         "export_route_names": [r["name"] for r in inventory],
     }
     lines.append(f"route_attempt_count={result['routes_attempted']}")
-    lines.append(f"all_routes_attempted_once={str(result['all_routes_attempted_once']).lower()}")
+    lines.append(
+        f"all_routes_attempted_once={str(result['all_routes_attempted_once']).lower()}"
+    )
     lines.append(f"live_route_count={result['LIVE']}")
     lines.append(f"nonempty_static_route_count={result['NONEMPTY_STATIC']}")
     lines.append(f"empty_route_count={result['EMPTY']}")
@@ -423,7 +434,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("mode", choices=["probe1", "probe2", "all"])
     ap.add_argument("--raw-output", type=Path, default=None)
     ap.add_argument("--result-json", type=Path, default=None)
-    ap.add_argument("--probe1-json", type=Path, default=PROBE / "probe1-dispatcher-table.json")
+    ap.add_argument(
+        "--probe1-json", type=Path, default=PROBE / "probe1-dispatcher-table.json"
+    )
     ap.add_argument("--timeout", type=float, default=15.0)
     args = ap.parse_args(argv)
 

@@ -140,9 +140,15 @@ def build() -> dict:
         raise SystemExit(f"IMP-0002 digests not equal: {m1} {m2}")
 
     digest = m1["build1_sha256"]
-    raw1 = (L.REPO / PROBE_DIR / "probe1-two-builds.raw.txt").read_text(encoding="utf-8")
-    raw2 = (L.REPO / PROBE_DIR / "probe2-third-build.raw.txt").read_text(encoding="utf-8")
-    raw_n = (L.REPO / PROBE_DIR / "negative-control.raw.txt").read_text(encoding="utf-8")
+    raw1 = (L.REPO / PROBE_DIR / "probe1-two-builds.raw.txt").read_text(
+        encoding="utf-8"
+    )
+    raw2 = (L.REPO / PROBE_DIR / "probe2-third-build.raw.txt").read_text(
+        encoding="utf-8"
+    )
+    raw_n = (L.REPO / PROBE_DIR / "negative-control.raw.txt").read_text(
+        encoding="utf-8"
+    )
 
     p1_src = L.probe(
         "source",
@@ -606,9 +612,7 @@ def build() -> dict:
         raise SystemExit(f"receipt_validate rejected:\n{v_out}")
 
     print(f"PACKED {OUT} state={state} digest={digest}")
-    print(
-        f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}"
-    )
+    print(f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}")
     return receipt
 
 

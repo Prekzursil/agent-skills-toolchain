@@ -64,9 +64,7 @@ def _load_module(name: str, path: Path) -> Any:
 
 def load_emit_hook_manifest(repo: Path) -> Any:
     """Import ``ci/emit_hook_manifest.py`` (do not copy its dialect logic)."""
-    return _load_module(
-        "ast_emit_hook_manifest", repo / "ci" / "emit_hook_manifest.py"
-    )
+    return _load_module("ast_emit_hook_manifest", repo / "ci" / "emit_hook_manifest.py")
 
 
 def load_gen_skills_manifest(repo: Path) -> Any:
@@ -95,7 +93,9 @@ def load_hooks_source(repo: Path) -> dict[str, Any]:
     return json.loads((repo / HOOKS_SOURCE_RELPATH).read_text(encoding="utf-8"))
 
 
-def emit_hooks_for_live(repo: Path, source: dict[str, Any] | None = None) -> dict[str, Any]:
+def emit_hooks_for_live(
+    repo: Path, source: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Project hooks via ``emit_hook_manifest.emit_manifest`` (consumed, not copied)."""
     emit = load_emit_hook_manifest(repo)
     src = source if source is not None else load_hooks_source(repo)
@@ -421,9 +421,7 @@ def diff_prediction_against_dry_run(
     }
 
 
-def validate_projection_map(
-    doc: dict[str, Any], repo: Path | None = None
-) -> list[str]:
+def validate_projection_map(doc: dict[str, Any], repo: Path | None = None) -> list[str]:
     """Validate against ``tools/plugin/schema/projection-map.schema.json``."""
     root = repo or repo_root_from()
     schema = json.loads((root / SCHEMA_RELPATH).read_text(encoding="utf-8"))
@@ -448,9 +446,7 @@ def consumes_generators(repo: Path | None = None) -> dict[str, Any]:
         "imports_gen_skills_manifest": "gen_skills_manifest" in src
         and "load_gen_skills_manifest" in src,
         "emit_callable": hasattr(load_emit_hook_manifest(root), "emit_manifest"),
-        "gen_callable": hasattr(
-            load_gen_skills_manifest(root), "enumerate_skill_dirs"
-        ),
+        "gen_callable": hasattr(load_gen_skills_manifest(root), "enumerate_skill_dirs"),
         "emit_path_exists": emit_path.is_file(),
         "gen_path_exists": gen_path.is_file(),
         "duplicates_emit_logic": False,  # claimed; reviewer must verify

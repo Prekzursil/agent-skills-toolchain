@@ -24,6 +24,7 @@ path's state as it exists NOW, which -- after probe1 populated and then
 cleaned up its scratch tree -- is expected to be ABSENT, itself consistent
 with "was empty / is now gone", never "was silently reused").
 """
+
 from __future__ import annotations
 
 import json
@@ -79,7 +80,11 @@ def main() -> int:
     else:
         precheck_was_cache_free = False
 
-    ok = fired_on_bad and silent_on_good and (probe1_available and precheck_was_cache_free)
+    ok = (
+        fired_on_bad
+        and silent_on_good
+        and (probe1_available and precheck_was_cache_free)
+    )
 
     doc = {
         "started_at": started,

@@ -9,11 +9,11 @@ Catalog evidence_requirement (verbatim):
 Catalog reviewer_requirement:
   one cross-vendor Codex reviewer who re-runs ONLY the second probe.
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
@@ -89,7 +89,9 @@ def classify_path(repo_candidate: str) -> dict:
 
 def main() -> int:
     if not P1_JSON.is_file():
-        print("FAILED:AUD-0017-probe2 missing probe1-set-difference.json; run probe1 first")
+        print(
+            "FAILED:AUD-0017-probe2 missing probe1-set-difference.json; run probe1 first"
+        )
         return 1
 
     p1 = json.loads(P1_JSON.read_text(encoding="utf-8"))
@@ -102,7 +104,9 @@ def main() -> int:
     truncated = len(others) > max_other
 
     lines: list[str] = []
-    lines.append("AUD-0017 PROBE 2 -- git log --diff-filter=D classification of live-only")
+    lines.append(
+        "AUD-0017 PROBE 2 -- git log --diff-filter=D classification of live-only"
+    )
     lines.append(f"repo={REPO}")
     lines.append(
         f"candidates_from_probe1={len(candidates)} selected={len(selected)} "

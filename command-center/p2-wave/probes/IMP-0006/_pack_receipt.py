@@ -33,9 +33,7 @@ UNIT = "IMP-0006"
 OUT = "command-center/receipts/IMP-0006.json"
 SCHEMA = "command-center/schema/receipt.schema.json"
 PROBE_DIR = "command-center/p2-wave/probes/IMP-0006"
-REVIEW = (
-    "command-center/p2-wave/reviews/IMP-0006/independent-manifest-review.json"
-)
+REVIEW = "command-center/p2-wave/reviews/IMP-0006/independent-manifest-review.json"
 SCHEMA_FILE = ".claude-plugin/plugin.schema.json"
 MANIFEST_FILE = ".claude-plugin/plugin.json"
 VALIDATOR = "tools/plugin/manifest_schema.py"

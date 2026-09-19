@@ -4,6 +4,7 @@ Compares machine-checkable claims in 17-DECISION-LOG.md against a live snapshot
 (collision_count / option_family_m_count). SUPERSEDED entries are mentions and
 are skipped — retaining stale wording under superseded_by must not itself fire.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

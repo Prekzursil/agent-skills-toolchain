@@ -12,6 +12,7 @@ step that diverges is `npm run validate:skills` (exit 127, `pwsh: not
 found`) -- a real, reproduced divergence, not an invented one, and one
 AGENTS.md already names as a known cloud-substrate caveat.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,7 +34,9 @@ P1_JSON = "command-center/p2-wave/probes/AUD-0091/probe1-clean-clone-run.json"
 P2_JSON = "command-center/p2-wave/probes/AUD-0091/probe2-inplace-baseline-compare.json"
 CTL_JSON = "command-center/p2-wave/probes/AUD-0091/control-cache-free.json"
 P1_RAW = "command-center/p2-wave/probes/AUD-0091/probe1-clean-clone-run.raw.txt"
-P2_RAW = "command-center/p2-wave/probes/AUD-0091/probe2-inplace-baseline-compare.raw.txt"
+P2_RAW = (
+    "command-center/p2-wave/probes/AUD-0091/probe2-inplace-baseline-compare.raw.txt"
+)
 CTL_RAW = "command-center/p2-wave/probes/AUD-0091/control-cache-free.raw.txt"
 
 
@@ -222,7 +225,11 @@ def build(primary: dict | None = None) -> dict:
             "blocked-on-independent-review"
         )
         failure = {
-            "classification": ["dependency-blocked", "green-not-live", "detector-failure"],
+            "classification": [
+                "dependency-blocked",
+                "green-not-live",
+                "detector-failure",
+            ],
             "reason": (
                 f"Named probes completed (probe1 ok={p1_ok} clone+build+test "
                 f"sequence executed against a real fresh clone pinned at "
@@ -523,7 +530,7 @@ def build(primary: dict | None = None) -> dict:
                 True,
                 True,
                 bad="would be False if the detector always fired",
-                good=f"good_fixture.cache_free={ (ctl.get('good_fixture') or {}).get('cache_free') }",
+                good=f"good_fixture.cache_free={(ctl.get('good_fixture') or {}).get('cache_free')}",
             ),
         ],
         "reviewer": reviewer,

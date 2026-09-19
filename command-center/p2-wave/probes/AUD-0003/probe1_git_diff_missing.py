@@ -11,6 +11,7 @@ Writes:
   probe1-git-diff-missing.json
   probe1-git-diff-missing.raw.txt
 """
+
 from __future__ import annotations
 
 import json
@@ -130,7 +131,9 @@ def main() -> int:
     }
     OUT_JSON.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     print(raw)
-    print(f"WROTE {OUT_JSON} findings={total_findings} prs_with_findings={prs_with_findings}")
+    print(
+        f"WROTE {OUT_JSON} findings={total_findings} prs_with_findings={prs_with_findings}"
+    )
     return 0 if all_ok else 1
 
 

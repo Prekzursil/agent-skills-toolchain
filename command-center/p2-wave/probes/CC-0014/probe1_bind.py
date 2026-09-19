@@ -39,7 +39,9 @@ def main() -> int:
     # Live controls against an in-memory registry (does not rewrite TEST-REGISTRY.json
     # narrative suites; bindings live beside them via ensure_bindings_scaffold).
     live = trb.ensure_bindings_scaffold(
-        json.loads((REPO / "command-center/TEST-REGISTRY.json").read_text(encoding="utf-8"))
+        json.loads(
+            (REPO / "command-center/TEST-REGISTRY.json").read_text(encoding="utf-8")
+        )
     )
     # Control 1: no mutation -> UNPROVEN
     e1 = trb.register_entry(

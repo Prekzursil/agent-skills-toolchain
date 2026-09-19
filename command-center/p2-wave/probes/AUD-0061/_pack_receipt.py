@@ -16,6 +16,7 @@ Dependency gate: the catalog lists B01, AUD-0015 as dependencies. AUD-0015
 relies on anything from its artifact; if that check fails, this unit is
 BLOCKED on the dependency, not merely on the reviewer.
 """
+
 from __future__ import annotations
 
 import json
@@ -50,11 +51,21 @@ def check_dependency_aud_0015() -> dict:
     'dependency-blocked' failure classification this catalog names."""
     p = L.REPO / AUD_0015_PATH
     if not p.is_file():
-        return {"path": AUD_0015_PATH, "exists": False, "state": None, "satisfied": False}
+        return {
+            "path": AUD_0015_PATH,
+            "exists": False,
+            "state": None,
+            "satisfied": False,
+        }
     try:
         doc = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {"path": AUD_0015_PATH, "exists": True, "state": None, "satisfied": False}
+        return {
+            "path": AUD_0015_PATH,
+            "exists": True,
+            "state": None,
+            "satisfied": False,
+        }
     state = doc.get("state")
     return {
         "path": AUD_0015_PATH,
@@ -93,7 +104,9 @@ def load_review() -> dict | None:
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-process-census.json").read_text(encoding="utf-8"))
     p2 = json.loads((PROBE / "probe2-memory-cost.json").read_text(encoding="utf-8"))
-    ctl = json.loads((PROBE / "control-self-exclusion.json").read_text(encoding="utf-8"))
+    ctl = json.loads(
+        (PROBE / "control-self-exclusion.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-process-census.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-memory-cost.raw.txt").read_text(encoding="utf-8")
     raw_ctl = (PROBE / "control-self-exclusion.raw.txt").read_text(encoding="utf-8")
@@ -136,19 +149,30 @@ def build(primary: dict | None = None) -> dict:
             "role": "primary",
         },
         L.art("command-center/p2-wave/probes/AUD-0061/_proc_census.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0061/probe1_process_census.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0061/probe1_process_census.py",
+            "supporting",
+        ),
         L.art(P1_JSON, "supporting"),
         L.art(P1_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0061/probe2_memory_cost.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0061/probe2_memory_cost.py", "supporting"
+        ),
         L.art(P2_JSON, "supporting"),
         L.art(P2_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0061/control_self_exclusion.py", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0061/control_self_exclusion.py",
+            "control",
+        ),
         L.art(CTL_JSON, "control"),
         L.art(CTL_RAW, "log"),
     ]
     if success:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0061/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0061/independent-review.json",
+                "supporting",
+            )
         )
 
     question = (
@@ -314,7 +338,9 @@ def build(primary: dict | None = None) -> dict:
                 ),
             ],
         }
-        anti = "BLOCKED-pending-dependency-and-cross-vendor-codex-review-with-real-probes"
+        anti = (
+            "BLOCKED-pending-dependency-and-cross-vendor-codex-review-with-real-probes"
+        )
         defects = [
             {
                 "id": "AUD-0061-D-REVIEW",

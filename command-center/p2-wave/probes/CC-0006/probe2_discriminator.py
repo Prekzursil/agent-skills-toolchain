@@ -62,7 +62,9 @@ def main() -> int:
         "documentary": documentary.to_dict(),
         "planted": planted.to_dict(),
     }
-    OUT_JSON.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     raw = (
         f"probe2-discriminator ok={ok} controls={controls}\n"
         f"counts={payload['counts']}\n"

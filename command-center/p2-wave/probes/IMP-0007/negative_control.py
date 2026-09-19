@@ -28,9 +28,7 @@ def main() -> int:
 
     v1, v2 = M.validate_manifest(known_bad, schema)
     schema_fired = (
-        (not v1.ok)
-        and (not v2.ok)
-        and v1.error_code == M.ERR_UNKNOWN_TOP_LEVEL
+        (not v1.ok) and (not v2.ok) and v1.error_code == M.ERR_UNKNOWN_TOP_LEVEL
     )
 
     # Good state remains silent.

@@ -54,7 +54,7 @@ def main() -> int:
         f"jsonschema_ok={v1.ok}",
         f"fastjsonschema_ok={v2.ok}",
         f"agree={agree}",
-        f"second_library=fastjsonschema",
+        "second_library=fastjsonschema",
         f"probe_2_confirmed={ok}",
         "PROBE-2-COMPLETE:IMP-0006",
         "SUCCESS:IMP-0006-probe2" if ok else "FAILED:IMP-0006-probe2",

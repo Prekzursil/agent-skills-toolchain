@@ -57,7 +57,10 @@ def build() -> dict:
             L.art("tools/command-center/tests/test_schema_freeze.py", "supporting"),
             L.art("command-center/p2-wave/probes/CC-0012/probe1-freeze.raw.txt", "log"),
             L.art("command-center/p2-wave/probes/CC-0012/pytest-freeze.out", "log"),
-            L.art("command-center/p2-wave/probes/CC-0012/roundtrip-sample.json", "supporting"),
+            L.art(
+                "command-center/p2-wave/probes/CC-0012/roundtrip-sample.json",
+                "supporting",
+            ),
         ],
         "evidence": [
             L.evidence(

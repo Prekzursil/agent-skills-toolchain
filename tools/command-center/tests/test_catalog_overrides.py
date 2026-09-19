@@ -133,13 +133,18 @@ def test_resolve_unit_three_shapes():
         cat.resolve_unit(three, defaults),
         cat.resolve_unit(all_nine, defaults),
     ]
-    assert all(v["fields"][f]["provenance"] == "default" for f in NINE for v in [views[0]])
+    assert all(
+        v["fields"][f]["provenance"] == "default" for f in NINE for v in [views[0]]
+    )
     assert views[1]["fields"]["timeout_seconds"]["provenance"] == "override"
     assert views[1]["fields"]["assignment"]["provenance"] == "default"
-    assert sum(1 for f in NINE if views[1]["fields"][f]["provenance"] == "override") == 3
+    assert (
+        sum(1 for f in NINE if views[1]["fields"][f]["provenance"] == "override") == 3
+    )
     assert views[2]["fields"]["timeout_seconds"]["provenance"] == "explicit-null"
     assert all(
-        views[2]["fields"][f]["provenance"] in ("override", "explicit-null") for f in NINE
+        views[2]["fields"][f]["provenance"] in ("override", "explicit-null")
+        for f in NINE
     )
 
 

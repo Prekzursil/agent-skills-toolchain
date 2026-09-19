@@ -6,6 +6,7 @@ Both-states control (catalog tests_required):
   BAD:  fabricated full-coverage claim (families=[linux,windows,macos] while every
         runs-on line remains ubuntu-latest) → detector must FIRE (reject the claim).
 """
+
 from __future__ import annotations
 
 import json
@@ -114,7 +115,9 @@ def compare(promised: set[str], exercised: set[str]) -> dict:
     }
 
 
-def both_states_control(promised: set[str], real_exercised: set[str], entries: list) -> dict:
+def both_states_control(
+    promised: set[str], real_exercised: set[str], entries: list
+) -> dict:
     """GOOD = real matrix flags Windows. BAD = lied full-coverage claim must fire."""
     good = compare(promised, real_exercised)
     # BAD: fabricate a coverage claim that ignores the still-ubuntu-only entries
@@ -122,14 +125,19 @@ def both_states_control(promised: set[str], real_exercised: set[str], entries: l
     bad_claim = compare(promised, lied_exercised)
     # Independent check: are there ANY real windows runs-on strings?
     real_windows_runs = [
-        e for e in entries if e["family"] == "windows" or "windows" in e["runs_on"].lower()
+        e
+        for e in entries
+        if e["family"] == "windows" or "windows" in e["runs_on"].lower()
     ]
     # Detector: reject full-coverage claim when zero windows runs-on exist
-    bad_full_coverage_claim = bad_claim["claims_full_coverage"] and len(real_windows_runs) == 0
+    bad_full_coverage_claim = (
+        bad_claim["claims_full_coverage"] and len(real_windows_runs) == 0
+    )
     fired_on_bad = bad_full_coverage_claim  # we detect the lie
-    silent_on_good = bool(good["windows_promised_but_underexercised"]) and not good[
-        "claims_full_coverage"
-    ]
+    silent_on_good = (
+        bool(good["windows_promised_but_underexercised"])
+        and not good["claims_full_coverage"]
+    )
     return {
         "id": "AUD0049-C1",
         "kind": "known-broken-fixture",
@@ -198,9 +206,7 @@ def main() -> int:
         f"silent_on_good={control['silent_on_good_state']} ok={control['ok']}",
     ]
     for e in matrix["entries"][:40]:
-        lines.append(
-            f"RUNS_ON\t{e['file']}:{e['line']}\t{e['runs_on']}\t{e['family']}"
-        )
+        lines.append(f"RUNS_ON\t{e['file']}:{e['line']}\t{e['runs_on']}\t{e['family']}")
     lines.append("SUCCESS:AUD-0049-probe1")
     RAW.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(RAW.read_text(encoding="utf-8"))

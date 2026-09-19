@@ -4,6 +4,7 @@
 Also proves the live collision probe is not a constant: 31 on the pre-fix
 architecture slice, 0 on the post-fix slice (CC-0021 live_shared_bare=0).
 """
+
 from __future__ import annotations
 
 import json

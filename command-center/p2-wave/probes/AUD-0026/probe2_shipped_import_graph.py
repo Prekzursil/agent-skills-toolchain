@@ -79,7 +79,8 @@ def main() -> int:
     planted_shipped_caught = py_shipped_caught and node_shipped_caught
 
     py_test_present = any(
-        t["declared_dev_only"] == "pytest" and "/tests/" in t["module"].replace("\\", "/")
+        t["declared_dev_only"] == "pytest"
+        and "/tests/" in t["module"].replace("\\", "/")
         for t in planted_test_hits
     )
     node_test_present = any(
@@ -91,7 +92,9 @@ def main() -> int:
     test_only_not_flagged = (
         py_test_present
         and node_test_present
-        and not any("/tests/" in d["module"].replace("\\", "/") for d in planted_defects)
+        and not any(
+            "/tests/" in d["module"].replace("\\", "/") for d in planted_defects
+        )
         and not any(
             "/test/" in d["module"].replace("\\", "/") and d["module"].endswith(".mjs")
             for d in planted_defects
@@ -110,7 +113,11 @@ def main() -> int:
             # compare normalized forms
             hit = False
             for imp in shipped_imps:
-                if imp == name or imp.replace("_", "-") == name or imp.replace("-", "_") == name.replace("-", "_"):
+                if (
+                    imp == name
+                    or imp.replace("_", "-") == name
+                    or imp.replace("-", "_") == name.replace("-", "_")
+                ):
                     hit = True
                     break
             if not hit:
@@ -180,9 +187,7 @@ def main() -> int:
             f"import={d['import_name']}\tdev_only={d['declared_dev_only']}"
         )
     lines.append("LIVE-DEFECTS-END")
-    lines.append(
-        "SUCCESS:AUD-0026-probe2" if ok else "FAIL:AUD-0026-probe2"
-    )
+    lines.append("SUCCESS:AUD-0026-probe2" if ok else "FAIL:AUD-0026-probe2")
     raw = "\n".join(lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")
     sys.stdout.write(raw)

@@ -68,7 +68,11 @@ def load_dual() -> dict:
 def _map_vendor(rev: dict) -> str:
     vendor = str(rev.get("vendor") or "").lower()
     if vendor in ("anthropic", "openai", "human", "codex", "claude", "human-reviewer"):
-        return "openai" if vendor == "codex" else ("anthropic" if vendor == "claude" else vendor)
+        return (
+            "openai"
+            if vendor == "codex"
+            else ("anthropic" if vendor == "claude" else vendor)
+        )
     rid = str(rev.get("reviewer_id", "")).lower()
     if "openai" in rid or "codex" in rid:
         return "openai"
@@ -76,10 +80,14 @@ def _map_vendor(rev: dict) -> str:
 
 
 def build() -> dict:
-    p1 = json.loads((PROBE / "probe1-claim-record-summary.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-claim-record-summary.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-claim-record.raw.txt").read_text(encoding="utf-8")
     pytest_out = (PROBE / "pytest-claim-record.out").read_text(encoding="utf-8")
-    schedule = json.loads((PROBE / "schedule-recompute.json").read_text(encoding="utf-8"))
+    schedule = json.loads(
+        (PROBE / "schedule-recompute.json").read_text(encoding="utf-8")
+    )
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     if not p1.get("ok"):
@@ -387,10 +395,21 @@ def build() -> dict:
             L.art("command-center/schema/CLAIM-RECORD-PROVISIONAL.md", "supporting"),
             L.art("tools/command-center/claim_record.py", "primary"),
             L.art("tools/command-center/tests/test_claim_record.py", "supporting"),
-            L.art("command-center/p2-wave/probes/CC-0017/probe1-claim-record.raw.txt", "log"),
-            L.art("command-center/p2-wave/probes/CC-0017/pytest-claim-record.out", "log"),
-            L.art("command-center/p2-wave/probes/CC-0017/schedule-recompute.json", "supporting"),
-            L.art("command-center/p2-wave/probes/CC-0017/migrated-three.json", "supporting"),
+            L.art(
+                "command-center/p2-wave/probes/CC-0017/probe1-claim-record.raw.txt",
+                "log",
+            ),
+            L.art(
+                "command-center/p2-wave/probes/CC-0017/pytest-claim-record.out", "log"
+            ),
+            L.art(
+                "command-center/p2-wave/probes/CC-0017/schedule-recompute.json",
+                "supporting",
+            ),
+            L.art(
+                "command-center/p2-wave/probes/CC-0017/migrated-three.json",
+                "supporting",
+            ),
             L.art("command-center/receipts/CC-0012.json", "supporting"),
         ],
         "evidence": evidence,
@@ -530,8 +549,14 @@ def build() -> dict:
     if success:
         receipt["artifacts"].extend(
             [
-                L.art("command-center/p2-wave/probes/CC-0017/schema-review.json", "supporting"),
-                L.art("command-center/p2-wave/probes/CC-0017/schedule-review.json", "supporting"),
+                L.art(
+                    "command-center/p2-wave/probes/CC-0017/schema-review.json",
+                    "supporting",
+                ),
+                L.art(
+                    "command-center/p2-wave/probes/CC-0017/schedule-review.json",
+                    "supporting",
+                ),
             ]
         )
     return receipt
@@ -554,7 +579,9 @@ def main() -> int:
         manifest["blocked_on"] = receipt["failure"]["blocked_on"]
     man_path = L.REPO / MANIFEST
     man_path.parent.mkdir(parents=True, exist_ok=True)
-    man_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    man_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     rc = L.write_if_valid(receipt, OUT, SCHEMA)
     if rc != 0:
@@ -568,18 +595,31 @@ def main() -> int:
         L.art("command-center/schema/CLAIM-RECORD-PROVISIONAL.md", "supporting"),
         L.art("tools/command-center/claim_record.py", "primary"),
         L.art("tools/command-center/tests/test_claim_record.py", "supporting"),
-        L.art("command-center/p2-wave/probes/CC-0017/probe1-claim-record.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/CC-0017/probe1-claim-record.raw.txt", "log"
+        ),
         L.art("command-center/p2-wave/probes/CC-0017/pytest-claim-record.out", "log"),
-        L.art("command-center/p2-wave/probes/CC-0017/schedule-recompute.json", "supporting"),
-        L.art("command-center/p2-wave/probes/CC-0017/migrated-three.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/CC-0017/schedule-recompute.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/CC-0017/migrated-three.json", "supporting"
+        ),
         L.art("command-center/receipts/CC-0012.json", "supporting"),
         L.art(MANIFEST, "supporting"),
     ]
     if state == "SUCCESS":
         receipt["artifacts"].extend(
             [
-                L.art("command-center/p2-wave/probes/CC-0017/schema-review.json", "supporting"),
-                L.art("command-center/p2-wave/probes/CC-0017/schedule-review.json", "supporting"),
+                L.art(
+                    "command-center/p2-wave/probes/CC-0017/schema-review.json",
+                    "supporting",
+                ),
+                L.art(
+                    "command-center/p2-wave/probes/CC-0017/schedule-review.json",
+                    "supporting",
+                ),
             ]
         )
     rc2 = L.write_if_valid(receipt, OUT, SCHEMA)

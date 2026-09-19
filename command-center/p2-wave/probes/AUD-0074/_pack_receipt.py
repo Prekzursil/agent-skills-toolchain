@@ -521,7 +521,9 @@ def build(primary: dict | None = None) -> dict:
 def main() -> int:
     # First pass with placeholder primary
     doc = build()
-    rc = L.write_if_valid(doc, OUT, SCHEMA, also=["command-center/schema/receipt.schema.json"])
+    rc = L.write_if_valid(
+        doc, OUT, SCHEMA, also=["command-center/schema/receipt.schema.json"]
+    )
     if rc != 0:
         # Some lanes only validate against audit-graph shim
         rc = L.write_if_valid(doc, OUT, SCHEMA)
@@ -574,7 +576,9 @@ def main() -> int:
         assert packed["reviewer"]["independent"] is True
         assert packed["reviewer"]["fresh_context"] is True
         assert REVIEW.is_file()
-        assert packed["downstream_consumers"], "SUCCESS requires non-empty downstream_consumers"
+        assert packed["downstream_consumers"], (
+            "SUCCESS requires non-empty downstream_consumers"
+        )
 
     manifest = {
         "unit_id": UNIT,

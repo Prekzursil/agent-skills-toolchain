@@ -18,6 +18,7 @@ Two fixtures, both real directories created and destroyed by this script
     .cursor/skills-cursor/leaked-skill/SKILL.md, simulating a profile that
     was copied/leaked from a real one -> must report clean=False.
 """
+
 from __future__ import annotations
 
 import json
@@ -71,7 +72,9 @@ def main() -> int:
         raw_lines.append(
             f"CONTROL fired_on_bad={fired_on_bad} silent_on_good={silent_on_good} ok={ok}"
         )
-        raw_lines.append("SUCCESS:AUD-0096-control" if ok else "FAILED:AUD-0096-control")
+        raw_lines.append(
+            "SUCCESS:AUD-0096-control" if ok else "FAILED:AUD-0096-control"
+        )
         OUT_RAW.write_text("\n".join(raw_lines) + "\n", encoding="utf-8")
         print(OUT_RAW.read_text(encoding="utf-8"))
         return 0 if ok else 1

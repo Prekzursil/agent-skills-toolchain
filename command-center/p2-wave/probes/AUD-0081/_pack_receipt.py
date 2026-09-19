@@ -23,6 +23,7 @@ reviewers. B01 is a bucket-level structural gate (not itself a receipted
 work unit) and is treated as structurally satisfied, matching the
 AUD-0061/AUD-0083 precedent for the same catalog dependency shape.
 """
+
 from __future__ import annotations
 
 import json
@@ -58,11 +59,21 @@ def check_dependency_aud_0009() -> dict:
     'dependency-blocked' failure classification this catalog names."""
     p = L.REPO / AUD_0009_PATH
     if not p.is_file():
-        return {"path": AUD_0009_PATH, "exists": False, "state": None, "satisfied": False}
+        return {
+            "path": AUD_0009_PATH,
+            "exists": False,
+            "state": None,
+            "satisfied": False,
+        }
     try:
         doc = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
-        return {"path": AUD_0009_PATH, "exists": True, "state": None, "satisfied": False}
+        return {
+            "path": AUD_0009_PATH,
+            "exists": True,
+            "state": None,
+            "satisfied": False,
+        }
     state = doc.get("state")
     return {
         "path": AUD_0009_PATH,
@@ -107,7 +118,9 @@ def load_dual_review() -> dict:
         already true on this catalog entry, so this is the disagreement
         path the catalog explicitly names, distinct from simply pending)
     """
-    claude_rev = _load_one_review(CLAUDE_REVIEW, {"anthropic", "claude", "claude-cli", "claudecode"})
+    claude_rev = _load_one_review(
+        CLAUDE_REVIEW, {"anthropic", "claude", "claude-cli", "claudecode"}
+    )
     codex_rev = _load_one_review(CODEX_REVIEW, {"openai", "codex", "codex-cli"})
     if claude_rev is None and codex_rev is None:
         return {"status": "not-reviewed", "claude": None, "codex": None}
@@ -132,11 +145,17 @@ def load_dual_review() -> dict:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-filename-search.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-content-classification.json").read_text(encoding="utf-8"))
-    ctl = json.loads((PROBE / "control-prose-vs-hook-fixture.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-content-classification.json").read_text(encoding="utf-8")
+    )
+    ctl = json.loads(
+        (PROBE / "control-prose-vs-hook-fixture.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-filename-search.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-content-classification.raw.txt").read_text(encoding="utf-8")
-    raw_ctl = (PROBE / "control-prose-vs-hook-fixture.raw.txt").read_text(encoding="utf-8")
+    raw_ctl = (PROBE / "control-prose-vs-hook-fixture.raw.txt").read_text(
+        encoding="utf-8"
+    )
 
     dep = check_dependency_aud_0009()
     review = load_dual_review()
@@ -171,20 +190,41 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0081/_autoload_classifier.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0081/_autoload_classifier.py",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+            "supporting",
+        ),
         L.art(P1_JSON, "supporting"),
         L.art(P1_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0081/probe2_content_classify.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0081/probe2_content_classify.py",
+            "supporting",
+        ),
         L.art(P2_JSON, "supporting"),
         L.art(P2_RAW, "log"),
-        L.art("command-center/p2-wave/probes/AUD-0081/control_prose_vs_hook_fixture.py", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0081/control_prose_vs_hook_fixture.py",
+            "control",
+        ),
         L.art(CTL_JSON, "control"),
         L.art(CTL_RAW, "log"),
     ]
     if review["status"] == "both-pass":
-        arts.append(L.art("command-center/p2-wave/probes/AUD-0081/claude-review.json", "supporting"))
-        arts.append(L.art("command-center/p2-wave/probes/AUD-0081/codex-review.json", "supporting"))
+        arts.append(
+            L.art(
+                "command-center/p2-wave/probes/AUD-0081/claude-review.json",
+                "supporting",
+            )
+        )
+        arts.append(
+            L.art(
+                "command-center/p2-wave/probes/AUD-0081/codex-review.json", "supporting"
+            )
+        )
 
     question = (
         "Do any cloned, vendored, or agent-scratch trees under the estate "
@@ -193,9 +233,9 @@ def build(primary: dict | None = None) -> dict:
         "them?"
     )
 
-    active_summary = "; ".join(
-        f"{h['path']} ({h['reason'][:160]})" for h in active_hits
-    ) or "(none)"
+    active_summary = (
+        "; ".join(f"{h['path']} ({h['reason'][:160]})" for h in active_hits) or "(none)"
+    )
 
     headline = (
         f"Scanned {vendored_tree_root_count} real vendored-tree roots in this single checkout "
@@ -227,8 +267,8 @@ def build(primary: dict | None = None) -> dict:
             "vendor": "anthropic+openai",
             "reviewed_at": ended,
             "notes": (
-                f"claude: {str(c_rev.get('notes',''))[:2000]} || "
-                f"codex: {str(x_rev.get('notes',''))[:2000]}"
+                f"claude: {str(c_rev.get('notes', ''))[:2000]} || "
+                f"codex: {str(x_rev.get('notes', ''))[:2000]}"
             )[:8000],
         }
         defects = [
@@ -292,7 +332,11 @@ def build(primary: dict | None = None) -> dict:
         )
         failure_classification = ["detector-failure"]
         if not dep["satisfied"]:
-            failure_classification.append("dependency-blocked" if "dependency-blocked" not in failure_classification else "detector-failure")
+            failure_classification.append(
+                "dependency-blocked"
+                if "dependency-blocked" not in failure_classification
+                else "detector-failure"
+            )
         if review["status"] == "escalate-to-owner":
             failure_classification.append("owner-blocked")
         else:
@@ -367,7 +411,9 @@ def build(primary: dict | None = None) -> dict:
                 ),
             ],
         }
-        anti = "BLOCKED-pending-dependency-and-dual-claude-codex-review-with-real-probes"
+        anti = (
+            "BLOCKED-pending-dependency-and-dual-claude-codex-review-with-real-probes"
+        )
         defects = [
             {
                 "id": "AUD-0081-D-REVIEW",
@@ -512,7 +558,7 @@ def build(primary: dict | None = None) -> dict:
                     "of ONE toggled fixture path as inert), silent_on_good_state="
                     f"{silent_on_good} (the same function correctly rated the "
                     "SAME fixture path, rewritten to contain a "
-                    "'\"hooks\": {\"PreToolUse\": [...]}' JSON block, as active). "
+                    '\'"hooks": {"PreToolUse": [...]}\' JSON block, as active). '
                     "A negative control (a naive substring-only matcher that "
                     "flags any content containing the literal word 'hooks') was "
                     "shown to incorrectly classify a mention-only fixture "
@@ -605,7 +651,9 @@ def build(primary: dict | None = None) -> dict:
                     "classified (not a fabricated count)"
                 ),
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0081/probe2_content_classify.py",
-                "result": "PASS" if bool(p2["ok"]) and classified_count == hits_count else "FAIL",
+                "result": "PASS"
+                if bool(p2["ok"]) and classified_count == hits_count
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": raw2[-800:],
             },
@@ -622,8 +670,16 @@ def build(primary: dict | None = None) -> dict:
                     "control is falsifiable and not vacuously true for any "
                     "classifier."
                 ),
-                bool(ctl["mention_only_false_positive_fixture"]["naive_incorrectly_flags_mention_as_active"]),
-                bool(ctl["mention_only_false_positive_fixture"]["real_correctly_rates_mention_as_inert"]),
+                bool(
+                    ctl["mention_only_false_positive_fixture"][
+                        "naive_incorrectly_flags_mention_as_active"
+                    ]
+                ),
+                bool(
+                    ctl["mention_only_false_positive_fixture"][
+                        "real_correctly_rates_mention_as_inert"
+                    ]
+                ),
                 bad=f"naive_classifier.mention_only_fixture={ctl['mention_only_false_positive_fixture']['naive_substring_classifier_result']}",
                 good=f"real_classifier.mention_only_fixture={ctl['mention_only_false_positive_fixture']['real_classifier_result']}",
             ),

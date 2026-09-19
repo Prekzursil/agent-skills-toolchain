@@ -4,6 +4,7 @@
 Honest BLOCKED pending cross-vendor Codex re-run of ONLY probe 2
 (catalog reviewer_requirement). Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json

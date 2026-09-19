@@ -426,9 +426,7 @@ def build() -> dict:
                 "name": (
                     "Unit receipt documenting forbidden patterns must not be flagged"
                 ),
-                "result": (
-                    "PASS" if measure["self_reference"]["silent"] else "FAIL"
-                ),
+                "result": ("PASS" if measure["self_reference"]["silent"] else "FAIL"),
                 "command": f"python3 -B {PROBE1}",
                 "assertions": 1,
                 "output_tail": f"silent={measure['self_reference']['silent']}",
@@ -532,9 +530,7 @@ def build() -> dict:
             "success_invented": False,
             "independent_review_invented": False,
             "prior_review_verdict": (
-                "PASS"
-                if success
-                else ("FAIL" if prior_fail else "absent")
+                "PASS" if success else ("FAIL" if prior_fail else "absent")
             ),
             "live_receipt_self_reference_silent": live_silent,
         },

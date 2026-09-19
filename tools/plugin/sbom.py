@@ -36,9 +36,7 @@ TOOL_VERSION = "1.0.0"
 DEFAULT_LICENSE = "NOASSERTION"
 
 # Vendored / unpinned trees that must appear even without a lockfile pin.
-DEFAULT_VENDORED_MARKERS = (
-    "tools/editor/ralph-orchestrator/vendor",
-)
+DEFAULT_VENDORED_MARKERS = ("tools/editor/ralph-orchestrator/vendor",)
 
 
 class SbomError(RuntimeError):
@@ -409,7 +407,10 @@ def vendored_component_names(sbom: dict[str, Any]) -> set[str]:
             for p in (c.get("properties") or [])
             if isinstance(p, dict)
         }
-        if props.get("ast:vendored") == "true" or props.get("ast:source") == "vendored-tree":
+        if (
+            props.get("ast:vendored") == "true"
+            or props.get("ast:source") == "vendored-tree"
+        ):
             names.add(str(c.get("name")))
     return names
 

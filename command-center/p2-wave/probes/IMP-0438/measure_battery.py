@@ -72,7 +72,10 @@ def main() -> int:
                     "(IMP-0436 always-on); historical sole-survivor-when-disarmed "
                     "claim is REFUTED on this tip and not invented as exit 0"
                 ),
-                "closed_by": ["IMP-0436:V-DEFAULTS", "IMP-0437:require_complete_default"],
+                "closed_by": [
+                    "IMP-0436:V-DEFAULTS",
+                    "IMP-0437:require_complete_default",
+                ],
             }
         table.append(row)
 
@@ -133,7 +136,8 @@ def main() -> int:
     }
 
     OUT_TABLE.write_text(
-        json.dumps({"unit": "IMP-0438", "rows": table}, indent=2, sort_keys=True) + "\n",
+        json.dumps({"unit": "IMP-0438", "rows": table}, indent=2, sort_keys=True)
+        + "\n",
         encoding="utf-8",
     )
     OUT_SUMMARY.write_text(

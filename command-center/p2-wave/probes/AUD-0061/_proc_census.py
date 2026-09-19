@@ -11,6 +11,7 @@ Creation-time comparisons use the raw starttime field (field 22 of
 because ticks-since-boot is the value the kernel actually hands back and is
 exact-integer comparable with no rounding ambiguity.
 """
+
 from __future__ import annotations
 
 import json
@@ -47,7 +48,12 @@ def read_stat_fields(pid: int) -> dict[str, Any] | None:
         # numbering 3=state,4=ppid,...,22=starttime maps to fields[0],[1],...,[19]
         ppid = int(fields[1])
         starttime_ticks = int(fields[19])
-        return {"pid": int(pid_part.strip()), "comm": comm, "ppid": ppid, "starttime_ticks": starttime_ticks}
+        return {
+            "pid": int(pid_part.strip()),
+            "comm": comm,
+            "ppid": ppid,
+            "starttime_ticks": starttime_ticks,
+        }
     except (ValueError, IndexError):
         return None
 
@@ -91,7 +97,9 @@ def list_all_pids() -> list[int]:
     return out
 
 
-def scan_raw(extra_self_marker_pids: frozenset[int] = frozenset()) -> list[dict[str, Any]]:
+def scan_raw(
+    extra_self_marker_pids: frozenset[int] = frozenset(),
+) -> list[dict[str, Any]]:
     """Enumerate every PID visible in /proc right now with cmdline + mem +
     creation ticks. `extra_self_marker_pids` is accepted only so a caller can
     ask this function to ALSO tag pids it already knows are "self" for
@@ -120,7 +128,9 @@ def scan_raw(extra_self_marker_pids: frozenset[int] = frozenset()) -> list[dict[
     return rows
 
 
-def apply_self_exclusion(rows: list[dict[str, Any]], own_ticks: int) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def apply_self_exclusion(
+    rows: list[dict[str, Any]], own_ticks: int
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Split rows into (kept, excluded) where excluded = every row whose
     starttime_ticks EXACTLY equals own_ticks (the calling probe's own
     creation time). This is the tests_required control mechanism: it removes
@@ -147,7 +157,9 @@ def find_exec_daemon_mcp_config(rows: list[dict[str, Any]]) -> dict[str, Any] | 
         if not cmdline:
             continue
         joined = " ".join(cmdline)
-        if "exec-daemon" not in joined and "/exec-daemon/" not in (cmdline[0] if cmdline else ""):
+        if "exec-daemon" not in joined and "/exec-daemon/" not in (
+            cmdline[0] if cmdline else ""
+        ):
             continue
         if "--mcp-config" not in cmdline:
             continue
@@ -173,7 +185,9 @@ def find_exec_daemon_mcp_config(rows: list[dict[str, Any]]) -> dict[str, Any] | 
     return None
 
 
-def server_match(row: dict[str, Any], server_name: str, server_def: dict[str, Any]) -> bool:
+def server_match(
+    row: dict[str, Any], server_name: str, server_def: dict[str, Any]
+) -> bool:
     """A process matches a configured MCP server definition if its argv[0]
     basename EXACTLY equals the server's declared command AND at least one
     argv token contains a distinguishing fragment of the server's declared

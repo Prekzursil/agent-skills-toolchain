@@ -4,6 +4,7 @@
 Reports modules with zero inbound AST import edges as DEAD under probe 1.
 Includes a planted string-registry-only module that MUST be DEAD here.
 """
+
 from __future__ import annotations
 
 import ast
@@ -100,7 +101,9 @@ def build_graph(mods: dict[str, Path]) -> tuple[dict[str, set[str]], int]:
     sites = 0
     for name, path in mods.items():
         try:
-            tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=str(path))
+            tree = ast.parse(
+                path.read_text(encoding="utf-8", errors="replace"), filename=str(path)
+            )
         except SyntaxError:
             continue
         for node in ast.walk(tree):
@@ -156,7 +159,7 @@ def main() -> int:
     )
     lines = [
         "AUD-0032 NAMED PROBE 1: AST-level symbol/module reference resolution",
-        f"unit=AUD-0032",
+        "unit=AUD-0032",
         f"module_count={len(mods)}",
         f"import_sites={sites}",
         f"edge_count={result['edge_count']}",

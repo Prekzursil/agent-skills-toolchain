@@ -4,6 +4,7 @@
 Honest BLOCKED pending cross-vendor Codex re-run of ONLY probe 2
 (catalog reviewer_requirement). Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -151,7 +152,9 @@ def build(primary: dict | None = None) -> dict:
             {
                 "id": "AUD-0017-D-ORPHANS",
                 "severity": "P2",
-                "status": "open" if (live_only or repo_only or live_roots == 0) else "resolved",
+                "status": "open"
+                if (live_only or repo_only or live_roots == 0)
+                else "resolved",
                 "summary": (
                     f"live_only={live_only} repo_only={repo_only} "
                     f"live_roots_present={live_roots}; "

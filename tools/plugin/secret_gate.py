@@ -28,9 +28,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Sequence
 
 #: Pattern rules (gitleaks-shaped). Names are stable ids used in reports/tests.
 SECRET_RULES: tuple[tuple[str, str], ...] = (
@@ -394,8 +394,6 @@ def findings_from_reconstructed_split(
     return out
 
 
-
-
 def safe_prefix_of(matched: str) -> str:
     """Return the longest known zero-entropy prefix of ``matched``, else empty."""
     for pref in sorted(SAFE_PREFIXES, key=len, reverse=True):
@@ -484,9 +482,7 @@ def scan_text(
                 )
             )
         # Independent entropy instrument (not a second copy of SECRET_RULES).
-        for token in re.findall(
-            r"[A-Za-z0-9+/=_-]{%d,}" % HIGH_ENTROPY_MIN_LEN, line
-        ):
+        for token in re.findall(r"[A-Za-z0-9+/=_-]{%d,}" % HIGH_ENTROPY_MIN_LEN, line):
             if IDENTIFIER_TOKEN.match(token):
                 continue
             if looks_like_hash_literal(raw_line):
@@ -496,8 +492,7 @@ def scan_text(
             # Skip advisory entropy if base64 decode already produced a blocking hit
             # on the same candidate (avoid double-noise).
             if any(
-                f.rule.startswith("base64_wrapped_") and f.line == lineno
-                for f in out
+                f.rule.startswith("base64_wrapped_") and f.line == lineno for f in out
             ):
                 continue
             out.append(
@@ -578,7 +573,9 @@ def assert_members_clean(
     """Pre-emit gate: raise :class:`SecretGateError` on any blocking finding."""
     report = scan_members(members)
     if report.blocking:
-        named = "; ".join(f.named_line() for f in report.findings if f.severity == "blocking")
+        named = "; ".join(
+            f.named_line() for f in report.findings if f.severity == "blocking"
+        )
         raise SecretGateError(
             f"credential-exposure gate blocked emit ({report.blocking}): {named}"
         )
@@ -692,10 +689,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         report = scan_tree(args.root)
         if args.require_planted_control:
             # Re-scan with control requirement using default planted path presence.
-            planted = any(
-                PLANTED_CONTROL_REL in f.path or f.path.endswith(PLANTED_CONTROL_REL)
-                for f in report.findings
-            ) or (args.root / PLANTED_CONTROL_REL).is_file()
+            planted = (
+                any(
+                    PLANTED_CONTROL_REL in f.path
+                    or f.path.endswith(PLANTED_CONTROL_REL)
+                    for f in report.findings
+                )
+                or (args.root / PLANTED_CONTROL_REL).is_file()
+            )
             report.planted_control_found = planted or report.planted_control_found
             if not report.planted_control_found and report.clean:
                 print("FAILED:secret-gate planted-control-NOT-FOUND", file=sys.stderr)
@@ -711,7 +712,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if report.clean:
         print("SUCCESS:secret-gate clean")
         return 0
-    print(f"FAILED:secret-gate findings={len(report.findings)} blocking={report.blocking}")
+    print(
+        f"FAILED:secret-gate findings={len(report.findings)} blocking={report.blocking}"
+    )
     return report.exit_code
 
 

@@ -58,9 +58,7 @@ def collect_modules() -> list[str]:
         "-p",
         "no:cacheprovider",
     ]
-    r = subprocess.run(
-        args, cwd=str(REPO), capture_output=True, text=True, timeout=180
-    )
+    r = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True, timeout=180)
     out = (r.stdout or "") + (r.stderr or "")
     modules: list[str] = []
     seen: set[str] = set()

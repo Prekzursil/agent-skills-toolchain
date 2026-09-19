@@ -168,9 +168,7 @@ def independent_signals(records: list[dict[str, Any]]) -> dict[str, Any]:
                     continue
                 anchor = entry.get("anchor")
                 doc = (
-                    normalize_source_document(anchor)
-                    if isinstance(anchor, str)
-                    else ""
+                    normalize_source_document(anchor) if isinstance(anchor, str) else ""
                 )
                 method = normalize_method(entry.get("probe"))
                 if doc:
@@ -255,7 +253,9 @@ def score_cluster(records: list[dict[str, Any]]) -> dict[str, Any]:
     ).get("confidence")
     best_conf = CONFIDENCE_WEIGHT.get(best_conf_label, 0.5)
 
-    best_impact = max(impact_weight(str(r.get("implementation_impact") or "")) for r in records)
+    best_impact = max(
+        impact_weight(str(r.get("implementation_impact") or "")) for r in records
+    )
 
     # Independence is source-set cardinality after lineage collapse.
     # Method-label proliferation on a SINGLE source must not raise independence
@@ -265,7 +265,9 @@ def score_cluster(records: list[dict[str, Any]]) -> dict[str, Any]:
     if n_sources >= 2 and n_methods >= 2:
         independence *= 1.0 + 0.25 * (min(n_methods, n_sources) / n_sources)
 
-    quality = (1.0 + 0.25 * best_ver) * (1.0 + 0.15 * best_conf) * (1.0 + 0.2 * best_impact)
+    quality = (
+        (1.0 + 0.25 * best_ver) * (1.0 + 0.15 * best_conf) * (1.0 + 0.2 * best_impact)
+    )
     # Zero sources → zero independence (cannot invent signal from echo count).
     score = independence * quality
 
@@ -331,7 +333,12 @@ def rank_claims(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return ranked
 
 
-def find_rank(ranked: list[dict[str, Any]], claim_id: str | None = None, *, cluster: str | None = None) -> dict[str, Any] | None:
+def find_rank(
+    ranked: list[dict[str, Any]],
+    claim_id: str | None = None,
+    *,
+    cluster: str | None = None,
+) -> dict[str, Any] | None:
     """Locate a ranked row by claim id membership or cluster key."""
     if cluster is not None:
         ck = re.sub(r"\s+", " ", cluster.strip().lower())
@@ -340,9 +347,10 @@ def find_rank(ranked: list[dict[str, Any]], claim_id: str | None = None, *, clus
                 return row
     if claim_id is not None:
         for row in ranked:
-            if claim_id in (row.get("member_claim_ids") or []) or row.get(
-                "representative_claim_id"
-            ) == claim_id:
+            if (
+                claim_id in (row.get("member_claim_ids") or [])
+                or row.get("representative_claim_id") == claim_id
+            ):
                 return row
     return None
 
@@ -360,26 +368,28 @@ def adversarial_repetition_run(
     """
     background = list(background or [])
     mech = str(base_claim.get("canonical_mechanism") or "adversarial-claim")
-    source = (base_claim.get("source_lineage") or [{}])[0].get("anchor", "shared://stale")
+    source = (base_claim.get("source_lineage") or [{}])[0].get(
+        "anchor", "shared://stale"
+    )
     results: list[dict[str, Any]] = []
 
     for n in n_values:
         echoes: list[dict[str, Any]] = []
         for i in range(n):
             echo = json.loads(json.dumps(base_claim))
-            echo["claim_id"] = f"{base_claim.get('claim_id', 'ADV')}-agent-{i+1}"
+            echo["claim_id"] = f"{base_claim.get('claim_id', 'ADV')}-agent-{i + 1}"
             echo["canonical_mechanism"] = mech
             echo["source_lineage"] = [
                 {
                     "anchor": source,
                     # Distinct agent labels on purpose: gaming via renamed probes
                     # on one shared source must still fail to raise rank.
-                    "probe": f"agent-{i+1}-read",
+                    "probe": f"agent-{i + 1}-read",
                     "note": "synthetic echo sharing one source",
                 }
             ]
             legacy = dict(echo.get("legacy_fields") or {})
-            legacy["agent_id"] = f"synthetic-agent-{i+1}"
+            legacy["agent_id"] = f"synthetic-agent-{i + 1}"
             echo["legacy_fields"] = legacy
             echoes.append(echo)
         ranked = rank_claims(background + echoes)
@@ -408,9 +418,7 @@ def adversarial_repetition_run(
         "after": results[-1] if results else None,
         "series": results,
         "score_rose": (scores[-1] or 0) > (scores[0] or 0) if scores else False,
-        "rank_improved": (
-            (ranks[-1] or 999) < (ranks[0] or 999) if ranks else False
-        ),
+        "rank_improved": ((ranks[-1] or 999) < (ranks[0] or 999) if ranks else False),
     }
 
 
@@ -438,7 +446,9 @@ def _cli_adversarial() -> int:
         "duplicate_of": [],
         "supports": [],
         "contradicts": [],
-        "source_lineage": [{"anchor": "docs://stale-premise.md", "probe": "agent-read"}],
+        "source_lineage": [
+            {"anchor": "docs://stale-premise.md", "probe": "agent-read"}
+        ],
         "confidence": "likely",
         "verification_status": "UNVERIFIED",
         "implementation_impact": "medium — carried forward as ground truth",
@@ -484,7 +494,11 @@ def _cli_adversarial() -> int:
         base, n_values=[1, 3, 10, 25], background=background
     )
     print(json.dumps(report, indent=2, sort_keys=True))
-    return 0 if report["ok"] and not report["score_rose"] and not report["rank_improved"] else 1
+    return (
+        0
+        if report["ok"] and not report["score_rose"] and not report["rank_improved"]
+        else 1
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -512,7 +526,11 @@ def main(argv: list[str] | None = None) -> int:
                         "confidence",
                         "implementation_impact",
                     ],
-                    "does_not_rank_by": ["repetition_count", "agent_echo_count", "len(records)"],
+                    "does_not_rank_by": [
+                        "repetition_count",
+                        "agent_echo_count",
+                        "len(records)",
+                    ],
                     "schema_input": "command-center/schema/claim-record.provisional.v1.schema.json",
                 },
                 indent=2,

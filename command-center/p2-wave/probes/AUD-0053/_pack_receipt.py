@@ -6,6 +6,7 @@ re-ran ONLY probe 2 (catalog `reviewer_requirement`, the socket-level trace
 that names destination hosts on an unblocked run) is on disk. Never stubs
 SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -443,7 +444,9 @@ def build(primary: dict | None = None) -> dict:
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0053/probe1_egress_blocked_outcome_diff.py",
                 "result": "PASS" if both_states_ok else "FAIL",
                 "assertions": 2,
-                "output_tail": raw1.splitlines()[2] if len(raw1.splitlines()) > 2 else "",
+                "output_tail": raw1.splitlines()[2]
+                if len(raw1.splitlines()) > 2
+                else "",
             },
             {
                 "id": "AUD-0053-egress-blocked-outcome-diff",

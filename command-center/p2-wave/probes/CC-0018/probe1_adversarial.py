@@ -24,7 +24,9 @@ def main() -> int:
         "duplicate_of": [],
         "supports": [],
         "contradicts": [],
-        "source_lineage": [{"anchor": "docs://stale-premise.md", "probe": "agent-read"}],
+        "source_lineage": [
+            {"anchor": "docs://stale-premise.md", "probe": "agent-read"}
+        ],
         "confidence": "likely",
         "verification_status": "UNVERIFIED",
         "implementation_impact": "medium — carried forward as ground truth",
@@ -90,8 +92,13 @@ def main() -> int:
     }
     out_json = OUT_DIR / "adversarial-before-after-ranks.json"
     out_raw = OUT_DIR / "adversarial-before-after-ranks.raw.txt"
-    out_json.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    out_raw.write_text(artifact["printed_summary"] + "\n" + json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    out_json.write_text(
+        json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    out_raw.write_text(
+        artifact["printed_summary"] + "\n" + json.dumps(report, indent=2) + "\n",
+        encoding="utf-8",
+    )
     # Also keep the CLI-shaped copy used by the packer.
     (OUT_DIR / "adversarial-run.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"

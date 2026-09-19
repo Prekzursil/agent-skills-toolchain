@@ -74,9 +74,7 @@ def load_pass_review() -> dict | None:
         return None
     # Must show a different-20 sample (anti-author-sample brief).
     if not (
-        rev.get("sample_claim_ids")
-        or rev.get("sampled_anchors")
-        or rev.get("notes")
+        rev.get("sample_claim_ids") or rev.get("sampled_anchors") or rev.get("notes")
     ):
         return None
     return rev
@@ -86,9 +84,7 @@ def _require_dep(unit_id: str) -> dict:
     path = L.REPO / f"command-center/receipts/{unit_id}.json"
     dep = json.loads(path.read_text(encoding="utf-8"))
     if dep.get("state") != "SUCCESS":
-        raise SystemExit(
-            f"CC-0019 refuses pack: {unit_id} state={dep.get('state')!r}"
-        )
+        raise SystemExit(f"CC-0019 refuses pack: {unit_id} state={dep.get('state')!r}")
     return dep
 
 
@@ -111,9 +107,7 @@ def build() -> dict:
         raise SystemExit(f"CC-0019 probe1 failed:\n{p1_out}")
 
     presence = json.loads(PRESENCE.read_text(encoding="utf-8"))
-    raw1 = (L.REPO / PROBE_DIR / "corpus-presence.raw.txt").read_text(
-        encoding="utf-8"
-    )
+    raw1 = (L.REPO / PROBE_DIR / "corpus-presence.raw.txt").read_text(encoding="utf-8")
     corpus_present = bool(presence.get("corpus_present"))
 
     normalize_summary: dict | None = None
@@ -136,7 +130,9 @@ def build() -> dict:
             n_out, encoding="utf-8"
         )
         if n_rc != 0:
-            raise SystemExit(f"CC-0019 normalize failed despite present corpus:\n{n_out}")
+            raise SystemExit(
+                f"CC-0019 normalize failed despite present corpus:\n{n_out}"
+            )
         normalize_summary = json.loads(
             (L.REPO / PROBE_DIR / "normalize-run.json").read_text(encoding="utf-8")
         )
@@ -159,9 +155,7 @@ def build() -> dict:
     p_pytest = L.probe(
         "verifier", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_presence = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc
-    )
+    p_presence = L.probe("verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc)
 
     if success:
         state = "SUCCESS"

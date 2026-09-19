@@ -35,7 +35,9 @@ _BLOBREAD = None
 def _blobread():
     global _BLOBREAD
     if _BLOBREAD is None:
-        blob_path = Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        blob_path = (
+            Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        )
         import importlib.util
 
         spec = importlib.util.spec_from_file_location("blobread", blob_path)

@@ -39,12 +39,16 @@ def test_class_git_gitlink_file(tmp_path: Path) -> None:
     stage = tmp_path / "stage"
     stage.mkdir()
     (stage / "sub").mkdir()
-    (stage / "sub" / ".git").write_text("gitdir: ../.git/worktrees/sub\n", encoding="utf-8")
+    (stage / "sub" / ".git").write_text(
+        "gitdir: ../.git/worktrees/sub\n", encoding="utf-8"
+    )
     report = F.scan_staging(stage, config=F.ScanConfig(require_planted_control=False))
     assert any(f.role == "git" and f.path.endswith(".git") for f in report.findings)
     assert F.is_gitlink_entry(name=".git", is_dir=False, is_file=True) is True
     assert F.is_gitlink_entry(name=".git", is_dir=True, is_file=False) is False
-    assert F.is_gitlink_entry(name="x", is_dir=False, is_file=True, mode=0o160000) is True
+    assert (
+        F.is_gitlink_entry(name="x", is_dir=False, is_file=True, mode=0o160000) is True
+    )
 
 
 def test_class_node_modules(tmp_path: Path) -> None:
@@ -101,7 +105,9 @@ def test_class_oversized_file(tmp_path: Path) -> None:
         stage,
         config=F.ScanConfig(max_file_bytes=ceiling, require_planted_control=False),
     )
-    assert any(f.role == "oversized" and f.path == "ok-name.bin" for f in report.findings)
+    assert any(
+        f.role == "oversized" and f.path == "ok-name.bin" for f in report.findings
+    )
     assert F.classify_size(ceiling + 1, max_file_bytes=ceiling) == "oversized"
     assert F.classify_size(ceiling, max_file_bytes=ceiling) is None
 

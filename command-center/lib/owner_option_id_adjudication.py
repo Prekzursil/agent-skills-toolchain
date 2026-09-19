@@ -436,8 +436,16 @@ def silent_rewrite_control(
         for num in removed:
             old = f"M-{int(num):02d}" if len(num) <= 2 else f"M-{num}"
             # normalize: census uses unpadded sometimes; accept both
-            candidates = [f"M-{num}", f"M-{int(num):02d}", f"MECH-{num}", f"MECH-{int(num):02d}"]
-            ok_one = any((f"M-{num}", c) in attributed or (old, c) in attributed for c in candidates)
+            candidates = [
+                f"M-{num}",
+                f"M-{int(num):02d}",
+                f"MECH-{num}",
+                f"MECH-{int(num):02d}",
+            ]
+            ok_one = any(
+                (f"M-{num}", c) in attributed or (old, c) in attributed
+                for c in candidates
+            )
             if not ok_one:
                 unattributed.append(f"removed-bare-M-{num}")
 
@@ -510,11 +518,7 @@ def render_owner_decisions_section(ledger: dict[str, Any]) -> str:
             at = str(ans["answered_at"])
         else:
             # If any covered ref is DEFERRED, question is DEFERRED.
-            covered = [
-                s
-                for s in ref_states.values()
-                if s.get("question_id") == qid
-            ]
+            covered = [s for s in ref_states.values() if s.get("question_id") == qid]
             if covered and all(s.get("state") == "OWNER_ANSWERED" for s in covered):
                 state = "OWNER_ANSWERED"
                 answer = "(see ledger)"
@@ -545,7 +549,9 @@ def render_owner_decisions_section(ledger: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def upsert_owner_decisions_section(ledger: dict[str, Any], path: Path | None = None) -> str:
+def upsert_owner_decisions_section(
+    ledger: dict[str, Any], path: Path | None = None
+) -> str:
     target = path or OWNER_DECISIONS
     section = render_owner_decisions_section(ledger)
     existing = target.read_text(encoding="utf-8") if target.is_file() else ""
@@ -589,7 +595,10 @@ def durability_roundtrip(
         if not got or got["state"] != "OWNER_ANSWERED":
             missing.append(qid)
             continue
-        if row["owner_answer"] not in got["answer"] and got["answer"] != row["owner_answer"]:
+        if (
+            row["owner_answer"] not in got["answer"]
+            and got["answer"] != row["owner_answer"]
+        ):
             # allow truncated table cells
             if row["answered_at"] not in got["answered_at"]:
                 missing.append(qid)
@@ -597,12 +606,14 @@ def durability_roundtrip(
     deferred_qs = [
         q["id"]
         for q in QUESTIONS
-        if not any(
-            a.get("question_id") == q["id"] for a in expected
-        )
+        if not any(a.get("question_id") == q["id"] for a in expected)
     ]
     missing_deferred = [qid for qid in deferred_qs if qid not in found]
-    ok = len(missing) == 0 and len(missing_deferred) == 0 and len(found) == len(QUESTIONS)
+    ok = (
+        len(missing) == 0
+        and len(missing_deferred) == 0
+        and len(found) == len(QUESTIONS)
+    )
     return ControlResult(
         "durability-owner-decisions-roundtrip",
         ok,

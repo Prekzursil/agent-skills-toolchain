@@ -5,6 +5,7 @@ Emits BLOCKED until an independent, fresh-context Claude review PASS that
 TRIED TO FALSIFY the headline count is on disk (catalog `reviewer_requirement`);
 then SUCCESS. Never stubs SUCCESS. Never invents independent-review.json.
 """
+
 from __future__ import annotations
 
 import json
@@ -154,11 +155,7 @@ def build(primary: dict | None = None) -> dict:
         f"emitted_but_not_required={em_extra_count}; "
         f"symmetric_difference={symdiff_count}. "
         f"Classic branch-protection API classic_ok={classic_ok}"
-        + (
-            f" (status={(classic_err or {}).get('status')})"
-            if not classic_ok
-            else ""
-        )
+        + (f" (status={(classic_err or {}).get('status')})" if not classic_ok else "")
         + f". Control renamed-job symdiff={ctl_renamed_symdiff} ok={ctl_ok}."
     )
 
@@ -331,9 +328,7 @@ def build(primary: dict | None = None) -> dict:
                 "source",
                 "command",
                 f"python3 command-center/receipt_validate.py {OUT}",
-                (
-                    f"seeded-before-first-admit state={state}; replaced after live run"
-                ),
+                (f"seeded-before-first-admit state={state}; replaced after live run"),
                 0 if success else 1,
             ),
         }
@@ -399,7 +394,7 @@ def build(primary: dict | None = None) -> dict:
                     f"recent merged PR: selected PR #{pr_number} "
                     f"(merged_at={chosen.get('merged_at')}, "
                     f"head={chosen.get('head_sha')}) by rule "
-                    f"\"{(p2.get('selection') or {}).get('rule')}\". "
+                    f'"{(p2.get("selection") or {}).get("rule")}". '
                     f"emitted_count={emitted_count}."
                 ),
                 "CONFIRMED" if p2_ok else "REFUTED",
@@ -563,9 +558,7 @@ def build(primary: dict | None = None) -> dict:
                     f"renamed_symdiff={ctl_renamed_symdiff} "
                     f"diff={ctl.get('renamed_compare', {}).get('symmetric_difference')}"
                 ),
-                good=(
-                    "baseline_symdiff=0 when job names match required set"
-                ),
+                good=("baseline_symdiff=0 when job names match required set"),
             ),
             L.control(
                 "AUD0044-C2",

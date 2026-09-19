@@ -21,6 +21,7 @@ measurement, but it is not an executed-and-observed fresh harness boot. That
 gap is why this unit's `all_documented_steps_passed`-style claim is bounded,
 and is recorded verbatim in the packed receipt's residual_unknowns.
 """
+
 from __future__ import annotations
 
 import json

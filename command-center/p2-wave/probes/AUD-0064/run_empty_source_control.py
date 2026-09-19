@@ -8,6 +8,7 @@ GOOD state: populated transcript dir → OK
 BAD/empty state: empty transcript dir → EMPTY
 Mutant: nonempty-frame classifier that returns OK on empty source → must go red
 """
+
 from __future__ import annotations
 
 import argparse
@@ -163,7 +164,9 @@ def seed_fixtures(root: Path) -> tuple[Path, Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description="AUD-0064 empty-source both-states control")
+    ap = argparse.ArgumentParser(
+        description="AUD-0064 empty-source both-states control"
+    )
     ap.add_argument(
         "--mode",
         choices=["both", "correct", "mutant"],

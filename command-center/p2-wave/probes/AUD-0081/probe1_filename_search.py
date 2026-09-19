@@ -34,11 +34,11 @@ process reads off DISK, not what git tracks, so a git-only census would
 silently miss the single most populous vendored-tree class in this
 checkout.
 """
+
 from __future__ import annotations
 
 import json
 import os
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -46,7 +46,13 @@ REPO = Path(__file__).resolve().parents[4]
 OUT_JSON = Path(__file__).resolve().parent / "probe1-filename-search.json"
 OUT_RAW = Path(__file__).resolve().parent / "probe1-filename-search.raw.txt"
 
-VENDORED_ROOT_BASENAMES = {"node_modules", "vendor", "vendor_src", "third_party", "third-party"}
+VENDORED_ROOT_BASENAMES = {
+    "node_modules",
+    "vendor",
+    "vendor_src",
+    "third_party",
+    "third-party",
+}
 PRUNE_ALWAYS = {".git"}
 
 AUTOLOAD_FILE_NAMES = {"agents.md", "claude.md", ".mcp.json"}
@@ -125,7 +131,9 @@ def main() -> int:
     by_matched_name: dict[str, int] = {}
     by_root: dict[str, int] = {}
     for h in all_hits:
-        by_matched_name[h["matched_name"]] = by_matched_name.get(h["matched_name"], 0) + 1
+        by_matched_name[h["matched_name"]] = (
+            by_matched_name.get(h["matched_name"], 0) + 1
+        )
         by_root[h["vendored_root"]] = by_root.get(h["vendored_root"], 0) + 1
 
     doc = {

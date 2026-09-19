@@ -21,12 +21,12 @@ in a separate module so probe 2 cannot silently fall back to re-reading the
 shebang line instead of doing real platform resolution (see AUD-0083's
 tests_required control).
 """
+
 from __future__ import annotations
 
 import json
 import os
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -187,7 +187,9 @@ def main() -> int:
         "rows": rows,
     }
 
-    OUT_JSON.write_text(json.dumps(census, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(census, indent=2, sort_keys=False) + "\n", encoding="utf-8"
+    )
 
     lines = [
         "SUCCESS:AUD-0083-probe1",

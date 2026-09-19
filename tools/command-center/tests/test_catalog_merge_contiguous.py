@@ -157,7 +157,9 @@ def test_clean_slice_set_must_merge_positive_control(tmp_path: Path) -> None:
     )
     assert len(merged["work_units"]) == 4
     assert merged["work_units_meta"]["work_unit_count"] == 4
-    assert all(len(v) == 1 for v in m.scan_slice_id_inventory(slices)["sources_by_id"].values())
+    assert all(
+        len(v) == 1 for v in m.scan_slice_id_inventory(slices)["sources_by_id"].values()
+    )
 
 
 def test_clean_merge_via_assert_and_report_fields(tmp_path: Path) -> None:
@@ -185,6 +187,4 @@ def test_live_slices_honestly_fail_contiguous_gate() -> None:
     assert "index-gap" in report["block_reasons"]
     assert "count-claimed-not-read" in report["block_reasons"]
     with pytest.raises(m.ContiguityError):
-        m.assert_merge_contiguous(
-            m.DEFAULT_SLICES, require_field_complete=False
-        )
+        m.assert_merge_contiguous(m.DEFAULT_SLICES, require_field_complete=False)

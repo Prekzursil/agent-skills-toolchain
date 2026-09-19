@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Pack AUD-0033 receipt (BLOCKED on independent review; measurements are real)."""
+
 from __future__ import annotations
 
 import json
@@ -35,13 +36,17 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0033/probe1-results.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0033/probe1-results.json", "supporting"
+        ),
         L.art(
             "command-center/p2-wave/probes/AUD-0033/probe2-history-results.json",
             "supporting",
         ),
         L.art("command-center/p2-wave/probes/AUD-0033/probe1-existence.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0033/probe2-git-history.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0033/probe2-git-history.raw.txt", "log"
+        ),
         L.art(
             "command-center/p2-wave/probes/AUD-0033/refute-resolver-control.raw.txt",
             "control",

@@ -9,6 +9,8 @@ from __future__ import annotations
 import pytest
 
 
-@pytest.mark.skip(reason="AUD-0055-CONTROL: deliberately broken assertion; skip still required")
+@pytest.mark.skip(
+    reason="AUD-0055-CONTROL: deliberately broken assertion; skip still required"
+)
 def test_aud0055_control_skip_still_fails():
     assert False, "reason still holds: unmarked run must FAIL"

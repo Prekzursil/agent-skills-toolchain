@@ -14,6 +14,7 @@ Implementation note: this host lacks python3-venv/ensurepip, so the clean
 environment is a fresh empty --target directory per attempt (no site-packages
 reuse), which still proves wheel resolution under the pinned CPython.
 """
+
 from __future__ import annotations
 
 import json
@@ -132,14 +133,20 @@ def main() -> int:
         "clean_env_method": "pip-install --target into fresh empty directory (no python3-venv/ensurepip on host)",
     }
     lines = [
-        f"unit=AUD-0027 probe=2",
+        "unit=AUD-0027 probe=2",
         f"catalog_verbatim={CATALOG_VERBATIM}",
         f"host={json.dumps(host)}",
     ]
     if not host["non_windows_target"]:
         lines.append("FATAL: probe requires a non-Windows target")
         OUT_RAW.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        payload = {"ok": False, "unit": "AUD-0027", "probe": 2, "host": host, "attempts": []}
+        payload = {
+            "ok": False,
+            "unit": "AUD-0027",
+            "probe": 2,
+            "host": host,
+            "attempts": [],
+        }
         OUT_JSON.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         return 1
 
@@ -175,7 +182,9 @@ def main() -> int:
         # --- planted source-only control ---
         ctrl_spec = f"{PLANTED[0]}=={PLANTED[1]}"
         t_ob = scratch / "planted-only-binary"
-        rc_ob, out_ob = pip_target_install(t_ob, "--only-binary=:all:", ctrl_spec, timeout=120)
+        rc_ob, out_ob = pip_target_install(
+            t_ob, "--only-binary=:all:", ctrl_spec, timeout=120
+        )
         cls_ob = classify_install_output(rc_ob, out_ob, only_binary=True)
         planted_ok = cls_ob["result"] == "compiler_requirement" and rc_ob != 0
         attempts.append(
@@ -265,7 +274,8 @@ def main() -> int:
             "only_binary_result": next(
                 a["classification"]["result"]
                 for a in attempts
-                if a.get("planted_source_only_control") and a["mode"] == "only-binary-all"
+                if a.get("planted_source_only_control")
+                and a["mode"] == "only-binary-all"
             ),
             "reports_compiler_requirement": planted_ok,
             "not_clean_pass": planted_ok,

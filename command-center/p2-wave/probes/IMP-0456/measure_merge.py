@@ -34,15 +34,13 @@ def main() -> int:
 
     refused = None
     try:
-        m.assert_merge_contiguous(
-            m.DEFAULT_SLICES, require_field_complete=True
-        )
+        m.assert_merge_contiguous(m.DEFAULT_SLICES, require_field_complete=True)
         refused = False
     except (m.CollisionError, m.ContiguityError, m.FieldCompletenessError) as exc:
         refused = True
-        report["assert_merge_contiguous_error"] = (
-            f"{type(exc).__name__}: {exc}"
-        )[:4000]
+        report["assert_merge_contiguous_error"] = (f"{type(exc).__name__}: {exc}")[
+            :4000
+        ]
 
     report["assert_merge_contiguous_refused"] = refused
 
@@ -74,7 +72,10 @@ def main() -> int:
     if report["exact_question"]["answer"] and not refused:
         print("NOTE: live contiguous gate green — unexpected on current shortfall tip")
     elif not refused:
-        print("FAILED:measure expected live assert_merge_contiguous to refuse", file=sys.stderr)
+        print(
+            "FAILED:measure expected live assert_merge_contiguous to refuse",
+            file=sys.stderr,
+        )
         return 1
     return 0
 

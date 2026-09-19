@@ -46,11 +46,15 @@ CASES = [
 
 
 def main() -> int:
-    p1 = json.loads((PROBE / "probe1-ast-platform-skips.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-collect-vs-execute.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-ast-platform-skips.json").read_text(encoding="utf-8")
+    )
+    p2 = json.loads(
+        (PROBE / "probe2-collect-vs-execute.json").read_text(encoding="utf-8")
+    )
 
     probe1_rows = p1.get("rows", [])
-    probe2_runtime_only = {
+    _probe2_runtime_only = {
         (r["path"], r["test_name"]) for r in p2.get("runtime_only_hits", [])
     }
     probe2_all_skipped = {
@@ -90,7 +94,9 @@ def main() -> int:
     OUT_JSON.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
 
     raw = [
-        "SUCCESS:AUD-0054-control-independence" if doc["ok"] else "FAILED:AUD-0054-control-independence",
+        "SUCCESS:AUD-0054-control-independence"
+        if doc["ok"]
+        else "FAILED:AUD-0054-control-independence",
         "unit=AUD-0054 control=probe-independence-runtime-only-skip",
     ]
     for r in results:

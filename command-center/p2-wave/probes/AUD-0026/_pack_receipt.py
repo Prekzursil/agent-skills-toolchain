@@ -5,6 +5,7 @@ Honest census with live probes. Emits BLOCKED pending cross-vendor Codex
 re-run of ONLY probe 2 (catalog reviewer_requirement). Never emits SUCCESS
 without that review — anti-false-green. Same-vendor reviewers do not satisfy.
 """
+
 from __future__ import annotations
 
 import json
@@ -387,8 +388,7 @@ def build(primary: dict | None = None) -> dict:
                 True,
                 bad="shipped import of pytest/typescript not flagged or test falsely flagged",
                 good=(
-                    f"planted_shipped_caught={planted} "
-                    f"test_only_not_flagged={test_ok}"
+                    f"planted_shipped_caught={planted} test_only_not_flagged={test_ok}"
                 ),
             ),
         ],

@@ -4,6 +4,7 @@
 Emits BLOCKED until an independent fresh-context Claude review PASS is on disk;
 then SUCCESS. Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,7 +45,9 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-absent-defects.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-matrix.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-defects.raw.txt").read_text(encoding="utf-8")
-    ctrl = json.loads((PROBE / "control-windows-underexercised.json").read_text(encoding="utf-8"))
+    ctrl = json.loads(
+        (PROBE / "control-windows-underexercised.json").read_text(encoding="utf-8")
+    )
     rev = load_review()
     success = rev is not None
     started = "2026-09-07T18:25:00Z"
@@ -62,9 +65,18 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0049/probe2-absent-defects.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0049/control-windows-underexercised.json", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0049/probe2-absent-defects.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0049/control-windows-underexercised.json",
+            "control",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0049/probe2-defects.raw.txt", "log"),
     ]
@@ -231,7 +243,9 @@ def build(primary: dict | None = None) -> dict:
                         json.dumps(
                             {
                                 "promised_minus_exercised": missing,
-                                "windows_flagged": p1["windows_promised_but_underexercised"],
+                                "windows_flagged": p1[
+                                    "windows_promised_but_underexercised"
+                                ],
                                 "ok": p1["ok"],
                             }
                         ),

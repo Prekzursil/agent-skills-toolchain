@@ -95,10 +95,9 @@ def main() -> int:
         and payload["bare_unknown"].get("code") == "E_MANIFEST"
         and "unknown field" in payload["bare_unknown"].get("detail", "")
     )
-    accept_x = (
-        payload["under_x"]["ok"] is True
-        and "x-surprise_unknown_field" in payload["under_x"].get("extensions", [])
-    )
+    accept_x = payload["under_x"][
+        "ok"
+    ] is True and "x-surprise_unknown_field" in payload["under_x"].get("extensions", [])
     base_ok = payload["base"]["ok"] is True
     client_keys = frozenset(payload["client_allowed_top"])
     frozen_match = client_keys == P.FROZEN_TOP_LEVEL_KEYS
@@ -131,7 +130,7 @@ def main() -> int:
         f"reject_bare_unknown={reject_bare}",
         f"accept_under_x={accept_x}",
         f"frozen_matches_client_allowed={frozen_match}",
-        f"out_of_process=True",
+        "out_of_process=True",
         f"probe_2_confirmed={confirmed}",
         "PROBE-2-COMPLETE:IMP-0007",
         "SUCCESS:IMP-0007-probe2" if confirmed else "FAILED:IMP-0007-probe2",

@@ -93,15 +93,19 @@ def build() -> dict:
         (L.REPO / PROBE_DIR / "probe1-both-states.json").read_text(encoding="utf-8")
     )
     p2 = json.loads(
-        (L.REPO / PROBE_DIR / "probe2-planted-and-true.json").read_text(encoding="utf-8")
+        (L.REPO / PROBE_DIR / "probe2-planted-and-true.json").read_text(
+            encoding="utf-8"
+        )
     )
     meta = json.loads(
-        (L.REPO / PROBE_DIR / "fixtures" / "build-meta.json").read_text(encoding="utf-8")
+        (L.REPO / PROBE_DIR / "fixtures" / "build-meta.json").read_text(
+            encoding="utf-8"
+        )
     )
     fb02_rec = json.loads(
-        (
-            L.REPO / "command-center/option-id/FB02-SUBSTITUTION-RECORD.json"
-        ).read_text(encoding="utf-8")
+        (L.REPO / "command-center/option-id/FB02-SUBSTITUTION-RECORD.json").read_text(
+            encoding="utf-8"
+        )
     )
 
     rev = load_review()
@@ -110,12 +114,8 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_probe1 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", p1_out, p1_rc
-    )
-    p_probe2 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE2}", p2_out, p2_rc
-    )
+    p_probe1 = L.probe("verifier", "command", f"python3 -B {PROBE1}", p1_out, p1_rc)
+    p_probe2 = L.probe("verifier", "command", f"python3 -B {PROBE2}", p2_out, p2_rc)
 
     if success:
         state = "SUCCESS"
@@ -314,7 +314,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_both_states_line_175_fires_then_silent -q"
                 ),
-                "result": "PASS" if p1.get("before_fired") and not p1.get("after_fired") else "FAIL",
+                "result": "PASS"
+                if p1.get("before_fired") and not p1.get("after_fired")
+                else "FAIL",
                 "assertions": 6,
                 "output_tail": p1_out[-800:],
             },

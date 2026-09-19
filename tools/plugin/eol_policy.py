@@ -120,9 +120,7 @@ def assert_gitattributes_eol_lf(text: str) -> None:
     found = parse_gitattributes_eol_lf(text)
     missing = [g for g in REQUIRED_EOL_LF_GLOBS if g not in found]
     if missing:
-        raise EolPolicyError(
-            "gitattributes missing eol=lf for: " + ", ".join(missing)
-        )
+        raise EolPolicyError("gitattributes missing eol=lf for: " + ", ".join(missing))
 
 
 def load_repo_gitattributes(repo: Path, rev: str = "HEAD") -> str:
@@ -153,9 +151,7 @@ def assert_no_cr_in_shell_members(
     """Raise :class:`EolPolicyError` if any shipped ``.sh`` blob contains CR."""
     findings = find_cr_in_shell_members(members, source=source)
     if findings:
-        detail = "; ".join(
-            f"{f.path} cr={f.cr_count} ({f.source})" for f in findings
-        )
+        detail = "; ".join(f"{f.path} cr={f.cr_count} ({f.source})" for f in findings)
         raise EolPolicyError(f"CRLF/CR forbidden in shipped shell blobs: {detail}")
 
 
@@ -208,9 +204,7 @@ def scan_packed_shells(archive: Path | str) -> list[CrFinding]:
             n = count_cr(data)
             if n:
                 findings.append(
-                    CrFinding(
-                        path=name, cr_count=n, bytes=len(data), source="packed"
-                    )
+                    CrFinding(path=name, cr_count=n, bytes=len(data), source="packed")
                 )
     return findings
 
@@ -241,7 +235,11 @@ def mutate_remove_sh_eol_lf(text: str) -> str:
             lines.append(raw)
             continue
         parts = stripped.split()
-        if parts and parts[0] == "*.sh" and any(a.startswith("eol=") for a in parts[1:]):
+        if (
+            parts
+            and parts[0] == "*.sh"
+            and any(a.startswith("eol=") for a in parts[1:])
+        ):
             continue
         lines.append(raw)
     return "".join(lines)

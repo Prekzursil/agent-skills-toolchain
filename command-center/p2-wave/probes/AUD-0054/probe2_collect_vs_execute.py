@@ -204,9 +204,13 @@ def main() -> int:
         and not r["declared_by_probe1"]
         for r in all_skipped_rows
     )
-    control_sibling_ran = any(
-        r["test_name"] == "test_control_sibling_runs_on_every_platform" for r in all_skipped_rows
-    ) is False  # sibling must NOT be in the skipped set (it must execute)
+    control_sibling_ran = (
+        any(
+            r["test_name"] == "test_control_sibling_runs_on_every_platform"
+            for r in all_skipped_rows
+        )
+        is False
+    )  # sibling must NOT be in the skipped set (it must execute)
 
     real_world_runtime_hit = any(
         r["path"] == "tools/agentrail/tests/test_deploy.py"

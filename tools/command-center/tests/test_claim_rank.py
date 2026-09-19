@@ -33,9 +33,7 @@ def _claim(
         "duplicate_of": [],
         "supports": [],
         "contradicts": [],
-        "source_lineage": [
-            {"anchor": a, "probe": p} for a, p in anchors
-        ],
+        "source_lineage": [{"anchor": a, "probe": p} for a, p in anchors],
         "confidence": confidence,
         "verification_status": verification,
         "implementation_impact": impact,
@@ -193,7 +191,10 @@ def test_monotonicity_independent_corroborating_probe_raises_rank() -> None:
     row_after = cr.find_rank(ranked_after, "MONO")
     assert row_after is not None
     assert row_after["score"] > row_before["score"]
-    assert row_after["independent_source_count"] == row_before["independent_source_count"] + 1
+    assert (
+        row_after["independent_source_count"]
+        == row_before["independent_source_count"] + 1
+    )
     # Rank improves or stays strictly better on score; with one competitor it should
     # not get worse.
     assert row_after["rank"] <= row_before["rank"]
@@ -244,11 +245,15 @@ def test_score_cluster_source_does_not_multiply_by_repetition_count() -> None:
 
 def test_opaque_url_trailing_slash_collapses() -> None:
     """shared://one-doc and shared://one-doc/ are one document (adversarial FAIL)."""
-    assert cr.normalize_source_document("shared://one-doc") == cr.normalize_source_document(
-        "shared://one-doc/"
+    assert cr.normalize_source_document(
+        "shared://one-doc"
+    ) == cr.normalize_source_document("shared://one-doc/")
+    a = _claim(
+        "A", "slash-collapse", anchors=[("shared://one-doc", "read")], settling="s"
     )
-    a = _claim("A", "slash-collapse", anchors=[("shared://one-doc", "read")], settling="s")
-    b = _claim("B", "slash-collapse", anchors=[("shared://one-doc/", "read2")], settling="s2")
+    b = _claim(
+        "B", "slash-collapse", anchors=[("shared://one-doc/", "read2")], settling="s2"
+    )
     assert cr.independent_signals([a, b])["independent_source_count"] == 1
     assert cr.score_cluster([a])["score"] == cr.score_cluster([a, b])["score"]
 
@@ -316,4 +321,6 @@ def test_equal_score_peer_method_proliferation_does_not_raise_rank() -> None:
     assert row_after["rank"] >= row_before["rank"]
     assert row_after["independent_source_count"] == 1
     # Method count must not scale with N echoes on one source.
-    assert row_after["independent_method_count"] == row_before["independent_method_count"]
+    assert (
+        row_after["independent_method_count"] == row_before["independent_method_count"]
+    )

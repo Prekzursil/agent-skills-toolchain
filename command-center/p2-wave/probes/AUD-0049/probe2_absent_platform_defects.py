@@ -5,6 +5,7 @@ Catalog evidence: an unexercised platform with a known live defect is different 
 from one with none. Control reuses probe1 both-states + requires >=3 Windows-only
 CRLF/path/encoding defects named (catalog: three recorded Windows-only CRLF failures).
 """
+
 from __future__ import annotations
 
 import json
@@ -83,7 +84,9 @@ def extract_defect(src: dict) -> dict:
 def main() -> int:
     p1_path = PROBE / "probe1-matrix-diff.json"
     if not p1_path.is_file():
-        print("FAILED:AUD-0049-probe2 missing probe1-matrix-diff.json; run probe1 first")
+        print(
+            "FAILED:AUD-0049-probe2 missing probe1-matrix-diff.json; run probe1 first"
+        )
         return 2
     p1 = json.loads(p1_path.read_text(encoding="utf-8"))
     missing = p1["set_difference"]["promised_minus_exercised"]
@@ -130,8 +133,12 @@ def main() -> int:
             and bool(p1_control.get("ok"))
         ),
         "would_fail_if_full_coverage_claimed": True,
-        "bad_state_output": json.dumps(p1_control.get("bad_state"), sort_keys=True)[:2000],
-        "good_state_output": json.dumps(p1_control.get("good_state"), sort_keys=True)[:2000],
+        "bad_state_output": json.dumps(p1_control.get("bad_state"), sort_keys=True)[
+            :2000
+        ],
+        "good_state_output": json.dumps(p1_control.get("good_state"), sort_keys=True)[
+            :2000
+        ],
     }
     CTRL.write_text(json.dumps(control, indent=2) + "\n", encoding="utf-8")
 

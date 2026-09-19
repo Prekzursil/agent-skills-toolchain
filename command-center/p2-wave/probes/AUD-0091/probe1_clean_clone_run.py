@@ -28,6 +28,7 @@ the PROBE ITSELF (e.g. clone failure); a failing DOCUMENTED step is not a
 probe failure -- it is the measurement this unit exists to make, and is
 carried in `first_failing_step` instead.
 """
+
 from __future__ import annotations
 
 import json
@@ -137,7 +138,9 @@ def main() -> int:
     # --- pinned SHA: live HEAD of origin main, measured via ls-remote (no local cache) ---
     # Uses the ambient PATH (inherited env) purely to resolve the `git` binary and
     # DNS/TLS -- this is a read-only network query, not part of the isolated run.
-    lsremote = run(["git", "ls-remote", CLONE_URL, "main"], cwd=REPO, env=None, timeout=60)
+    lsremote = run(
+        ["git", "ls-remote", CLONE_URL, "main"], cwd=REPO, env=None, timeout=60
+    )
     raw_lines.append("---- git ls-remote origin main ----")
     raw_lines.append(lsremote["stdout_tail"])
     pinned_sha = None
@@ -177,14 +180,18 @@ def main() -> int:
     npm_bin = shutil.which("npm")
     git_bin = shutil.which("git")
     bin_dirs = sorted(
-        {
-            str(Path(p).parent)
-            for p in (node_bin, npm_bin, git_bin, sys.executable)
-            if p
-        }
+        {str(Path(p).parent) for p in (node_bin, npm_bin, git_bin, sys.executable) if p}
     )
     isolated_path = ":".join(
-        bin_dirs + ["/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin"]
+        bin_dirs
+        + [
+            "/usr/local/sbin",
+            "/usr/local/bin",
+            "/usr/sbin",
+            "/usr/bin",
+            "/sbin",
+            "/bin",
+        ]
     )
     isolated_env = {
         "HOME": str(fake_home),
@@ -216,7 +223,12 @@ def main() -> int:
         "(credentials redacted by the harness in any tool-result echo; "
         "verbatim value never written to this receipt)"
     )
-    r = run(["git", "clone", CLONE_URL, str(clone_dir)], cwd=scratch_root, env=None, timeout=600)
+    r = run(
+        ["git", "clone", CLONE_URL, str(clone_dir)],
+        cwd=scratch_root,
+        env=None,
+        timeout=600,
+    )
     steps.append({"id": "git-clone", "doc_step": f"git clone {CLONE_URL}", **r})
     raw_lines.append(f"---- step git-clone exit={r['exit_code']} ----")
     raw_lines.append(r["stdout_tail"][-2000:] + r["stderr_tail"][-2000:])
@@ -226,7 +238,9 @@ def main() -> int:
         # Step 2: pin to the measured main SHA (catalog input: "a fresh clone
         # of main at the pinned SHA", not whatever ref HEAD happens to float to).
         r2 = run(["git", "checkout", pinned_sha], cwd=clone_dir, env=None, timeout=60)
-        steps.append({"id": "git-checkout-pin", "doc_step": f"git checkout {pinned_sha}", **r2})
+        steps.append(
+            {"id": "git-checkout-pin", "doc_step": f"git checkout {pinned_sha}", **r2}
+        )
         raw_lines.append(f"---- step git-checkout-pin exit={r2['exit_code']} ----")
         raw_lines.append(r2["stdout_tail"][-2000:] + r2["stderr_tail"][-2000:])
         pin_ok = r2["exit_code"] == 0
@@ -273,9 +287,9 @@ def main() -> int:
         # PER WORKSPACE (npm --workspaces runs 3 separate test commands), so
         # these must be SUMMED across all occurrences, not overwritten by the
         # last one -- overwriting silently under-counts by 2/3 of the suite.
-        combined = npm_test_step.get("stdout_full", npm_test_step["stdout_tail"]) + npm_test_step.get(
-            "stderr_full", npm_test_step["stderr_tail"]
-        )
+        combined = npm_test_step.get(
+            "stdout_full", npm_test_step["stdout_tail"]
+        ) + npm_test_step.get("stderr_full", npm_test_step["stderr_tail"])
         npm_test_summary["exit_code"] = npm_test_step["exit_code"]
         pass_total = 0
         fail_total = 0
@@ -295,7 +309,8 @@ def main() -> int:
     doc = {
         "started_at": started,
         "ended_at": ended,
-        "ok": clone_ok and pin_ok,  # the PROBE ran to completion; docs-step pass/fail is separate
+        "ok": clone_ok
+        and pin_ok,  # the PROBE ran to completion; docs-step pass/fail is separate
         "clone_url": CLONE_URL,
         "pinned_sha": pinned_sha,
         "scratch_root": str(scratch_root),

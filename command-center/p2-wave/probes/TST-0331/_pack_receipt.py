@@ -116,9 +116,7 @@ def build() -> dict:
     dep2 = _require_dep_success(CC0002)
     dep9 = _require_dep_success(CC0009)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", TESTS, "-q", "--tb=line"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", TESTS, "-q", "--tb=line"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"TST-0331 pytest failed:\n{out_py}")
@@ -502,8 +500,8 @@ def build() -> dict:
                 "probe": L.probe(
                     "source",
                     "command",
-                    "python3 -c \"import evidence_anchor_resolver as m; "
-                    "print(m.__name__)\"",
+                    'python3 -c "import evidence_anchor_resolver as m; '
+                    'print(m.__name__)"',
                     "evidence_anchor_resolver\n",
                     exit_code=0,
                 ),

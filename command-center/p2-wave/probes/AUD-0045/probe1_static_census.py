@@ -4,6 +4,7 @@
 Looks for early-return-on-empty, default-off flags, swallowed exceptions, and
 skipped-tool paths. Does not weaken any gate.
 """
+
 from __future__ import annotations
 
 import ast
@@ -131,7 +132,11 @@ class FailOpenVisitor(ast.NodeVisitor):
             )
         # return 0 inside except
         for s in body:
-            if isinstance(s, ast.Return) and isinstance(s.value, ast.Constant) and s.value.value == 0:
+            if (
+                isinstance(s, ast.Return)
+                and isinstance(s.value, ast.Constant)
+                and s.value.value == 0
+            ):
                 self.findings.append(
                     {
                         "kind": "except-return-zero",
@@ -192,7 +197,9 @@ def analyze_file(rel: str) -> dict:
     if not path.is_file():
         return row
     try:
-        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"), filename=rel)
+        tree = ast.parse(
+            path.read_text(encoding="utf-8", errors="replace"), filename=rel
+        )
     except SyntaxError as e:
         row["parse_error"] = str(e)
         return row
@@ -250,7 +257,7 @@ def main() -> int:
     )
     lines = [
         "AUD-0045 NAMED PROBE 1: static fail-open pattern census",
-        f"unit=AUD-0045",
+        "unit=AUD-0045",
         f"gates_considered={len(gates)}",
         f"gates_present={len(present)}",
         f"gates_absent={len(absent)}",
@@ -261,7 +268,9 @@ def main() -> int:
     ]
     for s in suspects[:25]:
         lines.append(f"  {s['path']} kinds={s['kinds']} n={s['finding_count']}")
-    lines.append("SUCCESS:AUD-0045-probe1" if result["ok"] else "FAILED:AUD-0045-probe1")
+    lines.append(
+        "SUCCESS:AUD-0045-probe1" if result["ok"] else "FAILED:AUD-0045-probe1"
+    )
     raw = "\n".join(lines) + "\n"
     (OUT_DIR / "probe1-static.raw.txt").write_text(raw, encoding="utf-8")
     sys.stdout.write(raw)

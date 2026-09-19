@@ -37,6 +37,7 @@ BAD state passes, the packaging/import-path exposure this unit measures does
 not exist as claimed and the probe reports ok=False rather than silently
 declaring success.
 """
+
 from __future__ import annotations
 
 import json
@@ -94,7 +95,9 @@ def installed_run(state_dir: Path, tmp_root: Path, label: str) -> dict:
         }
     pip = str(venv_dir / "bin" / "pip")
     console_script = str(venv_dir / "bin" / "scratch-cli")
-    rc_install, out_install = run([pip, "install", "--quiet", str(src_copy)], timeout=300)
+    rc_install, out_install = run(
+        [pip, "install", "--quiet", str(src_copy)], timeout=300
+    )
     if rc_install != 0:
         return {
             "venv_created": True,
@@ -126,6 +129,7 @@ def main() -> int:
     # include list", nothing else. helper_mod/ source is present on disk in BOTH.
     good_py = (good_dir / "pyproject.toml").read_text(encoding="utf-8")
     bad_py = (bad_dir / "pyproject.toml").read_text(encoding="utf-8")
+
     def _tracked_files(root: Path) -> list[str]:
         skip_dirs = {"__pycache__", ".pytest_cache", "build"}
         return sorted(
@@ -168,10 +172,7 @@ def main() -> int:
     # both halves stay GREEN for the unmutated tree (negative control: the harness
     # itself is not just always-red).
     both_states_ok = (
-        good_src_pass
-        and good_inst_pass
-        and bad_src_pass
-        and (not bad_inst_pass)
+        good_src_pass and good_inst_pass and bad_src_pass and (not bad_inst_pass)
     )
     control_ok = fixture_files_match and manifest_mutation_ok
     ok = both_states_ok and control_ok

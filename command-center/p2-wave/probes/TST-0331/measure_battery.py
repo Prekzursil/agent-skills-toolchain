@@ -273,9 +273,7 @@ def run_battery() -> dict:
                     # Re-resolve with file: prefix so bare prose anchors that
                     # happen to look like paths are exercised honestly.
                     item = dict(ev)
-                    item["anchor"] = (
-                        f"file:{p.path}" + (f":{p.line}" if p.line else "")
-                    )
+                    item["anchor"] = f"file:{p.path}" + (f":{p.line}" if p.line else "")
                     file_items.append(item)
             if file_items:
                 live_report = validate_receipt_evidence(
@@ -324,7 +322,9 @@ def run_battery() -> dict:
             "live_receipt_file_anchor_spotcheck": live_fp,
             "reads_cited_revision_not_worktree": True,
         }
-        OUT.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        OUT.write_text(
+            json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
         return summary
 
 
@@ -345,11 +345,12 @@ def main() -> int:
         encoding="utf-8",
         errors="replace",
     )
-    PYTEST_OUT.write_text(
-        (proc.stdout or "") + (proc.stderr or ""), encoding="utf-8"
-    )
+    PYTEST_OUT.write_text((proc.stdout or "") + (proc.stderr or ""), encoding="utf-8")
     if proc.returncode != 0:
-        print(f"FAILED:{UNIT} pytest failed:\n{proc.stdout}\n{proc.stderr}", file=sys.stderr)
+        print(
+            f"FAILED:{UNIT} pytest failed:\n{proc.stdout}\n{proc.stderr}",
+            file=sys.stderr,
+        )
         return 1
 
     summary = run_battery()

@@ -5,6 +5,7 @@ Emits BLOCKED until an independent fresh-context Claude review PASS is on disk;
 then SUCCESS. Never stubs SUCCESS. Uses committed probe JSON (does not re-tokenize
 here — tiktoken absence would silently skew totals).
 """
+
 from __future__ import annotations
 
 import json
@@ -42,7 +43,9 @@ def load_review() -> dict | None:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-tokenize-sum.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-occupancy-compare.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-occupancy-compare.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-tokenize.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-occupancy.raw.txt").read_text(encoding="utf-8")
     ctrl = p2["control"]
@@ -61,11 +64,20 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0062/probe1-tokenize-sum.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0062/probe2-occupancy-compare.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0062/probe1-tokenize-sum.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0062/probe2-occupancy-compare.json",
+            "supporting",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0062/probe1-tokenize.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0062/probe2-occupancy.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0062/control-tolerance.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0062/control-tolerance.json",
+            "supporting",
+        ),
     ]
     if success:
         arts.append(
@@ -233,7 +245,9 @@ def build(primary: dict | None = None) -> dict:
                         json.dumps(
                             {
                                 "tokenizer": p1.get("tokenizer"),
-                                "full_file_tokens_model": p1.get("full_file_tokens_model"),
+                                "full_file_tokens_model": p1.get(
+                                    "full_file_tokens_model"
+                                ),
                                 "dominant": dominant.get("path"),
                             }
                         ),

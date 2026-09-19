@@ -9,7 +9,6 @@ Catalog tests_required:
 from __future__ import annotations
 
 import copy
-import json
 import sys
 import tempfile
 from pathlib import Path

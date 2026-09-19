@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
-import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
@@ -76,17 +74,18 @@ def test_self_reference_live_receipt_patterns_not_flagged():
     sentinel vocabulary on the live receipt fired result:reported-value.
     """
     doc = (
-        'role scanners; user_cancelled_or_timedout / ghp_ FAKE examples stay silent.\n'
+        "role scanners; user_cancelled_or_timedout / ghp_ FAKE examples stay silent.\n"
         '{"sentinel": "FAILED:TST-0341 blocked-on-independent-review; role_fp=0"}\n'
     )
     result = self_reference_silent(doc)
     assert result["silent"] is True, result
     # Also exercise against the real receipt bytes when present.
-    receipt = Path(__file__).resolve().parents[3] / "command-center/receipts/TST-0341.json"
+    receipt = (
+        Path(__file__).resolve().parents[3] / "command-center/receipts/TST-0341.json"
+    )
     if receipt.is_file():
         live = self_reference_silent(receipt.read_text(encoding="utf-8"))
         assert live["silent"] is True, live
-
 
 
 def test_scan_role_silent_on_write_body_command_mention():

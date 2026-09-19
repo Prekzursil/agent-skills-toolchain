@@ -48,7 +48,8 @@ def census() -> dict:
 
 def rank(limit: int) -> list[dict]:
     cat = {
-        u["id"]: u for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]
+        u["id"]: u
+        for u in json.loads(CATALOG.read_text(encoding="utf-8"))["work_units"]
     }
     ready = json.loads(READY.read_text(encoding="utf-8"))["ready_units"]
     power: Counter[str] = Counter()
@@ -112,15 +113,28 @@ def main() -> int:
         prev = json.loads(STATE.read_text(encoding="utf-8"))
         state["cycles"] = int(prev.get("cycles", 0)) + 1
         state["history"] = (prev.get("history") or [])[-20:] + [
-            {"at": now, "green": c["green_SUCCESS"], "ready_batch": [r["id"] for r in rows]}
+            {
+                "at": now,
+                "green": c["green_SUCCESS"],
+                "ready_batch": [r["id"] for r in rows],
+            }
         ]
     else:
         state["cycles"] = 1
         state["history"] = [
-            {"at": now, "green": c["green_SUCCESS"], "ready_batch": [r["id"] for r in rows]}
+            {
+                "at": now,
+                "green": c["green_SUCCESS"],
+                "ready_batch": [r["id"] for r in rows],
+            }
         ]
     STATE.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"cycle": state["cycles"], "census": c, "batch": [r["id"] for r in rows]}, indent=2))
+    print(
+        json.dumps(
+            {"cycle": state["cycles"], "census": c, "batch": [r["id"] for r in rows]},
+            indent=2,
+        )
+    )
     return 0 if c.get("owner_hard_bar_met") else 1
 
 

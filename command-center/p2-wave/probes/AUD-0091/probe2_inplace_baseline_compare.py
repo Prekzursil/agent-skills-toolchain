@@ -11,11 +11,11 @@ pass/fail/exit_code, whatever the clean-clone run measured is not an
 artifact of missing local caches -- it is what the documented sequence
 itself does.
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -56,10 +56,19 @@ def run_inplace_npm_test() -> dict:
         if saw_any:
             summary["pass"] = pass_total
             summary["fail"] = fail_total
-        return {"summary": summary, "stdout_tail": r.stdout[-8000:], "stderr_tail": r.stderr[-8000:]}
+        return {
+            "summary": summary,
+            "stdout_tail": r.stdout[-8000:],
+            "stderr_tail": r.stderr[-8000:],
+        }
     except subprocess.TimeoutExpired as exc:
         return {
-            "summary": {"pass": None, "fail": None, "exit_code": None, "timed_out": True},
+            "summary": {
+                "pass": None,
+                "fail": None,
+                "exit_code": None,
+                "timed_out": True,
+            },
             "stdout_tail": (exc.stdout or "")[-8000:] if exc.stdout else "",
             "stderr_tail": (exc.stderr or "")[-8000:] if exc.stderr else "",
         }
@@ -77,7 +86,9 @@ def main() -> int:
     if probe1_available:
         p1 = json.loads(PROBE1_JSON.read_text(encoding="utf-8"))
         clean_clone_summary = p1.get("npm_test_summary")
-        raw_lines.append(f"clean_clone_npm_test_summary={json.dumps(clean_clone_summary)}")
+        raw_lines.append(
+            f"clean_clone_npm_test_summary={json.dumps(clean_clone_summary)}"
+        )
     else:
         raw_lines.append("probe1 JSON not found -- cannot compare")
 

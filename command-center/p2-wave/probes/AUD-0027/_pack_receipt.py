@@ -5,6 +5,7 @@ Honest census with live probes. Emits BLOCKED pending independent fresh-context
 Claude review (catalog reviewer_requirement: falsify headline count). Never
 emits SUCCESS without that review — anti-false-green.
 """
+
 from __future__ import annotations
 
 import json
@@ -38,7 +39,9 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-wheel-tag-matrix.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-wheel-tag-matrix.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads((PROBE / "probe2-clean-install.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-wheel-tag-matrix.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-clean-install.raw.txt").read_text(encoding="utf-8")

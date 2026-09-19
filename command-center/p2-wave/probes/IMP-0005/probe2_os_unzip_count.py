@@ -47,7 +47,9 @@ def _unzip_file_count(archive: Path) -> tuple[int, str]:
             f"unzip -Z1 failed rc={proc.returncode}: "
             f"{(proc.stderr or proc.stdout or '').strip()}"
         )
-    names = [ln for ln in (proc.stdout or "").splitlines() if ln and not ln.endswith("/")]
+    names = [
+        ln for ln in (proc.stdout or "").splitlines() if ln and not ln.endswith("/")
+    ]
     return len(names), "unzip-Z1"
 
 
@@ -130,7 +132,9 @@ def main() -> int:
     grown_target = dict(entries_prev[0])
     removed_only_in_prev = dict(entries_prev[1])
     # Previous: smaller grown_target, includes removed_only_in_prev, lacks a new path
-    grown_target["size"] = max(0, int(grown_target["size"]) - 1) if grown_target["size"] else 0
+    grown_target["size"] = (
+        max(0, int(grown_target["size"]) - 1) if grown_target["size"] else 0
+    )
     # Force growth: ensure previous size is strictly less than current for that path
     for e in cur_inv["entries"]:
         if e["path"] == grown_target["path"]:
@@ -148,7 +152,9 @@ def main() -> int:
     ]
     # Drop one current-only path from previous → it becomes "added"
     # Ensure removed_only_in_prev is NOT in current inventory for "removed"
-    cur_entries = [e for e in cur_inv["entries"] if e["path"] != removed_only_in_prev["path"]]
+    cur_entries = [
+        e for e in cur_inv["entries"] if e["path"] != removed_only_in_prev["path"]
+    ]
     # Add a brand-new path only in current
     cur_entries.append(
         {

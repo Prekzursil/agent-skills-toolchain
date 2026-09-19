@@ -7,6 +7,7 @@ tests_required:
 
 Uses fixtures under probes/AUD-0044/fixtures/ — does NOT mutate live workflows.
 """
+
 from __future__ import annotations
 
 import json
@@ -83,8 +84,7 @@ def main() -> int:
         f"{renamed_cmp['required_but_never_emitted']}\n"
     )
     raw_lines.append(
-        f"renamed_emitted_but_not_required="
-        f"{renamed_cmp['emitted_but_not_required']}\n"
+        f"renamed_emitted_but_not_required={renamed_cmp['emitted_but_not_required']}\n"
     )
     raw_lines.append(f"ok={ok} (expect baseline_empty AND renamed_nonempty)\n")
 

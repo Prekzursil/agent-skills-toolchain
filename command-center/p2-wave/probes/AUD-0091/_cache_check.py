@@ -4,6 +4,7 @@ A single function so the control's fixture demonstration and probe1's real
 precheck of the clean-room npm cache directory are provably the SAME logic,
 not two detectors that happen to agree by coincidence.
 """
+
 from __future__ import annotations
 
 from pathlib import Path

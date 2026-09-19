@@ -5,6 +5,7 @@ Emits BLOCKED until an independent cross-vendor Codex review PASS that re-ran
 ONLY probe 2 (catalog `reviewer_requirement`) is on disk; then SUCCESS. Never
 stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,10 +46,16 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-gate-baseline-census.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-gate-plant-revert-sweep.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-gate-baseline-census.json").read_text(encoding="utf-8")
+    )
+    p2 = json.loads(
+        (PROBE / "probe2-gate-plant-revert-sweep.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-gate-baseline-census.raw.txt").read_text(encoding="utf-8")
-    raw2 = (PROBE / "probe2-gate-plant-revert-sweep.raw.txt").read_text(encoding="utf-8")
+    raw2 = (PROBE / "probe2-gate-plant-revert-sweep.raw.txt").read_text(
+        encoding="utf-8"
+    )
     rev = load_review()
     success = rev is not None
     started = "2026-09-07T21:20:00Z"

@@ -112,7 +112,9 @@ def extract_object_key_occurrences(raw: str) -> list[list[str]]:
     try:
         json.loads(raw, object_pairs_hook=_capture)
     except json.JSONDecodeError as exc:
-        raise ManifestSchemaError(ERR_OTHER, f"manifest is not valid JSON: {exc}") from exc
+        raise ManifestSchemaError(
+            ERR_OTHER, f"manifest is not valid JSON: {exc}"
+        ) from exc
     return occurrences
 
 
@@ -163,7 +165,9 @@ def parse_manifest_text(raw: str) -> dict[str, Any]:
     except ManifestSchemaError:
         raise
     except json.JSONDecodeError as exc:
-        raise ManifestSchemaError(ERR_OTHER, f"manifest is not valid JSON: {exc}") from exc
+        raise ManifestSchemaError(
+            ERR_OTHER, f"manifest is not valid JSON: {exc}"
+        ) from exc
     if not isinstance(doc, dict):
         raise ManifestSchemaError(ERR_WRONG_TYPE, "manifest root must be an object")
     return doc
@@ -239,7 +243,9 @@ def validate_with_jsonschema(
         return Verdict(ok=True, library="jsonschema")
     except ValidationError as exc:
         code = _classify_jsonschema_error(exc, instance)
-        return Verdict(ok=False, library="jsonschema", error_code=code, message=str(exc))
+        return Verdict(
+            ok=False, library="jsonschema", error_code=code, message=str(exc)
+        )
 
 
 def validate_with_fastjsonschema(

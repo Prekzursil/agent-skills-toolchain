@@ -4,12 +4,12 @@
 Excludes test modules. Use-vs-mention safe: comments/docstrings stripped before
 import-spec extraction, then asserted via the planted mention-only fixture.
 """
+
 from __future__ import annotations
 
 import json
 import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
@@ -336,7 +336,8 @@ def main() -> int:
     mention_control_ok = (
         raw_mentions >= 6
         and len(control_resolved) == 0
-        and CONTROL.name not in {c["path"].split("/")[-1] for cs in consumers.values() for c in cs}
+        and CONTROL.name
+        not in {c["path"].split("/")[-1] for cs in consumers.values() for c in cs}
     )
     # stronger: no consumer path equals the control file
     control_rel = rel(CONTROL)
@@ -358,9 +359,7 @@ def main() -> int:
         "modules_with_non_test_consumers": modules_with_consumers,
         "modules_with_zero_non_test_consumers": zero_consumer_modules,
         "zero_non_test_consumer_count": len(zero_consumer_modules),
-        "consumers_by_module": {
-            m: consumers[m] for m in sorted(consumers)
-        },
+        "consumers_by_module": {m: consumers[m] for m in sorted(consumers)},
         "aud0030_import_graph": aud30_note,
         "planted_mention_control": {
             "path": control_rel,

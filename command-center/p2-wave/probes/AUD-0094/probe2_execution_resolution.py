@@ -9,6 +9,7 @@ Catalog evidence_requirement (verbatim):
 Catalog reviewer_requirement:
   one cross-vendor Codex reviewer who re-runs ONLY the second probe.
 """
+
 from __future__ import annotations
 
 import ast
@@ -100,7 +101,9 @@ def python_import_graph_scan(deleted: list[str]) -> dict:
         if rel.startswith("command-center/p2-wave/probes/AUD-0094/"):
             continue
         try:
-            tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"), filename=rel)
+            tree = ast.parse(
+                p.read_text(encoding="utf-8", errors="replace"), filename=rel
+            )
         except (SyntaxError, OSError):
             continue
         mods: list[str] = []
@@ -120,7 +123,11 @@ def python_import_graph_scan(deleted: list[str]) -> dict:
                 matched = cand_dir
             else:
                 for d in deleted:
-                    if cand_py == d or cand_dir == d or cand_dir.startswith(d.rstrip("/") + "/"):
+                    if (
+                        cand_py == d
+                        or cand_dir == d
+                        or cand_dir.startswith(d.rstrip("/") + "/")
+                    ):
                         matched = d
                         break
             if matched:
@@ -240,7 +247,9 @@ def node_survivor_import_scan(deleted: list[str]) -> dict:
                         matched = d
                         break
                     # import may omit extension
-                    if d.startswith(target_rel) and d[len(target_rel) : len(target_rel) + 1] in {
+                    if d.startswith(target_rel) and d[
+                        len(target_rel) : len(target_rel) + 1
+                    ] in {
                         "",
                         ".",
                     }:
@@ -273,7 +282,9 @@ try {{
 """
         rc, out = run(["node", "-e", script], timeout=20)
         if rc != 0 and (
-            hit["deleted_path"] in out or "MODULE_NOT_FOUND" in out or "ERR_MODULE_NOT_FOUND" in out
+            hit["deleted_path"] in out
+            or "MODULE_NOT_FOUND" in out
+            or "ERR_MODULE_NOT_FOUND" in out
         ):
             errors.append(
                 {
@@ -300,7 +311,11 @@ catch (e) {{ console.error('ABSENT', {json.dumps(dpath)}, e.code || ''); process
 """
         rc, out = run(["node", "-e", script], timeout=15)
         absent_confirm.append(
-            {"deleted_path": dpath, "absent": rc == 1 and dpath in out, "excerpt": out[:160]}
+            {
+                "deleted_path": dpath,
+                "absent": rc == 1 and dpath in out,
+                "excerpt": out[:160],
+            }
         )
 
     return {
@@ -380,7 +395,9 @@ def ast_import_mentions_of_deleted(deleted: list[str]) -> dict:
             continue
         py_files += 1
         try:
-            tree = ast.parse(p.read_text(encoding="utf-8", errors="replace"), filename=rel)
+            tree = ast.parse(
+                p.read_text(encoding="utf-8", errors="replace"), filename=rel
+            )
         except SyntaxError:
             continue
         for node in ast.walk(tree):
@@ -388,9 +405,19 @@ def ast_import_mentions_of_deleted(deleted: list[str]) -> dict:
                 # rough: module path with dots → slash
                 cand = node.module.replace(".", "/") + ".py"
                 if cand in deleted_set or node.module.replace(".", "/") in deleted_set:
-                    hits.append({"file": rel, "kind": "ImportFrom", "module": node.module})
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "__import__":
-                if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
+                    hits.append(
+                        {"file": rel, "kind": "ImportFrom", "module": node.module}
+                    )
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "__import__"
+            ):
+                if (
+                    node.args
+                    and isinstance(node.args[0], ast.Constant)
+                    and isinstance(node.args[0].value, str)
+                ):
                     mod = node.args[0].value
                     cand = mod.replace(".", "/") + ".py"
                     if cand in deleted_set:
@@ -412,11 +439,14 @@ def main() -> int:
 
     # Resolution errors that name a deleted path (execution-level dangling).
     named_errors = []
-    for block in (py_graph.get("resolution_errors") or []):
+    for block in py_graph.get("resolution_errors") or []:
         if block.get("names_deleted_path"):
             named_errors.append(block)
-    for block in (node.get("resolution_errors") or []):
-        if block.get("names_deleted_path") or block.get("kind") == "node-survivor-import-resolve":
+    for block in node.get("resolution_errors") or []:
+        if (
+            block.get("names_deleted_path")
+            or block.get("kind") == "node-survivor-import-resolve"
+        ):
             named_errors.append(block)
     for h in collect.get("hits") or []:
         named_errors.append(

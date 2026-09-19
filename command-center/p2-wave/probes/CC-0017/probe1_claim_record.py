@@ -110,8 +110,12 @@ def main() -> int:
         "migrate_errs": migrate_errs,
         "field_loss_ids": field_loss,
         "controls": {
-            "no_settling_probe_rejected": any("settling_probe" in e for e in no_probe_errs),
-            "duplicate_of_cycle_rejected": any("duplicate_of cycle" in e for e in cycle_errs),
+            "no_settling_probe_rejected": any(
+                "settling_probe" in e for e in no_probe_errs
+            ),
+            "duplicate_of_cycle_rejected": any(
+                "duplicate_of cycle" in e for e in cycle_errs
+            ),
             "ghost_contradiction_rejected": any("GHOST" in e for e in ghost_errs),
         },
         "cc0012_dependency": "SUCCESS",

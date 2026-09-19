@@ -229,9 +229,7 @@ def resolve_unit(
 ) -> dict[str, Any]:
     """Resolved view for one unit: effective value + provenance per field."""
     target_fields = fields or OVERRIDEABLE_DEFAULT_FIELDS
-    resolved = {
-        field: resolve_field(item, defaults, field) for field in target_fields
-    }
+    resolved = {field: resolve_field(item, defaults, field) for field in target_fields}
     return {
         "id": str(item.get("id", "")),
         "fields": resolved,

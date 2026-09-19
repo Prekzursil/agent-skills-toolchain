@@ -5,6 +5,7 @@ Honest census with live probes. Emits BLOCKED pending independent fresh-context
 Claude review (catalog reviewer_requirement). Never emits SUCCESS without that
 review — anti-false-green.
 """
+
 from __future__ import annotations
 
 import json
@@ -43,7 +44,9 @@ def load_review() -> dict | None:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-constraint-census.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-constraint-census.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads((PROBE / "probe2-dual-resolution.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-constraint-census.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-dual-resolution.raw.txt").read_text(encoding="utf-8")
@@ -62,10 +65,22 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.raw.txt",
+            "log",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.raw.txt",
+            "log",
+        ),
         L.art(
             "command-center/p2-wave/probes/AUD-0025/fixtures/planted-unpinned/package.json",
             "fixture",
@@ -77,7 +92,10 @@ def build(primary: dict | None = None) -> dict:
     ]
     if success:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0025/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0025/independent-review.json",
+                "supporting",
+            )
         )
 
     floating = p1["floating_count"]
@@ -343,7 +361,9 @@ def build(primary: dict | None = None) -> dict:
                     "resolutions across both runs"
                 ),
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0025/probe2_dual_resolution.py",
-                "result": "PASS" if exact_ok and not p2["resolution_probe_contaminated"] else "FAIL",
+                "result": "PASS"
+                if exact_ok and not p2["resolution_probe_contaminated"]
+                else "FAIL",
                 "assertions": 2,
                 "output_tail": raw2[-500:],
             },

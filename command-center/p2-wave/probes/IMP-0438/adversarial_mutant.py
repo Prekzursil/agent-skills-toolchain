@@ -5,6 +5,7 @@ Flips one hex nibble of provenance.register_sha256 while leaving the REGISTER.md
 fixture and the rest of the catalog intact. Distinct from battery M10 (tampered
 register bytes), M12 (blank digest), and M13 (deleted digest key).
 """
+
 from __future__ import annotations
 
 import json

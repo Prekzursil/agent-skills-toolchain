@@ -23,7 +23,7 @@ import re
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -304,12 +304,12 @@ def _extract_blocks(path: Path, text: str) -> list[dict[str, Any]]:
                 blocks.append(
                     {
                         "_unparseable": True,
-                        "path": f"{rel}:line={i+1}",
+                        "path": f"{rel}:line={i + 1}",
                         "reason": f"jsonl-decode:{exc}",
                     }
                 )
                 continue
-            blocks.append(_json_item_to_block(f"{rel}:line={i+1}", i, item))
+            blocks.append(_json_item_to_block(f"{rel}:line={i + 1}", i, item))
         return blocks
 
     # Markdown / text: split on AT2+ headings or option-like bullets.
@@ -497,9 +497,10 @@ def normalize_corpus(
                     )
                 )
                 continue
-            if not str(block.get("body") or "").strip() and not str(
-                block.get("title") or ""
-            ).strip():
+            if (
+                not str(block.get("body") or "").strip()
+                and not str(block.get("title") or "").strip()
+            ):
                 drops.append(
                     DropRecord(
                         input_id=str(block.get("path")),
@@ -523,9 +524,7 @@ def normalize_corpus(
                 str(block.get("body") or block.get("title") or "").encode("utf-8")
             ).hexdigest(),
         )
-        mech_key = re.sub(
-            r"\s+", " ", claim["canonical_mechanism"].strip().lower()
-        )
+        mech_key = re.sub(r"\s+", " ", claim["canonical_mechanism"].strip().lower())
         if mech_key in by_mech:
             merges.append(
                 MergeRecord(
@@ -709,7 +708,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.corpus is None:
                 root = resolve_corpus_root(None)
             else:
-                root = resolve_corpus_root(args.corpus, require_expected_artifacts=False)
+                root = resolve_corpus_root(
+                    args.corpus, require_expected_artifacts=False
+                )
             result = normalize_corpus(
                 root,
                 inject_planted=not args.no_planted,

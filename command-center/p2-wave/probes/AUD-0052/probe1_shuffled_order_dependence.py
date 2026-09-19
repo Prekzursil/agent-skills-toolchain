@@ -59,7 +59,9 @@ def target_args() -> list[str]:
     return list(collectible_scope.TARGET_ARGS)
 
 
-def run_pytest(seed: int | None, tmpdir: Path) -> tuple[int, str, list[str], dict[str, str]]:
+def run_pytest(
+    seed: int | None, tmpdir: Path
+) -> tuple[int, str, list[str], dict[str, str]]:
     if STATE_FILE.exists():
         STATE_FILE.unlink()
     order_path = tmpdir / f"order-{seed}.txt"
@@ -104,7 +106,10 @@ def run_pytest(seed: int | None, tmpdir: Path) -> tuple[int, str, list[str], dic
 
 
 def main() -> int:
-    lines: list[str] = ["AUD-0052 NAMED PROBE 1: shuffled-order-dependence census", "unit=AUD-0052"]
+    lines: list[str] = [
+        "AUD-0052 NAMED PROBE 1: shuffled-order-dependence census",
+        "unit=AUD-0052",
+    ]
     with tempfile.TemporaryDirectory(prefix="aud0052-p1-") as td:
         tmp = Path(td)
 
@@ -136,10 +141,12 @@ def main() -> int:
         for j in range(i + 1, len(orders_list))
     )
     any_differs_from_baseline = any(o != base_order for o in orders_list)
-    same_membership = all(sorted(o) == sorted(base_order) for o in orders_list) and bool(
-        base_order
+    same_membership = all(
+        sorted(o) == sorted(base_order) for o in orders_list
+    ) and bool(base_order)
+    shuffle_control_ok = (
+        pairwise_distinct and any_differs_from_baseline and same_membership
     )
-    shuffle_control_ok = pairwise_distinct and any_differs_from_baseline and same_membership
     lines.append(
         f"CONTROL shuffle_actually_reorders pairwise_distinct={pairwise_distinct} "
         f"any_differs_from_baseline={any_differs_from_baseline} "
@@ -167,9 +174,7 @@ def main() -> int:
     gt_b_flagged = any(
         GROUND_TRUTH_B in c["nodeid"] for c in order_dependent_candidates
     )
-    b_nodeid = next(
-        (nid for nid in base_results if GROUND_TRUTH_B in nid), None
-    )
+    b_nodeid = next((nid for nid in base_results if GROUND_TRUTH_B in nid), None)
     gt_b_seeds_failed = sorted(
         seed
         for seed in SEEDS
@@ -225,7 +230,9 @@ def main() -> int:
         },
         "baseline_all_collectible_present": baseline_all_collectible_present,
     }
-    OUT.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines.append(
         f"order_dependent_candidates_count={len(order_dependent_candidates)} "

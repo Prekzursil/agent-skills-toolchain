@@ -45,9 +45,7 @@ def main() -> int:
     max_bytes, max_files = budget_mod.load_budget(
         REPO / "tools/plugin/payload-allowlist.json"
     )
-    totals = budget_mod.check_budget(
-        OUT, max_bytes=max_bytes, max_files=max_files
-    )
+    totals = budget_mod.check_budget(OUT, max_bytes=max_bytes, max_files=max_files)
     # Detector self-consistency: packer size_bytes must match checker.
     pack_vs_checker = result.size_bytes == totals.size_bytes
     member_vs_checker = len(result.members) == totals.file_count

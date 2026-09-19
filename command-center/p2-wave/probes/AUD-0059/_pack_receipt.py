@@ -45,7 +45,9 @@ def load_review() -> dict | None:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-fire-log-search.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-controlled-trigger.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-controlled-trigger.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-fire-log-search.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-controlled-trigger.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
@@ -153,7 +155,9 @@ def build(primary: dict | None = None) -> dict:
             {
                 "id": "AUD-0059-D-LIVE-FIRE",
                 "severity": "P2",
-                "status": "open" if (live_fire == 0 and not live_ledger) else "resolved",
+                "status": "open"
+                if (live_fire == 0 and not live_ledger)
+                else "resolved",
                 "summary": (
                     f"live_turn_fire={live_fire}/{registered}; "
                     f"live_ledger_present={live_ledger}; both_states={both_states}."

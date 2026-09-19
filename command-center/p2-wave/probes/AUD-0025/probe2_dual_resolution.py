@@ -10,6 +10,7 @@ This probe uses a local deterministic candidate catalog (no network) so the
 measurement is reproducible offline. It is not a claim about live registry
 contents — residual_unknowns records that boundary.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -65,7 +66,11 @@ def allowed(constraint: str, classification: str, versions: list[str]) -> list[s
         if m:
             exact = m.group(1)
         return [v for v in versions if v == exact or v.lstrip("v") == exact.lstrip("v")]
-    if classification == "none" or classification == "wildcard" or c in {"*", "latest", "x", "X", "(none)"}:
+    if (
+        classification == "none"
+        or classification == "wildcard"
+        or c in {"*", "latest", "x", "X", "(none)"}
+    ):
         return list(versions)
     if classification == "caret" or c.startswith("^"):
         base = c.lstrip("^").lstrip("v")
@@ -98,7 +103,9 @@ def allowed(constraint: str, classification: str, versions: list[str]) -> list[s
             parts = base.split(".")
             if len(parts) == 1:
                 maj = int(parts[0])
-                return [v for v in versions if parse_semver(v)[0] == maj] or list(versions)
+                return [v for v in versions if parse_semver(v)[0] == maj] or list(
+                    versions
+                )
             maj, minor = int(parts[0]), int(parts[1])
             return [
                 v
@@ -128,7 +135,9 @@ def pick(seed: str, name: str, constraint: str, classification: str) -> str | No
     opts = allowed(constraint, classification, versions)
     if not opts:
         return None
-    digest = hashlib.sha256(f"{seed}:{name}:{constraint}:{classification}".encode()).hexdigest()
+    digest = hashlib.sha256(
+        f"{seed}:{name}:{constraint}:{classification}".encode()
+    ).hexdigest()
     return opts[int(digest[:8], 16) % len(opts)]
 
 
@@ -144,7 +153,10 @@ def resolve(seed: str, rows: list[dict]) -> dict[str, str]:
 
 def main() -> int:
     if not P1.is_file():
-        print("FAIL:AUD-0025-probe2 missing probe1 output; run probe1 first", file=sys.stderr)
+        print(
+            "FAIL:AUD-0025-probe2 missing probe1 output; run probe1 first",
+            file=sys.stderr,
+        )
         return 2
     p1 = json.loads(P1.read_text(encoding="utf-8"))
     rows = p1["rows"]
@@ -169,7 +181,11 @@ def main() -> int:
             continue
         if "AUD-0025/fixtures/" in r["path"]:
             continue
-        if r["floating"] and r["name"] in CANDIDATES and r["ecosystem"] in {"npm", "pip"}:
+        if (
+            r["floating"]
+            and r["name"] in CANDIDATES
+            and r["ecosystem"] in {"npm", "pip"}
+        ):
             focus.append(r)
         if len(focus) >= 80:
             break
@@ -223,7 +239,9 @@ def main() -> int:
         for c in comparisons
         if "exact-pin-control" in c["path"] and c["classification"] == "exact"
     ]
-    control_exact_ok = bool(control_exact_rows) and all(c["identical"] for c in control_exact_rows)
+    control_exact_ok = bool(control_exact_rows) and all(
+        c["identical"] for c in control_exact_rows
+    )
 
     # Floating must diverge for at least one planted floating constraint
     planted_float_ok = planted_float_diverged >= 1
@@ -231,7 +249,12 @@ def main() -> int:
     # Overall: probe contaminated if any exact pin drifted
     contaminated = exact_diverged > 0
 
-    ok = control_exact_ok and planted_float_ok and not contaminated and floating_diverged >= 1
+    ok = (
+        control_exact_ok
+        and planted_float_ok
+        and not contaminated
+        and floating_diverged >= 1
+    )
 
     doc = {
         "unit": "AUD-0025",
@@ -255,13 +278,15 @@ def main() -> int:
             "not a live npm/pypi resolution"
         ),
     }
-    OUT_JSON.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines = [
         "AUD-0025 NAMED PROBE 2: dual-seed resolution (float vs exact reproducibility)",
         "catalog_verbatim=Probe 2: two resolutions taken at different times or with different resolver seeds, showing whether the constraint actually floats in practice rather than only in theory.",
         "tests_required_verbatim=control: a fixture with an exact pin must produce identical resolutions across both runs; if it does not, the resolution probe is contaminated",
-        f"unit=AUD-0025",
+        "unit=AUD-0025",
         f"seed_a={seed_a}",
         f"seed_b={seed_b}",
         f"focus_declaration_count={len(focus)}",

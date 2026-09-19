@@ -6,6 +6,7 @@ mounted. Reconstruct from the catalog pin (line 175 present-tense collision,
 Queued as P2-09, zero MECH tokens, ~44 KB) and family-M / architecture slices
 that reproduce F-B-02 arithmetic 31→0 after fb02.
 """
+
 from __future__ import annotations
 
 import importlib.util
@@ -166,7 +167,9 @@ def main() -> int:
         "live_log": "17-DECISION-LOG.md",
         "source": "reconstructed-from-catalog-pin-on-linux-cloud-single-checkout",
     }
-    (FIX / "build-meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    (FIX / "build-meta.json").write_text(
+        json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(meta, indent=2))
     print("SUCCESS:CC-0022-fixtures")
     return 0

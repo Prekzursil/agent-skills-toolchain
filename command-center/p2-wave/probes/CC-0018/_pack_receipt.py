@@ -73,7 +73,9 @@ def load_pass_review() -> dict | None:
     if not rev.get("independent") or not rev.get("fresh_context"):
         return None
     # Must show they attempted a gaming input (anti-repetition brief).
-    if not (rev.get("gaming_input") or rev.get("adversarial_input") or rev.get("notes")):
+    if not (
+        rev.get("gaming_input") or rev.get("adversarial_input") or rev.get("notes")
+    ):
         return None
     if rev.get("rank_rose_under_repetition") is True:
         return None
@@ -84,7 +86,9 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    dep = json.loads((L.REPO / "command-center/receipts/CC-0017.json").read_text(encoding="utf-8"))
+    dep = json.loads(
+        (L.REPO / "command-center/receipts/CC-0017.json").read_text(encoding="utf-8")
+    )
     if dep.get("state") != "SUCCESS":
         raise SystemExit(f"CC-0018 refuses pack: CC-0017 state={dep.get('state')!r}")
 
@@ -98,7 +102,9 @@ def build() -> dict:
         raise SystemExit(f"CC-0018 probe1 failed:\n{p1_out}")
 
     adv = json.loads(
-        (L.REPO / PROBE_DIR / "adversarial-before-after-ranks.json").read_text(encoding="utf-8")
+        (L.REPO / PROBE_DIR / "adversarial-before-after-ranks.json").read_text(
+            encoding="utf-8"
+        )
     )
     raw1 = (L.REPO / PROBE_DIR / "adversarial-before-after-ranks.raw.txt").read_text(
         encoding="utf-8"
@@ -121,9 +127,7 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_adv = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc
-    )
+    p_adv = L.probe("verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc)
 
     if success:
         state = "SUCCESS"
@@ -155,7 +159,7 @@ def build() -> dict:
             f"FAILED:{UNIT} blocked-on-independent-adversarial-reviewer; "
             f"prior_review={'FAIL' if prior_fail else 'absent'}; "
             f"anti-repetition executed before_rank={before['rank']} "
-            f"after_rank={after['rank']} score_flat={before['score']==after['score']}; "
+            f"after_rank={after['rank']} score_flat={before['score'] == after['score']}; "
             f"CC-0017 SUCCESS verified; SUCCESS:{UNIT} withheld "
             f"(success_invented=false)"
         )
@@ -281,7 +285,9 @@ def build() -> dict:
         arts.append(L.art(f"{PROBE_DIR}/independent-review.json", "supporting"))
         gaming = L.REPO / PROBE_DIR / "adversarial-gaming-attempt.json"
         if gaming.is_file():
-            arts.append(L.art(f"{PROBE_DIR}/adversarial-gaming-attempt.json", "control"))
+            arts.append(
+                L.art(f"{PROBE_DIR}/adversarial-gaming-attempt.json", "control")
+            )
 
     receipt: dict = {
         "schema_version": 1,
@@ -475,7 +481,9 @@ def main() -> int:
         manifest["blocked_on"] = receipt["failure"]["blocked_on"]
     man_path = L.REPO / MANIFEST
     man_path.parent.mkdir(parents=True, exist_ok=True)
-    man_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    man_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     rc = L.write_if_valid(receipt, OUT, SCHEMA)
     if rc != 0:

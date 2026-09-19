@@ -14,6 +14,7 @@ ask whether the corresponding path exists in the local tree under test
 (filesystem existence). This is the local-delete half of tests_required;
 probe1's commit-to-commit git-diff census is exercised separately.
 """
+
 from __future__ import annotations
 
 import json
@@ -80,9 +81,7 @@ def main() -> int:
     wt = tmp / "main-wt"
     raw.append(f"WORKTREE={wt}")
     try:
-        rc, out = SB.run(
-            ["git", "worktree", "add", "--detach", str(wt), "origin/main"]
-        )
+        rc, out = SB.run(["git", "worktree", "add", "--detach", str(wt), "origin/main"])
         raw.append(f"worktree_add_rc={rc}")
         if rc != 0:
             raw.append(out[:1000])

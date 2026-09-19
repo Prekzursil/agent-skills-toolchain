@@ -12,6 +12,7 @@ Remediation after cross-vendor review FAIL:
 A module reached only through a string-named plugin registry must be LIVE here
 and DEAD under probe 1 — independence control.
 """
+
 from __future__ import annotations
 
 import ast
@@ -19,7 +20,6 @@ import json
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
@@ -42,11 +42,7 @@ def module_name_for(path: Path) -> str:
 def src_layout_short_name(name: str) -> str | None:
     """tools.<proj>.(packages|apps|services|src).<top>.* -> <top>.*"""
     parts = name.split(".")
-    if (
-        len(parts) >= 4
-        and parts[0] == "tools"
-        and parts[2] in SRC_LAYOUT_MARKERS
-    ):
+    if len(parts) >= 4 and parts[0] == "tools" and parts[2] in SRC_LAYOUT_MARKERS:
         return ".".join(parts[3:])
     return None
 
@@ -693,7 +689,10 @@ def main() -> int:
     seeds_in_known = {s for s in seeds if s in known}
     reached_ast = bfs_ast_closure(seeds_in_known, all_mods)
     runtime_live = runtime_import_trace(
-        sorted(ep_pyproject | {m for m in ep_mains if m.endswith(".cli") or m.endswith(".__main__")})
+        sorted(
+            ep_pyproject
+            | {m for m in ep_mains if m.endswith(".cli") or m.endswith(".__main__")}
+        )
         or sorted(seeds_in_known)[:RUNTIME_SEED_BUDGET],
         all_mods,
     )

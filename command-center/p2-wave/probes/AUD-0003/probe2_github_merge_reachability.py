@@ -15,6 +15,7 @@ Writes:
   probe2-github-merge-reachability.json
   probe2-github-merge-reachability.raw.txt
 """
+
 from __future__ import annotations
 
 import json
@@ -43,7 +44,9 @@ def refresh_merge_fields(pr: dict) -> dict:
     }
 
 
-def classify(merged_at: str | None, reachable: bool, sha: str | None, reach_note: str) -> dict:
+def classify(
+    merged_at: str | None, reachable: bool, sha: str | None, reach_note: str
+) -> dict:
     github_says_merged = merged_at is not None
     if github_says_merged and reachable:
         agreement = "agree_merged"

@@ -11,7 +11,6 @@ import ast
 import hashlib
 import importlib.util
 import json
-import os
 import re
 import shutil
 import sys
@@ -238,9 +237,9 @@ def probe_cc0008() -> dict:
         "merge_tool": {
             "path": "command-center/_catalog_integrity.py",
             "function": "do_merge",
-            "sorts_by_id": "clean.sort(key=lambda x: str(x.get(\"id\")))" in src
+            "sorts_by_id": 'clean.sort(key=lambda x: str(x.get("id")))' in src
             or "clean.sort(key=lambda x: str(x.get('id')))" in src
-            or "key=lambda x: str(x.get(\"id\"))" in src
+            or 'key=lambda x: str(x.get("id"))' in src
             or "key=lambda x: str(x.get('id'))" in src,
             "raise_nodes_in_do_merge": len(raises),
             "refuses_on_duplicate": False,
@@ -305,14 +304,14 @@ def probe_cc0008() -> dict:
         f"slice_sum={sum(per_file.values())}",
         f"prefix_counts={json.dumps(dict(sorted(prefix_counts.items())), separators=(',', ':'))}",
         f"missing_bucket_field={missing_bucket}",
-        f"allocation_table=ABSENT",
+        "allocation_table=ABSENT",
         f"collision_detector_fires={collision_detected}",
         f"collision_paths={json.dumps(dups)}",
         f"do_merge_refuses={False}",
         f"order_independent={order_independent}",
         f"field_complete={field_complete}",
         f"idempotence_gate={False}",
-        f"verdict=BLOCKED",
+        "verdict=BLOCKED",
         f"blocked_reason={raw['blocked_reason']}",
     ]
     _write(txt, "\n".join(lines))
@@ -370,7 +369,9 @@ def probe_cc0014() -> dict:
     api_present = {p: (L.REPO / p).is_file() for p in registry_api_paths}
     # tools/command-center/tests/test_registry.py exists — count-assert only
     count_test = L.REPO / "tools/command-center/tests/test_registry.py"
-    count_test_text = count_test.read_text(encoding="utf-8") if count_test.is_file() else ""
+    count_test_text = (
+        count_test.read_text(encoding="utf-8") if count_test.is_file() else ""
+    )
     mentions_protecting = "PROTECTING" in count_test_text
     mentions_unproven = "UNPROVEN" in count_test_text
 
@@ -434,7 +435,9 @@ def probe_cc0014() -> dict:
             "survived_mutation_hole": "FAIL",
             "aggregation_0_protected": (
                 "PASS-PROXY"
-                if coverage_if_all_unproven["aggregation_control_pass_if_no_false_100pct"]
+                if coverage_if_all_unproven[
+                    "aggregation_control_pass_if_no_false_100pct"
+                ]
                 else "FAIL"
             ),
         },
@@ -464,7 +467,7 @@ def probe_cc0014() -> dict:
                 f"has_status_field={has_status_field}",
                 f"protecting_count={protecting_count}",
                 f"unproven_proxy={unproven_count}",
-                f"verdict=BLOCKED",
+                "verdict=BLOCKED",
                 f"blocked_reason={raw['blocked_reason']}",
             ]
         ),
@@ -603,7 +606,7 @@ def probe_cc0012() -> dict:
                 f"migration_dirs={json.dumps(migration_dir_state)}",
                 f"gates_present={json.dumps(gate_present)}",
                 f"AUD-0095_state={activation['aud0095_state']}",
-                f"verdict=BLOCKED",
+                "verdict=BLOCKED",
                 f"blocked_reason={raw['blocked_reason']}",
             ]
         ),
@@ -647,7 +650,9 @@ def _base_receipt(
         arts = [
             L.art("command-center/TEST-REGISTRY.json", "primary"),
             L.art("command-center/CLAIM-REGISTRY.json", "supporting"),
-            L.art("command-center/schema/test-registry-entry.schema.json", "supporting"),
+            L.art(
+                "command-center/schema/test-registry-entry.schema.json", "supporting"
+            ),
         ] + arts
     else:
         arts = [
@@ -793,9 +798,9 @@ def build_all() -> list[tuple[str, str, dict]]:
     p12 = probe_cc0012()
 
     # CC-0008 evidence
-    raw8 = (L.REPO / "command-center/p2-wave/probes/CC-0008/probe-results.raw.txt").read_text(
-        encoding="utf-8"
-    )
+    raw8 = (
+        L.REPO / "command-center/p2-wave/probes/CC-0008/probe-results.raw.txt"
+    ).read_text(encoding="utf-8")
     e8 = [
         L.evidence(
             (

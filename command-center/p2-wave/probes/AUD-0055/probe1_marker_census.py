@@ -14,7 +14,6 @@ import ast
 import json
 import re
 import subprocess
-import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -209,7 +208,9 @@ def extract_markers(path: Path) -> list[dict]:
                         "path": rel(path),
                         "lineno": lineno,
                         "target": node.name,
-                        "line_text": lines[lineno - 1].strip() if 0 < lineno <= len(lines) else "",
+                        "line_text": lines[lineno - 1].strip()
+                        if 0 < lineno <= len(lines)
+                        else "",
                     }
                 )
         elif isinstance(node, ast.Assign):
@@ -228,7 +229,9 @@ def extract_markers(path: Path) -> list[dict]:
                         "path": rel(path),
                         "lineno": lineno,
                         "target": ",".join(names) or "<assign>",
-                        "line_text": lines[lineno - 1].strip() if 0 < lineno <= len(lines) else "",
+                        "line_text": lines[lineno - 1].strip()
+                        if 0 < lineno <= len(lines)
+                        else "",
                     }
                 )
         elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
@@ -236,10 +239,12 @@ def extract_markers(path: Path) -> list[dict]:
             pass
 
     # pytestmark = pytest.mark.skipif(...) already covered by Assign.
-    # Also catch: pytestmark = [pytest.mark.skip(...)] 
+    # Also catch: pytestmark = [pytest.mark.skip(...)]
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
-            if not any(isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets):
+            if not any(
+                isinstance(t, ast.Name) and t.id == "pytestmark" for t in node.targets
+            ):
                 continue
             val = node.value
             elts = val.elts if isinstance(val, (ast.List, ast.Tuple)) else []
@@ -255,7 +260,9 @@ def extract_markers(path: Path) -> list[dict]:
                             "path": rel(path),
                             "lineno": lineno,
                             "target": "pytestmark",
-                            "line_text": lines[lineno - 1].strip() if 0 < lineno <= len(lines) else "",
+                            "line_text": lines[lineno - 1].strip()
+                            if 0 < lineno <= len(lines)
+                            else "",
                         }
                     )
 
@@ -278,7 +285,9 @@ def extract_markers(path: Path) -> list[dict]:
                 "path": rel(path),
                 "lineno": lineno,
                 "target": "<expr>",
-                "line_text": lines[lineno - 1].strip() if 0 < lineno <= len(lines) else "",
+                "line_text": lines[lineno - 1].strip()
+                if 0 < lineno <= len(lines)
+                else "",
                 "form": "expression-call",
             }
         )
@@ -369,7 +378,9 @@ def reason_validity_class(row: dict) -> str:
         return "control-planted"
     # Permanent-looking language
     low = reason.lower()
-    if any(w in low for w in ("permanently", "wontfix", "won't fix", "never", "deprecated")):
+    if any(
+        w in low for w in ("permanently", "wontfix", "won't fix", "never", "deprecated")
+    ):
         return "permanent-sounding"
     if any(w in low for w in ("todo", "temporary", "flaky", "interim", "until")):
         return "temporary-sounding"
@@ -401,30 +412,38 @@ def main() -> int:
     prod = [m for m in markers if m["production_scope"]]
     fixtures = [m for m in markers if m["in_unit_fixtures"]]
     no_reason = [m for m in markers if m["reason_class"] == "no-reason"]
-    ages = [m["blame"]["age_days"] for m in markers if m.get("blame", {}).get("age_days") is not None]
+    ages = [
+        m["blame"]["age_days"]
+        for m in markers
+        if m.get("blame", {}).get("age_days") is not None
+    ]
 
     # Control checks
-    mention_path = "command-center/p2-wave/probes/AUD-0055/fixtures/mention_only_noise.py"
+    mention_path = (
+        "command-center/p2-wave/probes/AUD-0055/fixtures/mention_only_noise.py"
+    )
     mention_hits = [m for m in markers if m["path"] == mention_path]
     xfail_ctrl = [
         m
         for m in fixtures
-        if m["kind"] == "xfail" and m.get("reason") and "AUD-0055-CONTROL" in str(m["reason"])
+        if m["kind"] == "xfail"
+        and m.get("reason")
+        and "AUD-0055-CONTROL" in str(m["reason"])
     ]
     skip_ctrl = [
         m
         for m in fixtures
-        if m["kind"] == "skip" and m.get("reason") and "AUD-0055-CONTROL" in str(m["reason"])
+        if m["kind"] == "skip"
+        and m.get("reason")
+        and "AUD-0055-CONTROL" in str(m["reason"])
     ]
-    control_ok = (
-        len(mention_hits) == 0
-        and len(xfail_ctrl) == 1
-        and len(skip_ctrl) == 1
-    )
+    control_ok = len(mention_hits) == 0 and len(xfail_ctrl) == 1 and len(skip_ctrl) == 1
 
     skip_count = sum(by_kind[k] for k in ("skip", "skipIf", "skipUnless", "skipif"))
     xfail_count = sum(by_kind[k] for k in ("xfail", "expectedFailure"))
-    prod_skip = sum(1 for m in prod if m["kind"] in {"skip", "skipIf", "skipUnless", "skipif"})
+    prod_skip = sum(
+        1 for m in prod if m["kind"] in {"skip", "skipIf", "skipUnless", "skipif"}
+    )
     prod_xfail = sum(1 for m in prod if m["kind"] in {"xfail", "expectedFailure"})
 
     doc = {

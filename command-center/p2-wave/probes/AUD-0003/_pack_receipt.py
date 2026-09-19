@@ -5,6 +5,7 @@ Emits BLOCKED until an independent, fresh-context Claude review PASS that
 TRIED TO FALSIFY the headline count is on disk (catalog `reviewer_requirement`);
 then SUCCESS. Never stubs SUCCESS. Never invents independent-review.json.
 """
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,9 @@ P1_JSON = "command-center/p2-wave/probes/AUD-0003/probe1-git-diff-missing.json"
 P2_JSON = "command-center/p2-wave/probes/AUD-0003/probe2-github-merge-reachability.json"
 NC_JSON = "command-center/p2-wave/probes/AUD-0003/negative-control-local-delete.json"
 P1_RAW = "command-center/p2-wave/probes/AUD-0003/probe1-git-diff-missing.raw.txt"
-P2_RAW = "command-center/p2-wave/probes/AUD-0003/probe2-github-merge-reachability.raw.txt"
+P2_RAW = (
+    "command-center/p2-wave/probes/AUD-0003/probe2-github-merge-reachability.raw.txt"
+)
 NC_RAW = "command-center/p2-wave/probes/AUD-0003/negative-control-local-delete.raw.txt"
 
 
@@ -419,9 +422,7 @@ def build(primary: dict | None = None) -> dict:
                     "files on a clean origin/main worktree"
                 ),
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0003/negative_control_local_delete.py",
-                "result": "PASS"
-                if nc.get("baseline_missing_count") == 0
-                else "FAIL",
+                "result": "PASS" if nc.get("baseline_missing_count") == 0 else "FAIL",
                 "assertions": 1,
                 "output_tail": raw_nc[-800:],
             },

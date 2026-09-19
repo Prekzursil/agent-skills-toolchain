@@ -10,6 +10,7 @@ commands, hyphen aliases, flat sibling imports, package-ancestor __init__
 closure, mcp `_shared` sys.path bare imports, and a bounded runtime import
 trace.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,9 @@ def is_success_review(rev: dict | None) -> bool:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-ast-refs.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-dynamic-reachability.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-dynamic-reachability.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-ast.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-dynamic.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
@@ -75,7 +78,9 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json", "supporting"
+        ),
         L.art(
             "command-center/p2-wave/probes/AUD-0032/probe2-dynamic-reachability.json",
             "supporting",
@@ -93,7 +98,10 @@ def build(primary: dict | None = None) -> dict:
     ]
     if rev is not None:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0032/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0032/independent-review.json",
+                "supporting",
+            )
         )
 
     if success:

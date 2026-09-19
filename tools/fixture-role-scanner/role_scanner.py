@@ -46,17 +46,13 @@ CORPUS_PATH = _SHARED / "use-vs-mention-corpus.jsonl"
 # module constants so the self-reference probe can quote them without inventing
 # a second pattern list.
 FORBIDDEN_NEEDLES: dict[str, re.Pattern[str]] = {
-    "command": re.compile(
-        r"Remove-Item|git push --force|rm\s+-rf\s+/", re.IGNORECASE
-    ),
+    "command": re.compile(r"Remove-Item|git push --force|rm\s+-rf\s+/", re.IGNORECASE),
     "marker": re.compile(r"\b(?:TODO|FIXME)\b", re.IGNORECASE),
     "stub": re.compile(
         r"\b(?:TODO|FIXME|NotImplementedError|placeholder|stub|not implemented)\b",
         re.IGNORECASE,
     ),
-    "result": re.compile(
-        r"timedout|timeout|timed out|failed|MCP error", re.IGNORECASE
-    ),
+    "result": re.compile(r"timedout|timeout|timed out|failed|MCP error", re.IGNORECASE),
     "secret": re.compile(
         r"ghp_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA )?PRIVATE KEY-----"
     ),
@@ -197,7 +193,9 @@ def measure_kind(
     Both numbers are mandatory (catalog evidence_requirement): fixing false
     positives by loosening into uselessness is the wrong repair.
     """
-    corpus = [r for r in (rows if rows is not None else load_corpus()) if r["kind"] == kind]
+    corpus = [
+        r for r in (rows if rows is not None else load_corpus()) if r["kind"] == kind
+    ]
     fp_rows = [r for r in corpus if r["expect"] == "SILENT"]
     tp_rows = [r for r in corpus if r["expect"] == "FIRE"]
     fp_eval = [evaluate_corpus_row(r) for r in fp_rows]

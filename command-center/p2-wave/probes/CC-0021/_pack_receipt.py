@@ -85,9 +85,7 @@ def build() -> dict:
     arith = measure["arithmetic"]
     regex = measure["regexes"]["BARE_M_RE"]
 
-    m_rc, m_out = _run(
-        [sys.executable, "-B", str(L.REPO / GATE), "measure"]
-    )
+    m_rc, m_out = _run([sys.executable, "-B", str(L.REPO / GATE), "measure"])
     (L.REPO / PROBE_DIR / "measure.out").write_text(m_out, encoding="utf-8")
 
     rev = load_review()
@@ -96,12 +94,8 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_probe1 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc
-    )
-    p_measure = L.probe(
-        "source", "command", f"python3 -B {GATE} measure", m_out, m_rc
-    )
+    p_probe1 = L.probe("verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc)
+    p_measure = L.probe("source", "command", f"python3 -B {GATE} measure", m_out, m_rc)
 
     ctrl_bits = ", ".join(
         f"{k}={'PASS' if v['pass'] else 'FAIL'}"
@@ -196,9 +190,7 @@ def build() -> dict:
                 "live-blocker prose is stale; arithmetic reconfirmed by executed "
                 "extractor."
             ),
-            "blocked_on": (
-                "independent reviewer alternate-regex + count agreement"
-            ),
+            "blocked_on": ("independent reviewer alternate-regex + count agreement"),
             "diagnostic_tail": (out + "\n" + raw1 + "\n" + m_out)[-4000:],
             "two_signal_proof": [p_probe1, p_measure],
         }
@@ -305,7 +297,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_known_present_all_20_deep_research_m16 -q"
                 ),
-                "result": "PASS" if controls["controls"]["known_present"]["pass"] else "FAIL",
+                "result": "PASS"
+                if controls["controls"]["known_present"]["pass"]
+                else "FAIL",
                 "assertions": 3,
                 "output_tail": out[-800:],
             },
@@ -316,7 +310,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_false_positive_mech_not_reported_as_bare -q"
                 ),
-                "result": "PASS" if controls["controls"]["false_positive"]["pass"] else "FAIL",
+                "result": "PASS"
+                if controls["controls"]["false_positive"]["pass"]
+                else "FAIL",
                 "assertions": 4,
                 "output_tail": out[-800:],
             },
@@ -327,7 +323,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_known_broken_planted_bare_m16_fires_gate -q"
                 ),
-                "result": "PASS" if controls["controls"]["known_broken"]["pass"] else "FAIL",
+                "result": "PASS"
+                if controls["controls"]["known_broken"]["pass"]
+                else "FAIL",
                 "assertions": 3,
                 "output_tail": out[-800:],
             },
@@ -338,7 +336,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_use_vs_mention_quote_not_flagged_unresolved -q"
                 ),
-                "result": "PASS" if controls["controls"]["use_vs_mention"]["pass"] else "FAIL",
+                "result": "PASS"
+                if controls["controls"]["use_vs_mention"]["pass"]
+                else "FAIL",
                 "assertions": 2,
                 "output_tail": out[-800:],
             },
@@ -471,7 +471,9 @@ def build() -> dict:
         raise SystemExit(f"receipt_validate rejected:\n{v_out}")
 
     print(f"PACKED {OUT} state={state} bytes={L.art(OUT)['bytes']}")
-    print(f"arithmetic={arith} deep_research={measure['deep_research_m16_refs']}/{measure['deep_research_m16_files']}")
+    print(
+        f"arithmetic={arith} deep_research={measure['deep_research_m16_refs']}/{measure['deep_research_m16_files']}"
+    )
     print(f"independent_review={REVIEW.is_file()} (must stay false for this emit)")
     return receipt
 

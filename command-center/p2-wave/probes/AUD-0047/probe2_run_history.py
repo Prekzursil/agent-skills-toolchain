@@ -71,7 +71,12 @@ def gh_runs_for_workflow(workflow_file: str, limit: int = 20) -> dict:
             timeout=60,
         )
         return {"available": True, "runs": json.loads(raw)}
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
+    except (
+        subprocess.CalledProcessError,
+        FileNotFoundError,
+        subprocess.TimeoutExpired,
+        json.JSONDecodeError,
+    ) as exc:
         return {"available": False, "error": str(exc)[:500], "runs": []}
 
 
@@ -100,9 +105,16 @@ def main() -> int:
         # Find a recent commit that touches at least one protected file
         candidate = None
         for c in commits:
-            hit = [f for f in c["files"] if f in protected or any(
-                f == p or f.startswith(p.rstrip("/") + "/") for p in protected if p.endswith("/")
-            )]
+            hit = [
+                f
+                for f in c["files"]
+                if f in protected
+                or any(
+                    f == p or f.startswith(p.rstrip("/") + "/")
+                    for p in protected
+                    if p.endswith("/")
+                )
+            ]
             # also: protected files that appear as path prefixes in commit
             hit2 = []
             for f in c["files"]:
@@ -152,7 +164,10 @@ def main() -> int:
     planted_ok = bool(p1.get("planted_miss_caught"))
 
     ok = planted_ok and (
-        (p1["filtered_workflow_count"] == 0 and no_filter_vacuous == p1["workflows_scanned"])
+        (
+            p1["filtered_workflow_count"] == 0
+            and no_filter_vacuous == p1["workflows_scanned"]
+        )
         or confirmed > 0
         or (api_unavailable and p1["live_hole_count"] == 0)
     )

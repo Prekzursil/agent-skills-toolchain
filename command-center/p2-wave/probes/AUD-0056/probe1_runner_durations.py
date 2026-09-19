@@ -35,9 +35,7 @@ FIXTURES = PROBE / "fixtures"
 OUT = PROBE / "probe1-runner-durations.json"
 RAW = PROBE / "probe1-runner-durations.raw.txt"
 
-DUR_RE = re.compile(
-    r"^([0-9]+(?:\.[0-9]+)?)s\s+(call|setup|teardown)\s+(\S+)\s*$"
-)
+DUR_RE = re.compile(r"^([0-9]+(?:\.[0-9]+)?)s\s+(call|setup|teardown)\s+(\S+)\s*$")
 GROUND_TRUTH_SUBSTRING = "test_aud0056_deliberately_slow_control"
 GROUND_TRUTH_MODULE = (
     "command-center/p2-wave/probes/AUD-0056/fixtures/slow_control/"
@@ -163,9 +161,7 @@ def main() -> int:
             for r in call_rows_sorted[:TOP_N]
         ]
         top_mods = top_names(modules, TOP_N)
-        gt_in_top_tests = any(
-            GROUND_TRUTH_SUBSTRING in t["nodeid"] for t in top_tests
-        )
+        gt_in_top_tests = any(GROUND_TRUTH_SUBSTRING in t["nodeid"] for t in top_tests)
         gt_mod_rank = next(
             (
                 i + 1

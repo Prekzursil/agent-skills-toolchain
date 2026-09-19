@@ -38,9 +38,7 @@ def main() -> int:
             if dep in cat:
                 power[dep] += 1
 
-    ranked = sorted(
-        ready, key=lambda i: (phase_key(cat[i].get("phase")), -power[i], i)
-    )
+    ranked = sorted(ready, key=lambda i: (phase_key(cat[i].get("phase")), -power[i], i))
     rows = []
     for i in ranked[: args.limit]:
         u = cat[i]

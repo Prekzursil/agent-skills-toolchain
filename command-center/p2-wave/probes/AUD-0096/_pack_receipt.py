@@ -15,6 +15,7 @@ measure. This is a real, disclosed scope adaptation per the task's explicit
 "document residual if Windows-only profile paths apply" instruction, not a
 silent substitution.
 """
+
 from __future__ import annotations
 
 import json

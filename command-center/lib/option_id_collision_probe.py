@@ -4,6 +4,7 @@ Live probe for CC-0022: post-fb02 architecture text uses MECH-NN, so the
 literal shared bare-M collision count is 0. Pre-fix architecture still
 shares 31 bare ids with the family-M option slice.
 """
+
 from __future__ import annotations
 
 import re

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+
 # Stale reason on purpose: the "bug" (wrong expectation) was fixed.
 @pytest.mark.xfail(
     reason="AUD-0055-CONTROL: historic off-by-one in 1+1; still broken",

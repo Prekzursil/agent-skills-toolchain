@@ -19,6 +19,7 @@ Requires the real `osv-scanner` binary (Go binary, installed this session via
 is absent, this probe reports ok=false with a diagnostic instead of inventing
 a scan result.
 """
+
 from __future__ import annotations
 
 import json
@@ -65,9 +66,7 @@ def run_osv_scanner(binary: str, targets: list[str]) -> tuple[int, str, str]:
     args = [binary, "--format", "json"]
     for t in targets:
         args += ["-L", t]
-    r = subprocess.run(
-        args, cwd=str(REPO), capture_output=True, text=True, timeout=600
-    )
+    r = subprocess.run(args, cwd=str(REPO), capture_output=True, text=True, timeout=600)
     return r.returncode, r.stdout or "", r.stderr or ""
 
 
@@ -193,7 +192,7 @@ def main() -> int:
 
     raw_lines = [
         "AUD-0023 NAMED PROBE 1: osv-scanner over real lockfiles + pip-freeze closure",
-        f"unit=AUD-0023",
+        "unit=AUD-0023",
         f"binary={binary}",
         f"lockfile_targets={len(targets_meta['lockfiles'])}",
         f"requirements_targets={len(targets_meta['requirements'])}",
@@ -207,7 +206,9 @@ def main() -> int:
     ]
     raw = "\n".join(raw_lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")
-    print(f"unit=AUD-0023 scan_exit_code={rc} distinct_vuln_id_count={summary['distinct_vuln_id_count']} ok={ok}")
+    print(
+        f"unit=AUD-0023 scan_exit_code={rc} distinct_vuln_id_count={summary['distinct_vuln_id_count']} ok={ok}"
+    )
     return 0 if ok else 1
 
 

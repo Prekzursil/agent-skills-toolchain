@@ -24,9 +24,7 @@ UNIT = "IMP-0003"
 OUT = "command-center/receipts/IMP-0003.json"
 SCHEMA = "command-center/schema/receipt.schema.json"
 PROBE_DIR = "command-center/p2-wave/probes/IMP-0003"
-REVIEW = (
-    "command-center/p2-wave/reviews/IMP-0003/independent-planted-path-review.json"
-)
+REVIEW = "command-center/p2-wave/reviews/IMP-0003/independent-planted-path-review.json"
 SCANNER = "tools/plugin/forbidden.py"
 PACK = "tools/plugin/pack.py"
 TEST = "tools/plugin/tests/test_forbidden_content.py"
@@ -81,9 +79,7 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0003 pytest failed:\n{out_py}")
@@ -123,9 +119,7 @@ print('MUTATION-RED:IMP-0003 git-rule-deleted classifier-miss')
         (L.REPO / PROBE_DIR / "probe2-measurement.json").read_text(encoding="utf-8")
     )
     if not m1.get("ok") or not m2.get("ok"):
-        raise SystemExit(
-            f"IMP-0003 measurements not ok: {m1.get('ok')} {m2.get('ok')}"
-        )
+        raise SystemExit(f"IMP-0003 measurements not ok: {m1.get('ok')} {m2.get('ok')}")
 
     raw1 = (L.REPO / PROBE_DIR / "probe1-scanner-fixture.raw.txt").read_text(
         encoding="utf-8"
@@ -200,9 +194,7 @@ print('MUTATION-RED:IMP-0003 git-rule-deleted classifier-miss')
         if not isinstance(notes, str):
             notes = json.dumps(notes)
         reviewer = {
-            "reviewer_id": rev.get(
-                "reviewer_id", "independent-planted-path-reviewer"
-            ),
+            "reviewer_id": rev.get("reviewer_id", "independent-planted-path-reviewer"),
             "verdict": "PASS",
             "independent": True,
             "fresh_context": True,
@@ -596,9 +588,7 @@ print('MUTATION-RED:IMP-0003 git-rule-deleted classifier-miss')
         raise SystemExit(f"receipt_validate rejected:\n{v_out}")
 
     print(f"PACKED {OUT} state={state}")
-    print(
-        f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}"
-    )
+    print(f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}")
     return receipt
 
 

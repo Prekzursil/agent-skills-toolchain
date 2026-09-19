@@ -8,6 +8,7 @@ Produces:
   - headline counts
   - symmetric_difference (union of the two exclusive sets)
 """
+
 from __future__ import annotations
 
 from typing import Iterable
@@ -52,7 +53,12 @@ def yaml_job_names(text: str) -> list[str]:
                 in_jobs = True
             continue
         # leave jobs block if a new top-level key appears (no indent)
-        if line and not line.startswith(" ") and not line.startswith("\t") and line.rstrip().endswith(":"):
+        if (
+            line
+            and not line.startswith(" ")
+            and not line.startswith("\t")
+            and line.rstrip().endswith(":")
+        ):
             break
         # job property `name:` is typically indented 4 spaces
         stripped = line.lstrip(" ")

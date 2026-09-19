@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -197,13 +196,7 @@ def probe_empty_events_not_started() -> tuple[bool, str]:
         # Metric row must also say NOT-STARTED.
         metric_ok = "| board_status | NOT-STARTED |" in body
         event_zero = "| event_records | 0 |" in body
-        ok = (
-            rc == 0
-            and has_not_started
-            and metric_ok
-            and event_zero
-            and not green_hits
-        )
+        ok = rc == 0 and has_not_started and metric_ok and event_zero and not green_hits
         text = (
             "PROBE=CC-0013-empty-events\n"
             f"DERIVE_RC={rc}\n"

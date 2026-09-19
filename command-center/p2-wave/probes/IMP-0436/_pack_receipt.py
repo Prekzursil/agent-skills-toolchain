@@ -70,7 +70,11 @@ def load_reviews() -> list[dict]:
     # Need both slots represented.
     slots = set()
     for rev in good:
-        role = str(rev.get("role", "")).lower() + " " + str(rev.get("reviewer_slot", "")).lower()
+        role = (
+            str(rev.get("role", "")).lower()
+            + " "
+            + str(rev.get("reviewer_slot", "")).lower()
+        )
         if "schema" in role:
             slots.add("schema")
         if "refut" in role or "adversarial" in role:
@@ -110,12 +114,8 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_dump = L.probe(
-        "verifier", "command", f"python3 -B {DUMP}", d_out, d_rc
-    )
-    p_val = L.probe(
-        "source", "command", f"python3 {VALIDATE}", v_out, v_rc
-    )
+    p_dump = L.probe("verifier", "command", f"python3 -B {DUMP}", d_out, d_rc)
+    p_val = L.probe("source", "command", f"python3 {VALIDATE}", v_out, v_rc)
 
     units = {u["id"]: u for u in resolved["units"]}
     three_override_n = sum(
@@ -344,8 +344,7 @@ def build() -> dict:
                 "id": "precedence-per-field",
                 "name": "Unit override wins over default for each of the nine fields.",
                 "command": (
-                    f"python3 -m pytest {TESTS}::"
-                    "test_precedence_unit_wins_per_field -q"
+                    f"python3 -m pytest {TESTS}::test_precedence_unit_wins_per_field -q"
                 ),
                 "result": "PASS" if rc == 0 else "FAIL",
                 "assertions": 9,

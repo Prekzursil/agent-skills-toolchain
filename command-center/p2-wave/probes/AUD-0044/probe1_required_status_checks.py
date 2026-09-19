@@ -11,11 +11,11 @@ Writes:
   probe1-required-status-checks.json
   probe1-required-status-checks.raw.txt
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,7 +39,11 @@ def gh_api(path: str) -> tuple[int, str]:
 
 
 def extract_classic_contexts(payload: dict) -> list[str]:
-    rsc = (payload.get("required_status_checks") or {}) if isinstance(payload, dict) else {}
+    rsc = (
+        (payload.get("required_status_checks") or {})
+        if isinstance(payload, dict)
+        else {}
+    )
     contexts = list(rsc.get("contexts") or [])
     checks = rsc.get("checks") or []
     for c in checks:
@@ -70,7 +74,9 @@ def main() -> int:
 
     classic_path = f"repos/{REPO}/branches/{DEFAULT_BRANCH}/protection"
     classic_rc, classic_raw = gh_api(classic_path)
-    raw_parts.append(f"=== GET {classic_path} (classic branch protection) rc={classic_rc} ===\n")
+    raw_parts.append(
+        f"=== GET {classic_path} (classic branch protection) rc={classic_rc} ===\n"
+    )
     raw_parts.append(classic_raw)
     classic_ok = False
     classic_contexts: list[str] = []
@@ -79,7 +85,11 @@ def main() -> int:
         classic_payload = json.loads(classic_raw.split("gh:")[0].strip() or classic_raw)
     except json.JSONDecodeError:
         classic_payload = None
-    if classic_rc == 0 and isinstance(classic_payload, dict) and "required_status_checks" in classic_payload:
+    if (
+        classic_rc == 0
+        and isinstance(classic_payload, dict)
+        and "required_status_checks" in classic_payload
+    ):
         classic_ok = True
         classic_contexts = extract_classic_contexts(classic_payload)
     else:

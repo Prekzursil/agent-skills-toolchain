@@ -5,6 +5,7 @@ Honest census with live probes. Emits BLOCKED pending cross-vendor Codex
 re-run of ONLY probe 2 (catalog reviewer_requirement). Never emits SUCCESS
 without that independent review — anti-false-green.
 """
+
 from __future__ import annotations
 
 import json
@@ -45,7 +46,9 @@ def load_review() -> dict | None:
 
 def build(primary: dict | None = None) -> dict:
     p1 = json.loads((PROBE / "probe1-reverse-refs.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-runtime-coverage.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-runtime-coverage.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-reverse-refs.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-runtime-coverage.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
@@ -342,9 +345,7 @@ def build(primary: dict | None = None) -> dict:
                 "id": "AUD-0031-runtime-mention-control-no-exec",
                 "name": "Mention-only control executes zero tools/lib modules under V8 coverage",
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
-                "result": (
-                    "PASS" if p2["planted_mention_control"]["ok"] else "FAIL"
-                ),
+                "result": ("PASS" if p2["planted_mention_control"]["ok"] else "FAIL"),
                 "assertions": 1,
                 "output_tail": raw2[-500:],
             },

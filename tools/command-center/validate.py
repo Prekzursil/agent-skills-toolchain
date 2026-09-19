@@ -66,12 +66,12 @@ def _blobread():
     """Lazy-load tools/measure-guard/blobread.py (IMP-0439)."""
     global _BLOBREAD
     if _BLOBREAD is None:
-        blob_path = Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        blob_path = (
+            Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        )
         import importlib.util
 
-        spec = importlib.util.spec_from_file_location(
-            "cc_validate_blobread", blob_path
-        )
+        spec = importlib.util.spec_from_file_location("cc_validate_blobread", blob_path)
         if spec is None or spec.loader is None:
             raise ImportError(f"cannot load {blob_path}")
         mod = importlib.util.module_from_spec(spec)
@@ -161,9 +161,7 @@ def validate(
     # V-DEFAULTS — always on (IMP-0436). Bare CLI must catch a deleted defaults
     # block; requiring --require-complete for this was the measured silence hole.
     for finding in cat.defaults_block_violations(catalog):
-        violations.append(
-            Violation(finding["check"], finding["id"], finding["detail"])
-        )
+        violations.append(Violation(finding["check"], finding["id"], finding["detail"]))
 
     if not items:
         violations.append(

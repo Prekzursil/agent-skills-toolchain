@@ -55,7 +55,9 @@ def snap(collision, fixtures_built):
     return collision.live_snapshot(repo=REPO, option_path=OPT, arch_path=POST)
 
 
-def test_both_states_line_175_fires_then_silent(sentinel, collision, snap, fixtures_built):
+def test_both_states_line_175_fires_then_silent(
+    sentinel, collision, snap, fixtures_built
+):
     before = BEFORE.read_text(encoding="utf-8")
     after = AFTER.read_text(encoding="utf-8")
     assert "MECH" not in before

@@ -4,6 +4,7 @@
 An import is not a use. This probe runs non-test JS entry points under
 NODE_V8_COVERAGE and records which tools/lib/*.mjs files have executed ranges.
 """
+
 from __future__ import annotations
 
 import json
@@ -164,7 +165,9 @@ def collect_entry_points() -> list[dict]:
                 for i, t in enumerate(toks):
                     if t in {"node", "nodejs"} and i + 1 < len(toks):
                         cand = toks[i + 1].strip("'\"")
-                        if cand.endswith((".mjs", ".js", ".cjs")) and not cand.startswith("-"):
+                        if cand.endswith(
+                            (".mjs", ".js", ".cjs")
+                        ) and not cand.startswith("-"):
                             add(REPO / cand, "ci-workflow", rel(yml))
 
     # Always include the mention-only control as a negative runtime seed
@@ -286,7 +289,9 @@ def main() -> int:
     entries = collect_entry_points()
     # Exclude planted control from the "production" entry set for headline counts
     prod_entries = [e for e in entries if e["kind"] != "planted-mention-only-control"]
-    control_entries = [e for e in entries if e["kind"] == "planted-mention-only-control"]
+    control_entries = [
+        e for e in entries if e["kind"] == "planted-mention-only-control"
+    ]
 
     cov_root = Path(tempfile.mkdtemp(prefix="aud0031-cov-"))
     try:

@@ -142,7 +142,8 @@ def collect_log_blobs() -> list[dict]:
         files = [
             p
             for p in root.rglob("*")
-            if p.is_file() and p.suffix.lower() in {".jsonl", ".ndjson", ".json", ".log", ".txt"}
+            if p.is_file()
+            and p.suffix.lower() in {".jsonl", ".ndjson", ".json", ".log", ".txt"}
         ]
         if not files:
             blobs.append(
@@ -319,7 +320,9 @@ def main() -> int:
         )
     if len(per_hook) > 40:
         lines.append(f"... +{len(per_hook) - 40} more hooks")
-    lines.append("SUCCESS:AUD-0059-probe1" if control["ok"] else "FAILED:AUD-0059-probe1")
+    lines.append(
+        "SUCCESS:AUD-0059-probe1" if control["ok"] else "FAILED:AUD-0059-probe1"
+    )
     RAW.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(RAW.read_text(encoding="utf-8"))
     return 0 if control["ok"] else 1

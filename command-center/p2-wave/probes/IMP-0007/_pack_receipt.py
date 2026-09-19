@@ -25,9 +25,7 @@ UNIT = "IMP-0007"
 OUT = "command-center/receipts/IMP-0007.json"
 SCHEMA = "command-center/schema/receipt.schema.json"
 PROBE_DIR = "command-center/p2-wave/probes/IMP-0007"
-REVIEW = (
-    "command-center/p2-wave/reviews/IMP-0007/independent-frozen-key-review.json"
-)
+REVIEW = "command-center/p2-wave/reviews/IMP-0007/independent-frozen-key-review.json"
 POLICY = "tools/plugin/strict_parser_policy.py"
 VALIDATOR = "tools/plugin/manifest_schema.py"
 SCHEMA_FILE = ".claude-plugin/plugin.schema.json"
@@ -91,9 +89,7 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0007 pytest failed:\n{out_py}")
@@ -232,9 +228,7 @@ def build() -> dict:
         if not isinstance(notes, str):
             notes = json.dumps(notes)
         reviewer = {
-            "reviewer_id": rev.get(
-                "reviewer_id", "independent-frozen-key-reviewer"
-            ),
+            "reviewer_id": rev.get("reviewer_id", "independent-frozen-key-reviewer"),
             "verdict": "PASS",
             "independent": True,
             "fresh_context": True,
@@ -674,9 +668,7 @@ def build() -> dict:
                 ),
                 "negative_control_fired": neg.get("negative_control_fired"),
                 "mutation_schema_goes_green": neg.get("mutation_schema_goes_green"),
-                "mutation_policy_still_blocks": neg.get(
-                    "mutation_policy_still_blocks"
-                ),
+                "mutation_policy_still_blocks": neg.get("mutation_policy_still_blocks"),
             },
         },
     }

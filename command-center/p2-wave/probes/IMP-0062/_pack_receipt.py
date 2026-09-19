@@ -88,9 +88,7 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0062 pytest failed:\n{out_py}")
@@ -622,9 +620,7 @@ def build() -> dict:
                     f"only after {REVIEW} is PASS (vendored trees represented)."
                 )
                 if FORCE_BLOCKED_IMPL_WAVE
-                else (
-                    "Latch cleared; SUCCESS packing permitted only with PASS review."
-                )
+                else ("Latch cleared; SUCCESS packing permitted only with PASS review.")
             ),
             "force_blocked_doc": (
                 "Implementer-wave safety latch. Parent MUST set "
@@ -663,9 +659,7 @@ def build() -> dict:
                 "vendored_represented": m2.get("vendored_represented"),
                 "negative_control_fired": neg.get("negative_control_fired"),
                 "planted_appears_in_sbom": neg.get("planted_appears_in_sbom"),
-                "vendored_orphan_represented": neg.get(
-                    "vendored_orphan_represented"
-                ),
+                "vendored_orphan_represented": neg.get("vendored_orphan_represented"),
             },
         },
     }

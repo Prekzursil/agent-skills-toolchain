@@ -51,12 +51,8 @@ def main() -> int:
     planted = ["LICENSE", "README.md", "readme.md", "bin/tool.py"]
     planted_report = cf.find_casefold_collisions(planted)
     lines.append(f"planted_paths={planted}")
-    lines.append(
-        f"planted_collision_group_count={planted_report.collision_count}"
-    )
-    lines.append(
-        f"planted_colliding_path_count={planted_report.colliding_path_count}"
-    )
+    lines.append(f"planted_collision_group_count={planted_report.collision_count}")
+    lines.append(f"planted_colliding_path_count={planted_report.colliding_path_count}")
     lines.append(
         "planted_collisions="
         + json.dumps(
@@ -82,7 +78,9 @@ def main() -> int:
             sort_keys=True,
         )
     )
-    lines.append(f"uses_casefold_not_lower={cf.casefold_key('README.md') == 'readme.md'}")
+    lines.append(
+        f"uses_casefold_not_lower={cf.casefold_key('README.md') == 'readme.md'}"
+    )
 
     set_check_fired = planted_report.collision_count >= 1 and {
         "README.md",

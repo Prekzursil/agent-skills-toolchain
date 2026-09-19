@@ -30,7 +30,9 @@ OUT_RAW = PROBE / "probe2-mutate-defaults.raw.txt"
 
 PLANTED_MOD = "command-center/p2-wave/probes/AUD-0057/fixtures/planted_defaults.py"
 PLANTED_WEAK = "command-center/p2-wave/probes/AUD-0057/fixtures/test_planted_weak.py"
-PLANTED_STRONG = "command-center/p2-wave/probes/AUD-0057/fixtures/test_planted_strong.py"
+PLANTED_STRONG = (
+    "command-center/p2-wave/probes/AUD-0057/fixtures/test_planted_strong.py"
+)
 SAMPLE_THRESH = "tools/mutation-gate/sample/threshold.py"
 SAMPLE_WEAK = "tools/mutation-gate/sample/test_threshold_weak.py"
 SAMPLE_STRONG = "tools/mutation-gate/sample/test_threshold_strong.py"
@@ -139,7 +141,9 @@ def mutate_assignment(text: str, name: str, new_value: str) -> tuple[str, bool]:
 
 
 def load_probe1() -> dict:
-    return json.loads((PROBE / "probe1-default-census.json").read_text(encoding="utf-8"))
+    return json.loads(
+        (PROBE / "probe1-default-census.json").read_text(encoding="utf-8")
+    )
 
 
 def main() -> int:

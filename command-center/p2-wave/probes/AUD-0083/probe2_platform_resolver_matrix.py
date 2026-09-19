@@ -20,10 +20,10 @@ Two parts, kept honestly separate:
       packed receipt cannot present a simulated Windows answer as if it came
       from a real Windows host.
 """
+
 from __future__ import annotations
 
 import json
-import os
 import stat
 import subprocess
 import sys
@@ -49,8 +49,12 @@ def real_linux_fixture_measurements() -> dict:
         tdp = Path(td)
 
         exec_shebang = tdp / "exec_with_shebang.sh"
-        exec_shebang.write_text('#!/bin/sh\necho FIXTURE_OK\nexit 0\n', encoding="utf-8")
-        exec_shebang.chmod(exec_shebang.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        exec_shebang.write_text(
+            "#!/bin/sh\necho FIXTURE_OK\nexit 0\n", encoding="utf-8"
+        )
+        exec_shebang.chmod(
+            exec_shebang.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+        )
         r1 = subprocess.run(
             [str(exec_shebang)], capture_output=True, text=True, timeout=10
         )
@@ -65,7 +69,7 @@ def real_linux_fixture_measurements() -> dict:
         }
 
         no_exec_shebang = tdp / "no_exec_with_shebang.sh"
-        no_exec_shebang.write_text('#!/bin/sh\necho SHOULD_NOT_RUN\n', encoding="utf-8")
+        no_exec_shebang.write_text("#!/bin/sh\necho SHOULD_NOT_RUN\n", encoding="utf-8")
         # deliberately leave default (non-executable) mode
         no_exec_shebang.chmod(0o644)
         try:
@@ -86,7 +90,9 @@ def real_linux_fixture_measurements() -> dict:
 
         exec_no_shebang = tdp / "exec_no_shebang.sh"
         exec_no_shebang.write_text("echo THIS_HAS_NO_SHEBANG_LINE\n", encoding="utf-8")
-        exec_no_shebang.chmod(exec_no_shebang.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+        exec_no_shebang.chmod(
+            exec_no_shebang.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH
+        )
         try:
             r3 = subprocess.run(
                 [str(exec_no_shebang)], capture_output=True, text=True, timeout=10
@@ -127,7 +133,7 @@ def main() -> int:
     rows = p1["rows"]
 
     real = real_linux_fixture_measurements()
-    resolver_check_ok = (
+    _resolver_check_ok = (
         real["exec_bit_with_shebang"]["outcome"] == "SUCCESS"
         and real["no_exec_bit_with_shebang"]["outcome"] == "FAILURE"
         and real["exec_bit_no_shebang_direct_exec"]["outcome"] == "FAILURE"
@@ -137,22 +143,42 @@ def main() -> int:
     # on this Linux host, for the exact same four fixture states?
     resolver_matches_real = {
         "exec_bit_with_shebang": R.resolve(
-            ext=".sh", has_shebang=True, shebang_interpreter="sh",
-            exec_bit=True, platform="linux", mode="bare",
-        )["outcome"] == real["exec_bit_with_shebang"]["outcome"],
+            ext=".sh",
+            has_shebang=True,
+            shebang_interpreter="sh",
+            exec_bit=True,
+            platform="linux",
+            mode="bare",
+        )["outcome"]
+        == real["exec_bit_with_shebang"]["outcome"],
         "no_exec_bit_with_shebang": R.resolve(
-            ext=".sh", has_shebang=True, shebang_interpreter="sh",
-            exec_bit=False, platform="linux", mode="bare",
-        )["outcome"] == real["no_exec_bit_with_shebang"]["outcome"],
+            ext=".sh",
+            has_shebang=True,
+            shebang_interpreter="sh",
+            exec_bit=False,
+            platform="linux",
+            mode="bare",
+        )["outcome"]
+        == real["no_exec_bit_with_shebang"]["outcome"],
         "exec_bit_no_shebang_direct_exec": R.resolve(
-            ext=".sh", has_shebang=False, shebang_interpreter="",
-            exec_bit=True, platform="linux", mode="bare",
-        )["outcome"] == real["exec_bit_no_shebang_direct_exec"]["outcome"],
+            ext=".sh",
+            has_shebang=False,
+            shebang_interpreter="",
+            exec_bit=True,
+            platform="linux",
+            mode="bare",
+        )["outcome"]
+        == real["exec_bit_no_shebang_direct_exec"]["outcome"],
         "no_exec_bit_explicit_sh_invocation": R.resolve(
-            ext=".sh", has_shebang=True, shebang_interpreter="sh",
-            exec_bit=False, platform="linux", mode="explicit",
+            ext=".sh",
+            has_shebang=True,
+            shebang_interpreter="sh",
+            exec_bit=False,
+            platform="linux",
+            mode="explicit",
             explicit_interpreter="sh",
-        )["outcome"] == real["no_exec_bit_explicit_sh_invocation"]["outcome"],
+        )["outcome"]
+        == real["no_exec_bit_explicit_sh_invocation"]["outcome"],
     }
     resolver_verified_against_real_linux = all(resolver_matches_real.values())
 
@@ -184,13 +210,22 @@ def main() -> int:
                 )
                 matrix_counts[platform][mode][res["outcome"]] += 1
                 if platform == "windows" and mode == "bare":
-                    windows_bare_by_extension.setdefault(ext or "(none)", {"SUCCESS": 0, "FAILURE": 0})
+                    windows_bare_by_extension.setdefault(
+                        ext or "(none)", {"SUCCESS": 0, "FAILURE": 0}
+                    )
                     windows_bare_by_extension[ext or "(none)"][res["outcome"]] += 1
                     linux_bare = R.resolve(
-                        ext=ext, has_shebang=has_shebang, shebang_interpreter=interp,
-                        exec_bit=exec_bit, platform="linux", mode="bare",
+                        ext=ext,
+                        has_shebang=has_shebang,
+                        shebang_interpreter=interp,
+                        exec_bit=exec_bit,
+                        platform="linux",
+                        mode="bare",
                     )
-                    if res["outcome"] == "FAILURE" and linux_bare["outcome"] == "SUCCESS":
+                    if (
+                        res["outcome"] == "FAILURE"
+                        and linux_bare["outcome"] == "SUCCESS"
+                    ):
                         windows_bare_fail_would_run_bare_on_linux.append(
                             {
                                 "path": row["path"],
@@ -227,7 +262,9 @@ def main() -> int:
         "windows_bare_success_count": windows_bare_success_count,
         "linux_bare_success_count": linux_bare_success_count,
         "linux_bare_fail_count": linux_bare_fail_count,
-        "windows_bare_would_run_on_linux_bare_count": len(windows_bare_fail_would_run_bare_on_linux),
+        "windows_bare_would_run_on_linux_bare_count": len(
+            windows_bare_fail_would_run_bare_on_linux
+        ),
         "sample_windows_bare_would_fail_but_linux_bare_would_run": sample_findings,
     }
     OUT_JSON.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
@@ -245,12 +282,16 @@ def main() -> int:
     for platform in platforms:
         for mode in modes:
             c = matrix_counts[platform][mode]
-            lines.append(f"{platform}/{mode}: SUCCESS={c['SUCCESS']} FAILURE={c['FAILURE']}")
+            lines.append(
+                f"{platform}/{mode}: SUCCESS={c['SUCCESS']} FAILURE={c['FAILURE']}"
+            )
     lines.append(f"windows_bare_by_extension={windows_bare_by_extension}")
     lines.append(
         f"windows_bare_would_run_on_linux_bare_count={len(windows_bare_fail_would_run_bare_on_linux)}"
     )
-    lines.append("--- sample (windows bare FAILS, linux bare would SUCCEED), first 15 ---")
+    lines.append(
+        "--- sample (windows bare FAILS, linux bare would SUCCEED), first 15 ---"
+    )
     for f in sample_findings[:15]:
         lines.append(
             f"{f['path']} shebang={f['shebang'] or '(none)'} "

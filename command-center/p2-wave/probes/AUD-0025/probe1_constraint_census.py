@@ -3,11 +3,11 @@
 
 Classes (catalog): exact | compatible | caret | tilde | wildcard | none
 """
+
 from __future__ import annotations
 
 import json
 import re
-import sys
 from collections import Counter
 from pathlib import Path
 
@@ -22,8 +22,17 @@ OUT_JSON = PROBE / "probe1-constraint-census.json"
 OUT_RAW = PROBE / "probe1-constraint-census.raw.txt"
 
 SKIP_DIR_NAMES = {
-    "node_modules", ".git", "__pycache__", ".venv", "venv",
-    "dist", "build", ".tox", ".mypy_cache", ".ruff_cache", "coverage",
+    "node_modules",
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+    ".tox",
+    ".mypy_cache",
+    ".ruff_cache",
+    "coverage",
 }
 OTHER_PROBE_PREFIX = "command-center/p2-wave/probes/"
 FLOATING = {"compatible", "caret", "tilde", "wildcard", "none"}
@@ -62,7 +71,19 @@ def classify_npm(constraint: str) -> str:
         return "exact"
     if "||" in c or " - " in c or "," in c:
         return "compatible"
-    if c.startswith(("workspace:", "file:", "link:", "portal:", "git+", "github:", "http:", "https:", "npm:")):
+    if c.startswith(
+        (
+            "workspace:",
+            "file:",
+            "link:",
+            "portal:",
+            "git+",
+            "github:",
+            "http:",
+            "https:",
+            "npm:",
+        )
+    ):
         return "exact"
     if NPM_EXACT.match(c):
         return "exact"
@@ -84,7 +105,10 @@ def classify_pip(spec: str) -> str:
         else:
             s = name
     s = s.strip()
-    if s.startswith(("git+", "http://", "https://", "file:", "svn+", "hg+", "bzr+")) or "://" in s:
+    if (
+        s.startswith(("git+", "http://", "https://", "file:", "svn+", "hg+", "bzr+"))
+        or "://" in s
+    ):
         return "exact"
     if re.match(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$", s):
         return "none"
@@ -136,21 +160,25 @@ def classify_docker_tag(tag: str | None, digest: str | None) -> str:
     return "compatible"
 
 
-def add_row(rows, *, path, ecosystem, name, constraint, classification, dep_class, planted=False):
-    rows.append({
-        "path": path,
-        "ecosystem": ecosystem,
-        "name": name,
-        "constraint": constraint,
-        "classification": classification,
-        "dep_class": dep_class,
-        "floating": classification in FLOATING,
-        "planted_negative_control": planted,
-        "in_other_unit_probe_scratch": (
-            path.startswith(OTHER_PROBE_PREFIX)
-            and not path.startswith("command-center/p2-wave/probes/AUD-0025/")
-        ),
-    })
+def add_row(
+    rows, *, path, ecosystem, name, constraint, classification, dep_class, planted=False
+):
+    rows.append(
+        {
+            "path": path,
+            "ecosystem": ecosystem,
+            "name": name,
+            "constraint": constraint,
+            "classification": classification,
+            "dep_class": dep_class,
+            "floating": classification in FLOATING,
+            "planted_negative_control": planted,
+            "in_other_unit_probe_scratch": (
+                path.startswith(OTHER_PROBE_PREFIX)
+                and not path.startswith("command-center/p2-wave/probes/AUD-0025/")
+            ),
+        }
+    )
 
 
 def scan_package_json(path: Path, rows: list) -> None:
@@ -161,14 +189,27 @@ def scan_package_json(path: Path, rows: list) -> None:
     if not isinstance(data, dict):
         return
     planted = "AUD-0025/fixtures/planted-unpinned" in rel(path)
-    for key in ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies"):
+    for key in (
+        "dependencies",
+        "devDependencies",
+        "peerDependencies",
+        "optionalDependencies",
+    ):
         deps = data.get(key)
         if not isinstance(deps, dict):
             continue
         for name, ver in deps.items():
             constraint = "" if ver is None else str(ver)
-            add_row(rows, path=rel(path), ecosystem="npm", name=str(name), constraint=constraint,
-                    classification=classify_npm(constraint), dep_class=key, planted=planted)
+            add_row(
+                rows,
+                path=rel(path),
+                ecosystem="npm",
+                name=str(name),
+                constraint=constraint,
+                classification=classify_npm(constraint),
+                dep_class=key,
+                planted=planted,
+            )
 
 
 def scan_requirements(path: Path, rows: list) -> None:
@@ -185,9 +226,16 @@ def scan_requirements(path: Path, rows: list) -> None:
         if not m:
             continue
         name, rest = m.group(1), m.group(2).strip()
-        add_row(rows, path=rel(path), ecosystem="pip", name=name,
-                constraint=rest if rest else "(none)", classification=classify_pip(raw),
-                dep_class="requirements", planted=planted)
+        add_row(
+            rows,
+            path=rel(path),
+            ecosystem="pip",
+            name=name,
+            constraint=rest if rest else "(none)",
+            classification=classify_pip(raw),
+            dep_class="requirements",
+            planted=planted,
+        )
 
 
 def scan_pyproject(path: Path, rows: list) -> None:
@@ -202,10 +250,20 @@ def scan_pyproject(path: Path, rows: list) -> None:
     req_py = project.get("requires-python")
     if isinstance(req_py, str) and req_py.strip():
         cls = "exact" if re.match(r"^==\s*\d", req_py.strip()) else "compatible"
-        if re.match(r"^\d", req_py.strip()) and not any(op in req_py for op in "><=!,~"):
+        if re.match(r"^\d", req_py.strip()) and not any(
+            op in req_py for op in "><=!,~"
+        ):
             cls = "exact"
-        add_row(rows, path=rel(path), ecosystem="pip", name="requires-python", constraint=req_py,
-                classification=cls, dep_class="requires-python", planted=planted)
+        add_row(
+            rows,
+            path=rel(path),
+            ecosystem="pip",
+            name="requires-python",
+            constraint=req_py,
+            classification=cls,
+            dep_class="requires-python",
+            planted=planted,
+        )
     deps = project.get("dependencies") or []
     if isinstance(deps, list):
         for item in deps:
@@ -213,8 +271,16 @@ def scan_pyproject(path: Path, rows: list) -> None:
                 continue
             m = re.match(r"^([A-Za-z0-9][A-Za-z0-9._+-]*)", item.strip())
             name = m.group(1) if m else item
-            add_row(rows, path=rel(path), ecosystem="pip", name=name, constraint=item,
-                    classification=classify_pip(item), dep_class="project.dependencies", planted=planted)
+            add_row(
+                rows,
+                path=rel(path),
+                ecosystem="pip",
+                name=name,
+                constraint=item,
+                classification=classify_pip(item),
+                dep_class="project.dependencies",
+                planted=planted,
+            )
     opt = project.get("optional-dependencies") or {}
     if isinstance(opt, dict):
         for extra, items in opt.items():
@@ -225,9 +291,16 @@ def scan_pyproject(path: Path, rows: list) -> None:
                     continue
                 m = re.match(r"^([A-Za-z0-9][A-Za-z0-9._+-]*)", item.strip())
                 name = m.group(1) if m else item
-                add_row(rows, path=rel(path), ecosystem="pip", name=name, constraint=item,
-                        classification=classify_pip(item),
-                        dep_class=f"optional-dependencies.{extra}", planted=planted)
+                add_row(
+                    rows,
+                    path=rel(path),
+                    ecosystem="pip",
+                    name=name,
+                    constraint=item,
+                    classification=classify_pip(item),
+                    dep_class=f"optional-dependencies.{extra}",
+                    planted=planted,
+                )
 
 
 def scan_actions(path: Path, rows: list) -> None:
@@ -242,9 +315,16 @@ def scan_actions(path: Path, rows: list) -> None:
             action, ref = uses.rsplit("@", 1)
         else:
             action, ref = uses, ""
-        add_row(rows, path=rel(path), ecosystem="github-actions", name=action,
-                constraint=ref or "(none)", classification=classify_action_ref(ref),
-                dep_class="uses", planted=planted)
+        add_row(
+            rows,
+            path=rel(path),
+            ecosystem="github-actions",
+            name=action,
+            constraint=ref or "(none)",
+            classification=classify_action_ref(ref),
+            dep_class="uses",
+            planted=planted,
+        )
 
 
 def scan_dockerfile(path: Path, rows: list) -> None:
@@ -253,7 +333,9 @@ def scan_dockerfile(path: Path, rows: list) -> None:
         text = path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return
-    for m in re.finditer(r"(?im)^(?:FROM)\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+\S+)?", text):
+    for m in re.finditer(
+        r"(?im)^(?:FROM)\s+(?:--platform=\S+\s+)?(\S+)(?:\s+AS\s+\S+)?", text
+    ):
         image = m.group(1)
         digest = None
         tag = None
@@ -263,11 +345,17 @@ def scan_dockerfile(path: Path, rows: list) -> None:
         last_slash = name.rfind("/")
         last_colon = name.rfind(":")
         if last_colon > last_slash:
-            name, tag = name[:last_colon], name[last_colon + 1:]
-        add_row(rows, path=rel(path), ecosystem="docker", name=name,
-                constraint=digest or (tag if tag is not None else "(none)"),
-                classification=classify_docker_tag(tag, digest),
-                dep_class="FROM", planted=planted)
+            name, tag = name[:last_colon], name[last_colon + 1 :]
+        add_row(
+            rows,
+            path=rel(path),
+            ecosystem="docker",
+            name=name,
+            constraint=digest or (tag if tag is not None else "(none)"),
+            classification=classify_docker_tag(tag, digest),
+            dep_class="FROM",
+            planted=planted,
+        )
 
 
 def iter_files() -> list:
@@ -285,7 +373,9 @@ def iter_files() -> list:
             found.append(p)
         elif name.startswith("Dockerfile"):
             found.append(p)
-        elif p.suffix in {".yml", ".yaml"} and (".github/workflows" in rp or "AUD-0025/fixtures" in rp):
+        elif p.suffix in {".yml", ".yaml"} and (
+            ".github/workflows" in rp or "AUD-0025/fixtures" in rp
+        ):
             found.append(p)
     return sorted(found, key=lambda x: rel(x))
 
@@ -333,16 +423,26 @@ def main() -> int:
     }
     floating_sample = [
         {
-            "path": r["path"], "ecosystem": r["ecosystem"], "name": r["name"],
-            "constraint": r["constraint"], "classification": r["classification"],
+            "path": r["path"],
+            "ecosystem": r["ecosystem"],
+            "name": r["name"],
+            "constraint": r["constraint"],
+            "classification": r["classification"],
             "planted_negative_control": r["planted_negative_control"],
         }
         for r in floating_rows
         if (not r["in_other_unit_probe_scratch"]) or r["planted_negative_control"]
     ]
-    doc = {**summary, "floating_declarations": floating_sample, "planted_rows": planted,
-           "all_rows_count": len(rows), "rows": rows}
-    OUT_JSON.write_text(json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    doc = {
+        **summary,
+        "floating_declarations": floating_sample,
+        "planted_rows": planted,
+        "all_rows_count": len(rows),
+        "rows": rows,
+    }
+    OUT_JSON.write_text(
+        json.dumps(doc, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
     lines = [
         "AUD-0025 NAMED PROBE 1: constraint-syntax classification per declaration",
@@ -360,13 +460,21 @@ def main() -> int:
         "PLANTED-FLOATING-BEGIN",
     ]
     for r in planted_floating:
-        lines.append(f"PLANTED\t{r['ecosystem']}\t{r['name']}\t{r['constraint']}\t{r['classification']}\t{r['path']}")
+        lines.append(
+            f"PLANTED\t{r['ecosystem']}\t{r['name']}\t{r['constraint']}\t{r['classification']}\t{r['path']}"
+        )
     lines.append("PLANTED-FLOATING-END")
     lines.append("FLOATING-SAMPLE-BEGIN")
     for r in floating_sample[:40]:
-        lines.append(f"FLOAT\t{r['ecosystem']}\t{r['classification']}\t{r['name']}={r['constraint']}\t{r['path']}")
+        lines.append(
+            f"FLOAT\t{r['ecosystem']}\t{r['classification']}\t{r['name']}={r['constraint']}\t{r['path']}"
+        )
     lines.append("FLOATING-SAMPLE-END")
-    lines.append("SUCCESS:AUD-0025-probe1" if planted_ok else "FAIL:AUD-0025-probe1 planted negative control not caught")
+    lines.append(
+        "SUCCESS:AUD-0025-probe1"
+        if planted_ok
+        else "FAIL:AUD-0025-probe1 planted negative control not caught"
+    )
     raw = "\n".join(lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")
     print(raw, end="")

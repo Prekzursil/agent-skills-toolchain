@@ -21,6 +21,7 @@ into THIS probe's own argv, proving the starttime-based self-exclusion still
 correctly drops the probe's own PID even when a naive substring matcher
 would have flagged its command line as MCP-related.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,8 +37,14 @@ import _proc_census as C  # noqa: E402
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--self-tag", default="", help="opt-in argv marker for the self-exclusion control")
-    ap.add_argument("--out", default="", help="write JSON to this path instead of stdout")
+    ap.add_argument(
+        "--self-tag",
+        default="",
+        help="opt-in argv marker for the self-exclusion control",
+    )
+    ap.add_argument(
+        "--out", default="", help="write JSON to this path instead of stdout"
+    )
     args = ap.parse_args(argv)
 
     started_wall = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

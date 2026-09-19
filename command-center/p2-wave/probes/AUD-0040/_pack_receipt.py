@@ -47,7 +47,9 @@ def build(primary: dict | None = None) -> dict:
     p1 = json.loads(
         (PROBE / "probe1-generator-byte-compare.json").read_text(encoding="utf-8")
     )
-    p2 = json.loads((PROBE / "probe2-gate-both-states.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-gate-both-states.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-generator-byte-compare.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-gate-both-states.raw.txt").read_text(encoding="utf-8")
     rev = load_review()

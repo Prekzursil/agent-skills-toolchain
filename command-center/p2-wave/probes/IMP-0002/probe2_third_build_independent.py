@@ -54,7 +54,10 @@ def main() -> int:
         # Prefer faketime when available so ZipInfo would diverge if mtimes leaked.
         faketime = None
         for cand in ("faketime", "/usr/bin/faketime"):
-            if Path(cand if cand.startswith("/") else "").exists() or cand == "faketime":
+            if (
+                Path(cand if cand.startswith("/") else "").exists()
+                or cand == "faketime"
+            ):
                 from shutil import which
 
                 faketime = which("faketime")

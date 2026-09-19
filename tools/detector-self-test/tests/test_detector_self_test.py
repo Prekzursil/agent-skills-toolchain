@@ -435,4 +435,3 @@ def test_run_both_states_records_without_raising() -> None:
     obs = dst.run_both_states(lambda s: False, broken="x", good="y", name="quiet")
     assert obs.passed is False
     assert obs.outcome is Outcome.SILENT_IN_BOTH
-

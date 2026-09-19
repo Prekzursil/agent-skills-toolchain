@@ -69,7 +69,9 @@ def run_canary(
     if disabled:
         env["AUD0059_HOOK_DISABLED"] = "1"
         # also plant .disabled sibling for the code path that checks the file
-        (canary.parent / ".disabled").write_text("disabled-by-aud-0059\n", encoding="utf-8")
+        (canary.parent / ".disabled").write_text(
+            "disabled-by-aud-0059\n", encoding="utf-8"
+        )
     else:
         env.pop("AUD0059_HOOK_DISABLED", None)
         dis = canary.parent / ".disabled"
@@ -184,7 +186,9 @@ def main() -> int:
         log("unit=AUD-0059")
 
         # State A: DISABLED — trigger must produce NO effect
-        disabled_run = run_canary(canary, ledger, disabled=True, session_id="aud-0059-off")
+        disabled_run = run_canary(
+            canary, ledger, disabled=True, session_id="aud-0059-off"
+        )
         log(
             f"DISABLED effect={disabled_run['effect_observed']} "
             f"new_rows={disabled_run['new_ledger_rows']} "
@@ -192,7 +196,9 @@ def main() -> int:
         )
 
         # State B: ENABLED — trigger must produce observable effect
-        enabled_run = run_canary(canary, ledger, disabled=False, session_id="aud-0059-on")
+        enabled_run = run_canary(
+            canary, ledger, disabled=False, session_id="aud-0059-on"
+        )
         log(
             f"ENABLED effect={enabled_run['effect_observed']} "
             f"new_rows={enabled_run['new_ledger_rows']} "
@@ -200,7 +206,9 @@ def main() -> int:
             f"ledger_marker={enabled_run['marker_in_ledger']} rc={enabled_run['exit_code']}"
         )
 
-        both_states = (not disabled_run["effect_observed"]) and enabled_run["effect_observed"]
+        both_states = (not disabled_run["effect_observed"]) and enabled_run[
+            "effect_observed"
+        ]
         log(f"BOTH_STATES_PLANTED ok={both_states}")
 
         stub = run_stub_ledger_sanity(scratch)
@@ -219,8 +227,12 @@ def main() -> int:
                 "Disable planted canary (scratch .disabled + env), trigger → no ledger/"
                 "context effect; re-enable, same trigger → ledger row + context marker."
             ),
-            "silent_on_good_state": not disabled_run["effect_observed"],  # disabled = no effect
-            "fired_on_bad_state": enabled_run["effect_observed"],  # naming: enabled fires
+            "silent_on_good_state": not disabled_run[
+                "effect_observed"
+            ],  # disabled = no effect
+            "fired_on_bad_state": enabled_run[
+                "effect_observed"
+            ],  # naming: enabled fires
             "ok": both_states,
             "disabled_run": {
                 "effect_observed": disabled_run["effect_observed"],

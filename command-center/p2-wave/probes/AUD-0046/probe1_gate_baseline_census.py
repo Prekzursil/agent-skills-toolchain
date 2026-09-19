@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
@@ -113,10 +112,15 @@ def main() -> int:
 
     lines.insert(0, "AUD-0046 NAMED PROBE 1: gate baseline exit code census")
     lines.insert(1, "unit=AUD-0046")
-    lines.insert(2, f"gates_present_total=24 gates_swept_this_pass={len(gates)} "
-                     f"gates_not_yet_swept={len(not_yet_swept)}")
+    lines.insert(
+        2,
+        f"gates_present_total=24 gates_swept_this_pass={len(gates)} "
+        f"gates_not_yet_swept={len(not_yet_swept)}",
+    )
     lines.append(f"baseline_all_ok={baseline_all_ok}")
-    lines.append("SUCCESS:AUD-0046-probe1" if baseline_all_ok else "FAILED:AUD-0046-probe1")
+    lines.append(
+        "SUCCESS:AUD-0046-probe1" if baseline_all_ok else "FAILED:AUD-0046-probe1"
+    )
     RAW.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(RAW.read_text(encoding="utf-8"))
     return 0 if baseline_all_ok else 1

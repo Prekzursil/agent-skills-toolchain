@@ -47,9 +47,7 @@ def main() -> int:
         dev_n = sum(len(r.get("dev") or []) for r in rs if not r.get("error"))
         dev_only_n = sum(len(r.get("dev_only") or []) for r in rs if not r.get("error"))
         with_split = sum(
-            1
-            for r in rs
-            if not r.get("error") and (r.get("prod") or r.get("dev"))
+            1 for r in rs if not r.get("error") and (r.get("prod") or r.get("dev"))
         )
         with_dev_only = sum(1 for r in rs if not r.get("error") and r.get("dev_only"))
         return {
@@ -69,7 +67,8 @@ def main() -> int:
         (
             r
             for r in planted
-            if r.get("ecosystem") == "pip" and "planted-shipped-imports-dev" in r["manifest"]
+            if r.get("ecosystem") == "pip"
+            and "planted-shipped-imports-dev" in r["manifest"]
         ),
         None,
     )

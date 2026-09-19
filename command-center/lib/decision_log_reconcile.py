@@ -4,6 +4,7 @@ Keeps the original present-tense collision wording under a SUPERSEDED entry
 with superseded_by, and appends a CURRENT MECH-NN replacement with valid_as_of.
 Does not rewrite unrelated decision meaning.
 """
+
 from __future__ import annotations
 
 from typing import Any

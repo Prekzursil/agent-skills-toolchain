@@ -661,9 +661,7 @@ except E.EolPolicyError as exc:
         raise SystemExit(f"receipt_validate rejected:\n{v_out}")
 
     print(f"PACKED {OUT} state={state}")
-    print(
-        f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}"
-    )
+    print(f"did_not_promote={did_not_promote} success_invented=false validate={v_rc}")
     return receipt
 
 

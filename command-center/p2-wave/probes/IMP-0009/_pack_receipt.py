@@ -95,9 +95,7 @@ def build() -> dict:
         parents=True, exist_ok=True
     )
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0009 pytest failed:\n{out_py}")
@@ -105,9 +103,7 @@ def build() -> dict:
     rc_case, out_case = _run(
         [sys.executable, "-m", "pytest", "-q", TEST_CASE, "--tb=short"]
     )
-    (L.REPO / PROBE_DIR / "pytest-case-node.out").write_text(
-        out_case, encoding="utf-8"
-    )
+    (L.REPO / PROBE_DIR / "pytest-case-node.out").write_text(out_case, encoding="utf-8")
     if rc_case != 0:
         raise SystemExit(f"IMP-0009 case node failed:\n{out_case}")
 

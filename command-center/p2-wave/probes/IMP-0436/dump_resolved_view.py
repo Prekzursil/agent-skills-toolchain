@@ -116,7 +116,11 @@ def main() -> int:
 
     ok = (
         mutation["both_states"]
-        and all(v["fields"][f]["provenance"] == "default" for f in cat.OVERRIDEABLE_DEFAULT_FIELDS for v in [views[0]])
+        and all(
+            v["fields"][f]["provenance"] == "default"
+            for f in cat.OVERRIDEABLE_DEFAULT_FIELDS
+            for v in [views[0]]
+        )
         and sum(
             1
             for f in cat.OVERRIDEABLE_DEFAULT_FIELDS
@@ -128,7 +132,16 @@ def main() -> int:
         and live_probe["reviewer_requirement"]["provenance"] == "explicit-null"
         and live_probe["assignment_still_default"]["provenance"] == "default"
     )
-    print(json.dumps({"ok": ok, "out": str(OUT.relative_to(REPO)), "mutation_both_states": mutation["both_states"]}, indent=2))
+    print(
+        json.dumps(
+            {
+                "ok": ok,
+                "out": str(OUT.relative_to(REPO)),
+                "mutation_both_states": mutation["both_states"],
+            },
+            indent=2,
+        )
+    )
     return 0 if ok else 1
 
 

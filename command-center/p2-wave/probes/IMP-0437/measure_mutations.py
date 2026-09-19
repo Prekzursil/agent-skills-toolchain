@@ -73,7 +73,11 @@ def _run(cpath: Path, gpath: Path, extra: list[str]) -> dict:
         "has_v_defaults": "V-DEFAULTS" in out,
         "has_v_fields": "V-FIELDS" in out,
         "failed_line": next(
-            (ln for ln in out.splitlines() if ln.startswith("FAILED:") or ln.startswith("SUCCESS:")),
+            (
+                ln
+                for ln in out.splitlines()
+                if ln.startswith("FAILED:") or ln.startswith("SUCCESS:")
+            ),
             "",
         ),
     }
@@ -202,8 +206,14 @@ def main() -> int:
     }
 
     out_path = PROBE_DIR / "mutation-exit-codes.json"
-    out_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    print(json.dumps({"ok": report["ok"], "out": str(out_path.relative_to(REPO))}, indent=2))
+    out_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    print(
+        json.dumps(
+            {"ok": report["ok"], "out": str(out_path.relative_to(REPO))}, indent=2
+        )
+    )
     print(
         f"defaults before={a_soft['exit_code']} after={a_armed['exit_code']}; "
         f"single before={b_soft['exit_code']} after={b_armed['exit_code']}; "

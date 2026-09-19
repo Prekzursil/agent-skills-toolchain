@@ -98,14 +98,20 @@ def main() -> int:
         if not plant_hits[role]:
             plant_hits[role] = any(
                 f.role == role
-                and (f.path == rel or rel.startswith(f.path) or f.path.startswith(rel.rsplit("/", 1)[0]))
+                and (
+                    f.path == rel
+                    or rel.startswith(f.path)
+                    or f.path.startswith(rel.rsplit("/", 1)[0])
+                )
                 for f in report.findings
             )
 
     # Explicit per-plant path presence in findings
     for role, rel in plants.items():
         hit = any(
-            f.path == rel or f.path == Path(rel).parts[0] or f.path.startswith(str(Path(rel).parts[0]) + "/")
+            f.path == rel
+            or f.path == Path(rel).parts[0]
+            or f.path.startswith(str(Path(rel).parts[0]) + "/")
             for f in report.findings
             if f.role == role or (role == "git" and f.role == "git")
         )

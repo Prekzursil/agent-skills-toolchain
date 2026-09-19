@@ -43,9 +43,12 @@ def main() -> int:
     )
     planted_pf = [p.strip() for p in planted_pf if p.strip()]
     planted = evaluate_workflow(planted_wf, protected_override=planted_pf)
-    planted["workflow"] = "command-center/p2-wave/probes/AUD-0047/fixtures/planted-paths-ignore/workflow.yml"
+    planted["workflow"] = (
+        "command-center/p2-wave/probes/AUD-0047/fixtures/planted-paths-ignore/workflow.yml"
+    )
     planted_miss_caught = planted["hole_count"] > 0 and any(
-        h["protected_file"] == "command-center/receipt_validate.py" for h in planted["holes"]
+        h["protected_file"] == "command-center/receipt_validate.py"
+        for h in planted["holes"]
     )
 
     payload = {
@@ -73,9 +76,7 @@ def main() -> int:
         "PLANTED-HOLES-BEGIN",
     ]
     for h in planted["holes"]:
-        lines.append(
-            f"PLANTED\t{h['protected_file']}\t{h['event']}\t{h['reason']}"
-        )
+        lines.append(f"PLANTED\t{h['protected_file']}\t{h['event']}\t{h['reason']}")
     lines.append("PLANTED-HOLES-END")
     lines.append("LIVE-HOLES-BEGIN")
     for row in rows:
@@ -84,7 +85,9 @@ def main() -> int:
                 f"LIVE\t{row['workflow']}\t{h['protected_file']}\t{h['event']}\t{h['reason']}"
             )
     lines.append("LIVE-HOLES-END")
-    lines.append("SUCCESS:AUD-0047-probe1" if planted_miss_caught else "FAIL:AUD-0047-probe1")
+    lines.append(
+        "SUCCESS:AUD-0047-probe1" if planted_miss_caught else "FAIL:AUD-0047-probe1"
+    )
     raw = "\n".join(lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")
     sys.stdout.write(raw)

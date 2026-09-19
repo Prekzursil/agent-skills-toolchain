@@ -142,7 +142,7 @@ def extract_bare_m_ids(text: str) -> set[str]:
 
 
 def extract_bare_hits(path: Path, text: str) -> list[Hit]:
-    scrubbed = strip_mech(text)
+    _scrubbed = strip_mech(text)
     # Map scrubbed offsets poorly for line numbers — scan line-wise instead.
     hits: list[Hit] = []
     for i, line in enumerate(text.splitlines(), 1):
@@ -366,12 +366,13 @@ def evaluate_paths(
                 # After strip_mech, this line's bare extractor must not yield M-{n}
                 # from the MECH token itself.
                 scrub = strip_mech(line)
-                if f"M-{m.group(1)}" in {
-                    f"M-{n}" for n in BARE_M_RE.findall(scrub)
-                } and f"MECH-{m.group(1)}" in line:
+                if (
+                    f"M-{m.group(1)}" in {f"M-{n}" for n in BARE_M_RE.findall(scrub)}
+                    and f"MECH-{m.group(1)}" in line
+                ):
                     # Only a false positive if the bare id came from inside MECH.
                     # If the line ALSO has a real bare M-NN, that is separate.
-                    only_mech = BARE_M_RE.findall(strip_mech(line)) == [] or (
+                    _only_mech = BARE_M_RE.findall(strip_mech(line)) == [] or (
                         BARE_M_RE.search(line) is None
                     )
                     # Stronger check: original line with MECH intact should not
@@ -517,8 +518,7 @@ def run_controls(
     }
 
     all_pass = all(
-        c["pass"]
-        for c in (known_present, false_positive, known_broken, use_vs_mention)
+        c["pass"] for c in (known_present, false_positive, known_broken, use_vs_mention)
     )
     return {
         "ok": all_pass,

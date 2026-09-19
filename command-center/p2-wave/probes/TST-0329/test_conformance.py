@@ -72,7 +72,9 @@ def test_battery_ok_rollup(battery: dict) -> None:
     assert battery["both_states"]["mutations_all_false"] is True
 
 
-def test_measure_table_writes_twelve_rows(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_measure_table_writes_twelve_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """The measure script must emit a real 12-row table artifact (not a summary sentence)."""
     import measure_table as MT
 

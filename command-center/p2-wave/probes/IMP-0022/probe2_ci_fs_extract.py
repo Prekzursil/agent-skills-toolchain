@@ -39,9 +39,7 @@ EVIDENCE = (
 
 def main() -> int:
     lines: list[str] = []
-    lines.append(
-        "NAMED PROBE 2: EXTRACT ONTO CASE-INSENSITIVE FS; COUNT SHORTFALL"
-    )
+    lines.append("NAMED PROBE 2: EXTRACT ONTO CASE-INSENSITIVE FS; COUNT SHORTFALL")
     lines.append("PROBE-2-BEGIN:IMP-0022")
     lines.append("stage=p2-deliver")
     lines.append(f"evidence_requirement_verbatim={EVIDENCE}")
@@ -82,9 +80,7 @@ def main() -> int:
     extract_error: str | None = None
     extract_dict: dict = {}
     try:
-        result = cf.extract_and_count(
-            archive, dest, require_case_insensitive=True
-        )
+        result = cf.extract_and_count(archive, dest, require_case_insensitive=True)
         extract_dict = result.as_dict()
         shortfall_observed = result.collision_shortfall_observed
         lines.append(f"archive_entry_count={result.archive_entry_count}")
@@ -97,15 +93,11 @@ def main() -> int:
         extract_error = str(exc)
         lines.append(f"extract_error={extract_error}")
         # Diagnostic extraction on the case-sensitive host (must NOT claim signal 2).
-        diag = cf.extract_and_count(
-            archive, dest, require_case_insensitive=False
-        )
+        diag = cf.extract_and_count(archive, dest, require_case_insensitive=False)
         extract_dict = diag.as_dict()
         lines.append("diagnostic_case_sensitive_extract=true")
         lines.append(f"diagnostic_archive_entry_count={diag.archive_entry_count}")
-        lines.append(
-            f"diagnostic_extracted_file_count={diag.extracted_file_count}"
-        )
+        lines.append(f"diagnostic_extracted_file_count={diag.extracted_file_count}")
         lines.append(f"diagnostic_shortfall={diag.shortfall}")
         lines.append(
             "diagnostic_note=on case-sensitive FS both members land; "
@@ -116,7 +108,11 @@ def main() -> int:
     lines.append(f"missing_case_insensitive_filesystem={missing_substrate}")
     lines.append(f"extraction_count_check_fired={shortfall_observed}")
     # Probe 2 is only CONFIRMED when a real CI-FS shortfall is observed.
-    ok = (not missing_substrate) and shortfall_observed and set_report.collision_count >= 1
+    ok = (
+        (not missing_substrate)
+        and shortfall_observed
+        and set_report.collision_count >= 1
+    )
     lines.append(f"probe_2_confirmed={ok}")
     lines.append("PROBE-2-COMPLETE:IMP-0022")
     if ok:
@@ -137,9 +133,7 @@ def main() -> int:
         "extract_error": extract_error,
         "extract": extract_dict,
         "blocked_on": (
-            "case-insensitive-filesystem-mount"
-            if missing_substrate
-            else None
+            "case-insensitive-filesystem-mount" if missing_substrate else None
         ),
     }
     MEAS.write_text(json.dumps(meas, indent=2, sort_keys=True) + "\n", encoding="utf-8")

@@ -58,9 +58,7 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0022 pytest failed:\n{out_py}")
@@ -421,8 +419,7 @@ def build() -> dict:
                     f"paths={list(m1.get('planted_paths', []))}"
                 ),
                 good=(
-                    f"clean_collision_group_count="
-                    f"{m1['clean_collision_group_count']}"
+                    f"clean_collision_group_count={m1['clean_collision_group_count']}"
                 ),
             ),
             L.control(

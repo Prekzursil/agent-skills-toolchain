@@ -146,7 +146,9 @@ def main() -> int:
     for e in edges:
         raw_lines.append(f"EDGE|{json.dumps(e, sort_keys=True)}")
     raw_lines.append(f"PROBE1_OK={result['ok']}")
-    raw_lines.append("SUCCESS:AUD-0074-probe1" if result["ok"] else "FAILED:AUD-0074-probe1")
+    raw_lines.append(
+        "SUCCESS:AUD-0074-probe1" if result["ok"] else "FAILED:AUD-0074-probe1"
+    )
     raw = "\n".join(raw_lines) + "\n"
 
     args.raw_output.write_text(raw, encoding="utf-8", newline="\n")

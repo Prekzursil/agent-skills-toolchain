@@ -13,7 +13,6 @@ round-trip write/read of this receipt itself succeeds via the new writer.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
 import sys
@@ -203,7 +202,10 @@ def build() -> dict:
             "pytest_rc": rc,
             "receipts_dir_exists": (L.REPO / "command-center/receipts").is_dir(),
         },
-        "extensions": {"p2_loop_wave": 1, "builder": "command-center/p2-wave/_build_IMP0434.py"},
+        "extensions": {
+            "p2_loop_wave": 1,
+            "builder": "command-center/p2-wave/_build_IMP0434.py",
+        },
     }
     # Honest terminal until review: BLOCKED (implementation done, review owed).
     receipt["state"] = "BLOCKED"
@@ -216,7 +218,10 @@ def build() -> dict:
     errs = L.validate(receipt, SCHEMA)
     if errs:
         # Some schemas require SUCCESS-only fields; fall back to write + admit later.
-        print(f"WARN: schema validation issues (continuing BLOCKED emit): {errs[:8]}", file=sys.stderr)
+        print(
+            f"WARN: schema validation issues (continuing BLOCKED emit): {errs[:8]}",
+            file=sys.stderr,
+        )
     # Manifest
     man_path = L.REPO / MANIFEST
     man_path.parent.mkdir(parents=True, exist_ok=True)
@@ -250,7 +255,7 @@ def build() -> dict:
 
 if __name__ == "__main__":
     doc = build()
-    print(f"BLOCKED:{UNIT} wrote {OUT} bytes={ (L.REPO/OUT).stat().st_size }")
+    print(f"BLOCKED:{UNIT} wrote {OUT} bytes={(L.REPO / OUT).stat().st_size}")
     print(doc["sentinel"])
     print(
         "Next: fresh-context independent review must re-run pytest + round-trip "

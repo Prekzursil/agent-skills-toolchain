@@ -7,6 +7,7 @@ then SUCCESS. Never stubs SUCCESS. Seeds non-empty downstream_consumers before
 the first schema validate (ADMIT rejects empty consumers on SUCCESS; pack
 always seeds a real consumer path).
 """
+
 from __future__ import annotations
 
 import json
@@ -49,7 +50,9 @@ def _top10_str(names: list[str]) -> str:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-runner-durations.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-runner-durations.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads(
         (PROBE / "probe2-external-wallclock.json").read_text(encoding="utf-8")
     )
@@ -63,9 +66,11 @@ def build(primary: dict | None = None) -> dict:
     p1_stable = bool(p1.get("ranking_stable"))
     p2_stable = bool(p2.get("ranking_stable"))
     ranking_stable = p1_stable and p2_stable
-    contention = bool(p1.get("contention_dominated")) or bool(
-        p2.get("contention_dominated")
-    ) or (not ranking_stable)
+    contention = (
+        bool(p1.get("contention_dominated"))
+        or bool(p2.get("contention_dominated"))
+        or (not ranking_stable)
+    )
     p1_gt = bool((p1.get("ground_truth") or {}).get("ok"))
     p2_gt = bool((p2.get("ground_truth") or {}).get("ok"))
     ground_truth_ok = p1_gt and p2_gt
@@ -496,10 +501,7 @@ def build(primary: dict | None = None) -> dict:
                 "assertions": 2,
                 "output_tail": (
                     f"p1_stable={p1_stable} p2_stable={p2_stable} "
-                    f"contention={contention}\n"
-                    + raw1[-400:]
-                    + "\n"
-                    + raw2[-400:]
+                    f"contention={contention}\n" + raw1[-400:] + "\n" + raw2[-400:]
                 )[-800:],
             },
             {

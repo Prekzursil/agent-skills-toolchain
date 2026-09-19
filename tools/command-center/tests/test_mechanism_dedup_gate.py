@@ -12,10 +12,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 GATE_PATH = REPO / "tools/command-center/mechanism_dedup_gate.py"
-FIXTURES = (
-    REPO
-    / "command-center/p2-wave/probes/CC-0020/fixtures/planted-mutants.json"
-)
+FIXTURES = REPO / "command-center/p2-wave/probes/CC-0020/fixtures/planted-mutants.json"
 
 
 def _load_gate():

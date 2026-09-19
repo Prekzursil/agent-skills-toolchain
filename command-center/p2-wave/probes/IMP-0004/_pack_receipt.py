@@ -26,9 +26,7 @@ UNIT = "IMP-0004"
 OUT = "command-center/receipts/IMP-0004.json"
 SCHEMA = "command-center/schema/receipt.schema.json"
 PROBE_DIR = "command-center/p2-wave/probes/IMP-0004"
-REVIEW = (
-    "command-center/p2-wave/reviews/IMP-0004/independent-evasion-review.json"
-)
+REVIEW = "command-center/p2-wave/reviews/IMP-0004/independent-evasion-review.json"
 GATE = "tools/plugin/secret_gate.py"
 PACK = "tools/plugin/pack.py"
 ALLOW = "tools/plugin/payload-allowlist.json"
@@ -92,9 +90,7 @@ def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
-    rc_py, out_py = _run(
-        [sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"]
-    )
+    rc_py, out_py = _run([sys.executable, "-m", "pytest", "-q", TEST, "--tb=short"])
     (L.REPO / PROBE_DIR / "pytest.out").write_text(out_py, encoding="utf-8")
     if rc_py != 0:
         raise SystemExit(f"IMP-0004 pytest failed:\n{out_py}")
@@ -243,9 +239,7 @@ print('MUTATION-RED:IMP-0004 github_token-rule-deleted pattern-miss')
         if not isinstance(notes, str):
             notes = json.dumps(notes)
         reviewer = {
-            "reviewer_id": rev.get(
-                "reviewer_id", "independent-codex-evasion-reviewer"
-            ),
+            "reviewer_id": rev.get("reviewer_id", "independent-codex-evasion-reviewer"),
             "verdict": "PASS",
             "independent": True,
             "fresh_context": True,
@@ -267,9 +261,7 @@ print('MUTATION-RED:IMP-0004 github_token-rule-deleted pattern-miss')
                     "evasion_method": rev.get("evasion_method"),
                     "bypassed": rev.get("bypassed"),
                     "novel_evasion_attempted": rev.get("novel_evasion_attempted"),
-                    "gitleaks_signal_confirmed": rev.get(
-                        "gitleaks_signal_confirmed"
-                    ),
+                    "gitleaks_signal_confirmed": rev.get("gitleaks_signal_confirmed"),
                     "entropy_signal_confirmed": rev.get("entropy_signal_confirmed"),
                     "report_has_zero_secret_body": rev.get(
                         "report_has_zero_secret_body"

@@ -8,12 +8,12 @@ Catalog tests_required (verbatim):
   control: the enumerator must not crash or silently zero on a file named NUL or a
   path over 260 chars - assert a non-zero count on a fixture containing both.
 """
+
 from __future__ import annotations
 
 import fnmatch
 import json
 import os
-import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[4]
@@ -289,7 +289,7 @@ def main() -> int:
     lines.append("AUD-0017 PROBE 1 -- relative-path set difference after deploy map")
     lines.append(f"repo={REPO}")
     lines.append(f"home={home}")
-    lines.append(f"deploy_map_source=scripts/sync-from-live.ps1:$Map (+ $LooseFiles)")
+    lines.append("deploy_map_source=scripts/sync-from-live.ps1:$Map (+ $LooseFiles)")
     lines.append(f"map_entries={len(DEPLOY_MAP)} loose_files={len(LOOSE_FILES)}")
 
     pairs: list[dict] = []

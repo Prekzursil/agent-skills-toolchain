@@ -107,9 +107,7 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_probe1 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", p1_out, p1_rc
-    )
+    p_probe1 = L.probe("verifier", "command", f"python3 -B {PROBE1}", p1_out, p1_rc)
 
     ctrl_bits = ", ".join(
         f"{k}={'PASS' if v['pass'] else 'FAIL'}"
@@ -312,7 +310,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_all_58_end_deferred_or_answered_with_impact -q"
                 ),
-                "result": "PASS" if c["deferred-or-answered-coverage"]["pass"] else "FAIL",
+                "result": "PASS"
+                if c["deferred-or-answered-coverage"]["pass"]
+                else "FAIL",
                 "assertions": 4,
                 "output_tail": out[-800:],
             },
@@ -337,7 +337,9 @@ def build() -> dict:
                     f"python3 -m pytest {TESTS}::"
                     "test_grouping_batches_shared_decisions -q"
                 ),
-                "result": "PASS" if c["grouping-shared-decisions-batched"]["pass"] else "FAIL",
+                "result": "PASS"
+                if c["grouping-shared-decisions-batched"]["pass"]
+                else "FAIL",
                 "assertions": 3,
                 "output_tail": out[-800:],
             },

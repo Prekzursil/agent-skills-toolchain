@@ -54,6 +54,4 @@ def test_both_states_fixture_rejects_silent_and_accepts_real_detector() -> None:
 
 def test_silent_detector_is_rejected_by_fixture() -> None:
     with pytest.raises(dst.BothStatesError):
-        dst.assert_both_states(
-            lambda _p: False, broken=PRE, good=POST, name="silent"
-        )
+        dst.assert_both_states(lambda _p: False, broken=PRE, good=POST, name="silent")

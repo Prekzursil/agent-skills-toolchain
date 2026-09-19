@@ -61,7 +61,9 @@ def _reviewer(rev: dict, ended: str) -> dict:
         "claude",
         "human-reviewer",
     ):
-        vendor = "anthropic" if "anthropic" in str(rev.get("reviewer_id", "")) else "openai"
+        vendor = (
+            "anthropic" if "anthropic" in str(rev.get("reviewer_id", "")) else "openai"
+        )
         if "openai" in str(rev.get("reviewer_id", "")) or "codex" in str(
             rev.get("reviewer_id", "")
         ):
@@ -134,7 +136,10 @@ def promote_cc0012(ended: str) -> None:
     arts = list(receipt.get("artifacts") or [])
     arts = [a for a in arts if a.get("path") != out]
     arts.append(
-        L.art("command-center/p2-wave/probes/CC-0012/independent-review.json", "supporting")
+        L.art(
+            "command-center/p2-wave/probes/CC-0012/independent-review.json",
+            "supporting",
+        )
     )
     receipt["artifacts"] = arts
 
@@ -210,7 +215,9 @@ def promote_imp0439(ended: str) -> None:
     digests = rev.get("digests_rederived") or []
     if len(digests) < 2:
         raise SystemExit("IMP-0439: need >=2 rederived digests")
-    if not all(d.get("matches_digest_table") and d.get("methods_agree") for d in digests[:2]):
+    if not all(
+        d.get("matches_digest_table") and d.get("methods_agree") for d in digests[:2]
+    ):
         raise SystemExit("IMP-0439: digests must match table and agree")
 
     rc_pytest, pytest_out = _run(
@@ -275,7 +282,10 @@ def promote_imp0439(ended: str) -> None:
     arts = [a for a in (receipt.get("artifacts") or []) if a.get("path") != out]
     arts.extend(
         [
-            L.art("command-center/p2-wave/probes/IMP-0439/independent-review.json", "supporting"),
+            L.art(
+                "command-center/p2-wave/probes/IMP-0439/independent-review.json",
+                "supporting",
+            ),
             L.art("command-center/p2-wave/probes/IMP-0439/pytest.out", "log"),
         ]
     )
@@ -406,13 +416,18 @@ def promote_tst0328(ended: str) -> None:
     arts = [a for a in (receipt.get("artifacts") or []) if a.get("path") != out]
     arts.extend(
         [
-            L.art("command-center/p2-wave/probes/TST-0328/independent-review.json", "supporting"),
+            L.art(
+                "command-center/p2-wave/probes/TST-0328/independent-review.json",
+                "supporting",
+            ),
             L.art("command-center/p2-wave/probes/TST-0328/pytest.out", "log"),
         ]
     )
     if both_path.is_file():
         arts.append(
-            L.art("command-center/p2-wave/probes/TST-0328/both-states-repro.json", "log")
+            L.art(
+                "command-center/p2-wave/probes/TST-0328/both-states-repro.json", "log"
+            )
         )
     receipt["artifacts"] = arts
     ev = list(receipt.get("evidence") or [])

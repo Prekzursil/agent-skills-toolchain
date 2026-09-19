@@ -215,7 +215,11 @@ def parse_pytest_invocation(line: str, working_directory: str) -> dict[str, Any]
             i += 1
             continue
         if a == "--ignore" or a.startswith("--ignore="):
-            val = a.split("=", 1)[1] if "=" in a else (args[i + 1] if i + 1 < len(args) else "")
+            val = (
+                a.split("=", 1)[1]
+                if "=" in a
+                else (args[i + 1] if i + 1 < len(args) else "")
+            )
             if "=" not in a:
                 i += 2
             else:
@@ -260,7 +264,9 @@ def parse_pytest_invocation(line: str, working_directory: str) -> dict[str, Any]
             continue
         if a == "--import-mode" or a.startswith("--import-mode="):
             if "=" not in a:
-                collect_argv.extend(["--import-mode", args[i + 1] if i + 1 < len(args) else ""])
+                collect_argv.extend(
+                    ["--import-mode", args[i + 1] if i + 1 < len(args) else ""]
+                )
                 i += 2
             else:
                 collect_argv.append(a)
@@ -311,7 +317,12 @@ def parse_pytest_invocation(line: str, working_directory: str) -> dict[str, Any]
 
 def _resolve_selector_path(path_arg: str, working_directory: str) -> str | None:
     path_arg = path_arg.strip().strip("\"'")
-    if not path_arg or path_arg == "::" or "::" in path_arg and not path_arg.endswith(".py"):
+    if (
+        not path_arg
+        or path_arg == "::"
+        or "::" in path_arg
+        and not path_arg.endswith(".py")
+    ):
         # node id fragments — keep file portion if present
         if "::" in path_arg:
             path_arg = path_arg.split("::", 1)[0]

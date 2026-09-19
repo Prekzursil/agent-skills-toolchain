@@ -69,7 +69,9 @@ def build() -> dict:
     (L.REPO / PROBE_DIR).mkdir(parents=True, exist_ok=True)
 
     # Dependency CC-0008 must already be SUCCESS on disk.
-    dep = json.loads((L.REPO / "command-center/receipts/CC-0008.json").read_text(encoding="utf-8"))
+    dep = json.loads(
+        (L.REPO / "command-center/receipts/CC-0008.json").read_text(encoding="utf-8")
+    )
     if dep.get("state") != "SUCCESS":
         raise SystemExit(f"CC-0020 refuses pack: CC-0008 state={dep.get('state')!r}")
 
@@ -85,8 +87,12 @@ def build() -> dict:
     if p2_rc != 0:
         raise SystemExit(f"CC-0020 probe2 failed:\n{p2_out}")
 
-    p1 = json.loads((L.REPO / PROBE_DIR / "probe1-mutants.json").read_text(encoding="utf-8"))
-    p2 = json.loads((L.REPO / PROBE_DIR / "probe2-distinct.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (L.REPO / PROBE_DIR / "probe1-mutants.json").read_text(encoding="utf-8")
+    )
+    p2 = json.loads(
+        (L.REPO / PROBE_DIR / "probe2-distinct.json").read_text(encoding="utf-8")
+    )
     raw1 = (L.REPO / PROBE_DIR / "probe1-mutants.raw.txt").read_text(encoding="utf-8")
     raw2 = (L.REPO / PROBE_DIR / "probe2-distinct.raw.txt").read_text(encoding="utf-8")
 
@@ -100,12 +106,8 @@ def build() -> dict:
     p_pytest = L.probe(
         "source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc
     )
-    p_probe1 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc
-    )
-    p_probe2 = L.probe(
-        "verifier", "command", f"python3 -B {PROBE2}", raw2, p2_rc
-    )
+    p_probe1 = L.probe("verifier", "command", f"python3 -B {PROBE1}", raw1, p1_rc)
+    p_probe2 = L.probe("verifier", "command", f"python3 -B {PROBE2}", raw2, p2_rc)
 
     if success:
         state = "SUCCESS"

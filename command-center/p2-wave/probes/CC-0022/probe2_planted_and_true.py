@@ -4,6 +4,7 @@
 Also the independent meaning review: only namespace/tense/supersession metadata
 changed; original collision wording is preserved under superseded_by.
 """
+
 from __future__ import annotations
 
 import json

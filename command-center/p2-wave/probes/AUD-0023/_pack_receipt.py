@@ -13,6 +13,7 @@ than reused?" The retry_policy says a stored PASS older than 24h must be
 re-queried, not reused -- so `report.query_timestamp` / `report.valid_until`
 (now + 24h) are load-bearing fields here, not decoration.
 """
+
 from __future__ import annotations
 
 import json
@@ -92,9 +93,7 @@ def build(primary: dict | None = None) -> dict:
     moderate_count = int(severity_hist.get("MODERATE") or 0)
     low_count = int(severity_hist.get("LOW") or 0)
     lockfile_target_count = len((p1.get("targets") or {}).get("lockfiles") or [])
-    requirements_target_count = len(
-        (p1.get("targets") or {}).get("requirements") or []
-    )
+    requirements_target_count = len((p1.get("targets") or {}).get("requirements") or [])
     pip_freeze_pkg_count = int(p1.get("pip_freeze_package_count") or 0)
 
     real_dependabot = p2.get("real_dependabot_alert_probe") or {}

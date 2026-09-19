@@ -5,6 +5,7 @@ wheel ships scratch_pkg without helper_mod and this import raises ModuleNotFound
 ONLY in the installed run -- a plain ``python -m pytest`` against this source tree
 never observes the omission because the file is still present on disk.
 """
+
 from __future__ import annotations
 
 from helper_mod.helper import compute

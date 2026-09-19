@@ -153,7 +153,6 @@ class TestRecordedFalsePositives:
         ctx = Context(tool_name="", file_path="", source="assistant_message")
         assert not _judge(msg, "TODO", ctx, "marker")
 
-
     def test_fire10_stub_negated_absence_message_text_source(self):
         """STUB-FP-negated-absence: source=message_text must be prose, not code.
 
@@ -287,7 +286,6 @@ class TestResultKind:
         prose = "blocked_on cites result-needle / timeout-needle compounds"
         assert not _judge(prose, "timeout", self.RESULT_CTX, "result")
 
-
     def test_etimedout_value_still_fires(self):
         """ETIMEDOUT has no underscore; must not be silenced by snake-embed rule."""
         raw = '{"error": "ETIMEDOUT"}'
@@ -299,7 +297,6 @@ class TestResultKind:
         raw = '{"sentinel": "FAILED:TST-0341 blocked-on-independent-review"}'
         assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
 
-
     def test_unit_template_sentinel_failed_unit_is_mention(self):
         """FAILED:UNIT schema template (no digits) is vocabulary, not a report."""
         raw = "docs name FAILED:UNIT sentinel vocabulary"
@@ -310,7 +307,6 @@ class TestResultKind:
         raw = "hits on 'timedout' (user_cancelled_or_timedout example) and 'FAILED'"
         assert not _judge(raw, "timedout", self.RESULT_CTX, "result")
         assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
-
 
     def test_multiword_phrase_is_never_read_as_a_key(self):
         raw = '{"detail": "timed out waiting for the server"}'

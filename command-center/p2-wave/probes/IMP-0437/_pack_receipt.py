@@ -93,9 +93,7 @@ def build() -> dict:
     if not mutation.get("ok"):
         raise SystemExit(f"IMP-0437 mutation report ok=false:\n{mutation}")
 
-    v_rc, v_out = _run(
-        [sys.executable, str(L.REPO / VALIDATE), "--require-complete"]
-    )
+    v_rc, v_out = _run([sys.executable, str(L.REPO / VALIDATE), "--require-complete"])
     (L.REPO / PROBE_DIR / "validate.out").write_text(v_out, encoding="utf-8")
     if v_rc != 0:
         raise SystemExit(f"IMP-0437 live validate --require-complete failed:\n{v_out}")
@@ -114,9 +112,7 @@ def build() -> dict:
         out,
         rc,
     )
-    p_meas = L.probe(
-        "verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc
-    )
+    p_meas = L.probe("verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc)
     p_val = L.probe(
         "source",
         "command",
@@ -353,16 +349,12 @@ def build() -> dict:
                 ),
                 "result": "PASS" if after_d != 0 else "FAIL",
                 "assertions": 2,
-                "output_tail": (
-                    f"before={before_d} after={after_d}\n" + m_out[-600:]
-                ),
+                "output_tail": (f"before={before_d} after={after_d}\n" + m_out[-600:]),
             },
             {
                 "id": "single-field-deletion-ci-red",
                 "name": "Deleting one default field also fails the gate.",
-                "command": (
-                    f"python3 -B {MEASURE}  # single_default_field_deleted"
-                ),
+                "command": (f"python3 -B {MEASURE}  # single_default_field_deleted"),
                 "result": "PASS" if after_s != 0 else "FAIL",
                 "assertions": 2,
                 "output_tail": f"before={before_s} after={after_s}\n" + m_out[-600:],
@@ -373,9 +365,7 @@ def build() -> dict:
                 "command": (
                     f"python3 -B {MEASURE}  # blank_completion_sentinel_v_fields"
                 ),
-                "result": "PASS"
-                if before_vf == 0 and after_vf != 0
-                else "FAIL",
+                "result": "PASS" if before_vf == 0 and after_vf != 0 else "FAIL",
                 "assertions": 3,
                 "output_tail": (
                     f"soft={before_vf} armed={after_vf} "

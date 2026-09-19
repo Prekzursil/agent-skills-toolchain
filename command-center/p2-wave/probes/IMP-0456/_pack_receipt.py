@@ -122,9 +122,10 @@ def build() -> dict:
         pass
     if not report.get("assert_merge_contiguous_refused", True):
         # On the known-short tip the gate must refuse; fail closed if it does not.
-        if report["contiguity"]["unique_id_count"] < report["contiguity"][
-            "declared_program_count"
-        ]:
+        if (
+            report["contiguity"]["unique_id_count"]
+            < report["contiguity"]["declared_program_count"]
+        ):
             raise SystemExit(
                 "IMP-0456: live shortfall present but assert did not refuse"
             )
@@ -144,9 +145,7 @@ def build() -> dict:
         out,
         rc,
     )
-    p_meas = L.probe(
-        "verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc
-    )
+    p_meas = L.probe("verifier", "command", f"python3 -B {MEASURE}", m_out, m_rc)
 
     gaps = c.get("total_gap_count", 0)
     dups = inv.get("duplicate_count", 0)
@@ -449,8 +448,7 @@ def build() -> dict:
                 "id": "planted-gap-blocks",
                 "name": "Planted index gap must block the merge.",
                 "command": (
-                    f"python3 -m pytest {TESTS}::"
-                    "test_planted_gap_must_block_merge -q"
+                    f"python3 -m pytest {TESTS}::test_planted_gap_must_block_merge -q"
                 ),
                 "result": "PASS" if rc == 0 else "FAIL",
                 "assertions": 5,
@@ -625,9 +623,7 @@ def build() -> dict:
     v_rc2, v_out2 = _run(
         [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
     )
-    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(
-        v_out2, encoding="utf-8"
-    )
+    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(v_out2, encoding="utf-8")
     if v_rc2 != 0 or "ACCEPT" not in v_out2:
         raise SystemExit(f"receipt_validate rejected:\n{v_out2}")
 

@@ -159,8 +159,7 @@ def build() -> dict:
     )
 
     row_bits = "; ".join(
-        f"C{r['condition']}={r['reducer_verdict']}"
-        f"(unsat={r['unsatisfied']})"
+        f"C{r['condition']}={r['reducer_verdict']}(unsat={r['unsatisfied']})"
         for r in table["rows"]
     )
 

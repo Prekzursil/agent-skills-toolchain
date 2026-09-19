@@ -6,6 +6,7 @@ appears with remmeasured_after_remedi=true (or notes naming the remedi SHA).
 The historical FAIL review at independent-review.json is left in place and is
 never treated as SUCCESS authority. Never invents SUCCESS.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,8 @@ def load_success_review() -> dict | None:
         return None
     notes = str(rev.get("notes") or "")
     remedi_ok = bool(rev.get("remeasured_after_remedi")) or (
-        "remedi" in notes.lower() and ("sha" in notes.lower() or "after" in notes.lower())
+        "remedi" in notes.lower()
+        and ("sha" in notes.lower() or "after" in notes.lower())
     )
     if not remedi_ok:
         return None
@@ -77,14 +79,18 @@ def headline_from(p1: dict, p2: dict) -> str:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-dispatcher-table.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-dispatcher-table.json").read_text(encoding="utf-8")
+    )
     p2 = json.loads((PROBE / "probe2-route-renders.json").read_text(encoding="utf-8"))
     ctrl = json.loads((PROBE / "control-both-states.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-dispatcher-table.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-route-renders.raw.txt").read_text(encoding="utf-8")
     raw_ctrl = (PROBE / "control-both-states.raw.txt").read_text(encoding="utf-8")
     raw_good = (PROBE / "control-empty-source-good.raw.txt").read_text(encoding="utf-8")
-    raw_mut = (PROBE / "control-empty-source-mutant.raw.txt").read_text(encoding="utf-8")
+    raw_mut = (PROBE / "control-empty-source-mutant.raw.txt").read_text(
+        encoding="utf-8"
+    )
 
     success_rev = load_success_review()
     fail_rev = load_fail_review()
@@ -103,23 +109,60 @@ def build(primary: dict | None = None) -> dict:
             "eol": "LF",
             "role": "primary",
         },
-        L.art("command-center/p2-wave/probes/AUD-0064/audit_monitor_surfaces.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/audit_monitor_surfaces.py",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py",
+            "supporting",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0064/_pack_receipt.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0064/probe1-dispatcher-table.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0064/probe2-route-renders.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0064/control-both-states.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0064/probe1-dispatcher-table.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0064/probe2-route-renders.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0064/control-empty-source-good.raw.txt", "control"),
-        L.art("command-center/p2-wave/probes/AUD-0064/control-empty-source-mutant.raw.txt", "control"),
-        L.art("command-center/p2-wave/probes/AUD-0064/control-both-states.raw.txt", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/probe1-dispatcher-table.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/probe2-route-renders.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/control-both-states.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/probe1-dispatcher-table.raw.txt",
+            "log",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/probe2-route-renders.raw.txt", "log"
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/control-empty-source-good.raw.txt",
+            "control",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/control-empty-source-mutant.raw.txt",
+            "control",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0064/control-both-states.raw.txt",
+            "control",
+        ),
     ]
     if REVIEW.is_file():
-        arts.append(L.art("command-center/p2-wave/probes/AUD-0064/independent-review.json", "supporting"))
+        arts.append(
+            L.art(
+                "command-center/p2-wave/probes/AUD-0064/independent-review.json",
+                "supporting",
+            )
+        )
     if REVIEW_FAIL.is_file():
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0064/independent-review.FAIL.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0064/independent-review.FAIL.json",
+                "supporting",
+            )
         )
 
     if success:
@@ -473,7 +516,9 @@ def build(primary: dict | None = None) -> dict:
                 "id": "empty-source-mutant-can-go-red",
                 "name": "negative control: nonempty-frame mutant must exit red on empty source",
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py --mode mutant",
-                "result": "PASS" if (ctrl.get("mutant") or {}).get("mutant_caught") else "FAIL",
+                "result": "PASS"
+                if (ctrl.get("mutant") or {}).get("mutant_caught")
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": raw_mut[-500:],
             },
@@ -639,7 +684,10 @@ def main() -> int:
         [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
     )
     doc = build(primary=L.art(OUT, "primary"))
-    doc["downstream_consumers"] = [schema_consumer(doc["state"]), admit_consumer(rc_adm, adm_out)]
+    doc["downstream_consumers"] = [
+        schema_consumer(doc["state"]),
+        admit_consumer(rc_adm, adm_out),
+    ]
     rc = L.write_if_valid(doc, OUT, SCHEMA)
     if rc != 0:
         return rc
@@ -648,7 +696,10 @@ def main() -> int:
         [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
     )
     doc = build(primary=L.art(OUT, "primary"))
-    doc["downstream_consumers"] = [schema_consumer(doc["state"]), admit_consumer(rc_adm2, adm_out2)]
+    doc["downstream_consumers"] = [
+        schema_consumer(doc["state"]),
+        admit_consumer(rc_adm2, adm_out2),
+    ]
     rc = L.write_if_valid(doc, OUT, SCHEMA)
     if rc != 0:
         return rc

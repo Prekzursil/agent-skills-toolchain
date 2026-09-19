@@ -75,7 +75,9 @@ def probe_wiring() -> dict[str, Any]:
     """P1: quality.yml must invoke this gate or receipt_validate on a live line."""
     wf = REPO / WORKFLOW_REL
     body = io.open(wf, encoding="utf-8", newline="").read().replace("\r\n", "\n")
-    live = [ln for ln in body.split("\n") if ln.strip() and not ln.lstrip().startswith("#")]
+    live = [
+        ln for ln in body.split("\n") if ln.strip() and not ln.lstrip().startswith("#")
+    ]
     joined = "\n".join(live)
     # Match an actual python invocation, not a comment leftover.
     patterns = [
@@ -181,7 +183,9 @@ def probe_noop_mode() -> dict[str, Any]:
         silent_pass = rc == 0 and (
             "SUCCESS:receipt-validate" in out or "ADMITTED" in out or out.strip() == ""
         )
-        flag_results.append({"flag": flag, "returncode": rc, "silent_pass": silent_pass})
+        flag_results.append(
+            {"flag": flag, "returncode": rc, "silent_pass": silent_pass}
+        )
         if silent_pass:
             flags_ok = False
 

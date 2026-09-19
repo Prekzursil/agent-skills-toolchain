@@ -314,7 +314,9 @@ def _transcript_blob(evidence_item: Mapping[str, Any] | None) -> str:
     return "\n".join(chunks)
 
 
-def _archive_recorded(evidence_item: Mapping[str, Any] | None, url: str) -> tuple[bool, str]:
+def _archive_recorded(
+    evidence_item: Mapping[str, Any] | None, url: str
+) -> tuple[bool, str]:
     """Return whether an archived copy of ``url`` is recorded on the evidence item."""
     if not evidence_item:
         return False, "no evidence item to carry archive metadata"
@@ -419,7 +421,11 @@ def resolve_anchor(
                 status="unresolved",
                 reason=f"invalid line range {parsed.line}-{end}",
                 revision_used=rev,
-                detail={"path": parsed.path, "line_count": n, "fabricated_citation": True},
+                detail={
+                    "path": parsed.path,
+                    "line_count": n,
+                    "fabricated_citation": True,
+                },
             )
         if end > n:
             return Resolution(
@@ -590,12 +596,13 @@ def validate_receipt_evidence(
 
 def main(argv: Sequence[str] | None = None) -> int:
     import argparse
-    import sys
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("receipt", nargs="+", help="receipt JSON path(s)")
     ap.add_argument("--repo", default=str(REPO_DEFAULT))
-    ap.add_argument("--revision", default="HEAD", help="default revision for unpinned file anchors")
+    ap.add_argument(
+        "--revision", default="HEAD", help="default revision for unpinned file anchors"
+    )
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     repo = Path(args.repo)

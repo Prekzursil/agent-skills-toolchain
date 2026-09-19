@@ -52,9 +52,7 @@ def test_report_never_contains_secret_body() -> None:
     body = S.secret_body(token)
     assert body
     assert len(body) >= 16
-    report = S.scan_members(
-        [("plant.py", f'API_KEY = "{token}"\n'.encode("utf-8"))]
-    )
+    report = S.scan_members([("plant.py", f'API_KEY = "{token}"\n'.encode("utf-8"))])
     text = report.render_named_report()
     doc = json.dumps(report.as_secret_finding_doc())
     assert body not in text

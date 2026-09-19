@@ -36,11 +36,20 @@ PLANTED_EDGES: list[tuple[str, str]] = [
     ("02-BLOCKER-ROOT-CAUSE.md", "01-BLOCKER-REPRODUCTION.md"),
     ("03-PLUGIN-LIFECYCLE-MAP.md", "00-CURRENT-STATE-INVENTORY.md"),
     ("05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md", "04-MARKETPLACE-CURRENT-STATE.md"),
-    ("06-EXISTING-WORK-ADOPT-EXTEND-RETIRE.md", "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"),
+    (
+        "06-EXISTING-WORK-ADOPT-EXTEND-RETIRE.md",
+        "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+    ),
     ("07-OPTION-UNIVERSE.md", "06-EXISTING-WORK-ADOPT-EXTEND-RETIRE.md"),
     ("08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md", "07-OPTION-UNIVERSE.md"),
-    ("09-WORKFLOW-BLUEPRINT-LIBRARY.md", "08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md"),
-    ("10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md", "09-WORKFLOW-BLUEPRINT-LIBRARY.md"),
+    (
+        "09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+        "08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md",
+    ),
+    (
+        "10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md",
+        "09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+    ),
     ("11-COUNCIL-SPECIFICATION.md", "10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md"),
     ("12-COUNCIL-PROTOCOLS-AND-PRESETS.md", "11-COUNCIL-SPECIFICATION.md"),
     ("13-ARCHITECTURE-CANDIDATES.md", "07-OPTION-UNIVERSE.md"),
@@ -81,7 +90,7 @@ def body_for(name: str, cites: list[str], *, stale_doc13: bool = False) -> str:
     lines = [
         f"# {name} (AUD-0074 fixture reconstruction)",
         "",
-        f"as_of_note: fixture-reconstruction; not a live Prompt-One Windows tree byte.",
+        "as_of_note: fixture-reconstruction; not a live Prompt-One Windows tree byte.",
         "",
     ]
     if name == DOC13:
@@ -140,10 +149,15 @@ def main() -> int:
             continue
 
         stale = name == "17-DECISION-LOG.md"
-        mtime = before if name in {
-            "17-DECISION-LOG.md",
-            "15-IMPLEMENTATION-PRECONDITIONS.md",
-        } else after
+        mtime = (
+            before
+            if name
+            in {
+                "17-DECISION-LOG.md",
+                "15-IMPLEMENTATION-PRECONDITIONS.md",
+            }
+            else after
+        )
         # Doc-13 itself is the corrected live file → mtime after correction.
         if name == DOC13:
             mtime = CORRECTION_EPOCH + 3600

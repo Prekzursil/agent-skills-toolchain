@@ -12,11 +12,11 @@ Writes:
   probe2-recent-pr-check-runs.json
   probe2-recent-pr-check-runs.raw.txt
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -70,7 +70,10 @@ def main() -> int:
             "ended_at": ended,
             "ok": False,
             "error": pr_raw[:1000],
-            "selection": {"rule": "most-recently-merged PR with check-runs", "chosen": None},
+            "selection": {
+                "rule": "most-recently-merged PR with check-runs",
+                "chosen": None,
+            },
             "emitted_contexts": [],
             "emitted_count": 0,
         }
@@ -97,8 +100,8 @@ def main() -> int:
     chosen = None
     check_runs: list[dict] = []
     status_contexts: list[str] = []
-    status_raw = ""
-    check_raw = ""
+    _status_raw = ""
+    _check_raw = ""
 
     for pr in merged:
         number = pr["number"]
@@ -131,12 +134,12 @@ def main() -> int:
                 "merge_commit_sha": pr.get("merge_commit_sha"),
             }
             check_runs = runs
-            check_raw = c_raw
+            _check_raw = c_raw
             s_path = f"repos/{REPO}/commits/{sha}/status"
             s_rc, s_raw = gh_api(s_path)
             raw_parts.append(f"\n=== GET {s_path} rc={s_rc} ===\n")
             raw_parts.append(s_raw[:10000])
-            status_raw = s_raw
+            _status_raw = s_raw
             if s_rc == 0:
                 try:
                     sp = json.loads(s_raw)

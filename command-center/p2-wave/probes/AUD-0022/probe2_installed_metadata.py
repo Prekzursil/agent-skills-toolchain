@@ -5,11 +5,11 @@ Builds a Requires-Dist graph among *installed* distributions, excluding
 extra== markers (mention-only optional deps). Depth is a BFS over that
 installed-use graph — reproducible from this script alone.
 """
+
 from __future__ import annotations
 
 import json
 import re
-import sys
 from collections import defaultdict, deque
 from importlib import metadata
 from pathlib import Path

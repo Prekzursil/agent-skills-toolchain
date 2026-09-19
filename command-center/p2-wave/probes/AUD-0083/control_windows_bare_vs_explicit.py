@@ -25,6 +25,7 @@ shebang, not the OS" failure mode falsifiable rather than asserted:
     explicit case -- which is exactly the discriminating behaviour the
     catalog asks for.
 """
+
 from __future__ import annotations
 
 import json
@@ -74,7 +75,9 @@ def main() -> int:
     )
 
     naive_bare = naive_shebang_only_resolver(FIXTURE_SHEBANG_INTERPRETER, "bare")
-    naive_explicit = naive_shebang_only_resolver(FIXTURE_SHEBANG_INTERPRETER, "explicit")
+    naive_explicit = naive_shebang_only_resolver(
+        FIXTURE_SHEBANG_INTERPRETER, "explicit"
+    )
 
     control_case_a_bare_is_failure = real_bare["outcome"] == "FAILURE"
     control_case_b_explicit_is_success = real_explicit["outcome"] == "SUCCESS"
@@ -82,26 +85,46 @@ def main() -> int:
         control_case_a_bare_is_failure and control_case_b_explicit_is_success
     )
 
-    naive_resolver_incorrectly_passes_both = naive_bare == "SUCCESS" and naive_explicit == "SUCCESS"
-    naive_resolver_caught_as_broken = naive_bare == "SUCCESS"  # i.e. wrongly SUCCESS on bare
-    fired_on_bad_state = naive_resolver_caught_as_broken  # detector = "does resolver disagree with naive"
-    silent_on_good_state = real_bare["outcome"] != naive_bare or True  # real resolver never equals naive-bare-success
+    naive_resolver_incorrectly_passes_both = (
+        naive_bare == "SUCCESS" and naive_explicit == "SUCCESS"
+    )
+    naive_resolver_caught_as_broken = (
+        naive_bare == "SUCCESS"
+    )  # i.e. wrongly SUCCESS on bare
+    _fired_on_bad_state = naive_resolver_caught_as_broken  # detector = "does resolver disagree with naive"
+    _silent_on_good_state = (
+        real_bare["outcome"] != naive_bare or True
+    )  # real resolver never equals naive-bare-success
 
     # a second real script sourced by grep (not authored for this control),
     # to show the property is not a single planted coincidence
     second_bare = R.resolve(
-        ext=".sh", has_shebang=True, shebang_interpreter="bash",
-        exec_bit=True, platform="windows", mode="bare",
+        ext=".sh",
+        has_shebang=True,
+        shebang_interpreter="bash",
+        exec_bit=True,
+        platform="windows",
+        mode="bare",
     )
     second_explicit = R.resolve(
-        ext=".sh", has_shebang=True, shebang_interpreter="bash",
-        exec_bit=True, platform="windows", mode="explicit",
+        ext=".sh",
+        has_shebang=True,
+        shebang_interpreter="bash",
+        exec_bit=True,
+        platform="windows",
+        mode="explicit",
         explicit_interpreter="bash",
     )
-    second_script_ok = second_bare["outcome"] == "FAILURE" and second_explicit["outcome"] == "SUCCESS"
+    second_script_ok = (
+        second_bare["outcome"] == "FAILURE" and second_explicit["outcome"] == "SUCCESS"
+    )
 
     out = {
-        "ok": bool(real_resolver_passes_control and naive_resolver_incorrectly_passes_both and second_script_ok),
+        "ok": bool(
+            real_resolver_passes_control
+            and naive_resolver_incorrectly_passes_both
+            and second_script_ok
+        ),
         "started_at": started,
         "fixture_script_path": FIXTURE_SCRIPT_PATH,
         "fixture_shebang_interpreter": FIXTURE_SHEBANG_INTERPRETER,

@@ -50,12 +50,20 @@ def load_aud0049() -> dict:
 
 
 def build(primary: dict | None = None) -> dict:
-    p1 = json.loads((PROBE / "probe1-ast-platform-skips.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-collect-vs-execute.json").read_text(encoding="utf-8"))
-    ctrl = json.loads((PROBE / "control-probe-independence.json").read_text(encoding="utf-8"))
+    p1 = json.loads(
+        (PROBE / "probe1-ast-platform-skips.json").read_text(encoding="utf-8")
+    )
+    p2 = json.loads(
+        (PROBE / "probe2-collect-vs-execute.json").read_text(encoding="utf-8")
+    )
+    ctrl = json.loads(
+        (PROBE / "control-probe-independence.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-ast-platform-skips.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-collect-vs-execute.raw.txt").read_text(encoding="utf-8")
-    raw_ctrl = (PROBE / "control-probe-independence.raw.txt").read_text(encoding="utf-8")
+    raw_ctrl = (PROBE / "control-probe-independence.raw.txt").read_text(
+        encoding="utf-8"
+    )
     aud0049 = load_aud0049()
     rev = load_review()
     success = rev is not None
@@ -71,8 +79,10 @@ def build(primary: dict | None = None) -> dict:
     runtime_only_hits = int(p2["runtime_only_hits_count"])
     total_skipped_here = int(p2["total_skipped_here"])
     ci_exercised = aud0049["report"]["exercised_families"]
-    control_ok = bool(ctrl["ok"]) and bool(p1["control"]["runtime_only_fixture_correctly_missed"]) and bool(
-        p2["control"]["ok"]
+    control_ok = (
+        bool(ctrl["ok"])
+        and bool(p1["control"]["runtime_only_fixture_correctly_missed"])
+        and bool(p2["control"]["ok"])
     )
     combined_never_on_current_matrix = never_declared + runtime_only_hits
 
@@ -87,15 +97,42 @@ def build(primary: dict | None = None) -> dict:
             "role": "primary",
         },
         L.art(AUD0049_INPUT, "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe1_ast_platform_skips.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe1-ast-platform-skips.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe1-ast-platform-skips.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe2_collect_vs_execute.py", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe2-collect-vs-execute.json", "supporting"),
-        L.art("command-center/p2-wave/probes/AUD-0054/probe2-collect-vs-execute.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0054/control_probe_independence.py", "control"),
-        L.art("command-center/p2-wave/probes/AUD-0054/control-probe-independence.json", "control"),
-        L.art("command-center/p2-wave/probes/AUD-0054/control-probe-independence.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe1_ast_platform_skips.py",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe1-ast-platform-skips.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe1-ast-platform-skips.raw.txt",
+            "log",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe2_collect_vs_execute.py",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe2-collect-vs-execute.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/probe2-collect-vs-execute.raw.txt",
+            "log",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/control_probe_independence.py",
+            "control",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/control-probe-independence.json",
+            "control",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0054/control-probe-independence.raw.txt",
+            "log",
+        ),
         L.art(
             "command-center/p2-wave/probes/AUD-0054/fixtures/test_control_runtime_only_skip.py",
             "fixture",
@@ -103,7 +140,10 @@ def build(primary: dict | None = None) -> dict:
     ]
     if success:
         arts.append(
-            L.art("command-center/p2-wave/probes/AUD-0054/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/AUD-0054/independent-review.json",
+                "supporting",
+            )
         )
 
     question = (
@@ -376,7 +416,9 @@ def build(primary: dict | None = None) -> dict:
                 "id": "AUD-0054-sibling-not-skipped",
                 "name": "control: sibling non-gated fixture test executes (not skipped) on Linux",
                 "command": "python3 -B command-center/p2-wave/probes/AUD-0054/probe2_collect_vs_execute.py",
-                "result": "PASS" if p2["control"]["fixture_sibling_test_executed_not_skipped"] else "FAIL",
+                "result": "PASS"
+                if p2["control"]["fixture_sibling_test_executed_not_skipped"]
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": raw2[-400:],
             },

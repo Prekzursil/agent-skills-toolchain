@@ -36,9 +36,10 @@ def load_review() -> dict | None:
     survive = evidence.get("survive") or evidence.get("survived") or {}
     if catch.get("binder_status") != "PROTECTING" or not catch.get("caught"):
         return None
-    if survive.get("binder_status") != "HOLE" and (evidence.get("coverage_summary") or {}).get(
-        "hole_count", 0
-    ) < 1:
+    if (
+        survive.get("binder_status") != "HOLE"
+        and (evidence.get("coverage_summary") or {}).get("hole_count", 0) < 1
+    ):
         return None
     return rev
 
@@ -125,8 +126,13 @@ def build() -> dict:
         },
         "artifacts": [
             L.art("tools/command-center/test_registry_bind.py", "primary"),
-            L.art("tools/command-center/tests/test_test_registry_bind.py", "supporting"),
-            L.art("command-center/p2-wave/probes/CC-0014/bindings-measured.json", "supporting"),
+            L.art(
+                "tools/command-center/tests/test_test_registry_bind.py", "supporting"
+            ),
+            L.art(
+                "command-center/p2-wave/probes/CC-0014/bindings-measured.json",
+                "supporting",
+            ),
             L.art("command-center/TEST-REGISTRY.json", "supporting"),
             L.art("command-center/CLAIM-REGISTRY.json", "supporting"),
             L.art("command-center/p2-wave/probes/CC-0014/probe1-bind.raw.txt", "log"),
@@ -323,9 +329,16 @@ def build() -> dict:
     if success:
         catch = (rev.get("mutation_evidence") or {}).get("catch") or {}
         ind_summary = PROBE / "independent-classify-summary.json"
-        ind_raw = ind_summary.read_text(encoding="utf-8") if ind_summary.is_file() else json.dumps(catch)
+        ind_raw = (
+            ind_summary.read_text(encoding="utf-8")
+            if ind_summary.is_file()
+            else json.dumps(catch)
+        )
         receipt["artifacts"].append(
-            L.art("command-center/p2-wave/probes/CC-0014/independent-review.json", "supporting")
+            L.art(
+                "command-center/p2-wave/probes/CC-0014/independent-review.json",
+                "supporting",
+            )
         )
         receipt["evidence"].append(
             L.evidence(

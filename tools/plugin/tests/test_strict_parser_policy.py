@@ -31,7 +31,9 @@ def fixture_doc() -> dict:
     return P.fixture_base_manifest()
 
 
-def test_accept_x_extension_reject_bare_unknown(schema: dict, fixture_doc: dict) -> None:
+def test_accept_x_extension_reject_bare_unknown(
+    schema: dict, fixture_doc: dict
+) -> None:
     """Catalog node: accept key under x-, reject the same bare unknown key."""
     P.assert_frozen_matches_schema(schema)
 

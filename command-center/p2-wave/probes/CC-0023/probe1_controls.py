@@ -56,11 +56,14 @@ def main() -> int:
     }
     report["controls"]["zero-silent-rewrites"]["pass"] = good_rewrite.passed
     report["controls"]["zero-silent-rewrites"]["detail"] = good_rewrite.detail
-    report["ok"] = all(
-        v["pass"]
-        for k, v in report["controls"].items()
-        if k != "silent-rewrite-bad-state-fires"
-    ) and report["controls"]["silent-rewrite-bad-state-fires"]["pass"]
+    report["ok"] = (
+        all(
+            v["pass"]
+            for k, v in report["controls"].items()
+            if k != "silent-rewrite-bad-state-fires"
+        )
+        and report["controls"]["silent-rewrite-bad-state-fires"]["pass"]
+    )
 
     payload = {
         "unit": "CC-0023",
@@ -75,7 +78,9 @@ def main() -> int:
         "owner_decisions_path": str(adj.OWNER_DECISIONS.relative_to(REPO)),
         "recorded_owner_answers": led["recorded_owner_answers"],
     }
-    OUT_JSON.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT_JSON.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     raw = (
         "CC-0023 probe1 controls\n"
         f"total_refs={led['counts']['total_refs']}\n"

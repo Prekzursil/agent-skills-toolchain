@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import ast
 import json
-import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -106,7 +105,9 @@ def _reason_from_call(call: ast.Call) -> str | None:
     for kw in call.keywords:
         if kw.arg == "reason":
             try:
-                if isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
+                if isinstance(kw.value, ast.Constant) and isinstance(
+                    kw.value.value, str
+                ):
                     return kw.value.value
                 return unparse(kw.value)
             except Exception:  # noqa: BLE001
@@ -147,7 +148,10 @@ class ModuleFacts:
                     if isinstance(node.value, ast.Call):
                         chain = _attr_chain(node.value.func)
                         if chain and (
-                            (chain[-1] in MARKER_ATTRS_PLATFORM_CAPABLE and "mark" in chain)
+                            (
+                                chain[-1] in MARKER_ATTRS_PLATFORM_CAPABLE
+                                and "mark" in chain
+                            )
                             or (
                                 chain
                                 and chain[0] in {"unittest", "ut"}
@@ -157,7 +161,9 @@ class ModuleFacts:
                             cond = node.value.args[0] if node.value.args else None
                             self.skip_vars[tgt.id] = {
                                 "kind": chain[-1],
-                                "cond_text": unparse(cond) if cond is not None else "<none>",
+                                "cond_text": unparse(cond)
+                                if cond is not None
+                                else "<none>",
                                 "reason": _reason_from_call(node.value),
                                 "lineno": node.lineno,
                             }
@@ -191,7 +197,9 @@ def load_module_facts(path: Path) -> ModuleFacts | None:
     return mf
 
 
-def resolve_condition_text(name: str, mf: ModuleFacts, hops: int = 0) -> tuple[str, str]:
+def resolve_condition_text(
+    name: str, mf: ModuleFacts, hops: int = 0
+) -> tuple[str, str]:
     """Resolve a bare Name used as a skipif condition to its defining expression text.
 
     Returns (resolved_text, resolution_path). resolution_path documents how we got
@@ -312,7 +320,9 @@ def extract_platform_gated(path: Path) -> list[dict]:
             if call is not None:
                 chain = _attr_chain(call.func)
                 is_platform_capable = ("mark" in chain and chain[-1] == "skipif") or (
-                    chain and chain[0] in {"unittest", "ut"} and chain[-1] in UNITTEST_ATTRS_PLATFORM_CAPABLE
+                    chain
+                    and chain[0] in {"unittest", "ut"}
+                    and chain[-1] in UNITTEST_ATTRS_PLATFORM_CAPABLE
                 )
                 if not is_platform_capable or not call.args:
                     continue
@@ -394,16 +404,26 @@ def main() -> int:
     windows_only = sum(
         1 for r in only_test_targets if r["required_platform"] == "windows-only"
     )
-    posix_only = sum(1 for r in only_test_targets if r["required_platform"] == "posix-only")
-    darwin_only = sum(1 for r in only_test_targets if r["required_platform"] == "darwin-only")
+    posix_only = sum(
+        1 for r in only_test_targets if r["required_platform"] == "posix-only"
+    )
+    darwin_only = sum(
+        1 for r in only_test_targets if r["required_platform"] == "darwin-only"
+    )
     windows_or_darwin_only = sum(
-        1 for r in only_test_targets if r["required_platform"] == "windows-or-darwin-only"
+        1
+        for r in only_test_targets
+        if r["required_platform"] == "windows-or-darwin-only"
     )
     linux_case_sensitive_only = sum(
-        1 for r in only_test_targets if r["required_platform"] == "linux-case-sensitive-only"
+        1
+        for r in only_test_targets
+        if r["required_platform"] == "linux-case-sensitive-only"
     )
     unclassified = sum(
-        1 for r in only_test_targets if r["required_platform"].startswith("unclassified")
+        1
+        for r in only_test_targets
+        if r["required_platform"].startswith("unclassified")
     )
     never_on_current_ci_matrix = sum(
         1 for r in only_test_targets if r["never_on_current_ci_matrix"]

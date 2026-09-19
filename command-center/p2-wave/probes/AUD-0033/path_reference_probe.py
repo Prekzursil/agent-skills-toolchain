@@ -3,6 +3,7 @@
 
 Control: finds a fenced path; does NOT emit slash-bearing prose traps.
 """
+
 from __future__ import annotations
 
 import json
@@ -234,16 +235,23 @@ def main() -> int:
     missing_sample = [k for k, v in distinct.items() if not v][:40]
 
     known = {
-        "docs/agentic-perfection/CHANGELOG.md": (REPO / "docs/agentic-perfection/CHANGELOG.md").exists(),
-        "scripts/claude-science/cs-doctor.ps1": (REPO / "scripts/claude-science/cs-doctor.ps1").exists(),
+        "docs/agentic-perfection/CHANGELOG.md": (
+            REPO / "docs/agentic-perfection/CHANGELOG.md"
+        ).exists(),
+        "scripts/claude-science/cs-doctor.ps1": (
+            REPO / "scripts/claude-science/cs-doctor.ps1"
+        ).exists(),
         ".agents/skills": (REPO / ".agents/skills").exists(),
         "local-rel-target.txt": resolve_exists("local-rel-target.txt", FIXTURE),
-        "command-center/WORK-UNIT-CATALOG.json": (REPO / "command-center/WORK-UNIT-CATALOG.json").exists(),
+        "command-center/WORK-UNIT-CATALOG.json": (
+            REPO / "command-center/WORK-UNIT-CATALOG.json"
+        ).exists(),
     }
     known_counterexamples = {
         k: {
             "on_disk": bool(v),
-            "extracted": k in distinct or (k == "local-rel-target.txt" and "local-rel-target.txt" in distinct),
+            "extracted": k in distinct
+            or (k == "local-rel-target.txt" and "local-rel-target.txt" in distinct),
             "status": "EXISTS" if distinct.get(k, v) else "MISSING",
         }
         for k, v in known.items()
@@ -252,7 +260,8 @@ def main() -> int:
     counterexamples_ok = (
         known_counterexamples["local-rel-target.txt"]["status"] == "EXISTS"
         and known_counterexamples[".agents/skills"]["status"] == "EXISTS"
-        and known_counterexamples["command-center/WORK-UNIT-CATALOG.json"]["status"] == "EXISTS"
+        and known_counterexamples["command-center/WORK-UNIT-CATALOG.json"]["status"]
+        == "EXISTS"
         and PLANTED_TYPO in distinct
         and distinct.get(PLANTED_TYPO) is False
     )
@@ -272,7 +281,9 @@ def main() -> int:
         "missing_sample": missing_sample,
         "planted_typo_missing": distinct.get(PLANTED_TYPO) is False,
         "ok": control["control_ok"] and counterexamples_ok,
-        "identities": {k: ("EXISTS" if v else "MISSING") for k, v in sorted(distinct.items())},
+        "identities": {
+            k: ("EXISTS" if v else "MISSING") for k, v in sorted(distinct.items())
+        },
     }
 
     (OUT_DIR / "probe1-results.json").write_text(
@@ -281,11 +292,11 @@ def main() -> int:
 
     lines = [
         "AUD-0033 NAMED PROBE 1: extract path tokens and test existence",
-        f"unit=AUD-0033",
-        f"stage=linux-local-remeasure",
-        f"extractor=good-extractor",
+        "unit=AUD-0033",
+        "stage=linux-local-remeasure",
+        "extractor=good-extractor",
         f"fixture={FIXTURE}",
-        f"fenced_must=command-center/WORK-UNIT-CATALOG.json",
+        "fenced_must=command-center/WORK-UNIT-CATALOG.json",
         f"found_fenced_path={control['found_fenced_path']}",
         f"emitted_prose_traps={control['emitted_prose_traps']!r}",
         f"control_ok={control['control_ok']}",

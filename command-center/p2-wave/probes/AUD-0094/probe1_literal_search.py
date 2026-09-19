@@ -8,6 +8,7 @@ tests_required (verbatim):
   use-vs-mention control: a deleted path named only inside a changelog entry
   describing its deletion must NOT be reported as a dangling reference.
 """
+
 from __future__ import annotations
 
 import json
@@ -18,9 +19,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[4]
 PROBE = Path(__file__).resolve().parent
 DELETED_LIST = PROBE / "deleted_paths.txt"
-FIXTURE_CHANGELOG = (
-    PROBE / "fixtures" / "changelog-mention-only" / "CHANGELOG.md"
-)
+FIXTURE_CHANGELOG = PROBE / "fixtures" / "changelog-mention-only" / "CHANGELOG.md"
 OUT_JSON = PROBE / "probe1-literal-search.json"
 OUT_RAW = PROBE / "probe1-literal-search.raw.txt"
 
@@ -173,7 +172,9 @@ def search(deleted: list[str], files: list[Path]) -> dict:
     # Cap stored rows for artifact size while keeping full counts.
     MAX_STORE = 400
     changelog_text = (
-        FIXTURE_CHANGELOG.read_text(encoding="utf-8") if FIXTURE_CHANGELOG.is_file() else ""
+        FIXTURE_CHANGELOG.read_text(encoding="utf-8")
+        if FIXTURE_CHANGELOG.is_file()
+        else ""
     )
     planted_path = deleted[0]
     for d in deleted:
@@ -241,7 +242,7 @@ def main() -> int:
     raw_lines = [
         "AUD-0094 NAMED PROBE 1: literal search for DELETE-ALL deleted path strings",
         "catalog_verbatim=Probe 1: search every surviving file for each deleted path string.",
-        f"unit=AUD-0094",
+        "unit=AUD-0094",
         f"deleted_path_count={result['deleted_path_count']}",
         f"files_scanned={result['files_scanned']}",
         f"bytes_scanned={result['bytes_scanned']}",

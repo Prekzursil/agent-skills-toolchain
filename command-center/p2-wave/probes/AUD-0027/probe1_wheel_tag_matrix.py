@@ -7,11 +7,11 @@ Catalog evidence_requirement verbatim:
 Inputs: AUD-0022 transitive closure + declared support contract (Windows/Linux/macOS,
 CPython 3.12 per AGENTS.md / quality CI / cross-platform release plan).
 """
+
 from __future__ import annotations
 
 import json
 import re
-import sys
 import urllib.error
 import urllib.request
 from collections import Counter
@@ -68,7 +68,9 @@ PLANTED_SOURCE_ONLY = {
     "reason": "PyPI publishes sdist only (zero wheels); planted negative control",
 }
 
-LOCAL_SKIP = {"scholarly-access-mcp"}  # in-repo package, not on PyPI as a wheel census target
+LOCAL_SKIP = {
+    "scholarly-access-mcp"
+}  # in-repo package, not on PyPI as a wheel census target
 
 PYPI_NAME_FIX = {
     "pyyaml": "PyYAML",
@@ -86,7 +88,12 @@ def fetch_pypi(name: str, timeout: float = 45.0) -> dict | None:
     try:
         with urllib.request.urlopen(url, timeout=timeout) as resp:
             return json.load(resp)
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        TimeoutError,
+        json.JSONDecodeError,
+    ) as exc:
         return {"_error": f"{type(exc).__name__}: {exc}", "_url": url}
 
 
@@ -141,10 +148,18 @@ def platform_match(plat: dict, tag: dict) -> bool:
         return any(n in pt for n in plat["arch_needles"])
     if plat["os"] == "linux":
         # exclude aarch64-only from x86_64 target
-        if "aarch64" in pt or "armv7" in pt or "ppc64" in pt or "s390x" in pt or "riscv" in pt:
+        if (
+            "aarch64" in pt
+            or "armv7" in pt
+            or "ppc64" in pt
+            or "s390x" in pt
+            or "riscv" in pt
+        ):
             if "x86_64" not in pt and "i686" not in pt:
                 return False
-        return any(n in pt for n in ("x86_64", "amd64", "i686", "manylinux", "musllinux"))
+        return any(
+            n in pt for n in ("x86_64", "amd64", "i686", "manylinux", "musllinux")
+        )
     if plat["os"] == "windows":
         return "win_amd64" in pt or (plat["arch"] == "amd64" and "win" in pt)
     return False
@@ -157,7 +172,13 @@ def classify_package(name: str, data: dict | None, *, planted: bool = False) -> 
         "pypi_project": pypi_project(name),
     }
     if data is None:
-        row.update({"status": "fetch-failed", "classification": "unknown", "error": "null-response"})
+        row.update(
+            {
+                "status": "fetch-failed",
+                "classification": "unknown",
+                "error": "null-response",
+            }
+        )
         return row
     if "_error" in data:
         row.update(
@@ -211,10 +232,7 @@ def classify_package(name: str, data: dict | None, *, planted: bool = False) -> 
         "sdist-only",
         "platform-wheel-only",
         "mixed-pure-and-platform",
-    } and (
-        classification == "sdist-only"
-        or bool(compiledish)
-    )
+    } and (classification == "sdist-only" or bool(compiledish))
     if classification == "sdist-only":
         requires_compiler_or_native = True
 
@@ -282,7 +300,7 @@ def main() -> int:
     names = load_aud0022_python_names()
     rows = []
     lines = [
-        f"unit=AUD-0027 probe=1",
+        "unit=AUD-0027 probe=1",
         f"catalog_verbatim={CATALOG_VERBATIM}",
         f"aud0022_python_packages={len(names)}",
         f"declared_platforms={[p['id'] for p in DECLARED_PLATFORMS]}",
@@ -319,7 +337,9 @@ def main() -> int:
                 planted_data = json.load(resp)
         except Exception:
             pass
-    planted_row = classify_package(PLANTED_SOURCE_ONLY["name"], planted_data, planted=True)
+    planted_row = classify_package(
+        PLANTED_SOURCE_ONLY["name"], planted_data, planted=True
+    )
     planted_row["control_expected_classification"] = "sdist-only"
     planted_row["control_ok"] = planted_row.get("classification") == "sdist-only"
     rows.append(planted_row)

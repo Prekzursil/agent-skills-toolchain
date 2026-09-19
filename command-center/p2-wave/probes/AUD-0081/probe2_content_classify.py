@@ -10,6 +10,7 @@ itself a risk finding." This probe reads probe 1's real hit list off disk
 REAL bytes of each hit -- the same function exercised by the
 tests_required control, so this is not a hand-waved "looks fine" pass.
 """
+
 from __future__ import annotations
 
 import json
@@ -76,9 +77,7 @@ def main() -> int:
         "--- per-hit classification ---",
     ]
     for c in classified:
-        lines.append(
-            f"{c['classification']:12s} {c['path']} :: {c['reason']}"
-        )
+        lines.append(f"{c['classification']:12s} {c['path']} :: {c['reason']}")
     raw = "\n".join(lines) + "\n"
     OUT_RAW.write_text(raw, encoding="utf-8")
     print(raw, end="")

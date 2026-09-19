@@ -48,7 +48,9 @@ def target_args() -> list[str]:
     return list(collectible_scope.TARGET_ARGS)
 
 
-def run_pytest_once(run_idx: int, tmpdir: Path) -> tuple[int, list[str], dict[str, str]]:
+def run_pytest_once(
+    run_idx: int, tmpdir: Path
+) -> tuple[int, list[str], dict[str, str]]:
     if STATE_FILE.exists():
         STATE_FILE.unlink()
     order_path = tmpdir / f"order-{run_idx}.txt"
@@ -138,9 +140,7 @@ def main() -> int:
                 )
 
     gt_nodeid = next((n for n in all_nodeids if GROUND_TRUTH_FLAKY in n), None)
-    gt_flagged = gt_nodeid is not None and any(
-        f["nodeid"] == gt_nodeid for f in flaky
-    )
+    gt_flagged = gt_nodeid is not None and any(f["nodeid"] == gt_nodeid for f in flaky)
     gt_outcomes = (
         [r.get(gt_nodeid) for r in run_results] if gt_nodeid is not None else []
     )
@@ -178,9 +178,13 @@ def main() -> int:
             "flagged": gt_flagged,
         },
     }
-    OUT.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    OUT.write_text(
+        json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
-    lines.append(f"flaky_tests_count={len(flaky)} of {len(all_nodeids)} tests with a recorded outcome")
+    lines.append(
+        f"flaky_tests_count={len(flaky)} of {len(all_nodeids)} tests with a recorded outcome"
+    )
     for f in flaky:
         lines.append(f"  FLAKY {f['nodeid']} outcomes={f['outcomes_by_repeat']}")
     lines.append(f"ok={ok}")

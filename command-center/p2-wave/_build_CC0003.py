@@ -99,9 +99,7 @@ def _surface_dump() -> str:
 def build() -> dict:
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    full_rc, full_out = _run(
-        [sys.executable, "-m", "pytest", TESTS, "-q", "--tb=line"]
-    )
+    full_rc, full_out = _run([sys.executable, "-m", "pytest", TESTS, "-q", "--tb=line"])
     _write_probe("pytest-quiet.out", full_out)
     if full_rc != 0:
         raise SystemExit(f"CC-0003 pytest failed:\n{full_out}")

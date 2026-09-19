@@ -13,7 +13,6 @@ Control (tests_required):
 from __future__ import annotations
 
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -166,7 +165,9 @@ def pytest_summary(output: str) -> dict:
     return summary
 
 
-def run_pytest(paths: list[str], cwd: Path, nodeid_filter: str | None = None) -> tuple[int, str, dict]:
+def run_pytest(
+    paths: list[str], cwd: Path, nodeid_filter: str | None = None
+) -> tuple[int, str, dict]:
     cmd = [
         sys.executable,
         "-m",
@@ -287,7 +288,9 @@ def main() -> int:
         kfilter = node if isinstance(node, str) and node.startswith("test_") else None
         rc, out, summary = run_pytest([str(target_file)], wt, nodeid_filter=kfilter)
         verdict = reason_holds_verdict(row["kind"], summary, rc)
-        raw.append(f"--- {label} unmarked {rel_path}:{row['lineno']} ({row['kind']}) ---")
+        raw.append(
+            f"--- {label} unmarked {rel_path}:{row['lineno']} ({row['kind']}) ---"
+        )
         raw.append(f"changed={changed} rc={rc} verdict={verdict} summary={summary}")
         raw.append(out[-1200:])
         return {
@@ -301,7 +304,9 @@ def main() -> int:
             "pytest_rc": rc,
             "summary": summary,
             "verdict": verdict,
-            "executed": bool(summary.get("executed", 0) > 0 or summary.get("failed", 0) > 0),
+            "executed": bool(
+                summary.get("executed", 0) > 0 or summary.get("failed", 0) > 0
+            ),
             "output_tail": out[-2000:],
             "ok": True,
         }
@@ -394,7 +399,10 @@ def main() -> int:
 
     # Cleanup worktree
     if worktree_mode == "git-worktree":
-        run(["git", "-C", str(REPO), "worktree", "remove", "--force", str(wt)], timeout=120)
+        run(
+            ["git", "-C", str(REPO), "worktree", "remove", "--force", str(wt)],
+            timeout=120,
+        )
     try:
         shutil.rmtree(wt_parent, ignore_errors=True)
     except OSError:

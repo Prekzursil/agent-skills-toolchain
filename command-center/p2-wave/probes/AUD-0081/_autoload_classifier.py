@@ -43,6 +43,7 @@ UserPromptSubmit, Notification, Stop, SubagentStop, PreCompact) so a
 markdown file that merely *talks about* hooks in prose (no literal event
 name) is not misclassified as active.
 """
+
 from __future__ import annotations
 
 import json
@@ -89,7 +90,10 @@ def classify_text_content(text: str) -> tuple[str, str]:
                 f"content contains hook-lifecycle event marker '{marker}'",
             )
     if _HOOKS_JSON_BLOCK_RE.search(text):
-        return "active", "content contains an embedded '\"hooks\": {' JSON registration block"
+        return (
+            "active",
+            "content contains an embedded '\"hooks\": {' JSON registration block",
+        )
     return (
         "inert",
         "prose-only content; no hook-lifecycle event marker or hooks "
@@ -149,8 +153,7 @@ def classify_yaml_hooks_config(text: str) -> tuple[str, str] | None:
         )
     return (
         "active",
-        f"YAML 'hooks:' block registers {len(commands)} command(s) "
-        f"(e.g. {sample!r})",
+        f"YAML 'hooks:' block registers {len(commands)} command(s) (e.g. {sample!r})",
     )
 
 
@@ -175,7 +178,10 @@ def classify_hooks_dir(root: Path) -> tuple[str, str]:
             except OSError:
                 continue
             if verdict == "active":
-                return "active", f"{f.name} inside hooks/ carries a live registration ({reason})"
+                return (
+                    "active",
+                    f"{f.name} inside hooks/ carries a live registration ({reason})",
+                )
 
     for f in files:
         if f.suffix.lower() in YAML_SUFFIXES:
@@ -188,14 +194,10 @@ def classify_hooks_dir(root: Path) -> tuple[str, str]:
                 return "active", f"{f.name} inside hooks/ {res[1]}"
 
     exec_scripts = [
-        f
-        for f in files
-        if f.suffix.lower() in SCRIPT_LIKE_SUFFIXES and _is_exec(f)
+        f for f in files if f.suffix.lower() in SCRIPT_LIKE_SUFFIXES and _is_exec(f)
     ]
     non_exec_script_shaped = [
-        f
-        for f in files
-        if f.suffix.lower() in SCRIPT_LIKE_SUFFIXES and not _is_exec(f)
+        f for f in files if f.suffix.lower() in SCRIPT_LIKE_SUFFIXES and not _is_exec(f)
     ]
     source_only = [f for f in files if f.suffix.lower() in SOURCE_ONLY_SUFFIXES]
 
@@ -249,11 +251,16 @@ def classify_config_dir(root: Path) -> tuple[str, str]:
     ]
     for f in settings_files:
         try:
-            verdict, reason = classify_settings_json(f.read_text(encoding="utf-8", errors="replace"))
+            verdict, reason = classify_settings_json(
+                f.read_text(encoding="utf-8", errors="replace")
+            )
         except OSError:
             continue
         if verdict == "active":
-            return "active", f"{f.name} carries a live hooks/mcpServers registration ({reason})"
+            return (
+                "active",
+                f"{f.name} carries a live hooks/mcpServers registration ({reason})",
+            )
     if settings_files:
         return (
             "inert",
@@ -289,7 +296,10 @@ def classify_hit(path: Path, matched_name: str, kind: str) -> dict:
                 verdict, reason = classify_config_dir(path)
         else:
             if not path.is_file():
-                return {"classification": "inert", "reason": "path no longer exists on disk"}
+                return {
+                    "classification": "inert",
+                    "reason": "path no longer exists on disk",
+                }
             try:
                 text = path.read_text(encoding="utf-8", errors="replace")
             except OSError as exc:
@@ -302,7 +312,10 @@ def classify_hit(path: Path, matched_name: str, kind: str) -> dict:
             else:
                 verdict, reason = classify_text_content(text)
     except OSError as exc:
-        return {"classification": "inert", "reason": f"filesystem error: {type(exc).__name__}"}
+        return {
+            "classification": "inert",
+            "reason": f"filesystem error: {type(exc).__name__}",
+        }
     return {"classification": verdict, "reason": reason}
 
 

@@ -12,7 +12,6 @@ sys.path.insert(0, str(HERE))
 
 from role_scanner import (  # noqa: E402
     REPO,
-    load_corpus,
     measure_all,
     self_reference_silent,
 )
@@ -29,7 +28,7 @@ def main() -> int:
         "- A Write of docs quoting `Remove-Item -Recurse` and `git push --force`.\n"
         "- Prose naming a `TODO` or `FIXME` marker inside backticks.\n"
         "- A stub-ledger note that 'zero TODO/FIXME/NotImplementedError exist'.\n"
-        "- A result body with `\"user_cancelled_or_timedout\": false`.\n"
+        '- A result body with `"user_cancelled_or_timedout": false`.\n'
         "- Unquoted snake field list: user_cancelled_or_timedout examples.\n"
         "- Receipt sentinel vocabulary: FAILED:TST-0341 blocked-on-review.\n"
         "- A fixture declaring `ghp_` + FAKE token shape and AKIAEXAMPLE keys.\n"

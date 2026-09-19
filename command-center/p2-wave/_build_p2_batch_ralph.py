@@ -53,7 +53,11 @@ def digest_table() -> list[dict]:
         rel = f"command-center/{name}"
         wt = cc_render.working_tree_raw_hash(root, name)
         blob = cc_render.blob_hash(root, name)
-        prov = hashlib.sha256(cc_render.provenance_bytes(root, name)).hexdigest() if (root / name).is_file() else ""
+        prov = (
+            hashlib.sha256(cc_render.provenance_bytes(root, name)).hexdigest()
+            if (root / name).is_file()
+            else ""
+        )
         rows.append(
             {
                 "path": rel,
@@ -70,7 +74,9 @@ def digest_table() -> list[dict]:
 
 def adoption_census() -> dict:
     """How many registered suites use detector_self_test vs hand-rolled both-states."""
-    reg = json.loads((L.REPO / "command-center/TEST-REGISTRY.json").read_text(encoding="utf-8"))
+    reg = json.loads(
+        (L.REPO / "command-center/TEST-REGISTRY.json").read_text(encoding="utf-8")
+    )
     suites = reg.get("suites", [])
     uses_fixture = []
     hand_rolled = []
@@ -137,7 +143,9 @@ def pack_imp0439(pytest_out: str, pytest_rc: int, table: list[dict]) -> dict:
             L.art("tools/command-center/render.py", "primary"),
             L.art("tools/command-center/validate.py", "supporting"),
             L.art("tools/measure-guard/blobread.py", "supporting"),
-            L.art("tools/command-center/tests/test_provenance_blob_hash.py", "supporting"),
+            L.art(
+                "tools/command-center/tests/test_provenance_blob_hash.py", "supporting"
+            ),
             L.art("command-center/p2-wave/probes/IMP-0439/digest-table.json", "log"),
             L.art("command-center/p2-wave/probes/IMP-0439/pytest.out", "log"),
         ],
@@ -160,7 +168,9 @@ def pack_imp0439(pytest_out: str, pytest_rc: int, table: list[dict]) -> dict:
                 "command": "python3 -m pytest tools/command-center/tests/test_provenance_blob_hash.py -q",
                 "result": "PASS" if pytest_rc == 0 else "FAIL",
                 "assertions": 4,
-                "output_tail": pytest_out.strip().splitlines()[-1][:200] if pytest_out.strip() else "",
+                "output_tail": pytest_out.strip().splitlines()[-1][:200]
+                if pytest_out.strip()
+                else "",
             },
             {
                 "id": "T2-working-tree-raw-differs-control",
@@ -220,7 +230,9 @@ def pack_imp0439(pytest_out: str, pytest_rc: int, table: list[dict]) -> dict:
             ],
             "control_ids": ["IMP0439-C1"],
         },
-        "extensions": {"digest_table_path": "command-center/p2-wave/probes/IMP-0439/digest-table.json"},
+        "extensions": {
+            "digest_table_path": "command-center/p2-wave/probes/IMP-0439/digest-table.json"
+        },
     }
     return receipt, out
 
@@ -240,12 +252,16 @@ def pack_tst0328(pytest_out: str, pytest_rc: int, census: dict) -> tuple[dict, s
         lambda s: s == "broken", broken="broken", good="good", name="packer-ok"
     )
     try:
-        dst.assert_both_states(lambda s: False, broken="a", good="b", name="packer-silent")
+        dst.assert_both_states(
+            lambda s: False, broken="a", good="b", name="packer-silent"
+        )
         silent_rejected = False
     except dst.BothStatesError:
         silent_rejected = True
     try:
-        dst.assert_both_states(lambda s: True, broken="a", good="b", name="packer-always")
+        dst.assert_both_states(
+            lambda s: True, broken="a", good="b", name="packer-always"
+        )
         always_rejected = False
     except dst.BothStatesError:
         always_rejected = True
@@ -280,7 +296,10 @@ def pack_tst0328(pytest_out: str, pytest_rc: int, census: dict) -> tuple[dict, s
         },
         "artifacts": [
             L.art("tools/detector-self-test/detector_self_test.py", "primary"),
-            L.art("tools/detector-self-test/tests/test_detector_self_test.py", "supporting"),
+            L.art(
+                "tools/detector-self-test/tests/test_detector_self_test.py",
+                "supporting",
+            ),
             L.art("command-center/p2-wave/probes/TST-0328/adoption-census.json", "log"),
             L.art("command-center/p2-wave/probes/TST-0328/pytest.out", "log"),
         ],
@@ -410,7 +429,10 @@ def pack_cnf0015(pytest_out: str, pytest_rc: int) -> tuple[dict, str]:
         "verifier",
         "other",
         "measure pre-fix vs post-fix shared_id_count",
-        json.dumps({"pre": pre.as_dict(), "post": post.as_dict(), "obs": obs.as_dict()}, indent=2),
+        json.dumps(
+            {"pre": pre.as_dict(), "post": post.as_dict(), "obs": obs.as_dict()},
+            indent=2,
+        ),
         0,
     )
     ts = now()
@@ -433,8 +455,14 @@ def pack_cnf0015(pytest_out: str, pytest_rc: int) -> tuple[dict, str]:
             "execution_substrate": "linux-cloud-agent",
         },
         "artifacts": [
-            L.art("command-center/p2-wave/probes/CNF-0015/option_id_collision.py", "primary"),
-            L.art("command-center/p2-wave/probes/CNF-0015/test_option_id_collision.py", "supporting"),
+            L.art(
+                "command-center/p2-wave/probes/CNF-0015/option_id_collision.py",
+                "primary",
+            ),
+            L.art(
+                "command-center/p2-wave/probes/CNF-0015/test_option_id_collision.py",
+                "supporting",
+            ),
             L.art(
                 "command-center/p2-wave/probes/CNF-0015/fixtures/pre-fix/13-ARCHITECTURE-CANDIDATES.md",
                 "fixture",
@@ -467,14 +495,18 @@ def pack_cnf0015(pytest_out: str, pytest_rc: int) -> tuple[dict, str]:
             {
                 "id": "T1-fail-on-pre-fix",
                 "command": "test_pre_fix_shared_id_count_is_31",
-                "result": "PASS" if pytest_rc == 0 and pre.shared_id_count == 31 else "FAIL",
+                "result": "PASS"
+                if pytest_rc == 0 and pre.shared_id_count == 31
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": json.dumps(pre.as_dict()),
             },
             {
                 "id": "T2-pass-on-post-fix",
                 "command": "test_post_fix_shared_id_count_is_0",
-                "result": "PASS" if pytest_rc == 0 and post.shared_id_count == 0 else "FAIL",
+                "result": "PASS"
+                if pytest_rc == 0 and post.shared_id_count == 0
+                else "FAIL",
                 "assertions": 1,
                 "output_tail": json.dumps(post.as_dict()),
             },
@@ -577,7 +609,9 @@ def main() -> int:
     rec1, path1 = pack_imp0439(out1, rc1, table)
 
     # TST-0328
-    rc2, out2 = run_pytest(["tools/detector-self-test/tests/test_detector_self_test.py"])
+    rc2, out2 = run_pytest(
+        ["tools/detector-self-test/tests/test_detector_self_test.py"]
+    )
     if rc2 != 0:
         print(f"FAILED:TST-0328 pytest\n{out2}")
         return 1

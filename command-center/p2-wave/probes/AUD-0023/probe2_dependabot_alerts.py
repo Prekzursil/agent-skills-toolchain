@@ -22,11 +22,11 @@ Never invents an alert count. If the real endpoint 403s, `dependabot_alert_ok`
 is False and stays False -- the fallback populates `advisory_db_cross_check`
 only, which is reported as a SEPARATE, weaker signal.
 """
+
 from __future__ import annotations
 
 import json
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -51,9 +51,7 @@ def run(cmd: list[str], timeout: int = 60) -> tuple[int, str]:
 
 
 def try_real_dependabot_alerts() -> dict:
-    rc, out = run(
-        ["gh", "api", f"repos/{OWNER_REPO}/dependabot/alerts", "--paginate"]
-    )
+    rc, out = run(["gh", "api", f"repos/{OWNER_REPO}/dependabot/alerts", "--paginate"])
     ok = rc == 0
     alerts = None
     if ok:

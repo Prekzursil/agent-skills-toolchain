@@ -28,6 +28,7 @@ this control is proven falsifiable rather than vacuously true.
 Uses a real temp file on disk (tempfile), never a hand-simulated string,
 so the classifier's actual Path.read_text() code path is exercised.
 """
+
 from __future__ import annotations
 
 import json
@@ -86,11 +87,15 @@ def main() -> int:
 
         fixture_path.write_text(PROSE_ONLY_CONTENT, encoding="utf-8")
         prose_result = C.classify_hit(fixture_path, "AGENTS.md", "file")
-        prose_naive = naive_substring_classifier(fixture_path.read_text(encoding="utf-8"))
+        prose_naive = naive_substring_classifier(
+            fixture_path.read_text(encoding="utf-8")
+        )
 
         fixture_path.write_text(ACTIVE_HOOK_CONTENT, encoding="utf-8")
         hook_result = C.classify_hit(fixture_path, "AGENTS.md", "file")
-        hook_naive = naive_substring_classifier(fixture_path.read_text(encoding="utf-8"))
+        hook_naive = naive_substring_classifier(
+            fixture_path.read_text(encoding="utf-8")
+        )
 
     prose_is_inert = prose_result["classification"] == "inert"
     hook_is_active = hook_result["classification"] == "active"
@@ -106,16 +111,28 @@ def main() -> int:
         "# AGENTS.md\n\nThis project uses git hooks for linting. See "
         "scripts/setup-hooks.sh for details.\n"
     )
-    naive_false_positive_result = naive_substring_classifier(naive_false_positive_fixture)
-    real_classifier_on_same_fixture = C.classify_text_content(naive_false_positive_fixture)
+    naive_false_positive_result = naive_substring_classifier(
+        naive_false_positive_fixture
+    )
+    real_classifier_on_same_fixture = C.classify_text_content(
+        naive_false_positive_fixture
+    )
     naive_incorrectly_flags_mention_as_active = naive_false_positive_result == "active"
-    real_correctly_rates_mention_as_inert = real_classifier_on_same_fixture[0] == "inert"
+    real_correctly_rates_mention_as_inert = (
+        real_classifier_on_same_fixture[0] == "inert"
+    )
 
     fired_on_bad_state = prose_is_inert  # correctly did NOT call prose-only "active"
-    silent_on_good_state = hook_is_active  # correctly did NOT call the real registration "inert"
+    silent_on_good_state = (
+        hook_is_active  # correctly did NOT call the real registration "inert"
+    )
 
     out = {
-        "ok": bool(real_classifier_passes_control and naive_incorrectly_flags_mention_as_active and real_correctly_rates_mention_as_inert),
+        "ok": bool(
+            real_classifier_passes_control
+            and naive_incorrectly_flags_mention_as_active
+            and real_correctly_rates_mention_as_inert
+        ),
         "started_at": started,
         "fixture_path_used_for_both_states": "AGENTS.md (single temp file, content toggled)",
         "prose_only_state": {

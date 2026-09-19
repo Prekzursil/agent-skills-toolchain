@@ -110,7 +110,7 @@ def migrate_back(doc: dict[str, Any], migration: dict[str, Any]) -> dict[str, An
             out[src] = out.pop(dst)
     if "source_schema_version" in migration:
         out["schema_version"] = migration["source_schema_version"]
-    for key in (migration.get("set") or {}):
+    for key in migration.get("set") or {}:
         # Best-effort: drop keys introduced by set unless listed as sticky.
         if key not in (migration.get("sticky_keys") or []):
             out.pop(key, None)
@@ -147,7 +147,9 @@ def activate_freeze(
         if p.is_file():
             snapshots[rel] = {
                 "sha256": sha256_file(p),
-                "schema_version_field": out.get("schema_version_field", "schema_version"),
+                "schema_version_field": out.get(
+                    "schema_version_field", "schema_version"
+                ),
             }
     out["snapshots"] = snapshots
     return out
@@ -195,7 +197,10 @@ def main(argv: list[str] | None = None) -> int:
         if migration_id:
             # Round-trip against a tiny synthetic sample unless caller uses --roundtrip.
             migration = load_migration(args.migrations_dir, migration_id)
-            sample = {"schema_version": migration.get("source_schema_version", 1), "x": 1}
+            sample = {
+                "schema_version": migration.get("source_schema_version", 1),
+                "x": 1,
+            }
             if migration.get("renames"):
                 sample[migration["renames"][0]["from"]] = "v"
             rt_ok = roundtrip_ok(sample, migration)

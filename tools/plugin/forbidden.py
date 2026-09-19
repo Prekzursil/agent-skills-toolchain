@@ -143,7 +143,9 @@ class ScanReport:
 
     def as_dict(self) -> dict:
         d = asdict(self)
-        d["findings"] = [f.as_dict() if isinstance(f, Finding) else f for f in self.findings]
+        d["findings"] = [
+            f.as_dict() if isinstance(f, Finding) else f for f in self.findings
+        ]
         return d
 
     def named_path_report(self) -> str:
@@ -173,7 +175,9 @@ def nfc_posix(path: str) -> str:
 def _fnmatch_role(rel: str, pattern: str) -> bool:
     """Lightweight glob: ``*`` matches any run of non-slash chars; ``**`` refused."""
     if "**" in pattern:
-        raise ForbiddenError(f"recursive glob '**' is forbidden in role patterns: {pattern!r}")
+        raise ForbiddenError(
+            f"recursive glob '**' is forbidden in role patterns: {pattern!r}"
+        )
     # Escape regex specials except our * wildcard.
     parts: list[str] = []
     for ch in pattern:
@@ -186,7 +190,9 @@ def _fnmatch_role(rel: str, pattern: str) -> bool:
     return re.match("^" + "".join(parts) + "$", rel) is not None
 
 
-def classify_path_role(rel: str, *, roles: dict[str, tuple[str, ...]] | None = None) -> str | None:
+def classify_path_role(
+    rel: str, *, roles: dict[str, tuple[str, ...]] | None = None
+) -> str | None:
     """Return the forbidden path-role for ``rel``, or None.
 
     Path-role only. Does not inspect file bytes (except callers may pass size
@@ -210,13 +216,17 @@ def classify_path_role(rel: str, *, roles: dict[str, tuple[str, ...]] | None = N
     return None
 
 
-def classify_size(size: int, *, max_file_bytes: int = DEFAULT_MAX_FILE_BYTES) -> str | None:
+def classify_size(
+    size: int, *, max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
+) -> str | None:
     if max_file_bytes > 0 and size > max_file_bytes:
         return "oversized"
     return None
 
 
-def is_gitlink_entry(*, name: str, is_dir: bool, is_file: bool, mode: int | None = None) -> bool:
+def is_gitlink_entry(
+    *, name: str, is_dir: bool, is_file: bool, mode: int | None = None
+) -> bool:
     """True when the entry is a gitlink / gitdir pointer.
 
     * ``mode == 0o160000`` (git ls-files --stage)
@@ -356,7 +366,10 @@ def scan_staging(
             )
             if not planted_found and plant.is_file():
                 # Direct path-role check on the plant relative path.
-                planted_found = classify_path_role(PLANTED_CONTROL_REL, roles=table) == PLANTED_CONTROL_ROLE
+                planted_found = (
+                    classify_path_role(PLANTED_CONTROL_REL, roles=table)
+                    == PLANTED_CONTROL_ROLE
+                )
 
     findings.sort(key=lambda f: (f.role, f.path))
     # Deduplicate by (path, role)

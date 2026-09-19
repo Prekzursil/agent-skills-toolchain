@@ -161,9 +161,7 @@ def main() -> int:
     # --- AUD-0015 enabled declared ---
     aud = json.loads(AUD0015.read_text(encoding="utf-8"))
     servers = (aud.get("report") or {}).get("servers") or []
-    enabled = [
-        s for s in servers if s.get("effective_state") == "ENABLED-DECLARED"
-    ]
+    enabled = [s for s in servers if s.get("effective_state") == "ENABLED-DECLARED"]
     lines.append(f"AUD0015_ENABLED_DECLARED={len(enabled)}")
     lines.append(f"HOME_CLAUDE_JSON_PRESENT={(REPO.home() / '.claude.json').is_file()}")
     lines.append(f"HOME_MCP_JSON_PRESENT={(REPO.home() / '.mcp.json').is_file()}")
@@ -206,7 +204,9 @@ def main() -> int:
                 "name": ns["name"],
                 "source": "session-dynamic-namespace",
                 "measurement_kind": "live-tools-list",
-                "status": "REACHABLE" if ns.get("reachable") else "LOADING-OR-UNREACHABLE",
+                "status": "REACHABLE"
+                if ns.get("reachable")
+                else "LOADING-OR-UNREACHABLE",
                 "tool_count": ns.get("tool_count"),
                 "tool_names": ns.get("tool_names"),
                 "schema_bytes": ns.get("schema_bytes"),

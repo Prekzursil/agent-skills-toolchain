@@ -141,7 +141,9 @@ def load_slices(
     for path in paths:
         raw = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(raw, list):
-            raise ValueError(f"slice {path} root must be a JSON array, got {type(raw).__name__}")
+            raise ValueError(
+                f"slice {path} root must be a JSON array, got {type(raw).__name__}"
+            )
         rel = str(path) if path.is_absolute() else str(path)
         for unit in raw:
             if not isinstance(unit, dict) or "id" not in unit:
@@ -280,28 +282,20 @@ def scan_slice_id_inventory(
                 "path": path.name,
                 "abs_path": rel,
                 "count": len(ids),
-                "ids_min": format_unit_id(
-                    parse_unit_index(ids[0])[0], min(nums)
-                )
+                "ids_min": format_unit_id(parse_unit_index(ids[0])[0], min(nums))
                 if ids and nums and parse_unit_index(ids[0])
                 else (ids[0] if ids else None),
-                "ids_max": format_unit_id(
-                    parse_unit_index(ids[-1])[0], max(nums)
-                )
+                "ids_max": format_unit_id(parse_unit_index(ids[-1])[0], max(nums))
                 if ids and nums and parse_unit_index(ids[-1])
                 else (ids[-1] if ids else None),
                 "id_range_numeric_min": min(nums) if nums else None,
                 "id_range_numeric_max": max(nums) if nums else None,
                 "unique_count": len(set(ids)),
-                "internal_duplicates": sorted(
-                    {i for i in ids if ids.count(i) > 1}
-                ),
+                "internal_duplicates": sorted({i for i in ids if ids.count(i) > 1}),
             }
         )
 
-    collisions = {
-        uid: paths_ for uid, paths_ in sources.items() if len(paths_) > 1
-    }
+    collisions = {uid: paths_ for uid, paths_ in sources.items() if len(paths_) > 1}
     return {
         "slice_files": [p.name for p in paths],
         "per_slice": per_slice,
@@ -376,7 +370,10 @@ def analyze_contiguity(
                 "duplicate_index_count": len(dups),
                 "quota_shortfall": shortfall,
                 "contiguous_1_to_quota": bool(
-                    quota is not None and not gaps and not dups and len(present) == quota
+                    quota is not None
+                    and not gaps
+                    and not dups
+                    and len(present) == quota
                 ),
             }
         )
@@ -390,7 +387,9 @@ def analyze_contiguity(
         and total_dups == 0
         and not malformed
         and unique_total == floor
-        and all(row["contiguous_1_to_quota"] for row in per_prefix if row["quota_units"])
+        and all(
+            row["contiguous_1_to_quota"] for row in per_prefix if row["quota_units"]
+        )
     )
     return {
         "declared_program_count": floor,
@@ -414,9 +413,7 @@ def mechanism_collisions(units: list[dict[str, Any]]) -> dict[str, Any]:
         if mech is None or mech == "":
             continue
         by_mech[str(mech)].append(str(unit.get("id", "<missing-id>")))
-    collisions = {
-        mech: ids for mech, ids in sorted(by_mech.items()) if len(ids) > 1
-    }
+    collisions = {mech: ids for mech, ids in sorted(by_mech.items()) if len(ids) > 1}
     return {
         "units_with_mechanism": sum(len(v) for v in by_mech.values()),
         "unique_mechanisms": len(by_mech),
@@ -443,18 +440,20 @@ def build_merge_report(
     field_error: str | None = None
     collision_error: str | None = None
     if inventory["duplicate_count"]:
-        collision_error = (
-            "duplicate units from colliding catalogs:\n"
-            + "\n".join(
-                f"{uid} claimed by: {', '.join(paths)}"
-                for uid, paths in inventory["duplicates"].items()
-            )
+        collision_error = "duplicate units from colliding catalogs:\n" + "\n".join(
+            f"{uid} claimed by: {', '.join(paths)}"
+            for uid, paths in inventory["duplicates"].items()
         )
     elif require_field_complete:
         try:
             units, _ = load_slices(slice_dir, allocation=alloc)
             field_complete_ok = True
-        except (CollisionError, FieldCompletenessError, PrefixAllocationError, ValueError) as exc:
+        except (
+            CollisionError,
+            FieldCompletenessError,
+            PrefixAllocationError,
+            ValueError,
+        ) as exc:
             field_complete_ok = False
             field_error = str(exc)
 
@@ -572,9 +571,7 @@ def assert_merge_contiguous(
             f"{mech!r} claimed by: {', '.join(ids)}"
             for mech, ids in report["mechanism_collisions"]["collisions"].items()
         ]
-        raise ContiguityError(
-            "mechanism collisions block merge:\n" + "\n".join(parts)
-        )
+        raise ContiguityError("mechanism collisions block merge:\n" + "\n".join(parts))
     if not report["exact_question"]["answer"]:
         c = report["contiguity"]
         raise ContiguityError(
@@ -638,7 +635,9 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Write IMP-0456 merge-contiguity report JSON to this path.",
     )
-    parser.add_argument("--json", action="store_true", help="Emit machine-readable summary.")
+    parser.add_argument(
+        "--json", action="store_true", help="Emit machine-readable summary."
+    )
     args = parser.parse_args(argv)
 
     allocation = load_allocation(args.allocation)

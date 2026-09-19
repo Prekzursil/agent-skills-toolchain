@@ -40,7 +40,9 @@ def load_review() -> dict | None:
 
 def build() -> dict:
     p1 = json.loads((PROBE / "probe1-merge-summary.json").read_text(encoding="utf-8"))
-    p2 = json.loads((PROBE / "probe2-collision-summary.json").read_text(encoding="utf-8"))
+    p2 = json.loads(
+        (PROBE / "probe2-collision-summary.json").read_text(encoding="utf-8")
+    )
     raw1 = (PROBE / "probe1-merge.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-collision.raw.txt").read_text(encoding="utf-8")
     pytest_out = (PROBE / "pytest-merge.out").read_text(encoding="utf-8")
@@ -55,8 +57,14 @@ def build() -> dict:
         L.art("tools/command-center/catalog_slice_merge.py", "primary"),
         L.art("command-center/ID-NAMESPACE-ALLOCATION.json", "supporting"),
         L.art("tools/command-center/tests/test_catalog_slice_merge.py", "supporting"),
-        L.art("command-center/p2-wave/probes/CC-0008/probe1-merge-summary.json", "supporting"),
-        L.art("command-center/p2-wave/probes/CC-0008/probe2-collision-summary.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/CC-0008/probe1-merge-summary.json",
+            "supporting",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/CC-0008/probe2-collision-summary.json",
+            "supporting",
+        ),
         L.art("command-center/p2-wave/probes/CC-0008/probe1-merge.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/CC-0008/probe2-collision.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/CC-0008/pytest-merge.out", "log"),

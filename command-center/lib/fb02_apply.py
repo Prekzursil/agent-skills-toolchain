@@ -4,6 +4,7 @@ Historical full-doc apply on 2026-08-07 at 18:41 recorded 107 substitutions.
 This module is the same mechanical substitution used for reconstructed slices
 on Linux Cloud (Prompt-One Windows trees unmounted).
 """
+
 from __future__ import annotations
 
 import json

@@ -21,6 +21,7 @@ is retained only as a known expansion / regression control — it is NOT a
 substitute for the adversarial review gate. SUCCESS is withheld until that
 review lands (see _pack_receipt.py).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -564,7 +565,9 @@ def supports_disarm_flag() -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="IMP-0438 validate.py mutation battery")
+    parser = argparse.ArgumentParser(
+        description="IMP-0438 validate.py mutation battery"
+    )
     parser.add_argument(
         "--mode",
         choices=("armed", "disarmed", "both", "seventeenth", "expansions"),
@@ -595,7 +598,7 @@ def main(argv: list[str] | None = None) -> int:
     json.dump(report, sys.stdout, indent=2, sort_keys=True)
     sys.stdout.write("\n")
     if args.mode in {"armed", "disarmed", "seventeenth", "expansions"}:
-        survivors = report.get("survivor_ids") or []
+        _survivors = report.get("survivor_ids") or []
         control = report.get("control") or {}
         if args.mode == "armed":
             ok = report["caught"] == report["n"] and control.get("exit_code") == 0

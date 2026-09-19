@@ -143,9 +143,7 @@ def filesystem_is_case_insensitive(probe_dir: Path | str | None = None) -> bool:
     """
     root = Path(probe_dir) if probe_dir is not None else Path(tempfile.gettempdir())
     root.mkdir(parents=True, exist_ok=True)
-    scratch = Path(
-        tempfile.mkdtemp(prefix="imp0022-ci-probe-", dir=str(root))
-    )
+    scratch = Path(tempfile.mkdtemp(prefix="imp0022-ci-probe-", dir=str(root)))
     try:
         upper = scratch / "IMP0022CaseProbe.TXT"
         lower = scratch / "imp0022caseprobe.txt"

@@ -96,8 +96,12 @@ def main() -> int:
     started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log("AUD-0040 PROBE1 generator byte-compare")
     log(f"REPO={REPO}")
-    log(f"CATALOG={CATALOG} exists={CATALOG.is_file()} bytes={CATALOG.stat().st_size if CATALOG.is_file() else -1}")
-    log(f"GRAPH={GRAPH} exists={GRAPH.is_file()} bytes={GRAPH.stat().st_size if GRAPH.is_file() else -1}")
+    log(
+        f"CATALOG={CATALOG} exists={CATALOG.is_file()} bytes={CATALOG.stat().st_size if CATALOG.is_file() else -1}"
+    )
+    log(
+        f"GRAPH={GRAPH} exists={GRAPH.is_file()} bytes={GRAPH.stat().st_size if GRAPH.is_file() else -1}"
+    )
 
     if not CATALOG.is_file() or not GRAPH.is_file():
         log("FAILED: missing catalog or graph")
@@ -140,7 +144,9 @@ def main() -> int:
         f"EDGE_COUNT committed={committed_obj.get('edge_count')} "
         f"generated={generated.get('edge_count')}"
     )
-    log(f"ACYCLIC committed={committed_obj.get('acyclic')} generated={generated.get('acyclic')}")
+    log(
+        f"ACYCLIC committed={committed_obj.get('acyclic')} generated={generated.get('acyclic')}"
+    )
     log(f"DERIVATION={generated.get('derivation')}")
 
     control = planted_control()

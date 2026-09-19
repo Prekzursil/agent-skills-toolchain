@@ -5,6 +5,7 @@ Emits BLOCKED until an independent, fresh-context Claude review PASS that
 TRIED TO FALSIFY the headline count is on disk (catalog `reviewer_requirement`);
 then SUCCESS. Never stubs SUCCESS.
 """
+
 from __future__ import annotations
 
 import json

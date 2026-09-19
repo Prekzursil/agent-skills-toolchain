@@ -4,6 +4,7 @@
 Promotes to SUCCESS only when independent-review.json has verdict=PASS with
 independent+fresh_context. Otherwise emits BLOCKED (anti-false-green).
 """
+
 from __future__ import annotations
 
 import json
@@ -110,7 +111,10 @@ def build(primary: dict | None = None) -> dict:
             "command-center/p2-wave/probes/AUD-0022/probe2-installed-meta.json",
             "supporting",
         ),
-        L.art("command-center/p2-wave/probes/AUD-0022/control-dual-version.json", "control"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0022/control-dual-version.json",
+            "control",
+        ),
         L.art("command-center/p2-wave/probes/AUD-0022/probe1-resolver.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0022/probe2-installed.raw.txt", "log"),
     ]
@@ -326,7 +330,9 @@ def build(primary: dict | None = None) -> dict:
                         json.dumps(
                             {
                                 "python_duplicate_version_count": py_dupes,
-                                "python_requires_edges": p2.get("python_requires_edges"),
+                                "python_requires_edges": p2.get(
+                                    "python_requires_edges"
+                                ),
                                 "python_graph_max_depth_sampled": p2.get(
                                     "python_graph_max_depth_sampled"
                                 ),

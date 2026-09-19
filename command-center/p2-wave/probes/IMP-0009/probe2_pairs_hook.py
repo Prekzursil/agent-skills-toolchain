@@ -51,7 +51,9 @@ def main() -> int:
         and "name" in folded_idents
     )
 
-    confirmed = bool(pairs_sees_both and plain_dict_destroys_exact and casefold_collapse)
+    confirmed = bool(
+        pairs_sees_both and plain_dict_destroys_exact and casefold_collapse
+    )
 
     meas = {
         "probe": "probe2-pairs-hook-preserves",
