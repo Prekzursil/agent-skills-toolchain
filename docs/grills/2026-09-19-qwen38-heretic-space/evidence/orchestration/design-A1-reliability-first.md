@@ -783,4 +783,159 @@ function unitDone(c, st) {                                // D-12: the ONLY exit
 }
 ```
 
+### 13.4 Preflight and Plan (R-S / R0; replayed from cache inside later runs when args are unchanged)
+
+```js
+async function preflight() {
+  phase('Preflight')
+  const setup = await safeAgent('setup', 'p0', PRE + [
+    'ROLE: setup (idempotent, bash). 1) Assert ' + A.snapshot_latest + ' is a git tree whose HEAD is ' + A.base_sha + '; if not, return BLOCKED_ON_OWNER with field snapshot_latest.',
+    '2) If ' + A.build_repo + ' is missing: git clone ' + A.snapshot_latest + ' ' + A.build_repo + '; assert HEAD == ' + A.base_sha + '; chmod -R a-w the snapshots.',
+    '3) Copy wheels and unpacked sources from the scratchpad libsrc to ' + A.libsrc + ' (durable). 4) /usr/bin/python3.12 -m venv ' + A.venv + '; install the pinned wheels + gradio-client==2.6.1 ruff pyflakes pytest pytest-socket hypothesis pyyaml openai; set HF_HUB_DISABLE_IMPLICIT_TOKEN=1 in the activation.',
+    '5) Install ' + A.gate_sh + ' (contents in AGENTS.md §gate) and ' + A.build_repo + '/AGENTS.md (program rules). 6) Bundle then prune stale worktrees under ' + A.wt_root + ' from earlier nonces.',
+    '7) Record baseline: pytest --collect-only count at base. 8) Run the gate red-proof: RED on the f88b120 tree (ruff F821), GREEN on the cleaned base; return the ledger digest.',
+  ].join('\n'), { label: 'setup', phase: 'Preflight', schema: SETUP, effort: 'low' }, 1500000)
+  if (bad(setup) || !setup.redproof.red_on_broken || !setup.redproof.green_on_base) return { setup, ok: false, reason: 'setup/redproof' }
+  const ground = await safeAgent('ground', 'p0', PRE + [
+    'ROLE: ground (read-only). Base ' + A.base_sha + '. Produce the grounding pack at ' + A.run_dir + '/GROUNDING-PACK.md: facts with [probe] tags and timestamps, access methods, an assumption ledger (load-bearing + low confidence → verify trigger),',
+    'whether a Codex MCP tool (mcp__codex__codex) is reachable via ToolSearch (report boolean only), and the sha256 of `git -C /workspaces/agent-skills-toolchain status --porcelain` (must equal ' + (A.toolchain_status_snapshot_sha || 'n/a') + ').',
+  ].join('\n'), { label: 'ground', phase: 'Preflight', schema: GROUND, effort: 'high' }, 1500000)
+  return { setup, ground, ok: !bad(ground) }
+}
+
+async function plan(pre) {
+  phase('Plan')
+  const sheet = await safeAgent('decision-sheet', 'p2', PRE + ['ROLE: decision-sheet author. Read ' + A.decisions_path + ' "Resolved decisions" and the "Answered in passing" block. One row per G/M id: decided VALUE (quote it), against_recommendation, consequences, DQ line. Write ' + A.run_dir + '/plan/decisions.json. Do not paraphrase a recommendation as a decision.'].join('\n'), { label: 'decision-sheet', phase: 'Plan', schema: DECISION_SHEET, effort: 'high' })
+  const ledgerApi = await safeAgent('api-ledger', 'p2', PRE + ['ROLE: api-ledger author. From ' + A.libsrc + ' ONLY (gradio 6.26.0, spaces 0.51.3, transformers 5.16.1, huggingface_hub 1.32.0, gradio_client 2.6.1), list every symbol the plan needs with libsrc path:line, exact kwargs, and known traps (no Chatbot type=; spaces.GPU(size=); no presence_penalty; restart_space has no revision; _is_stateful; continue_final_message str). Write ' + A.run_dir + '/plan/api-ledger.json.'].join('\n'), { label: 'api-ledger', phase: 'Plan', schema: API_LEDGER, effort: 'high' })
+  const symbols = await safeAgent('symbolizer', 'p2', PRE + ['ROLE: symbolizer. For every finding in ' + A.findings_path + ' map the cited lines to file::symbol at ' + A.base_sha + ' (git grep -n "def <name>"); record the verdict at snapshot. Write ' + A.run_dir + '/plan/symbols.json.'].join('\n'), { label: 'symbolizer', phase: 'Plan', schema: SYMBOLS, effort: 'medium' })
+  if ([sheet, ledgerApi, symbols].some(bad)) return { ok: false, reason: 'plan-inputs' }
+  const unverified = symbols.map.filter(m => m.verdict_at_snapshot === 'UNVERIFIED').map(m => m.finding_id).sort()
+  const preverified = await pipeline(unverified, fid => safeAgent('pre-verify', fid, PRE + ['ROLE: pre-verifier (refute-first). Finding ' + fid + ' from ' + A.findings_path + ' is UNVERIFIED. Reproduce or refute it at ' + A.base_sha + ' with a probe mechanically different from the finder\'s (declare both probes). Write repro scripts under ' + A.run_dir + '/pre/' + fid + '/. Never print environment variables.'].join('\n'), { label: 'pre-verify:' + fid, phase: 'Plan', schema: VERIFY_FINDING, effort: 'medium' }))
+  const AREAS = ['platform-gate-ci', 'core-split-types-parser', 'backends-hosted-fake-worker', 'api-gateway-mcp', 'ui-personas-media-catalog', 'tools-hardening-eval']
+  const specs = await settle(AREAS.map(area => () => safeAgent('cards', area, PRE + [
+    'ROLE: card author for area ' + area + '. Inputs: ' + A.run_dir + '/plan/decisions.json (the ONLY decision text), symbols.json, api-ledger.json, ' + A.lens4_path + ' §B/§D/§F, and for each finding id ONLY its CORRECTED CLAIM / CORRECTED RECOMMENDATION lines from ' + A.findings_path + '.',
+    'PRE-VERIFIED FINDINGS (use corrected_claim; a REFUTED one must not become a card):', J(preverified.filter(p => !bad(p)).map(p => ({ id: p.finding_id, verdict: p.verdict, corrected_claim: p.corrected_claim })).sort((a, b) => a.finding_id < b.finding_id ? -1 : 1)),
+    'Produce PR-sized cards (≤300 changed lines, ≤12 files) for YOUR area with the schema fields; acceptance checks must be exact commands runnable on CPU with the 3.12 venv, each with a verification level; staging/owner items get level staging-required/owner-required and are still cards (their local parts are built). Sizing table and seams: AGENTS.md §cards.',
+  ].join('\n'), { label: 'cards:' + area, phase: 'Plan', schema: CARD_GRAPH, effort: 'high' })), 1800000, AREAS)
+  let cards = h6Survivors(specs).filter(s => !bad(s)).flatMap(s => s.cards).sort(byId)
+  h6Drops(specs).forEach(d => log('DROPPED card author ' + d.label + ': ' + d.__endReason))
+  const critique = await safeAgent('card-critic', 'plan', PRE + ['ROLE: card critic. Judge the card graph for completeness vs LENS-4 §D (14 steps) and the decision sheet, DAG sanity, file-ownership overlap, CPU-runnable acceptance, sizing, missing held-out seams H1–H7, unmapped finding ids. must_fix only.', 'CARDS:', J(cards)].join('\n'), { label: 'card-critic', phase: 'Plan', schema: PLAN_JUDGE, effort: 'xhigh' })
+  if (!bad(critique) && critique.verdict !== 'ready') {
+    const repaired = await safeAgent('card-repair', 'plan', PRE + ['ROLE: card repair. Apply must_fix and return the FULL graph.', 'MUST_FIX:', J(critique.must_fix), 'CARDS:', J(cards)].join('\n'), { label: 'card-repair', phase: 'Plan', schema: CARD_GRAPH, effort: 'high' })
+    if (!bad(repaired)) cards = repaired.cards.sort(byId)
+  }
+  validateCards(cards)
+  const judges = await settle(['spec-compliance', 'test-evidence', 'release-readiness'].map(lens => () => safeAgent('plan-judge', lens, PRE + ['ROLE: plan judge (' + lens + '). You may veto only with evidence. ready requires: every LENS-4 step mapped, every confirmed finding id mapped or listed as deferred, no card with an unrunnable acceptance, DAG acyclic.', 'CARDS:', J(cards)].join('\n'), { label: 'plan-judge:' + lens, phase: 'Plan', schema: PLAN_JUDGE, effort: 'xhigh' })), 1500000)
+  const vetoes = h6Survivors(judges).filter(j => !bad(j) && j.verdict !== 'ready')
+  const hashProbe = await safeAgent('plan-hash', 'plan', PRE + ['ROLE: bash probe. Write ' + A.run_dir + '/plan/cards.json (the graph below, sorted by id) and compute sha256 over decisions.json + api-ledger.json + symbols.json + cards.json → ' + A.run_dir + '/plan/CONTRACT-HASH.txt; return it in artifacts[].sha256.', J(cards)].join('\n'), { label: 'plan-hash', phase: 'Plan', schema: POSTCONDITION, effort: 'low' }, 300000)
+  return { ok: vetoes.length === 0 && !bad(hashProbe), cards, vetoes, plan_hash: bad(hashProbe) ? null : (hashProbe.artifacts[0] || {}).sha256, sheet, ledgerApi, symbols }
+}
+```
+
+### 13.5 The inner loop per card (`buildCard`)
+
+```js
+const cardPath = c => A.run_dir + '/plan/cards/' + c.id + '.json'
+const wt = (kind, c) => A.wt_root + '/' + kind + '-' + c.id + '-' + A.run_nonce
+const br = (kind, c) => kind + '/' + c.id + '-' + A.run_nonce
+function implPrompt(c, base, testsBranch, fixInput, narrower) {
+  return PRE + [
+    'ROLE: ' + (fixInput ? 'fixer (attempt ' + fixInput.attempt + ')' : 'implementer') + ' for card ' + c.id + ' — ' + c.title + '. Read the card at ' + cardPath(c) + ' and ' + A.run_dir + '/plan/decisions.json; cite APIs only from ' + A.run_dir + '/plan/api-ledger.json.',
+    'FIRST: git -C ' + A.build_repo + ' log --oneline ' + br('card', c) + ' 2>/dev/null; if the branch exists and its tree already passes the acceptance checks, report impl_status=reused. Else: git -C ' + A.build_repo + ' worktree add ' + wt('card', c) + ' -b ' + br('card', c) + ' ' + base + ' && git -C ' + wt('card', c) + ' merge --no-ff ' + testsBranch + '.',
+    'Implement ONLY files_allowed; commit after every coherent step; run ' + A.gate_sh + ' --tree ' + wt('card', c) + ' --base ' + base + ' --mode worktree --oracle ' + testsBranch + '; then git bundle create ' + A.run_dir + '/bundles/' + c.id + '.bundle ' + base + '..' + br('card', c) + '.',
+    'You may add unit tests under tests/unit/ but never touch tests/acceptance, tests/protected.txt paths, conftest.py, pytest.ini, ruff.toml, .github, tools/gate.sh. Never install packages. Every claim must be visible in the diff. Return dod[] with one exit code per acceptance id, apis_used[], gate_digest, handoff{decisions, invariants, open_problems, next_step}.',
+    narrower ? 'NARROWER RETRY: inspect git status/log first; continue from the last commit; discard only non-compiling partial edits; read at most the files in files_allowed and files_read.' : '',
+    fixInput ? '\nFAILING EVIDENCE (verbatim, from independent agents; reproduce it FIRST; fix the cause, never the test; if a PASS_TO_PASS regression is listed, begin with git revert of the offending fix commit):\n' + J(fixInput) : '',
+  ].join('\n')
+}
+const verifyPrompt = (c, base, impl, testsBranch, heldoutBundle) => PRE + [
+  'ROLE: verifier for ' + c.id + ' at ' + impl.head_sha + '. git -C ' + A.build_repo + ' fetch ' + impl.bundle_path + ' ' + impl.branch + '; worktree add ' + wt('verify', c) + ' ' + impl.head_sha + '; remove it in a finally.',
+  'Run ' + A.gate_sh + ' --tree ' + wt('verify', c) + ' --base ' + base + ' --mode worktree --oracle ' + testsBranch + ' --baseline <from AGENTS.md> and return .gate/last_run.digest. Re-run EVERY acceptance command from the card. Revert-proof: revert the implementation hunks (keep tests) → the acceptance tests must fail → restore.',
+  heldoutBundle ? 'Held-out: fetch ' + heldoutBundle + ', checkout its tests/acceptance over the tree, run them (must pass).' : 'Held-out: not applicable for this card.',
+  'Run each mutant in mutants.json (each must turn ≥1 test red). Report changed_lines/files_changed from git diff --numstat, tamper_signals from .gate/step-tamper.log, locked_paths_diff, claim_vs_diff for IMPL CLAIMS, p2p_regression vs the baseline junit. Verdict fail on any failure. IMPL CLAIMS:', J(impl.claims),
+].join('\n')
+const refutePrompt = (c, lens, impl, verify) => PRE + ['ROLE: skeptic (' + lens + ') for card ' + c.id + ' at ' + impl.head_sha + ' (bundle ' + impl.bundle_path + '). Try to REFUTE the claim that this card is done. Default refuted=true if uncertain. Every refutation MUST cite a command you executed with its output. State your strongest disagreement even if you fail to refute. Decision sheet: ' + A.run_dir + '/plan/decisions.json.', 'VERIFIER SUMMARY (typed):', J({ verdict: verify.verdict, pytest: verify.pytest, mutants: verify.mutants, heldout: verify.heldout })].join('\n')
+const auditPrompt = (c, impl) => PRE + ['ROLE: auditor for ' + c.id + '. Read the diff ' + impl.base_sha + '..' + impl.head_sha + ' (fetch ' + impl.bundle_path + '). Check decision fidelity (decisions.json values), CORRECTED-text fidelity (card finding_ids), files_allowed/deps_allowed, blast radius of every deletion (consumers + a both-states probe), idiom-lint warnings you clear by name. Do not edit files.'].join('\n')
+const criticPrompt = (c, impl, audit) => PRE + ['ROLE: completeness critic for ' + c.id + ' at ' + impl.head_sha + '. Run ' + A.gate_sh + ' and tools/apicheck.py yourself in a worktree from ' + impl.bundle_path + '. Ask what is MISSING (untested path, unhandled error, decision not implemented, interaction with ' + c.depends_on.join(', ') + ', security, perf, boundary). A finding counts only if reproduced with a command. Cite hunks. Max 6. AUDIT:', J({ verdict: audit.verdict, deviations: audit.deviations })].join('\n')
+
+async function buildCard(c, base, baseline) {
+  const st = { baseline, testsRemoved: 0, refutes: [] }, hard = HARDENING.includes(c.id)
+  const opt = (label, schema, effort) => Object.assign({ label: label + ':' + c.id, phase: 'Build', schema, effort }, hard ? { model: 'fable' } : {})
+  const out = reason => ({ card: c, state: 'blocked', reason, st })
+  st.probe = await safeAgent('state-probe', c.id, PRE + ['ROLE: state probe (bash). Report whether ' + base + ' exists in ' + A.build_repo + ' and whether branches ' + br('card', c) + '/' + br('tests', c) + ' exist and where they point.'].join('\n'), opt('probe', STATE_PROBE, 'low'), 300000)
+  if (bad(st.probe) || !st.probe.sha_exists) return out('stale-base')
+  const authors = await settle([
+    () => safeAgent('tests', c.id, PRE + ['ROLE: test author for ' + c.id + '. Read ' + cardPath(c) + ' and the api ledger; you never see the implementation. Worktree ' + wt('tests', c) + ' on branch ' + br('tests', c) + ' from ' + base + '. Write tests/acceptance/test_' + c.id.replace(/-/g, '_') + '.py covering every acceptance id, ≥1 hypothesis property per contract-type criterion, and tests/acceptance/mutants/' + c.id + '.json with ≥1 one-line mutant per acceptance id. Commit; bundle to ' + A.run_dir + '/bundles/tests-' + c.id + '.bundle.'].join('\n'), opt('tests', TESTS_WRITTEN, 'medium'), 1200000),
+    () => c.heldout_seams.length ? safeAgent('heldout', c.id, PRE + ['ROLE: held-out test author for seams ' + c.heldout_seams.join(', ') + ' (card ' + c.id + '). From the card graph and spec only. Branch ' + br('heldout', c) + ' from ' + base + '; commit; bundle to ' + A.run_dir + '/heldout/' + c.id + '.bundle. Nothing else may reference this path.'].join('\n'), opt('heldout', TESTS_WRITTEN, 'medium'), 1200000) : Promise.resolve({ status: 'SUCCESS', skipped: true }),
+  ], 1200000, ['tests:' + c.id, 'heldout:' + c.id])
+  st.tests = authors[0]; st.heldout = authors[1]
+  if (bad(st.tests) || h6IsDrop(st.tests)) return out('tests-author')
+  st.red = await safeAgent('red', c.id, PRE + ['ROLE: red-confirmer. Fetch ' + st.tests.bundle_path + '; worktree at ' + st.tests.head_sha + ' (which is the UNIMPLEMENTED base plus tests). Run exactly: ' + st.tests.command + '. The tests must FAIL for the expected reason (assertion / new symbol missing), not a collection error, with collected > 0.'].join('\n'), opt('red', RED_PROOF, 'medium'), 900000)
+  if (bad(st.red) || !st.red.failed_for_expected_reason) return out('no-red')
+  st.impl = await twice('impl', c.id, n => implPrompt(c, base, st.tests.branch, null, n), opt('impl', IMPL, 'high'), 2700000)
+  if (bad(st.impl) || st.impl.impl_status === 'failed' || st.impl.commits_made < 1) return out(bad(st.impl) ? 'impl-null' : 'impl-failed')
+  const heldoutBundle = st.heldout && !st.heldout.skipped && !bad(st.heldout) ? st.heldout.bundle_path : null
+  let attempt = 0, lastFp = null, pivoted = false
+  while (true) {
+    st.verify = await twice('verify', c.id, () => verifyPrompt(c, base, st.impl, st.tests.branch, heldoutBundle), opt('verify', VERIFY, 'medium'), 1500000)
+    if (bad(st.verify)) return out('unverifiable')
+    if (st.verify.changed_lines > c.size_budget.max_changed_lines || st.verify.files_changed > c.size_budget.max_files) return out('oversize')
+    if (st.verify.tamper_signals > 0 && !st.tamperCleared) {
+      const tj = await safeAgent('tamper-judge', c.id, PRE + ['ROLE: test-integrity judge. Classify each tamper signal in .gate/step-tamper.log of the verifier worktree (bundle ' + st.impl.bundle_path + ', sha ' + st.impl.head_sha + '); you must see the hunk, else classification=cannot-see-hunk (fails closed).'].join('\n'), opt('tamper', TAMPER, 'medium'), 900000)
+      const confirmed = bad(tj) || tj.signals.some(s => s.classification !== 'legitimate')
+      if (confirmed && st.tamperStrikes) return out('tamper'); if (confirmed) { st.tamperStrikes = 1; st.verify.failures.push({ check: 'tamper', first_error_line: 'test weakening detected', evidence: { command: 'tamper_scan', exit_code: 1, output_tail: J(bad(tj) ? [] : tj.signals) } }) } else st.tamperCleared = true
+    }
+    let refuted = false
+    if (st.verify.verdict === 'pass') {
+      st.refutes = h6Survivors(await settle(['correctness-reproduce', 'security-secrets', 'decision-fidelity'].map(lens => () => safeAgent('refute', c.id, refutePrompt(c, lens, st.impl, st.verify), opt('refute:' + lens, REFUTE, 'medium'), 1200000)), 1200000))
+      const kills = st.refutes.filter(r => !bad(r) && r.refuted && r.evidence.length && r.severity_after !== 'none' && r.severity_after !== 'low')
+      refuted = kills.length >= 2
+      if (refuted) st.verify.failures = kills.map(k => ({ check: 'refuted:' + k.lens, first_error_line: k.strongest_disagreement.slice(0, 200), evidence: k.evidence[0] }))
+    }
+    if (st.verify.verdict === 'pass' && !refuted) break
+    attempt++
+    const fp = fingerprint(st.verify)
+    if (attempt > MAX_FIX) return out('fix-exhausted')
+    let fixInput = { attempt, failures: st.verify.failures, p2p_regression: st.verify.p2p_regression, previous_fingerprint: lastFp, handoff: st.impl.handoff }
+    if (attempt === 2 && fp === lastFp && !pivoted) {
+      const pv = await safeAgent('pivot', c.id, PRE + ['ROLE: pivot. Two attempts failed with the same fingerprint ' + fp + '. Enumerate ≥2 genuinely different approaches and choose one. EVIDENCE:', J(st.verify.failures)].join('\n'), opt('pivot', PIVOT, 'high'), 900000)
+      pivoted = true; if (!bad(pv)) fixInput.pivot = pv.alternatives[pv.chosen]
+    }
+    if (attempt === 3 && fp === lastFp) {
+      const rd = await safeAgent('redecompose', c.id, PRE + ['ROLE: re-decomposer. Three strikes on ' + c.id + '. Split it into ≥2 sub-cards (schema CARD), each ≤300 lines, keeping every acceptance id; write them under ' + A.run_dir + '/plan/cards/. EVIDENCE:', J(st.verify.failures)].join('\n'), opt('redecompose', REDECOMPOSE, 'high'), 900000)
+      return bad(rd) ? out('fix-exhausted') : { card: c, state: 'split', sub_cards: rd.sub_cards, st }
+    }
+    log(c.id + ': fix attempt ' + attempt + '/' + MAX_FIX + ' fp=' + fp)
+    const fx = await twice('fix', c.id, n => implPrompt(c, base, st.tests.branch, fixInput, n), opt('fix:' + attempt, FIX, 'high'), 2700000)
+    if (bad(fx)) return out('impl-null')
+    if (fx.disposition === 'pushed_back') { const res = await safeAgent('resolver', c.id, PRE + ['ROLE: resolver. The fixer pushed back with evidence; the verifier/refuter cited evidence. Read BOTH probes and the source; name the winning probe. Never average.', J({ fixer: fx.pushback_evidence, checks: st.verify.failures })].join('\n'), opt('resolver', ARBITER, 'xhigh'), 900000); if (!bad(res) && res.decision === 'side_a') { log(c.id + ': pushback upheld; finding closed as overclaim'); } }
+    st.impl = fx; lastFp = fp
+  }
+  for (let a = 1; a <= MAX_AUDIT_FIX + 1; a++) {
+    st.audit = await safeAgent('audit', c.id, auditPrompt(c, st.impl), opt('audit:' + a, AUDIT, 'high'), 1500000)
+    if (bad(st.audit)) return out('unverifiable')
+    const blocking = st.audit.deviations.filter(d => d.severity === 'critical' || d.severity === 'high')
+    if (st.audit.verdict !== 'reject' && !blocking.length && !st.audit.claim_vs_diff.length && !st.audit.scope_violations.length && !st.audit.deps_violations.length) break
+    if (a > MAX_AUDIT_FIX) return out('audit-exhausted')
+    const fx = await twice('fix-audit', c.id, n => implPrompt(c, base, st.tests.branch, { attempt: 'audit-' + a, deviations: blocking, claim_vs_diff: st.audit.claim_vs_diff, scope_violations: st.audit.scope_violations, handoff: st.impl.handoff }, n), opt('fix-audit:' + a, FIX, 'high'), 2700000)
+    if (bad(fx)) return out('impl-null'); st.impl = fx
+    st.verify = await twice('reverify', c.id, () => verifyPrompt(c, base, st.impl, st.tests.branch, heldoutBundle), opt('reverify:' + a, VERIFY, 'medium'), 1500000)
+    if (bad(st.verify) || st.verify.verdict !== 'pass') return out('reverify-failed')
+  }
+  st.critic = await twice('critic', c.id, () => criticPrompt(c, st.impl, st.audit), opt('critic', CRITIC, 'high'), 1500000)
+  if (bad(st.critic)) return out('unverifiable')
+  const cb = st.critic.missing.filter(m => m.reproduced && (m.severity === 'critical' || m.severity === 'high'))
+  if (cb.length) {
+    const fx = await twice('fix-critic', c.id, n => implPrompt(c, base, st.tests.branch, { attempt: 'critic', missing: cb, handoff: st.impl.handoff }, n), opt('fix-critic', FIX, 'high'), 2700000)
+    if (bad(fx)) return out('critic-fix-failed'); st.impl = fx
+    st.verify = await twice('reverify-critic', c.id, () => verifyPrompt(c, base, st.impl, st.tests.branch, heldoutBundle), opt('reverify-critic', VERIFY, 'medium'), 1500000)
+    if (bad(st.verify) || st.verify.verdict !== 'pass') return out('reverify-failed')
+    st.critic.missing = st.critic.missing.filter(m => !cb.includes(m))
+  }
+  st.post = await safeAgent('postcondition', c.id, PRE + ['ROLE: postcondition probe (bash). For ' + st.impl.bundle_path + ': exists, nonempty, git bundle verify; ' + A.run_dir + '/build/' + c.id + '/*.md exist and end with SUCCESS:' + c.id + '; count path:line@sha anchors.'].join('\n'), opt('post', POSTCONDITION, 'low'), 300000)
+  st.probe = await safeAgent('state-probe-final', c.id, PRE + ['ROLE: state probe (bash). Does ' + st.impl.head_sha + ' exist and does ' + st.impl.branch + ' point at it?'].join('\n'), opt('probe-final', STATE_PROBE, 'low'), 300000)
+  return unitDone(c, st) ? { card: c, state: 'built', st } : out('predicate')
+}
+```
+
 <!-- CONTINUE -->
