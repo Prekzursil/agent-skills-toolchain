@@ -468,3 +468,15 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   the correct path-scoped hook after two naive dead ends; V-3 plan-needs-repair emits `next_args.stage='build'` with empty defects
   (owner loops). All three sub-ten-line fixes; **reviser resumed to patch in place (v2.1) + extend the drive; with these applied the
   critic calls v2 ready to be the build standard.**
+
+## DESIGN CLOSED — v2.1 is the build standard (2026-09-19)
+- v2.1 patch applied in place by the reviser after the final critic: V-1..V-11 all fixed, 0 declined; drive **107/107 across 41
+  scenarios**; dry run **22/22**; mechanical checks green; document byte-identical to artifacts; deviations declared (Appendix D;
+  8-vs-9 minor tally note). sha256 `7742a9c8…`, 2,563 lines, 169 coverage rows.
+- Coordinator spot-check confirmed the three majors by direct inspection: receipt match is log-only and the return stands;
+  the pinned journeys conftest carries `import pathlib`/`import pytest`; S40 asserts plan-needs-repair routes `next_args.stage`
+  back to `plan`. The mid-task stall was recovered by resume (transcript intact).
+- **`PLAN.md` written** (launch view): owner prerequisites, local setup, R0→R3 sequence with checkpoints, the ten questions with
+  defaults, exit criteria, gem-hunt parallel track. Next concrete steps: owner answers §6 (or "all defaults") + §3 prerequisites
+  (token revocation, other-agent stop, resize, GitHub repo approval, fixture #1) → local setup → author the implementation
+  Workflow script from design-v2 §13 → R0.
