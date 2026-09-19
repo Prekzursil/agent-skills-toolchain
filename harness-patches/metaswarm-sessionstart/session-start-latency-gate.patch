@@ -1,0 +1,27 @@
+diff --git a/session-start.sh.orig-0.12.0 b/session-start.sh.patched-0.12.0
+index c8e4907..d946cda 100644
+--- a/session-start.sh.orig-0.12.0
++++ b/session-start.sh.patched-0.12.0
+@@ -27,6 +27,14 @@ fi
+ # --- Phase 1: BEADS dedup check ---
+ # If standalone BEADS plugin is installed, skip knowledge priming (let BEADS handle it)
+ beads_standalone=false
++# METASWARM-PATCH: sessionstart-latency-gate v1 (2026-09-19, estate) — receipt in
++# agent-skills-toolchain harness-patches/metaswarm-sessionstart/. beads_standalone is
++# only read by the `bd prime` branch (Phase 4), which requires new_project=false, but
++# this scan runs unconditionally first: find over two plugin caches + one jq spawn per
++# plugin.json (529 files on this box) cost 140s of SessionStart wall-clock in cwds where
++# the result is never consumed. Gate it on the same project check Phase 2 uses; behavior
++# is unchanged wherever the scan still runs.
++if [ -f ".metaswarm/project-profile.json" ]; then
+ beads_plugin_caches=("${HOME}/.claude/plugins/cache" "${CODEX_HOME:-${HOME}/.codex}/plugins/cache")
+ for beads_plugin_cache in "${beads_plugin_caches[@]}"; do
+   if [ -d "$beads_plugin_cache" ]; then
+@@ -47,6 +55,7 @@ for beads_plugin_cache in "${beads_plugin_caches[@]}"; do
+   fi
+   [ "$beads_standalone" = true ] && break
+ done
++fi  # METASWARM-PATCH: sessionstart-latency-gate v1
+ 
+ # --- Phase 2: New project detection ---
+ new_project=false
