@@ -206,8 +206,9 @@ function assertCommon(r, what) {                       // F-1, F-5, F-35: script
 // ---------------------------------------------------------------------------------------------
 const ledger = []; let agentCount = 0, HALT = null
 function budgetOk(label, exemptFromHalt) {
-  if (HALT && !exemptFromHalt) { log('HALTED (' + HALT + ') before ' + label); return false }       // C-7: the synthesizer is exempt from the HALT branch only
   if (agentCount >= Math.min(AGENT_SOFT_CAP, MAX_AGENTS_RUN)) { log('AGENT CAP: ' + agentCount + ' >= ' + Math.min(AGENT_SOFT_CAP, MAX_AGENTS_RUN) + ' before ' + label); return false }
+  if (exemptFromHalt) return true                                   // C-7/F-45: the synthesizer runs after every HALT and even on an exhausted budget — that reserve is what it is FOR
+  if (HALT) { log('HALTED (' + HALT + ') before ' + label); return false }
   if (!budget.total) return true
   const ok = budget.remaining() > RESERVE; if (!ok) log('BUDGET GUARD before ' + label + ': remaining ' + budget.remaining() + ' < reserve ' + RESERVE)
   return ok
@@ -636,7 +637,7 @@ function checkpoint(stage, head, stop, planDefects) {
     if (ready && headOk) act('C2-3', 'promote-production', 'G-2/M-5: the single production promotion from staging', ['trigger the production environment job (required reviewer = owner)', 'watch /healthz git_sha == pushed sha; canary ×3; keep the rollback command at hand'], 'production', 'tools/promote.py --to <last_good_sha>', '0')
   }
   if (stage === 'promote' && ownerCritical.length) act('C3-1', 'rollback', 'post-promotion evidence contradicts EXPECTED.json: confirmed critical/high finding(s) ' + ownerCritical.map(f => f.id).join(','), ['tools/promote.py --to <last_good_sha>', 'then fix on staging and relaunch stage=stage'], 'production', 'none', '0')   // C-6: rollback only on confirmed evidence, never on an unavailable gate
-  const nextStage = stage === 'plan' ? (stop === 'plan-verified' ? 'build' : 'plan') : stage === 'build' ? (ready ? 'stage' : 'build') : stage === 'stage' ? (ready ? 'promote' : 'stage') : 'done'   // C-9: never advances after dry/halt/budget/incomplete
+  const nextStage = stage === 'plan' ? (stop === 'plan-verified' ? 'build' : 'plan') : stage === 'build' ? (ready ? 'stage' : 'build') : stage === 'stage' ? (ready ? 'promote' : 'stage') : (ready ? 'done' : 'promote')   // C-9: a promote that is not ready (rollback, contradicting evidence) re-runs promote; never advances after dry/halt/budget/incomplete
   return { stage, nonce: A.run_nonce, status: (HALT || INTEG_DIRTY || /^FAILED:/.test(String(stop))) ? 'failed' : ready ? 'ready' : 'blocked', halt: HALT, head_sha: head, integration_branch: INTEG, actions, blocked_on_owner, deferred, parked: rows.filter(r => PARKED_RE.test(r.state)).map(r => ({ task_id: r.task_id, state: r.state, reason: r.reason, next: r.next })), rows, api_unresolvable, stop_reason: stop, agents: agentCount, replay_risk: REPLAY_RISK, last_clean_gate: { verdict: lastClean.verdict, head_sha: lastClean.head_sha, digest: lastClean.digest, why: lastClean.why || null },
     next_args: { stage: nextStage, plan_sha: A.plan_sha || null, integration_sha_at_launch: head, resume_mode: REPLAY_RISK ? 'git' : A.resume_mode, prior_status_path: STATUS_JSON, last_clean_gate: { head_sha: lastClean.verdict === 'pass' ? lastClean.head_sha : null, digest: lastClean.verdict === 'pass' ? lastClean.digest : null }, retry_parked_suggested, plan_defects: stage === 'plan' && stop !== 'plan-verified' ? (planDefects || []) : [] } }
 }

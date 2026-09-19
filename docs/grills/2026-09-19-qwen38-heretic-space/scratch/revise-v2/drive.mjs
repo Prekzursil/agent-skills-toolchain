@@ -136,8 +136,8 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
   const st = state(fullPlan())
   const r = await runScenario('S2 empty-but-valid verifier on card 01', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'verify' && ctx.id.startsWith('platform-01-gate')) Object.assign(h, { hunks_cited: [], mutants: { written: 0, killed: 0 }, dod_reruns: [], checks: [] }); return h } })
   assert('S2 card not merged', row(r, 'platform-01-gate') && row(r, 'platform-01-gate').state !== 'merged+gate-green', row(r, 'platform-01-gate') && row(r, 'platform-01-gate').state)
-  assert('S2 parked with fix-exhausted (bounded)', row(r, 'platform-01-gate') && row(r, 'platform-01-gate').state === 'parked' && /fix-exhausted/.test(row(r, 'platform-01-gate').reason), JSON.stringify(row(r, 'platform-01-gate')))
-  assert('S2 exactly 3 build calls (MAX_BUILD)', r.calls.filter(c => c.label.startsWith('builder:')).length === 3, String(r.calls.filter(c => c.label.startsWith('builder:')).length))
+  assert('S2 parked with no-progress: the empty verify yields the SAME never-empty fingerprint twice → two-strikes (C-18) [corrected, not a flip: v1 burned all 3 builds only because its fingerprint could be empty, disabling two-strikes]', row(r, 'platform-01-gate') && row(r, 'platform-01-gate').state === 'parked' && /no-progress/.test(row(r, 'platform-01-gate').reason), JSON.stringify(row(r, 'platform-01-gate')))
+  assert('S2 exactly 2 build calls (two-strikes bounds the loop before MAX_BUILD)', r.calls.filter(c => c.label.startsWith('builder:')).length === 2, String(r.calls.filter(c => c.label.startsWith('builder:')).length))
 }
 
 // S3 verifier agrees but its own gate digest differs -----------------------------------------------------
@@ -343,11 +343,13 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
 // N3 clean gate RED after a journeys merge → the revert targets the JOURNEYS merge sha, not the card's (C-12)
 {
   const st = state(fullPlan()); let redOnce = false
-  const r = await runScenario('N3 clean gate red right after a journeys merge', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'clean' && st.lastJourneyMerge && !redOnce) { redOnce = true; h.gate_exit_code = 1 } if (ctx.mode === 'merge' && /journeys/.test(ctx.id)) st.lastJourneyMerge = h.merge_sha; return h } })
+  const r = await runScenario('N3 clean gate red right after a journeys merge', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'clean' && st.lastJourneyMerge && !redOnce) { redOnce = true; h.gate_exit_code = 1 } if (ctx.mode === 'merge' && /journeys/.test(ctx.id) && !redOnce) st.lastJourneyMerge = h.merge_sha; return h } })   // frozen at the first journeys merge: wave 4's journeys merge must not move the sha the assertion compares against
   const rv = r.calls.find(c => c.label.startsWith('integrator:revert'))
   assert('N3 exactly one revert, of the journeys merge, by its merge sha', rv && /journeys-plan-w/.test(rv.label) && rv.prompt.includes('git revert -m 1 ' + st.lastJourneyMerge), rv ? rv.label + ' ' + (rv.prompt.match(/git revert -m 1 [0-9a-f]{40}/) || [])[0] : 'no revert')
   assert('N3 no card row was marked reverted (the reverted merge was the journeys branch)', !r.out.rows.some(x => x.state === 'reverted'), JSON.stringify(rowsOf(r)))
-  assert('N3 after the revert a fresh clean gate ran before any lens and the run ended satisfied', r.calls.some(c => c.label === 'integrator:clean:review-pre') && r.out.stop_reason === 'satisfied', r.out.stop_reason)
+  const firstCleanAfterRevert = rv ? r.calls.find(c => c.label.startsWith('integrator:clean') && c.n > rv.n) : null
+  const firstLens = r.calls.find(c => c.label.startsWith('verifier:review'))
+  assert('N3 a passing clean gate ran after the revert and before any lens; the run ended satisfied [corrected, not a flip: the re-gate is wave 4\'s clean gate, which is why the literal review-pre label never appears — the invariant is a clean pass at head before the first lens (C-10)]', !!firstCleanAfterRevert && (!firstLens || firstLens.n > firstCleanAfterRevert.n) && r.out.stop_reason === 'satisfied', r.out.stop_reason)
 }
 
 // N4 merge returns merged + gate red → checked revert by merge sha; state reverted (C-20)
@@ -384,8 +386,8 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
 // N7 next_args.stage never advances after max-rounds (C-9): each round a fresh low-severity owner-level finding
 {
   const st = state(fullPlan()); let k = 0
-  const r = await runScenario('N7 review loop ends max-rounds', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'review' && ctx.id.includes('security')) { k++; h.findings = [{ id: 'OW-' + k, title: 'quota row ' + k, file: 'worker/lease.py', severity: 'low', kind: 'omitted-obligation', reproduction: { command: 'test -f x', exit_code: 1, output_tail: '' }, verification_level: 'staging-required' }] } if (ctx.mode === 'refute') { h.verdict = 'holds'; h.findings = [{ id: ctx.id.replace(/:.*/, ''), title: 'quota row', file: 'worker/lease.py', severity: 'low', kind: 'omitted-obligation', reproduction: { command: 'test -f x', exit_code: 1, output_tail: '' }, verification_level: 'staging-required' }] } return h } })
-  assert('N7 stop max-rounds(3)', r.out.stop_reason === 'max-rounds(3)', r.out.stop_reason)
+  const r = await runScenario('N7 review loop ends max-rounds', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'review' && ctx.id.includes('security')) { k++; h.findings = [{ id: 'OW-' + k, title: 'quota row ' + k, file: 'worker/lease.py', severity: 'high', kind: 'omitted-obligation', reproduction: { command: 'test -f x', exit_code: 1, output_tail: '' }, verification_level: 'staging-required' }] } if (ctx.mode === 'refute') { h.verdict = 'holds'; h.findings = [{ id: ctx.id.replace(/:.*/, ''), title: 'quota row', file: 'worker/lease.py', severity: 'high', kind: 'omitted-obligation', reproduction: { command: 'test -f x', exit_code: 1, output_tail: '' }, verification_level: 'staging-required' }] } return h } })   // severity high, not low: low-severity owner findings do not block satisfied() by design, so they can never drive the loop to max-rounds
+  assert('N7 stop max-rounds(3) [corrected fixture, assertion unchanged: the drive originally fed low-severity findings, which satisfied() correctly tolerates — critical/high are what keep it false]', r.out.stop_reason === 'max-rounds(3)', r.out.stop_reason)
   assert('N7 status blocked (owner-level findings), next_args.stage stays build', r.out.status === 'blocked' && r.out.next_args.stage === 'build' && r.out.blocked_on_owner.length === 3, r.out.status + ' ' + r.out.next_args.stage + ' ' + r.out.blocked_on_owner.length)
 }
 
@@ -394,7 +396,7 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
   const F = { id: 'PR-1', title: 'production healthz sha unknown', file: 'evidence/prod/healthz.json', severity: 'critical', kind: 'staging-evidence', reproduction: { command: 'jq -e ".git_sha != \\"unknown\\"" healthz.json', exit_code: 1, output_tail: 'false' }, verification_level: 'staging-required' }
   const plan = fullPlan(); const st = state(plan, { head: SHA(3), mergedOnGit: plan.map(c => c.id), evidenceFindings: [F] })
   const r = await runScenario('N8 promote stage with a confirmed critical finding', baseArgs({ stage: 'promote', integration_sha_at_launch: SHA(3), last_clean_gate: { head_sha: SHA(3), digest: HEX(6) }, owner_approvals: Object.assign({}, OA_HAPPY, { github_repo_url: 'u', staging_space_ids: ['a', 'b'], production_evidence_dir: '/pev', production_space_head: BASE }) }), { reply: ctx => { const h = happy(ctx, st); if (ctx.mode === 'refute') { h.verdict = 'holds'; h.findings = [F] } return h } })
-  assert('N8 rollback action emitted with the finding id; status blocked; next stage promote', r.out.actions.some(a => a.kind === 'rollback' && /PR-1/.test(a.why)) && r.out.status === 'blocked' && r.out.next_args.stage === 'done' === false, r.out.actions.map(a => a.kind).join(',') + ' ' + r.out.status + ' ' + r.out.next_args.stage)
+  assert('N8 rollback action emitted with the finding id; status blocked; next stage stays promote [strengthened: C-9 pins the stage at promote, not merely not-done]', r.out.actions.some(a => a.kind === 'rollback' && /PR-1/.test(a.why)) && r.out.status === 'blocked' && r.out.next_args.stage === 'promote', r.out.actions.map(a => a.kind).join(',') + ' ' + r.out.status + ' ' + r.out.next_args.stage)
   const st2 = state(plan, { head: SHA(3), mergedOnGit: plan.map(c => c.id), evidenceFindings: [] })
   const r2 = await runScenario('N8b promote stage with clean evidence', baseArgs({ stage: 'promote', integration_sha_at_launch: SHA(3), last_clean_gate: { head_sha: SHA(3), digest: HEX(6) }, owner_approvals: Object.assign({}, OA_HAPPY, { github_repo_url: 'u', staging_space_ids: ['a', 'b'], production_evidence_dir: '/pev', production_space_head: BASE }) }), { reply: ctx => happy(ctx, st2) })
   assert('N8b clean evidence → satisfied, ready, no rollback', r2.out.stop_reason === 'satisfied' && r2.out.status === 'ready' && !r2.out.actions.some(a => a.kind === 'rollback'), r2.out.stop_reason + ' ' + r2.out.status)
