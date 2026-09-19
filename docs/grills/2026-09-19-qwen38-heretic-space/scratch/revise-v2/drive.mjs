@@ -72,8 +72,8 @@ function happy(ctx, st) {
   const cid = id.replace(/:.*$/, '')
   if (role === 'integrator' && mode === 'setup') return Object.assign({ status: 'SUCCESS', venv_python: '3.12.3', nproc: 4, base_sha_ok: true, gate_sha256: GATE_SHA, baseline_sha256: BASE_SHA, baseline_collected: 73, baseline_skipped: 0, red_proof: { broken_red: true, false_claim_red: 'fixture-not-yet-delivered', digest: HEX(1) }, integration_head_live: st.head, plan_merged: true, branch_heads: [], merged_on_integration: st.mergedOnGit || [], remotes: [], prior_rows: st.priorRows || [], seen_keys: st.seenKeys || [], toolchain_status_sha256: HEX(9), worktrees_pruned: 0 }, st.setupOverride || {})
   if (role === 'verifier' && mode === 'index') return { status: 'SUCCESS', plan_sha: SHA(2), decisions_path: 'plan/decisions.json', api_ledger_path: 'plan/api-ledger.json', preverified_path: 'plan/preverified.json', decisions: DEC5, preverified: st.preverified || [], cards: st.cards, unmapped_finding_ids: [] }
-  if (role === 'author' && mode === 'tests') return { status: 'SUCCESS', card_id: cid, branch: 'tests/' + cid + '-r1a', base_sha: st.head, tests_head: SHA(10 + st.seq(cid, 'tests')), test_paths: ['tests/unit/test_' + cid + '.py'], commits_made: 1, red_command: 'gate.sh --only-tests', red_exit_code: 1, red_excerpt: 'FAILED', gate_digest: HEX(2), known_bads_xfail: [], mutants_suggested: [] }
-  if (role === 'author' && mode === 'journeys') return { status: 'SUCCESS', card_id: 'journeys', branch: 'task/journeys', base_sha: st.head, tests_head: SHA(70 + (st.j = (st.j || 0) + 1)), test_paths: ['tests/journeys/test_h.py'], commits_made: 1, red_command: 'x', red_exit_code: 0, red_excerpt: '', gate_digest: HEX(2) }
+  if (role === 'author' && mode === 'tests') return { status: 'SUCCESS', card_id: cid, branch: 'tests/' + cid + '-r1a', base_sha: st.head, tests_head: SHA(10 + st.seq(cid, 'tests')), test_paths: ['tests/unit/test_' + cid + '.py'], commits_made: 1, red_command: 'gate.sh --only-tests', red_exit_code: 1, red_excerpt: 'FAILED', gate_exit_code: 0, gate_digest: HEX(2), known_bads_xfail: [], mutants_suggested: [] }
+  if (role === 'author' && mode === 'journeys') return { status: 'SUCCESS', card_id: 'journeys', branch: 'task/journeys', base_sha: st.head, tests_head: SHA(70 + (st.j = (st.j || 0) + 1)), test_paths: ['tests/journeys/test_h.py'], commits_made: 1, red_command: 'x', red_exit_code: 0, red_excerpt: '', gate_exit_code: 0, gate_digest: HEX(2) }   // v2.1 V-11: the acceptance now requires gate_exit_code 0 + digest
   if (role === 'verifier' && mode === 'red') { const th = /at ([0-9a-f]{40})\./.exec(ctx.prompt); return verdict('red', cid, th ? th[1] : SHA(0), 'pass', { gate_digest: HEX(2) }) }
   if (role === 'builder') { const h = SHA(30 + st.seq(cid, 'build')); st.lastBuild[cid] = h; return { status: 'done', card_id: cid, branch: 'task/' + cid + '-r1a', base_sha: st.head, head_sha: h, commits_made: 2, changed_files: ['x.py', 'tests/unit/test_extra.py'], dod: [{ id: 'D1', command: 'pytest', exit_code: 0, output_tail: 'ok' }], apis_used: [], gate_exit_code: 0, gate_digest: HEX(40 + st.seq(cid, 'build')), gate_profile: 'full', gate_steps: [{ name: 'ruff', exit_code: 0 }, { name: 'pytest-x2', exit_code: 0 }], remaining_dod_ids: [] } }
   if (role === 'verifier' && mode === 'verify') { const h = st.lastBuild[cid]; return verdict('verify', cid, h, 'pass', { ledger_head_sha: h, gate_digest: HEX(40 + st.seqPeek(cid, 'build')), gate_profile: 'full', hunks_cited: ['x.py:1@' + h], checks: [{ name: 'gate', command: 'bash gate.sh --card', exit_code: 0, output_tail: 'LEDGER_DIGEST' }, { name: 'apicheck-extended', command: 'bash gate.sh --apicheck', exit_code: 0, output_tail: 'ok' }], dod_reruns: [{ id: 'D1', exit_code: 0 }], mutants: { written: 3, killed: 3 }, revert_proof: { observed: 'red', command: 'gate.sh --revert-proof' }, diff_stats: { files: 1, insertions: 10, deletions: 2 }, gate_steps: [{ name: 'ruff', exit_code: 0 }, { name: 'pytest-x2', exit_code: 0 }] }) }
@@ -433,6 +433,43 @@ const row = (r, id) => r.out && r.out.rows.find(x => x.task_id === id)
   const r = await runScenario('N12 fixture #1 not recorded', baseArgs({ owner_approvals: Object.assign({}, OA_HAPPY, { fixture1_path: null }) }), { reply: ctx => happy(ctx, st) })
   assert('N12 04 blocked_on_owner with next; 05a not_attempted:dependency-blocked; 08a (independent) merged', row(r, 'platform-04-streamparser').state === 'blocked_on_owner' && /owner records/.test(row(r, 'platform-04-streamparser').next) && row(r, 'platform-05a-registry').state === 'not_attempted' && row(r, 'platform-08a-worker-pure').state === 'merged+gate-green', JSON.stringify(rowsOf(r)))
   assert('N12 status blocked, record-fixture-1 action, no lenses, next stage build', r.out.status === 'blocked' && r.out.actions.some(a => a.kind === 'record-fixture-1') && !r.calls.some(c => c.label.startsWith('verifier:review')) && r.out.next_args.stage === 'build', r.out.status + ' ' + r.out.stop_reason)
+}
+
+// ---- v2.1 scenarios (post critic-v2): V-1 receipt log-only · V-2 conftest pin · V-3 R1 repair next_args · V-11 journeys gate refused
+
+// S38 (V-1) a verifier writes a REMAINING receipt phrase → the return stands, the fragment is logged, the card still merges (was: parked agent-null)
+{
+  const st = state(fullPlan())
+  const r = await runScenario('S38 (V-1) verifier notes carry a remaining receipt phrase', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.role === 'verifier' && ctx.mode === 'verify' && ctx.id === 'platform-02-pins:1') h.strongest_disagreement = 'will report back when the run ends'; return h } })
+  assert('S38 the receipt fragment is logged (matched "will report back when") and nothing is BLOCKED as receipt-shaped', r.logs.some(l => /receipt-shaped fragment \(matched "will report back when"\)/.test(l)) && !r.logs.some(l => /BLOCK .*receipt-shaped/.test(l)), JSON.stringify(r.logs.filter(l => /receipt/i.test(l))))
+  assert('S38 the card PROCEEDS and merges — assertCommon no longer nulls on a receipt phrase', row(r, 'platform-02-pins').state === 'merged+gate-green', JSON.stringify(row(r, 'platform-02-pins')))
+  assert('S38 the whole run still ends satisfied (log-only cost, no behaviour change)', r.out.stop_reason === 'satisfied', r.out.stop_reason)
+}
+
+// S39 (V-2) the stage=plan planner prompt pins the exact path-scoped journeys conftest, the pytest.ini marker registration and the both-collections DoD demand
+{
+  const st = state(fullPlan())
+  const r = await runScenario('S39 (V-2) planner prompt pins the journeys conftest byte-for-byte', baseArgs({ stage: 'plan' }), { reply: ctx => happy(ctx, st) })
+  const pp = r.calls.find(c => c.label === 'planner:plan:r1a')
+  assert('S39 the prompt carries the exact path-scoped hook (not pytestmark-in-conftest, not unscoped)', !!pp && pp.prompt.includes('def pytest_collection_modifyitems(items):') && pp.prompt.includes('it.path.is_relative_to(pathlib.Path(__file__).parent)') && pp.prompt.includes('it.add_marker(pytest.mark.journey)') && pp.prompt.includes('BYTE-FOR-BYTE'), pp ? pp.prompt.slice(Math.max(0, pp.prompt.indexOf('pytest_collection_modifyitems') - 80), pp.prompt.indexOf('pytest_collection_modifyitems') + 320) : 'no planner call')
+  assert('S39 the prompt demands the pytest.ini marker registration and BOTH collections on card 01', !!pp && /pytest\.ini registering `journey:` under markers/.test(pp.prompt) && /BOTH-collections line/.test(pp.prompt), pp ? 'registration/both-collections text missing' : 'no planner call')
+}
+
+// S40 (V-3) R1 plan-needs-repair → next_args loops back to stage=plan WITH the defects (was: stage=build, defects dropped)
+{
+  const stBad = state(fullPlan(), { preverified: [{ id: 'inf-9', verdict: 'refuted', corrected_claim: 'refuted by the executed pre-verification probe', level: 'local-mechanical' }] })
+  stBad.cards = fullPlan(); stBad.cards[1] = Object.assign({}, stBad.cards[1], { finding_ids: [{ id: 'inf-9', corrected_text: 'cites inf-9 whose pre-verification REFUTED it' }] })
+  const r = await runScenario('S40 (V-3) R1 throws plan-needs-repair on a REFUTED citation', baseArgs(), { reply: ctx => happy(ctx, stBad) })
+  assert('S40 stop FAILED:plan-needs-repair before any author/builder runs', /^FAILED:plan-needs-repair/.test(r.out.stop_reason) && !r.calls.some(c => /^author|^builder/.test(c.label)), r.out.stop_reason)
+  assert('S40 next_args.stage === \'plan\' WITH plan_defects populated [v2.1 V-3: previously stage=build with an empty list]', r.out.next_args.stage === 'plan' && Array.isArray(r.out.next_args.plan_defects) && r.out.next_args.plan_defects.some(d => /REFUTED/.test(d)), 'stage=' + (r.out.next_args || {}).stage + ' defects=' + JSON.stringify((r.out.next_args || {}).plan_defects))
+}
+
+// S41 (V-11) a journeys author reporting SUCCESS over a red journeys-only gate is refused — never integrated
+{
+  const st = state(fullPlan()); let refused = false
+  const r = await runScenario('S41 (V-11) journeys author SUCCESS with a red gate', baseArgs(), { reply: ctx => { const h = happy(ctx, st); if (ctx.role === 'author' && ctx.mode === 'journeys' && !refused) { refused = true; h.gate_exit_code = 1 } return h } })
+  assert('S41 the refused journeys branch is never integrated (no merge/ff for it)', !r.calls.some(c => /^integrator:(merge|ff):journeys/.test(c.label)), r.calls.filter(c => /journeys/.test(c.label)).map(c => c.label).join(','))
+  assert('S41 the refusal is logged with the required-evidence note and the run still ends satisfied', r.logs.some(l => /journeys author .*refused/.test(l)) && r.out.stop_reason === 'satisfied', r.out.stop_reason + ' ' + JSON.stringify(r.logs.filter(l => /journeys author/.test(l)).slice(0, 2)))
 }
 
 console.log('\n==== SUMMARY: ' + results.filter(r => r.ok).length + ' passed, ' + results.filter(r => !r.ok).length + ' failed, scenarios: ' + new Set(results.map(r => r.scenario)).size)

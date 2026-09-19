@@ -74,10 +74,11 @@ const TESTS = { type: 'object', properties: { ...COMMON,
   test_paths: { type: 'array', minItems: 1, items: { type: 'string' } },
   commits_made: { type: 'integer' },
   red_command: { type: 'string' }, red_exit_code: { type: 'integer' }, red_excerpt: { type: 'string' },
+  gate_exit_code: { type: 'integer', description: 'exit code of YOUR own gate.sh --only-tests run; 0 is required and the JS refuses a nonzero one for journeys (v2.1 V-11)' },
   gate_digest: { type: 'string', description: 'LEDGER_DIGEST printed by gate.sh --only-tests, or ""' },
   known_bads_xfail: { type: 'array', items: { type: 'string' } },
   mutants_suggested: { type: 'array', items: { type: 'object', properties: { file: { type: 'string' }, find: { type: 'string' }, replace: { type: 'string' } }, required: ['file', 'find', 'replace'] } },
-}, required: ['status', 'card_id', 'branch', 'base_sha', 'tests_head', 'test_paths', 'commits_made', 'red_command', 'red_exit_code', 'red_excerpt', 'gate_digest', ...COMMON_REQ] }
+}, required: ['status', 'card_id', 'branch', 'base_sha', 'tests_head', 'test_paths', 'commits_made', 'red_command', 'red_exit_code', 'red_excerpt', 'gate_exit_code', 'gate_digest', ...COMMON_REQ] }
 
 // ---- 9.3 BUILD (builder, modes implement and fix) ----
 const BUILD = { type: 'object', properties: { ...COMMON,
