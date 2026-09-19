@@ -1,4 +1,4 @@
-# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 79 of 80 satisfiable units are reviewed
+# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 80 of 80 satisfiable units are reviewed
 
 <!-- RAIL-COUNT
 basis: committed
@@ -7,7 +7,7 @@ rail_blocked: 9
 rail_blocked_unfulfilled: 9
 rail_blocked_fulfilled: 0
 satisfiable_now: 80
-reviewed_satisfiable: 79
+reviewed_satisfiable: 80
 catalog_units: 2007
 rail_state: up
 rail_probed: 2026-08-14
