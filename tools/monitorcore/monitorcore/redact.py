@@ -1,7 +1,7 @@
 """Strict-by-default, fail-closed secret/home-path redaction (pure, stdlib-only).
 
 ``redact(text)`` masks structured secrets first, then collapses the user's home
-directory (all six real forms, including the 8.3 short name ``PREKZU~1``) to
+directory (all five real forms, including the 8.3 short name ``PREKZU~1``) to
 ``~``. It is a pure ``str -> (str, int)`` function: no filesystem, no globals
 mutated. Every substitution is wrapped in ``try/except`` so a malformed/raising
 pattern degrades to the partially-masked text and *never* surfaces the raw
@@ -15,8 +15,7 @@ additions that only ever mask *more* (fail-safe for an export tool):
   clear a minimum length, so benign dotted base64 does not match.
 
 Home collapse uses a single unified regex covering ``C:\\Users\\<u>``,
-``C:/Users/<u>``, ``/c/Users/<u>``, ``/mnt/c/Users/<u>``, ``/home/<u>`` and the
-8.3 form. (A
+``C:/Users/<u>``, ``/c/Users/<u>``, ``/mnt/c/Users/<u>`` and the 8.3 form. (A
 single anchored alternation is used deliberately: the two-regex form cannot
 collapse both the git-bash ``/c/Users`` and the WSL ``/mnt/c/Users`` correctly
 under any fixed application order, because each would partially match inside the
@@ -24,8 +23,6 @@ other. The observable contract - every form to ``~`` - is unchanged.)
 """
 
 import re
-
-from .textsafe import strip_controls
 
 # Secrets are masked BEFORE home-path collapse. Order within this list matters
 # in two places: the ``Bearer`` JWT must precede the standalone JWT (so the
@@ -71,8 +68,7 @@ _SECRET_PATTERNS = [
 _HOME_PATTERNS = [
     (
         re.compile(
-            r"(?i)(?:(?:[A-Za-z]:|/mnt/[a-z]|/[a-z])?[\\/]+Users[\\/]+"
-            r"[^\\/\r\n\"']+|/home/[^/\r\n\"\x27]+)"
+            r"(?i)(?:[A-Za-z]:|/mnt/[a-z]|/[a-z])?[\\/]+Users[\\/]+[^\\/\r\n\"']+"
         ),
         "~",
     ),
@@ -97,26 +93,6 @@ def redact(text: str, *, enabled: bool = True) -> tuple[str, int]:
             # Fail-closed: drop this pattern, keep the already-masked text.
             continue
     return text, total
-
-
-def scrub(value: object) -> str:
-    """THE shared ingest floor: coerce to text, strip control bytes, THEN redact.
-
-    Every adapter that ingests attacker-influenceable text (a Codex thread label, a Claude
-    agent name, an MCP server name, a Databricks unit error) must funnel through this ONE
-    function rather than re-declaring it, because the ORDER is load-bearing and a copy that
-    drifts silently loses a security property:
-
-    * ``strip_controls`` FIRST, so a control byte spliced into a secret can no longer split
-      the pattern past the mask, and so no ESC/BEL/OSC byte survives ingest to be painted to
-      the operator's terminal later (escape-injection / OSC-8 link / OSC-52 clipboard hijack).
-    * ``redact`` SECOND, fail-closed, so the raw input is never returned wholesale.
-
-    ``None`` becomes ``""`` rather than the literal ``"None"``, so an unmeasured field never
-    renders as a fake value.
-    """
-    text = "" if value is None else str(value)
-    return redact(strip_controls(text), enabled=True)[0]
 
 
 class Redactor:
