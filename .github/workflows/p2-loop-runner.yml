@@ -1,0 +1,61 @@
+name: p2-loop-runner
+
+# P2 loop-to-green, cloud continuation. Deterministic: every fix comes from a
+# committed recipe (command-center/p2-loop/apply_recipe.py + FIXPLAYBOOK.json
+# provenance); an unknown failure signature exits UNRESOLVED and this workflow
+# files an issue instead of guessing. Pushes use CODEX_RUNNER_PAT so CI
+# re-triggers (GITHUB_TOKEN pushes do not trigger workflows).
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_iter:
+        description: "max fix iterations"
+        default: "6"
+      poll_min:
+        description: "minutes between CI polls"
+        default: "6"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: p2-loop-runner
+  cancel-in-progress: false
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: cursor/p2-loop-to-green-0db0
+          fetch-depth: 0
+          token: ${{ secrets.CODEX_RUNNER_PAT }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: run the loop (watch -> recipe -> push -> repeat)
+        id: loop
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          P2_MAX_ITER: ${{ github.event.inputs.max_iter || '6' }}
+          P2_POLL_MIN: ${{ github.event.inputs.poll_min || '6' }}
+        run: |
+          git config user.name "p2-loop-runner"
+          git config user.email "p2-loop-runner@users.noreply.github.com"
+          python command-center/p2-loop/cloud_loop.py; echo "loop_rc=$?" >> "$GITHUB_OUTPUT"; exit 0
+      - name: file an issue on unresolved failures (so nothing stalls silently)
+        if: steps.loop.outputs.loop_rc != '0'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.CODEX_RUNNER_PAT }}
+          script: |
+            const { owner, repo } = context.repo;
+            const body = `The p2-loop-runner could not reach all-green. Loop exit: ${{ steps.loop.outputs.loop_rc }} (1 = unresolved gates, 2 = budget exhausted). Known OWNER-ACTION gate: github-advanced-security (GitHub platform model rejection; see FIXPLAYBOOK.json). Attach the run log of this workflow for the per-gate detail.`;
+            await github.rest.issues.create({ owner, repo, title: `p2-loop-runner: unresolved gates on cursor/p2-loop-to-green-0db0`, body, labels: [] });
+      - name: final state
+        run: |
+          echo "loop_rc=${{ steps.loop.outputs.loop_rc }} (0 = all gates green; check https://github.com/Prekzursil/agent-skills-toolchain/actions for the run record)"
