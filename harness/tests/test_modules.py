@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import concurrent.futures
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,6 +35,7 @@ from harness.modules import (
     SensitiveArtifactModule,
     SubagentLifecycleModule,
     _canonical_tree,
+    _flush_spool_to_vault,
     resolve_mode,
     stage,
 )
@@ -39,6 +43,7 @@ from harness.models import HookResult
 
 
 def event(tmp_path: Path, name: str, **overrides):
+    provider = overrides.pop("provider", "codex")
     raw = {
         "session_id": "session-1",
         "turn_id": "turn-1",
@@ -46,7 +51,7 @@ def event(tmp_path: Path, name: str, **overrides):
         "hook_event_name": name,
     }
     raw.update(overrides)
-    return normalize_event(raw, provider="codex", event_name=name)
+    return normalize_event(raw, provider=provider, event_name=name)
 
 
 def test_fixed_module_order_is_security_then_continuity_then_quality():
@@ -64,6 +69,10 @@ def test_fixed_module_order_is_security_then_continuity_then_quality():
         "subagent_lifecycle",
         "bc_offset_guard",
         "enforcement_scaffold",
+        # Quality tier, last: inject-only, never blocks, and reads a JSON file.
+        # Ordering it after every security and continuity gate keeps a slow or
+        # missing catalog from delaying anything that matters.
+        "register_gate",
     )
 
 
@@ -306,15 +315,16 @@ def test_secret_guard_blocks_credential_reads_when_guard_enabled(
     assert result.reason_code == "credential_read"
 
 
-# Synthetic EXAMPLE payloads -- fake sequential-alphabet bodies, never live keys.
-# They exist so the tests below can assert the secret guard FIRES on these shapes,
-# so the literal must stay byte-identical; the EXAMPLE markers are comments for
-# that reason. Unmarked, per-edit-check BLOCKS every future edit to this file on a
-# use-vs-mention false positive (the payload is the subject under test, not a leak).
+# PLACEHOLDER fixtures. These are the INPUTS to the secret guard under test, not credentials --
+# every one is a visible a-z alphabet run, valid for no service that has ever existed. They are
+# marked here because per-edit-check scans the line text and cannot tell a detector's test input
+# from a real leak (the use-vs-mention class), so without the marker it blocks every future edit
+# to this file. The strings are deliberately left byte-identical: they are the assertion surface,
+# and changing them would change what the guard is shown.
 _SECRET_LITERAL_PAYLOADS = [
-    "curl -H 'Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz123456' https://x",  # EXAMPLE
-    "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # EXAMPLE PLACEHOLDER
-    "-----BEGIN PRIVATE KEY----- literal",  # EXAMPLE
+    "curl -H 'Authorization: Bearer ghp_abcdefghijklmnopqrstuvwxyz123456' https://x",  # PLACEHOLDER
+    "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # PLACEHOLDER
+    "-----BEGIN PRIVATE KEY----- literal",  # PLACEHOLDER
 ]
 
 
@@ -444,7 +454,7 @@ def test_legacy_read_through_recursively_redacts_nested_values(tmp_path):
     legacy_root = tmp_path / "legacy-ledger"
     legacy_project = legacy_root / "old-project"
     legacy_project.mkdir(parents=True)
-    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # EXAMPLE
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # PLACEHOLDER fixture
     private_path = r"C:\Users\Secret Client\artifact.txt"
     (legacy_project / "state.json").write_text(
         json.dumps(
@@ -566,7 +576,7 @@ def test_ledger_append_does_not_reparse_full_history(tmp_path, monkeypatch):
 
 def test_ledger_recursively_redacts_nested_secret_and_path_fields(tmp_path):
     ledger = EventLedger(tmp_path / "state", legacy_root=tmp_path / "no-legacy")
-    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # EXAMPLE
+    secret = "sk-proj-abcdefghijklmnopqrstuvwxyz1234567890"  # PLACEHOLDER fixture
 
     ledger.append(
         str(tmp_path),
@@ -721,7 +731,7 @@ def test_checkpoint_is_redacted_bounded_and_contains_no_raw_paths_or_session(tmp
     ledger = EventLedger(tmp_path / "state")
     ledger.set_goal(
         str(tmp_path),
-        "Ship API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # EXAMPLE
+        "Ship API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234567890",  # PLACEHOLDER
         session_id="session-1",
     )
     remember = tmp_path / ".remember"
@@ -780,14 +790,7 @@ def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
             },
         ],
     )
-    empty_vault = tmp_path / "empty-vault"
-    empty_vault.mkdir()
-    module = RecallModule(
-        index_paths=[index],
-        max_results=2,
-        state_root=tmp_path,
-        vault_root=empty_vault,
-    )
+    module = RecallModule(index_paths=[index], max_results=2, state_root=tmp_path)
 
     hit = module.run(
         event(
@@ -804,6 +807,12 @@ def test_recall_uses_local_lexical_index_and_requires_high_precision(tmp_path):
     assert "projects/reframe/make-shorts-auto-transcribe" in hit.additional_context[0]
     assert "Unrelated" not in hit.additional_context[0]
     assert miss.action == "allow"
+
+
+# --- basic-memory vault digest (live tree Q3/Q4, ported 2026-09-02) -------------
+# SessionStart and the first UserPromptSubmit inject a SLIM digest read from the
+# recall-digest.json sidecar (or a size-capped keyword-free index). The module
+# never walks the vault and never loads the full keyword index for this purpose.
 
 
 def test_recall_session_start_injects_vault_digest_once(tmp_path):
@@ -831,6 +840,7 @@ def test_recall_session_start_injects_vault_digest_once(tmp_path):
     assert first.action == "inject"
     assert first.reason_code == "bm_vault_digest"
     assert "copy-loss-mmffld" in first.additional_context[0]
+    assert "UNTRUSTED" in first.additional_context[0]
     assert index.exists()
     assert second.action == "allow"
 
@@ -865,6 +875,48 @@ def test_recall_first_prompt_injects_digest_even_after_session_start(tmp_path):
     assert second.action == "allow"
 
 
+def test_recall_digest_merges_with_lexical_recall_on_the_first_prompt(tmp_path):
+    # A first prompt that ALSO scores a lexical hit gets both: the digest anchor
+    # and the composite recall, merged into one inject.
+    _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "digest-anchor",
+                "path": "notes/digest-anchor.md",
+                "permalink": "notes/digest-anchor",
+                "summary": "anchor",
+                "mtime": 1.0,
+                "importance": 1.0,
+            }
+        ],
+        name="recall-digest.json",
+    )
+    index = _recall_index(
+        tmp_path,
+        [
+            {
+                "title": "Reframe Make Shorts auto transcribe decision",
+                "permalink": "projects/reframe/make-shorts-auto-transcribe",
+                "summary": "Auto transcribe before selecting clips.",
+                "keywords": ["reframe", "shorts", "auto", "transcribe", "transcript"],
+            }
+        ],
+    )
+    module = RecallModule(index_paths=[index], max_results=2, state_root=tmp_path)
+    out = module.run(
+        event(
+            tmp_path,
+            "UserPromptSubmit",
+            prompt="Fix Reframe Make Shorts auto transcribe when the transcript is absent.",
+        )
+    )
+    assert out.action == "inject"
+    joined = "\n".join(out.additional_context)
+    assert "digest-anchor" in joined
+    assert "projects/reframe/make-shorts-auto-transcribe" in joined
+
+
 def test_recall_vault_digest_failopen_when_vault_missing(tmp_path):
     module = RecallModule(
         index_paths=[tmp_path / "missing.json"],
@@ -872,9 +924,10 @@ def test_recall_vault_digest_failopen_when_vault_missing(tmp_path):
         vault_root=tmp_path / "no-such-vault",
     )
     assert module.run(event(tmp_path, "SessionStart")).action == "allow"
-    assert module.run(
-        event(tmp_path, "UserPromptSubmit", prompt="x" * 40)
-    ).action == "allow"
+    assert (
+        module.run(event(tmp_path, "UserPromptSubmit", prompt="x" * 40)).action
+        == "allow"
+    )
 
 
 def test_recall_vault_digest_never_rglobs_vault_markdown(tmp_path, monkeypatch):
@@ -899,9 +952,7 @@ def test_recall_vault_digest_never_rglobs_vault_markdown(tmp_path, monkeypatch):
 def test_recall_vault_digest_injects_from_sidecar_without_rglob(tmp_path, monkeypatch):
     vault = tmp_path / "vault"
     vault.mkdir()
-    (vault / "secret-from-rglob.md").write_text(
-        "# must not appear\n", encoding="utf-8"
-    )
+    (vault / "secret-from-rglob.md").write_text("# must not appear\n", encoding="utf-8")
     _recall_index(
         tmp_path,
         [
@@ -931,6 +982,67 @@ def test_recall_vault_digest_injects_from_sidecar_without_rglob(tmp_path, monkey
     assert result.reason_code == "bm_vault_digest"
     assert "from-digest" in result.additional_context[0]
     assert "secret-from-rglob" not in result.additional_context[0]
+
+
+def test_recall_digest_env_override_and_excluded_paths(tmp_path, monkeypatch):
+    # AGENT_HARNESS_RECALL_DIGEST relocates the sidecar; notes under excluded
+    # parts (.git, .hf, .models, compaction-checkpoints, node_modules) never
+    # reach the model even if the sidecar carries them.
+    sidecar = _recall_index(
+        tmp_path,
+        [
+            {"title": "keep-me", "path": "notes/keep-me.md", "mtime": 2.0},
+            {"title": "dump", "path": "compaction-checkpoints/dump.md", "mtime": 3.0},
+            {"title": "weights", "permalink": ".models/weights", "mtime": 4.0},
+            "not-a-dict",
+        ],
+        name="elsewhere-digest.json",
+    )
+    monkeypatch.setenv("AGENT_HARNESS_RECALL_DIGEST", str(sidecar))
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    result = module.run(event(tmp_path, "SessionStart"))
+    assert result.action == "inject"
+    body = result.additional_context[0]
+    assert "keep-me" in body
+    assert "dump" not in body and "weights" not in body
+
+
+def test_recall_digest_rejects_stale_oversized_or_keyword_bearing_documents(
+    tmp_path, monkeypatch
+):
+    # Stale sidecar (built_at beyond the age limit) -> silent.
+    stale = _recall_index(
+        tmp_path,
+        [{"title": "old", "path": "notes/old.md"}],
+        name="recall-digest.json",
+        built_at="2020-01-01T00:00:00+00:00",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+    # A keyword-bearing document is the FULL index, not a digest -> silent
+    # (SessionStart must never load the keyword index).
+    stale.unlink()
+    _recall_index(
+        tmp_path,
+        [{"title": "full", "path": "notes/full.md", "keywords": ["full"]}],
+        name="recall-digest.json",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
+    # Oversized sidecar -> silent, without reading it.
+    big = tmp_path / "recall-digest.json"
+    big.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "notes": [{"title": "x" * 300_000, "path": "notes/x.md"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    module = RecallModule(index_paths=[tmp_path / "missing.json"], state_root=tmp_path)
+    assert module.run(event(tmp_path, "SessionStart")).action == "allow"
 
 
 def test_anti_degen_warns_only_after_same_args_and_same_result_three_times(tmp_path):
@@ -2796,6 +2908,7 @@ def test_canonical_tree_relative_path_unclassifiable_without_base(
     monkeypatch.chdir(agents / "harness")
     assert _canonical_tree("modules.py") is None
     assert _canonical_tree("modules.py", str(agents / "harness")) == "harness"
+    assert _canonical_tree("", str(agents / "harness")) is None
 
 
 def test_canonical_edit_guard_has_contract():
@@ -2865,7 +2978,12 @@ def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypa
 def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
     iso, tmp_path, monkeypatch
 ):
-    """SOTA WRITE: any file mutation + no vault write -> Stop injects AND spools a note."""
+    """Live SOTA WRITE gate (ported 2026-09-02): ANY file mutation with no vault
+    write -> Stop injects AND spools a session note for the hook-owned flush.
+
+    This inverted the previous `silent_without_canonical_edit` expectation on
+    purpose: the capture discipline covers every edited file, not only the
+    canonical config trees (GATE_CONTRACTS["basic_memory_nudge"]["fire_rate"])."""
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
@@ -2877,6 +2995,10 @@ def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
     assert payload.get("flushed") is False
     assert payload.get("title")
     assert payload.get("body")
+    # The spool never carries the raw session id or an unredacted cwd verbatim
+    # beyond what redact_text allows, and it is idempotent per session.
+    ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1
 
 
 def test_basic_memory_nudge_silent_when_no_mutation_at_all(iso, tmp_path, monkeypatch):
@@ -2890,7 +3012,7 @@ def test_basic_memory_nudge_silent_when_no_mutation_at_all(iso, tmp_path, monkey
 def test_recall_session_start_retries_unflushed_spool(iso, tmp_path, monkeypatch):
     spool_dir = iso / "bm-spool"
     spool_dir.mkdir(parents=True)
-    marker_hash = __import__("hashlib").sha256(b"session-1").hexdigest()[:16]
+    marker_hash = hashlib.sha256(b"session-1").hexdigest()[:16]
     spool = spool_dir / f"{marker_hash}.json"
     spool.write_text(
         json.dumps(
@@ -2902,25 +3024,109 @@ def test_recall_session_start_retries_unflushed_spool(iso, tmp_path, monkeypatch
         ),
         encoding="utf-8",
     )
+    already = spool_dir / "already.json"
+    already.write_text(
+        json.dumps({"title": "done", "body": "done", "flushed": True}),
+        encoding="utf-8",
+    )
     calls: list[dict] = []
 
     def _fake_flush(payload):
         calls.append(payload)
         return True
 
-    monkeypatch.setattr(
-        "harness.modules._flush_spool_to_vault", _fake_flush, raising=False
-    )
+    monkeypatch.setattr("harness.modules._flush_spool_to_vault", _fake_flush)
     module = RecallModule(
         index_paths=[tmp_path / "missing.json"],
         state_root=tmp_path,
         vault_root=tmp_path / "empty-vault",
     )
-    (tmp_path / "empty-vault").mkdir()
     module.run(event(tmp_path, "SessionStart"))
-    assert calls and calls[0]["title"] == "pending capture"
+    # Only the unflushed spool is retried; the flushed one is left alone.
+    assert [c["title"] for c in calls] == ["pending capture"]
     updated = json.loads(spool.read_text(encoding="utf-8"))
     assert updated.get("flushed") is True
+
+
+def test_flush_spool_to_vault_is_inert_under_pytest_unless_opted_in(monkeypatch):
+    # The flush shells out to the basic-memory CLI. Under pytest it must be a
+    # no-op unless HARNESS_BM_FLUSH_IN_TEST=1, so no test can write into the
+    # live vault by accident.
+    monkeypatch.delenv("HARNESS_BM_FLUSH_IN_TEST", raising=False)
+    spawned: list[list[str]] = []
+    monkeypatch.setattr(
+        "subprocess.run", lambda *a, **k: spawned.append(list(a[0])) or None
+    )
+    assert _flush_spool_to_vault({"title": "t", "body": "b"}) is False
+    assert spawned == []
+
+
+def test_flush_spool_to_vault_runs_the_cli_and_reports_its_exit(tmp_path, monkeypatch):
+    # A real child process stands in for the basic-memory CLI: BASIC_MEMORY_CLI
+    # names a script that records its argv and exits with the code the test
+    # chooses, and the module's subprocess.run call is routed through
+    # sys.executable so the fixture works on every OS the harness deploys to.
+    monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
+    fake_cli = tmp_path / "fake-basic-memory.py"
+    fake_cli.write_text(
+        "import sys, json, pathlib\n"
+        "pathlib.Path(sys.argv[-2]).write_text(json.dumps(sys.argv[1:-2]))\n"
+        "sys.exit(int(sys.argv[-1]))\n",
+        encoding="utf-8",
+    )
+    real_run = subprocess.run
+    calls: list[list[str]] = []
+    exit_code = {"value": 0}
+
+    def _run(argv, **kwargs):
+        calls.append(list(argv))
+        relayed = [
+            sys.executable,
+            str(fake_cli),
+            *argv[1:],
+            str(tmp_path / "recorded.json"),
+            str(exit_code["value"]),
+        ]
+        return real_run(relayed, **kwargs)
+
+    monkeypatch.setattr("subprocess.run", _run)
+    monkeypatch.setenv("BASIC_MEMORY_CLI", str(fake_cli))
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is True
+    argv = calls[0]
+    assert argv[0] == str(fake_cli)
+    assert argv[1:3] == ["tool", "write-note"]
+    assert "--title" in argv and "--content" in argv
+    recorded = json.loads((tmp_path / "recorded.json").read_text(encoding="utf-8"))
+    assert "Session capture" in recorded and "why" in recorded
+    # A non-zero CLI exit is reported as "not flushed", never raised.
+    exit_code["value"] = 3
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is False
+
+
+def test_flush_spool_to_vault_refuses_secrets_empties_and_missing_cli(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
+    spawned: list[list[str]] = []
+    monkeypatch.setattr(
+        "subprocess.run", lambda *a, **k: spawned.append(list(a[0])) or None
+    )
+    # Empty title/body: nothing to write.
+    assert _flush_spool_to_vault({"title": "", "body": "x"}) is False
+    assert _flush_spool_to_vault({"title": "x", "body": ""}) is False
+    assert _flush_spool_to_vault("not-a-dict") is False
+    # A secret in either field must never reach the vault.
+    assert (
+        _flush_spool_to_vault(
+            {"title": "t", "body": "API_KEY=sk-proj-abcdefghijklmnopqrstuvwxyz1234"}
+        )
+        is False
+    )
+    # No resolvable CLI on PATH: fail-open False, no spawn.
+    monkeypatch.delenv("BASIC_MEMORY_CLI", raising=False)
+    monkeypatch.setattr("shutil.which", lambda _name: None)
+    assert _flush_spool_to_vault({"title": "t", "body": "b"}) is False
+    assert spawned == []
 
 
 def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch):
@@ -2987,7 +3193,7 @@ def _transcript(tmp_path: Path, body: str) -> Path:
     return target
 
 
-def test_sensitive_artifact_reports_a_credential_bearing_transcript(tmp_path):
+def test_sensitive_artifact_reports_a_credential_bearing_transcript(iso, tmp_path):
     target = _transcript(tmp_path, f'{{"role":"user","text":"my key is {FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
         event(tmp_path, "Stop", transcript_path=str(target))
@@ -3023,7 +3229,59 @@ def test_sensitive_artifact_ignores_a_reentrant_stop(tmp_path):
     assert result.action == "allow"
 
 
-def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):
+def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
+    # REGRESSION (2026-08-08). _candidate() routes Stop and SubagentStop down two separate
+    # branches, and only the Stop branch honoured stop_hook_active. The sibling above existed
+    # and passed the whole time, which is precisely how a two-branch router shipped with one
+    # working branch: the untested branch re-fired on every subagent stop attempt, so the
+    # subagent could never terminate. Measured cost before the fix: two trivial probes ("reply
+    # with one token, use no tools") burned 62,155 and 63,222 tokens with 0 tool uses.
+    #
+    # Same sensitive file and same flag as the Stop case, so a failure here can only be a
+    # re-entrancy failure, never a detection failure. The pair is the point -- assert both
+    # events, or the next refactor silently reopens the gap.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(
+            tmp_path,
+            "SubagentStop",
+            transcript_path=str(target),
+            stop_hook_active="true",
+        )
+    )
+    assert result.action == "allow"
+    assert not result.additional_context
+
+
+def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(iso, tmp_path):
+    # The negative control for the test above: without the re-entrancy flag SubagentStop must
+    # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
+    # while destroying the detection it exists for -- silent in both states measures nothing.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "SubagentStop", transcript_path=str(target))
+    )
+    assert result.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
+
+
+def test_sensitive_artifact_notice_never_demands_a_forbidden_action(iso, tmp_path):
+    # The other half of the 2026-08-08 deadlock. The injected text used to end "Review the local
+    # file and rotate any live credential." AGENTS.md Sec.9 forbids an agent rotating any
+    # credential, so the only satisfying action was the one action the reader must refuse --
+    # leaving no compliant response and stalling a policy-abiding agent even on a single firing.
+    # An advisory must always leave a LEGAL next move.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+    joined = " ".join(result.additional_context)
+    assert "rotate any live credential" not in joined
+    assert "NOTICE, NOT A TASK" in joined
+    assert "no agent action clears this notice" in joined
+
+
+def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(iso, tmp_path):
     # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
     missing = tmp_path / "does-not-exist.jsonl"
     result = SensitiveArtifactModule().run(
@@ -3054,3 +3312,80 @@ def test_sensitive_artifact_never_raises_on_a_malformed_event(tmp_path):
         event(tmp_path, "Stop", transcript_path="\x00bad")
     )
     assert result.action in {"allow", "inject"}
+
+
+def test_sensitive_artifact_stop_notice_is_once_per_transcript(iso, tmp_path):
+    # Grok Stop inject is re-fed as "Stop hook feedback, continuing" WITHOUT
+    # stop_hook_active. Without a path_id cooldown the same transcript nags
+    # every turn (measured 2026-09-02: sha256:7decdf79faac loop).
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    second = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    assert first.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(first.additional_context)
+    assert second.action == "allow"
+    assert not second.additional_context
+
+
+def test_sensitive_artifact_unidentified_session_still_cools_down(iso, tmp_path):
+    # _session_flag fail-opens on session_id=unknown; the path_id marker must
+    # still suppress the Grok loop.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    second = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    assert first.action == "inject"
+    assert second.action == "allow"
+    assert not second.additional_context
+
+
+def test_sensitive_artifact_distinct_transcript_still_reports(iso, tmp_path):
+    first_path = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    other = tmp_path / "other.jsonl"
+    other.write_text(f'{{"text":"{FAKE_KEY}"}}\n', encoding="utf-8")
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(first_path), provider="grok")
+    )
+    other_hit = module.run(
+        event(tmp_path, "Stop", transcript_path=str(other), provider="grok")
+    )
+    assert first.action == "inject"
+    assert other_hit.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(other_hit.additional_context)
+
+
+def test_sensitive_artifact_codex_stop_still_repeats_without_reentrancy_flag(
+    iso, tmp_path
+):
+    # The durable cooldown is a Grok host workaround. Claude/Codex already have
+    # stop_hook_active; a second *real* Stop on the same transcript must still
+    # report, or we would silently change their Stop contract.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    second = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert first.action == "inject"
+    assert second.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(second.additional_context)

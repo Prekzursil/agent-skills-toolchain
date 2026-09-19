@@ -87,7 +87,7 @@ def test_is_session_not_found() -> None:
 
 def test_call_retries_after_session_not_found() -> None:
     bm = load_bm()
-    session = bm.BmHttpSession(url="http://127.0.0.1:8765/mcp")
+    session = bm.BmHttpSession(url="http://127.0.0.1:18765/mcp")
     gone = {
         "jsonrpc": "2.0",
         "id": 2,
@@ -132,7 +132,7 @@ def test_call_retries_after_session_not_found() -> None:
 
 def test_explicit_initialize_preserves_requested_protocol_without_notifying() -> None:
     bm = load_bm()
-    session = bm.BmHttpSession(url="http://127.0.0.1:8765/mcp")
+    session = bm.BmHttpSession(url="http://127.0.0.1:18765/mcp")
     payloads: list[dict[str, Any]] = []
     init_ok = {
         "jsonrpc": "2.0",

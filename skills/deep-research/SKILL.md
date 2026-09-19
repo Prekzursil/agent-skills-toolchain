@@ -53,7 +53,13 @@ live (see Preflight):
 - **exa** (plugin `mcp__plugin_exa_exa__*`) — `web_search_exa`, `web_fetch_exa` (neural/semantic)
 - **tavily** — `tavily_search`, `tavily_extract` (web/news fallback)
 - **perplexity** (cookie/session-auth web MCP, `jacob-bd/perplexity-web-mcp`) — `pplx_smart_query`, `pplx_ask`, `pplx_deep_research`, `pplx_council` (synthesized **cited** answers via the user's Pro/Max plan; drives the `synthesis` capability + high-priority web corroboration). Uses the `__Secure-next-auth.session-token` cookie supplied to the server as `PERPLEXITY_SESSION_TOKEN` — no paid API key. Gray-area/ToS-adjacent (like the IG/FB cookie MCPs); session can rate-limit/expire (~30d) and preflight routes around it when down.
-- **scholarly-access** — `paper_resolve`, `paper_fetch_metadata`, `paper_summarize` (OA academic)
+- **scholarly-access** — `paper_resolve`, `paper_fetch_metadata`, `paper_summarize`, `find_oa_pdf` (full-allow doctrine 2026-09-21: legitimate OA sources — Crossref/OpenAlex/Unpaywall/Europe PMC/arXiv/Semantic Scholar/CORE/DOAJ/PubMed/Zenodo — PLUS gray-area fallbacks offered as labeled candidates)
+- <!-- gray-area paper-finder class — ACTIVE (full-allow expansion 2026-09-21):
+     sci-hub       → ACTIVE: dedicated `sci-hub` MCP (sci-mcp-server, mirror sci-hub.se), restored per Amendment 2026-09-21
+     libgen        → ACTIVE: live source inside scholarly-access (libgen_by_doi/libgen_search, mirror-rotated; SCHOLARLY_LIBGEN=0 disables); no standalone package exists
+     annas-archive → ACTIVE: npm annas-archive-mcp, WIRED in SSOT
+     z-lib / booksc / b-ok / scidownl → covered class-wide by the scholarly-access full-allow doctrine (no policy gate remains)
+     scholarly-access policy.py: denylist REMOVED COMPLETELY; gray-area candidates offered as labeled fallbacks (gray_area_allowed) -->
 - **tooluniverse** — `find_tools`, `execute_tool` (bio/pharma, 1264-tool library)
 - **huggingface** — `paper_search` (ML/arXiv papers)
 - **context7** — `resolve-library-id`, `query-docs` (library/API docs)
@@ -61,8 +67,10 @@ live (see Preflight):
 - **cve-mcp** (key-free local MCP, NVD/CIRCL/OSV/CISA-KEV/ExploitDB) — `cve_lookup`, `cve_search`, `cve_kev_list` (the `vuln` capability for CVE/exploit/CVSS/KEV questions)
 
 Parked (`~/.mcp.disabled.json`): `scrapegraph`, `apify` — the harness routes
-around them. Never call `mcp__sci-hub__*`; avoid `paper_find_oa_pdf` per the
-standing regression note. Both are hard-excluded by the router. No dark-web /
+around them. ~~Never call `mcp__sci-hub__*`; avoid `paper_find_oa_pdf`~~ —
+SUPERSEDED by Operator Amendment 2026-09-21 21:43 (HOME AGENTS.md): sci-hub
+and paper-search (incl. `paper_find_oa_pdf`) are allowed research tools;
+router hard-exclusions for them are lifted. No dark-web /
 onion provider is routed to; any `.onion` source that reaches grading is
 force-flagged UNVERIFIED regardless of corroboration.
 

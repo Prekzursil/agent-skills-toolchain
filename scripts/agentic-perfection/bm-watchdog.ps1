@@ -1,4 +1,4 @@
-# Keep-alive watchdog for the shared basic-memory MCP daemon (127.0.0.1:8765).
+# Keep-alive watchdog for the shared basic-memory MCP daemon (127.0.0.1:18765).
 #
 # WHY: the BasicMemory-HTTP-MCP logon task launches the daemon ONCE; if the daemon
 # later dies (observed: clean termination with no crash event, sometimes under tight
@@ -10,7 +10,7 @@
 #
 # DOCTRINE (mirrors mcp-drift-audit.ps1): LOG + restart only. It never kills a healthy
 # server (it acts solely when the port is already down) and is fully fail-open.
-$Port = 8765
+$Port = 18765
 $Task = 'BasicMemory-HTTP-MCP'
 $Log  = 'C:\Users\Prekzursil\.basic-memory\logs\bm-watchdog.log'
 try {
@@ -38,7 +38,7 @@ try {
         ForEach-Object { taskkill /PID $_.ProcessId /F /T 2>&1 | Out-Null }
     Get-Process basic-memory -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like '*basic-memory*8765*' } |
+        Where-Object { $_.CommandLine -like '*basic-memory*18765*' } |
         ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force } catch {} }
     # 2. End the (possibly stuck-'Running') task + clear a stale start-lock so the relaunch is NOT
     #    refused with 0x800710E0 ('operator refused' = can't Start while IgnoreNew still sees it Running).

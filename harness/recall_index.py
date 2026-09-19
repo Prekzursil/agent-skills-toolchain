@@ -268,7 +268,9 @@ _HEADER_SCHEMA_RE = re.compile(r'"schema_version"\s*:\s*(\d+)')
 def _digest_path_excluded(value: str) -> bool:
     if not value:
         return False
-    return any(part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/"))
+    return any(
+        part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/")
+    )
 
 
 def _slim_note(note: dict[str, Any]) -> dict[str, Any] | None:
@@ -287,7 +289,9 @@ def _slim_note(note: dict[str, Any]) -> dict[str, Any] | None:
     except (TypeError, ValueError):
         importance = 0.0
     return {
-        "title": redact_text(str(note.get("title") or "Untitled"), redact_paths=True, max_chars=180),
+        "title": redact_text(
+            str(note.get("title") or "Untitled"), redact_paths=True, max_chars=180
+        ),
         "path": redact_text(path, redact_paths=True, max_chars=300),
         "permalink": redact_text(permalink, redact_paths=True, max_chars=240),
         "mtime": mtime,
@@ -437,6 +441,16 @@ def build_index(vault: Path | str, target: Path | str) -> int:
     now = time.time()
     if not vault_path.exists():
         raise FileNotFoundError(vault_path)
+    # An index target inside the scanned vault ALIASES a source note: the writer
+    # below replaces that pathname outright, so the note's Markdown bytes are lost
+    # while the caller still gets a success return (and the CLI still prints
+    # SUCCESS). Reject it before anything is read or written. `parent.resolve() /
+    # name` is compared because that is the exact directory entry os.replace acts
+    # on - a symlinked FINAL component is replaced in place, not followed.
+    write_target = target_path.expanduser()
+    write_target = write_target.parent.resolve() / write_target.name
+    if write_target.is_relative_to(vault_path):
+        raise ValueError(f"refusing to write the index inside the vault: {target}")
 
     for path in sorted(vault_path.rglob("*.md")):
         try:

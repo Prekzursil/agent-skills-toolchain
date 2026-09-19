@@ -468,7 +468,7 @@ def cursor_registry_fixture() -> dict[str, Any]:
             "enabled": True,
             "targets": ["claude"],
             "transport": "http",
-            "url": "http://127.0.0.1:8812/mcp/",
+            "url": "http://127.0.0.1:18812/mcp/",
         },
         "docker": stdio_server("claude", command="uvx", args=["docker-mcp"]),
         "markitdown": stdio_server("claude", command="markitdown-mcp.exe"),
@@ -700,18 +700,25 @@ def test_cursor_approval_gate_accepts_owner_requested_default_adapter(
 
 
 def test_cursor_basic_memory_uses_session_proxy_not_raw_url() -> None:
+    # Reunited contract (2026-09-02): the bridge is DECLARED in the registry
+    # (``x_cursor.stdio_bridge`` on the basic-memory entry) and rendered from
+    # there, instead of being a name-based special case inside the merge script.
     cursor = load_script("merge_generated_cursor_mcp")
-    entry = cursor.build_cursor_server(
-        "basic-memory",
-        {
-            "transport": "http",
-            "url": "http://127.0.0.1:8765/mcp",
-        },
-    )
+    registry = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
+    declared = registry["mcp"]["servers"]["basic-memory"]
+    assert declared["transport"] == "http"
+    assert declared["url"] == "http://127.0.0.1:18765/mcp"
+    assert "stdio_bridge" in declared.get("x_cursor", {})
+    entry = cursor.build_cursor_server("basic-memory", declared)
     assert "url" not in entry
-    assert entry["command"] == str(cursor.CURSOR_BM_PYTHON)
-    assert entry["args"] == [str(cursor.CURSOR_BM_SESSION_PROXY), "--stdio"]
-    assert cursor.CURSOR_BM_SESSION_PROXY.is_file()
+    bridge = declared["x_cursor"]["stdio_bridge"]
+    assert entry["command"] == bridge["command"]
+    # The renderer appends the registry URL so the bridge dials the declared
+    # daemon address rather than a constant baked into the script.
+    assert entry["args"][: len(bridge["args"])] == bridge["args"]
+    assert entry["args"][len(bridge["args"]) :] == ["--url", declared["url"]]
+    assert "--stdio" in entry["args"]
+    assert pathlib.Path(bridge["args"][0]).is_file()
 
 
 def test_cursor_default_dry_run_projects_core_plus_owner_adapters(

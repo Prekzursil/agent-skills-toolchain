@@ -34,32 +34,6 @@
       "duplicatePolicy": "report-unless-exact-process-tree"
     },
     "servers": {
-      "apify": {
-        "label": "apify",
-        "description": "Imported from .codex/config.toml (apify)",
-        "targets": [
-          "codex",
-          "claude"
-        ],
-        "enabled": true,
-        "transport": "http",
-        "url": "https://mcp.apify.com/",
-        "requiredEnv": [
-          "APIFY_TOKEN"
-        ],
-        "x_codex": {
-          "bearer_token_env_var": "APIFY_TOKEN"
-        },
-        "credentialNames": [
-          "APIFY_TOKEN"
-        ],
-        "tags": [
-          "approved",
-          "http",
-          "remote",
-          "shared"
-        ]
-      },
       "binary-ninja-mcp": {
         "label": "binary-ninja-mcp",
         "description": "Imported from .codex/config.toml (binary-ninja-mcp)",
@@ -275,7 +249,9 @@
         "label": "context7",
         "description": "Official Context7 remote HTTP MCP (avoids per-session npx process trees)",
         "targets": [
-          "claude"
+          "claude",
+          "hermes",
+          "gemini"
         ],
         "enabled": true,
         "transport": "http",
@@ -416,32 +392,22 @@
       },
       "firecrawl": {
         "label": "firecrawl",
-        "description": "Official Firecrawl hosted HTTP MCP (avoids per-session npx process trees)",
+        "description": "Local firecrawl: mcp-proxy :31114 -> firecrawl-mcp-launch -> self-host docker stack (:3002, no credits). Hosted lane auto-restores after 09-16 by clearing FIRECRAWL_API_URL.",
         "targets": [
-          "claude"
+          "claude",
+          "hermes"
         ],
         "enabled": true,
         "transport": "http",
-        "url": "https://mcp.firecrawl.dev/v2/mcp",
-        "headers": {
-          "Authorization": "Bearer ${FIRECRAWL_API_KEY}"
-        },
-        "requiredEnv": [
-          "FIRECRAWL_API_KEY"
-        ],
-        "x_codex": {
-          "bearer_token_env_var": "FIRECRAWL_API_KEY"
-        },
-        "credentialNames": [
-          "FIRECRAWL_API_KEY"
-        ],
+        "url": "http://127.0.0.1:31114/mcp",
         "tags": [
           "approved",
           "claude-only",
           "remote",
           "http",
           "remote-required"
-        ]
+        ],
+        "credentialNames": []
       },
       "frida-mcp": {
         "transport": "stdio",
@@ -486,7 +452,8 @@
         "description": "Imported from .codex/config.toml (github)",
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode"
         ],
         "enabled": true,
         "transport": "http",
@@ -505,13 +472,17 @@
           "http",
           "remote",
           "shared"
-        ]
+        ],
+        "x_zcode": {
+          "enabled": false
+        }
       },
       "github_cli": {
         "label": "github_cli",
         "description": "Imported from .codex/config.toml (github_cli)",
         "targets": [
-          "claude"
+          "claude",
+          "gemini"
         ],
         "enabled": true,
         "transport": "stdio",
@@ -569,7 +540,8 @@
         "label": "huggingface",
         "description": "Hugging Face Hub MCP — models, datasets, spaces, papers, Hub ops. Control plane for HF as an environment. Inference runtimes (Space Gradio, Space OpenAI /v1, Endpoints) are separate; skill hosted-model-agents. Do not register a raw inference URL as a second Hub MCP.",
         "targets": [
-          "claude"
+          "claude",
+          "gemini"
         ],
         "enabled": true,
         "transport": "http",
@@ -592,11 +564,11 @@
       },
       "glm53-space": {
         "label": "glm53-space",
-        "description": "On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
+        "description": "DEPRECATED (owner, 2026-09-02): to be replaced by a registry-driven model integration layer (models SSOT + per-runtime materializers + one generic inference MCP tool + eval gate); build wave pending owner steering of D1-D13. On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
         "targets": [
           "claude"
         ],
-        "enabled": true,
+        "enabled": false,
         "transport": "stdio",
         "command": "C:\\Users\\Prekzursil\\.local\\bin\\uv.exe",
         "args": [
@@ -648,7 +620,8 @@
         "label": "linear",
         "description": "Imported from .codex/config.toml (linear)",
         "targets": [
-          "claude"
+          "claude",
+          "gemini"
         ],
         "enabled": true,
         "transport": "http",
@@ -752,11 +725,13 @@
         "description": "Shared semantic memory over the local Basic Memory HTTP MCP server",
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode",
+          "hermes"
         ],
         "enabled": true,
         "transport": "http",
-        "url": "http://127.0.0.1:8765/mcp",
+        "url": "http://127.0.0.1:18765/mcp",
         "singletonKey": "basic-memory/http",
         "processMatch": [
           "basic_memory",
@@ -774,13 +749,23 @@
           "local",
           "resource-exception",
           "shared"
-        ]
+        ],
+        "x_cursor": {
+          "stdio_bridge": {
+            "command": "C:\\Python314\\python.exe",
+            "args": [
+              "C:\\Users\\Prekzursil\\.agents\\scripts\\bm_cursor_http_session.py",
+              "--stdio"
+            ]
+          }
+        }
       },
       "notion": {
         "label": "notion",
         "description": "Imported from .codex/config.toml (notion)",
         "targets": [
-          "claude"
+          "claude",
+          "gemini"
         ],
         "enabled": true,
         "transport": "http",
@@ -1171,10 +1156,12 @@
         "enabled": true,
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode",
+          "hermes"
         ],
         "description": "Shared local MCP Agent Mail coordination bus for Claude and Codex sessions",
-        "url": "http://127.0.0.1:8812/mcp/",
+        "url": "http://127.0.0.1:18812/mcp/",
         "singletonKey": "agent-mail/http",
         "processMatch": [
           "mcp_agent_mail",
@@ -1189,6 +1176,1186 @@
           "http",
           "local",
           "shared"
+        ]
+      },
+      "nuclei": {
+        "label": "nuclei",
+        "description": "ProjectDiscovery Nuclei vulnerability scanner MCP (FastMCP wrapper) - scan, template listing, status. Engine v3.11.1, 13514 templates at ~/nuclei-templates. TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31117 instead of this stdio entry. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31117 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31117/mcp"
+      },
+      "osint": {
+        "label": "osint",
+        "description": "OSINT MCP - DNS, WHOIS, Shodan, Censys, VirusTotal, crt.sh, BGP (37 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31112. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31112 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31112/mcp"
+      },
+      "github-security": {
+        "label": "github-security",
+        "description": "GitHub security audit MCP - org/repo settings, branch protection, secret scanning, workflows, PAT audit (39 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31110. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31110 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31110/mcp"
+      },
+      "cloud-audit": {
+        "label": "cloud-audit",
+        "description": "Cloud posture audit MCP - AWS S3/IAM/EC2/Lambda, Azure, GCP checks (38 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31118. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31118 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31118/mcp"
+      },
+      "cve-mcp": {
+        "label": "cve-mcp",
+        "description": "CVE enrichment MCP - NVD, EPSS, KEV, GHSA, Vulners, exploit-db (41 tools). Formalizes the pre-existing unmanaged .claude.json entry. TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31111. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31111 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31111/mcp"
+      },
+      "mitmproxy": {
+        "label": "mitmproxy",
+        "description": "mitmproxy MCP - HTTP/HTTPS traffic interception and flow inspection. TUI sessions use the D:\\opt\\cyberstrike-mcp hub pattern; this stdio entry serves Claude Code sessions.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\mitmproxy-mcp\\.venv\\Scripts\\mitmproxy-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ]
+      },
+      "dbx-ai": {
+        "label": "dbx-ai",
+        "description": "Databricks AI model bridge (SQL-plane ai_query) - census-proven endpoints (databricks-gpt-5, claude-sonnet-4, claude-haiku-4-5, llama-3-3/3-1-70b) exposed as dbx_ai_query + dbx_ai_models catalog tools. REST AI planes scope-gated 403 for both estate PATs; SQL is the only reachable surface. Lane dbx-ai-wire (E1, 2026-09-07).",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "D:\\opt\\cyberstrike-mcp\\dbx-ai-mcp-server.py"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "databricks",
+          "ai",
+          "bridge",
+          "security-fleet"
+        ]
+      },
+      "angr": {
+        "label": "angr",
+        "description": "angr binary analysis MCP - symbolic execution, CFG recovery. Formalizes the pre-existing unmanaged .claude.json entry.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\angr\\.venv\\Scripts\\angr-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ]
+      },
+      "exa": {
+        "label": "exa",
+        "description": "Exa web search / fetch MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://mcp.exa.ai/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "deepwiki": {
+        "label": "deepwiki",
+        "description": "DeepWiki repository Q&A and docs MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://mcp.deepwiki.com/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "openaiDeveloperDocs": {
+        "label": "openaiDeveloperDocs",
+        "description": "OpenAI developer docs search/fetch MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://developers.openai.com/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "scholarly-access": {
+        "label": "scholarly-access",
+        "description": "Estate scholarly resolver (agent-skills-toolchain): paper_resolve/paper_fetch_metadata/paper_summarize/find_oa_pdf with legitimate-OA + gray-area fallback (LibGen source) per Amendment 2026-09-21. Previously hub-only wiring — now direct stdio.",
+        "targets": [
+          "claude",
+          "zcode"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\scholarly-access-mcp\\.venv\\Scripts\\scholarly-access-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "biomni-hub": {
+        "label": "biomni-hub",
+        "description": "Biomni task hub MCP client (local server.py talking to the online backend via broker).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\.venv\\Scripts\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\server.py"
+        ],
+        "env": {
+          "BIOMNI_API_BASE": "http://127.0.0.1:18787",
+          "BIOMNI_BACKEND": "online"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "kaggle": {
+        "label": "kaggle",
+        "description": "Kaggle MCP via stdio wrapper (owner-disabled in ZCode).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": false,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\.codex\\mcp-wrappers\\kaggle_mcp_stdio.py",
+          "--transport",
+          "stdio"
+        ],
+        "env": {
+          "PYTHONUNBUFFERED": "1",
+          "PYTHONUTF8": "1"
+        },
+        "requiredEnv": [
+          "KAGGLE_API_TOKEN"
+        ],
+        "credentialNames": [
+          "KAGGLE_API_TOKEN"
+        ],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "disabled"
+        ]
+      },
+      "burp": {
+        "label": "burp",
+        "description": "Burp Suite MCP proxy via SSE bridge (owner-disabled in ZCode).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": false,
+        "transport": "stdio",
+        "command": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.exe",
+        "args": [
+          "-jar",
+          "C:\\Users\\Prekzursil\\AppData\\Roaming\\BurpSuite\\mcp-proxy\\mcp-proxy-all.jar",
+          "--sse-url",
+          "http://127.0.0.1:9876"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "disabled"
+        ]
+      },
+      "web-search-prime": {
+        "label": "web-search-prime",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Web Search MCP (GLM Coding Plan): webSearchPrime - titles, URLs, summaries, real-time info.",
+        "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "web-reader": {
+        "label": "web-reader",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Web Reader MCP (GLM Coding Plan): webReader - full-page extraction, structured metadata, link lists.",
+        "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "zread": {
+        "label": "zread",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Zread MCP (GLM Coding Plan, powered by zread.ai): search_doc / get_repo_structure / read_file over GitHub repos.",
+        "url": "https://api.z.ai/api/mcp/zread/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "bedrock-claude": {
+        "label": "bedrock-claude",
+        "description": "Amazon Bedrock Claude as MCP chat tools (claude_chat/claude_haiku/bedrock_models) via the operator's AWS SSO chain; per-token billed. Zero-cost alternative: claude -p on Claude Max.",
+        "targets": [
+          "zcode",
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\bedrock-claude-mcp\\server.py"
+        ],
+        "env": {
+          "AWS_PROFILE": "bolt-datascience",
+          "AWS_REGION": "eu-central-1"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "bedrock",
+          "claude",
+          "shared"
+        ]
+      },
+      "github-security-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31110/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for github-security (mcp-proxy on 127.0.0.1:31110, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "github-security-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "github-security-hub/http"
+      },
+      "cve-mcp-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31111/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for cve-mcp (mcp-proxy on 127.0.0.1:31111, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "cve-mcp-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "cve-mcp-hub/http"
+      },
+      "osint-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31112/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for osint (mcp-proxy on 127.0.0.1:31112, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "osint-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "osint-hub/http"
+      },
+      "hexstrike-ai-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31113/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for hexstrike-ai (mcp-proxy on 127.0.0.1:31113, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "hexstrike-ai-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "hexstrike-ai-hub/http"
+      },
+      "nuclei-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31117/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for nuclei (mcp-proxy on 127.0.0.1:31117, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "nuclei-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "nuclei-hub/http"
+      },
+      "cloud-audit-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31118/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for cloud-audit (mcp-proxy on 127.0.0.1:31118, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "cloud-audit-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "cloud-audit-hub/http"
+      },
+      "semgrep-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31119/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for semgrep (mcp-proxy on 127.0.0.1:31119, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "semgrep-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "semgrep-hub/http"
+      },
+      "cursor-bridge": {
+        "label": "cursor-bridge",
+        "description": "Claude/Codex/Cursor direct bridge to cursor-agent: dispatch (G-36/67/68 enforced), sessions incl. cloud-cache, worktrees, models, queue+drain",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "D:\\opt\\cursor-bridge\\cursor_bridge_mcp.py"
+        ],
+        "credentialNames": [],
+        "requiredEnv": [],
+        "tags": [
+          "bridge",
+          "cursor",
+          "orchestration"
+        ]
+      },
+      "arxiv": {
+        "label": "arxiv",
+        "description": "arXiv scholarly paper search/download/read (BLamy arxiv-mcp-server, uvx stdio). Legitimate API only. Estate note 2026-09-18: approved scholarly-search capability. Estate note 2026-09-21: Sci-Hub/libgen quarantine LIFTED by Operator Amendment 2026-09-21 21:43 - see sci-hub entry.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "uvx",
+        "args": [
+          "arxiv-mcp-server"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "sci-hub": {
+        "label": "sci-hub",
+        "description": "Sci-Hub paper retrieval (sci-mcp-server, npx stdio, mirror sci-hub.se). RESTORED per Operator Amendment 2026-09-21 21:43: allowed for internal research assistance; legal responsibility remains with the operator. Supersedes the scihub quarantine (config.toml.bak-scihub-quarantine lineage). No searches executed at wiring time.",
+        "targets": [
+          "claude",
+          "codex"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "sci-mcp-server"
+        ],
+        "env": {
+          "SCIHUB_MIRROR": "https://sci-hub.se"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "paper-search": {
+        "label": "paper-search",
+        "description": "Scholarly multi-source paper search incl. paper_find_oa_pdf OA locator (paper-search-mcp, local venv exe at D:/ReverseTools/mcp/paper-search-mcp). RESTORED per Operator Amendment 2026-09-21 21:43 (ban lift covers previously-quarantined scholarly tools): per-project disabledMcpServers clears superseded; paper_find_oa_pdf restriction lifted.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "libgen": {
+        "label": "libgen",
+        "description": "LibGen gray-area finder — ACTIVE coverage via the scholarly-access MCP libgen source (libgen_by_doi/libgen_search, mirror-rotated, env SCHOLARLY_LIBGEN=0 disables). No standalone registry package exists on npm/PyPI (verified 2026-09-21); this placeholder flips on if one appears.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": false,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "libgen-mcp"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "reference",
+          "disabled",
+          "research-fleet",
+          "gray-area"
+        ]
+      },
+      "annas-archive": {
+        "label": "annas-archive",
+        "description": "Anna's Archive gray-area paper finder (npm annas-archive-mcp). Estate-allowed per Operator Amendment 2026-09-21. Legal responsibility with operator.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "annas-archive-mcp"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet",
+          "gray-area"
+        ]
+      },
+      "pubmed": {
+        "label": "pubmed",
+        "description": "PubMed biomedical literature search (npm pubmed-mcp). Pharmacology-relevant legitimate source.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "pubmed-mcp"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "openalex": {
+        "label": "openalex",
+        "description": "OpenAlex scholarly metadata search (npm openalex-mcp by reetp1, v0.1.8) - fully open catalog of 240M+ scholarly works. Legitimate OA metadata source.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "openalex-mcp"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "openalex-alt": {
+        "label": "openalex-alt",
+        "description": "OpenAlex scholarly articles and research data access (npm mcp-openalex by jmearman, v1.0.1). Alternate OpenAlex implementation; legitimate OA metadata source.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-openalex"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "crossref": {
+        "label": "crossref",
+        "description": "Crossref REST API scholarly metadata wrapper (PyPI crossref-mcp v0.1.0, uvx stdio). Legitimate DOI/metadata source. Launch-validated 2026-09-21: requires mcp<2 pin (mcp 2.x renamed FastMCP).",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "uvx",
+        "args": [
+          "--with",
+          "mcp<2",
+          "crossref-mcp"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "pubmed-tool": {
+        "label": "pubmed-tool",
+        "description": "PubMed literature retrieval MCP (PyPI pubmed-mcp-tool v0.1.0, uvx stdio). Secondary PubMed implementation alongside npm pubmed-mcp. Launch-validated 2026-09-21: package ships bare main.py, no console script; invoke python -m main.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "uvx",
+        "args": [
+          "--from",
+          "pubmed-mcp-tool",
+          "python",
+          "-m",
+          "main"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "research-fleet"
+        ]
+      },
+      "video-agent-kit": {
+        "label": "video-agent-kit",
+        "description": "Local copy of ZCode official video-agent-kit video-edit MCP (stdio), patched with an OFFLINE faster-whisper ASR channel (provider=local; model large-v3-turbo, CUDA). Online Seed-ASR channel works under ZCode (_meta Coding-Plan auth) or via the ~/.agents/speech-relay queue brokered by the ZCode automation. Stable path — survives ZCode plugin cache version bumps. Not redistributed (gitignored).",
+        "targets": [
+          "claude",
+          "codex",
+          "zcode"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "python",
+        "args": [
+          "C:\\Users\\Prekzursil\\.agents\\mcp-servers\\video-agent-kit\\mcp\\video_edit_server.py"
+        ],
+        "env": {
+          "VE_PLUGIN_ROOT": "C:\\Users\\Prekzursil\\.agents\\mcp-servers\\video-agent-kit"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "local",
+          "stdio",
+          "video",
+          "opusclip-shorts-skill"
+        ]
+      },
+      "cloud-hub": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\cloud-hub\\hub.py"
+        ],
+        "env": {
+          "RUNPOD_API_KEY": "${RUNPOD_API_KEY}",
+          "KAGGLE_USERNAME": "${KAGGLE_USERNAME}",
+          "KAGGLE_KEY": "${KAGGLE_KEY}",
+          "GOOGLE_CLOUD_PROJECT": "${GOOGLE_CLOUD_PROJECT}",
+          "MODAL_TOKEN_ID": "${MODAL_TOKEN_ID}",
+          "MODAL_TOKEN_SECRET": "${MODAL_TOKEN_SECRET}",
+          "LIGHTNING_USER_ID": "${LIGHTNING_USER_ID}",
+          "LIGHTNING_API_KEY": "${LIGHTNING_API_KEY}",
+          "AWS_PROFILE": "${AWS_PROFILE}",
+          "AWS_REGION": "${AWS_REGION}"
+        },
+        "type": "stdio",
+        "description": "toolchain hub build; registered 2026-09-19 D4 from live ~/.mcp.json entry",
+        "transport": "stdio",
+        "requiredEnv": [
+          "AWS_PROFILE",
+          "AWS_REGION",
+          "GOOGLE_CLOUD_PROJECT",
+          "KAGGLE_KEY",
+          "KAGGLE_USERNAME",
+          "LIGHTNING_API_KEY",
+          "LIGHTNING_USER_ID",
+          "MODAL_TOKEN_ID",
+          "MODAL_TOKEN_SECRET",
+          "RUNPOD_API_KEY"
+        ],
+        "credentialNames": [
+          "LIGHTNING_API_KEY",
+          "MODAL_TOKEN_ID",
+          "MODAL_TOKEN_SECRET",
+          "RUNPOD_API_KEY"
+        ],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "search-hub": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\search-hub\\hub.py"
+        ],
+        "env": {
+          "EXA_API_KEY": "${EXA_API_KEY}",
+          "EXA_API_KEY_2": "${EXA_API_KEY_2}",
+          "TAVILY_API_KEY": "${TAVILY_API_KEY}",
+          "TAVILY_API_KEY_2": "${TAVILY_API_KEY_2}",
+          "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}",
+          "FIRECRAWL_API_KEY_2": "${FIRECRAWL_API_KEY_2}"
+        },
+        "type": "stdio",
+        "description": "toolchain hub build; registered 2026-09-19 D4 from live ~/.mcp.json entry",
+        "transport": "stdio",
+        "requiredEnv": [
+          "EXA_API_KEY",
+          "EXA_API_KEY_2",
+          "FIRECRAWL_API_KEY",
+          "FIRECRAWL_API_KEY_2",
+          "TAVILY_API_KEY",
+          "TAVILY_API_KEY_2"
+        ],
+        "credentialNames": [
+          "EXA_API_KEY",
+          "EXA_API_KEY_2",
+          "FIRECRAWL_API_KEY",
+          "FIRECRAWL_API_KEY_2",
+          "TAVILY_API_KEY",
+          "TAVILY_API_KEY_2"
+        ],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "social-hub": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\social-hub\\hub.py"
+        ],
+        "env": {
+          "FB_PAGE_ACCESS_TOKEN": "${FB_PAGE_ACCESS_TOKEN}",
+          "FB_PAGE_ID": "${FB_PAGE_ID}",
+          "FB_IG_USER_ID": "${FB_IG_USER_ID}",
+          "FB_GRAPH_VERSION": "${FB_GRAPH_VERSION}",
+          "FB_E2EE_ENABLED": "${FB_E2EE_ENABLED}"
+        },
+        "type": "stdio",
+        "description": "toolchain hub build; registered 2026-09-19 D4 from live ~/.mcp.json entry",
+        "transport": "stdio",
+        "requiredEnv": [
+          "FB_E2EE_ENABLED",
+          "FB_GRAPH_VERSION",
+          "FB_IG_USER_ID",
+          "FB_PAGE_ACCESS_TOKEN",
+          "FB_PAGE_ID"
+        ],
+        "credentialNames": [
+          "FB_PAGE_ACCESS_TOKEN"
+        ],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "mcphub": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "url": "http://127.0.0.1:24680/mcp",
+        "type": "sse",
+        "description": "MCP multiplexer :24680 route /mcp (audit D4)",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "tooluniverse": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "uvx",
+        "args": [
+          "tooluniverse==1.2.4"
+        ],
+        "description": "research-load-bearing uvx; registered 2026-09-19 (one curation sweep from silent loss)",
+        "transport": "stdio",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "brightdata": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "url": "https://mcp.brightdata.com/mcp?token=${BRIGHTDATA_TOKEN}",
+        "type": "http",
+        "description": "env-indirected credentials; registered 2026-09-19",
+        "transport": "http",
+        "requiredEnv": [
+          "BRIGHTDATA_TOKEN"
+        ],
+        "credentialNames": [
+          "BRIGHTDATA_TOKEN"
+        ],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "figma": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "url": "https://mcp.figma.com/mcp",
+        "type": "http",
+        "description": "claude-only pair registered 2026-09-19; gemini targeting deferred to owner (B3)",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "figma-rest": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "cmd",
+        "args": [
+          "/c",
+          "npx",
+          "-y",
+          "figma-developer-mcp",
+          "--stdio"
+        ],
+        "env": {
+          "FIGMA_API_KEY": "${FIGMA_API_KEY}"
+        },
+        "type": "stdio",
+        "description": "claude-only pair registered 2026-09-19; gemini targeting deferred to owner (B3)",
+        "transport": "stdio",
+        "requiredEnv": [
+          "FIGMA_API_KEY"
+        ],
+        "credentialNames": [
+          "FIGMA_API_KEY"
+        ],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "playwright-cdp": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@playwright/mcp@0.0.78",
+          "--cdp-endpoint",
+          "http://127.0.0.1:9222"
+        ],
+        "description": "pinned 0.0.78 variant; mcp_doctor process ceiling 3 (D23)",
+        "transport": "stdio",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "playwright-extension": {
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@playwright/mcp@0.0.78",
+          "--extension"
+        ],
+        "description": "pinned 0.0.78 variant; mcp_doctor process ceiling 3 (D23)",
+        "transport": "stdio",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "stdio",
+          "claude-target"
+        ]
+      },
+      "metasploit": {
+        "targets": [
+          "codex",
+          "claude"
+        ],
+        "enabled": false,
+        "url": "http://127.0.0.1:31116/mcp",
+        "type": "http",
+        "description": "security cluster: on-demand only; registered 2026-09-19 D4 so codex/zcode copies become sync-managed",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "sliver-full": {
+        "targets": [
+          "codex",
+          "claude"
+        ],
+        "enabled": false,
+        "url": "http://127.0.0.1:31101/mcp",
+        "type": "http",
+        "description": "security cluster: on-demand only; registered 2026-09-19 D4 so codex/zcode copies become sync-managed",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "hacktricks": {
+        "targets": [
+          "codex",
+          "claude"
+        ],
+        "enabled": false,
+        "url": "http://127.0.0.1:31115/mcp",
+        "type": "http",
+        "description": "security cluster: on-demand only; registered 2026-09-19 D4 so codex/zcode copies become sync-managed",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
+        ]
+      },
+      "firecrawl-kit": {
+        "targets": [
+          "codex",
+          "claude"
+        ],
+        "enabled": false,
+        "url": "http://127.0.0.1:31114/mcp",
+        "type": "http",
+        "description": "security cluster: on-demand only; registered 2026-09-19 D4 so codex/zcode copies become sync-managed",
+        "transport": "http",
+        "requiredEnv": [],
+        "credentialNames": [],
+        "tags": [
+          "registered-2026-09-19",
+          "d4-pass",
+          "http",
+          "claude-target"
         ]
       }
     }

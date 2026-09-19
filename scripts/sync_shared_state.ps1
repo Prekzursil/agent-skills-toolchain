@@ -63,6 +63,7 @@ $agentsDir = Join-Path $ProjectRoot '.agents'
 $codexMergeScript = Join-Path $agentsDir 'scripts\merge_generated_codex_mcp.py'
 $claudeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_claude_mcp.py'
 $cursorMergeScript = Join-Path $agentsDir 'scripts\merge_generated_cursor_mcp.py'
+$zcodeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_zcode_mcp.py'
 $localBridgeSyncScript = Join-Path $agentsDir 'scripts\sync_local_bridge_mcp.py'
 $validatorScript = Join-Path $agentsDir 'scripts\validate_mcp_control_plane.py'
 $referenceViewsScript = Join-Path $agentsDir 'scripts\publish_reference_views.py'
@@ -184,7 +185,48 @@ Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $claudeMergeScript 
 Write-Host '==> merge agents-managed Cursor MCP into .cursor\mcp.json'
 Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $cursorMergeScript -Arguments @('--live', $liveCursor, '--agents-config', $agentsConfig, '--write')
 
+Write-Host '==> merge agents-managed ZCode MCP into .zcode\cli\config.json'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $zcodeMergeScript -Arguments @('--agents-config', $agentsConfig, '--write')
+
 Write-Host '==> sync local Claude bridge MCP from agents definitions'
 Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $localBridgeSyncScript
+
+# Hermes Agent control-plane integration (2026-09-03):
+#   1. MCP: deploy registry servers with target 'hermes' into Hermes config.yaml
+#      mcp_servers (HTTP-hub-only transport policy, G-1). deploy_hermes_mcp.py is
+#      idempotent and backs up config.yaml first.
+#   2. Skills: materialize the shared skills vault into Hermes' skills dir
+#      (copy, like the Claude materialized-target pattern).
+$hermesMcpDeploy = Join-Path $agentsDir 'scripts\deploy_hermes_mcp.py'
+$hermesSkillsSync = Join-Path $agentsDir 'scripts\sync_hermes_skills.ps1'
+if (Test-Path $hermesMcpDeploy) {
+    Write-Host '==> deploy Hermes MCP servers from agents.json (HTTP hubs only)'
+    Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $hermesMcpDeploy
+} else {
+    Write-Host '  WARN: deploy_hermes_mcp.py missing - skip Hermes MCP deploy'
+}
+if (Test-Path $hermesSkillsSync) {
+    Write-Host '==> materialize shared skills into Hermes skills dir'
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $hermesSkillsSync
+    if ($LASTEXITCODE -ne 0) { Write-Error 'STOP: Hermes skills sync failed' }
+} else {
+    Write-Host '  WARN: sync_hermes_skills.ps1 missing - skip Hermes skills sync'
+}
+
+Write-Host '
+Write-Host '==> materialize gemini MCP surface (D7 stage, added 2026-09-19)'
+$geminiMerge = Join-Path $agentsDir 'scripts\merge_generated_gemini_mcp.py'
+if (Test-Path $geminiMerge) {
+    & $resolvedPython $geminiMerge --write
+} else {
+    Write-Warning "merge_generated_gemini_mcp.py not found"
+}
+==> materialize shared rules (D12 stage, added 2026-09-19)'
+$rulesSync = Join-Path $agentsDir 'scripts\sync-rules.ps1'
+if (Test-Path $rulesSync) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $rulesSync
+} else {
+    Write-Warning "sync-rules.ps1 not found at $rulesSync"
+}
 
 Write-Host 'SUCCESS:shared-state-sync'

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Validation and publication primitives for the shared MCP control plane."""
+
 from __future__ import annotations
 
 import json
@@ -11,12 +12,15 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 
-VALID_TARGETS = frozenset({"claude", "codex"})
+VALID_TARGETS = frozenset({"claude", "codex", "zcode", "hermes", "gemini"})
 VALID_APPROVAL_MODES = frozenset({"native", "allow", "deny"})
 VALID_HEALTH_PROBES = frozenset({"mcp-tools-list", "http", "command", "none"})
 MAX_STARTUP_TIMEOUT_MS = 30_000
 DEFAULT_SERVER_PRIVATE_BYTES = 512 * 1024 * 1024
 DEFAULT_TOTAL_PRIVATE_BYTES = 6 * 1024 * 1024 * 1024
+# Owner decision (live, 2026-08-28): these run as the vendors' hosted HTTP MCPs,
+# never as per-session npx process trees. A registry that drifts them back to
+# stdio fails validation, tag or no tag.
 REMOTE_REQUIRED_SERVERS = frozenset({"context7", "firecrawl"})
 CLAUDE_PLUGIN_PROVIDED_SERVERS = frozenset(
     {
@@ -149,17 +153,28 @@ def validate_registry(config: Mapping[str, Any]) -> None:
     max_private_bytes = policy.get("maxPrivateBytes")
     if not isinstance(required, bool):
         raise RegistryError("mcp.policy.required must be boolean")
-    if not isinstance(startup_timeout, int) or not 1 <= startup_timeout <= MAX_STARTUP_TIMEOUT_MS:
+    if (
+        not isinstance(startup_timeout, int)
+        or not 1 <= startup_timeout <= MAX_STARTUP_TIMEOUT_MS
+    ):
         raise RegistryError("mcp.policy.startupTimeoutMs must be within 1..30000")
     if not isinstance(tool_timeout, int) or tool_timeout < 1:
         raise RegistryError("mcp.policy.toolTimeoutMs must be positive")
-    if not isinstance(health_probe, Mapping) or health_probe.get("kind") not in VALID_HEALTH_PROBES:
+    if (
+        not isinstance(health_probe, Mapping)
+        or health_probe.get("kind") not in VALID_HEALTH_PROBES
+    ):
         raise RegistryError("mcp.policy.healthProbe.kind is unsupported")
     probe_timeout = health_probe.get("timeoutMs")
-    if not isinstance(probe_timeout, int) or not 1 <= probe_timeout <= MAX_STARTUP_TIMEOUT_MS:
+    if (
+        not isinstance(probe_timeout, int)
+        or not 1 <= probe_timeout <= MAX_STARTUP_TIMEOUT_MS
+    ):
         raise RegistryError("mcp.policy.healthProbe.timeoutMs must be within 1..30000")
-    if not isinstance(tool_allowlist, list) or not tool_allowlist or any(
-        not isinstance(tool, str) or not tool for tool in tool_allowlist
+    if (
+        not isinstance(tool_allowlist, list)
+        or not tool_allowlist
+        or any(not isinstance(tool, str) or not tool for tool in tool_allowlist)
     ):
         raise RegistryError("mcp.policy.toolAllowlist must be a nonempty string list")
     if approval_mode not in VALID_APPROVAL_MODES:
@@ -194,7 +209,10 @@ def validate_registry(config: Mapping[str, Any]) -> None:
 
         transport = server.get("transport")
         if transport == "stdio":
-            if not isinstance(server.get("command"), str) or not server["command"].strip():
+            if (
+                not isinstance(server.get("command"), str)
+                or not server["command"].strip()
+            ):
                 raise RegistryError(f"{name}: stdio server requires command")
         elif transport == "http":
             url = server.get("url")
@@ -224,12 +242,16 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             raise RegistryError(f"{name}: requiredEnv must contain environment names")
         required_env = set(required_env_raw)
         credential_names = server.get("credentialNames")
-        expected_credentials = {item for item in required_env if is_credential_name(item)}
+        expected_credentials = {
+            item for item in required_env if is_credential_name(item)
+        }
         if not isinstance(credential_names, list) or any(
             not isinstance(item, str) or not ENV_NAME_RE.fullmatch(item)
             for item in credential_names
         ):
-            raise RegistryError(f"{name}: credentialNames must contain environment names")
+            raise RegistryError(
+                f"{name}: credentialNames must contain environment names"
+            )
         if set(credential_names) != expected_credentials:
             raise RegistryError(
                 f"{name}: credentialNames must exactly name sensitive requiredEnv entries"
@@ -243,8 +265,10 @@ def validate_registry(config: Mapping[str, Any]) -> None:
                 f"{name}: credential-bearing http server must use https"
             )
         tags = server.get("tags")
-        if not isinstance(tags, list) or not tags or any(
-            not isinstance(tag, str) or not tag.strip() for tag in tags
+        if (
+            not isinstance(tags, list)
+            or not tags
+            or any(not isinstance(tag, str) or not tag.strip() for tag in tags)
         ):
             raise RegistryError(f"{name}: tags must be a nonempty string list")
         if name in REMOTE_REQUIRED_SERVERS and (
@@ -284,14 +308,56 @@ def validate_registry(config: Mapping[str, Any]) -> None:
             if startup_seconds is not None and (
                 not isinstance(startup_seconds, int) or not 1 <= startup_seconds <= 30
             ):
-                raise RegistryError(
-                    f"{name}: startup_timeout_sec must be within 1..30"
-                )
+                raise RegistryError(f"{name}: startup_timeout_sec must be within 1..30")
+
+        _validate_x_cursor(name, server)
 
 
-def effective_server_contract(
-    config: Mapping[str, Any], name: str
-) -> dict[str, Any]:
+def _validate_x_cursor(name: str, server: Mapping[str, Any]) -> None:
+    """``x_cursor.stdio_bridge``: a per-session stdio shim Cursor runs in front of
+    an http server, rendered by ``merge_generated_cursor_mcp.py`` with the
+    registry URL appended as ``--url``. Closed schema: the only key is
+    ``stdio_bridge``; rationale lives in ``.provenance``, not here."""
+    x_cursor = server.get("x_cursor")
+    if x_cursor is None:
+        return
+    if not isinstance(x_cursor, Mapping):
+        raise RegistryError(f"{name}: x_cursor must be an object")
+    unknown = sorted(str(key) for key in x_cursor if key != "stdio_bridge")
+    if unknown:
+        raise RegistryError(f"{name}: unknown x_cursor key {unknown[0]!r}")
+    bridge = x_cursor.get("stdio_bridge")
+    if bridge is None:
+        return
+    if server.get("transport") != "http":
+        raise RegistryError(
+            f"{name}: x_cursor.stdio_bridge is only valid for http servers"
+        )
+    if not isinstance(bridge, Mapping):
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge must be an object")
+    command = bridge.get("command")
+    if not isinstance(command, str) or not command.strip():
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge requires command")
+    args = bridge.get("args", [])
+    if not isinstance(args, list) or any(not isinstance(arg, str) for arg in args):
+        raise RegistryError(f"{name}: x_cursor.stdio_bridge.args must be a string list")
+    x_codex = server.get("x_codex")
+    bearer = (
+        x_codex.get("bearer_token_env_var") if isinstance(x_codex, Mapping) else None
+    )
+    if server.get("headers") or bearer:
+        # The shim dials the URL bare; a server that needs auth has no bridge.
+        raise RegistryError(
+            f"{name}: x_cursor.stdio_bridge cannot carry headers or bearer credentials"
+        )
+    for arg in [command, *args]:
+        if LITERAL_SECRET_RE.search(arg):
+            raise RegistryError(
+                f"{name}: x_cursor.stdio_bridge contains a literal credential"
+            )
+
+
+def effective_server_contract(config: Mapping[str, Any], name: str) -> dict[str, Any]:
     """Return the decision-complete public contract for a registry entry."""
     validate_registry(config)
     server = _servers(config)[name]
@@ -408,7 +474,9 @@ def validate_rotation_manifest(manifest: Mapping[str, Any]) -> None:
         if isinstance(value, Mapping):
             for key, child in value.items():
                 if str(key).lower() in {"value", "secret", "credential"}:
-                    raise RegistryError(f"rotation manifest contains forbidden key at {path}")
+                    raise RegistryError(
+                        f"rotation manifest contains forbidden key at {path}"
+                    )
                 reject_value_keys(child, f"{path}.{key}")
         elif isinstance(value, list):
             for index, child in enumerate(value):
@@ -420,12 +488,18 @@ def validate_rotation_manifest(manifest: Mapping[str, Any]) -> None:
             raise RegistryError("rotation manifest provider record is invalid")
         env_names = record.get("environmentVariables")
         paths = record.get("affectedPaths")
-        if not isinstance(env_names, list) or not env_names or any(
-            not isinstance(name, str) or not ENV_NAME_RE.fullmatch(name)
-            for name in env_names
+        if (
+            not isinstance(env_names, list)
+            or not env_names
+            or any(
+                not isinstance(name, str) or not ENV_NAME_RE.fullmatch(name)
+                for name in env_names
+            )
         ):
             raise RegistryError("rotation manifest environmentVariables are invalid")
-        if not isinstance(paths, list) or not paths or any(
-            not isinstance(path, str) or not path for path in paths
+        if (
+            not isinstance(paths, list)
+            or not paths
+            or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise RegistryError("rotation manifest affectedPaths are invalid")

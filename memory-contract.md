@@ -8,9 +8,9 @@ point here. WHERE-map (locations, not this contract):
 ## Transport (HARD)
 
 - The **only** basic-memory transport is MCP HTTP:
-  `http://127.0.0.1:8765/mcp`
+  `http://127.0.0.1:18765/mcp`
 - **Never** `uvx` / npx / pip **stdio spawn** of basic-memory. Never bind
-  `:8765` yourself. Do not restart the BM daemon unless the owner asks.
+  `:18765` yourself. Do not restart the BM daemon unless the owner asks.
 - ChatGPT **web** cannot see localhost. Do **not** try Basic Memory Cloud
   (or any cloud memory sync) as a substitute (G-82).
 
@@ -39,7 +39,7 @@ Body — observations + links (this is how hybrid recall works):
 
 ```markdown
 - [decision] Keep semantic search ON; embeddings stay off the request loop.
-- [fact] MCP URL is http://127.0.0.1:8765/mcp only.
+- [fact] MCP URL is http://127.0.0.1:18765/mcp only.
 - relates_to [[WHERE-map pointer]]
 See also [[some related note]].
 ```
@@ -74,7 +74,7 @@ When replacing knowledge:
 - Semantic search stays **ON**. Do not disable vectors to buy RAM.
 - Embeddings stay **off the request loop** (sync/watchdog, not inside
   `search_notes` / `write_note` latency).
-- `:8765` / `:8812` / `:8317` stay bound only by their owners.
+- `:18765` / `:18812` / `:18317` stay bound only by their owners.
 
 ## WHERE
 

@@ -59,13 +59,13 @@ omits the token thereafter; the two-in-one-session token-passing above is a prob
 
 2. **Stand up the shared agent-mail http channel.** See `MCP_AGENT_MAIL.md`.
    - Install (native Windows): clone, `uv python install 3.14`, `uv venv -p 3.14`, `uv sync`.
-   - Run ONE shared server on the canonical port **8812**: `uv run python -m mcp_agent_mail.cli
-     serve-http --host 127.0.0.1 --port 8812` (health: `/api/health` returns `{"status":"ok"}`).
-     **Do NOT use 8765 — that is the LIVE basic-memory port; never collide.** On this box the
+   - Run ONE shared server on the canonical port **18812**: `uv run python -m mcp_agent_mail.cli
+     serve-http --host 127.0.0.1 --port 18812` (health: `/api/health` returns `{"status":"ok"}`).
+     **Do NOT use 18765 — that is the LIVE basic-memory port; never collide.** On this box the
      server is kept always-on by the `MCPAgentMailSupervisor` logon task; force a restart with
      `Start-ScheduledTask -TaskName MCPAgentMailSupervisor`.
    - Register the SAME url in both agents: Claude via `claude mcp add --transport http --scope user
-     agent-mail http://127.0.0.1:8812/mcp --header "Authorization: Bearer TOKEN"`; Codex via a
+     agent-mail http://127.0.0.1:18812/mcp --header "Authorization: Bearer TOKEN"`; Codex via a
      `[mcp_servers.agent-mail]` http block in `~/.codex/config.toml` with `AGENT_NAME` under
      `env_vars`. Identity: `claude` on Claude's side, `codex` on Codex's side.
    - Tools: `send_message`, `fetch_inbox`, `reply_message`, `file_reservation_paths`,
@@ -100,7 +100,7 @@ returned to that project rather than just forked away.
 ## Guardrails
 - One shared `serve-http`, not per-client stdio, or the two agents will not see each other's mail.
 - Bind agent-mail to `127.0.0.1` and keep the bearer token; do not expose the port.
-- **Port discipline:** agent-mail is canonically **8812** (`/api/health` -> `{"status":"ok"}`);
+- **Port discipline:** agent-mail is canonically **18812** (`/api/health` -> `{"status":"ok"}`);
   **8765 belongs to the LIVE basic-memory MCP server** on this box — never move agent-mail onto
   it or the two servers collide.
 - Codex turns are long — keep `MCP_TOOL_TIMEOUT` generous or tool calls get cut off mid-turn.

@@ -3,7 +3,7 @@
 # no per-session startup hang, no 4x RAM duplication.
 # Started at logon by the "BasicMemory-HTTP-MCP" scheduled task.
 
-$Port = 8765
+$Port = 18765
 $BmExe = 'C:\Users\Prekzursil\.local\bin\basic-memory.exe'
 $LogDir = 'C:\Users\Prekzursil\.basic-memory\logs'
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null }
@@ -77,6 +77,6 @@ if ($bound) {
     "$(Get-Date -Format o)  did NOT bind in 60s - killing stale chain + exiting so a retry can run" | Add-Content $Log
     try { if (-not $proc.HasExited) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } } catch {}
     Get-CimInstance Win32_Process -Filter "Name='python.exe'" -ErrorAction SilentlyContinue |
-        Where-Object { $_.CommandLine -like '*basic-memory*8765*' } |
+        Where-Object { $_.CommandLine -like '*basic-memory*18765*' } |
         ForEach-Object { try { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }
 }

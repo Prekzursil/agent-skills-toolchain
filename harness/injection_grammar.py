@@ -41,6 +41,26 @@ CATEGORY_PAYLOAD = "payload"
 # only agent-steering grammar counts, never documented shell commands.
 DIRECTIVE_CATEGORIES: tuple[str, ...] = (CATEGORY_DIRECTIVE,)
 
+# A shell invocation as it appears immediately AFTER a pipe, shared by the two
+# payload patterns so their shell spellings cannot drift apart.
+#
+# The optional DIRECTORY prefix is load-bearing: the grammar used to require the
+# shell basename directly after the pipe, so `curl ... | bash` matched while the
+# ordinary `curl ... | /bin/bash` did NOT - respelling one token turned the
+# detector off. A prefix must END in `/` or `\`, which is why `| ssh host` still
+# does not match (`s` is not a separator).
+#
+# Disclosed residual (NOT closed): wrapper-mediated spellings - `| xargs bash`,
+# `| nohup bash`, `| timeout 5 bash`, a shell reached through a variable - remain
+# outside this grammar. This is a fail-open heuristic tripwire that raises a
+# quarantine banner, not a security boundary; the redaction / quarantine layer is.
+_PIPED_SHELL = (
+    r"\|\s*(?:sudo\s+)?"  # `| `, `|sudo `
+    r"(?:(?:[^\s|]*[/\\])?env\s+(?:\w+=[^\s|]*\s+)*)?"  # `/usr/bin/env FOO=1 `
+    r"(?:[^\s|]*[/\\])?"  # `/bin/`, `./`, `C:\Windows\`
+    r"(?:ba|z|da)?sh\b"
+)
+
 # Each entry: (reason_code, category, compiled pattern). reason_code is STABLE
 # so D2 can render a per-match quarantine banner and B1 can log which grammar
 # tripped. Patterns are compiled with re.I (and re.M where line-anchored) via the
@@ -125,7 +145,7 @@ INJECTION_PATTERNS: tuple[tuple[str, str, Pattern[str]], ...] = (
         "pipe_to_shell",
         CATEGORY_PAYLOAD,
         re.compile(
-            r"\b(?:curl|wget|iwr|invoke-webrequest)\b[^\n|]{0,200}\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b",
+            r"\b(?:curl|wget|iwr|invoke-webrequest)\b[^\n|]{0,200}" + _PIPED_SHELL,
             re.I,
         ),
     ),
@@ -133,8 +153,8 @@ INJECTION_PATTERNS: tuple[tuple[str, str, Pattern[str]], ...] = (
         "base64_exec",
         CATEGORY_PAYLOAD,
         re.compile(
-            r"\bbase64\b[^\n|]{0,80}\|\s*(?:ba)?sh\b"
-            r"|\b(?:powershell|pwsh)\b[^\n]{0,60}\s-e(?:nc(?:odedcommand)?)?\b",
+            r"\bbase64\b[^\n|]{0,80}" + _PIPED_SHELL + r"|"
+            r"\b(?:powershell|pwsh)\b[^\n]{0,60}\s-e(?:nc(?:odedcommand)?)?\b",
             re.I,
         ),
     ),

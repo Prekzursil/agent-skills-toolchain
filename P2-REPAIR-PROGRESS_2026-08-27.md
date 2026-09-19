@@ -99,6 +99,30 @@ Prior run owns the WSL measure bottleneck and shared-module edits right now. Thi
 - **Batch C (29.08 06:25, grok-4.6-xhigh per owner):** shard-00(retry) + shards 12-17, 7 subagents,
   background. Windows-only edits; coordinator holds rsync/measure.
 
+## Coordinator 02.09 takeover (cursor-coordinator-0209, started 02.09 02:18 EEST)
+- **Recovered state:** prior coordinator fe344239 dead since 29.08 06:22 (Batch C launched, no
+  result files ever landed). WSL idle at takeover. Lock `g1-repair.lock` rewritten. Batch A/B
+  results in `g1-shards/_claude28/shard-*.result.json`: **308 units edited (unmeasured)**, 218
+  module-gap keys / 228 IDs, 63 unresolved. `delivery-pull/` is EMPTY — no salvage trees.
+- **Root cause of the shared-module class:** `seed-stage/_emit_g1_modules.py` generated `_NS`
+  placeholder modules (`# g1-surface: generated`, 513 files under tools/ platform/ command-center/)
+  for every import harvested from probes. Real implementations never landed; each must be written
+  to the probe contract. `_NS.__repr__` even has a doubled-brace bug (`<g1 {self._name}>`).
+- **Strategy switch (owner + orchestrator, 02.09 02:28):** NO shard fan-out (no grok batches).
+  Coordinator repairs directly, serially; regen wave runs in the background as a Windows-side
+  respawn loop; optional ≤2 fable helpers only for whole independent clusters when free RAM ≥ 6 GB.
+- **Overlay fix:** `_g1_remaining_fails.py`/`_g1_cluster_members.py` now also overlay
+  `g1-fails-rerun.jsonl` and order repair-claude jsonl by mtime. Overlay at takeover: **893 fails**
+  (`repair-claude/ids-remaining-0209.txt`). Landscape: `repair-claude/landscape-0209-pre.json`
+  (612 signatures; ~200 are shared-module exceptions; 22 timeouts; 14 no-write-receipts).
+- **New tools (seed-stage/):** `_g1_regen_par.py` (parallel resumable regen+ALWAYS-measure →
+  repair-claude/<wave>.jsonl), `_g1_respawn.ps1` (Windows respawn loop), `_g1_landscape.py`
+  (signature clustering), `_g1_probe_survey.py` (files/imports/tail per ID), `_g1_gaps_agg.py`,
+  `_g1_sync_measure.sh` (copy specific paths to mirror + measure + optional record).
+- **Wave `wave-regen-0209`** (02:34, 6 workers, 893 IDs): running via `_g1_respawn.ps1`; progress
+  `repair-claude/wave-regen-0209.jsonl`. Resume: rerun the same respawn command (skips done IDs).
+- **Hand repairs (wave-hand-0209):** IMP-0021 real `tools/plugin/longpath_fs.py` → SUCCESS:delivered.
+
 ## Resume instructions
 - Read this file + `ovh-monitor/g1-repair-claude_2026-08-27.log` (append-only) +
   `g1-shards/*.result.json` (28.08 timestamps are this run's; 26.08 are the old Grok wave).

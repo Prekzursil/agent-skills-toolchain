@@ -15,7 +15,7 @@ Vault pointer (tiny): `D:\basic-memory\index\WHERE.md` → this file.
 | BM runtime config | `C:\Users\Prekzursil\.basic-memory\config.json` |
 | BM SQLite | `C:\Users\Prekzursil\.basic-memory\memory.db` |
 | Vault (notes) | `D:\basic-memory` |
-| HTTP daemon | `127.0.0.1:8765` (owner: basic-memory). **Do not bind.** Cursor talks via `.agents/scripts/bm_cursor_http_session.py` (session refresh). Do not restart from SessionStart; watchdog owns liveness. |
+| HTTP daemon | `127.0.0.1:18765` (owner: basic-memory). **Do not bind.** Cursor talks via `.agents/scripts/bm_cursor_http_session.py` (session refresh). Do not restart from SessionStart; watchdog owns liveness. |
 | Skills SSOT | `C:\Users\Prekzursil\.agents\skills` |
 | Behavior SSOT | `C:\Users\Prekzursil\AGENTS.md` |
 | Hosted model agents | skill `hosted-model-agents` (envs + tool loop + profiles). HF Hub MCP `huggingface`. Example Space code `C:\Users\Prekzursil\Cowork\tools\hf-space-qwen38-27b-heretic`. Deprecated name: `qwen-space-tool-api`. |
@@ -24,7 +24,7 @@ Vault pointer (tiny): `D:\basic-memory\index\WHERE.md` → this file.
 
 ## Load-bearing vault notes (audit 28.08.2026 §5 — confirm via MCP)
 
-1. `notes/estate-locks-2026-08-27` — G-36 one cursor-agent, G-81 BM sole semantic writer, ports 8765/8812/8317, skills SSOT.
+1. `notes/estate-locks-2026-08-27` — G-36 one cursor-agent, G-81 BM sole semantic writer; ports migrated 04.09.2026 to 18765/18812/18317 (Hyper-V exclusion bypass), skills SSOT.
 2. `harness/Basic-memory SOTA session contract (hook-injected not recognition-invoked)`
 3. `harness/Basic-memory hard gate is shared harness not Grok-only 2026-08-25`
 4. `harness/Cowork dump RETIRED option A 2026-08-24`
@@ -34,6 +34,7 @@ Vault pointer (tiny): `D:\basic-memory\index\WHERE.md` → this file.
 8. Verification: `techniques/Three verification traps…`, `techniques/Green gates found zero of eleven defects…`
 9. `harness/Scheduled tasks that spawn windows — inventory 2026-08-28` — MemGuard **disabled** (owner 28.08); every watchdog/supervisor that can flash a console, with reverse commands.
 10. `harness/Cursor RAM vs Claude Grok CLI — measured 2026-08-28` — why Cursor is 7+ GB vs Claude/Grok CLI at 0 standing processes.
+11. `harness/Rail port migrate Hyper-V exclusion SOTA 2026-09-04` — BM/mail/auth2api off excluded ranges; receipt `Cowork/output/rail-port-migrate-sota_2026-09-04.md`.
 
 Stale-if-cited: SSOT “9 checkouts” (now 178); MCP SSOT 18.07 (pre-Cursor merge); Grill-100 still “pending G-7” while estate-locks locked 75 answers.
 
@@ -58,7 +59,7 @@ Audit: `C:\Users\Prekzursil\Cowork\output\basic-memory-full-audit_2026-08-28.md`
 
 SessionStart / first prompt READ comes from the **slim digest**, not a vault walk.
 Lexical composite recall may still use the full index on UserPromptSubmit.
-MCP `:8765` is live semantic store — query it to confirm; digest titles are UNTRUSTED.
+MCP `:18765` is live semantic store — query it to confirm; digest titles are UNTRUSTED.
 Never SessionStart-rglob the vault. Never load `recall-index.json` into SessionStart.
 Never `uvx` stdio BM; never Cloud/Mem0/Graphiti.
 

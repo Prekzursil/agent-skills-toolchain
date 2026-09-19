@@ -249,3 +249,107 @@ def test_deploy_receipt_records_hashes_and_extends_existing(tmp_path, monkeypatc
 def test_deploy_rejects_unknown_target(tmp_path):
     with pytest.raises(ValueError):
         deploy(source_dir=tmp_path / "src", live_dir=tmp_path / "live", target="bogus")
+
+
+# --------------------------------------------------------------------------- #
+# candidate VALIDITY: byte parity is not proof the copy is loadable
+# --------------------------------------------------------------------------- #
+
+BROKEN_INIT = "def broken(:\n    pass\n"
+
+
+def test_deploy_rejects_syntactically_invalid_harness_candidate(tmp_path, monkeypatch):
+    """Known broken: a candidate __init__.py that is a SyntaxError deployed GREEN.
+
+    Measured before the fix, same fixture: deploy returned 0, status "deployed",
+    the broken bytes landed live and a receipt was written -- while a fresh
+    consumer could not ``import harness`` at all. Byte parity only ever proved
+    the deploy copied what it planned.
+    """
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    src = _src_tree(
+        tmp_path / "src", {"__init__.py": BROKEN_INIT, "models.py": "X = 1\n"}
+    )
+    live = tmp_path / "live"
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        code = deploy(source_dir=src, live_dir=live, target="harness")
+    payload = json.loads(buf.getvalue())
+
+    assert code == 1
+    assert payload["status"] == "failed"
+    assert payload["reason"] == "candidate_syntax_invalid"
+    assert [entry["file"] for entry in payload["invalid"]] == ["__init__.py"]
+    assert payload["invalid"][0]["problem"].startswith("SyntaxError")
+
+    # fail-CLOSED at PLAN: no live write, no receipt, no backup, no stale lock
+    assert not (live / "__init__.py").exists()
+    assert not (live / "installed.json").exists()
+    assert not (tmp_path / "backups").exists()
+    assert not (live / install_mod.DEPLOY_LOCK_NAME).exists()
+
+
+def test_deploy_rejects_invalid_hooks_candidate_too(tmp_path, monkeypatch):
+    """The hooks tree is the OTHER python import surface (dispatch.py imports
+    each check in-process), so the same gate must cover it."""
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    src = _src_tree(tmp_path / "src", {"gate/check.py": BROKEN_INIT})
+    live = tmp_path / "live"
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        code = deploy(source_dir=src, live_dir=live, target="hooks")
+    payload = json.loads(buf.getvalue())
+
+    assert code == 1
+    assert payload["reason"] == "candidate_syntax_invalid"
+    assert [entry["file"] for entry in payload["invalid"]] == [
+        os.path.join("gate", "check.py")
+    ]
+    assert not (live / "gate").exists()
+
+
+def test_deploy_gate_reads_bytes_and_ignores_non_python(tmp_path, monkeypatch):
+    """Control (the gate must not be a blanket 'any .py is suspect'): a valid
+    module with a PEP 263 latin-1 declaration deploys, and a non-.py file
+    holding the very same broken source is not a python file and is ignored."""
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_bytes(b"# -*- coding: latin-1 -*-\nNAME = 'caf\xe9'\n")
+    (src / "notes.txt").write_text(BROKEN_INIT, encoding="utf-8")
+    live = tmp_path / "live"
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        code = deploy(source_dir=src, live_dir=live, target="harness")
+    payload = json.loads(buf.getvalue())
+
+    assert code == 0
+    assert payload["status"] == "deployed"
+    assert (live / "notes.txt").read_text(encoding="utf-8") == BROKEN_INIT
+
+
+def test_deploy_rejects_python_file_with_embedded_nul(tmp_path, monkeypatch):
+    """NUL bytes are the interpreter-version-sensitive compile failure: CPython
+    3.11 (the CI interpreter, quality.yml:245) raises ValueError while 3.14
+    raises SyntaxError -- measured both. The gate catches BOTH, so this asserts
+    the invariant (fail closed, message names the cause), never the class."""
+    monkeypatch.setattr(install_mod, "BACKUPS_DIR", tmp_path / "backups")
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "mod.py").write_bytes(b"X = 1\x00\n")
+    live = tmp_path / "live"
+
+    buf = io.StringIO()
+    with redirect_stdout(buf):
+        code = deploy(source_dir=src, live_dir=live, target="harness")
+    payload = json.loads(buf.getvalue())
+
+    assert code == 1
+    assert payload["reason"] == "candidate_syntax_invalid"
+    problem = payload["invalid"][0]["problem"]
+    assert problem.startswith(("ValueError", "SyntaxError"))
+    assert "null bytes" in problem
+    assert not (live / "mod.py").exists()

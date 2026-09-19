@@ -11,22 +11,24 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, cast
 
 try:
-    from .ledger import EventLedger, default_state_root, project_key
+    from .ledger import EventLedger, _FileLock, default_state_root, project_key
     from .models import HookEvent, HookResult
     from .redaction import contains_secret, redact_text
     from .storage import (
         READ_DAMAGED,
+        READ_OK,
         atomic_write_json,
         atomic_write_text,
         read_json,
         read_json_status,
     )
 except ImportError:  # pragma: no cover
-    from ledger import EventLedger, default_state_root, project_key
+    from ledger import EventLedger, _FileLock, default_state_root, project_key
     from models import HookEvent, HookResult
     from redaction import contains_secret, redact_text
     from storage import (
         READ_DAMAGED,
+        READ_OK,
         atomic_write_json,
         atomic_write_text,
         read_json,
@@ -160,11 +162,30 @@ DEFAULT_MODE_BY_TIER: dict[str, str] = {
 # gate that never fires or never helps. Attaching the constant is in-scope here;
 # the forcing-function that reads it is out of scope for this lane.
 GATE_CONTRACTS: dict[str, dict[str, str]] = {
+    "register_gate": {
+        "metric": "register_item_closed_after_fire",
+        "owner": "prekzursil",
+        "deadline": "2026-09-15",
+        "fire_rate": (
+            "UserPromptSubmit: <=1 injection per prompt, <=3 items, each item id at most "
+            "once per session, no program-level fallback fire. SessionStart: once. "
+            "MEASURED by replaying all 375 real owner prompts through this module's own "
+            "would_fire(): 28.5% of prompts match; with the shipped session cooldown that "
+            "is 3.16 fires per 20-prompt session (60 fires / 19 sessions, max 7). "
+            "Calibration peer stigmergic_prior = 2.73/session; wallpaper line = 19.0 "
+            "(module-modes.json:32). Auto-demote to shadow above 6.0/session over >=20 "
+            "real sessions. Caveat inline: the corpus is the harness corpus, so it is a "
+            "worst-case topic population, and it applies no calibrated-silence gating."
+        ),
+    },
     "sensitive_artifact": {
         "metric": "artifact_secret_true_positive",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires only on a credential-classified transcript/write target or an incomplete bounded scan",
+        "fire_rate": (
+            "Stop/SubagentStop transcript findings are audit-only and idempotent per "
+            "path_id; explicit credential-bearing write targets still inject a notice"
+        ),
     },
     "injection_quarantine": {
         "metric": "injection_precision",
@@ -314,7 +335,10 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "metric": "capture_discipline",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires at most once per session when any file mutation occurred and no basic-memory write did; Stop also spools a session note",
+        "fire_rate": (
+            "when any file mutation occurred and no basic-memory write did, Stop spools "
+            "one session note without injecting feedback into the model"
+        ),
     },
     "cleanup_after_work": {
         "metric": "cleanup_backlog_surfaced",
@@ -462,9 +486,10 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
     """
     if not isinstance(payload, dict):
         return False
-    if os.environ.get("PYTEST_CURRENT_TEST") and os.environ.get(
-        "HARNESS_BM_FLUSH_IN_TEST", ""
-    ).strip() != "1":
+    if (
+        os.environ.get("PYTEST_CURRENT_TEST")
+        and os.environ.get("HARNESS_BM_FLUSH_IN_TEST", "").strip() != "1"
+    ):
         return False
     title = str(payload.get("title") or "").strip()
     body = str(payload.get("body") or "").strip()
@@ -479,17 +504,61 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
 
         resolved = shutil.which(exe) if exe == "basic-memory" else exe
         if not resolved:
+            _spool_flush_error("CLI not found on PATH", payload)
             return False
         proc = subprocess.run(
-            [resolved, "tool", "write-note", "--title", title[:200], "--content", body[:4000]],
+            [
+                resolved,
+                "tool",
+                "write-note",
+                "--title",
+                title[:200],
+                "--folder",
+                os.environ.get("HARNESS_BM_SPOOL_FOLDER", "sessions"),
+                "--content",
+                body[:4000],
+            ],
             capture_output=True,
             text=True,
             timeout=20,
             check=False,
         )
-        return proc.returncode == 0
-    except Exception:
+        if proc.returncode != 0:
+            combined = (proc.stderr or "") + (proc.stdout or "")
+            if "ALREADY_EXISTS" in combined:
+                # Same-title note already in the vault (e.g. two sessions same
+                # day/workspace): the capture IS delivered - treat as success.
+                return True
+            detail = combined.strip().splitlines()
+            _spool_flush_error(
+                f"CLI exit {proc.returncode}: {detail[-1][:200] if detail else 'no output'}",
+                payload,
+            )
+            return False
+        return True
+    except Exception as exc:  # noqa: BLE001 - flush must never raise into the hook
+        _spool_flush_error(f"exception: {type(exc).__name__}", payload)
         return False
+
+
+def _spool_flush_error(reason: str, payload: dict[str, Any]) -> None:
+    """Append flush failures to a capped sidecar so silent decay is visible.
+
+    Without this, a CLI contract change (e.g. a newly required --folder) fails
+    with returncode!=0 forever and 'flushed' never flips - the capture pipeline
+    rots invisibly (measured 2026-09-03: 6 records stuck flushed=false).
+    """
+    try:
+        log = default_state_root() / "bm-spool" / "flush-errors.log"
+        if log.exists() and log.stat().st_size > 200_000:
+            log.unlink()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        title = str(payload.get("title", ""))[:80]
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(f"{stamp} {reason} | {title}\n")
+    except Exception:
+        pass
 
 
 def _write_session_spool(event: HookEvent) -> Optional[Path]:
@@ -517,7 +586,11 @@ def _write_session_spool(event: HookEvent) -> Optional[Path]:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_json(path, payload)
-    except OSError:
+    except OSError as exc:
+        _spool_flush_error(
+            f"spool-write OSError: {type(exc).__name__}",
+            {"title": payload["title"]},
+        )
         return None
     try:
         if _flush_spool_to_vault(payload):
@@ -620,6 +693,7 @@ MODULE_ORDER = (
     "subagent_lifecycle",
     "bc_offset_guard",
     "enforcement_scaffold",
+    "register_gate",
 )
 
 
@@ -1215,9 +1289,18 @@ class SensitiveArtifactModule:
     This is deliberately a bounded, report-only sweep. It never rewrites, moves,
     deletes, or echoes target bytes; an unreadable, unstable, linked, or truncated
     target is UNKNOWN rather than clean.
+
+    Transcript findings on Stop/SubagentStop are recorded out of band and never
+    returned as model context. Explicit credential-bearing write targets still
+    surface an advisory while work is active.
     """
 
     name = "sensitive_artifact"
+    _AUDIT_SCHEMA_VERSION = 1
+    _CLASSIFICATION_RANK = {"UNKNOWN": 0, "POTENTIAL-CREDENTIAL": 1}
+
+    def __init__(self, state_root: Path | str | None = None):
+        self.state_root = Path(state_root or default_state_root())
     _MAX_SCAN_BYTES = 2 * 1024 * 1024
     _WRITE_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
     _REENTRANT_STOP = frozenset({"stop_hook_active", "true", "1"})
@@ -1230,18 +1313,19 @@ class SensitiveArtifactModule:
                 return HookResult.success()
             raw_path, kind, tail = candidate
             path = self._resolve_path(raw_path, event.cwd)
-            classification = self._classify(path, tail=tail)
-            if classification == "clear":
-                return HookResult.success()
             path_id = hashlib.sha256(
                 os.path.normcase(os.path.abspath(str(path))).encode(
                     "utf-8", "surrogatepass"
                 )
-            ).hexdigest()[:12]
+            ).hexdigest()
+            classification = self._classify(path, tail=tail)
+            if classification == "clear":
+                return HookResult.success()
             if classification == "sensitive":
+                report_classification = "POTENTIAL-CREDENTIAL"
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=POTENTIAL-CREDENTIAL "
-                    f"kind={kind} id=sha256:{path_id}; the report-only sweep changed "
+                    f"kind={kind} id=sha256:{path_id[:12]}; the report-only sweep changed "
                     "nothing and emitted no matched value. NOTICE, NOT A TASK: do not "
                     "rotate, revoke, regenerate or edit any credential -- AGENTS.md "
                     "Sec.9 reserves credential lifecycle to the owner. Surface the id "
@@ -1249,9 +1333,10 @@ class SensitiveArtifactModule:
                     "notice, so do not retry or block on it."
                 )
             else:
+                report_classification = "UNKNOWN"
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
-                    f"kind={kind} id=sha256:{path_id}; a bounded scan could not establish "
+                    f"kind={kind} id=sha256:{path_id[:12]}; a bounded scan could not establish "
                     "clean because the target was unreadable, linked, oversized, or changed "
                     "during inspection. Nothing was modified."
                 )
@@ -1260,9 +1345,70 @@ class SensitiveArtifactModule:
                 reason_code="sensitive_artifact",
                 additional_context=[message],
             )
+            if kind == "transcript":
+                if not self._record_report(
+                    path_id,
+                    classification=report_classification,
+                    kind=kind,
+                ):
+                    return HookResult.failed_open(event.event)
+                try:
+                    mode = resolve_mode("sensitive_artifact", tier=TIER_ADVISORY)
+                except Exception:
+                    mode = MODE_SHADOW
+                if mode != MODE_OFF:
+                    shadow_log("sensitive_artifact", TIER_ADVISORY, event, raw)
+                return HookResult.success()
             return stage("sensitive_artifact", TIER_ADVISORY, event, raw)
         except Exception:
             return HookResult.success()
+
+    def _marker_path(self, path_id: str) -> Path:
+        return self.state_root / "sensitive-artifact" / f"{path_id}.json"
+
+    def _record_report(
+        self,
+        path_id: str,
+        *,
+        classification: str,
+        kind: str,
+    ) -> bool:
+        try:
+            marker = self._marker_path(path_id)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            with _FileLock(marker.with_suffix(".lock"), timeout=0.5):
+                prior, status = read_json_status(marker, {})
+                if status in READ_DAMAGED:
+                    return False
+                prior_classification = ""
+                if status == READ_OK:
+                    if not isinstance(prior, dict):
+                        return False
+                    prior_classification = str(prior.get("classification") or "")
+                    if (
+                        prior.get("schema_version") != self._AUDIT_SCHEMA_VERSION
+                        or prior.get("kind") != kind
+                        or prior.get("id") != f"sha256:{path_id}"
+                        or prior_classification not in self._CLASSIFICATION_RANK
+                    ):
+                        return False
+                effective = classification
+                if self._CLASSIFICATION_RANK.get(prior_classification, -1) > (
+                    self._CLASSIFICATION_RANK.get(classification, -1)
+                ):
+                    effective = prior_classification
+                payload = {
+                    "schema_version": self._AUDIT_SCHEMA_VERSION,
+                    "classification": effective,
+                    "kind": kind,
+                    "id": f"sha256:{path_id}",
+                }
+                if prior != payload:
+                    atomic_write_json(marker, payload)
+                written, written_status = read_json_status(marker, {})
+                return written_status == READ_OK and written == payload
+        except Exception:
+            return False
 
     @classmethod
     def _candidate(cls, event: HookEvent) -> tuple[str, str, bool] | None:
@@ -1281,6 +1427,9 @@ class SensitiveArtifactModule:
             # modules.py:3079 already states the rule this branch was breaking -- gates
             # "NEVER run on Stop/StopFailure/SubagentStop -- the A1 loop origin (a
             # Stop-time inject re-triggers the host re-entrancy counter)".
+            # A test existed for exactly this, but only for the Stop branch
+            # (test_sensitive_artifact_ignores_a_reentrant_stop) -- which is how a
+            # two-branch router shipped with one working branch.
             if str(event.trigger or "").lower() in cls._REENTRANT_STOP:
                 return None
             path = event.transcript_path or event.agent.transcript_path
@@ -1742,6 +1891,12 @@ class GoalModule:
         "<system-reminder",
         "<local-command",
     )
+    _STOP_FEEDBACK_PREFIX = re.compile(
+        r"^\s*(?:[-*•]\s*)?(?:Stop|SubagentStop)\s*\(completed\)\s+says:\s*",
+        re.IGNORECASE,
+    )
+    _AUTO_CAPTURED_PREFIX = re.compile(r"^\s*AUTO-CAPTURED:\s*", re.IGNORECASE)
+    _TRUNCATED_LINE = re.compile(r"^\s*\[TRUNCATED\]\s*$", re.IGNORECASE)
 
     def __init__(self, ledger: EventLedger, interval: int | None = None):
         self.ledger = ledger
@@ -1770,7 +1925,9 @@ class GoalModule:
         return self._maybe_reinject(event)
 
     def _on_prompt(self, event: HookEvent) -> HookResult:
-        stripped = event.prompt.lstrip()
+        stripped = self._strip_host_feedback(event.prompt).lstrip()
+        if not stripped:
+            return HookResult.success()
         if stripped.startswith(self._SYSTEM_PREFIXES):
             return HookResult.success()
         force = stripped.startswith("*")
@@ -1795,6 +1952,42 @@ class GoalModule:
             return self._budget_pacing(event)
         except Exception:
             return HookResult.success()
+
+    @classmethod
+    def _strip_host_feedback(cls, prompt: str) -> str:
+        lines = prompt.splitlines()
+        index = 0
+        while index < len(lines):
+            while index < len(lines) and not lines[index].strip():
+                index += 1
+            if index >= len(lines):
+                break
+            line = lines[index]
+            if cls._STOP_FEEDBACK_PREFIX.match(line):
+                index = cls._consume_prefixed_block(lines, index + 1)
+                continue
+            if cls._AUTO_CAPTURED_PREFIX.match(line):
+                index = cls._consume_prefixed_block(lines, index + 1)
+                continue
+            break
+        return "\n".join(lines[index:]).strip()
+
+    @classmethod
+    def _consume_prefixed_block(cls, lines: list[str], index: int) -> int:
+        while index < len(lines):
+            line = lines[index]
+            stripped = line.strip()
+            if not stripped:
+                index += 1
+                break
+            if line[:1] in {" ", "\t"} or cls._TRUNCATED_LINE.match(line):
+                index += 1
+                continue
+            if cls._AUTO_CAPTURED_PREFIX.match(line):
+                index += 1
+                continue
+            break
+        return index
 
     def _maybe_reinject(self, event: HookEvent) -> HookResult:
         counter_path = self._counter_path(event.session_id)
@@ -2082,7 +2275,9 @@ def _recall_index_is_servable(data: dict[str, Any]) -> bool:
 def _digest_path_excluded(value: str) -> bool:
     if not value:
         return False
-    return any(part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/"))
+    return any(
+        part in _DIGEST_EXCLUDED_PARTS for part in value.replace("\\", "/").split("/")
+    )
 
 
 def _notes_are_keyword_free(notes: list[Any]) -> bool:
@@ -2118,7 +2313,9 @@ def _read_slim_digest_file(path: Path, *, limit: int) -> list[dict[str, Any]]:
     if size <= 0 or size > _SLIM_DIGEST_MAX_BYTES:
         return []
     data = read_json(path, {})
-    if not isinstance(data, dict) or not _recall_index_is_servable(cast(dict[str, Any], data)):
+    if not isinstance(data, dict) or not _recall_index_is_servable(
+        cast(dict[str, Any], data)
+    ):
         return []
     notes = data.get("notes")
     if not isinstance(notes, list) or not _notes_are_keyword_free(notes):
@@ -2154,10 +2351,18 @@ class RecallModule:
         self.max_results = max(1, min(int(max_results), 5))
         self.ledger = ledger
         self.state_root = Path(state_root or default_state_root())
+        # Recorded for provenance only. The SessionStart / first-prompt digest is
+        # read from the slim `recall-digest.json` sidecar (built by recall_index.py
+        # --from-index); this module NEVER walks the vault -- pinned by
+        # test_recall_vault_digest_never_rglobs_vault_markdown. Owner rule
+        # (memory-map Q3/Q4, 2026-08-28): never SessionStart-rglob the vault, never
+        # load the full keyword index into SessionStart.
         vault = vault_root or os.environ.get("BASIC_MEMORY_VAULT") or "D:/basic-memory"
         self.vault_root = Path(vault)
         digest_env = os.environ.get("AGENT_HARNESS_RECALL_DIGEST")
-        self.digest_path = Path(digest_env) if digest_env else (self.state_root / "recall-digest.json")
+        self.digest_path = (
+            Path(digest_env) if digest_env else (self.state_root / _DIGEST_FILENAME)
+        )
 
     def _notes(self) -> list[dict[str, Any]]:
         for path in self.index_paths:
@@ -2198,7 +2403,11 @@ class RecallModule:
             prior = self._stigmergic_prior(event, prompt_tokens)
         except Exception:
             prior = HookResult.success()
-        if recall.action == "inject" or digest.action == "inject" or prior.action == "inject":
+        if (
+            recall.action == "inject"
+            or digest.action == "inject"
+            or prior.action == "inject"
+        ):
             return _merge_results([digest, recall, prior])
         return prior
 
@@ -2206,7 +2415,9 @@ class RecallModule:
         # Separate markers: SessionStart stdout may be dropped (Grok) while the
         # hook still runs and would otherwise mute the portable first-prompt path.
         kind = "ss" if event.event == "SessionStart" else "up"
-        return self.state_root / "bm-vault-digest" / f"{_session_hash(event)}-{kind}.json"
+        return (
+            self.state_root / "bm-vault-digest" / f"{_session_hash(event)}-{kind}.json"
+        )
 
     def _retry_spool_flush(self, event: HookEvent) -> None:
         if event.event != "SessionStart":
@@ -2226,7 +2437,9 @@ class RecallModule:
         # SessionStart MUST NOT rglob the vault and MUST NOT load the huge
         # keyword index. Prefer the slim sidecar; fall back to a size-capped
         # keyword-free index document (test fixtures / already-slim indexes).
-        digest_path = Path(getattr(self, "digest_path", self.state_root / _DIGEST_FILENAME))
+        digest_path = Path(
+            getattr(self, "digest_path", self.state_root / _DIGEST_FILENAME)
+        )
         loaded = _read_slim_digest_file(digest_path, limit=16)
         if loaded:
             return loaded
@@ -2938,8 +3151,8 @@ class ClaimWarningModule:
     _BM_WRITE_TOOLS = _BM_WRITE_TOOL_NAMES
 
     def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
-        # Fires once per session when a canonical config file was edited but no
-        # basic-memory write happened. PRIMARY carrier is the sticky per-session
+        # Spools once per session when any file was edited but no basic-memory write
+        # happened. PRIMARY carrier is the sticky per-session
         # _session_flag stamped at PostToolUse; the bounded ledger replay window is
         # a FALLBACK used only when that carrier is unavailable.
         #
@@ -2983,27 +3196,10 @@ class ClaimWarningModule:
             return HookResult.success()
         try:
             _write_session_spool(event)
-        except Exception:
-            pass
-        # Once-per-session cooldown (gentle): nag at most once, on the SAME carrier
-        # the two facts above came from. The marker file is retained for the
-        # fallback path because an unidentified session cannot hold a flag and would
-        # otherwise lose its cooldown and nag at every Stop.
-        marker = (
-            default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
-        )
-        already = isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
-            "nudged"
-        )
-        if sticky:
-            # F1: a session that fired on the FALLBACK carrier and only LATER made
-            # its own canonical edit flips to the sticky carrier mid-life. Reading
-            # only the flag would lose the cooldown and nag a second time, so the
-            # sticky read ORs in the marker. The two facts above still come from ONE
-            # carrier; only the once-per-session cap spans both.
-            already = _session_flag(event, "nudged") or already
-        if already:
-            return HookResult.success()
+        except Exception as exc:  # noqa: BLE001 - capture must never crash Stop
+            _spool_flush_error(
+                f"spool-write exception: {type(exc).__name__}", {"title": "(session spool)"}
+            )
         raw = HookResult.success(
             action="inject",
             reason_code="basic_memory_nudge",
@@ -3014,21 +3210,13 @@ class ClaimWarningModule:
                 "(AGENTS.md section 8)."
             ],
         )
-        staged = stage("basic_memory_nudge", TIER_HEURISTIC, event, raw)
-        # Only record the cooldown when the gate actually surfaced (advise/enforce);
-        # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
-        if staged.action != "allow":
-            if sticky:
-                _session_flag(event, "nudged", set_it=True)
-            else:
-                try:
-                    (default_state_root() / "basic-memory-nudge").mkdir(
-                        parents=True, exist_ok=True
-                    )
-                    atomic_write_json(marker, {"nudged": True})
-                except OSError:
-                    pass
-        return staged
+        try:
+            mode = resolve_mode("basic_memory_nudge", tier=TIER_HEURISTIC)
+        except Exception:
+            mode = MODE_SHADOW
+        if mode != MODE_OFF:
+            shadow_log("basic_memory_nudge", TIER_HEURISTIC, event, raw)
+        return HookResult.success()
 
 
 class SubagentLifecycleModule:
@@ -3690,12 +3878,347 @@ class OwnerOpsAuthorizationModule:
         )
 
 
+class RegisterGateModule:
+    """Resurface OPEN command-center items at the moment they become relevant.
+
+    THE FAILURE THIS EXISTS TO STOP. Work on four programs was deferred, drafted
+    and forgotten, and the owner should not have to be the one who remembers. The
+    designated survive-context-loss pointer (`RESUME.json`) went 15 days stale
+    with nothing enforcing it, and is also WRONG -- it still says A3 is "landing"
+    when M02 merged as PR #160. A ledger nobody reads at the right moment is the
+    same passive document one layer down.
+
+    WHY IT IS A MODULE AND NOT A HOOK. The identical mechanism already ships as
+    `~/.claude/hooks/open-loops/`: `add.py` opens an item, `resurface.py` lists
+    them at SessionStart, and `trigger_match.py` is the ACTIVE "fire it now" half
+    -- whose own docstring says it needs "its OWN settings.json entry", which was
+    never created. Its store holds 52 triggers, 8 fired, 44 unfired, the oldest
+    21 days old. A new hook file needing new wiring is exactly what killed the
+    prior art, so this rides the dispatcher wire `settings.json` already runs and
+    adds ZERO process spawns.
+
+    LOOP SAFETY (the 2026-08-08 bug, not to be repeated). A Stop-time inject
+    re-triggers the host re-entrancy counter; two trivial probes cost 62,155 and
+    63,222 tokens when `SensitiveArtifactModule` ran on SubagentStop with no
+    guard. This module NEVER runs on Stop / StopFailure / SubagentStop, and also
+    carries the `stop_hook_active` guard as defence in depth even though neither
+    accepted event can re-enter.
+
+    LEGAL NEXT MOVE (the other half of that bug). That injection's only
+    satisfying action -- rotate the credential -- is forbidden by AGENTS.md
+    section 9, so the model looped instead of stopping. Every injection here
+    names three legal moves, one of which (`defer`) is always available, and says
+    outright that doing nothing is fine.
+
+    Ships in SHADOW (TIER_HEURISTIC default): it computes the verdict, records it
+    in the sampled sink, and surfaces nothing until promoted on measured evidence.
+    """
+
+    name = "register_gate"
+
+    _REENTRANT = frozenset({"stop_hook_active", "true", "1"})
+    _ACCEPTED_EVENTS = frozenset({"UserPromptSubmit", "SessionStart"})
+
+    # Only the first HEAD chars of a prompt are indexed. A 20 KB paste otherwise
+    # contains almost every rare token in the catalog at once.
+    _HEAD = 1500
+    # Above this many matches the prompt targeted nothing in particular -> silent.
+    _CEILING = 8
+    _CAP = 3
+    # A title token appearing in more than this many open items is not
+    # discriminative and cannot carry a match on its own.
+    _MAX_DF = 8
+
+    _PROGRAM_TAGS = {
+        "MONITOR": {"monitor", "cockpit", "monitorcore", "dashboard", "tui", "wfmon"},
+        "B-workflow_design": {"workflow_design", "program_b"},
+        "A-toolchain": {
+            "toolchain",
+            "prompt_two",
+            "marketplace",
+            "blueprint",
+            "council",
+            "foundry",
+        },
+        "HARNESS": {"harness", "hook", "dispatcher", "skill_vault", "resume"},
+    }
+
+    _STOPWORDS = frozenset(
+        """a an and are as at be but by for from has have in into is it its no not of on or
+        that the their then there these this to was were what when which who will with you
+        your never every all any some more most only own same than too very can just should
+        now new one two three via per each also both such other""".split()
+    )
+
+    _TOKEN = re.compile(r"[a-z0-9_]{3,}")
+
+    def __init__(
+        self,
+        state_root: Path | str | None = None,
+        catalog_path: Path | str | None = None,
+    ):
+        self._root = Path(state_root) if state_root else None
+        self._explicit_catalog = Path(catalog_path) if catalog_path else None
+
+    # -- wiring ---------------------------------------------------------------
+
+    def run(self, event: Any) -> HookResult:
+        try:
+            return self._run(event)
+        except Exception:
+            return HookResult.success()  # fail-open, AGENTS.md section 6
+
+    def _run(self, event: Any) -> HookResult:
+        if os.environ.get("HARNESS_REGISTER", "").strip().lower() == "off":
+            return HookResult.success()
+        if getattr(event, "event", "") not in self._ACCEPTED_EVENTS:
+            return HookResult.success()  # never Stop-family
+        if str(getattr(event, "trigger", "") or "").strip().lower() in self._REENTRANT:
+            return HookResult.success()  # belt and braces
+        if _is_subagent(event):
+            return HookResult.success()  # a subagent owns its spawn task
+        catalog = self._load_catalog()
+        if not catalog:
+            return HookResult.success()
+        items = self._live_items(catalog)
+        if not items:
+            return HookResult.success()  # a clean register is silent
+        if getattr(event, "event", "") == "SessionStart":
+            raw = self._digest(items)
+        else:
+            raw = self._match(event, items)
+        return stage(self.name, TIER_HEURISTIC, event, raw)
+
+    # -- data -----------------------------------------------------------------
+
+    def _catalog_candidates(self) -> tuple[list[Path], bool]:
+        """(paths to try, whether the operator named one explicitly).
+
+        An explicit path -- constructor argument or HARNESS_REGISTER_CATALOG --
+        is AUTHORITATIVE and is the only candidate. Falling through from a
+        broken explicit path to an auto-discovered one would silently read a
+        different register than the operator asked for, which is a
+        misconfiguration wearing a green badge."""
+        if self._explicit_catalog:
+            return [self._explicit_catalog], True
+        env = os.environ.get("HARNESS_REGISTER_CATALOG", "").strip()
+        if env:
+            return [Path(env)], True
+        return [
+            # Repo layout: agent-self/harness/modules.py -> <repo>/command-center/...
+            Path(__file__).resolve().parents[2]
+            / "command-center"
+            / "WORK-UNIT-CATALOG.json",
+            # Deployed layouts.
+            Path.home() / ".agents" / "command-center" / "WORK-UNIT-CATALOG.json",
+            Path.home() / ".claude" / "command-center" / "WORK-UNIT-CATALOG.json",
+        ], False
+
+    def _load_catalog(self) -> dict[str, Any] | None:
+        candidates, explicit = self._catalog_candidates()
+        for path in candidates:
+            try:
+                if not path.is_file():
+                    continue
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                # A malformed / 0-byte catalog is silence, never a crash.
+                data = None
+            if isinstance(data, dict) and isinstance(data.get("items"), list):
+                return data
+            if explicit:
+                return None  # an explicit path is the END of the search
+        return None
+
+    def _live_items(self, catalog: dict[str, Any]) -> list[dict[str, Any]]:
+        """Open, not deferred-into-the-future, with a usable id and title."""
+        now = datetime.now(timezone.utc)
+        out: list[dict[str, Any]] = []
+        for item in catalog.get("items", []):
+            if not isinstance(item, dict) or item.get("disposition"):
+                continue
+            item_id = str(item.get("id", "") or "")
+            title = str(item.get("title", "") or "")
+            if not item_id or not title:
+                continue  # a garbage row is skipped, not crashed on
+            defer = item.get("defer")
+            if isinstance(defer, dict):
+                try:
+                    if datetime.fromisoformat(str(defer.get("until", ""))) > now:
+                        continue
+                except ValueError:
+                    pass
+            out.append(item)
+        return out
+
+    # -- index and predicate ---------------------------------------------------
+
+    def _tokens(self, text: str) -> set[str]:
+        lowered = text.lower().replace("-", "_").replace("`", " ")
+        return {
+            tok for tok in self._TOKEN.findall(lowered) if tok not in self._STOPWORDS
+        }
+
+    def _index(
+        self, items: list[dict[str, Any]]
+    ) -> tuple[dict[str, set[str]], dict[str, int]]:
+        """id -> TITLE tokens, plus the document frequency of each token.
+
+        The title surface is kept SEPARATE from the program tag surface on
+        purpose. Folding the section heading into every item's token set makes
+        the program-naming tokens ("monitor", "cockpit") appear in 19 items each,
+        so document-frequency filtering then discards exactly the tokens that
+        identify the program -- which made an earlier single-surface design fail
+        its own control on every parameter combination tried."""
+        per_item = {str(item["id"]): self._tokens(str(item["title"])) for item in items}
+        frequency: dict[str, int] = {}
+        for tokens in per_item.values():
+            for token in tokens:
+                frequency[token] = frequency.get(token, 0) + 1
+        return per_item, frequency
+
+    def would_fire(
+        self, prompt: str, items: list[dict[str, Any]]
+    ) -> tuple[list[str], list[str]]:
+        """The pure predicate: (matched item ids capped and ranked, matched programs).
+
+        Exposed so the corpus-replay rate measurement and the tests exercise the
+        SAME code the module runs, not a paraphrase of it."""
+        prompt_tokens = self._tokens(prompt[: self._HEAD])
+        if not prompt_tokens:
+            return [], []
+        programs = sorted(
+            program
+            for program, tags in self._PROGRAM_TAGS.items()
+            if tags & prompt_tokens
+        )
+        per_item, frequency = self._index(items)
+        by_id = {str(item["id"]): item for item in items}
+
+        scored: list[tuple[int, str]] = []
+        for item_id, tokens in per_item.items():
+            rare = {
+                tok
+                for tok in tokens & prompt_tokens
+                if frequency.get(tok, 0) <= self._MAX_DF
+            }
+            if not rare:
+                continue
+            in_program = str(by_id[item_id].get("program", "")) in programs
+            if len(rare) >= 2 or (in_program and len(rare) >= 1):
+                scored.append((len(rare) + (2 if in_program else 0), item_id))
+        if len(scored) > self._CEILING:
+            return [], programs  # the prompt targeted nothing; stay silent
+        scored.sort(key=lambda pair: (-pair[0], pair[1]))
+        return [item_id for _, item_id in scored[: self._CAP]], programs
+
+    # -- verdicts --------------------------------------------------------------
+
+    def _match(self, event: Any, items: list[dict[str, Any]]) -> HookResult:
+        matched, programs = self.would_fire(
+            str(getattr(event, "prompt", "") or ""), items
+        )
+        by_id = {str(item["id"]): item for item in items}
+        fresh = [item_id for item_id in matched if not self._seen(event, item_id)]
+        if fresh:
+            for item_id in fresh:
+                self._mark(event, item_id)
+            return HookResult.success(
+                action="inject",
+                reason_code="register_gate_items",
+                additional_context=[self._render_items(fresh, by_id, len(items))],
+            )
+        # NO program-level fallback fire on a prompt. MEASURED on the 375-prompt
+        # corpus: adding one takes the shipped rate from 3.16 to 5.11 fires per
+        # 20-prompt session (37 of 97 fires), and 42 of those come from the
+        # single token "harness". It is also the weakest possible notice -- it
+        # names no item, so its only legal move is "go read a file". The
+        # SessionStart digest already delivers the program-level picture once per
+        # session, which is where that information belongs.
+        del programs
+        return HookResult.success()
+
+    def _digest(self, items: list[dict[str, Any]]) -> HookResult:
+        counts: dict[str, int] = {}
+        for item in items:
+            key = str(item.get("program", "") or "-")
+            counts[key] = counts.get(key, 0) + 1
+        breakdown = " / ".join(f"{name} {counts[name]}" for name in sorted(counts))
+        return HookResult.success(
+            action="inject",
+            reason_code="register_gate_digest",
+            additional_context=[
+                f"REGISTER: {len(items)} open ({breakdown}). "
+                "Full list: command-center/STATUS.md. "
+                "No action required to clear this line."
+            ],
+        )
+
+    @staticmethod
+    def _line(item: dict[str, Any]) -> str:
+        """One item, one line. The `evidence` column is NEVER quoted -- that is
+        where long paths and credential-adjacent text live."""
+        title = str(item.get("title", ""))
+        for stop in (". ", " - "):
+            idx = title.find(stop)
+            if 0 < idx <= 74:
+                title = title[:idx]
+                break
+        title = title.replace("**", "").replace("`", "").strip()
+        if len(title) > 74:
+            title = title[:73].rstrip() + "~"
+        return f"  {str(item.get('id', '')):<7} {title}"
+
+    def _render_items(
+        self, ids: list[str], by_id: dict[str, dict[str, Any]], total: int
+    ) -> str:
+        lines = [
+            f"REGISTER: {len(ids)} open item(s) match this area ({total} open total)."
+        ]
+        lines += [self._line(by_id[item_id]) for item_id in ids]
+        first = ids[0]
+        lines += [
+            "LEGAL NEXT MOVES - pick one, all three satisfy this notice:",
+            "  (1) work it now;",
+            f'  (2) close it:  python tools/command-center/close.py {first} --evidence "<file:line|cmd>"',
+            f'  (3) defer it:  python tools/command-center/close.py {first} --defer "<reason>"',
+            "Doing nothing is also fine - this is a NOTICE, not a task. It will not re-fire",
+            "for these ids this session.",
+        ]
+        return "\n".join(lines)
+
+    # -- per-session cooldown ---------------------------------------------------
+
+    def _flag_path(self, event: Any) -> Path:
+        root = self._root or (default_state_root() / "register-gate")
+        return Path(root) / f"{_session_hash(event)}.json"
+
+    def _seen(self, event: Any, key: str) -> bool:
+        try:
+            data = read_json(self._flag_path(event), {})
+            return bool(isinstance(data, dict) and data.get(key))
+        except Exception:
+            return False
+
+    def _mark(self, event: Any, key: str) -> None:
+        try:
+            path = self._flag_path(event)
+            data = read_json(path, {})
+            if not isinstance(data, dict):
+                data = {}
+            data[key] = True
+            path.parent.mkdir(parents=True, exist_ok=True)
+            atomic_write_json(path, data)
+        except OSError:
+            return
+
+
 def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
     root = Path(state_root or default_state_root())
     ledger = EventLedger(root)
     return [
         SecretGuardModule(),
-        SensitiveArtifactModule(),
+        SensitiveArtifactModule(state_root=root),
         LedgerModule(ledger),
         GoalModule(ledger),
         SanitizedCheckpointModule(ledger),
@@ -3707,4 +4230,5 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
         SubagentLifecycleModule(ledger),
         BcOffsetGuardModule(),
         EnforcementScaffoldModule(state_root=root),
+        RegisterGateModule(state_root=root / "register-gate"),
     ]

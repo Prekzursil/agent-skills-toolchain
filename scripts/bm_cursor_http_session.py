@@ -1,10 +1,10 @@
 """Talk to Basic Memory over HTTP MCP with session refresh.
 
 Cursor's built-in HTTP MCP client keeps a stale ``mcp-session-id`` after the
-:8765 daemon restarts (watchdog). JSON-RPC then returns -32600 Session not
+:18765 daemon restarts (watchdog). JSON-RPC then returns -32600 Session not
 found while the port is healthy. This process:
 
-* never binds :8765
+* never binds :18765
 * never starts/kills the daemon (watchdog / BasicMemory-HTTP-MCP own that)
 * on Session not found, initialize again and retry the call once
 
@@ -21,7 +21,7 @@ import urllib.error
 import urllib.request
 from typing import Any, cast
 
-DEFAULT_URL = "http://127.0.0.1:8765/mcp"
+DEFAULT_URL = "http://127.0.0.1:18765/mcp"
 CLIENT_INFO = {"name": "bm-cursor-http-session", "version": "1"}
 PROTOCOL = "2025-03-26"
 

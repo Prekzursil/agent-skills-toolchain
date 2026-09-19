@@ -36,6 +36,8 @@ _SECRET_PATTERNS = [
     (re.compile(r"ghp_[A-Za-z0-9]{36}"), "[REDACTED:gh-pat]"),
     (re.compile(r"github_pat_[A-Za-z0-9_]{22,}"), "[REDACTED:gh-pat]"),
     (re.compile(r"AKIA[0-9A-Z]{16}"), "[REDACTED:aws-akid]"),
+    # Databricks PAT (same pattern as dbx_events._DAPI_RE) — harvest Plane B.
+    (re.compile(r"dapi[A-Za-z0-9]{8,}"), "[REDACTED:dapi]"),
     (re.compile(r"xox[baprs]-[A-Za-z0-9-]{10,}"), "[REDACTED:slack]"),
     (
         re.compile(

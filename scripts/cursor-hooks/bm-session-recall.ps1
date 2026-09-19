@@ -1,5 +1,5 @@
 # Fail-open Cursor sessionStart hook: bounded vault digest inject.
-# Never binds :8765, never restarts BM, never rglobs the vault, never loads
+# Never binds :18765, never restarts BM, never rglobs the vault, never loads
 # recall-index.json. Emits valid JSON first (UTF-8 no BOM). Budget 2s.
 # sessionStart additional_context is documented but racy; always also write
 # C:\Users\Prekzursil\.agents\state\harness\cursor-session-recall.txt
