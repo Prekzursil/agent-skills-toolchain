@@ -1,55 +1,17 @@
 {
-  "$comment": "P2 loop-to-green cloud playbook. Gate name (as it appears in check runs) -> recipe. 'fix' runs at repo root via bash -lc; a recipe MUST verify its own fix locally before returning 0. 'owner_action' gates are reported, never attempted. Recipes carry the provenance of the session that derived them (2026-09-19).",
-  "gate-p2next-rail-count": {
-    "why": "C5: a satisfiable unit carries no independent PASS. As of a0f775fd0 the only such unit is IMP-0435 (both-states CI evidence exists: red run 35449511219 job 105914109160 head 86be7d74d; green on heads 3b9bcd0c4+). The r3 promotion is a review action performed by a fresh-context reviewer, not a mechanical recipe — if it has not landed by the time this runs, promote per the protocol below ONLY after re-verifying both runs from the API.",
-    "fix": "python command-center/p2-loop/promote_imp0435_r3.py --verify-and-promote && python command-center/p2-next/rail_count_gate.py",
-    "message": "review(IMP-0435): r3 promotion after API-verified both-states evidence (red 35449511219 / green heads; per FIXPLAYBOOK protocol)"
+  "_comment": "P2 loop-to-green provenance + routing. Executable recipes live in apply_recipe.py (recipes as code, known signatures only; unknown signatures exit UNRESOLVED and the workflow files an issue). This file records WHY each recipe exists and the owner-action gate.",
+  "routing": {
+    "gate-tests-coverage (python packages)": "apply_recipe.py quality_layers (battery in CI order; render drift auto-regen)",
+    "gate-unit-artifact-manifest": "apply_recipe.py regen_manifest",
+    "gate-lint-format (ruff)": "apply_recipe.py ruff_all",
+    "gate-no-runtime-junk": "apply_recipe.py junk_untrack (plain staged-index commit \u2014 pathspec commits restore worktree state, the 0ebc468aa trap)",
+    "gate-interpreter-floor": "probe only; a NEW violation means a fresh py3.12-ism landed \u2014 hoist manually, then it stays green",
+    "gate-mcp-audit": "probe only (r4-eol A6 control lives in the probe throwaway repo since IMP-0017 all-LF)",
+    "gate-secrets (gitleaks)": "probe; synthetic fixture identifiers get finding-level exact-value waivers after a 401-invalid probe \u2014 NEVER waive a live secret",
+    "gate-p2next-rail-count": "r3 promotion LANDED at 5ceec411c (all 7 C5 units PASS). If it reds again, a new satisfiable unit lacks review \u2014 that is review work, not a recipe; file an issue."
   },
-  "gate-tests-coverage (python packages)": {
-    "why": "Layered gate: pytest tools/command-center, validate --require-complete, render --check, casualty suite+guard+redproof, measure-guard battery, receipt admission gate, unitgate. Each layer only runs once the previous is green, so fixes unmask the next. Session-proven recipes:",
-    "layer_recipes": {
-      "numpy-missing": "pip install pytest numpy (mechanism_dedup_gate.py imports numpy at module level)",
-      "cc-render-drift": "python tools/command-center/render.py (regen; --check must then pass)",
-      "casualty-elided-digest-mismatch": "re-pin declared digests to fixed points over LF-stable bytes (see commit 86be7d74d method); verify with verify_elided_digest.py MATCH=True both",
-      "jsonparse-unparseable": "make stub .json fixtures valid JSON objects (rename collides with deliberate .md twins); untrack leaked selftest artifacts under _r2_tmp/",
-      "unitgate-schema-invalid-receipts": "fill report.kind/control_ids/observations from the receipt's OWN evidence (kind enum: claim-record/work-unit; observations[].measured must be scalar); nothing invented",
-      "manifest-drift": "python tools/command-center/unit_manifest.py --write then --check"
-    },
-    "fix": "python command-center/p2-loop/diagnose_and_fix_quality_py.py || exit 1",
-    "message": "fix(p2-cloud): python-packages layer per playbook recipe"
+  "owner_action_gates": {
+    "github-advanced-security": "GitHub platform defect: agentic code-scanning dies on server-side model rejection (CAPI 400, sweagent-capi:claude-opus-5). Re-run once; if persistent remove from required checks or file a support ticket citing request ids 1C42:29ADD0:19CEF26:1FD54A4:6AAE869A / 6400:3C6EBC:1B6CB5E:227CAAB:6AAE7A5E."
   },
-  "gate-interpreter-floor": {
-    "why": "py3.11 floor: f-string expressions may not contain backslashes (py3.12+ syntax).",
-    "fix": "python command-center/p2-loop/fix_interp_floor.py && python command-center/ci/interpreter_floor_gate.py",
-    "message": "fix(p2-cloud): hoist backslash out of f-string expression (3.11 floor) per playbook"
-  },
-  "gate-lint-format (ruff)": {
-    "why": "Pinned ruff 0.15.17 check+format whole-repo.",
-    "fix": "uvx ruff@0.15.17 check --fix --quiet . ; uvx ruff@0.15.17 format --quiet . ; uvx ruff@0.15.17 check . && uvx ruff@0.15.17 format --check .",
-    "message": "fix(p2-cloud): ruff check+format per playbook"
-  },
-  "gate-no-runtime-junk": {
-    "why": "Tracked runtime junk (gitlinks, node_modules/__pycache__ paths, installed.json). gitignore alone does NOT untrack — the 0ebc468aa pathspec-commit trap restored them.",
-    "fix": "git ls-files | grep -E '^\\.worktrees/' && git rm -r -q --cached .worktrees/* || true; python command-center/p2-loop/untrack_junk.py && python .github/workflows/no-runtime-junk-junkscan.py 2>/dev/null || true",
-    "message": "fix(p2-cloud): untrack runtime junk (plain staged-index commit; never pathspec)"
-  },
-  "gate-unit-artifact-manifest": {
-    "why": "Registered artifact bytes changed without a manifest re-pin, or a setup-action SHA typo (5fda3d95 vs 5fda3b95 class).",
-    "fix": "python tools/command-center/unit_manifest.py --write && python tools/command-center/unit_manifest.py --check",
-    "message": "fix(p2-cloud): manifest re-pin per playbook"
-  },
-  "gate-mcp-audit": {
-    "why": "r4-eol part-C control anchored to the retired *.ps1 eol=crlf policy; the control lives in the probe's throwaway repo (A6) since IMP-0017's all-LF policy.",
-    "fix": "python command-center/mcp-audit/_r4_eol_probe.py",
-    "message": "fix(p2-cloud): mcp-audit probe per playbook"
-  },
-  "gate-secrets (gitleaks)": {
-    "why": "Full-history scan; synthetic fixture identifiers get finding-level exact-value waivers (plural [[allowlists]], regexTarget=secret) after a 401-invalid probe proves the value synthetic. NEVER waive a live secret.",
-    "fix": "python command-center/p2-loop/gitleaks_waiver_check.py",
-    "message": "fix(p2-cloud): gitleaks finding-level waiver per playbook (synthetic-proven only)"
-  },
-  "github-advanced-security": {
-    "owner_action": true,
-    "why": "GitHub's own agentic code-scanning dynamic workflow dies on a server-side model rejection (CAPI 400 'model not supported', sweagent-capi:claude-opus-5). No repo change can fix it. Re-run once; if persistent remove from required checks or file a support ticket citing request ids 1C42:29ADD0:19CEF26:1FD54A4:6AAE869A / 6400:3C6EBC:1B6CB5E:227CAAB:6AAE7A5E."
-  }
+  "provenance": "Derived 2026-09-19 by the pr325 loop-to-green session (commits 0ebc468aa..5ceec411c): setup-python SHA typo, gitlink/work untrack, r4-eol control re-anchor, zai ruff, cyclonedx-sbom TARGETS registration, numpy install, gitleaks corpus waivers, interp-floor f-string, casualty elided digests over LF bytes, AUD-0074 stub JSONs, _r2_tmp selftest leak, CC-0017/CC-0018/IMP-0436 receipt schemas, IMP-0435 both-states plant protocol (red 35449511219 / green 35450027350)."
 }
