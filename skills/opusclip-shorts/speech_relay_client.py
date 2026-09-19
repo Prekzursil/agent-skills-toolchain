@@ -47,7 +47,7 @@ def main():
            "input_path": os.path.abspath(a.input), "output_path": os.path.abspath(a.output)}
     open(os.path.join(RELAY, "queue", job_id + ".job.json"), "w", encoding="utf-8").write(
         json.dumps(job, ensure_ascii=False))
-    print(f"submitted {job_id}; waiting for relay…", file=sys.stderr)
+    print(f"submitted {job_id}; waiting for relay… (for instant service, ask any live ZCode agent: \"drain the speech relay queue\")", file=sys.stderr)
     res = wait_result(job_id, a.timeout)
     if res.get("ok"):
         print(json.dumps(res, ensure_ascii=False, indent=1))
