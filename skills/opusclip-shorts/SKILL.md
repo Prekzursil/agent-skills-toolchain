@@ -62,11 +62,40 @@ UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly
 - ASR chunk 0 goes to default `out/transcript.json` unless `output_json` is set.
 - vision: `Read` on images offloads to CDN; verify via `mcp__4_5v_mcp__analyze_image` with the returned URL.
 
+## ASR channel choice — ASK AT INVOCATION (owner requirement)
+When this skill starts, ASK the user which speech channel to use (default suggestion: online if
+inside ZCode, offline otherwise). One question, then proceed:
+- **online** — ByteDance Seed-ASR via the ZCode Coding-Plan entitlement (best quality, word
+  timestamps, metered by the plan)
+- **offline** — local faster-whisper large-v3-turbo (free, unmetered, near-SOTA, word timestamps,
+  CUDA on this box)
+
+## Online-channel audit (how it actually works — reverse-engineered 2026-09-19)
+- Endpoint: `POST {ZCODE_BASE_URL}/api/v1/mcp/server/video_edit` (Streamable HTTP MCP, Z.ai origin).
+- Auth: identity headers are minted by the ZCode host PER TOOL CALL and delivered in MCP
+  `params._meta` under `com.zcode/official-mcp-auth` ({ok, headers} or {ok:false, reason}).
+  Reasons enum: official_auth_unavailable / official_auth_plan_required / official_mcp_origin_untrusted.
+  JWTs rotate mid-session; 401 must not be retried in-process (fresh headers arrive with the next call).
+- Entitlement: Coding Plan ONLY — Start Plan and API-key connections are explicitly ineligible.
+  No exportable key exists: `~/.zcode/v2/coding-plan-cache.json` stores only plan-eligibility status.
+  => The channel is usable ONLY from inside a live ZCode session. Metering is server-side on the
+  plan; there is deliberately no client-side path around it. Don't try; use offline for unmetered.
+
+## Making online work in EVERY harness (speech-relay)
+`VE_SPEECH_MCP_URL` is the designed topology for non-ZCode hosts ("credentials stay server-side").
+Since the credential minter is the ZCode host itself, the relay brokers through it:
+- Any harness: `python speech_relay_client.py transcribe <audio> <out.json> [--language ro]`
+  (drops `~/.agents/speech-relay/queue/<id>.job.json`, polls `results/<id>.result.json`).
+- A ZCode automation ("Speech relay queue worker", every 5 min) drains the queue through the
+  host-authenticated video-edit MCP and writes results. Fresh auth per run, plan-metered, works
+  from Claude/Codex/anything on this machine. Batch chunks together; latency ≤5 min per batch.
+
 ## Portability & dependencies (any harness)
-- Registered harness-wide as stdio MCP **`video-agent-kit`** in `~/.agents/agents.json`
-  (targets claude/codex/zcode; deployed by `sync_shared_state.ps1`; verified `claude mcp list`
-  → ✔ Connected). Server: `python <zcode-plugin-cache>/video-agent-kit/<ver>/mcp/video_edit_server.py`
-  with `VE_PLUGIN_ROOT` set — update the path in agents.json when the plugin version bumps.
+- Registered harness-wide as stdio MCP **`video-agent-kit`** pointing at the LOCAL PATCHED COPY
+  `~/.agents/mcp-servers/video-agent-kit/` (gitignored; survives plugin-cache version bumps).
+  Patch adds offline provider: `speech_transcribe(provider="local")` → faster-whisper
+  large-v3-turbo (env: VE_ASR_LOCAL_MODEL / _DEVICE / _COMPUTE; VE_ASR_LOCAL=0 disables).
+  `pip install faster-whisper` is the only extra dependency. Verified ✔ Connected via `claude mcp list`.
 - Works everywhere with NO extra config: inspect/analyze media, shot detection, timeline
   build/validate/render, subtitle scout/build/render/QC, basic ops (all local ffmpeg).
 - **Cloud speech (speech_transcribe / speech_synthesize): inside ZCode the host injects
