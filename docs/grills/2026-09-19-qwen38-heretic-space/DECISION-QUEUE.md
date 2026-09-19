@@ -505,3 +505,10 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   compressed-tensors vs NVFP4). **Resident-worker pin proposed: magiccodingman FP8 @ ae4c4a3… — 30.87 GB, 333 visual + 22 mtp
   tensors, preprocessor AND video_preprocessor present ⇒ satisfies the vision clarification; no VLM-class export job needed if it
   loads.** models.yaml proposal: 9 hosted + 1 local (pending admission) + 5 parked. API-ledger still running.
+- R0 grounding: **API ledger done** — 39 verified / 6 known_bad (red-proofed both directions) / 1 unresolvable → FIXED by extracting
+  the gradio_client 2.6.1 wheel (gradio's exact pin) into libsrc. Card-relevant: **BROKE** `prefill_chunk_size` on the VLM class
+  (generic loop slices dim 0 = modality axis of the (3,b,s) mrope ids; per-chunk grid token-count checks unsatisfiable) — VLM worker
+  must not set it, staging-gated at best; **CONFIRMED** X-IP-Token attribution (MCP forwards headers → caller bills; custom routes
+  need `LocalContext.request.set(gr.Request(fastapi_request))` before the first yield); **BROKE** `spaces.GPU(gpu_size=…)` silently
+  swallowed by `**kwargs: Unpack[EmptyKwargs]` — size only via the decorator's `size=` param; plus duration_factor 1.5 on Blackwell
+  and >42 GiB models auto-flipping to xlarge. All three grounding agents complete; card drafting begins.
