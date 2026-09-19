@@ -722,3 +722,202 @@ const REPORT = { type: 'object', properties: { ...COMMON,
   what_would_most_improve_confidence: { type: 'string', maxLength: 800 },
 }, required: ['status', 'report_path', 'report_bytes', 'rows', 'owner_actions', 'what_would_most_improve_confidence', 'repo_toplevel', 'outward_actions_taken', 'installed_packages'] }
 ```
+
+---
+
+## 10. Replay/resume, null-result, safeguard-kill and concurrency handling
+
+### 10.1 Replay and resume (F-43, F-47, T-14..T-16, S-18)
+- `args` (computed by the orchestrator with `git rev-parse` immediately before every invocation): `{stage, run_nonce, launched_at, build_repo, venv, gate_sh, libsrc, wheels_dir, base_sha, plan_sha, integration_sha_at_launch, toolchain_status_sha256, wave_size, max_rounds, max_build, reserve_tokens, smoke, owner_approvals{github_repo_url, staging_space_ids[], staging_evidence_dir, production_evidence_dir, fixture1_path, hosted_call_budget_usd, gpu_seconds_budget}}`. Nothing time- or random-derived is computed in the script.
+- Every prompt is a pure function of `args` and prior results; arrays are sorted by id before `JSON.stringify`; the integration head sha appears in every code-reading prompt, so a merge changes downstream prompts (cache miss exactly where code changed) and nothing else does.
+- A re-drive of the same card in the same run carries `attempt:<k>` in the prompt → cache miss by construction; the same card in a later run carries the new integration head → cache miss by construction. The stale-cache case (a cached `head_sha` whose ref was pruned) is detected by the integrator's `status:'missing-ref'` and answered by a live re-drive; no separate probe agent.
+- Resume (`{scriptPath, resumeFromRunId}`) is permitted only when `integration_sha_at_launch` still equals the live `integration/<nonce>` head — the orchestrator checks this before invoking; otherwise it launches a fresh run with new args. The journal is read before any "empty result" diagnosis (T-25).
+- Tunables that only affect later stages (`max_rounds`, `reserve_tokens`, `wave_size`) live in `args`, so changing them does not invalidate the early cached prefix.
+
+### 10.2 Null results (F-41, T-17, D-21)
+- Every `agent()` goes through `run(role, mode, id, prompt, opts)`: it pushes `{role, mode, id, attempt, status}` to `ledger[]` for every call — including `null`, `threw`, `timeout` (typed receipts, never bare `null`); on a null it retries once with `attempt:2` and the `NARROW` clause (inspect `git status`/`git log` first, continue from the last commit, reading list halved), then returns `{status:'null'}`; stage callbacks branch on `status`; `.filter(Boolean)` is never used on a barrier result — drops are counted and logged.
+- `pipeline` stages catch their own throws and return typed objects, so a throwing item does not vanish to `null` silently (the placeholder-not-throw pattern the review script already used).
+
+### 10.3 Safeguard kills (F-31, F-42)
+- The three hardening cards and the persona card carry reading lists ≤ 6 files and a defensive framing ("what the guard must refuse; write the red-proof test; never print an environment"); their verifiers run at `effort:'xhigh'`.
+- Builders commit per coherent step; the null-retry prompt begins with the salvage rule (§4.4); two nulls on the same card → `blocked:'agent-null'`, not a third attempt; the gate pre-step removes stale `index.lock` and kills stray listeners started from the checkout; the integrator's `bundle` mode prunes worktrees of merged branches.
+
+### 10.4 Concurrency (F-44, T-7, T-8)
+- `args.wave_size` = 2 at cap 2 (4 CPUs), 12 at cap 14-16 (after the resize). Cards inside a wave run as independent `pipeline` chains; barriers exist only at the wave end (integration needs the whole wave) and around the three review lenses (dedup needs all).
+- At cap 2 the enqueue order is the schedule (observed FIFO): the wave list is sorted so the critical path (01→02→03a→03b→04→05a→05b→06→10) is enqueued first; at cap 14 the same script fills the width.
+- Waves are barrier-synchronised on purpose: a dependency-triggered scheduler (`Promise.race` over ready cards) would branch control flow on completion order and break the replay cache's call-order prefix (T-15). The ~20 % wall-clock it would save is not worth non-replayable control flow.
+- Per-agent timeouts use the tested h6 `withTimeout`/`settle` block verbatim; it degrades to a plain `await` when `setTimeout` is absent (UNVERIFIED in the sandbox); a timeout is a typed drop receipt, the card is marked `blocked:'timeout'` and re-driven once with the `NARROW` clause. Timeouts: author 25 min, builder 50 min, verifier 25 min, integrator 20 min (conflict 30), review lens 30 min, synthesizer 15 min.
+- The script logs at every wave: cards built/blocked, merges, the stop reason, and an estimated remaining wall-clock from `args.launched_at` and the count of remaining waves × the observed per-wave duration reported by agents (`date -u` in their `checks[]`).
+
+---
+
+## 11. Budget and effort plan by role; estimated agent counts and wall-clock
+
+| Role · mode | effort | model | timeout | est. duration (UNVERIFIED extrapolation from 13-16 min finders / 4-5 min verifiers) |
+|---|---|---|---|---|
+| integrator · setup | medium | inherit | 30 min | 10-15 min (venv + wheels + tools, red-proof) |
+| planner · plan | high | inherit | 40 min | 15-25 min |
+| verifier · plan | medium | inherit | 20 min | 8-10 min |
+| author · tests / journeys | medium | inherit | 25 min | 8-12 min |
+| verifier · red | low | inherit | 10 min | 3-4 min |
+| builder · implement | high | inherit | 50 min | 15-25 min (S) · 25-40 min (M) |
+| verifier · verify | medium (xhigh on `risk:'security'`) | inherit | 25 min | 6-10 min |
+| builder · fix | high | inherit | 40 min | 10-20 min |
+| integrator · merge / bundle | low | inherit | 20 min | 3-5 min |
+| integrator · conflict | high | inherit | 30 min | 10-15 min |
+| integrator · clean-gate | low | inherit | 20 min | 6-8 min (suite twice + journeys) |
+| verifier · review (lens) | high | inherit | 30 min | 12-15 min |
+| verifier · refute | medium | inherit | 15 min | 4-6 min |
+| verifier · veto | xhigh | inherit | 25 min | 8-10 min |
+| synthesizer · report | low | inherit | 15 min | 5 min |
+
+**Agent count (21 cards; expected fix mix 40 % one fix, 15 % two fixes, 10 % author re-drive, ~5 % null retries):** setup 1 · plan 2-3 · per card ≈ 5.7 → 120 · merges 21 + conflicts ~3 + fast-forwards ~2 = 26 · clean-gates 9-11 · journey authors ~6 · review lenses 9 (3 rounds) · refuters ~13 · review fix tasks ~7 × 5.7 ≈ 40 + their merges/clean-gates ~10 · veto 3 · synthesizer 1 → **≈ 240 agents (range 200-280)** at either cap — the cap changes wall-clock, not count. Comfortably under the 800 reserve threshold and the 1000 lifetime cap.
+
+**Wall-clock (per-card chain without a fix ≈ author 10 + red 3.5 + builder 20 + verify 8 ≈ 42 min; with one fix ≈ 70 min; wave = slowest chain + serial merges × 4 min + clean-gate 7 min):**
+
+| | cap 2 (this box) | cap 14 (after the resize) |
+|---|---|---|
+| Waves | ~11 (DAG width truncated to 2) | 9 (DAG depth; width 1-3 per level) |
+| Build + integrate | ~11 × ~65 min ≈ 12 h | ~9 × ~80 min ≈ 12 h (the critical path is the plan's, not the cap's — see below) |
+| Review loop (3 rounds, ~7 fix tasks) | ≈ 5-6 h | ≈ 3 h |
+| Setup + plan + synth | ≈ 1 h | ≈ 1 h |
+| **Total R1** | **≈ 18-20 h, run as 3-4 resumable invocations** (owner keeps a client attached; idle timeout at maximum) | **≈ 14-16 h, 2 invocations** |
+
+Honest reading: the DAG the lens-4 plan implies is 9 deep, so the cap buys width (fewer waves at cap 2 truncation, parallel review lenses and refuters) but cannot shorten the critical path. The levers that would, and are deliberately NOT taken here: dependency-triggered scheduling (non-replayable control flow, §10.4) and skipping the author/red stages (violates the non-negotiable). The lever the owner CAN take is declaring cards 07, 12, 13a, 14 lower priority for R1 (they hang off 03b; §15 Q4), which drops two levels off the critical path in R1 and moves them to a second build run.
+
+**Budget:** `budget.total` may be `null` (no directive) → all loops are bounded by counters first; `RESERVE` = 120 k output tokens for clean-gate + veto + synthesizer; the script stops scheduling new waves/rounds below the reserve or above 800 agents and always runs the synthesizer inside `try/catch` with the ledger it has (F-45).
+
+---
+
+## 12. COVERAGE MATRIX
+
+Legend for "phase": **P0** orchestrator pre-flight · **R0** plan · **R1** build inner loop · **G** `gate.sh` · **I** integration · **W** whole-tree review loop · **S** synthesizer · **X** script invariant (JS) · **O** owner checkpoint. Rows whose only complete guard is an owner checkpoint are marked **O-only**.
+
+### 12.1 Failure modes F-1..F-47 (research-4)
+
+| id | Guard (mechanism) | Phase |
+|---|---|---|
+| F-1 wrong repo (cwd) | `PREAMBLE` names `$BUILD_REPO`; every git/pytest command `git -C`/absolute; no `isolation:'worktree'`; every schema returns `repo_toplevel` and the script asserts `=== args.build_repo`; toolchain status sha256 re-checked by the setup and clean-gate modes | X, G, I |
+| F-2 volatile build path | `args.build_repo=/workspaces/space-build` (durable, outside the grill rsync); `libsrc` copied to a durable path; `git bundle --all` into the grill folder after every merge (synced by the owner's script) | P0, I |
+| F-3 wrong base / snapshot mutated | `args.base_sha` full sha; setup asserts `git rev-parse HEAD == base_sha` and writes `.gate/base.json`; snapshots `chmod -R a-w`; card prompts carry the base | P0, R0, X |
+| F-4 foreign CLAUDE.md | `PREAMBLE` first paragraph; `AGENTS.md` written into the build repo by the planner and named in every prompt | X, R0 |
+| F-5 per-agent bootstrap | one idempotent setup stage builds `$VENV` (3.12) with wheels + tools; `gate.sh` refuses any other interpreter; `installed_packages` must be `[]` on every schema (script aborts the card otherwise) | P0/R1, G, X |
+| F-6 "ask the owner" unattended | `args.owner_approvals` is data; a null field → `blocked_on_owner` entry in the checkpoint object, never an action, never a retry; the synthesizer lists them first | X, S, **O** |
+| F-7 secrets leak | P0 regex pre-scan of all inputs; trigger message carries no secret; `gate.sh` runs pytest under `env -i` with a fixed `CANARY_SECRET`; secrets regex step over the diff range + commit messages; hardening tests assert absence only; journal export scanned before it is copied to `evidence/` | P0, G, S |
+| F-8 hallucinated APIs | `plan/api-ledger.json` (symbols with `libsrc` path:line) from R0; `apis_expected` per card → `gate.sh` apicheck imports each symbol from the pinned wheels and checks kwargs; idiom lint for the known traps (`Chatbot(type=`, `gpu_size=`, `presence_penalty`, `restart_space(revision`, `from gradio.client`, `read_text(newline=`, assisted generation) | R0, G |
+| F-9 recommendation vs decision | `plan/decisions.json` (id → decided value); cards cite decided values only; `verifier mode:'plan'` refutes contradictions; owner approves the sheet at C0; review lens `decision-fidelity` diffs behaviour against the sheet | R0, O, W |
+| F-10 CORRECTED line ignored | planner rule: cards quote ONLY the CORRECTED text; idiom lint flags the known-bad idioms (`preexec_fn`, `__wrapped__`, `rmtree`+unload, `prefill_chunk_size`, `lease_s - 30`) as warnings the verifier must clear by id | R0, G, R1 |
+| F-11 UNVERIFIED findings / stale `file:line` | cards locate by symbol (`file::function`) at `base_sha`; finding ids with UNVERIFIED status are routed to `verifier mode:'evidence'` before any card cites them; every finding carries `sha` | R0, W |
+| F-12 verification theater | the gate ledger (`.gate/last_run.json`, sha256 returned) is the only admissible evidence; verifiers run `gate.sh` themselves; `pass` requires `ledger_head_sha === build.head_sha`; pytest exit 5 is red; `staging-required` lines can never be `pass` locally | G, X |
+| F-13 monolithic items | cards `S`/`M` only (plan verification rejects `L`); 21 cards for 14 steps; builder `partial` with commits ≥ 1 is re-driven as a fix round; `diff_stats` logged, oversize flagged for the scope lens | R0, R1, X |
+| F-14 dependency order / collisions | `topoOrder` + `waves` with disjoint write sets (JS); serial integration in DAG order with a gate after each merge | X, I |
+| F-15 context loss between stages | carriers are files + git: cards, `plan/status/<id>.json`, `.gate/last_run.json`, the branch; returns are small typed objects; every prompt says "read the card at <path>, then `git diff <base>..<head>`" | X, R1 |
+| F-16 scope creep | card `in_scope/out_of_scope/files_allowed/deps_allowed`; `gate.sh` scope step fails hunks outside the allowlist and requirement lines outside `deps_allowed`; review lens `scope`; ship-but-flag defaults OFF are in every card's `out_of_scope` | G, W |
+| F-17 persona boundary | persona card: `risk:'persona'`, no `git log/show` on `system_prompt.py`, only G-19 role names; `tests/test_personas.py` absence test in `tests/protected.txt`; review lens `decision-fidelity` runs on persona/README/test changes; synthesizer reports the absence test result explicitly | R0, G, W, S |
+| F-18 tests weakened/deleted | oracle lock: pre-existing test files modified/deleted by a builder → gate red; `collected ≥ baseline − Tests-Removed:`; skip/xfail non-increasing without `Skip-Added:`; test-detection idioms in production code → red; protected files; scripted mutants must kill | G |
+| F-19 over-claiming commits | ruff F821/F811 + import smoke; claim-vs-diff lint over every commit; `dod[{command, exit_code}]` in the builder schema; `taskDone()` counts DoD lines, not items; synthesizer rows carry `dod_done/dod_total` | G, X, S |
+| F-20 mocks testing the mock | conformance suite parametrised over `fake`/`recorded-hosted`/`recorded-worker` with `provenance`; recorded rows `skipped: needs owner recording` are counted; three scripted mutants per task must turn the tests red; fixture #1 (owner) replaces the synthetic golden | R1, G, O |
+| F-21 line-ending drift | card 01: `.gitattributes` + `.editorconfig` commit, then a `Renormalize-Only: yes` commit (claim lint verifies whitespace-only); `gate.sh` eol step red on any CRLF/mixed tracked text file thereafter; `apply_patch` CRLF fix per security-tools-6 CORRECTED | R1, G |
+| F-22 large files / LFS / junk | `gate.sh`: LFS empty, blob cap 5 MB, forbidden paths; card 01 extends `.gitignore`; fixtures generated in `tmp_path` | G, R1 |
+| F-23 3.14 vs 3.12 drift | gate runs only under `$VENV` 3.12; `ruff --target-version py312`; two requirement sets each with a lock produced under 3.12; test that README front matter equals the lock's gradio pin; final resolution observed on staging (R2 evidence) | G, R1, O |
+| F-24 README/UI/commit claims diverge | `tools/render_readme.py --check` in the gate; `tests/test_constants_pin.py` (protected); UI strings read the constants module; claim lint on every commit | G, R1 |
+| F-25 catalog provenance | `models.yaml` schema test + gate provenance step (40-hex revision, `saved_path` exists); entries the workflow cannot verify are committed `status: unverified` and listed for the owner | G, R1, O |
+| F-26 leaked servers / foreground launch | harness picks a free port, `prevent_thread_lock=True` or subprocess with `try/finally: kill()`; `/healthz` sha asserted against the checkout HEAD; gate pre-step kills stray listeners from the checkout; `AUTHORITY` forbids foreground servers without a timeout | R1, G, X |
+| F-27 infinite/oscillating fix loops | `MAX_BUILD=3`, fingerprint two-strikes, oscillation A→B→A detection, `MAX_ROUNDS=3`, dry counter 2; findings ledger with stable ids (`fkey`); exhaustion → typed `blocked` | X |
+| F-28 fixing the gate | `gate.sh` lives outside the repo for the run; in-repo copy + `ruff.toml`, `pytest.ini`, `tests/protected.txt`, `tools/claim_lint.py`, `.gitattributes` are protected (only card 01 may touch); red-proof mode recorded by setup and by card 01's verifier; one `Claim-Waiver:` per range; only exit 0 is green | G, X |
+| F-29 flaky / network tests | suite twice with identical outcomes; `--disable-socket --allow-hosts=127.0.0.1`; blackhole proxy; `tests/live/` excluded unless the owner's cost flag | G |
+| F-30 critic captured by self-report | verifiers receive the card + diff range + ledger, never the builder's narrative; must run `gate.sh` and cite hunks (`hunks_cited minItems`); `strongest_disagreement` required even on pass; mechanical lenses first | R1, X |
+| F-31 safeguard kill on security code | hardening split into 09a/09b/09c with ≤ 6-file reading lists; defensive framing; null → one narrower retry → park `unreviewed → needs_owner` (never `pass`) | R0, X |
+| F-32 merge conflicts "pick one side" | integrator aborts on conflict; fresh `mode:'conflict'` call with hunks + both cards, re-gated; `git cherry` empty + patch-id check asserted by the script; bundle after each merge | I, X |
+| F-33 worktree lifecycle | single `$WT` root; nonce in branch names; creator removes its worktree only after the branch head is verified; integrator prunes merged worktrees; stale-run cleanup after bundling | R1, I |
+| F-34 green on branch, red merged | gate after every merge on the merged tree; red → `git revert -m 1`, task parked, fix task next round on the surviving head | I, W |
+| F-35 outward actions | `args.owner_approvals` only; `AUTHORITY` forbids every write tool; `outward_actions_taken` non-empty → run aborts; pipeline code written + unit-tested against fakes, never executed; owner disables connector write tools | X, P0, **O** |
+| F-36 harness burns quota/money | harness defaults `--backend fake --dry-run`; real backends need `--i-accept-cost` + an env var only the owner sets; `max_retries=0`; zero-call test in the gate; the owner runs the real harness | R1, G, **O** |
+| F-37 staging-only behaviour "verified" | `verification_level` enum on every DoD line/finding; keyword list forces ≥ `staging-required`; such lines are `deferred`, listed in the checkpoint runbook with the measurement to record; R2 reads CI evidence files only | X, S, **O** |
+| F-38 other agent resumes pushing | the workflow never touches the Space; promotion runbook step 0 asserts Space HEAD == base or adopts the delta; owner checklist: stop notice, disable scheduled tasks, rotate its token, delete NF4 secrets | P0, S, **O** |
+| F-39 flaky fetch → fabricated values | catalog/api-ledger entries need `source{url, saved_path}` and the gate checks the file exists; unresolved facts are `TODO(owner-verify)` entries, never numbers; constants seeded UNVERIFIED are marked in the config comment | R0, G |
+| F-40 synthesizer summarises phantom work | synthesizer receives only the script-computed row table + ledger paths; its `rows` are compared to the script's in JS and overwritten on mismatch (logged); rows include `parked/reverted/blocked_on_owner/dropped_null/not_attempted/deferred` | S, X |
+| F-41 null contract mishandled | `run()` wrapper records every call incl. nulls; typed `{status:'null'}`; one narrower retry; never `.filter(Boolean)` on a barrier without counting | X |
+| F-42 mid-task kill | commit per coherent step; salvage rule in the retry prompt; gate pre-step (index.lock, stray servers); two nulls → park | R1, G, X |
+| F-43 stale resume cache | args carry `base_sha`, `integration_sha_at_launch`, `run_nonce`; integration head in every prompt; `attempt` suffix on re-drives; `missing-ref` → live re-drive; resume only when the launch sha still matches | X, P0 |
+| F-44 cap-2 wall-clock / host stops | one script, several resumable invocations; waves; single-vote mechanical lenses; setup pre-builds the venv; estimated remaining wall-clock logged per wave; owner sets the idle timeout to the maximum and keeps a client attached (**O** for the idle timeout) | X, **O** |
+| F-45 budget exhaustion / agent cap | counters first, budget second; `RESERVE` + `agentCount > 800` stop scheduling; synthesizer always runs in `try/catch` | X |
+| F-46 schema-valid-but-empty | small schemas with `minItems`, `maxLength`, patterns; script re-validates semantics (`pass ⇒ ledger match`, `done ⇒ every DoD exit 0`); smoke run validates every schema | X, P0 |
+| F-47 script-level bugs | `meta` pure literal; phase titles match; no `Date.now/Math.random/new Date()`; every stage body in `try/catch` with a ledger push; `phase` passed per call inside pipelines; state derived from returns; smoke run mandatory | X, P0 |
+
+### 12.2 Doctrine anti-patterns AP-1..AP-17 (research-1 §4)
+
+| id | Guard | Phase |
+|---|---|---|
+| AP-1 receipt-as-result | `status` enum on every schema; `run()` rejects `null`/threw into typed receipts; no background forwarders; digests matching `/started in the background|based on the digest/i` are logged and treated as `FAILED` | X |
+| AP-2 digest theatre | the artifact is the branch + ledger; verifiers read `git diff` and the ledger file, never a summary; the synthesizer gets the ledger table, not prose | R1, S |
+| AP-3 evidence-tag theatre | the two signals are mechanically different by construction: the gate ledger (script-written) vs the verifier's own re-run of each DoD command; a `pass` needs both to agree on `head_sha` | G, X |
+| AP-4 silent-in-both detector | `gate.sh --red-proof` must fire on `f88b120` and on the false-claim fixture and stay green on the cleaned base; confirm-RED for every new test; mutants must kill | G |
+| AP-5 Goodhart-green | tests written before code by the author; oracle lock; skip/xfail/`-k`/`--deselect` cannot enter (gate owns the pytest command); mutants | R1, G |
+| AP-6 self-certification | distinct fresh `agent()` per role; builder returns evidence not verdicts; only the JS predicate says done/satisfied; judge veto-only | X |
+| AP-7 the grind | fingerprint two-strikes → park; never a 4th identical attempt; oscillation detection | X |
+| AP-8 fat barrier, no timeout | pipeline per card; barriers only at wave end and review lenses; h6 `withTimeout`/`settle` with typed drops (degrades safely if timers are absent) | X |
+| AP-9 over-broad `required[]` | `required` is the floor; prose in single capped strings; deliverable on the branch regardless | X |
+| AP-10 mid-run contract edits | `plan_sha` frozen at C0; cards immutable during R1 (a needed card change is a new card in the next run); schemas are top-level consts | R0, X |
+| AP-11 unbounded loop | `MAX_ROUNDS`, dry counter, `seen` dedup, budget/agent reserve; every stop reason logged | X |
+| AP-12 negative instructions in the implementer prompt | the builder prompt carries the card and intent; every "do not" is a gate step, not a sentence | R1, G |
+| AP-13 LLM doing mechanical comparison | DAG, waves, overlap, dedup, fingerprints, predicates, row table — all JS; lints — all `gate.sh` | X, G |
+| AP-14 parallel mutators / overlapping files | disjoint write sets per wave (JS); agent-created worktrees; single serial integrator | X, I |
+| AP-15 trusting "done"/"tests pass"/working-tree green | `taskDone()` reads the verifier's ledger hash, not the builder's status; `gate.sh --clean` from a detached pristine checkout per wave | X, G |
+| AP-16 performative agreement in the fix loop | fixer receives only typed failures; `strongest_disagreement` required from every verifier; a refuted finding is recorded, not deleted | R1, W |
+| AP-17 trailing limitations section | `verification_level` and `unverified` are inline fields per line/finding; the report's rows carry `deferred` counts inline | S |
+
+### 12.3 Tool-native anti-patterns T-AP-1..12 (research-2 §6)
+
+| id | Guard | Phase |
+|---|---|---|
+| T-AP-1 consent-in-prompt | approvals are `args` data; a script string can never authorise; outward actions abort the run | X |
+| T-AP-2 secret-in-trigger | P0 pre-scan; the trigger message is authored from the `AUTHORITY` text and contains no token | P0 |
+| T-AP-3 self-certifying implementer | builder's `gate_exit_code` is advisory; the verifier's ledger decides; claim lint | G, X |
+| T-AP-4 unbounded until-satisfied | four stop conditions (§6.2) | X |
+| T-AP-5 dedup against `confirmed` | `seen` set of `fkey`s across rounds | X |
+| T-AP-6 barrier between per-item stages | `pipeline(wave, buildTask)`; barriers only where cross-item context is needed | X |
+| T-AP-7 parallel writers on one checkout | one worktree per mutating call; one serial integrator | R1, I |
+| T-AP-8 worktree as the checkpoint | branch in the shared store + bundle after every merge; idempotent reuse of an existing branch | R1, I |
+| T-AP-9 volatile prompt content | prompts from `args` + sorted results; no timestamps, no scratch paths that vary per session (`/workspaces/space-build` is fixed) | X |
+| T-AP-10 stale-sha evidence | `sha` required on every verdict/finding; integration head in every prompt | X |
+| T-AP-11 silent truncation | every cap/drop/park/deferral is logged and in the ledger; wave truncation logs what waits | X |
+| T-AP-12 one giant implementer | 21 `S`/`M` cards; `partial` re-drive; `L` rejected at plan verification | R0, X |
+
+### 12.4 External anti-patterns S-AP-1..14 (research-3 §3)
+
+| id | Guard | Phase |
+|---|---|---|
+| S-AP-1 self-grading | fresh verifier per verdict; judge sees diff + ledger + card only | R1, W |
+| S-AP-2 early victory | the gate runs the complete suite (twice) — the verifier cannot choose the command; `collected` compared to baseline | G |
+| S-AP-3 oracle tampering | oracle lock in the gate (pre-existing tests immutable to builders; protected paths); `pytest.ini`/`conftest.py` protected | G |
+| S-AP-4 hollow feature-isolated implementation | composition journeys authored after each wave by the author role and run by the clean-gate; whole-tree review lens `correctness` with reproduction | R1, I, W |
+| S-AP-5 telephone-game decomposition | one builder lineage per card (implement + fix by the same role, fed typed failures); only verification is split off; cards are self-contained | R1 |
+| S-AP-6 unbounded fix loop / thrash | `MAX_BUILD=3`, fingerprints, oscillation, revert-not-fix after a red merge, `MAX_ROUNDS`, dry counter | X, I |
+| S-AP-7 claims without diffs | claim-vs-diff lint per commit; `dod[{command, exit_code}]`; reviewers treat claims as hypotheses | G, W |
+| S-AP-8 secret sprawl | no `.env`, no token in any run; CI written with Trusted Publisher OIDC per resource, `permissions:` blocks, SHA-pinned actions; staging secret keys asserted in the R2 evidence; child env allowlist tested with `CANARY_SECRET` | R1, G, O |
+| S-AP-9 non-resumable script | §10.1 | X |
+| S-AP-10 irreversible action inside the loop | `AUTHORITY` deny list; `outward_actions_taken` abort; CI + owner only | X, O |
+| S-AP-11 biased judging protocol | binary evidence-backed verdicts only; no scoring, no A/B; veto-only judge; `strongest_disagreement` required | W |
+| S-AP-12 canary checks the wrong thing | `EXPECTED.json` for the canary (sha echo, authenticated 16-token ×3, `finish_reason`, latency, visibility `private`, quota delta) written in R1; R2 asserts the CI evidence against it | R1, R2 |
+| S-AP-13 context overflow / kitchen sink | one card per builder; reading lists capped; returns are small typed objects | R1, X |
+| S-AP-14 reviewer over-reporting → churn | findings need a reproduction to be queued; severity + kind required; `low` and unreproduced findings are logged, not queued | W |
+
+### 12.5 DEEP anti-patterns SD-AP-1..12 (research-3-DEEP Appendix B)
+
+| id | Guard | Phase |
+|---|---|---|
+| SD-AP-1 author-graded work | as S-AP-1; author ≠ builder ≠ verifier by role | R1 |
+| SD-AP-2 green-by-weakening | gate tamper step (assert-removal is caught by the mutants and the oracle lock; skips/xfails counted; CI/config protected) | G |
+| SD-AP-3 vacuous/tautological tests | confirm-RED by a fresh verifier; scripted mutants must kill | R1, G |
+| SD-AP-4 unanimous-LLM "verification" | no verdict without an executed command in `checks[]`/`reproduction`; the gate re-executes DoD commands | G, X |
+| SD-AP-5 endless/oscillating fix loops | as S-AP-6 | X |
+| SD-AP-6 summary-of-summary handoffs | handoffs are schemas; decisions live in `plan/decisions.json` and are passed verbatim by path + sha | X, R0 |
+| SD-AP-7 parallel implementers on shared files | disjoint write sets per wave; serial integration | X, I |
+| SD-AP-8 phantom-change commits | claim lint; ruff F821; `taskDone()` | G, X |
+| SD-AP-9 secrets in reach | `env -i` for every test run; no token in any run; deny list; secrets scan | G, X |
+| SD-AP-10 agent-executed irreversible actions | as S-AP-10 | X, O |
+| SD-AP-11 non-replayable script | as S-AP-9 | X |
+| SD-AP-12 scaffold maximalism | this design: 6 roles, 1 gate, 1 script; the budget goes to verification (author, confirm-RED, fresh verifier, mutants, clean-gate, refute-with-reproduction), not to more builders; agent count and stop-reason distribution are logged per run for tuning | X |
+
+**Rows guardable only with an owner checkpoint:** F-6, F-35, F-36, F-37, F-38, F-44 (idle timeout half), S-AP-8/S-AP-10/SD-AP-10 (the outward half). Everything else has a deterministic or script-level guard.

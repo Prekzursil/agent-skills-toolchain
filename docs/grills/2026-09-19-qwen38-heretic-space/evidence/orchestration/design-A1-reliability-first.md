@@ -938,4 +938,223 @@ async function buildCard(c, base, baseline) {
 }
 ```
 
-<!-- CONTINUE -->
+### 13.6 Waves, serial integration, fresh-clone wave gate
+
+```js
+const INTEGRATION_BRANCH = 'integration/' + A.runTag
+async function integrateOne(r, head, n) {
+  phase('Integrate')
+  const c = r.card, i = r.st.impl
+  let integ = await safeAgent('integrate', c.id, PRE + [
+    'ROLE: integrator (the ONLY writer of ' + INTEGRATION_BRANCH + '). In ' + A.build_repo + ': ensure ' + INTEGRATION_BRANCH + ' exists at ' + head + ' (create from it if missing; if it exists elsewhere return int_status=skipped with reason).',
+    'git fetch ' + i.bundle_path + ' ' + i.branch + ' && git merge --no-ff ' + i.head_sha + ' -m "merge ' + c.id + '". On ANY conflict: git merge --abort; return int_status=conflict with hunks. Do not resolve.',
+    'On a clean merge: ' + A.gate_sh + ' --tree ' + A.build_repo + ' --base ' + A.base_sha + ' --mode merged; tools/no_lost_hunks.sh ' + i.branch + ' ' + INTEGRATION_BRANCH + ' → cherry_unmerged, patch_id_missing;',
+    'then git bundle create ' + A.run_dir + '/bundles/checkpoint-' + n + '.bundle ' + A.base_sha + '..' + INTEGRATION_BRANCH + ' and report bundle_bytes; only if cherry_unmerged is empty, git worktree remove the card worktrees under ' + A.wt_root + ' for ' + c.id + '.',
+    heldoutCommitLine(r),
+  ].join('\n'), { label: 'integrate:' + c.id, phase: 'Integrate', schema: INTEGRATION, effort: 'high' }, 1500000)
+  if (!bad(integ) && integ.int_status === 'conflict') {
+    log(c.id + ': conflict in ' + integ.conflicts.map(x => x.file).join(', ') + ' → resolver')
+    const res = await safeAgent('conflict', c.id, PRE + ['ROLE: conflict resolver. Worktree ' + A.wt_root + '/merge-' + c.id + '-' + A.run_nonce + ' on ' + INTEGRATION_BRANCH + ' at ' + head + '. Merge ' + i.head_sha + ' (fetch ' + i.bundle_path + '); resolve ONLY the hunks below so that BOTH cards\' acceptance still holds; run the gate; commit; bundle to ' + A.run_dir + '/bundles/merge-' + c.id + '.bundle; return merged_sha.', 'CONFLICTS:', J(integ.conflicts), 'THIS CARD:', cardPath(c)].join('\n'), { label: 'conflict:' + c.id, phase: 'Integrate', schema: INTEGRATION, effort: 'xhigh' }, 1800000)
+    integ = bad(res) || res.int_status !== 'merged' ? res : await safeAgent('integrate-ff', c.id, PRE + ['ROLE: integrator. Fast-forward ' + INTEGRATION_BRANCH + ' in ' + A.build_repo + ' to ' + res.merged_sha + ' (fetch ' + A.run_dir + '/bundles/merge-' + c.id + '.bundle); run the gate in merged mode; no_lost_hunks for ' + i.branch + '; checkpoint bundle ' + n + '.'].join('\n'), { label: 'integrate-ff:' + c.id, phase: 'Integrate', schema: INTEGRATION, effort: 'medium' }, 1500000)
+  }
+  if (bad(integ) || integ.int_status !== 'merged') return { ok: false, reason: bad(integ) ? integ.reason : integ.int_status }
+  if (integ.cherry_unmerged.length || integ.patch_id_missing.length) return { ok: false, reason: 'lost-hunks:' + integ.cherry_unmerged.concat(integ.patch_id_missing).join(',') }
+  if (integ.gate_fail !== 0) {
+    for (let k = 1; k <= 2; k++) {
+      const fx = await safeAgent('fix-integration', c.id, PRE + ['ROLE: integration fixer (round ' + k + '). ' + INTEGRATION_BRANCH + ' at ' + integ.merged_sha + ' is gate-red after merging ' + c.id + '. Worktree from it; fix so BOTH cards\' acceptance holds; run the gate; commit; bundle to ' + A.run_dir + '/bundles/intfix-' + c.id + '-' + k + '.bundle.'].join('\n'), { label: 'fix-integration:' + c.id + ':' + k, phase: 'Integrate', schema: INTEGRATION, effort: 'high' }, 1800000)
+      if (!bad(fx) && fx.int_status === 'merged' && fx.gate_fail === 0) { integ = await safeAgent('integrate-ff2', c.id, PRE + ['ROLE: integrator. Fast-forward ' + INTEGRATION_BRANCH + ' to ' + fx.merged_sha + ' (fetch ' + A.run_dir + '/bundles/intfix-' + c.id + '-' + k + '.bundle); gate merged; checkpoint bundle ' + n + '.'].join('\n'), { label: 'integrate-ff2:' + c.id, phase: 'Integrate', schema: INTEGRATION, effort: 'medium' }, 1500000); break }
+      if (k === 2) { await safeAgent('revert', c.id, PRE + ['ROLE: integrator. git -C ' + A.build_repo + ' revert -m 1 ' + integ.merged_sha + ' on ' + INTEGRATION_BRANCH + '; gate; checkpoint bundle ' + n + '.'].join('\n'), { label: 'revert:' + c.id, phase: 'Integrate', schema: INTEGRATION, effort: 'medium' }, 900000); return { ok: false, reason: 'reverted-at-integration' } }
+    }
+  }
+  if (integ.bundle_bytes && integ.bundle_bytes > 20 * 1024 * 1024) log('WARNING checkpoint bundle > 20 MB (' + integ.bundle_bytes + ') — runbook: push from the checkout instead')
+  return { ok: true, head: integ.merged_sha }
+}
+function heldoutCommitLine(r) { const h = r.st.heldout; return h && !h.skipped && !bad(h) ? 'Also fetch ' + h.bundle_path + ' and merge ' + h.branch + ' (held-out tests become ordinary tests once the card is built).' : '' }
+
+async function build(cards, baseline) {
+  let head = A.integration_sha_at_launch || A.base_sha, mergedIds = [], n = 0
+  const built = [], blocked = [], splits = []
+  let queue = cards.slice()
+  while (queue.length) {
+    if (!budgetOk('next wave')) { queue.forEach(c => blocked.push({ card: c, state: 'blocked', reason: 'budget' })); log('remaining cards blocked (budget/agent cap): ' + queue.map(c => c.id).join(',')); break }
+    const plan = waves(topoOrder(queue), WAVE, mergedIds); const wave = plan[0]
+    phase('Build'); log('wave: ' + wave.map(c => c.id).join(', ') + ' on ' + head.slice(0, 7) + ' (' + queue.length + ' cards left)')
+    const results = (await pipeline(wave, c => buildCard(c, head, baseline))).map((r, i) => r || { card: wave[i], state: 'blocked', reason: 'chain-threw', st: {} })
+    for (const r of results) {
+      if (r.state === 'split') { splits.push(r); queue = queue.concat(r.sub_cards); log(r.card.id + ' split into ' + r.sub_cards.map(s => s.id).join(',')); continue }
+      if (r.state !== 'built') { blocked.push(r); log(r.card.id + ' blocked: ' + r.reason); continue }
+      n++; const ig = await integrateOne(r, head, n)
+      if (!ig.ok) { r.state = 'blocked'; r.reason = 'integration:' + ig.reason; blocked.push(r); log(r.card.id + ' NOT integrated: ' + ig.reason); continue }
+      head = ig.head; mergedIds.push(r.card.id); built.push(r); log(r.card.id + ' merged → ' + head.slice(0, 7))
+    }
+    queue = queue.filter(c => !wave.some(w => w.id === c.id))
+    const gate = await safeAgent('wave-gate', 'wave' + n, PRE + ['ROLE: integration tester. git clone --branch ' + INTEGRATION_BRANCH + ' ' + A.build_repo + ' ' + A.wt_root + '/clone-' + n + '-' + A.run_nonce + ' (must be at ' + head + '); ' + A.gate_sh + ' --tree <clone> --base ' + A.base_sha + ' --mode clean; run the conformance suite over fake/recorded-hosted/recorded-worker (report skipped rows); run journeys J1–J6 from AGENTS.md; remove the clone in a finally.'].join('\n'), { label: 'wave-gate:' + n, phase: 'Integrate', schema: VERIFY, effort: 'medium' }, 1800000)
+    if (bad(gate) || gate.verdict !== 'pass') { log('wave gate ' + (bad(gate) ? gate.reason : gate.verdict) + ' at ' + head.slice(0, 7) + ' — stopping; remaining cards blocked'); queue.forEach(c => blocked.push({ card: c, state: 'blocked', reason: 'gate-red-upstream' })); break }
+    const dependents = queue.filter(c => c.depends_on.some(d => blocked.some(b => b.card.id === d)))
+    dependents.forEach(c => { blocked.push({ card: c, state: 'blocked', reason: 'dependency-blocked' }); log(c.id + ' blocked: dependency blocked') }); queue = queue.filter(c => !dependents.includes(c))
+  }
+  return { head, built, blocked, splits }
+}
+```
+
+### 13.7 Outer loop — reviewers → refuters → fix cards → judges; five stop conditions
+
+```js
+async function reviewLoop(state, cards, baseline, maxRounds) {
+  phase('Review')
+  const LENSES = ['correctness', 'security-and-secrets', 'zerogpu-quota-and-cost', 'api-contract', 'tests-gate-and-claims']
+  const seen = new Set(), confirmedAll = [], probesUsed = new Set(); let round = 0, dry = 0, verdict = null, stop = null
+  while (true) {
+    if (verdict && verdict.verdict === 'satisfied') { stop = 'judge-satisfied'; break }
+    if (round >= maxRounds) { stop = 'max-rounds(' + maxRounds + ')'; break }
+    if (!budgetOk('review round ' + (round + 1))) { stop = 'budget-or-agent-cap'; break }
+    if (dry >= 2) {
+      const inv = await safeAgent('inversion', 'r' + round, PRE + ['ROLE: DoD-inversion scout at ' + state.head + '. Start from the decision sheet and every card\'s acceptance and try to FALSIFY each claimed end-state or find an omitted obligation. You may NOT reuse these probes:', J([...probesUsed].sort())].join('\n'), { label: 'inversion', phase: 'Review', schema: REVIEW_FINDINGS, effort: 'high' }, 1800000)
+      const fresh = bad(inv) ? [] : inv.findings.filter(f => !seen.has(fkey(f)))
+      if (!fresh.length) { stop = 'converged(dry=2,inversion=0)'; break }
+      fresh.forEach(f => seen.add(fkey(f))); dry = 0; log('inversion found ' + fresh.length + ' fresh item(s); loop continues')
+    }
+    round++
+    const reviews = h6Survivors(await settle(LENSES.map(lens => () => safeAgent('review', lens + ':r' + round, PRE + ['ROLE: reviewer (' + lens + '), round ' + round + '. Review ' + INTEGRATION_BRANCH + ' at ' + state.head + ' (fresh worktree) against decisions.json and the cards. NEW findings only; each needs an executed command and affects_correctness_or_requirement; style findings are not findings. KNOWN:', J([...seen].sort())].join('\n'), { label: 'review:' + lens + ':r' + round, phase: 'Review', schema: REVIEW_FINDINGS, effort: 'high' }, 1800000)), 1800000, LENSES)).filter(r => !bad(r))
+    reviews.forEach(r => r.probes_used.forEach(p => probesUsed.add(p)))
+    const found = reviews.flatMap(r => r.findings).filter(f => f.affects_correctness_or_requirement).sort(byId)
+    const fresh = found.filter(f => !seen.has(fkey(f))); fresh.forEach(f => seen.add(fkey(f)))
+    log('review r' + round + ': ' + found.length + ' found, ' + fresh.length + ' fresh')
+    const judged = await pipeline(fresh, f => settle(['correctness-reproduce', 'security-secrets', 'decision-fidelity'].map(lens => () => safeAgent('refute-finding', f.id, PRE + ['ROLE: skeptic (' + lens + '). Try to REFUTE this finding at ' + state.head + '; default refuted=true if uncertain; cite an executed command.', J(f)].join('\n'), { label: 'refute:' + f.id + ':' + lens, phase: 'Review', schema: REFUTE, effort: 'medium' }, 1200000)), 1200000).then(vs => ({ f, alive: h6Survivors(vs).filter(v => !bad(v) && !v.refuted && v.evidence.length).length >= 2 })))
+    const confirmed = judged.filter(Boolean).filter(j => j.alive).map(j => j.f); confirmedAll.push(...confirmed)
+    log('review r' + round + ': ' + confirmed.length + '/' + fresh.length + ' survived refutation')
+    let changed = 0
+    if (confirmed.length) {
+      const fixCards = confirmed.map(f => ({ id: 'rf' + round + '-' + f.id, title: f.title, area: 'core', tier: 'small', depends_on: [], files_allowed: [f.file], files_read: [], deps_allowed: [], in_scope: [f.recommendation], out_of_scope: [], decision_ids: [], finding_ids: [{ id: f.id, corrected_text: f.corrected_claim || f.title }], symbols: [], acceptance: [{ id: f.id + '-a1', check: f.evidence.command, expect: 'exit 0 and the reviewer evidence no longer reproduces', level: 'local-stub' }], must_not_change: [], journeys: [], heldout_seams: [], protected_paths_touched: [], outward_facing: false, needs_gpu: false, owner_approval_required: false, size_budget: { max_changed_lines: 300, max_files: 12 } })).sort(byId)
+      validateCards(fixCards)
+      const b = await build(fixCards, baseline); state.head = b.head; state.built.push(...b.built); state.blocked.push(...b.blocked); changed = b.built.length
+    }
+    dry = (confirmed.length === 0 && changed === 0) ? dry + 1 : 0
+    const votes = h6Survivors(await settle(['spec-compliance', 'test-evidence', 'release-readiness'].map(lens => () => safeAgent('judge', lens + ':r' + round, PRE + ['ROLE: judge (' + lens + '), veto-only. ' + INTEGRATION_BRANCH + ' at ' + state.head + '. You may return satisfied ONLY if: BLOCKED is empty, the fresh-clone gate is green, no confirmed finding of severity ≥ high is unfixed, and every DoD row you list has two mechanically independent receipts. Execute-to-confirm anything that would veto. Rubric order (from args):', J(A.judge_perm || [0, 1, 2]), 'BLOCKED:', J(state.blocked.map(b => ({ id: b.card.id, reason: b.reason })).sort(byId)), 'CONFIRMED THIS ROUND:', J(confirmed)].join('\n'), { label: 'judge:' + lens + ':r' + round, phase: 'Review', schema: JUDGE, effort: 'xhigh' }, 1800000)), 1800000)).filter(v => !bad(v))
+    const sat = votes.filter(v => v.verdict === 'satisfied').length, owner = votes.some(v => v.verdict === 'blocked-needs-owner')
+    verdict = { verdict: (votes.length === 3 && sat === 3 && state.blocked.length === 0) ? 'satisfied' : owner ? 'blocked-needs-owner' : 'not-satisfied', votes: votes.map(v => ({ lens: v.lens, verdict: v.verdict, dissent: v.dissent, vetoes: v.vetoes.filter(x => x.reproduced) })) }
+    log('judge r' + round + ': ' + sat + '/' + votes.length + ' satisfied → ' + verdict.verdict + (sat === 2 ? ' (2/3 recorded as not-satisfied; dissent queued)' : ''))
+    verdict.votes.flatMap(v => v.vetoes).forEach(x => { if (!seen.has(fkey(x))) { seen.add(fkey(x)); confirmedAll.push(Object.assign({ file: (x.anchor || '').split(':')[0], recommendation: x.title, evidence: x.evidence, kind: 'bug', affects_correctness_or_requirement: true }, x)) } })
+    if (verdict.verdict === 'blocked-needs-owner') { stop = 'judge-blocked-needs-owner'; break }
+  }
+  log('review loop ended: ' + stop + ' after ' + round + ' round(s); confirmed ' + confirmedAll.length + '; blocked ' + state.blocked.length)
+  return { verdict, stop, round, confirmedAll }
+}
+```
+
+### 13.8 Stage and promote runs, synthesis with its verifier, dispatcher
+
+```js
+async function stageRun(cards) {
+  phase('Stage')
+  const need = ['github_repo_url', 'staging_ui_space', 'staging_worker_space', 'staging_evidence_dir', 'fixture1_path'].filter(k => !OA[k])
+  if (need.length) return { ok: false, blocked_on_owner: need }
+  const claims = cards.flatMap(c => c.acceptance.filter(a => a.level === 'staging-required').map(a => ({ card: c.id, id: a.id, check: a.check, expect: a.expect }))).sort(byId)
+  const rows = await pipeline(claims, cl => safeAgent('stage-claim', cl.id, PRE + ['ROLE: staging evidence reader. Claim ' + cl.id + ' (card ' + cl.card + '): expected "' + cl.expect + '". Read ONLY files under ' + OA.staging_evidence_dir + ' (CI-written boot.json, canary.json, logs/) and read-only Hub metadata; never call any *.hf.space URL. Missing evidence → verdict unverified. Report the deployed sha the evidence names.'].join('\n'), { label: 'stage:' + cl.id, phase: 'Stage', schema: STAGE_CLAIM, effort: 'medium' }, 900000))
+  const fails = rows.filter(r => !bad(r) && r.verdict === 'fail')
+  return { ok: true, rows, fails }
+}
+
+async function synthesize(stageName, state, extra) {
+  phase('Synthesize')
+  const rowsInput = { ledger, dropped, built: state.built.map(b => ({ id: b.card.id, head: b.st.impl.head_sha, dod_total: b.card.acceptance.length })).sort(byId), blocked: state.blocked.map(b => ({ id: b.card.id, reason: b.reason })).sort(byId), head: state.head }
+  const synth = await safeAgent('synth', stageName, PRE + ['ROLE: synthesizer (never edits). Inputs are MECHANICAL ONLY: the script ledger (every stage incl. null/timeout/blocked), the card DAG at ' + A.run_dir + '/plan/cards.json, the gate ledger of ' + INTEGRATION_BRANCH + ' at ' + state.head + ', git log --stat, and the skipped conformance rows. One row per card with an enum status; dod_status rows need evidence_a AND evidence_b; owner_actions must include revoking the pasted token and the other agent\'s scheduled tasks; write ' + A.run_dir + '/SYNTHESIS-' + stageName + '.md and RUNBOOK.md; emit the ONE checkpoint for stage ' + stageName + ' (or action none with the blocked list).', 'STOP: ' + (extra.stop || ''), 'VERDICT:', J(extra.verdict || null), 'STATE:', J(rowsInput)].join('\n'), { label: 'synth:' + stageName, phase: 'Synthesize', schema: SYNTH, effort: 'high' }, 1800000)
+  const sv = bad(synth) ? synth : await safeAgent('synth-verify', stageName, PRE + ['ROLE: synthesis verifier. Cross-check EVERY row of ' + (bad(synth) ? 'n/a' : synth.report_path) + ' against git -C ' + A.build_repo + ' log --oneline ' + INTEGRATION_BRANCH + ' and the ledger below; rewrite rows that do not match; verdict inconsistent-unresolved if any cannot be reconciled. Scan the report for secrets before returning.', 'LEDGER:', J(ledger)].join('\n'), { label: 'synth-verify:' + stageName, phase: 'Synthesize', schema: SYNTH_VERIFY, effort: 'high' }, 1500000)
+  return { synth, sv }
+}
+
+// ---- dispatcher ----
+let RESULT = { stage: A.stage, ledger }
+try {
+  const pre = await preflight()
+  if (!pre.ok) { RESULT.terminal = 'FAILED:preflight ' + pre.reason; RESULT.checkpoint = { action: 'none', why: pre.reason } }
+  else if (A.stage === 'smoke') {
+    const p = await plan(pre); const smokeCards = p.cards.slice(0, 1)
+    const b = await build(smokeCards, pre.setup.baseline_collected)
+    RESULT = Object.assign(RESULT, { built: b.built.map(x => x.card.id), blocked: b.blocked.map(x => ({ id: x.card.id, reason: x.reason })), terminal: 'SUCCESS:smoke', checkpoint: { action: 'approve-smoke', why: 'every schema exercised once; permission prompts inventoried', exact_steps: ['add the allow rules the smoke run needed', 'set Codespace idle timeout to max', 'disable HF write connectors for the build session', 'resize the Codespace BEFORE build if cap 14 is wanted'], blast_radius: 'none', rollback: 'delete the smoke branch', cost_estimate: 'n/a', evidence_paths: [A.run_dir + '/smoke'], required_owner_approvals_fields: [] } })
+  } else if (A.stage === 'plan') {
+    const p = await plan(pre)
+    RESULT = Object.assign(RESULT, { plan_hash: p.plan_hash, vetoes: p.vetoes, cards: p.cards.map(c => c.id), terminal: p.ok ? 'SUCCESS:plan' : 'FAILED:plan judges vetoed', checkpoint: { action: p.ok ? 'approve-plan' : 'none', why: 'the decision sheet and cards are frozen under hash ' + p.plan_hash, exact_steps: ['read plan/decisions.json against DECISION-QUEUE.md', 'read plan/cards.json', 'reply with the hash to launch build'], blast_radius: 'none', rollback: 'edit cards and re-run plan', cost_estimate: 'n/a', evidence_paths: [A.run_dir + '/plan'], required_owner_approvals_fields: ['plan_hash'] } })
+  } else if (A.stage === 'build') {
+    if (!OA.plan_hash || OA.plan_hash !== A.plan_hash) throw new Error('BLOCKED_ON_OWNER: plan_hash approval missing or stale')
+    const p = await plan(pre)                                            // cache replay; same args → same prompts
+    const state = Object.assign({ built: [], blocked: [] }, await build(p.cards, pre.setup.baseline_collected))
+    const rv = await reviewLoop(state, p.cards, pre.setup.baseline_collected, MAX_TREE_ROUNDS)
+    const s = await synthesize('build', state, rv)
+    RESULT = Object.assign(RESULT, { head: state.head, built: state.built.map(x => x.card.id), blocked: state.blocked.map(x => ({ id: x.card.id, reason: x.reason })), verdict: rv.verdict, stop: rv.stop, synth: bad(s.synth) ? null : s.synth, synth_verify: bad(s.sv) ? null : s.sv, terminal: (rv.verdict && rv.verdict.verdict === 'satisfied') ? 'SUCCESS:build' : 'FAILED:build ' + rv.stop })
+  } else if (A.stage === 'stage' || A.stage === 'promote') {
+    const p = await plan(pre); const st = await stageRun(p.cards)
+    const state = { head: A.integration_sha_at_launch, built: [], blocked: [] }
+    if (st.ok && st.fails.length) { const fix = st.fails.map(f => ({ id: 'sf-' + f.claim_id, title: 'staging failure ' + f.claim_id, area: 'worker', tier: 'small', depends_on: [], files_allowed: [], files_read: [], deps_allowed: [], in_scope: [f.expected], out_of_scope: [], decision_ids: [], finding_ids: [], symbols: [], acceptance: [{ id: f.claim_id, check: 'see ' + f.evidence_path, expect: f.expected, level: 'staging-required' }], must_not_change: [], journeys: [], heldout_seams: [], protected_paths_touched: [], outward_facing: false, needs_gpu: true, owner_approval_required: false, size_budget: { max_changed_lines: 300, max_files: 12 } })); log('staging failures → ' + fix.length + ' fix card(s); their local parts are built, the staging re-check is the owner\'s next CI run') }
+    const rv = st.ok ? await reviewLoop(state, p.cards, pre.setup.baseline_collected, 2) : { verdict: null, stop: 'blocked_on_owner:' + st.blocked_on_owner.join(',') }
+    const s = await synthesize(A.stage, state, rv)
+    RESULT = Object.assign(RESULT, { head: state.head, stage_rows: st.rows || [], blocked_on_owner: st.blocked_on_owner || [], verdict: rv.verdict, stop: rv.stop, synth: bad(s.synth) ? null : s.synth, terminal: st.ok ? 'SUCCESS:' + A.stage : 'BLOCKED_ON_OWNER:' + A.stage + ' ' + st.blocked_on_owner.join(',') })
+  }
+} catch (err) {
+  log('RUN ENDED BY THROW: ' + String(err && err.message || err)); RESULT.terminal = 'FAILED:' + A.stage + ' ' + String(err && err.message || err)
+  try { const s = await synthesize(A.stage + '-aborted', { head: A.integration_sha_at_launch || A.base_sha, built: [], blocked: [] }, { stop: 'throw' }); RESULT.synth = bad(s.synth) ? null : s.synth } catch (e2) { log('synthesizer also failed: ' + String(e2 && e2.message || e2)) }
+}
+log('agents=' + agentCount + ' dropped=' + dropped.length + ' terminal=' + RESULT.terminal)
+return RESULT
+```
+
+Orchestrator side (outside the script): read `RESULT.checkpoint`; relay it to the owner in plain words; on the owner's reply, do or let the owner do the outward action; run the transcript monitor over `<transcriptDir>`; recompute `args` (`base_sha`, `integration_sha_at_launch`, `plan_hash`, `owner_approvals`, `monitor_findings`) and launch the next `args.stage` with the owner's authorising words in the launching message.
+
+---
+
+## 14. Authoring checklist the script author ticks before launch
+
+**Script contract (F-47, T-14, T-15)**
+- [ ] `meta` is a pure literal; every `phase()` title appears in `meta.phases` exactly; `phase` is passed per `agent()` inside `pipeline`/`settle`.
+- [ ] `grep -nE 'Date\.now|Math\.random|new Date\(\)'` over the script returns nothing; timestamps only via `args.launched_at` and agent-reported `date -u`.
+- [ ] Every `agent()` is called through `safeAgent()`; the H6 block is pasted verbatim between the markers; no bare `parallel()`; no `.filter(Boolean)` without a `dropped[]` push.
+- [ ] Every loop has a counter cap evaluated before any budget check; `budget.total &&` guards every dynamic loop; `AGENT_CAP` reserve present; the synthesizer + verifier run in the `catch` path too.
+- [ ] Every prompt is built from `args` + sorted prior results; `J()` only over sorted arrays; no session-specific path, run id or completion order in any prompt; the integration head appears in every code-reading prompt.
+- [ ] Every schema: root object, `required ⊆ properties`, enums for verdicts, `minItems` on evidence, `sha` field wherever code was read, envelope merged; JS semantic re-validation present for `status/reason`, `outward_actions_taken`, `installed_packages`, `repo_toplevel`, empty evidence.
+
+**Environment and args (F-1..F-5, F-43)**
+- [ ] `args` computed by the orchestrator immediately before launch with `git rev-parse` (40-hex `base_sha`, `integration_sha_at_launch`), `sha256sum` (`plan_hash`, `toolchain_status_snapshot_sha`), and a fresh `run_nonce`; `owner_approvals` filled only from the owner's own words.
+- [ ] `build_repo` is `/home/codespace/build/qwen38-space` (durable; not `/tmp`; not inside the rsynced grill folder; not the cwd repo); `run_dir` is under the grill folder (synced); bundles ≤ 20 MB.
+- [ ] `/usr/bin/python3.12` exists; wheels copied to `$DURABLE/libsrc`; the venv is built ONCE by `setup`; `gate.sh` refuses any other interpreter.
+- [ ] The trigger message states the authority ("edit only inside `$BUILD_REPO` worktrees; never push/create/deploy/spend/look for tokens") and contains no secret; the orchestrator ran the secrets regex over every input file the agents will read.
+- [ ] `$BUILD_REPO/AGENTS.md` exists with: the program rules, the gate contents, the sizing table, the seams H1–H7, the journeys J1–J6, the verification-level taxonomy, the baseline collected-test count.
+- [ ] Snapshots `chmod -R a-w`; the setup agent asserts `HEAD == base_sha` on the clone.
+
+**Gate (D-9, D-14, F-28)**
+- [ ] `gate.sh` red-proof recorded: RED on the `f88b120` fixture (ruff F821), RED on the false-claim fixture (claim lint), GREEN on the cleaned base — before any card is launched.
+- [ ] Each gate tool ships with `tests/gate_fixtures/{broken,fixed}` and a self-test that fails when a detector is silent in both states.
+- [ ] `tests/protected.txt` lists the gate, its tools, the persona absence test, the constants pin, the import-contract test; only `c01c-gate` may touch them.
+- [ ] `pytest --disable-socket --allow-hosts=127.0.0.1`, run twice, identical; exit 0 only; `collected` floor vs baseline − `Tests-Removed:` trailers.
+
+**Roles and separation (T-6, D-15, S-4/S-5)**
+- [ ] Test author, held-out author, red-confirmer, implementer, verifier, refuters, auditor, critic, judges, synthesizer are distinct labels; no prompt passes an implementer narrative downstream; the held-out bundle path appears only in verifier/integration-tester prompts.
+- [ ] `model:'fable'` only on `HARDENING` cards and their verifier/critic; logged.
+- [ ] The persona card prompt forbids `git log/show` on `system_prompt.py` and contains only the G-19 role list.
+
+**Owner boundary (D-28, S-19, F-6, F-35)**
+- [ ] No prompt asks anyone to create a repo/Space, set a secret, push, run an HF Job, or call `*.hf.space`; the only authority is `args.owner_approvals` + the owner's message; `outward_actions_taken` aborts the run.
+- [ ] Every run ends with a `checkpoint` object and `RUNBOOK.md`; `staging-required` and `owner-required` claims are never marked pass locally.
+- [ ] The owner has: disabled write MCP connectors for the build session, confirmed `gh auth status` scope, set the Codespace idle timeout to max, decided on the resize (before `build`, not mid-run), sent the stop notice to the other agent and disabled its two scheduled tasks (or accepted F-38 as a promotion-time check).
+
+**Smoke (T-22, F-46)**
+- [ ] `args.stage='smoke'` run completed: every schema exercised once, permission prompts inventoried and allow-listed, worktree mechanics observed, the estimated per-card wall-clock recorded for §11.
+
+---
+
+## 15. Open questions for the owner (only those whose answer changes the build)
+
+1. **Build root.** Confirm `/home/codespace/build/` as the durable build root (outside the rsynced grill folder and outside the cwd repo). Alternative `/workspaces/build/` is equally durable; anything under `/tmp` or inside the grill folder changes F-2's guard and the sync script's behaviour.
+2. **Timing of the private GitHub repo.** Creating it *before* `build` (with `git push` of the integration branch still owner-only at the R1 checkpoint) lets the owner push checkpoint bundles during a multi-day R1; creating it after R1 leaves the build repo durable-but-unsynced for ≈ 22–41 h. Which?
+3. **Fixture #1 timing.** The ONE metered streamed router call (tool + thinking on, cents) decides where the parser lives (LENS-4's biggest risk). Recording it *before* `build` lets `c03`/`c04` be built against the real shape; recording it at the R1 checkpoint means the seam is built against a synthetic fixture and re-verified in R2 (possible rework of `c04`). Owner runs it either way; when?
+4. **Held-out compositional tests and the three-refuter panels** are the largest cost items of this design (≈ 30 % of R1 agents). Keep both (recommended for this angle), or drop the refuter panel on `trivial`/`small` cards to save ≈ 100 agents?
+5. **Codespace resize.** Resize to 16–32 cores *before* `build` (cap 14–16, ≈ 22 h R1) or stay at cap 2 (≈ 41 h across resumes)? A resize mid-run forces a cache-cold resume after the plan phase because `waveSize` changes the sequence of `agent()` calls.
+6. **Worker checkpoint and the VLM class.** Vision is kept (G-16), so the worker loads the VLM class. UNVERIFIED: whether `magiccodingman/Qwen3.8-27B-heretic-ara-fp8 @ ae4c4a3` contains the `model.visual.*` tensors. If it does not, `c08b` must either build a VLM-class FP8 export (HF Job, owner cost) or use the GPTQ candidate; this changes the worker card and the R2 checkpoint's cost estimate.
+7. **Cross-vendor judge.** `mcp__codex__codex` is not mounted in this session. If the owner mounts the Codex MCP server before `build`, one of the three judges/refuters on the hardening and promotion-readiness surfaces runs cross-family (C-N); otherwise the degradation ladder applies. Mount it?
+8. **`owner_approvals` budgets for R2/R3**: `hosted_call_budget_usd`, `harness_budget_usd`, `hf_job_budget_usd`, `gpu_seconds_budget` — exact numbers, because the harness card's preflight refuses anything above them and the runbook quotes them.
+9. **Video default.** LENS-4 ships video OFF by default (images ON); the owner's expansion mandate says keep vision/video. Confirm "shipped, default OFF, flag-enabled" is acceptable for the first production release — it changes `c10`'s acceptance and the staging claim list.
+10. **Held-out tests' final home.** After a card is built, its held-out tests are merged into `tests/acceptance/` by the integrator so CI runs them. Confirm that is wanted (it makes the held-out set visible to later fix agents; the alternative keeps them in a CI-only bundle and complicates the gate).
+
+---
+
+*End of design A1. Every section required by the brief is present in the brief's order; every F-1..F-47 and every anti-pattern id of all four lenses (D/AP-1..17, T/AP-1..12, S/AP-1..14, DS/AP-1..12) has a matrix row in §12; UNVERIFIED facts are tagged inline where they are used.*
+
