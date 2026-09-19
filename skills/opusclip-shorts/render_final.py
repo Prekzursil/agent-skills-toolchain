@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Final render: OpusClip-matched style (active-word highlight karaoke),
-corrected Romanian captions, face-tracked 9:16, #N naming."""
+"""Final render: OpusClip-matched style (SINGLE-LAYER timed color-flip karaoke),
+corrected Romanian captions, face-tracked 9:16, #N naming, Romanian titles."""
 import json, os, subprocess, sys, time
 import numpy as np
 import cv2
@@ -14,25 +14,45 @@ os.makedirs(OUTDIR, exist_ok=True)
 
 SEED = {"02": 0.22, "03": 0.40, "04": 0.42, "08": 0.26, "09": 0.50, "10": 0.50}
 
-# chronological numbering continues the user's OpusClip set (#1..#44)
+# chronological numbering continues the user's OpusClip set (#1..#44); Romanian titles
 FINAL = [
- {"id":"10","num":45,"file":"#45 Prison Poem Nocturne_ A Grandfathers Last Verses",
-  "title":"Nocturna celulară — poemul bunicului, scris înainte de moarte"},
- {"id":"02","num":46,"file":"#46 Emil Botta and the Maladjusted_ A Legendary Reply",
-  "title":"La ce să se adapteze, domnișoară?"},
- {"id":"08","num":47,"file":"#47 The Imbecile Has a Point of View_ Hilberts Ladder",
-  "title":"Scara lui David Hilbert: până când imbecilul are un punct de vedere"},
- {"id":"03","num":48,"file":"#48 They Expropriated Our Intelligence_ Aiuds Greatest Jurist",
-  "title":"Micescu: ne-ați expropia inteligența, nu v-ați împroprietărit cu ea"},
- {"id":"04","num":49,"file":"#49 I Live in Eternity_ A Romanian Peasants Answer",
+ {"id":"10","num":9,  "file":"#9 Nocturna celulara_ versurile din temnita ale bunicului",
+  "title":"Nocturnă celulară — versurile din temniță ale bunicului"},
+ {"id":"02","num":19, "file":"#19 La ce sa se adapteze, domnisoara_ raspunsul lui Emil Botta",
+  "title":"La ce să se adapteze, domnișoară? — răspunsul lui Emil Botta"},
+ {"id":"08","num":20, "file":"#20 Imbecilul are un punct de vedere_ scara lui Hilbert",
+  "title":"Imbecilul are un punct de vedere — scara lui Hilbert"},
+ {"id":"03","num":22, "file":"#22 Ne-ati expropia inteligenta_ Micescu si martirii de la Aiud",
+  "title":"Ne-ați expropia inteligența — Micescu și martirii de la Aiud"},
+ {"id":"04","num":29, "file":"#29 Eu traiesc in veac_ taranul lui Ernest Bernea",
   "title":"Eu trăiesc în veac — țăranul lui Ernest Bernea"},
- {"id":"09","num":50,"file":"#50 Law vs Justice_ Rights Without Fairness",
-  "title":"Drept vs. dreptate: câte drepturi faci fără transcendență?"},
+ {"id":"09","num":48, "file":"#48 Drept sau dreptate_ fara transcendentza",
+  "title":"Drept sau dreptate — fără transcendență"},
 ]
 
 def ass_time(t):
     h = int(t // 3600); m = int((t % 3600) // 60); s = t % 60
     return f"{h:d}:{m:02d}:{s:05.2f}"
+
+HDR = (
+    "[Script Info]\n"
+    "ScriptType: v4.00+\n"
+    "PlayResX: 1080\n"
+    "PlayResY: 1920\n"
+    "WrapStyle: 0\n"
+    "ScaledBorderAndShadow: yes\n\n"
+    "[V4+ Styles]\n"
+    "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
+    "Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, "
+    "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+    "Style: Karaoke,Arial Black,66,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1.2,0,"
+    "1,3,1.4,2,70,70,420,1\n\n"
+    "[Events]\n"
+    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+)
+
+GREEN = "\\c&H35E2D8&\\fscx106\\fscy106"
+WHITE = "\\c&HFFFFFF&\\fscx100\\fscy100"
 
 def build_ass(cid, w0, w1, t0):
     corr = CORR.get(cid, {})
@@ -50,19 +70,7 @@ def build_ass(cid, w0, w1, t0):
                 cues.append(cur); cur = []
         cur.append(x)
     if cur: cues.append(cur)
-    hdr = (
-        "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\n"
-        "WrapStyle: 0\nScaledBorderAndShadow: yes\n\n[V4+ Styles]\n"
-        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
-        "Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, "
-        "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
-        "Style: Base,Arial Black,64,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,1.2,0,"
-        "1,3,1.4,2,70,70,420,1\n"
-        "Style: Active,Arial Black,64,&H0035E2D8,&H0035E2D8,&H00000000,&H96000000,0,0,0,0,100,100,1.2,0,"
-        "1,3,1.4,2,70,70,420,1\n\n[Events]\n"
-        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
-    )
-    lines = [hdr]
+    lines = [HDR]
     for i, cue in enumerate(cues):
         start = max(0.0, cue[0]["t"] - 0.12)
         end = cue[-1]["e"] + 0.35
@@ -70,19 +78,16 @@ def build_ass(cid, w0, w1, t0):
             end = min(end, cues[i+1][0]["t"] - 0.05)
         end = max(end, start + 0.3)
         ts, te = ass_time(start), ass_time(end)
-        white = "".join(x["w"].upper() + " " for x in cue).strip()
-        lines.append(f"Dialogue: 0,{ts},{te},Base,,0,0,0,,{white}\n")
-        pop = []
+        # ONE layer, ONE dialogue per cue: per-word timed color flip. Color changes
+        # cannot shift layout -> exactly ONE subtitle block at all times (OpusClip look:
+        # spoken words white, current word yellow-green with a quick 106% pop).
+        parts = []
         for x in cue:
             a = max(0, int((x["t"] - start) * 1000))
-            b = int((x["e"] - start) * 1000) + 60
-            tag = (r"{\alpha&HFF&\fscx80\fscy80"
-                   r"\t(%d,%d,\alpha&H00&\fscx112\fscy112)"
-                   r"\t(%d,%d,\fscx100\fscy100)"
-                   r"\t(%d,%d,\alpha&HFF&\fscx80\fscy80)}%s ") % (
-                   a, a + 70, a + 70, a + 240, b, b + 70, x["w"].upper())
-            pop.append(tag)
-        lines.append(f"Dialogue: 1,{ts},{te},Active,,0,0,0,,{''.join(pop).strip()}\n")
+            b = int((x["e"] - start) * 1000) + 120
+            parts.append("{\\t(%d,%d,%s)\\t(%d,%d,%s)}%s " % (a, a + 30, GREEN, b, b + 150, WHITE, x["w"].upper()))
+        text = "".join(parts).strip()
+        lines.append("Dialogue: 0,%s,%s,Karaoke,,0,0,0,,%s\n" % (ts, te, text))
     p = f"shorts-work/subs_{cid}.ass"
     open(p, "w", encoding="utf-8-sig").write("".join(lines))
     return p

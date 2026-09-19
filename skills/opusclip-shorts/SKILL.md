@@ -1,6 +1,6 @@
 ---
 name: opusclip-shorts
-description: Turn a long talk/conference recording into OpusClip-style vertical (9:16) shorts with karaoke word-by-word captions — chunked ASR under the 900s MCP timeout, word-timeline merging, viral-moment selection, dedupe against an existing OpusClip set, timing-preserving caption correction, OpenCV face-tracked auto-reframe, two-layer ASS active-word captions, #N file naming and a chronologically ordered final list with source ranges and durations. Use when the user asks to "make shorts", "clip like OpusClip", add karaoke/captions to segments, or reconcile/dedupe/audit an existing shorts set.
+description: Turn a long talk/conference recording into OpusClip-style vertical (9:16) shorts with karaoke word-by-word captions — chunked ASR under the 900s MCP timeout, word-timeline merging, viral-moment selection, dedupe against an existing OpusClip set, timing-preserving caption correction, OpenCV face-tracked auto-reframe, single-layer timed color-flip ASS captions (one subtitle block, one active word), #N file naming and a chronologically ordered final list with source ranges and durations. Use when the user asks to "make shorts", "clip like OpusClip", add karaoke/captions to segments, or reconcile/dedupe/audit an existing shorts set.
 ---
 
 # OpusClip-style shorts pipeline
