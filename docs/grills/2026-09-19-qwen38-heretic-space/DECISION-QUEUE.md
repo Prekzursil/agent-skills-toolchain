@@ -441,3 +441,23 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   transformers wheels under `libsrc/`, the Space clones (`space-src` @17dce0c, `space-latest` @f88b120), and the local test venv.
   Re-clone/re-download to a durable path before the build runs; the Space HEAD must be re-checked before anything is planned
   against it (it was changing minute to minute on 2026-09-18/19).
+
+## design-v2-final.md produced (2026-09-19; final verification critic running)
+- 2,516 lines · 385 KB · all 38 critic gaps resolved (Appendix B maps every C-id) · 158 coverage rows (136 v1 rows kept + 22 v2
+  mechanism rows) · 22 cards, six roles, four stage runs (plan/build/stage/promote) + R0 grounding.
+- Mechanical checks green: `bash -n` gate; 13/13 heredocs + 3/3 one-liners compile; schema walk 34 nodes clean; `node --check`
+  both assembled forms; gate control-path dry run 22/22 (self-pin exit 66, typed RED ledger, identical LEDGER_DIGEST across two
+  executions, conditional import-app, wheel-SOURCE apicheck with unresolvable-not-RED, journeys `needs=` counting, claim-lint
+  fixture agreement, `--lint-base` scoping).
+- Regression drive: 37 scenarios, **98/98 assertions** (critic's 21 adapted + 16 new blocking-gap variants); drive itself caught and
+  fixed three real script bugs (protected-ownership contradiction; synthesizer blocked after HALT; not-ready promote advancing
+  next_args.stage to done). Artifacts under `scratch/revise-v2/`.
+- Estimates: ≈ 310-325 agents total (R0 11 + repair ≤2, R1 ≈ 275, R2 ≈ 25-30, R3 ≈ 8), ≤ 110 per invocation at cap 2;
+  wall-clock cap 2 ≈ 25-27 h in 4-6 resumable invocations, cap 14 ≈ 18-20 h in 2-3. Timings remain extrapolations.
+- Open owner questions (§15): Q1 resize · Q2 torch wheel in the gate venv · Q3 keep MCP · Q4 token topology · Q5 prompt-injection
+  defaults · Q6 python patch level · Q7 worker checkpoint (VLM-class export job if neither candidate carries visual tensors) ·
+  Q8 R2/R3 budgets · Q9 two recorded clarifications · Q10 policy for confirmed medium/low staging findings.
+- A fresh-context FINAL VERIFICATION CRITIC is now auditing v2 (closure audit C-1..C-38, independent mechanical extraction
+  document-vs-artifacts, its own adversarial drive of the NEW v2 mechanisms, loop/termination, authorability, cost realism) →
+  `design-v2-critique.md`. Only a `ready` verdict (or a closed gap list) unblocks writing the PLAN and the implementation
+  workflow script.
