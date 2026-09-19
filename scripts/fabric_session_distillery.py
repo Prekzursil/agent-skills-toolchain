@@ -49,11 +49,21 @@ BACKEND = os.environ.get("DISTILLERY_BACKEND", "claude").strip().lower()
 BEDROCK_MODEL = os.environ.get(
     "DISTILLERY_BEDROCK_MODEL", "eu.anthropic.claude-sonnet-4-5-20250929-v1-0"
 )
-CLAUDE_MODEL = os.environ.get("DISTILLERY_CLAUDE_MODEL", "sonnet")
+CLAUDE_MODEL = os.environ.get("DISTILLERY_CLAUDE_MODEL", "haiku")
+# 2026-09-19: default sonnet->haiku. Measured: glm-5.3[1m] (sonnet alias) stalls
+# indefinitely on -p payloads between ~11KB and 24KB via the gateway (reproduced
+# minimal); glm-5.3-flash (haiku alias) completes 23KB in ~40s. Distillation is
+# pattern-shaped grunt work - flash is the doctrinally correct tier anyway.
 HEAD_BYTES = 64 * 1024
 TAIL_BYTES = 64 * 1024
-MAX_CONTENT = 24_000
-LLM_TIMEOUT = 240
+MAX_CONTENT = 12_000
+# 2026-09-19: 24_000 -> 12_000. Measured: real transcript payloads complete at
+# 12KB (46-51s, haiku) but stall indefinitely at 24KB through the gateway on
+# BOTH claude -p and fabric backends; synthetic 24KB completes, so the stall is
+# a real-content x size interaction. 12KB head+tail keeps the session shape.
+LLM_TIMEOUT = 900  # raised 2026-09-19: bare claude -p used to be assumed fast; under the
+# 90-server MCP fleet it can exceed 240s before first token. Paired with the
+# bare-config flags below, actual calls should return well under this.
 CATEGORIES = ("coding", "research", "ops", "security", "chat", "aborted")
 DISTILL_CATEGORIES = ("coding", "research")
 
@@ -68,7 +78,30 @@ def redact(text: str) -> str:
     return SECRET_RE.sub("[REDACTED]", text)
 
 
+# 2026-09-19: verbatim fabric patterns CANNOT ride as the -p system prompt on the
+# current gateway — measured: real transcript content + the verbatim pattern text
+# (create_summary) stalls indefinitely on claude -p AND fabric backends, while the
+# same content with an equivalent PARAPHRASE completes (112s, haiku, 12KB). The
+# stall is content-x-exact-pattern-text; paraphrases below carry the same intent.
+_PARAPHRASES = {
+    "create_summary": (
+        "You distill developer session logs. Write a compact digest: "
+        "one sentence on purpose, the 10 most important points (max 16 words each), "
+        "and 5 takeaways. Numbered lists, plain Markdown, no notes or warnings. "
+        "Max 300 words total."
+    ),
+    "extract_wisdom": (
+        "You mine developer session logs for reusable knowledge. Write a compact "
+        "digest: key decisions and why they were made, surprising findings, "
+        "mistakes and their fixes, and dependencies or tools mentioned. "
+        "Numbered lists, plain Markdown, no filler. Max 300 words total."
+    ),
+}
+
+
 def _pattern_system(pattern: str) -> str:
+    if pattern in _PARAPHRASES:
+        return _PARAPHRASES[pattern]
     try:
         return (PATTERNS_DIR / pattern / "system.md").read_text(
             encoding="utf-8", errors="replace"
@@ -78,12 +111,18 @@ def _pattern_system(pattern: str) -> str:
 
 
 def _run_claude(system: str, content: str) -> str:
+    # BARE-CONFIG fix 2026-09-19: a plain `claude -p` boots the full MCP fleet
+    # (90 servers) + session hooks before answering — the distillery's historical
+    # hang. strict-mcp-config + an empty server set gives a prompt-only instance.
     proc = subprocess.run(
         ["claude", "-p", content[:MAX_CONTENT], "--model", CLAUDE_MODEL,
-         "--system-prompt", system],
+         "--system-prompt", system,
+         "--strict-mcp-config", "--mcp-config", '{"mcpServers": {}}'],
         capture_output=True, text=True, timeout=LLM_TIMEOUT,
-        encoding="utf-8", errors="replace",
+        encoding="utf-8", errors="replace", stdin=subprocess.DEVNULL,
     )
+    # stdin=DEVNULL 2026-09-19: without it the child inherits the caller's
+    # stdin and can block on it under capture (headless hang class).
     if proc.returncode != 0:
         return ""
     return (proc.stdout or "").strip()

@@ -71,7 +71,6 @@ if __package__ in {None, ""}:  # pragma: no cover
         LIVE_DAILY,
         LIVE_VAULT,
         REPO_CANONICAL,
-        REPO_CLAUDE_ONLY,
         REPO_PROJECTION,
         comparison_hash,
         is_deploy_excluded,
@@ -86,7 +85,6 @@ else:
         LIVE_DAILY,
         LIVE_VAULT,
         REPO_CANONICAL,
-        REPO_CLAUDE_ONLY,
         REPO_PROJECTION,
         comparison_hash,
         is_deploy_excluded,
@@ -737,7 +735,6 @@ def _default_skill_surface_roots(
     return {
         REPO_CANONICAL: repo_root / ".agents" / "skills",
         REPO_PROJECTION: projection or repo_root / "skills",
-        REPO_CLAUDE_ONLY: repo_root / "skills-claude-only",
         LIVE_VAULT: live_vault or _default_live("skills"),
         LIVE_DAILY: SKILLS_LINK,
     }

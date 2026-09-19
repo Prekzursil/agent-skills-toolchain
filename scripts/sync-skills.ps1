@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   Replaces the slow "copy skills one by one" workflow. Copies every skill directory
-  under skills/ (and optionally skills-claude-only/) into the live agents skills dir,
+  under skills/ into the live agents skills dir,
   overwriting existing copies. Optionally prunes live skill dirs that no longer exist
   in the repo (e.g. consolidated or deleted skills such as the former codex-local-*
   and agent-lanes-codex-* lanes). Worth a -Prune pass after the 2026-08-09 Codex-lane
@@ -27,9 +27,6 @@
   live copy of a synced skill is deleted. That is correct for a deploy target, but it
   means the blast radius of a bulk run is every skill, not just the one you fixed. Use
   -Skill to scope the run when other agents or live monitors own the rest of the tree.
-
-.PARAMETER IncludeClaudeOnly
-  Also sync skills-claude-only/ (the Claude-specific skills).
 
 .PARAMETER Skill
   Sync ONLY the named skill directories. Names are skill directory names (e.g.
@@ -60,7 +57,7 @@
   pwsh -File scripts/sync-skills.ps1
 
 .EXAMPLE
-  pwsh -File scripts/sync-skills.ps1 -IncludeClaudeOnly -Prune
+  pwsh -File scripts/sync-skills.ps1 -Prune
 
 .EXAMPLE
   # Ship one skill's fix while a live fleet owns the rest of the tree.
@@ -69,7 +66,6 @@
 param(
     [string]$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$Dest = (Join-Path ([Environment]::GetFolderPath("UserProfile")) ".agents/skills"),
-    [switch]$IncludeClaudeOnly,
     [string[]]$Skill,
     [switch]$Prune,
     [switch]$WhatIf
@@ -86,9 +82,6 @@ if ($Skill -and $Prune) {
 }
 
 $sourceDirs = @((Join-Path $Root "skills"))
-if ($IncludeClaudeOnly) {
-    $sourceDirs += (Join-Path $Root "skills-claude-only")
-}
 
 if (-not (Test-Path $Dest)) {
     Write-Host "Creating live skills dir: $Dest"
