@@ -105,20 +105,23 @@ jobs:
             --shards "${{ inputs.shards }}"
       - name: agent batch — backend claude (shard ${{ inputs.shard }}/${{ inputs.shards }})
         if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'claude'
+        env:
+          P2_SHARD: ${{ inputs.shard }}
+          P2_SHARDS: ${{ inputs.shards }}
         run: |
           git config user.name "p2-shard${{ inputs.shard }}-runner" || true
           git config user.email "p2-shard${{ inputs.shard }}-runner@users.noreply.github.com" || true
           python - > /tmp/prompt.txt <<'PY'
-          import json, subprocess, sys
+          import json, os, subprocess, sys
           from pathlib import Path
           contract = Path("command-center/p2-loop/agent_contract.md").read_text(encoding="utf-8")
           goal = subprocess.run([sys.executable, "command-center/p2-loop/p2_goal.py"], capture_output=True, text=True).stdout
           cat = json.loads(Path("command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8"))
           unbuilt = sorted(u["id"] for u in cat["work_units"])
-          SHARD, SHARDS = int(sys.argv[1]), int(sys.argv[2])
-          mine = [uid for i, uid in enumerate(unbuilt) if i % SHARDS == SHARD]
+          shard, shards = int(os.environ["P2_SHARD"]), int(os.environ["P2_SHARDS"])
+          mine = [uid for i, uid in enumerate(unbuilt) if i % shards == shard]
           print(contract)
-          print(f"\n\n## SHARD ASSIGNMENT (shard {SHARD} of {SHARDS})\nYou MUST only deliver/review units from this list ({len(mine)} units):\n" + ", ".join(mine[:400]) + "\nUnits outside this list belong to sibling shards; do not touch them.")
+          print(f"\n\n## SHARD ASSIGNMENT (shard {shard} of {shards})\nYou MUST only deliver/review units from this list ({len(mine)} units):\n" + ", ".join(mine[:400]) + "\nUnits outside this list belong to sibling shards; do not touch them.")
           print("\n## Goal function output right now\n```json\n" + goal + "\n```\nWork within this repo root. NEVER run git write commands (the runner commits for you). End with your structured report.")
           PY
           timeout 280 claude -p "$(cat /tmp/prompt.txt)" --dangerously-skip-permissions --max-turns 150 2>&1 | tail -60
