@@ -1,0 +1,76 @@
+{
+  "unit_id": "CC-0017",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "cross_vendor": true,
+  "vendor": "openai",
+  "vendor_lane": "openai/codex",
+  "role": "schema-reviewer",
+  "reviewer_slot": "cross-vendor-schema",
+  "reviewer_id": "openai-codex-fresh-context-cc0017-schema",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_path": "command-center/receipts/CC-0017.json",
+  "base_tip_sha": "234387d5ab5a11ccc4587ca8a8372a5674055f8c",
+  "base_branch": "origin/cursor/p2-loop-to-green-0db0",
+  "implementer_vendor": "anthropic",
+  "artifacts_reviewed": [
+    "command-center/schema/claim-record.provisional.v1.schema.json",
+    "command-center/schema/CLAIM-RECORD-PROVISIONAL.md",
+    "tools/command-center/claim_record.py",
+    "tools/command-center/tests/test_claim_record.py",
+    "command-center/p2-wave/probes/CC-0017/probe1_claim_record.py",
+    "command-center/receipts/CC-0017.json",
+    "command-center/WORK-UNIT-CATALOG.json#CC-0017",
+    "command-center/WORK-UNIT-CATALOG.json#ARC-0085"
+  ],
+  "schema_findings": {
+    "mandatory_settling_probe": {
+      "status": "PASS",
+      "detail": "settling_probe is required in JSON Schema (minLength:1) and enforced in claim_record.validate_claim; blank/whitespace/missing all reject."
+    },
+    "duplicate_of_cycle_reject": {
+      "status": "PASS",
+      "detail": "find_duplicate_of_cycles + validate_registry reject A->B->A and self-loop A->A; pytest control test_duplicate_of_cycle_is_rejected green."
+    },
+    "contradiction_to_missing_reject": {
+      "status": "PASS",
+      "detail": "With known_ids set, contradicts/supports/duplicate_of to unknown ids reject; ghost contradiction control fires."
+    },
+    "provisional_marking": {
+      "status": "PASS",
+      "detail": "schema_status const PROVISIONAL; x-provisional true; x-schema-status PROVISIONAL; CLAIM-RECORD-PROVISIONAL.md Status PROVISIONAL; module constants align."
+    },
+    "phase4_superseder_named": {
+      "status": "PASS",
+      "detail": "superseded_by_unit const ARC-0085; x-superseded-by-unit and x-phase4-formalization-unit = ARC-0085; catalog ARC-0085 title matches ('Contract: Claim record schema with duplicate, support and contradiction edges')."
+    },
+    "phase1_field_coverage": {
+      "status": "PASS",
+      "detail": "All catalog Phase-1 fields present: claim_id, canonical_mechanism, duplicate_of, supports, contradicts, source_lineage, confidence, verification_status, implementation_impact, settling_probe."
+    },
+    "planted_controls_reverified": {
+      "status": "PASS",
+      "pytest": "6 passed",
+      "controls": {
+        "no_settling_probe_rejected": true,
+        "duplicate_of_cycle_rejected": true,
+        "ghost_contradiction_rejected": true
+      }
+    }
+  },
+  "residual_notes_non_blocking": [
+    "Graph constraints (cycles, dangling edges) live in the hand-rolled Python validator, not as JSON-Schema keywords; acceptable for provisional Phase-1 but ARC-0085 should decide schema-vs-runtime ownership.",
+    "Repetition-immunity / ranking-by-independent-evidence from ARC-0085 question_or_target is correctly deferred; provisional schema does not claim them.",
+    "claim-record.schema.json remains the generated receipt-class shim; body validation correctly targets claim-record.provisional.v1.schema.json via claim_record.py."
+  ],
+  "did_not_touch": [
+    "command-center/receipts/CC-0017.json state (left BLOCKED)",
+    "SUCCESS:CC-0017",
+    "independent 1->2 SOFT re-derivation slot (reviewer 2 still owed)",
+    "independent-review.json (this file is schema-review.json only)"
+  ],
+  "notes": "Fresh-context cross-vendor (openai/codex vs anthropic implementer) schema review on tip 234387d5a. Read provisional v1 schema, CLAIM-RECORD-PROVISIONAL.md, claim_record.py, tests, catalog CC-0017 + ARC-0085. Confirmed: mandatory settling_probe; duplicate_of cycle reject (incl. self-loop); contradiction-to-missing reject; PROVISIONAL marking; Phase-4 superseder named ARC-0085. Re-ran pytest tools/command-center/tests/test_claim_record.py -v \u2192 6 passed; independently planted controls all fired. Schema-half verdict PASS. Receipt CC-0017.json remains BLOCKED (did_not_promote=true); second reviewer (1\u21922 SOFT re-derivation) still owed; SUCCESS:CC-0017 not invented."
+}

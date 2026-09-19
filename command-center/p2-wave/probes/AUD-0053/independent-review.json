@@ -1,0 +1,73 @@
+{
+  "unit_id": "AUD-0053",
+  "reviewer_id": "fresh-context-openai-independent-reviewer-AUD-0053",
+  "vendor": "openai",
+  "model": "gpt-5.6-sol",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "probe2_rerun": true,
+  "reran_probe": 2,
+  "probe1_rerun": false,
+  "probe_command": "python3 -B command-center/p2-wave/probes/AUD-0053/probe2_socket_trace_destinations.py",
+  "probe_exit_code": 0,
+  "reviewed_at": "2026-09-07T22:02:31Z",
+  "base_sha": "b1258fe98fa1dfda82c66ced10bb34b7c02301cf",
+  "review_branch": "cursor/aud-0053-review-0db0",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "committed_probe2": {
+    "collected_results_count": 139,
+    "network_touching_tests_count": 2,
+    "distinct_hosts": [
+      "104.20.23.154",
+      "172.66.147.243"
+    ],
+    "ground_truth_ok": true,
+    "cross_reference_ok": true,
+    "cross_reference_missing_from_trace": []
+  },
+  "fresh_probe2_rerun": {
+    "measured_at": "2026-09-07T22:02:31Z",
+    "traced_run_rc": 1,
+    "collected_results_count": 139,
+    "network_touching_tests_count": 2,
+    "network_touching_tests": [
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth.py::test_ground_truth_a_real_network_fetch_changes_outcome",
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth_silent.py::test_ground_truth_b_silent_network_touch_claims_hermetic"
+    ],
+    "distinct_hosts": [
+      "104.20.23.154",
+      "172.66.147.243"
+    ],
+    "ground_truth_ok": true,
+    "ground_truth_a_traced": true,
+    "ground_truth_b_silent_touch_traced": true,
+    "cross_reference_ok": true,
+    "cross_reference_missing_from_trace": [],
+    "probe_ok": true
+  },
+  "probe1_committed_cross_reference_only": {
+    "network_dependent_candidates_count": 1,
+    "dependent_nodeids": [
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth.py::test_ground_truth_a_real_network_fetch_changes_outcome"
+    ],
+    "dependent_set_is_subset_of_fresh_touching_set": true,
+    "touch_only_count": 1,
+    "touch_only_nodeids": [
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth_silent.py::test_ground_truth_b_silent_network_touch_claims_hermetic"
+    ]
+  },
+  "headline_falsification": {
+    "claim": "The trace finds two network-touching tests while the committed blocked-run outcome diff finds one network-dependent test.",
+    "falsified": false,
+    "result": "The fresh probe2 rerun reproduced the 2-touch versus 1-depend gap and the single silent-touch member."
+  },
+  "notes": "Fresh probe2 matched the committed probe2 on the 139-result scope, touching-test count (2), exact destination-host set, both ground-truth controls, and the probe1-dependent subset check. The traced pytest run returned 1 because unrelated suite tests fail by design or environment; this rerun additionally hit AUD-0052's planted flaky test, changing only the pytest tail (5 failed versus the committed 4), not any probe2 census field. Generated probe2 JSON/raw changes were therefore not retained as a material update.",
+  "residual_unknowns": [
+    "The census scope remains the documented 139 command-center tests; tools/, platform/, skills/, and the two excluded non-hermetic trees were not swept.",
+    "The socket trace does not settle UDP or event-loop paths that bypass the wrapped Python socket connect methods.",
+    "DNS-only egress remains invisible because hostname resolution without a subsequent traced connect is not instrumented."
+  ]
+}

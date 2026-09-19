@@ -1,0 +1,51 @@
+IMP-0435 r2 independent review — LOCAL BOTH-STATES REPRO
+Reviewer: c5-imp-0435-r2 (fresh-context Claude), 2026-09-19, Windows worktree
+Validator under test: command-center/receipt_validate.py
+Gate under test:      command-center/receipt_ci_gate.py
+
+VERDICT ON THIS ITEM: LOCAL BOTH-STATES FIRE CORRECTLY (but this is LOCAL
+evidence only — it does not satisfy the CI both-states contract; see
+r2-red-step-attribution.txt for why the CI half is REFUTED).
+
+Method: reviewer-crafted invalid receipt in %TEMP% (independent of the
+implementer's planted fixtures; built by mutating a copy of the valid
+IMP-0434.json with unit_id -> ZZZ-9999-R2 and sentinel rewritten to match).
+Builder script: %TEMP%\imp0435_r2_make_invalid.py (8904-byte output).
+
+STATE A — deliberately invalid receipt (known-bad state):
+  command: python command-center/receipt_validate.py %TEMP%\imp0435-r2-invalid-receipt.json
+  output : REJECT:ZZZ-9999-R2 C2 schema-invalid (2): sentinel: 'SENTINEL:ZZZ-9999-R2:RECEIPT-WRITER-ATOMIC' does not match '^(?:(?:SUCCESS|FAILED):[A-Z][A-Z0-9]*-[0-9]{4}(?:...
+  exit   : 1 (non-zero, expected)
+  note   : fired on C2 (sentinel pattern) rather than the intended C3 — the
+           sentinel rewrite broke the pattern first; either condition is a
+           deliberate-defect rejection, so the red state is proven.
+
+STATE B — valid in-scope receipt (known-good state):
+  command: python command-center/receipt_validate.py command-center/receipts/IMP-0434.json
+  output : ACCEPT:IMP-0434 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds
+           SUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)
+  exit   : 0 (expected)
+
+CONTROL — empty invocation (no-op refused):
+  command: python command-center/receipt_validate.py
+  output : FAILED:receipt-validate no input; an empty walk is not a pass
+  exit   : 1 (expected)
+
+FULL GATE — receipt_ci_gate.py (P1..P5):
+  output : OK:P1-wiring (quality.yml invokes receipt_ci_gate or receipt_validate)
+           OK:P2-self-test (1 golden ACCEPTED, 4 mutants REJECTED)
+           OK:P3-scope-green (3 receipt(s) ADMITTED)
+           OK:P4-planted-red (2/2 planted fixtures REJECTED)
+           OK:P5-noop-mode (empty walk fails; no silent-pass flag)
+           SUCCESS:receipt-ci-gate 5 probes green
+  exit   : 0
+
+Both-states detector control (known-bad fires / known-good silent): SATISFIED
+locally — the same probe produced REJECT+exit1 on the bad state and
+ACCEPT+exit0 on the good state in back-to-back invocations.
+
+CONCLUSION: The validator and its gate behave correctly in the local worktree,
+reproducing the implementer's recorded local evidence. The unit's FAILURE is
+not the validator logic — it is the absence of the required CI both-states
+evidence (no red run failed at the validator step; no green CI run exists
+post-wiring at all).

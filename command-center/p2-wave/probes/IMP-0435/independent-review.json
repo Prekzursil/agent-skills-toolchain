@@ -1,0 +1,113 @@
+{
+  "reviewer_id": "fresh-context-composer-reviewer-IMP-0435",
+  "vendor": "anthropic",
+  "model": "composer-cloud-independent-reviewer",
+  "verdict": "FAIL",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:04:17Z",
+  "unit_id": "IMP-0435",
+  "reviewed_head_sha": "5ee2159c2a271d70916dbe1cd99a8fe21312bfef",
+  "notes": "Independent fresh-context review of BLOCKED IMP-0435. Local surface is real: receipt_ci_gate.py 5/5 probes green; pytest 11 passed; planted fixtures REJECT on C3/C2; empty argv and --noop/--dry-run/--skip/--pass/--allow-empty cannot silent-pass; quality.yml L448-449 live-invoke the gate inside gate-tests-coverage (python packages); commenting those lines flips P1-wiring to fail. Scoped mutation (invalid unit_id / missing sentinel in scope) fails P3 as required. However catalog evidence_requirement and reviewer_requirement demand Both-states CI with Actions run ids where the RED run fails at the validator/receipt_ci_gate step (not elsewhere) and a GREEN run on valid scoped receipts. Measured on branch cursor/p2-loop-to-green-0db0: quality.yml n=36 with 0 success / 35 failure / 1 cancelled; inspected failures (e.g. 34153381480, 34152785542, 34153965061) have jobs with steps=0 and empty runner_name — they never execute gate-tests-coverage command-center. No run id attributes failure to receipt_ci_gate / the command-center step. Do not invent CI green. Keep state=BLOCKED; do not promote SUCCESS. Secondary: scope ratchets only 3/144 receipts (historic rejects out of scope by design) so an invalid unscoped receipt under command-center/receipts/ would not turn this gate red — honest residual vs catalog wording 'deliberately invalid receipt committed'. Artifact hash drift: gate.out and self-described receipts/IMP-0435.json sha256 disagree with on-disk bytes.",
+  "confirmed": [
+    "local_receipt_ci_gate_5_probes_green",
+    "local_pytest_11_passed",
+    "planted_invalid_fixtures_reject_c2_c3",
+    "p5_empty_and_forbidden_flags_nonzero",
+    "quality_yml_live_invocation_p1",
+    "p1_fails_when_invocation_commented",
+    "p3_fails_when_invalid_receipt_in_scope",
+    "receipt_state_remains_BLOCKED"
+  ],
+  "falsified": [
+    "actions_red_run_failed_at_validator_step",
+    "actions_green_run_id_for_valid_scoped_receipts",
+    "catalog_both_states_ci_evidence_satisfied"
+  ],
+  "honest_residuals": [
+    {
+      "claim": "GitHub Actions both-states run ids (red at validator step + green)",
+      "status": "ABSENT",
+      "detail": "quality workflow on this branch never reached gate-tests-coverage command-center; 0 successful quality runs among last 36."
+    },
+    {
+      "claim": "Unscoped invalid receipt under command-center/receipts/ turns CI red",
+      "status": "OUT-OF-SCOPE-BY-DESIGN",
+      "detail": "receipt_ci_scope.json lists 3 paths; full-tree walk still has many historic rejects; gate ratchets clean receipts only."
+    }
+  ],
+  "falsification_attempts": [
+    {
+      "target": "planted invalid not rejected",
+      "method": "python3 command-center/receipt_validate.py on both planted fixtures; also receipt_ci_gate P4",
+      "result": "NOT-FALSIFIED",
+      "evidence": "REJECT:ZZZ-9999 C3; REJECT:TST-0334 C2 sentinel required; P4 2/2 REJECTED; log /opt/cursor/artifacts/imp0435-review-falsify.log"
+    },
+    {
+      "target": "scope too narrow / bypass",
+      "method": "Count receipts vs scope; sample 40 receipts for reject rate; temporarily put planted invalid into scope.receipts and re-run gate; restore scope",
+      "result": "PARTIALLY-FALSIFIED (catalog CI claim) / LOCAL-GATE-OK",
+      "evidence": "total_receipts=144 scoped=3; sample40 rejects=22; invalid-in-scope flips P3 FAIL (rc=1); unscoped invalid would leave this gate green by design"
+    },
+    {
+      "target": "CI step missing or no-op",
+      "method": "Inspect quality.yml live lines; P1 probe; comment-out mutation of receipt_ci_gate/pytest lines",
+      "result": "NOT-FALSIFIED locally; Actions never observed executing the step",
+      "evidence": "L448 pytest IMP-0435 + L449 python command-center/receipt_ci_gate.py are live; commented_wiring ok=False"
+    },
+    {
+      "target": "P5 no-op refused claim",
+      "method": "Empty argv; forbidden flags --noop/--dry-run/--skip/--pass/--allow-empty; help leak check via gate P5",
+      "result": "NOT-FALSIFIED",
+      "evidence": "empty -> FAILED:receipt-validate no input rc=1; forbidden flags argparse unrecognized rc=2; no SUCCESS/ADMITTED"
+    },
+    {
+      "target": "Actions red/green evidence with run ids at validator step",
+      "method": "gh run list --workflow quality.yml --branch cursor/p2-loop-to-green-0db0; inspect jobs/steps for runs 34153381480 34152785542 34153965061",
+      "result": "FALSIFIED (evidence absent)",
+      "evidence": "36 quality runs: 0 success. Sample failures complete in ~3-40s with steps=[] runner_name='' — never reached receipt_ci_gate. Cannot confirm red-at-validator or green. Do not invent."
+    },
+    {
+      "target": "receipt artifact sha self-consistency",
+      "method": "Recompute sha256/bytes for every artifacts[] path vs receipt claims",
+      "result": "FALSIFIED (2 mismatches)",
+      "evidence": "gate.out claimed c78620fb… actual 7ddc903a… (same 601 bytes); receipts/IMP-0435.json self-claim 65b7d3d0… disk 493e1cea…"
+    }
+  ],
+  "commands_run": [
+    "git fetch/pull origin cursor/p2-loop-to-green-0db0",
+    "python3 command-center/receipt_ci_gate.py  # log: /opt/cursor/artifacts/imp0435-review-gate.log",
+    "python3 -m pytest command-center/p2-wave/probes/IMP-0435/test_receipt_ci_gate.py -q  # log: /opt/cursor/artifacts/imp0435-review-pytest.log",
+    "falsification suite F1-F8  # log: /opt/cursor/artifacts/imp0435-review-falsify.log",
+    "scoped mutation + hash check  # log: /opt/cursor/artifacts/imp0435-review-scoped-mutation.log",
+    "gh run list --branch cursor/p2-loop-to-green-0db0 --workflow quality.yml --limit 50",
+    "gh run view 34153381480|34152785542|34153965061 --json jobs"
+  ],
+  "actions_evidence": {
+    "green_run_id": null,
+    "red_run_id_at_validator_step": null,
+    "failing_step_name_for_red": null,
+    "observed_quality_conclusions": {
+      "success": 0,
+      "failure": 35,
+      "cancelled": 1,
+      "sample_window": 36
+    },
+    "sample_failure_run_ids": [
+      34153965061,
+      34153381480,
+      34152785542
+    ],
+    "sample_failure_observation": "jobs conclude failure with 0 steps / empty runner_name; not attributable to receipt_ci_gate"
+  },
+  "promotion": {
+    "promoted_to_success": false,
+    "reason": "Catalog both-states CI run ids absent; reviewer cannot confirm red failed at validator step"
+  },
+  "artifact_logs": [
+    "/opt/cursor/artifacts/imp0435-review-gate.log",
+    "/opt/cursor/artifacts/imp0435-review-pytest.log",
+    "/opt/cursor/artifacts/imp0435-review-falsify.log",
+    "/opt/cursor/artifacts/imp0435-review-scoped-mutation.log"
+  ]
+}

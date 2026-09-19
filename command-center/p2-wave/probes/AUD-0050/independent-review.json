@@ -1,0 +1,84 @@
+{
+  "reviewer_id": "openai-codex-cross-vendor-AUD-0050-bc-614af063",
+  "vendor": "openai",
+  "independent": true,
+  "fresh_context": true,
+  "verdict": "PASS",
+  "probe2_rerun": true,
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "unit_id": "AUD-0050",
+  "reviewed_tip_sha": "f00ddb6c1110a8b09557bf32af0e8abdffa590fc",
+  "reviewed_at": "2026-09-07T19:51:30Z",
+  "notes": "Cross-vendor fresh-context Codex review of AUD-0050. Re-ran ONLY probe2_collect_union.py (catalog reviewer_requirement). Did not treat packed receipt as authority: recomputed inventory, union from probe2-union-files.txt, and collect orphans as inventory-union. Control AUD0050-C1 holds on independent remeasure: planted fixture command-center/p2-wave/probes/AUD-0050/fixtures/orphan-control/test_deliberately_ungated.py has matching_steps=[] (selector orphan), is absent from collect union, and appears in collect_orphan_paths (index 151 on this rerun). Could not falsify empty-orphan / planted-absent / planted-in-union. Absolute union_file_count diverged packed tip 491 vs this-env rerun 389 (inventory 832\u2192835; orphans 369\u2192474) \u2014 collection under-count from missing package deps / collect errors in cloud, not a control failure; both packed and rerun report control.ok=True and probe2 ok=True. Restored committed probe2 json/raw/union/control after rerun so only this independent-review.json is committed. Did NOT promote SUCCESS; receipt remains BLOCKED.",
+  "confirmed": [
+    "planted_is_selector_orphan=true (matching_steps=[])",
+    "planted_in_collect_union=false",
+    "planted_is_collect_orphan=true (appears in orphan list)",
+    "control.ok=true on packed tip and on probe2 rerun",
+    "collect_orphan_count>0 (discrimination non-vacuous)",
+    "UNIT-ARTIFACT-MANIFEST.state=BLOCKED",
+    "probe2_rerun exit=0 SUCCESS:AUD-0050-probe2"
+  ],
+  "falsified": [
+    "exact_union_file_count_reproducibility_packed_491_vs_rerun_389 (env collection under-count; does not break planted control)"
+  ],
+  "falsification_attempts": [
+    {
+      "id": 1,
+      "target": "planted orphan control (planted_is_orphan / deliberately ungated fixture)",
+      "method": "Re-run probe2; independently check PLANTED in union_from_txt and in inventory-union orphans; confirm probe1 coverage_rows matching_steps=[]",
+      "result": "NOT-FALSIFIED",
+      "evidence": "planted_in_union=False; planted_is_collect_orphan=True; planted_is_selector_orphan=True; control_ok=True. Log: /opt/cursor/artifacts/aud0050-review-probe2-rerun.log + aud0050-review-falsify.log"
+    },
+    {
+      "id": 2,
+      "target": "empty collect orphan list (mapper not discriminating)",
+      "method": "Recompute collect_orphans=sorted(inventory-union); assert non-empty and contains planted",
+      "result": "NOT-FALSIFIED",
+      "evidence": "rerun collect_orphan_count=474; planted_orphan_index=151; falsify_empty_orphan_list=False"
+    },
+    {
+      "id": 3,
+      "target": "collect UNION file count headline equals packed tip",
+      "method": "Compare packed tip probe2-collect-union.json union_file_count to fresh probe2 rerun; remeasure len(probe2-union-files.txt)",
+      "result": "PARTIALLY-FALSIFIED-AS-EXACT-REPRO",
+      "evidence": "packed.union_file_count=491; rerun.union_file_count=389; union_from_txt matches json (389). Delta attributable to cloud collect failures/missing deps (multiple invocations exit 2/3/4/5 with fewer files). Control still holds on both receipts."
+    },
+    {
+      "id": 4,
+      "target": "receipt/probe2 JSON invents orphan membership without disk evidence",
+      "method": "Cross-check probe2 JSON counts against union txt and live inventory_test_files(); verify planted fixture exists on disk",
+      "result": "NOT-FALSIFIED",
+      "evidence": "union_count_match=True; orphan_count_match=True; PLANTED_EXISTS=True; json fields consistent with recomputation"
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0050-review-0db0 origin/cursor/p2-loop-to-green-0db0",
+    "python3 -B command-center/p2-wave/probes/AUD-0050/probe2_collect_union.py",
+    "python3 independent falsify/remeasure script (inventory, union txt, planted control, packed vs rerun)",
+    "git checkout HEAD -- probe2-collect-union.json probe2-collect-union.raw.txt probe2-union-files.txt control-orphan-outside-selectors.json"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0050-review-probe2-rerun.log",
+    "/opt/cursor/artifacts/aud0050-review-falsify.log"
+  ],
+  "headline_remeasure": {
+    "packed_tip": {
+      "union_file_count": 491,
+      "inventory_count": 832,
+      "collect_orphan_count": 369,
+      "control_ok": true
+    },
+    "probe2_rerun": {
+      "union_file_count": 389,
+      "inventory_count": 835,
+      "collect_orphan_count": 474,
+      "control_ok": true,
+      "planted_in_collect_union": false,
+      "planted_is_collect_orphan": true
+    }
+  },
+  "reran_probe": 2
+}

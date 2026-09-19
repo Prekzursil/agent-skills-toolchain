@@ -1,0 +1,60 @@
+IMP-0435 r2 independent review — RED-RUN STEP ATTRIBUTION (CI evidence)
+Reviewer: c5-imp-0435-r2 (fresh-context Claude), 2026-09-19
+Method: preserved job logs + fresh gh api pulls of run/job metadata and logs
+(repo Prekzursil/agent-skills-toolchain, workflow quality.yml)
+
+VERDICT ON THIS ITEM: REFUTED — no surviving red run failed at the receipt
+validator. In every examined red run the validator never executed.
+
+=== 1. Preserved red run = run #1272 (id 35441814807, sha a49fdf87, PR "P2
+loop-to-green: orchestrator + IMP-0434 wave 1", branch cursor/p2-loop-to-green-0db0) ===
+Log timestamps 2026-09-19T12:04:12Z match run creation 12:04:08Z.
+Preserved file: command-center/p2-wave/reviews/IMP-0435/red-run-joblog-full.txt
+Failing job: gate-tests-coverage (python packages), job id via steps API.
+Failing step name: "gate-tests-coverage command-center" (the step that carries
+the IMP-0435 commands — wired INSIDE this step, per the step's own comment at
+log line 1113: "# IMP-0435: receipt admission gate. Rides inside this step").
+Actual failure (quoted, log lines 1459-1466):
+  ERROR tools/command-center/tests/test_mechanism_dedup_gate.py::test_all_four_planted_mutant_classes_caught - ModuleNotFoundError: No module named 'numpy'
+  ... 5 more ERROR lines, same module ...
+  173 passed, 6 errors in 9.47s
+  ##[error]Process completed with exit code 1.
+Root cause: tools/command-center/mechanism_dedup_gate.py:33
+ModuleNotFoundError: No module named 'numpy' — a DIFFERENT unit's gate
+(CC-0020 mechanism-dedup), not the IMP-0435 validator.
+The step runs bash -e; the script dies at that earlier failure. The IMP-0435
+commands (log lines 1120-1121: "python -m pytest command-center/p2-wave/probes/
+IMP-0435/test_receipt_ci_gate.py -q" and "python command-center/receipt_ci_gate.py")
+NEVER EXECUTED: zero occurrences of OK:P1..P5 / SUCCESS:receipt-ci-gate / REJECT:
+anywhere in the 1478-line log (verified by grep).
+
+=== 2. Fresh pulls of the two newest red runs ===
+run #1274 (id 35446924331, sha fa156178, 2026-09-19T13:50Z), job 105907347633:
+  "179 passed in 13.11s" then "FAILED:cc-render drift=2"
+  (OWNER-DECISIONS.md differs from its rendering; ARTIFACT-MANIFEST.json does
+  not match the files on disk) -> exit 1. Validator never ran.
+run #1273 (id 35444295319, sha 0ebc468a, 2026-09-19T12:56Z), job 105900457788:
+  identical "FAILED:cc-render drift=2" -> exit 1. Validator never ran.
+(numpy WAS installed in these runs — pip log shows "Successfully installed
+numpy-2.4.6" — so the #1272 numpy failure was fixed between #1272 and #1273;
+the failure then moved to cc-render, still upstream of the validator.)
+
+=== 3. Implementation-night candidates (2026-09-07, receipt ended_at 18:53:25Z) ===
+run #1054 (id 34153582857, 18:55:41Z — the stalled reviewer's dead candidate):
+  all 8 jobs failed in ~3s with steps=[] and no log blob (404 BlobNotFound).
+  Degenerate run (push-thash invalidation), NOT a gate failure.
+runs #1055-#1080 (19:03-19:52Z): every python-packages job has steps=0;
+  job logs for 2026-09-07/08 are purged (BlobNotFound on a 2026-09-08 job log
+  probe, run 34171200350 job 101891683239). No surviving logs at all.
+
+=== 4. Green half ===
+No successful quality.yml run exists after 2026-09-02 (last success run #958 /
+main #951) — IMP-0435 landed 2026-09-07, so the validator has NEVER run green
+in CI either. Both halves of the CI both-states contract are unmet.
+
+CONCLUSION: The catalog reviewer requirement ("red run failed at the validator
+step and not elsewhere") cannot be confirmed from any surviving CI evidence,
+and the only surviving full red-run log affirmatively shows failure ELSEWHERE
+(numpy import in mechanism_dedup tests). Creating a qualifying red run requires
+pushing a deliberately invalid scoped receipt — forbidden for this reviewer
+(no git writes). Verdict contribution: FAIL.

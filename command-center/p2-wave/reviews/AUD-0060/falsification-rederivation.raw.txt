@@ -1,0 +1,63 @@
+# AUD-0060 independent falsification re-derivation — RAW EVIDENCE (COMPLETE)
+Reviewer: fresh-context Claude (c5-aud-0060), 2026-09-19T12:56:07Z. Had NOT seen the implementer transcript.
+Method: mechanical re-parse via falsify_audit0060.py + aud15_names.py (both in this dir; full script output in falsify_script_output.txt).
+
+## Artifact headline (as claimed, artifact line 267)
+- enabled_declared=16 unreachable=16 session_tools=19 session_schema_bytes=30725
+- planted_fake_mcp_tools=1 schema_bytes=108 hist_call_verified=16 live_nonzero=4
+- on-disk: bytes=21603 sha256=a1f67c2a5d984d14... (self-declared 21231/fa99cd59626da6c4... -> +372 byte drift BEFORE this review; see caveat)
+
+## Re-derivation source 1: registry SSOT C:\Users\Prekzursil\.agents\agents.json
+- total_servers=90 enabled=82 not_enabled=8
+- enabled_targeting_claude=70 enabled_targeting_codex=6
+- disabled_names: glm53-space, hacktricks, kaggle, libgen, markitdown, meta-tool, metasploit, sliver-full
+- Comparison vs headline enabled_declared=16: 82 vs 16 (70 vs 16 claude-targeted). DISJOINT — but the
+  headline's declared primary source is NOT the registry (see source 2); the registry is a different plane
+  (sync SSOT). The artifact never claims a registry census; it cites AUD-0015 (observation at artifact line 270).
+
+## Re-derivation source 2: AUD-0015 primary source the headline actually cites
+- command-center/audit/AUD-0015-mcp-scope-resolution.json /report/servers: 143 entries
+- state_counts: ENABLED-DECLARED=16, DISABLED-BY-ROOT=118, PENDING-APPROVAL=3, DENIED-BY-SETTINGS=5, NOT-LOADABLE-DECLARED=1 (16+118+3+5+1=143, closes)
+- ENABLED-DECLARED names (16): agent-mail, basic-memory, cloud-hub, codex, deepwiki, fiddler, figma, frida-mcp,
+  github, huggingface, paper-search, playwright, qlty, repomix, scholarly-access, search-hub
+- set_equal_to_probe1_16 = True (byte-level set identity)
+- AUD-0015's census plane (its own probe raw, embedded at AUD-0015 line 35): ~/.mcp.json + ~/.claude.json
+  (root.mcpServers + projects + disabledMcpServers) + ~/.claude/settings.json, SERVER_COUNT=143, captured on
+  the OWNER HOST 2026-08-19. This explains 'codex' and 'fiddler': present in live-config planes, absent from
+  the registry (cross-check: names_missing_from_registry=['codex','fiddler']; deepwiki is registry-enabled but
+  targets zcode/hermes, not claude).
+
+## Re-derivation source 3: internal consistency of the artifact (counter-example hunt)
+From an independent re-parse of command-center/p2-wave/probes/AUD-0060/probe1-tool-surface.raw.txt:
+- SERVER_rows=16, statuses {UNREACHABLE: 16}  -> matches enabled_declared=16 / unreachable=16 (SUMMARY at raw line 34)
+- SESSION rows: cursor=1 (2254B) + cursor-cloud=11 (19617B) + cursor-subscriptions=7 (8854B)
+  -> session_tools 1+11+7=19 MATCHES headline; schema bytes 2254+19617+8854=30725 MATCHES headline
+- live_nonzero=4 = planted fake-mcp (1) + 3 live session namespaces -> MATCHES
+- planted controls (raw lines 6-7): fake-mcp tool_count=1 schema_bytes=108 ok=True; planted-zero tool_count=0
+  schema_bytes=2 ok=True -> MATCHES headline planted_fake_mcp_tools=1 schema_bytes=108; zero-state control fires
+From probe2-usage-trace.raw.txt:
+- CAP_rows=23, verified_True=16 -> matches hist_call_verified=16
+- sum(tool_count of verified)=707 -> matches capability-matrix total_tools=707
+Probe1 JSON independent parse: aud0015_enabled_declared_count=16, session sums 19/30725 -> agrees with raw txt.
+
+## Falsification verdict
+HEADLINE SURVIVED as scoped. Every number in the headline re-derives exactly from a mechanically independent
+parse (artifact-embedded raw_output vs on-disk raw.txt vs on-disk probe JSON vs AUD-0015 primary source).
+No counter-example found; no invented counts (unreachable kept null, not zero — control C3 honored).
+The registry-vs-16 gap (82 enabled registry servers vs 16) is a PLANE/SCOPE boundary the artifact itself
+discloses as open defect AUD-0060-D-SCOPE (P1) + state=BLOCKED + residual_unknowns NOT-CHECKED; this review
+CONFIRMS that disclosure with numbers rather than falsifying the count.
+
+## Caveats (honest)
+1. Artifact + probe files drifted from their manifest-recorded hashes BEFORE this review
+   (artifact 21603 vs 21231 bytes; probe1.json 11070 vs 10729; probe1.raw sha 1d039f4c vs 660eb52c).
+   Counts were triple-confirmed across three on-disk representations, so the drift did not touch the counts,
+   but manifest-hash provenance is stale.
+2. Registry counted as of 2026-09-19; many entries were registered 2026-09-19/21, AFTER the probe date
+   (2026-09-07), so 82 overstates the registry population at measurement time. The pre-09-19 registry was
+   still far larger than 16, so the scope conclusion is unaffected.
+3. This PASS certifies the numbers AS CLAIMED (AUD-0015 live-config plane + session namespaces + planted
+   controls). It is NOT a certification that the estate's configured-server population is 16 — it is 82
+   enabled in the registry SSOT today (70 claude-targeted).
+
+Scripts: falsify_audit0060.py, aud15_names.py (this dir). Raw script output: falsify_script_output.txt.

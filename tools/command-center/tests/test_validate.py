@@ -353,6 +353,91 @@ def test_require_complete_flags_unresolved_work_unit_fields(real):
     assert "V-FIELDS" in _checks(strict)
 
 
+def test_require_complete_default_is_armed(real):
+    """IMP-0437: library default require_complete=True catches blank fields."""
+    bad = copy.deepcopy(real)
+    _find(bad, "R-M01")["completion_sentinel"] = ""
+    violations, _ = val.validate(bad)  # default must be armed
+    assert "V-FIELDS" in _checks(violations)
+
+
+def test_cli_defaults_deletion_exits_nonzero(tmp_path: Path, real, capsys):
+    """Defaults-block deletion must turn the CI command red (IMP-0437 / IMP-0436)."""
+    bad = copy.deepcopy(real)
+    del bad["defaults"]
+    catalog_file = tmp_path / "cat.json"
+    graph_file = tmp_path / "graph.json"
+    cat.save(bad, catalog_file)
+    cat.save(cat.build_graph(bad), graph_file)
+    code = val.main(
+        [
+            "--catalog",
+            str(catalog_file),
+            "--graph",
+            str(graph_file),
+            "--require-complete",
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "FAILED:cc-validate" in out
+    assert "V-DEFAULTS" in out
+
+
+def test_cli_single_default_field_deletion_exits_nonzero(tmp_path: Path, real, capsys):
+    """Control: deleting one relied-upon default field also fails the gate."""
+    bad = copy.deepcopy(real)
+    del bad["defaults"]["timeout_seconds"]
+    catalog_file = tmp_path / "cat.json"
+    graph_file = tmp_path / "graph.json"
+    cat.save(bad, catalog_file)
+    cat.save(cat.build_graph(bad), graph_file)
+    code = val.main(
+        [
+            "--catalog",
+            str(catalog_file),
+            "--graph",
+            str(graph_file),
+            "--require-complete",
+        ]
+    )
+    out = capsys.readouterr().out
+    assert code == 1
+    assert "V-DEFAULTS" in out
+    assert "timeout_seconds" in out
+
+
+def test_cli_bare_matches_require_complete_arm(tmp_path: Path, real, capsys):
+    """Bare CLI (no flag) is armed after IMP-0437; soft mode needs --no-require-complete."""
+    bad = copy.deepcopy(real)
+    _find(bad, "R-M01")["completion_sentinel"] = ""
+    catalog_file = tmp_path / "cat.json"
+    graph_file = tmp_path / "graph.json"
+    cat.save(bad, catalog_file)
+    cat.save(cat.build_graph(bad), graph_file)
+    bare = val.main(["--catalog", str(catalog_file), "--graph", str(graph_file)])
+    out_bare = capsys.readouterr().out
+    soft = val.main(
+        [
+            "--catalog",
+            str(catalog_file),
+            "--graph",
+            str(graph_file),
+            "--no-require-complete",
+        ]
+    )
+    out_soft = capsys.readouterr().out
+    assert bare == 1 and "V-FIELDS" in out_bare
+    assert soft == 0 and "SUCCESS:cc-validate" in out_soft
+
+
+def test_ci_workflow_passes_require_complete():
+    """quality.yml must invoke validate.py with --require-complete (IMP-0437)."""
+    wf = Path(__file__).resolve().parents[3] / ".github" / "workflows" / "quality.yml"
+    text = wf.read_text(encoding="utf-8")
+    assert "tools/command-center/validate.py --require-complete" in text
+
+
 # --------------------------------------------------------------------------
 # CLI - the exit code is what CI reads, so it gets its own both-states pair
 # --------------------------------------------------------------------------

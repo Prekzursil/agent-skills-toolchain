@@ -101,3 +101,51 @@ A consumer with no producer:
     the producing primitive exists unwired.
   * condition 11 requires a registration nothing produces.
 Worth a standing check: for every gate condition, name the code that can satisfy it.
+
+---
+
+## POSTSCRIPT 2026-09-19 — Option B implemented (PR #325 lane C11); the numbers above are stale
+
+The 2026-08-13 counts moved before this lane ran, and the fix already half-existed:
+
+* **"80 receipts point at the charter manifest" is now 20.** The 2026-08-16 p2-wave
+  `_pack_receipt.py` builders repointed most receipts at per-probe
+  `p2-wave/probes/<unit>/UNIT-ARTIFACT-MANIFEST.json` files (361 by fresh census). Fresh
+  measurement: `command-center/p2-next/C11-CENSUS.json` (425 receipt-shaped files carry a
+  `manifest_registration` block; 20 old-path, 44 top-level-new-path, 361 probe-local).
+* **A producer already existed but could never run.** `tools/command-center/unit_manifest.py`
+  (v1) failed closed on the FIRST of ~90 receipts naming probe outputs that were never
+  committed (`C11-MISSING-ARTIFACTS.json`), so the top-level
+  `command-center/UNIT-ARTIFACT-MANIFEST.json` could not be written at all while 44 receipts
+  already pointed at it. AUD-0095/AUD-0090 recorded this as "global unit_manifest.py --check
+  remains a sibling BLD-0001 issue" and lanes fell back to per-probe manifests.
+
+What this lane shipped (all on branch pr-325, disk-verified):
+
+* **Producer v2 — closed registration contract.** The derivation set is every receipt-shaped
+  JSON under `command-center/` whose `manifest_registration.manifest_path` names THIS manifest
+  (probe-local manifests are separate contracts, ignored). FATAL on: empty walk, unreadable
+  claimer, a `registered: true` claim naming an absent artifact (an un-honor-able claimed
+  registration is the false-green this program exists to prevent), zero-registrable corpus.
+  Non-claiming receipts naming absent artifacts are disclosed in an `unregistrable` block —
+  green by disclosure, never by silence. Both-states self-test covers every fatal rule.
+* **The manifest exists**: `command-center/UNIT-ARTIFACT-MANIFEST.json` — 50 claimers, 48
+  units, 58 artifact rows hashed (CRLF→LF), 5 unregistrable claimers disclosed by name and
+  missing path (AUD-0006, CC-0011, REL-0001, TST-0129, RES-0164 — all `registered=false`).
+* **Migration**: `_c11_migrate_manifest_path.py` repointed the 6 REAL old-path receipts
+  (ADV-0026, ADV-0032, casualty ADV-0021/ADV-0022, TST-0334, TST-0350). The other 14 old-path
+  files are frozen both-states fixtures under `p2-wave/fixtures/` consumed by
+  `ready_units.py`/`unitgate.py` (AUD-0095 freeze inventory) and are deliberately untouched;
+  their charter-manifest path remains valid (the file exists).
+* **Red proof on the live tree**: `C11-REDPROOF.json` — deleting a registered unit's artifact
+  turns `--check` red; restoring turns it green with hash-identical bytes; the receipt gate
+  (`receipt_schema_gate.evaluate_gate_a`) scores condition 11 SATISFIED via the new
+  `manifest_path` with filesystem verification on, and UNSATISFIED ("manifest absent on
+  disk") when the manifest is missing.
+* **CI wiring**: `.github/workflows/unit-artifact-manifest.yml` (self-test, then `--check`).
+  Separate file per the p2next-rail-count.yml precedent — quality.yml is a closed charter
+  set.
+
+No `state` field and no `registered` flag was flipped anywhere; the 7 reviewed units stay
+BLOCKED, as this decision required.
+

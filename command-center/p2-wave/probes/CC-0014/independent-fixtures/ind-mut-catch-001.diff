@@ -1,0 +1,21 @@
+diff --git a/tools/command-center/test_registry_bind.py b/tools/command-center/test_registry_bind.py
+index 9ebb8d7eb..8ab69faf1 100644
+--- a/tools/command-center/test_registry_bind.py
++++ b/tools/command-center/test_registry_bind.py
+@@ -45,13 +45,9 @@ def classify_entry(entry: dict[str, Any]) -> str:
+         return STATUS_UNPROVEN
+     outcome = str(mut.get("outcome", "")).upper()
+     if outcome == MUTATION_FAILED:
+-        # Require pointers so PROTECTING cannot be asserted from a bare flag.
+-        if not mut.get("diff_ref") or not mut.get("failing_output_ref"):
+-            raise RegistryError(
+-                f"entry {entry.get('id')}: PROTECTING requires mutation_record.diff_ref "
+-                "and failing_output_ref citing the fail evidence"
+-            )
+-        return STATUS_PROTECTING
++        # INDEPENDENT MUTATION IND-MUT-CATCH-001: misclassify FAILED as UNPROVEN
++        # (drops evidence-pointer gate and never returns PROTECTING).
++        return STATUS_UNPROVEN
+     if outcome == MUTATION_SURVIVED:
+         return STATUS_HOLE
+     raise RegistryError(

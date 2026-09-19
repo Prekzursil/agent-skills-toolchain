@@ -1,0 +1,62 @@
+CNF-0015 independent detector-control re-run
+reviewer: claude (fresh context)  started: 2026-09-19T12:59:44.424229+00:00
+repo: C:\Users\Prekzursil\source\agent-skills-toolchain
+receipt: command-center/confirmation/CNF-0015-blocker-repro.json
+detector (sha256-verified vs receipt): command-center/p2-wave/probes/CNF-0015/option_id_collision.py
+known-broken fixture (sha256-verified): fixtures/pre-fix/  known-good: fixtures/post-fix/
+
+=== 3a. shipped both-states suite: pytest -q test_option_id_collision.py ===
+$ python -m pytest command-center/p2-wave/probes/CNF-0015/test_option_id_collision.py -q
+.....                                                                    [100%]
+5 passed in 1.22s
+pytest exit code: 0
+
+=== 3b. detector directly on both states (measure_dir) ===
+PRE  (known-broken): {"family_m_count": 33, "doc13_bare_m_count": 38, "shared_id_count": 31, "mech_token_count": 0, "decision_present_tense_collision": true, "collision_live": true}
+POST (known-good)  : {"family_m_count": 33, "doc13_bare_m_count": 0, "shared_id_count": 0, "mech_token_count": 1, "decision_present_tense_collision": false, "collision_live": false}
+intersection sample (first 8 of 31): ['M-01', 'M-02', 'M-03', 'M-04', 'M-05', 'M-06', 'M-07', 'M-08']
+
+=== 3c. detector in GATE form on the known-broken fixture (firing exit) ===
+$ python -c "import option_id_collision as o; raise SystemExit(1 if o.collision_is_live(PRE) else 0)"
+gate exit on PRE  (broken): 1   -> FIRED (RED)
+gate exit on POST (fixed) : 0   -> silent (green)
+
+=== 3d. INDEPENDENT recomputation (reviewer-written, not the probe's code) ===
+independent family_m_ids(doc07)        : 33
+independent bare-M(doc13 PRE)          : 38
+independent |family ∩ bare| PRE        : 31
+independent bare-M(doc13 POST)         : 0
+independent |family ∩ bare| POST       : 0
+independent MECH substr in 17 PRE/POST : 0/1
+
+=== VERDICT INPUTS ===
+detector fired on known-broken fixture (shared_id_count=31, collision_live=True, gate exit=1): True
+detector silent on known-good fixture (shared_id_count=0, collision_live=False, gate exit=0): True
+independent recomputation agrees with detector (31 pre / 0 post): True
+shipped pytest suite green with both-states assertions: True
+
+=== 4. rail_count_gate both-states (reviewer promotion delta) ===
+BEFORE (baseline, same tree, same basis):
+  FRESH DERIVATION: 89 blocked units, 9 rail-blocked, 80 satisfiable now, 75 of those reviewed
+  C5 CNF-0015 is satisfiable by a same-vendor independent reviewer but carries no independent
+  PASS (verdict='NOT-REVIEWED', independent=False) -- newly reachable work
+  FAILED:rail-count-gate 8 problem(s)
+AFTER (receipt promoted with reviewer PASS, notes 2187 chars):
+  basis=worktree  doc=command-center/CROSS-VENDOR-RAIL-STATUS.md @ worktree
+    FRESH DERIVATION: 89 blocked units, 9 rail-blocked (9 still owed a cross-vendor review, 0 already served), 80 satisfiable now, 76 of those reviewed; catalog carries 2007 units, 305 of them READY
+    unit-count claims examined: 29 in the owning doc + 7 on-topic in 1 citing doc(s); 26 exempted by an explicit dated marker
+    C6 rail verdict: the block declares UP probed 2026-08-14; 3 rail-state assertion(s) across 2 page(s) checked for agreement. CONSISTENCY ONLY -- this gate calls nothing, so its silence never means the rail answers.
+    C5 content floor: 80 satisfiable receipts checked against 200-char notes + a named falsification method. ADVISORY (not blocking): 1 of 80 carry a RESOLVING file:line/URL evidence anchor.
+    C5 CC-0005 is satisfiable by a same-vendor independent reviewer but carries no independent PASS (verdict='NOT-REVIEWED', independent=False) -- newly reachable work
+    C5 CC-0019 is satisfiable by a same-vendor independent reviewer but carries no independent PASS (verdict='FAIL', independent=True) -- newly reachable work
+    C5 IMP-0022 is satisfiable by a same-vendor independent reviewer but carries no independent PASS (verdict='NOT-REVIEWED', independent=False) -- newly reachable work
+    C5 IMP-0435 is satisfiable by a same-vendor independent reviewer but carries no independent PASS (verdict='NOT-REVIEWED', independent=False) -- newly reachable work
+    C1 RAIL-COUNT basis: doc says committed, fresh derivation says worktree
+    C1 RAIL-COUNT reviewed_satisfiable: doc says 73, fresh derivation says 76
+    C2 line 1: unit count 73 matches no fresh derivation ([0, 9, 76, 80, 89, 305, 2007]) and the line carries no dated [superseded ...] / [worktree-observed ...] marker: '# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 73 of 80 satisfiable '
+  FAILED:rail-count-gate 7 problem(s)
+
+CNF-0015 mentions in AFTER gate output: 0 (grep -c) -- no longer a C5 problem.
+Reviewed-satisfiable moved 75 -> 76; problem count 8 -> 7; remaining problems are other
+units' pending reviews (CC-0005, CC-0019, IMP-0022, IMP-0435) and pre-existing C1/C2 doc
+rot owned by other lanes -- out of this review's scope.

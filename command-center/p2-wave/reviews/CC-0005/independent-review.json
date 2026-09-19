@@ -1,0 +1,66 @@
+{
+  "unit_id": "CC-0005",
+  "reviewer": "c5-cc-0005 (fresh-context Claude subagent, Windows checkout, core.autocrlf=true)",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude",
+  "reviewed_at": "2026-09-19T13:04:59Z",
+  "checkout": {
+    "branch": "cursor/p2-loop-to-green-0db0",
+    "head_sha": "a49fdf879115e5e5dea1d7cf2db5413f2d7d6d65",
+    "unit_base_sha": "75da713d3bc3eacb388a49b52ab6af78917509dc",
+    "unit_base_is_ancestor_of_head": true,
+    "core_autocrlf": "true (local)"
+  },
+  "falsification_attempts": [
+    {
+      "target": "receipt-cited artifact hashes not reproducible from git blobs",
+      "method": "own commands (not the unit scripts): git cat-file -p <rev>:<path> bytes -> sha256, for validate.py@base, blobread.py, .gitattributes@base, seed.py, test_reach6_blob_provenance.py",
+      "result": "NOT-FALSIFIED",
+      "evidence": "5/5 MATCH: validate.py@75da713=68f06a32e70c6f17807ef434b05c38a5f7b6e5b41c8d6889d590a739e906b4e0; blobread.py=a9f41cef63ded7ce58336bb58537e9e6bdfae76e0b7cce4a556b4e4d3671d49f (identical base/HEAD/worktree); .gitattributes@75da713=e30af5b07d68121f142008199282f2130ef8c2c62e80bbf1ee733d6deba2e561; seed.py=fbca3417...; test_reach6_blob_provenance.py=ccfb09f8..."
+    },
+    {
+      "target": "worktree-vs-blob divergence is not real on Windows (the gate choice does not matter)",
+      "method": "both-states control on the production REACH-6 input command-center/sources/REGISTER.md: sha256(blob@HEAD) vs sha256(worktree bytes) + CRLF counts + LF-normalisation control",
+      "result": "NOT-FALSIFIED",
+      "evidence": "blob f63cfeae2164e93dc6ba74f07070b48f5ba287b52e103e802c66a1a9fe2cc9cb (69536B, 0 CRLF; equals receipt probe sha256_12 f63cfeae2164) vs worktree c09bf0e75ff8847c26be454e6e442ae158d84d33aa772554ac267d95651868a8 (69912B, 376 CRLF); identical after LF-normalisation; delta 376 == line count 376. Corroborated on hooks/todo-surfacer/test_marker_discrimination.py (3837B/100CRLF vs 3737B/0) and README.md"
+    },
+    {
+      "target": "gate still hashes worktree or archive somewhere",
+      "method": "read the executable path: validate.py:83-105 _register_provenance_bytes -> blobread.read_blob; seed.py:133-166; grep for git archive in hashing path",
+      "result": "NOT-FALSIFIED",
+      "evidence": "read_blob (tools/measure-guard/blobread.py:56, cat-file subprocess :63-74) only; git archive appears solely inside three_route_comparison (:161-169) as the measured/indicted route; validate.py:88 comment, :289 REACH-6 blob hashing, fails closed on unreadable blob"
+    },
+    {
+      "target": "gate not green on Windows checkout",
+      "method": "python -m pytest (both CC-0005 suites) and python tools/command-center/validate.py --require-complete on this core.autocrlf=true checkout with the real CRLF REGISTER.md worktree present",
+      "result": "NOT-FALSIFIED",
+      "evidence": "9 passed in 3.51s (reach6-blob 5 + provenance_blob_hash 4, incl. both-states silent-on-EOL and fires-on-content); validate.py --require-complete -> SUCCESS:cc-validate items=103 reachable=all, EXIT=0"
+    },
+    {
+      "target": "no Linux execution of the identical commit",
+      "method": "gh api actions runs at head_sha=a49fdf8... + committed job log command-center/p2-wave/reviews/IMP-0435/red-run-joblog-full.txt + local collection count",
+      "result": "PARTIAL — suite-level green, workflow red (unrelated cause)",
+      "evidence": "ubuntu-latest job gate-tests-coverage (python packages), quality run 35441814807 @ a49fdf8: pytest tools/command-center/tests => 173 passed, 6 errors; all 6 errors enumerated as test_mechanism_dedup_gate.py numpy ModuleNotFoundError (CC-0020, unrelated); local collect 179 == 173+6 so every CC-0005 test passed on ubuntu at the identical commit. validate.py --require-complete NEVER ran in CI at this commit (bash -e aborted at the numpy errors before the validate.py line, joblog :1108/:1465/:1466); no green quality run exists on this branch (15 most recent all failure)"
+    }
+  ],
+  "confirmed": [
+    "5/5 receipt hashes reproduce from git cat-file blobs (never worktree, never archive)",
+    "both-states control: REGISTER.md worktree != blob, EOL-only, delta==line_count, on the production REACH-6 input",
+    "gate code hashes the blob via cat-file only (validate.py:83/:105/:289, seed.py:133-166, blobread.py:56)",
+    "Windows: pytest 9/9 green + validate.py --require-complete exit 0 under core.autocrlf=true",
+    "Linux ubuntu CI at identical commit a49fdf8: all CC-0005 tests passed inside 173 passed (6 errors all numpy/CC-0020)"
+  ],
+  "caveats": [
+    "validate.py CLI was never reached by CI at a49fdf8 (numpy abort in CC-0020's test kills the step first); parity evidence is suite-level, not a workflow-green validate.py run",
+    "quality workflow has never been green on this branch (2026-09-08..2026-09-19 all failure) — redness is unrelated to CC-0005",
+    "the settle-experiment content-flip-to-exit-1 half requires a commit (banned for this reviewer); covered instead by test_fires_when_content_genuinely_changes, green on Windows here",
+    "validate.py evolved 75da713->HEAD (68f06a32..aa5b860a) but the CC-0005 hunks are formatting-only; blobread.py byte-identical"
+  ],
+  "promotion": {
+    "promoted_to_success": true,
+    "receipt": "command-center/receipts/CC-0005.json reviewer block (verdict PASS, independent true)",
+    "raw_evidence": "command-center/p2-wave/reviews/CC-0005/independent-hash-repro.raw.txt"
+  }
+}

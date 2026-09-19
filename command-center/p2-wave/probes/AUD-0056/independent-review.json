@@ -1,0 +1,87 @@
+{
+  "unit_id": "AUD-0056",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0056",
+  "vendor": "anthropic",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "base_sha": "a367a579fce594da34a6afe4f4777a6022ea0854",
+  "review_branch": "cursor/aud-0056-review-0db0",
+  "reviewed_at": "2026-09-07T22:09:37Z",
+  "method": "Fresh-context falsify review: did not re-read the packed transcript as authority. Re-ran both named probes from scratch (fresh pytest subprocesses), then compared fresh measurements against the packed headline claims (probe1 ranking_stable, probe2 ranking_stable/contention-dominated, ground-truth slow fixture rank, ~14 modules / ~127 call rows). Left command-center/audit/AUD-0056-test-runtime-profile.json untouched at state=BLOCKED.",
+  "commands_run": [
+    "python3 -B command-center/p2-wave/probes/AUD-0056/probe1_runner_durations.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0056/probe2_external_wallclock.py"
+  ],
+  "fresh_probe1": {
+    "ranking_stable": true,
+    "rank_mismatches": 0,
+    "ok": true,
+    "contention_dominated": false,
+    "ground_truth_ok": true,
+    "module_count": 15,
+    "call_row_count": 129,
+    "ground_truth_module_rank": 1,
+    "top10_modules": [
+      "command-center/p2-wave/probes/AUD-0056/fixtures/slow_control/test_deliberately_slow.py",
+      "command-center/p2-wave/probes/IMP-0435/test_receipt_ci_gate.py",
+      "command-center/casualty/tests/test_casualty_guard.py",
+      "command-center/hook-audit/test_failpath_evidence.py",
+      "command-center/hook-audit/test_hook_predeploy_gate.py",
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth.py",
+      "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth_silent.py",
+      "command-center/p2-wave/probes/AUD-0026/fixtures/planted-shipped-imports-dev/tests/test_planted.py",
+      "command-center/p2-wave/probes/AUD-0050/fixtures/orphan-control/test_deliberately_ungated.py",
+      "command-center/p2-wave/probes/AUD-0055/fixtures/test_control_xfail_fixed.py"
+    ]
+  },
+  "fresh_probe2": {
+    "ranking_stable": false,
+    "rank_mismatches": 4,
+    "ok": false,
+    "contention_dominated": true,
+    "ground_truth_ok": true,
+    "collected_modules": 16,
+    "ground_truth_module_rank": 1,
+    "top5_identical_across_runs": true,
+    "mismatch_ranks": [6, 7, 8, 10]
+  },
+  "falsification_attempts": [
+    {
+      "claim": "Probe1 top-10 ranking_stable=True",
+      "attempt": "Re-ran probe1_runner_durations.py (two fresh --durations profiles). Checked rank_mismatches and top10 identity across RUN1/RUN2.",
+      "result": "NOT FALSIFIED. Fresh ranking_stable=True, mismatches=0. Top-10 membership differed from the packed snapshot (AUD-0053 network fixtures entered the set; slow control moved from rank 2 to rank 1), but within-pass dual-run identity held."
+    },
+    {
+      "claim": "Probe2 top-10 ranking_stable=False (contention-dominated baseline not usable)",
+      "attempt": "Re-ran probe2_external_wallclock.py (two fresh per-module wall-clock profiles). Tried to see whether top-10 would randomly stabilize and falsify the contention finding.",
+      "result": "NOT FALSIFIED. Fresh ranking_stable=False with 4 mismatches (ranks 6/7/8/10). Top-5 was identical across runs; instability concentrates in near-tied sub-200ms modules. Under the catalog's exact top-10 identity criterion this remains an honest negative / baseline-unusable finding, not a fluke stabilization."
+    },
+    {
+      "claim": "Ground-truth deliberately slow fixture caught in both instruments",
+      "attempt": "Verified fixtures/slow_control/test_deliberately_slow.py still sleeps SLOW_SECONDS=0.80 and checked fresh probe ground_truth.ok plus module ranks.",
+      "result": "NOT FALSIFIED. Probe1 ground_truth_ok=True (gt_mod_rank=1, gt_in_top_tests=True). Probe2 ground_truth_ok=True (gt_rank=1 on both runs)."
+    },
+    {
+      "claim": "Headline module/call-row counts ~14 modules / ~127 call rows",
+      "attempt": "Compared packed probe JSON (p1 modules=13/call_rows=127; p2 modules=14) to fresh re-runs (p1 modules=15/call_rows=129; p2 modules=16). Inspected which new modules appeared.",
+      "result": "NOT FALSIFIED as a measured instrument claim. Absolute counts drifted by +2 modules/+2 call rows because AUD-0053 network_dependent fixtures are now collectible in this environment; that is session/scope drift already anticipated by residual unknowns, not a break of stability/contention/ground-truth findings. Exact packed headline integers are snapshot-specific; the ~ band still covers the order of magnitude."
+    }
+  ],
+  "falsified": [],
+  "confirmed": [
+    "Probe1 dual-run top-10 module ranking remains stable (ranking_stable=True).",
+    "Probe2 dual-run top-10 module ranking remains unstable (ranking_stable=False, 4 mismatches) so contention_dominated=True / baseline_usable=False still holds.",
+    "Planted slow control is correctly surfaced by both instruments (rank 1 this pass).",
+    "Receipt command-center/audit/AUD-0056-test-runtime-profile.json left at state=BLOCKED; sha256 unchanged (ccbd1ee007079c7b8f2d8fc4be589bb403e61729b31e7969a42dce267398e39b); did_not_promote=true."
+  ],
+  "notes": "Independent fresh-context Claude falsify review of AUD-0056. Both named probes re-executed from scratch; probe .json/.raw.txt refreshed from this re-run. Could not falsify probe1 stability, probe2 instability/contention-dominated negative finding, or ground-truth detection. Absolute module/call-row headline integers drifted slightly with newly collectible AUD-0053 fixtures but do not overturn the measured claims. Verdict PASS. Receipt deliberately left BLOCKED (no SUCCESS invent).",
+  "residual_unknowns": [
+    "Absolute collectible counts moved from packed ~14 modules / 127 call rows to fresh 15–16 modules / 129 call rows after AUD-0053 network fixtures entered the collectible set; whether a quieter host or a frozen module allowlist would pin exact integers was not settled.",
+    "Probe2 top-5 is stable while ranks 6–10 shuffle among near-tied fast modules; whether that is CPU contention versus timer noise among sub-200ms suites was not separated experimentally.",
+    "tools/, platform/, skills/, and the excluded salvage/scratch/AUD-0052 planted-control trees remain outside this profile (same residual as the packed receipt)."
+  ]
+}

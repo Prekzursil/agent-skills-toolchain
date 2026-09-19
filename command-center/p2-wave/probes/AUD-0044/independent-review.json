@@ -1,0 +1,120 @@
+{
+  "unit_id": "AUD-0044",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "aud-0044-claude-falsify",
+  "reviewer_role": "falsify-reviewer",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0044-required-context-audit.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "b1cac580a38a07a2e553e5b5aad418f9b0204df8",
+  "reviewed_at": "2026-09-07T22:33:00Z",
+  "method": "Checked out cursor/aud-0044-review-0db0 at tip b1cac580a (git reset --hard origin/...). Read all four probe scripts (probe1_required_status_checks.py, probe2_recent_pr_check_runs.py, compare_required_vs_emitted.py, compare_contexts.py, control_renamed_job.py) end-to-end before running anything, to understand exactly what API calls and set arithmetic each performs. Re-ran all four named probes from scratch live against GitHub (gh auth status confirmed logged in, rate_limit had 8300/8300 remaining before starting). Then, independently of the receipt's own scripts, ran my own separate gh api calls and a from-scratch Python set-arithmetic script (not importing compare_contexts.py) to recompute required/emitted/intersection/symdiff without relying on the implementer's comparator code. Also independently queried for additional rulesets (repo-level and org-level) and additional classic-branch-protection sub-endpoints to check for invented or omitted required contexts, and independently re-listed the 10 most-recently-closed base=main PRs to check PR #308's selection was not cherry-picked. Inspected both scratch-workflow fixture files by hand to confirm the rename control is a text fixture (not a live workflow) and that the rename is real. After running, git-diffed all touched probe output JSON/raw files to confirm only started_at/ended_at timestamps changed (byte-identical set data), then git checkout -- reverted those timestamp-only diffs to leave the review branch clean before writing this review artifact. Confirmed receipt state=BLOCKED and reviewer.verdict=NOT-REVIEWED remained untouched on disk; did not modify the receipt.",
+  "re_runs": {
+    "probe1_required_status_checks.py": {
+      "exit_code": 0,
+      "stdout_tail": "probe1 ok=True api_used=rulesets required_count=7 classic_ok=False rulesets_ok=True",
+      "required_status_checks": [
+        "gate-deps (osv-scanner)",
+        "gate-lint-format (ruff)",
+        "gate-sast (opengrep)",
+        "gate-secrets (gitleaks)",
+        "gate-tests-coverage (node workspaces)",
+        "gate-tests-coverage (python packages)",
+        "gate-types (basedpyright)"
+      ],
+      "matches_receipt": true
+    },
+    "probe2_recent_pr_check_runs.py": {
+      "exit_code": 0,
+      "stdout_tail": "probe2 ok=True pr=#308 emitted_count=18 check_runs=18 status_contexts=0",
+      "selected_pr": 308,
+      "selected_head_sha": "7371cbf771381140ceb7a2b3c10408c1ddf3f715",
+      "matches_receipt": true
+    },
+    "compare_required_vs_emitted.py": {
+      "exit_code": 0,
+      "stdout": "compare ok=True required=7 emitted=18 required_but_never_emitted=0 emitted_but_not_required=11 intersection=7 symdiff=11",
+      "matches_receipt": true
+    },
+    "control_renamed_job.py": {
+      "exit_code": 0,
+      "stdout": "control ok=True baseline_symdiff=0 renamed_symdiff=2",
+      "matches_receipt": true
+    },
+    "byte_diff_of_regenerated_outputs_vs_committed": {
+      "method": "git diff after re-running all four probes",
+      "observed": "Only started_at/ended_at timestamp fields changed in probe1-required-status-checks.json, probe2-recent-pr-check-runs.json (+ .raw.txt), compare-required-vs-emitted.json, control-renamed-job.json. All array/count/name content byte-identical to the committed version.",
+      "action_taken": "git checkout -- <those 5 files> to leave the review branch clean (no residual re-run churn committed)."
+    }
+  },
+  "falsification_attempts": [
+    {
+      "attempt": "Re-run all 4 probes live from a fresh checkout and diff outputs against the committed JSON to see if the implementer's numbers were a one-off fluke or cherry-picked run.",
+      "result": "could_not_falsify",
+      "observed": "All 4 probes reproduced identical required_count=7, emitted_count=18, intersection_count=7, required_but_never_emitted_count=0, emitted_but_not_required_count=11, symmetric_difference_count=11, control renamed_symdiff=2. Only timestamps differed byte-for-byte."
+    },
+    {
+      "attempt": "Recompute required-vs-emitted set arithmetic with my own independently-written Python (not importing compare_contexts.py) fed from a separately fetched check-runs list (gh api commits/{sha}/check-runs, piped through sort -u to /tmp/my_emitted.txt) and a hardcoded required list transcribed by hand from probe1's stdout, to rule out a shared bug in compare_contexts.compare().",
+      "result": "could_not_falsify",
+      "observed": "Independent script produced required_count=7, emitted_count=18, intersection_count=7, required_but_never_emitted=[], emitted_but_not_required=(same 11 names), symdiff_count=11 -- identical to the receipt's comparator output despite using different code."
+    },
+    {
+      "attempt": "Check whether additional rulesets (repo-level, beyond id 18297434) or org-level rulesets exist that would add required contexts the probe missed, which would falsify required_count=7 as too low.",
+      "result": "could_not_falsify",
+      "observed": "gh api repos/.../rulesets returns exactly one ruleset (id=18297434, target=branch, enforcement=active). gh api orgs/Prekzursil/rulesets returns 404 because the repo owner type is 'User', not 'Organization' -- there is no org-level ruleset layer to check. No second ruleset exists that the probe silently dropped."
+    },
+    {
+      "attempt": "Check whether the classic branch-protection 403 is a real credential limitation or a probe artifact/bug that could be hiding additional required contexts (i.e. did the implementer invent the ruleset numbers to cover for a broken classic call, or skip real classic contexts?).",
+      "result": "could_not_falsify",
+      "observed": "Independently called GET branches/main/protection and GET branches/main/protection/required_status_checks directly with gh api -- both return 403 'Resource not accessible by integration' with the identical GitHub-documented message. This is a real fine-grained-token permission limitation (no Administration:read), not a probe bug. Probe1's code path never falls back to inventing contexts on 403; it correctly used only the rulesets answer, which is the only channel that actually answered. This matches the receipt's residual_unknowns entry (classic vs ruleset parity is honestly marked NOT-CHECKED, not asserted)."
+    },
+    {
+      "attempt": "Check whether PR #308 was cherry-picked as the 'most recent' merged PR to produce a favorable emitted-context set, by independently listing the 10 most-recently-closed base=main PRs and their merged_at timestamps.",
+      "result": "could_not_falsify",
+      "observed": "Independent listing of the 10 closed base=main PRs shows merged_at values: #313@06:27:11Z, #309@03:53:57Z, #308@07:06:44Z, #307@03:40:15Z, #306@01:20:49Z, #305@01:20:28Z, #304@01:17:59Z, #303@01:12:04Z, #302@01:13:38Z, #301@01:17:36Z (all 2026-09-02). #308 at 07:06:44Z is strictly the latest merged_at among all 10 candidates, so probe2's selection rule (most-recently-merged PR with >=1 check-run) picked the correct, non-cherry-picked PR."
+    },
+    {
+      "attempt": "Verify emitted_count=18 is not inflated by counting duplicate/retry check-run entries (e.g. a job re-run producing two check-runs with the same name being double-counted, or GitHub Status API contexts being double-counted alongside check-run names).",
+      "result": "could_not_falsify",
+      "observed": "gh api commits/{sha}/check-runs?per_page=100 for PR #308's head sha returns 18 check_runs entries; piping .check_runs[].name through sort -u still yields 18 distinct lines (no duplicates were being silently collapsed to inflate or deflate the count). Independently queried commits/{sha}/status and confirmed .statuses has length 0, so the legacy Status API contributes zero additional contexts -- emitted_count=18 is check-run names only, not double-counted against a nonexistent status-context set."
+    },
+    {
+      "attempt": "Read both scratch-workflow fixture YAML files by hand (not via the yaml_job_names() parser) to confirm the renamed-job control isn't rigged -- e.g. checking that the baseline fixture's 7 job names are byte-identical to the 7 required contexts, and that exactly one name differs in the renamed fixture.",
+      "result": "could_not_falsify",
+      "observed": "scratch-workflow-baseline.yml job `name:` values are exactly: gate-lint-format (ruff), gate-types (basedpyright), gate-tests-coverage (node workspaces), gate-tests-coverage (python packages), gate-sast (opengrep), gate-secrets (gitleaks), gate-deps (osv-scanner) -- an exact match (as a set) to the 7 required contexts from probe1. scratch-workflow-renamed.yml is byte-identical except the test-python job's name is changed to 'gate-tests-coverage (python packages RENAMED)'. This produces exactly one required_but_never_emitted entry and one emitted_but_not_required entry (symdiff=2), matching the observed renamed_symdiff=2. Both fixtures are under fixtures/ and are workflow_dispatch-only scratch files, not registered live workflows -- confirmed no live .github/workflows file was touched by grepping git log/diff for this unit's commits."
+    },
+    {
+      "attempt": "Confirm the receipt on disk was NOT silently promoted to SUCCESS by a prior step, and that the reviewer.verdict field genuinely still reads NOT-REVIEWED before I write my own independent verdict.",
+      "result": "could_not_falsify",
+      "observed": "python3 -c read of command-center/audit/AUD-0044-required-context-audit.json confirms state='BLOCKED' and reviewer.verdict='NOT-REVIEWED' at the start of this review, matching the tip commit b1cac580a. I did not edit that file."
+    }
+  ],
+  "headline_claims_checked": {
+    "required_count": { "claimed": 7, "independently_measured": 7, "falsified": false },
+    "emitted_count": { "claimed": 18, "independently_measured": 18, "falsified": false },
+    "intersection_count": { "claimed": 7, "independently_measured": 7, "falsified": false },
+    "required_but_never_emitted_count": { "claimed": 0, "independently_measured": 0, "falsified": false },
+    "emitted_but_not_required_count": { "claimed": 11, "independently_measured": 11, "falsified": false },
+    "symmetric_difference_count": { "claimed": 11, "independently_measured": 11, "falsified": false },
+    "control_renamed_job_symdiff": { "claimed": 2, "independently_measured": 2, "falsified": false },
+    "classic_branch_protection_403_is_real_not_invention": { "claimed": true, "independently_verified": true, "falsified": false },
+    "pr_308_selection_not_cherry_picked": { "claimed_implicitly_via_selection_rule": true, "independently_verified": true, "falsified": false }
+  },
+  "notes": "Every headline count in the receipt reproduced exactly on a fresh live re-run and, more importantly, on an independently-written comparator that does not import the implementer's compare_contexts.py. I specifically tried several distinct falsification angles (hidden second ruleset, org-level ruleset, classic-API real-vs-fake 403, PR cherry-picking, duplicate check-run inflation, rigged rename fixture) and none of them broke a single claimed number. The only genuinely open question -- whether classic branch-protection required_status_checks would agree with the ruleset list if this token had Administration:read -- remains unresolved because I have the same fine-grained-token 403 the implementer had; this is correctly logged as a residual_unknown in the receipt rather than papered over, and I am leaving it open rather than fabricating an answer. I did not promote the receipt; state=BLOCKED and reviewer.verdict=NOT-REVIEWED remain exactly as found on disk. This independent-review.json is a separate artifact documenting my own falsify attempt; a downstream packer step (not run by me) may use it to decide whether to promote the receipt, per this task's explicit instruction not to pack SUCCESS myself.",
+  "residual_unknowns": [
+    {
+      "claim": "Whether classic branch-protection required_status_checks would disagree with the ruleset list if a token with Administration:read were used.",
+      "why_still_open": "Both my token and the implementer's token hit the identical 403 on GET branches/main/protection and its /required_status_checks sub-resource; I have no path to a higher-privilege token in this sandboxed review to settle it.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Whether other recently merged PRs (e.g. #313, #309, #307...) emit a materially different context set than PR #308 (e.g. due to path-filtered jobs or matrix skips).",
+      "why_still_open": "I confirmed #308 is the correct most-recently-merged selection per the documented rule, but did not exhaustively diff check-run sets across all 10 candidate PRs; this is an extension, not a falsification of the reported number for the PR actually selected.",
+      "verdict": "NOT-CHECKED"
+    }
+  ]
+}

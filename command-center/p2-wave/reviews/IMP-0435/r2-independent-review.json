@@ -1,0 +1,40 @@
+{
+  "unit_id": "IMP-0435",
+  "review_round": "r2",
+  "reviewer": {
+    "reviewer_id": "claude-fresh-context-c5-imp-0435-r2",
+    "vendor": "claude",
+    "independent": true,
+    "fresh_context": true,
+    "reviewed_at": "2026-09-19T00:00:00Z"
+  },
+  "verdict": "FAIL",
+  "catalog_reviewer_requirement": "independent-claude-reviewer confirms the red run failed at the validator step and not elsewhere",
+  "evidence_contract": "Both-states CI evidence: the gate red on a deliberately invalid receipt and green on a valid one, with the run ids and the failing step name for the red run.",
+  "findings": {
+    "red_run_step_attribution": "REFUTED — no surviving red run failed at the IMP-0435 validator. Run 35441814807 (#1272, preserved log) failed at 6x ModuleNotFoundError numpy in tools/command-center/mechanism_dedup_gate.py:33 ('173 passed, 6 errors'); the IMP-0435 commands at red-run-joblog-full.txt:1120-1121 never executed (bash -e stops at the earlier failure; zero OK:P*/SUCCESS:receipt-ci-gate/REJECT lines in the whole log). Fresh pulls: run 35444295319 (#1273) and 35446924331 (#1274) failed at 'FAILED:cc-render drift=2', also upstream of the validator.",
+    "green_run": "MISSING — no successful quality.yml run exists after 2026-09-02 (last success run #958); IMP-0435 landed 2026-09-07, so the validator has never run green in CI.",
+    "implementation_night_candidates": "DEGENERATE — runs #1054-#1080 (2026-09-07 18:55-19:52Z) all show python-packages jobs with steps=0 and purged logs (404 BlobNotFound on probes), including the stalled reviewer's candidate 34153582857 (#1054, all 8 jobs failed in ~3s).",
+    "local_both_states": "PASS — reviewer-crafted invalid receipt (%TEMP%\\imp0435-r2-invalid-receipt.json, unit_id ZZZ-9999-R2) -> 'REJECT:ZZZ-9999-R2 C2 schema-invalid (2): sentinel ...' exit 1; valid command-center/receipts/IMP-0434.json -> 'ACCEPT:IMP-0434 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds' exit 0; empty invocation -> 'FAILED:receipt-validate no input' exit 1; receipt_ci_gate.py -> 5/5 probes green ('SUCCESS:receipt-ci-gate') exit 0."
+  },
+  "verdict_rationale": "PASS required BOTH red-run step attribution at the validator AND a firing local both-states repro. The local repro fires both states (exit 1 REJECT on invalid, exit 0 ACCEPT on valid), but the CI requirement is refuted: every examined red run failed elsewhere (numpy import; cc-render drift) and the validator has never executed in any surviving CI run, red or green. Creating a qualifying red run requires pushing a deliberately invalid scoped receipt, which is outside this reviewer's authority (no git writes).",
+  "evidence_files": [
+    "command-center/p2-wave/reviews/IMP-0435/r2-red-step-attribution.txt",
+    "command-center/p2-wave/reviews/IMP-0435/r2-local-bothstates.txt",
+    "command-center/p2-wave/reviews/IMP-0435/red-run-joblog-full.txt (preserved, run 35441814807)",
+    "command-center/p2-wave/reviews/IMP-0435/red-candidate-34153582857-joblog.txt (preserved 404 receipt, run #1054)"
+  ],
+  "run_ids_examined": {
+    "35441814807": {"run_number": 1272, "sha": "a49fdf87", "conclusion": "failure", "failing_step": "gate-tests-coverage command-center", "actual_failure": "numpy ModuleNotFoundError in mechanism_dedup tests, NOT the receipt validator", "log_source": "preserved red-run-joblog-full.txt"},
+    "35444295319": {"run_number": 1273, "sha": "0ebc468a", "conclusion": "failure", "actual_failure": "FAILED:cc-render drift=2", "log_source": "fresh gh api job 105900457788"},
+    "35446924331": {"run_number": 1274, "sha": "fa156178", "conclusion": "failure", "actual_failure": "FAILED:cc-render drift=2", "log_source": "fresh gh api job 105907347633"},
+    "34153582857": {"run_number": 1054, "sha": "12c8640a", "conclusion": "failure", "actual_failure": "degenerate: all jobs failed in ~3s, steps=0, log blob purged (404)", "log_source": "gh api metadata + 404 probe"}
+  },
+  "promotion": {
+    "receipt_path": "command-center/receipts/IMP-0435.json",
+    "reviewer_verdict_written": "FAIL",
+    "fields_changed": ["reviewer"],
+    "json_valid_after_edit": true,
+    "notes_len": 1314
+  }
+}

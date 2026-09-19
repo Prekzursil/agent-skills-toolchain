@@ -1,0 +1,89 @@
+{
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0048",
+  "vendor": "anthropic",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:21:27Z",
+  "unit_id": "AUD-0048",
+  "artifact_path": "command-center/audit/AUD-0048-action-pinning-permissions.json",
+  "artifact_state_observed": "BLOCKED",
+  "headline_under_review": "prod sha=38 tag=3 branch=0 unpinned=3; prod_inherit_default_token=0; control_ok=True; tag_resolutions=7/7",
+  "claimed_unpinned": [
+    "actions/checkout@v7 (.github/workflows/autofix-models.yml:37)",
+    "actions/ai-inference@v3 (.github/workflows/autofix-models.yml:77)",
+    "dependabot/fetch-metadata@v3 (.github/workflows/dependabot-auto-merge.yml:24)"
+  ],
+  "notes": "Fresh-context independent review of AUD-0048 with no prior exposure to the authoring transcript. Goal: FALSIFY headline third_party_unpinned_count=3 (prod tag=3 branch=0), production_workflows_inheriting_default_token_count=0, control_ok=True, and tag_resolutions=7/7. Could not. Re-ran probe1 and probe2; probe1 raw was byte-identical to committed; probe2 differed only in measured_at timestamp (resolutions identical). Restored committed probe1/probe2 raw+json after re-runs so this review leaves no receipt-adjacent drift. Independent re-census of root .github/workflows (12 files, 41 uses:) reproduced sha-pinned=38 tag-pinned=3 branch-pinned=0 unpinned=3 with the exact three claimed refs; all 12 production workflows declare a non-empty workflow-level permissions: block so inherit_prod=0. Planted fixtures confirmed: branch-pinned.yml @main/@master severity=critical flagged; sha-pinned.yml 40-hex refs severity=none unflagged; tag-pinned.yml @v4 resolves via git ls-remote. Attempt to inflate unpinned by scanning repo-wide YAML found tag/branch pins under other-audit fixtures, metaswarm templates, and nested tools/editor/metaswarm/.github/workflows/ci.yml — those are not this repository's production root .github/workflows CI (GitHub only executes the root workflows tree), so they do not move the stated prod headline. Did not invent SUCCESS or promote the receipt; artifact remains BLOCKED for the implementer to consume this PASS review. Only this independent-review.json is intended to be committed.",
+  "falsification_attempts": [
+    {
+      "id": 1,
+      "target": "headline prod sha=38 tag=3 branch=0 unpinned=3 / control_ok / inherit_prod=0",
+      "method": "Re-run python3 -B command-center/p2-wave/probes/AUD-0048/probe1_syntactic_classify.py; diff raw vs committed",
+      "result": "NOT-FALSIFIED",
+      "evidence": "EXIT=0; production_by_pin_class={'tag-pinned': 3, 'sha-pinned': 38}; third_party_unpinned_count=3; inherit_default_production=[]; CONTROL branch_rows=2 branch_critical=True sha_rows=2 sha_clean=True ok=True. probe1 raw byte-identical to committed. Log: /opt/cursor/artifacts/aud0048-review-probe1.log"
+    },
+    {
+      "id": 2,
+      "target": "tag_resolutions=7/7 and tag_fixture_resolved=True",
+      "method": "Re-run probe2_resolve_tags.py; diff raw vs committed; independently git ls-remote the 7 refs",
+      "result": "NOT-FALSIFIED",
+      "evidence": "targets=7 resolved_ok=7 resolved_fail=0 tag_fixture_resolved=True. Only measured_at drifted 19:15:10Z→19:19:47Z; all RESOLVE commit_sha lines identical including actions/checkout@v7→3d3c42e5…, actions/ai-inference@v3→2c43c91a…, dependabot/fetch-metadata@v3→25dd0e34…, fixture v4 tags, and branch main/master. Live ls-remote reconfirm in aud0048-review-permissions-depth.log. Restored committed probe2 artifacts after."
+    },
+    {
+      "id": 3,
+      "target": "missed production unpinned uses: (inflate count above 3)",
+      "method": "Independent uses: regex census of .github/workflows without importing probe1 classify helpers; also scan commented/quoted/expression uses:",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Independent census: prod_total=41 by={'tag-pinned':3,'sha-pinned':38}; unpinned_count=3 exactly matching claimed trio. No expression-form uses: ${{…}} and no quoted uses: in root workflows. No docker://, sha-short, local, or unknown pin classes in production. Log: /opt/cursor/artifacts/aud0048-review-independent-census.log"
+    },
+    {
+      "id": 4,
+      "target": "production_workflows_inheriting_default_token_count=0 (missing permissions blocks)",
+      "method": "Independent workflow-level and job-level permissions: presence scan of all 12 root workflow files; verify blocks are non-empty",
+      "result": "NOT-FALSIFIED",
+      "evidence": "All 12 root workflows have workflow-level permissions: present=True; production_inherit_default=[]. Each block has at least contents: read or contents: write (+ pull-requests: write on autofix/dependabot). quality.yml also has a job-level permissions on secrets. Only inherit-default path is the planted branch-pinned fixture (intentionally no permissions). Logs: aud0048-review-independent-census.log + aud0048-review-permissions-depth.log"
+    },
+    {
+      "id": 5,
+      "target": "planted controls (branch critical / sha clean / tag resolves)",
+      "method": "Read fixtures/*.yml; confirm probe1 control dict and fixture use severities; confirm probe2 tag_fixture_resolved",
+      "result": "CONFIRMED-CONTROLS",
+      "evidence": "branch-pinned.yml uses actions/checkout@main + setup-node@master, no permissions → severity=critical flagged, inherit-default. sha-pinned.yml uses two 40-hex SHAs with wf+job permissions → severity=none unflagged. tag-pinned.yml uses checkout@v4 + setup-node@v4 → probe2 resolves both to 40-char commit SHAs. control.ok=True."
+    },
+    {
+      "id": 6,
+      "target": "inflate unpinned by counting nested/template/other-fixture workflows as prod",
+      "method": "Repo-wide YAML uses: scan for tag/branch-pinned third-party actions outside root .github/workflows",
+      "result": "REFUTED-AS-HEADLINE-FALSIFICATION",
+      "evidence": "Found 30 out-of-scope unpinned-looking uses: under AUD-0025/AUD-0047 fixtures, tools/editor/metaswarm templates + nested .github/workflows/ci.yml, and skills-claude-only metaswarm-setup templates. GitHub Actions for this repo executes only root .github/workflows; nested/template/fixture YAML is not production CI for the stated prod headline. Catalog inputs say 'every workflow' but the measured headline and probe1 roots are explicitly production=.github/workflows + AUD-0048 fixtures. Expanding scope would change the claim, not falsify the published prod counts."
+    },
+    {
+      "id": 7,
+      "target": "deflate unpinned by arguing the three tag pins are effectively sha-pinned",
+      "method": "Check whether any of the three production tag refs are 40-hex or local actions; confirm probe classifies them tag-pinned/flagged",
+      "result": "REFUTED",
+      "evidence": "All three are symbolic tags (v7/v3/v3), third_party=True, pin_class=tag-pinned, flagged=True, severity=high. Probe2 merely records current SHA for retag detection; syntactic census correctly counts them as unpinned."
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout cursor/p2-loop-to-green-0db0",
+    "git checkout -b cursor/aud0048-independent-review-743c",
+    "python3 -B command-center/p2-wave/probes/AUD-0048/probe1_syntactic_classify.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0048/probe2_resolve_tags.py",
+    "diff probe1.committed.raw.txt probe1.rerun.raw.txt",
+    "diff probe2.committed.raw.txt probe2.rerun.raw.txt",
+    "independent uses:/permissions census over .github/workflows + fixtures + repo-wide YAML",
+    "rg uses: actions/checkout@v7|actions/ai-inference@v3|dependabot/fetch-metadata@v3 .github/workflows/",
+    "git ls-remote for 7 tag/branch resolution targets",
+    "git checkout -- probe1/probe2 raw+json (restore committed after re-run)"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0048-review-probe1.log",
+    "/opt/cursor/artifacts/aud0048-review-probe2.log",
+    "/opt/cursor/artifacts/aud0048-review-independent-census.log",
+    "/opt/cursor/artifacts/aud0048-review-falsify-edge.log",
+    "/opt/cursor/artifacts/aud0048-review-permissions-depth.log"
+  ],
+  "promotion_note": "PASS for parent to promote; do not invent SUCCESS. Receipt state remains BLOCKED until implementer records this review and clears AUD-0048-D-REVIEW."
+}

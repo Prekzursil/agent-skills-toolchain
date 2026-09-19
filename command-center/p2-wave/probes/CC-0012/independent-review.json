@@ -1,0 +1,99 @@
+{
+  "unit_id": "CC-0012",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "openai",
+  "model": "composer-cloud-independent-reviewer",
+  "reviewer_id": "openai-fresh-context-cc0012-unversioned-edit",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_path": "command-center/receipts/CC-0012.json",
+  "base_tip_sha": "56c2f3d616cbec8538dd620d57b8d7ff111601dc",
+  "reviewed_at": "2026-09-08T02:49:15Z",
+  "notes": "Fresh-context independent review of CC-0012. Reproduced probe1_freeze.py (ok=true; unversioned=RED versioned=GREEN non_frozen=SILENT; pytest 5 passed; activation_commit=85df1cb825fd1380b7b5627daa7268febc91b2de). Independently mutated frozen path command-center/schema/stopping-condition.schema.json (implementer probes only exercise receipt.schema.json with synthetic hashes) by inserting x-cc0012-reviewer-unversioned-probe; real sha256 aa33c6a4.. -> 76bc4c1e..; schema_freeze.py --check with version_bumped=false migration=NONE returned verdict=RED exit=1. Restored bytes (RESTORE_MATCH=true). Same sha delta with version_bumped=true + m001-receipt-core-example returned GREEN exit=0; --roundtrip on roundtrip-sample.json roundtrip_ok=true; non-frozen docs/plans/README.md SILENT. Did not run _pack_receipt.py; did not invent SUCCESS; receipt left BLOCKED.",
+  "unversioned_edit_attempt": {
+    "path": "command-center/schema/stopping-condition.schema.json",
+    "mutation": "Inserted JSON property x-cc0012-reviewer-unversioned-probe (not scripted by implementer probe1_freeze.py).",
+    "old_sha256": "aa33c6a42cd211cdce64ca3a17489f3ddd2922c81535cf23be27d6d16004a2d5",
+    "new_sha256": "76bc4c1e168a1211562544140772b6db4997bdefb0b1b35afb629c296647f5fc",
+    "command": "python3 -B tools/command-center/schema_freeze.py --check command-center/schema/stopping-condition.schema.json <old> <new> false NONE",
+    "gate_verdict": "RED",
+    "exit_code": 1,
+    "reason": "frozen path changed without version bump + migration with passing round-trip (bumped=False, migration_id=None, roundtrip_ok=False)",
+    "restored": true,
+    "log": "/opt/cursor/artifacts/cc0012-unversioned-edit-reject.log"
+  },
+  "versioned_edit_attempt": {
+    "path": "command-center/schema/stopping-condition.schema.json",
+    "command": "python3 -B tools/command-center/schema_freeze.py --check ... true m001-receipt-core-example",
+    "gate_verdict": "GREEN",
+    "exit_code": 0,
+    "roundtrip_ok": true,
+    "log": "/opt/cursor/artifacts/cc0012-versioned-green.log"
+  },
+  "confirmed": [
+    "freeze activated at 85df1cb825fd1380b7b5627daa7268febc91b2de with 4 frozen_paths",
+    "probe1_freeze.py ok=true (unversioned=RED versioned=GREEN non_frozen=SILENT)",
+    "pytest tools/command-center/tests/test_schema_freeze.py: 5 passed",
+    "independent on-disk unversioned edit of stopping-condition.schema.json rejected RED rc=1",
+    "versioned bump+migration path GREEN; m001 round-trip ok",
+    "receipt remains state=BLOCKED; SUCCESS not packed"
+  ],
+  "falsified": [],
+  "falsification_attempts": [
+    {
+      "attempt": "Reproduce implementer freeze probe + pytest",
+      "result": "NOT-FALSIFIED",
+      "detail": "probe1 ok=true; pytest 5 passed; activation_commit present"
+    },
+    {
+      "attempt": "Unversioned real byte edit on different frozen schema (stopping-condition.schema.json)",
+      "result": "NOT-FALSIFIED",
+      "detail": "gate RED exit 1; reason names missing bump+migration"
+    },
+    {
+      "attempt": "Versioned path with bump + m001 round-trip",
+      "result": "NOT-FALSIFIED",
+      "detail": "gate GREEN exit 0; roundtrip_ok=true"
+    },
+    {
+      "attempt": "Non-frozen path edit",
+      "result": "NOT-FALSIFIED",
+      "detail": "docs/plans/README.md SILENT"
+    }
+  ],
+  "commands_run": [
+    {
+      "command": "python3 -B command-center/p2-wave/probes/CC-0012/probe1_freeze.py",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0012-probe1-rerun.log"
+    },
+    {
+      "command": "python3 -m pytest tools/command-center/tests/test_schema_freeze.py -q",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0012-pytest-rerun.log"
+    },
+    {
+      "command": "python3 -B tools/command-center/schema_freeze.py --check stopping-condition.schema.json <real-shas> false NONE",
+      "exit_code": 1,
+      "log": "/opt/cursor/artifacts/cc0012-unversioned-edit-reject.log"
+    },
+    {
+      "command": "python3 -B tools/command-center/schema_freeze.py --check ... true m001-receipt-core-example",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0012-versioned-green.log"
+    }
+  ],
+  "artifact_logs": [
+    "/opt/cursor/artifacts/cc0012-probe1-rerun.log",
+    "/opt/cursor/artifacts/cc0012-pytest-rerun.log",
+    "/opt/cursor/artifacts/cc0012-freeze-status.log",
+    "/opt/cursor/artifacts/cc0012-unversioned-edit-reject.log",
+    "/opt/cursor/artifacts/cc0012-versioned-green.log"
+  ],
+  "residual_unknowns": [
+    "Launcher paths are listed in SCHEMA-FREEZE.json but not hash-pinned in snapshots; mid-run launcher edits remain a process control until CI wires --check on every PR (already recorded on the BLOCKED receipt)."
+  ]
+}

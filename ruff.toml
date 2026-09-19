@@ -116,6 +116,13 @@ extend-exclude = [
     ".agents/skills/continuous-learning-v2",
     ".agents/skills/microsoft-foundry",
     ".agents/skills/protein-interaction-network-analysis",
+    # Local nested git worktrees (agent lane checkouts under .worktrees/). They are
+    # UNTRACKED and never committed -- a CI checkout does not contain them -- but
+    # `ruff check .` / `ruff format --check .` from the repo root walks them on every
+    # local run and reports another checkout's files (measured 2026-09-19: 78 lint
+    # findings + 33 would-reformat under .worktrees/ alone). Excluding them cannot
+    # mask a committed defect; delete this line if .worktrees ever becomes tracked.
+    ".worktrees",
 ]
 
 [format]
@@ -151,6 +158,38 @@ exclude = [
     "skills/openrouter-routing/_tmp_hermes_endpoints.py",
     ".agents/skills/openrouter-routing/_tmp_hermes_probe.py",
     ".agents/skills/openrouter-routing/_tmp_hermes_endpoints.py",
+    # DIGEST-LOCKED unit artifacts (gate-lint-format 2026-09-19, PR #325). Each file
+    # below is listed as an artifact in a committed p2-wave/probes/<unit>/UNIT-ARTIFACT-
+    # MANIFEST.json whose sha256 covers its current bytes, so `ruff format` rewriting it
+    # would desynchronize the unit's recorded digest (the same trade settled above for
+    # command-center/_*.py and casualty/probes). check stays LIVE on every file except
+    # the five that also carry per-file-ignores below. When the owning unit re-runs its
+    # _pack_receipt.py and regenerates its manifest, delete the line and format the file.
+    "command-center/p2-wave/_build_CC0004.py",
+    "command-center/p2-wave/_build_CC0005.py",
+    "command-center/p2-wave/_build_CC0009.py",
+    "command-center/p2-wave/_build_CC0013.py",
+    "command-center/p2-wave/probes/AUD-0057/fixtures/planted_defaults.py",
+    "command-center/p2-wave/probes/CC-0004/fanin_detector.py",
+    "command-center/p2-wave/probes/CC-0004/fixtures/planted_local_predicate.py",
+    "command-center/p2-wave/probes/CC-0004/test_fanin_detector.py",
+    "command-center/p2-wave/probes/CC-0005/measure_routes.py",
+    "command-center/p2-wave/probes/CC-0006/_pack_receipt.py",
+    "command-center/p2-wave/probes/CC-0006/test_wrong_recipe_gate.py",
+    "command-center/p2-wave/probes/CC-0006/wrong_recipe_gate.py",
+    "command-center/p2-wave/probes/CC-0009/_pack_receipt.py",
+    "command-center/p2-wave/probes/CC-0016/_pack_receipt.py",
+    "command-center/p2-wave/probes/CC-0016/phase_graph_gate.py",
+    "command-center/p2-wave/probes/CC-0016/probe1_mutation_fires.py",
+    "command-center/p2-wave/probes/CC-0016/probe2_regeneration_silent.py",
+    "command-center/p2-wave/probes/CC-0016/probe3_noninterference.py",
+    "command-center/p2-wave/probes/CC-0016/probe4_acyclicity_reverify.py",
+    "command-center/p2-wave/probes/CC-0016/probe5_manifest_registration_scratch.py",
+    "command-center/status_derive.py",
+    "platform/lib/artifact_manifest_gate.py",
+    "platform/lib/test_artifact_manifest_gate.py",
+    "tools/command-center/seed.py",
+    "tools/command-center/tests/test_reach6_blob_provenance.py",
 ]
 
 [lint.per-file-ignores]
@@ -167,3 +206,8 @@ exclude = [
 # at aff7ebad: the 14 cited `platform/` probes are 14/14 `format --check` clean
 # and 13/14 `check` clean, this being the one exception.
 "platform/lib/_p12_refute_predicate.py" = ["F841"]
+"command-center/p2-wave/_build_CC0013.py" = ["F841"]  # digest-locked unit artifact (see [format] exclude note)
+"command-center/p2-wave/probes/CC-0004/test_fanin_detector.py" = ["F401"]  # digest-locked unit artifact (see [format] exclude note)
+"command-center/p2-wave/probes/CC-0016/phase_graph_gate.py" = ["F401"]  # digest-locked unit artifact (see [format] exclude note)
+"command-center/p2-wave/probes/CC-0016/probe5_manifest_registration_scratch.py" = ["F401"]  # digest-locked unit artifact (see [format] exclude note)
+"platform/lib/test_artifact_manifest_gate.py" = ["F401"]  # digest-locked unit artifact (see [format] exclude note)

@@ -1,0 +1,128 @@
+name: p2-agent-shard
+
+# SHARDED P2 delivery (owner-armed 2026-09-19): N shards, disjoint unit
+# ranges (index % shards), each a self-chaining 6h run. Shard 0 additionally
+# runs the mechanical gate recipes and performs the chain transition
+# (re-dispatching ALL shards; siblings just end). Pushes rebase-retry so
+# concurrent shards converge on one branch. The agent never writes git.
+
+on:
+  workflow_dispatch:
+    inputs:
+      shard:
+        description: "shard index (0..shards-1)"
+        required: true
+        default: "0"
+      shards:
+        description: "total shards"
+        required: true
+        default: "3"
+      model:
+        description: "GLM model slug"
+        default: "glm-4.6"
+      budget_min:
+        description: "agent minutes per run"
+        default: "270"
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: p2-agent-shard-${{ inputs.shard }}
+  cancel-in-progress: false
+
+jobs:
+  shard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      BRANCH: cursor/p2-loop-to-green-0db0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: cursor/p2-loop-to-green-0db0
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: preflight secrets
+        env:
+          A: ${{ secrets.ZAI_API_KEY_A }}
+          B: ${{ secrets.ZAI_API_KEY_B }}
+          P: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: '[ -n "$A" ] && [ -n "$B" ] && [ -n "$P" ] || { echo "::error::secrets missing"; exit 1; }'
+      - name: goal check (start)
+        id: goal0
+        run: |
+          python command-center/p2-loop/p2_goal.py | tee /tmp/goal0.json
+          echo "p2_done=$(python -c "import json;print(str(json.load(open('/tmp/goal0.json'))['p2_done']).lower())")" >> "$GITHUB_OUTPUT"
+      - name: mechanical gate recipes (shard 0 only — one writer, no recipe races)
+        if: steps.goal0.outputs.p2_done != 'true' && inputs.shard == '0'
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          git config user.name "p2-loop-runner"; git config user.email "p2-loop-runner@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${RUNNER_PAT}@github.com/Prekzursil/agent-skills-toolchain.git"
+          pip install pytest numpy jsonschema --quiet
+          for GATE in "gate-tests-coverage (python packages)" "gate-unit-artifact-manifest" "gate-lint-format (ruff)" "gate-no-runtime-junk"; do
+            python command-center/p2-loop/apply_recipe.py "$GATE" || true
+          done
+          git add -A; git commit -m "chore(p2-shard0): mechanical recipes pre-batch" || echo "nothing to pre-fix"
+      - name: pick a healthy Z.AI plan key
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
+          ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
+        run: python tools/zai/zai_failover_runner.py
+      - name: GLM agent batch (shard ${{ inputs.shard }}/${{ inputs.shards }})
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
+          ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
+          GLM_MODEL: ${{ inputs.model || 'glm-4.6' }}
+        run: |
+          git config user.name "p2-shard${{ inputs.shard }}-runner" || true
+          git config user.email "p2-shard${{ inputs.shard }}-runner@users.noreply.github.com" || true
+          python command-center/p2-loop/glm_agent.py \
+            --contract command-center/p2-loop/agent_contract.md \
+            --budget-min "${{ inputs.budget_min || '270' }}" \
+            --model "$GLM_MODEL" \
+            --shard "${{ inputs.shard }}" \
+            --shards "${{ inputs.shards }}"
+      - name: commit + push with rebase-retry (concurrent shards share the branch)
+        if: steps.goal0.outputs.p2_done != 'true'
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          git remote set-url origin "https://x-access-token:${RUNNER_PAT}@github.com/Prekzursil/agent-skills-toolchain.git" 2>/dev/null || true
+          git add -A
+          git commit -m "feat(p2-shard${{ inputs.shard }}): GLM delivery batch $(date -u +%Y%m%dT%H%M)" || { echo "no changes"; exit 0; }
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin "$BRANCH" && git push origin "HEAD:$BRANCH" && echo "pushed (attempt $i)" && exit 0
+            echo "push conflict; rebase-retry $i"; sleep $((i*20))
+          done
+          echo "::warning::push failed after 5 rebase-retries; changes lost with this runner"
+          exit 1
+      - name: goal check (end) + chain transition (shard 0 only re-arms all shards)
+        if: inputs.shard == '0'
+        env:
+          RUNNER_PAT: ${{ secrets.CODEX_RUNNER_PAT }}
+          SHARDS: ${{ inputs.shards }}
+        run: |
+          git pull --rebase origin "$BRANCH" || true
+          python command-center/p2-loop/p2_goal.py | tee /tmp/goal1.json
+          P2_DONE=$(python -c "import json;print(str(json.load(open('/tmp/goal1.json'))['p2_done']).lower())")
+          if [ "$P2_DONE" = "true" ]; then
+            echo "P2 goal reached — dispatching pr-reconcile; chain ends"
+            curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/pr-reconcile.yml/dispatches -d '{"ref":"main"}'
+          else
+            echo "re-arming all $SHARDS shards"
+            for S in $(seq 0 $((SHARDS-1))); do
+              curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
+                https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/p2-agent-shard.yml/dispatches \
+                -d "{\"ref\":\"main\",\"inputs\":{\"shard\":\"$S\",\"shards\":\"$SHARDS\"}}"
+            done
+          fi

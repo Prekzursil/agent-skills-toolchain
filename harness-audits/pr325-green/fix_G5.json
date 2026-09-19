@@ -1,0 +1,27 @@
+{
+ "detail": "Gate G5 (no-runtime-junk, .github/workflows/no-runtime-junk.yml) has 4 steps; only step 1 (\"fail if runtime junk is tracked\") was red. Root cause: commit af135d016 (\"Commit IMP-0003 fixture plants ignored by root gitignore\") force-added two files that root .gitignore already denies (.gitignore:1 node_modules/, :9 __pycache__/): command-center/p2-wave/probes/IMP-0003/work/probe1/fixture/lib/__pycache__/x.pyc and .../node_modules/leftpad/index.js. Verified no consumer needs them tracked: probe1_scanner_fixture.py:37-41 rmtree-rebuilds the whole fixture every run; probe2_census.py:98-101 rebuilds via build_fixture if the fixture is absent; UNIT-ARTIFACT-MANIFEST.json lists no work/ paths; no workflow file references IMP-0003; plugin tests do not touch this fixture. Fix: git rm --cached on exactly those two paths (worktree copies kept on disk, now gitignored so status stays clean). A stale 0-byte .git/index.lock (480s old, zero live git processes, corroborated by process table + mtime) was removed to unblock the index write. Red-proof held: pre-fix run flagged exactly the two [runtime-dir] paths (exit 1); post-fix scans 14,710 tracked files with 0 violations and 0 gitlinks (exit 0). The other 8 planted files under work/ (build.log, .DS_Store, blob.bin, README.md, sessions/agent.jsonl, fixture-git-plant/config, probe2 control/.gitkeep) are NOT violations of this gate's rule set and belong to a SUCCESS unit - deliberately left untouched. ORCHESTRATOR MUST COMMIT the staged deletions: CI reads committed state; until committed, a fresh clone still sees the junk in HEAD.",
+ "evidence": [
+  "RED (pre-fix): step-1 output 'Tracked runtime junk detected' with [runtime-dir] command-center/p2-wave/probes/IMP-0003/work/probe1/fixture/lib/__pycache__/x.pyc and [runtime-dir] .../node_modules/leftpad/index.js, exit 1",
+  "GREEN (post-fix): 'OK: no tracked runtime junk.' tracked files scanned: 14710; gitlink-mode entries: 0; RESULT step1=0 step2=0",
+  "Step 2 both runs: 'OK: crcp reports deny-by-default holds (6 denied, 2 admitted).' (git check-ignore --no-index probes)",
+  "Step 3: SUCCESS:published-cmds-selftest (10/10 ok) + 'SUCCESS:published-cmds no NEW unrunnable published command', EXIT_ST=0 EXIT_PUB=0",
+  "Step 4: python command-center/slop-report/_r6_transcript.py --committed -> top-level \"verdict\": \"TRANSCRIPTION-CLEAN\", \"violations\": [], controls all PASS, EXIT_CLAIMS=0",
+  "gitignore coverage proven: git check-ignore --no-index -v -> .gitignore:9:__pycache__/ (x.pyc) and .gitignore:1:node_modules/ (index.js), exit 0",
+  "Provenance: git show af135d016 --stat shows the force-add of x.pyc, index.js, build.log + git-plant archives (6 files, 'Cursor Agent' 2026-09-08)",
+  "No-consumer proof: grep -rn 'IMP-0003' .github/workflows/ -> no hits; grep 'work/probe1/fixture' tools/plugin/tests/test_forbidden_content.py -> no hits; UNIT-ARTIFACT-MANIFEST.json artifacts list contains no work/ path",
+  "git status --porcelain post-fix: 'D ' staged deletions for exactly the two paths; files still present on disk (ls shows x.pyc, index.js) and invisible to status (ignored)",
+  "Stale lock removal two-signal: Get-Process git/git-remote-* -> none running; lock_age_sec=480, lock_size=0"
+ ],
+ "files_changed": [
+  "command-center/p2-wave/probes/IMP-0003/work/probe1/fixture/lib/__pycache__/x.pyc (untracked from index; kept on disk)",
+  "command-center/p2-wave/probes/IMP-0003/work/probe1/fixture/node_modules/leftpad/index.js (untracked from index; kept on disk)"
+ ],
+ "item": "G5: no-runtime-junk gate (PR #325, branch pr-325)",
+ "open_questions": [
+  "Staged deletions MUST be committed by the orchestrator (together with the sibling lanes' work in the index) or CI still fails on HEAD - local green is index-based, CI is commit-based.",
+  "build.log under the same fixture was also force-added and is covered by .gitignore '*.log' but is NOT a violation of this gate's rule set (dir segments + installed.json + gitlinks only); left tracked - flag for owner if junk hygiene beyond the gate is wanted.",
+  "The stale index.lock likely came from a sibling lane's crashed git op; unrelated to this fix but worth noting in the wave log."
+ ],
+ "status": "FIXED",
+ "test_results": "All 4 gate steps green locally: step1 exit 0 (was exit 1), step2 exit 0, step3 self-test exit 0 + main exit 0 (SUCCESS:published-cmds), step4 exit 0 (SUCCESS:r6-transcript, TRANSCRIPTION-CLEAN, violations=[]). Steps 1-2 need no CI-only infrastructure (pure git index/ignore inspection); steps 3-4 read committed docs/receipts only. Local-green is CI-equivalent once the staged deletions are committed."
+}

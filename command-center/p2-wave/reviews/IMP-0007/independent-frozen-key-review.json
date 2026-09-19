@@ -1,0 +1,98 @@
+{
+  "unit_id": "IMP-0007",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "cross_vendor": true,
+  "vendor": "openai",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "reviewed_at": "2026-09-08T06:31:34Z",
+  "reviewed_rev": "4eb74a11c9235c4a3aaab5dd578d0a8777a53bc5",
+  "frozen_keys_match_client": true,
+  "frozen_keys_match_schema_only_insufficient": true,
+  "x_extension_accepted": true,
+  "bare_unknown_rejected": true,
+  "client_oop_reproduced": true,
+  "negative_control_fired": true,
+  "catalog_reviewer_requirement": "Reviewer must confirm the frozen-key list matches what a real client parses, not what the schema asserts.",
+  "frozen_key_comparison": {
+    "policy_module": "tools/plugin/strict_parser_policy.py",
+    "policy_symbol": "FROZEN_TOP_LEVEL_KEYS",
+    "client_module": "platform/plugin/manifest.py",
+    "client_symbol": "ALLOWED['']",
+    "client_loaded_via": "subprocess PYTHONPATH=platform (out-of-process)",
+    "exact_set_equality": true,
+    "delta_policy_only": [],
+    "delta_client_only": [],
+    "frozen_keys": [
+      "author",
+      "compatibility",
+      "deploy",
+      "description",
+      "entrypoints",
+      "homepage",
+      "interpreters",
+      "keywords",
+      "license",
+      "name",
+      "payload",
+      "version"
+    ],
+    "schema_alone_insufficient_rationale": "Live schema currently has additionalProperties=false and rejects bare unknowns, but relaxing additionalProperties via with_additional_properties(allowed=True) makes dual-library schema validation green for a planted bare unknown while policy linter and real client OOP loader both still fail closed. Therefore a reviewer that trusted schema properties alone would miss the client/policy contract; client ALLOWED[''] is the required SSOT for the frozen list."
+  },
+  "adversarial": {
+    "planted_bare_key": "adversarial_schema_soft_accept_key",
+    "relaxed_schema_goes_green": true,
+    "strict_schema_rejects": true,
+    "policy_blocks": true,
+    "client_blocks": true,
+    "client_accepts_same_key_under_x": true,
+    "schema_only_path_insufficient": true
+  },
+  "reproduction": {
+    "pytest": {
+      "command": "python3 -m pytest tools/plugin/tests/test_strict_parser_policy.py -q",
+      "exit_code": 0,
+      "summary": "5 passed"
+    },
+    "probe1": {
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0007/probe1_fixture_accept_reject.py",
+      "exit_code": 0,
+      "probe_1_confirmed": true,
+      "reject_bare_unknown": true,
+      "accept_under_x": true,
+      "schema_pair_ok": true
+    },
+    "probe2": {
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0007/probe2_client_loader_oop.py",
+      "exit_code": 0,
+      "probe_2_confirmed": true,
+      "out_of_process": true,
+      "reject_bare_unknown": true,
+      "accept_under_x": true,
+      "frozen_matches_client_allowed": true
+    },
+    "negative_control": {
+      "command": "python3 -B command-center/p2-wave/probes/IMP-0007/negative_control.py",
+      "exit_code": 0,
+      "negative_control_fired": true,
+      "policy_fired": true,
+      "schema_fired": true,
+      "silent_on_good": true,
+      "mutation_schema_goes_green": true,
+      "mutation_policy_still_blocks": true
+    }
+  },
+  "fail_closed": true,
+  "notes": "Independent Codex-role frozen-key review (vendor=openai, cross_vendor=true, fresh_context=true) at tip 4eb74a11c. Re-derived client ALLOWED[''] via out-of-process PYTHONPATH=platform import of platform/plugin/manifest.py and compared to tools/plugin/strict_parser_policy.py FROZEN_TOP_LEVEL_KEYS: exact set equality (12 keys; deltas empty). Catalog reviewer_requirement satisfied by live client module comparison, not schema properties alone. Reproduced implementer suite: pytest 5 passed; probe1 fixture accept/reject confirmed (bare reject + x- accept + schema pair); probe2 real client OOP confirmed (bare E_MANIFEST unknown field; x-surprise_unknown_field in extensions; frozen_matches_client_allowed=True); negative control fired with AP-relax mutation schema-green while policy still blocks. Adversarial re-verify: planted bare adversarial_schema_soft_accept_key — relaxed additionalProperties schema dual-library goes green; policy and client still block; same key under x- accepted by client. Fail-closed (not WARN-as-green) confirmed. Receipt command-center/receipts/IMP-0007.json left BLOCKED; did_not_promote=true; SUCCESS:IMP-0007 not invented; force_blocked_impl_wave not cleared (parent only).",
+  "raw_outputs": {
+    "pytest": "command-center/p2-wave/reviews/IMP-0007/pytest-repro.out",
+    "probe1": "command-center/p2-wave/reviews/IMP-0007/probe1-repro.out",
+    "probe2": "command-center/p2-wave/reviews/IMP-0007/probe2-repro.out",
+    "negative_control": "command-center/p2-wave/reviews/IMP-0007/negative-repro.out",
+    "independent_frozen_key_check": "command-center/p2-wave/reviews/IMP-0007/independent-frozen-key-check.json",
+    "independent_frozen_key_check_out": "command-center/p2-wave/reviews/IMP-0007/independent-frozen-key-check.out"
+  }
+}

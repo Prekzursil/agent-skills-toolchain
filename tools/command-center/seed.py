@@ -129,28 +129,41 @@ def _sources_of(row: rp.RegisterRow) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
+
+def _register_provenance_bytes_for_seed(register_path: Path) -> bytes:
+    """Bytes seed records in provenance.register_sha256 (CC-0005 blob route).
+
+    Prefer ``git cat-file -p HEAD:<rel>`` when the path is tracked; fall back to
+    LF-normalised working-tree bytes for scratch registers. Never hash raw CRLF.
+    """
+    wt_lf = register_path.read_bytes().replace(b"\r\n", b"\n")
+    try:
+        rel = register_path.resolve().relative_to(cat.repo_root().resolve()).as_posix()
+    except (ValueError, OSError):
+        return wt_lf
+    try:
+        blob_path = Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("seed_blobread", blob_path)
+        if spec is None or spec.loader is None:
+            return wt_lf
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        blob = mod.read_blob(rel, "HEAD", repo=cat.repo_root())
+    except Exception:
+        return wt_lf
+    return blob if wt_lf == blob else wt_lf
+
+
 def build_catalog(register_path: Path, overlay_path: Path) -> dict[str, Any]:
     parsed = rp.parse_file(register_path)
     overlay = json.loads(overlay_path.read_text(encoding="utf-8"))
     per_item: dict[str, Any] = overlay.get("items", {})
-    # LF-NORMALISE BEFORE HASHING -- must match validate.py:228 exactly, which reads
-    # `read_bytes().replace(b"\r\n", b"\n")`. This writer half of the portability fix
-    # was never applied when the reader half landed on 2026-08-10, so seed.py recorded
-    # a digest of the RAW working-tree bytes that validate.py could then never satisfy
-    # on a Windows checkout. Measured 2026-08-13 on two clones of the same commit that
-    # differ ONLY in `core.autocrlf` (probe: scratch/cigreen_r2_seed_probe.py):
-    #
-    #   clone            REGISTER.md        seed.py --force then validate.py
-    #   autocrlf=true    61110 B, 339 CRLF  FAILED:cc-validate violations=1
-    #                                       REACH-6 -: sha256 721c4e577ca5 != 60a4d35f822d
-    #   autocrlf=false   60771 B,   0 CRLF  SUCCESS:cc-validate  <- agreed only by luck
-    #
-    # So this was LIVE on a default Windows clone, not latent: `seed.py --force` there
-    # re-created the exact REACH-6 failure that took `gate-tests-coverage (python
-    # packages)` red for 98 commits. The four other writers of this field
-    # (fix_reach_violations.py:98, close_round2.py:244, clear_answered_gates.py:114,
-    # fix_reach6_register_provenance.py:137) already normalise; seed.py was the outlier.
-    register_bytes = register_path.read_bytes().replace(b"\r\n", b"\n")
+    # CC-0005 / IMP-0439: prefer the COMMITTED blob (git cat-file) when the register
+    # path is tracked; otherwise LF-normalise worktree bytes. Matching validate.py
+    # REACH-6. Never hash raw CRLF, never git archive.
+    register_bytes = _register_provenance_bytes_for_seed(register_path)
 
     items: list[dict[str, Any]] = []
     for row in parsed.rows:

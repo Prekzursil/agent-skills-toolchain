@@ -118,7 +118,7 @@ _PROSE_EXT = {".md", ".markdown", ".txt", ".rst", ".adoc", ".org", ".mdx"}
 _FENCE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})[^\n]*$", re.MULTILINE)
 _INLINE_CODE = re.compile(r"`[^`\n]+`")
 _NEGATION = re.compile(
-    r"\b(?:no|not|never|nothing|none|without|cannot|can't|won't|don't|doesn't|"
+    r"\b(?:no|not|never|nothing|none|zero|without|cannot|can't|won't|don't|doesn't|"
     r"isn't|aren't|nor|avoid|instead\s+of|rather\s+than|must\s+not|need\s+not)\b",
     re.IGNORECASE,
 )
@@ -133,7 +133,13 @@ class Context:
                separately from tool_input — verified against the CLI's own
                hook-input construction).
     file_path: tool_input.file_path — the write TARGET.
-    source:    "tool_input" | "assistant_message" | "file".
+    source:    "tool_input" | "assistant_message" | "message_text" | "file".
+               `message_text` is an alias of `assistant_message` (assistant final
+               prose that is not a tool_input write). Recorded as STUB-FP-negated-
+               absence in use-vs-mention-corpus.jsonl: a sentence asserting the
+               ABSENCE of TODO/FIXME was flagged because the source was recorded
+               as `message_text` and the prose rule only recognized
+               `assistant_message`.
     """
 
     tool_name: str = ""
@@ -194,8 +200,11 @@ def _unknown(rule: str, kind: str) -> Judgement:
     return Judgement(Verdict.UNKNOWN, rule, kind)
 
 
+_PROSE_SOURCES = frozenset({"assistant_message", "message_text"})
+
+
 def _is_prose(ctx: Context) -> bool:
-    if ctx.source == "assistant_message":
+    if ctx.source in _PROSE_SOURCES:
         return True
     return os.path.splitext(str(ctx.file_path or ""))[1].lower() in _PROSE_EXT
 
@@ -337,6 +346,70 @@ _KEY_COLON = re.compile(r"^[ \t]*:")
 # "no"/"not" silence a genuine failure report. Clamping can only make the guard fire
 # MORE, never less, which is the safe direction for a detector.
 _RESULT_NEG_LOOKBACK = 200
+
+
+def _embedded_in_snake_identifier(text: str, start: int, end: int) -> bool:
+    """True when the match is a substring of a larger snake/kebab identifier.
+
+    Measured self-amp: prose that LISTS ``user_cancelled_or_timedout`` as an
+    example field name contains the needle ``timedout`` but is a MENTION of the
+    identifier, not a reported timeout value. Also covers hyphenated compounds
+    like ``timeout-needle`` used in receipt blocked_on prose. Deliberately
+    requires ``_`` or ``-`` in the enclosing token so ``ETIMEDOUT`` (neither)
+    still FIREs as a value.
+    """
+    if start >= end:
+        return False
+    lo, hi = start, end
+    while lo > 0 and (text[lo - 1].isalnum() or text[lo - 1] in "_-"):
+        lo -= 1
+    while hi < len(text) and (text[hi].isalnum() or text[hi] in "_-"):
+        hi += 1
+    token = text[lo:hi]
+    return ("_" in token or "-" in token) and token.casefold() != text[
+        start:end
+    ].casefold()
+
+
+_UNIT_SENTINEL = re.compile(
+    # Concrete unit id (FAILED:TST-0341) OR schema template (FAILED:UNIT).
+    r"\A(?:FAILED|SUCCESS|SENTINEL):(?:[A-Z]{2,}-\d+|UNIT)\b",
+    re.IGNORECASE,
+)
+
+
+def _in_unit_sentinel_token(text: str, start: int, end: int) -> bool:
+    """True when the match sits inside a work-unit receipt sentinel token.
+
+    Receipts legally carry ``FAILED:TST-0341 …`` / ``SUCCESS:UNIT …`` strings.
+    Those are schema vocabulary, not tool-result failure reports. Matching the
+    needle ``failed`` inside them was the TST-0341 self-reference FAIL driver.
+    """
+    lo = start
+    while lo > 0 and (text[lo - 1].isalnum() or text[lo - 1] in "_:-"):
+        lo -= 1
+    hi = end
+    while hi < len(text) and (text[hi].isalnum() or text[hi] in "_:-"):
+        hi += 1
+    return bool(_UNIT_SENTINEL.match(text[lo:hi]))
+
+
+def _in_simple_quoted_token(text: str, start: int, end: int) -> bool:
+    """True when the match is the entire contents of a simple ASCII '..' token.
+
+    Receipt/review prose that names the needle as ``'timedout'`` / ``'FAILED'``
+    is discussing the token, not reporting a tool failure. Backtick inline-code
+    already covers the markdown form; this covers the ASCII-single-quote form
+    that landed in TST-0341 independent-review notes.
+
+    Deliberately SINGLE quotes only: double-quoted JSON values like
+    ``"TIMEDOUT"`` / ``"FAILED"`` are real reported values and must still FIRE.
+    """
+    if start <= 0 or end >= len(text):
+        return False
+    if text[start - 1] != "'":
+        return False
+    return text[end] == "'"
 
 
 def _in_json_key(text: str, start: int, end: int) -> bool:
@@ -686,6 +759,12 @@ def classify(text: str, span, context: Context, kind: str = "marker") -> Judgeme
             # suite's "could not connect" case, trading false alarms for blindness.
             if _in_json_key(text, start, end):
                 return _mention("result:json-field-name", kind)
+            if _embedded_in_snake_identifier(text, start, end):
+                return _mention("result:snake-identifier-mention", kind)
+            if _in_unit_sentinel_token(text, start, end):
+                return _mention("result:unit-sentinel-vocabulary", kind)
+            if _in_simple_quoted_token(text, start, end):
+                return _mention("result:quoted-token-mention", kind)
             # RESIDUAL FALSE NEGATIVE, disclosed. The line above once asserted as FACT
             # that a genuine transport error is unfenced prose; that was an ASSUMPTION
             # with no measurement behind it, and this rule is what it justified. A

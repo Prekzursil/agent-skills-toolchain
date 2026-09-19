@@ -1,0 +1,103 @@
+CC-0005 independent hash reproduction (fresh-context reviewer, Windows 11 checkout)
+Repo: C:\Users\Prekzursil\source\agent-skills-toolchain
+Reviewer: c5-cc-0005 (Claude subagent, fresh context, no implementer transcript seen)
+Date: 2026-09-19T13:04:59Z
+Checkout: branch cursor/p2-loop-to-green-0db0 @ a49fdf879115e5e5dea1d7cf2db5413f2d7d6d65
+          (75da713d3bc3eacb388a49b52ab6af78917509dc = unit base commit, verified ANCESTOR of HEAD)
+          local core.autocrlf=true  <-- real Windows CRLF-checkout condition
+Method: own commands (NOT the unit's measure_routes.py): git cat-file -p <rev>:<path>
+        piped to python hashlib; worktree bytes read raw. Script: _measure.py, output: _measure.out.
+
+[1] repo state
+HEAD=a49fdf8791 "fix(ci): pr325-green — all 8 lanes FIXED" (worktree has unrelated dirty files;
+tools/command-center/tests clean vs HEAD). python 3.14.6.
+
+[2] blob hash recomputation vs receipt (git cat-file blob bytes, sha256)
+tools/command-center/validate.py
+  receipt  68f06a32e70c6f17807ef434b05c38a5f7b6e5b41c8d6889d590a739e906b4e0
+  blob@75da713 68f06a32e70c6f17807ef434b05c38a5f7b6e5b41c8d6889d590a739e906b4e0  MATCH
+  blob@HEAD aa5b860ae8e8... (19441B, 0 CRLF; file evolved after unit; CC-0005 hunks are
+  formatting-only per git diff 75da713..HEAD — _register_provenance_bytes logic unchanged)
+tools/measure-guard/blobread.py
+  receipt  a9f41cef63ded7ce58336bb58537e9e6bdfae76e0b7cce4a556b4e4d3671d49f
+  blob@75da713 = blob@HEAD = worktree a9f41cef...  MATCH (byte-identical everywhere)
+.gitattributes
+  receipt  e30af5b07d68121f142008199282f2130ef8c2c62e80bbf1ee733d6deba2e561
+  blob@75da713 e30af5b0...  MATCH  (HEAD blob 5cff075b..., CC-0005 note still present,
+  reworded: "CC-0005 / IMP-0439 note (superseded for attributes by IMP-0017, still true for hashing)")
+tools/command-center/seed.py
+  receipt fbca341710433eee66da1124c35245d1fea4bfe3e89de7e2ad880ae0ce74cfcc
+  blob@HEAD = worktree fbca3417...  MATCH
+tools/command-center/tests/test_reach6_blob_provenance.py
+  receipt ccfb09f801908b9da3c79afcb985fe860a662eab1185f6a0030a1c637a297d1b
+  blob@HEAD = worktree ccfb09f8...  MATCH
+=> 5/5 receipt-cited hashes reproduce from git blobs. No hash was taken from the working
+   tree or git archive.
+
+[3] both-states control: worktree bytes vs blob bytes, SAME file (the production REACH-6 input)
+command-center/sources/REGISTER.md
+  blob@HEAD  sha256=f63cfeae2164e93dc6ba74f07070b48f5ba287b52e103e802c66a1a9fe2cc9cb 69536B 0 CRLF
+             (matches the receipt probe's cited sha256_12 f63cfeae2164)
+  worktree   sha256=c09bf0e75ff8847c26be454e6e442ae158d84d33aa772554ac267d95651868a8 69912B 376 CRLF
+  identical after LF-normalisation: True; byte delta 376 == line count 376  => EOL-only
+  => a worktree-hashing gate would record c09bf0e7... instead of the blob f63cfeae...;
+     the CC-0005 fix (hash the blob) is load-bearing on the real register, not just a fixture.
+Corroboration (same measurement, other files):
+  hooks/todo-surfacer/test_marker_discrimination.py blob 81ab76f4d39c... 3737B/0CRLF
+    vs worktree 0b1c7f3cefb9... 3837B/100CRLF, EOL-only True  (reproduces blobread.py
+    docstring's historical 3837/100 numbers exactly)
+  README.md blob 29b32a66c4ee... 19034B/0 vs worktree 103bf39a4585... 19363B/329, EOL-only True
+
+[4] gate code (read, not trusted)
+tools/command-center/validate.py:83 _register_provenance_bytes -> :105 read_blob(rel,"HEAD")
+  ("CC-0005: prefer git cat-file -p <rev>:<path> (never worktree, never archive)", :88);
+  REACH-6 block :277-341 hashes the committed blob, fails closed if blob unreadable.
+tools/command-center/seed.py:133-166 same pattern.
+tools/measure-guard/blobread.py:56 read_blob = subprocess git cat-file -p rev:path (:63-74);
+  git archive appears ONLY inside three_route_comparison (:161-169) as the measured/indicted
+  route, never in the hashing path.
+
+[5] Windows reproduction of the gate (this checkout, core.autocrlf=true)
+python -m pytest tools/command-center/tests/test_reach6_blob_provenance.py
+                  tools/command-center/tests/test_provenance_blob_hash.py -q
+  => 9 passed in 3.51s  (includes both-states: silent on EOL-only, fires on content change,
+     platform parity of the blob route — run in tmp git repos, so no commit needed)
+python tools/command-center/validate.py --require-complete
+  => "cc-validate items=103 open=58 closed=45 ... reachable=all" SUCCESS, EXIT=0
+  with the real CRLF REGISTER.md worktree present — REACH-6 silent on the EOL-only state.
+(The settling experiment's "flip one content byte -> exit 1" half requires a commit (banned
+for this reviewer); it is covered by test_fires_when_content_genuinely_changes, green above.)
+
+[6] Linux CI parity at the IDENTICAL commit a49fdf8791
+gh api actions/runs?head_sha=a49fdf8... -> quality run 35441814807 (2026-09-19T12:04:08Z,
+pull_request) conclusion=failure. Job "gate-tests-coverage (python packages)" (ubuntu-latest):
+step "gate-tests-coverage command-center" ran `python -m pytest tools/command-center/tests -q`
+=> "173 passed, 6 errors in 9.47s"; ALL 6 errors enumerated as
+   test_mechanism_dedup_gate.py::* ModuleNotFoundError: No module named 'numpy' (CC-0020's
+   test, unrelated to CC-0005). Local collection at the same commit: 179 tests collected
+   (173+6 == 179, arithmetic closes; tests dir clean vs HEAD) => every non-numpy test,
+   including all 9 CC-0005 tests, PASSED on ubuntu-latest at the identical commit.
+   Captured log (committed by sibling unit): command-center/p2-wave/reviews/IMP-0435/
+   red-run-joblog-full.txt:1108 (validate.py line), :1465 ("173 passed, 6 errors"),
+   :1466 (##[error] exit code 1).
+CAVEAT (disclosed, load-bearing): `python tools/command-center/validate.py --require-complete`
+  NEVER EXECUTED in CI at this commit — it rides later in the same bash -e step script and the
+  numpy abort killed the step first. No green quality run exists anywhere on this branch
+  (15 most recent quality runs all failure: 2026-09-08..2026-09-19, incl. newer 0ebc468aae).
+  Parity evidence is therefore SUITE-LEVEL (CC-0005 tests green on ubuntu at the identical
+  commit), NOT a workflow-green validate.py run. Prior independent non-CI Linux verification:
+  implementer receipt (execution_substrate linux-cloud-agent) and
+  command-center/p2-wave/probes/CC-0005/independent-review.json (openai, BLOCKED only on the
+  Windows+CI halves this review now supplies/ scopes).
+
+[7] rail_count_gate --basis worktree
+BEFORE promotion: "C5 CC-0005 is satisfiable by a same-vendor independent reviewer but carries
+no independent PASS (verdict='NOT-REVIEWED', independent=False) -- newly reachable work"
+(overall FAILED:rail-count-gate 7 problems; remaining rows CC-0019/IMP-0022/IMP-0435 + C1/C2
+doc drift are outside CC-0005 scope)
+AFTER promotion: see independent-review.json / receipt reviewer block.
+
+VERDICT: PASS — recomputation 5/5 MATCH; both-states divergence real and EOL-proven on the
+production register; gate green on Windows (tests 9/9 + CLI exit 0) and its tests green on
+ubuntu CI at the identical commit; the never-green validate.py CI lane is disclosed above and
+is blocked by an unrelated numpy dependency, not by CC-0005 code.

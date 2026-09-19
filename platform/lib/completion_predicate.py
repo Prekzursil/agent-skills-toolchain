@@ -1087,7 +1087,39 @@ def _c11_manifest(
                 f"manifest records non-hex digest {recorded[:16]!r}; digest check skipped"
             )
         rows.append(row)
+
+    # CC-0009 / ARC-0084 reverse check: every registered entry must exist on disk.
+    # A path string in the manifest is not proof the file exists; registered-but-absent
+    # must fail condition 11 rather than pass on the strength of the registration row.
+    # Primary paths named by THIS receipt are owned by condition 2 (and cascade to 3/4/5
+    # as NOT-CHECKED); skipping them keeps the mutation battery's isolation honest.
+    primary_paths = {
+        str(a.get("path") or "").replace("\\", "/") for a in _primaries(receipt)
+    }
+    reverse_rows: list[dict[str, Any]] = []
+    for e in entries:
+        if not isinstance(e, dict) or not isinstance(e.get("path"), str):
+            continue
+        if e.get("present") is False:
+            continue
+        mpath = e["path"].replace("\\", "/")
+        if mpath in primary_paths:
+            continue
+        resolved = _resolve(opts.repo_root, mpath)
+        rev: dict[str, Any] = {"path": mpath, "exists_on_disk": resolved.is_file()}
+        if not resolved.is_file():
+            reverse_rows.append(rev)
+            detail["rows"] = rows
+            detail["manifest_entry_existence"] = reverse_rows
+            return (
+                Outcome.UNSATISFIED,
+                f"registered-but-absent: manifest lists {mpath!r} but stat says missing "
+                "- a file path in text is not proof the file exists",
+                detail,
+            )
+        reverse_rows.append(rev)
     detail["rows"] = rows
+    detail["manifest_entry_existence"] = reverse_rows
     if reg.get("registered") is not True:
         return (
             Outcome.UNSATISFIED,
@@ -1096,7 +1128,8 @@ def _c11_manifest(
         )
     return (
         Outcome.SATISFIED,
-        f"every primary artifact is registered in {manifest_rel}",
+        f"every primary artifact is registered in {manifest_rel} and every "
+        f"manifest entry exists on disk",
         detail,
     )
 

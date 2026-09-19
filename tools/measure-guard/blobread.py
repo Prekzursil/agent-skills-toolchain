@@ -80,6 +80,14 @@ def read_blob(path: str, rev: str = "HEAD", *, repo: Path | None = None) -> byte
     return proc.stdout
 
 
+def blob_bytes(rev: str, path: str, *, repo: Path | None = None) -> bytes:
+    """IMP-0440 / IMP-0439 name: ``blob_bytes(rev, path)`` as a thin alias of :func:`read_blob`.
+
+    Argument order matches the catalog row (rev first). Same bytes, same refusal of archive.
+    """
+    return read_blob(path, rev, repo=repo)
+
+
 def _tar_member(stream: bytes, path: str) -> bytes | None:
     """The payload of `path` inside an uncompressed tar stream, or None if absent.
 
