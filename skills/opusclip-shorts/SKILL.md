@@ -98,9 +98,9 @@ Since the credential minter is the ZCode host itself, the relay brokers through 
 - PRIMARY = on-demand: after submitting jobs, ask any live ZCode agent "drain the speech
   relay queue" — it calls the host-authenticated video-edit MCP per job and writes results.
   Zero idle cost, instant when you're around.
-- SAFETY NET = hourly cron "Speech relay safety sweep" (empty queue → ends instantly, no output).
-  Before a long cross-harness transcription session, tighten it: CronUpdate to */2 with title
-  "…(every 2 minutes)"; loosen back to hourly (or delete) afterwards.
+- NO scheduled automation by default (owner preference: zero idle chatter). If a safety net
+  is ever wanted: CronCreate "Speech relay safety sweep" (e.g. hourly "0 * * * *") with the
+  drain prompt above — remember every tick is a visible session message, so prefer on-demand.
 - **Inside ZCode, skip the queue entirely**: call speech_transcribe directly (host-authenticated,
   same latency as interactive). The queue exists for OTHER harnesses only. The offline
   provider=local channel also works everywhere with no relay at all.
