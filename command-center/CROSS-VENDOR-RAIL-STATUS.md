@@ -1,4 +1,4 @@
-# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 80 of 80 satisfiable units are reviewed
+# The cross-vendor review rail ANSWERS — 9 units still demand a cross-vendor review, and 79 of 80 satisfiable units are reviewed — AUD-0084's prior PASS was delivery-authored and withdrawn 2026-09-19, so its review is re-owed *[re-derived 2026-09-19: fresh-context falsifier still owed]*
 
 <!-- RAIL-COUNT
 basis: committed
@@ -7,7 +7,7 @@ rail_blocked: 9
 rail_blocked_unfulfilled: 9
 rail_blocked_fulfilled: 0
 satisfiable_now: 80
-reviewed_satisfiable: 80
+reviewed_satisfiable: 79
 catalog_units: 2007
 rail_state: up
 rail_probed: 2026-08-14
