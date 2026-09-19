@@ -251,15 +251,19 @@ jobs:
         run: |
           npm ci
           npm test
-      # chrome-bridge-mcp — the shipped browser bridge. Its full `npm test` needs a live
-      # Chrome + companion extension (smoke / multi-client are local-only lanes by design;
-      # on the dev box the estate's own bridge hub owns port 8787), so CI gates the
-      # security core that CAN run hermetically: the estate CDP allowlist, at 100%
-      # line+branch+functions via test/cdp-allowlist.test.mjs against the built dist.
-      # Reuses the existing gate-tests-coverage charter slug on purpose - it is not a new
-      # gate. The module is imported in-process, so the never-imported-file coverage trap
-      # documented at the agentspec-js step below does not apply.
-      - name: gate-tests-coverage chrome-bridge-mcp (cdp-allowlist; scoped, offline)
+      # chrome-bridge-mcp — the shipped browser bridge, now gated across the whole
+      # package (cdp-allowlist + hub + pagescript + setup + tools: 87 hermetic
+      # tests, 100% lines, branches/functions at measured floors). The full
+      # `npm test` still needs a live Chrome + companion extension (smoke /
+      # multi-client / e2e stay local-only by design; the dev box bridge hub
+      # owns port 8787), so CI gates the hermetic surface: a real Hub on an
+      # ephemeral loopback port, a programmable fake extension speaking the real
+      # wire protocol, and an MCP client over InMemoryTransport. dist/index.js
+      # is deliberately outside the gate: it is the side-effecting entrypoint
+      # (importing it binds the bridge port) and is exercised by the live lanes.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is
+      # not a new gate.
+      - name: gate-tests-coverage chrome-bridge-mcp (package-wide, offline)
         working-directory: browser-bridge/chrome-bridge-mcp
         run: |
           npm ci
