@@ -26,8 +26,16 @@ chk "T2 exit nonzero + baseline step red" "[ $rc = 1 ] && grep -q '\"name\": \"b
 
 echo "== T3 good tree, detached worktree: --clean --self-test --journeys"
 printf 'def f():\n    return 1\n' > app.py
-mkdir -p tests/journeys
+rm -rf .gate
+mkdir -p tests/journeys tests/fixtures/gate
+printf 'import pytest\n\ndef pytest_collection_modifyitems(items):\n    for it in items:\n        if "tests/journeys" in str(it.path):\n            it.add_marker(pytest.mark.journey)\n' > tests/journeys/conftest.py
 printf 'import pytest\n@pytest.mark.skip(reason="needs=platform-08a-worker-pure")\ndef test_h1():\n    assert True\n' > tests/journeys/test_h1.py
+printf 'static line A\n' > tests/fixtures/gate/false-claim-target.txt
+git add -A; git commit -qm "fixture target"
+printf 'static line B\n' > tests/fixtures/gate/false-claim-target.txt
+git diff > tests/fixtures/gate/false-claim.patch
+git checkout -- tests/fixtures/gate/false-claim-target.txt
+printf '.gate/\n' > .gitignore
 git add -A; git commit -qm "good tree"
 git worktree add --detach "$WT" HEAD >/dev/null 2>&1
 CLEAN >/dev/null 2>&1; rc=$?
@@ -43,7 +51,7 @@ chk "T3a exit 0 on the good tree" "[ $rc = 0 ]"
 chk "T3b self-test broken_red true" "python3 -c \"import json;print(json.load(open('$WT/.gate/last_run.json'))['red_proof']['broken_red'])\" | grep -q True"
 chk "T3c false_claim_red == 'true' (the gate-written fixture reds claim-lint, C-2)" "python3 -c \"import json;print(json.load(open('$WT/.gate/last_run.json'))['red_proof']['false_claim_red'])\" | grep -qx true"
 chk "T3d journeys counted the needs= skip (C-4)" "python3 -c \"import json;j=json.load(open('$WT/.gate/last_run.json'));print(j['journeys']['skipped_needs'])\" | grep -q platform-08a-worker-pure"
-chk "T3e import-app conditional + non-blocking with api/app.py absent (C-1)" "python3 -c \"import json;d=json.load(open('$WT/.gate/last_run.json'));s=[s for s in d['steps'] if s['name']=='import-app'][0];print(s['blocking'],s['exit_code'])\" | grep -qx '0 0'"
+chk "T3e import-app conditional + non-blocking with api/app.py absent (C-1)" "python3 -c \"import json;d=json.load(open('$WT/.gate/last_run.json'));s=[s for s in d['steps'] if s['name']=='import-app'][0];print(s['blocking'],s['exit_code'])\" | grep -qx 'False 0'"
 
 echo "== T4 digest equality: same tree, same args, independent executions"
 D1="$(CLEAN 2>/dev/null | awk '/^LEDGER_DIGEST /{print $2}')"
