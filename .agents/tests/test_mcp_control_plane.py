@@ -572,11 +572,18 @@ def test_cursor_g6b_write_emits_only_keep_list(tmp_path: pathlib.Path) -> None:
     assert "docker" not in written
     assert "mixpanel-mcp" not in written
     assert "mixpanel" not in written
-    assert "enabled=2" in completed.stdout
-    assert "disabled=0" in completed.stdout
+    # Reunited 2026-09-02 with the live lineage's summary vocabulary: Cursor's
+    # mcp.json has no ``disabled`` field, so the count of attached definitions is
+    # ``attached=`` and stray ``disabled`` keys (always 0 after the merge) are
+    # ``disabled_keys=``; ``enabled=``/``disabled=`` runtime-state words are gone
+    # (the live suite pins their absence). Was ``enabled=2`` / ``disabled=0``.
+    assert "attached=2" in completed.stdout
+    assert "disabled_keys=0" in completed.stdout
+    assert "enabled=" not in completed.stdout
     assert "added=1" in completed.stdout
     assert "updated=1" in completed.stdout
-    assert "parked_skips=" in completed.stdout
+    assert "parked_skips=1" in completed.stdout
+    assert "attach_all_safe=false" in completed.stdout
 
 
 # The exact off-registry shape found in the live ~/.cursor/mcp.json on 2026-09-01:

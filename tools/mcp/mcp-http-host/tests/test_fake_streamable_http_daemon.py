@@ -14,6 +14,7 @@ import json
 import socket
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -325,3 +326,108 @@ def test_port_is_free_after_close():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
         probe.settimeout(1)
         assert probe.connect_ex(("127.0.0.1", port)) != 0
+
+
+# --- behaviours added for the session-healing reverse proxy -----------------
+
+
+def test_initialize_params_and_protocol_header_are_recorded(daemon):
+    params = {
+        "protocolVersion": "2025-06-18",
+        "capabilities": {"roots": {}},
+        "clientInfo": {"name": "cursor", "version": "1.2.3"},
+    }
+    status, headers, _ = _post(
+        daemon.url,
+        {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": params},
+    )
+    assert status == 200
+    sid = headers["Mcp-Session-Id"]
+    req = urllib.request.Request(
+        daemon.url,
+        data=json.dumps(PING).encode("utf-8"),
+        headers={
+            **HEADERS,
+            "Mcp-Session-Id": sid,
+            "MCP-Protocol-Version": "2025-06-18",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        assert resp.status == 200
+
+    init_entry, ping_entry = [r for r in daemon.requests if r["verb"] == "POST"]
+    assert init_entry["params"] == params  # a proxy must replay these on heal
+    assert init_entry["protocol_version_header"] is None
+    assert "params" not in ping_entry
+    assert ping_entry["protocol_version_header"] == "2025-06-18"
+
+
+def test_session_not_found_can_be_reported_in_band_with_http_200():
+    """Some servers answer a stale id as a JSON-RPC error on a 200, not a 404."""
+    with FakeStreamableHttpDaemon(session_not_found_status=200) as fake:
+        sid, _ = _initialize(fake.url)
+        fake.restart()
+        status, headers, body = _post(fake.url, PING, sid)
+    assert status == 200
+    assert headers["Content-Type"] == "application/json"
+    assert body == session_not_found_body()
+
+
+def test_force_session_not_found_rejects_valid_requests_but_not_notifications(
+    daemon,
+):
+    """Rehearse a daemon that flaps again in the middle of a client's heal."""
+    sid, _ = _initialize(daemon.url)
+    daemon.force_session_not_found = 2
+
+    first = _http_error(daemon.url, PING, sid)
+    assert first.code == 404 and first.read() == session_not_found_body()
+    # a notification is not a request: it is accepted and does not use a strike
+    status, _, _ = _post(
+        daemon.url, {"jsonrpc": "2.0", "method": "notifications/initialized"}, sid
+    )
+    assert status == 202
+    assert daemon.force_session_not_found == 1
+    assert _http_error(daemon.url, PING, sid).code == 404
+    assert daemon.force_session_not_found == 0
+
+    status, _, body = _post(daemon.url, PING, sid)  # strikes spent: back to normal
+    assert status == 200
+    assert json.loads(body)["result"] == {}
+    assert sid in daemon.live_sessions()  # the session itself was never dropped
+
+
+def test_sse_prelude_delay_flushes_each_event_as_it_is_produced():
+    prelude = [
+        {"jsonrpc": "2.0", "method": "notifications/message", "params": {"n": n}}
+        for n in range(3)
+    ]
+    with FakeStreamableHttpDaemon(
+        response_mode="sse", sse_prelude=prelude, sse_prelude_delay=0.15
+    ) as fake:
+        _, init_headers, _ = _post(  # SSE mode: the initialize body is SSE too
+            fake.url,
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        )
+        req = urllib.request.Request(
+            fake.url,
+            data=json.dumps(PING).encode("utf-8"),
+            headers={**HEADERS, "Mcp-Session-Id": init_headers["Mcp-Session-Id"]},
+            method="POST",
+        )
+        started = time.monotonic()
+        resp = urllib.request.urlopen(req, timeout=5)
+        assert resp.headers.get("Transfer-Encoding") == "chunked"
+        first_event = resp.readline()  # arrives before the later events exist
+        first_arrival = time.monotonic() - started
+        rest = resp.read()
+        total = time.monotonic() - started
+    assert first_event == b"event: message\n"
+    assert first_arrival < 0.12, first_arrival
+    assert total >= 0.4, total
+    events = [
+        json.loads(line[6:]) for line in rest.split(b"\n") if line.startswith(b"data: ")
+    ]
+    assert [e.get("params", {}).get("n") for e in events[:3]] == [0, 1, 2]
+    assert events[3]["result"] == {}
