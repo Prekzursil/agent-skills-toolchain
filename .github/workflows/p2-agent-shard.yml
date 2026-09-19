@@ -21,7 +21,7 @@ on:
         description: "GLM model slug"
         default: "glm-4.6"
       backend:
-        description: "agent backend: glm | claude"
+        description: "agent backend: glm | glm-free | claude"
         default: "glm"
       budget_min:
         description: "agent minutes per run"
@@ -89,11 +89,13 @@ jobs:
           chmod 600 ~/.claude/.credentials.json
           claude --version
       - name: agent batch — backend ${{ inputs.backend }} (shard ${{ inputs.shard }}/${{ inputs.shards }})
-        if: steps.goal0.outputs.p2_done != 'true' && inputs.backend == 'glm'
+        if: steps.goal0.outputs.p2_done != 'true' && (inputs.backend == 'glm' || inputs.backend == 'glm-free')
         env:
           ZAI_API_KEY_A: ${{ secrets.ZAI_API_KEY_A }}
           ZAI_API_KEY_B: ${{ secrets.ZAI_API_KEY_B }}
-          GLM_MODEL: ${{ inputs.model || 'glm-4.6' }}
+          AGENT_API_KEY: ${{ inputs.backend == 'glm-free' && secrets.OPENROUTER_API_KEY || '' }}
+          AGENT_ENDPOINT: ${{ inputs.backend == 'glm-free' && 'https://openrouter.ai/api/v1/chat/completions' || '' }}
+          GLM_MODEL: ${{ inputs.backend == 'glm-free' && 'z-ai/glm-5.2:free' || inputs.model || 'glm-4.6' }}
         run: |
           git config user.name "p2-shard${{ inputs.shard }}-runner" || true
           git config user.email "p2-shard${{ inputs.shard }}-runner@users.noreply.github.com" || true
@@ -153,9 +155,11 @@ jobs:
             curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
               https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/pr-reconcile.yml/dispatches -d '{"ref":"main"}'
           else
-            echo "re-arming all $SHARDS shards (0-2 glm, 3+ claude)"
+            echo "re-arming all $SHARDS shards (0-2 glm, 3-4 claude, 5+ glm-free)"
             for S in $(seq 0 $((SHARDS-1))); do
-              BACKEND=$([ "$S" -ge 3 ] && echo claude || echo glm)
+              if [ "$S" -ge 5 ]; then BACKEND=glm-free
+              elif [ "$S" -ge 3 ]; then BACKEND=claude
+              else BACKEND=glm; fi
               curl -s -X POST -H "Authorization: Bearer $RUNNER_PAT" -H "Accept: application/vnd.github+json" \
                 https://api.github.com/repos/Prekzursil/agent-skills-toolchain/actions/workflows/p2-agent-shard.yml/dispatches \
                 -d "{\"ref\":\"main\",\"inputs\":{\"shard\":\"$S\",\"shards\":\"$SHARDS\",\"backend\":\"$BACKEND\"}}"
