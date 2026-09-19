@@ -496,4 +496,291 @@ Token cost: with the measured 90–110 k tokens per verifier-class agent and 150
 
 Honest reading: the serial spine dominates; the cap-14 resize buys ≈ 2× on fan-out and panels but not on the spine. The price of the reliability angle is stated, not hidden: ≈ 740 agents and ≈ 22–41 h for R1 versus roughly a third of that for a lean design. The design accepts it because every one of the measured failure classes (verification theater, tampering, over-claiming, stale-sha replay, lost hunks) is guarded by a mechanism rather than a prompt.
 
+---
+
+## 12. COVERAGE MATRIX — every F-1..F-47 and every anti-pattern of every lens → guard → phase
+
+Mechanism kinds: **JS** (script-level, deterministic), **gate** (`gate.sh`/tools, deterministic), **schema** (typed return + JS semantic check), **role** (fresh-agent separation), **owner** (explicit owner checkpoint; the only guard the workflow cannot execute itself). Phases as in the red team: P0 pre-flight · P1 verify · P2 plan · P3 implement · P4 fix · P5 critic · P6 review+integration · P7 owner/staging · P8 synthesizer · X script invariant.
+
+### 12.1 Red-team failure modes
+
+| id | Guard (mechanism) | Phase | Kind |
+|---|---|---|---|
+| F-1 | `args.build_repo` durable + every stage returns `repo_toplevel`, asserted `=== args.build_repo` in JS; no `isolation:'worktree'`; every git/pytest command is `git -C "$BUILD_REPO"` / `"$VENV/bin/python"`; toolchain status re-snapshotted at P6 and compared to `args.toolchain_status_snapshot_sha` | X, P6 | JS + schema |
+| F-2 | Build root `/home/codespace/build/` (durable, outside `/tmp`, outside the rsynced grill folder, outside the cwd repo); checkpoint bundle after every merge into `$RUN_DIR/bundles/` (synced, ≤ 20 MB asserted); runbook step "push from the bundle" | P0, P6 | JS + owner (remote) |
+| F-3 | `args.base_sha` 40-hex; setup asserts `git rev-parse HEAD == base_sha` on the clone; snapshots `chmod -R a-w` before launch; the pre-verifier re-asserts; every card names the base | P0, P1 | JS + schema |
+| F-4 | Prompt preamble constant: "the cwd repo and its CLAUDE.md are unrelated; the only repo is `$BUILD_REPO`; ignore SSOT gates, `~/source/*`, pushing"; `$BUILD_REPO/AGENTS.md` written by setup and read first | X, P0 | JS (prompt const) |
+| F-5 | ONE setup agent builds `/home/codespace/build/venv312` from `/usr/bin/python3.12` + durable wheels + ruff/pyflakes/pytest/pytest-socket/hypothesis/pyyaml/openai; `gate.sh` refuses non-3.12; `installed_packages` must be `[]` on every stage (JS abort) | P0, X | JS + gate + schema |
+| F-6 | `args.owner_approvals` is data; a stage needing a null field returns `BLOCKED_ON_OWNER` with a runbook entry; the script never retries it; the synthesizer lists blocked items first | X, P7, P8 | JS + schema |
+| F-7 | Trigger message must contain no secret (orchestrator pre-scan regex over every input file); hardening tests use a canary env var and assert absence/EACCES, never print environ; prompts forbid `env`/`printenv`/`os.environ` dumps; gate step `secrets` on every range; journal export scanned before it is saved | P0, gate, P8 | gate + owner (revoke pasted token) |
+| F-8 | `api-ledger.json` from the durable libsrc; `IMPL.apis_used[]` with `ledger_anchor`; gate `apicheck` imports each symbol and validates kwargs against `inspect.signature`; reviewer rejects uncited call sites | P1, P3, gate, P6 | gate + schema |
+| F-9 | Decision sheet (`decisions.json`, one line per G/M id with the decided VALUE and `against_recommendation`) is the ONLY decision text implementers see; owner approves it at the R0 checkpoint; refuter lens `decision-fidelity` + auditor `deviations` keyed by decision id | P2, P0, P5 | role + owner + schema |
+| F-10 | Cards quote ONLY CORRECTED text (`finding_ids[].corrected_text`); gate `idiom-lint` for the known-bad idioms (`preexec_fn`, `__wrapped__`, `rmtree` in unload, `prefill_chunk_size` with the VLM class, `lease_s - 30`, zero-width on file reads); auditor checks CORRECTED fidelity | P2, gate, P5 | gate + schema |
+| F-11 | Symbolizer maps every finding to `file::symbol@base_sha`; UNVERIFIED findings (critic-1..5) go through `pre-verifier` (refute-first) before any card cites them; implementers locate by `git grep -n "def <name>"` | P1, P2 | role + schema |
+| F-12 | The only admissible verification evidence is the gate ledger; `unitDone()` condition 4 requires the implementer's and the verifier's independently computed `gate_digest` to be equal at the same `head_sha`; pytest exit 5 or `collected == 0` is red; `staging-required` claims can never be `pass` locally | P4–P6, X | gate + JS |
+| F-13 | Card `size_budget` (≤ 300 changed lines, ≤ 12 files) validated by the verifier from `git diff --numstat`; oversize → `blocked:'oversize'` → re-decomposer; `commits_made ≥ 1` asserted before the verifier runs | P2, P3, X | JS + schema |
+| F-14 | DAG in `cards/*.json`; `waves()` admits only dep-satisfied cards with pairwise-disjoint `files_allowed` (a clash waits, never merges blindly); serial integration in topological order with a gate after every merge | P2, X, P6 | JS |
+| F-15 | Carriers are files + git: cards on disk, decision sheet, api ledger, `.gate/last_run.json`, bundles; stage returns are small typed envelopes; every prompt says "read the card at `<path>`, then `git diff <base>..<head>`" | P2, X | JS + schema |
+| F-16 | Card `in_scope/out_of_scope/files_allowed/deps_allowed`; gate warns on new imports/deps; auditor `scope_violations`/`deps_violations` block; critic kind `omitted-obligation` vs `traceability`; out-of-allowlist hunks go to `deferred.md` for the owner | P2, gate, P5, P6 | gate + schema |
+| F-17 | Persona card gives NO history access (`git log/show` on `system_prompt.py` forbidden in the prompt; the card contains only the G-19 role list); `tests/test_personas_absence.py` (protected) checks a minimal list of normalised fragments; critic kind `boundary` on every persona/README/test change; synthesizer reports the absence-test result explicitly | P2, P3, gate, P5, P8 | gate + role + schema |
+| F-18 | Locked oracle: gate resets `tests/acceptance` to the oracle ref and fails on any diff under `tests/protected.txt`, `conftest.py`, `pytest.ini`, `ruff.toml`, `.github`, gate tools; `tamper_scan.py` (Δ asserts, skips, loosened matchers, pytest-detection idioms, `-k/--deselect`); `collected ≥ baseline − Tests-Removed`; mutants must be killed; tamper judge; second tamper → `blocked:'tamper'` | gate, P4, P5 | gate + schema + role |
+| F-19 | ruff F821/F811/F401/E9 under py312 + compileall + import smoke of every module; `claim_lint.py` on every commit; `IMPL.dod[]` with exit codes per acceptance id; verifier re-runs each acceptance command; synthesizer counts DoD lines, not cards | gate, P3, P4, P8 | gate + schema |
+| F-20 | Conformance suite parametrised over `{fake, recorded-hosted, recorded-worker}` with hosted/worker rows `skipped: needs owner recording` and counted in P8; fixture `provenance` fields required by the gate; three scripted mutants per acceptance id must each turn a test red; fixture #1 (owner's metered call) replaces the synthetic golden in R2 | P3, P5, P7, P8 | gate + owner |
+| F-21 | `c01a` adds `.gitattributes`/`.editorconfig`; `c01b` is a pure renormalize commit with `Renormalize-Only: yes`; gate `eol` fails on any CRLF/mixed tracked text; reviewers use `--ignore-all-space --color-moved` | P3, gate, P6 | gate |
+| F-22 | Gate `lfs`/`blobcap`/`junk` steps; `.gitignore` extended in `c01a`; fixtures generated in `tmp_path`; reviewers reject binary fixtures | gate, P3, P6 | gate |
+| F-23 | Gate runs only under the 3.12 venv; `ruff --target-version py312`; two requirement sets each with a `*.lock` produced under 3.12 and a test that README front matter equals the lock's gradio pin; image resolution observed only at R2 (`staging-required`) | gate, P3, P7 | gate + owner (staging) |
+| F-24 | `render_readme.py --check` (README from `models.yaml`, registry, collected-test count); `tests/test_constants_pin.py` (protected); UI strings read the constants module; claim lint on every commit | gate, P3 | gate |
+| F-25 | `models.yaml` schema requires `provenance{source_url, fetched_at, fetched_by, saved_path}` and `admission: pending` until harness JSON exists; P1 saves raw read-only Hub responses under `evidence/catalog/`; unverifiable entries committed as `status: unverified` and listed for the owner | P1, P3, gate, P8 | gate + schema |
+| F-26 | Local-server harness picks a free port, `prevent_thread_lock=True` or `subprocess` with `finally: kill()`; `/healthz` returns `{git_sha}` and the client asserts equality with the HEAD under test; gate pre-step kills stray listeners from the build root; prompt rule against foreground servers | P3, gate, X | gate + JS |
+| F-27 | Findings ledger with stable ids; a fix must cite the id it closes; a re-opened id → arbiter (`accepted_risk`/decision); caps `MAX_FIX=3`, `MAX_AUDIT_FIX=2`, `MAX_CRITIC_FIX=1`, `MAX_WAVE_ROUNDS=2`, `MAX_TREE_ROUNDS=4`; fingerprint equality detects oscillation; exit is "no NEW ids", never "critic says fine" | X, P4, P5 | JS + role |
+| F-28 | Gate files and tools in `tests/protected.txt`; gate red-proofs (RED on `f88b120` fixture and the false-claim fixture, GREEN on the base) recorded in the ledger in merged/clean mode; `Claim-Waiver` once per card naming a reviewer; only pytest exit 0 is green; `|| true` and threshold edits are tamper signals | gate, P6 | gate |
+| F-29 | `pytest --disable-socket --allow-hosts=127.0.0.1` run twice, results must be identical; network tests live under `tests/live/` excluded unless `owner_approvals.hosted_call_budget_usd > 0`; the existing DNS-dependent test is stubbed in `c02a` | gate, P3 | gate + owner |
+| F-30 | Critic prompt carries the diff range + card + audit, never the implementer narrative; critic must run `gate.sh` and `apicheck` itself; `hunks_cited minItems 1` for any pass; mechanical lenses first | P5 | role + schema |
+| F-31 | Hardening cards ×3 with narrow reading lists, defensive framing, `model:'fable'`; null → one narrower retry → `blocked:'safeguard'` (never `pass`); scope rule in every critic preamble | P3, P5, X | JS + role |
+| F-32 | Serial integrator; `no_lost_hunks.sh` (`git cherry` + `git patch-id` set difference) asserted empty in JS; gate on the merged tree; bundle after each merge | P6, X | JS + gate |
+| F-33 | Worktrees under `$WT_ROOT`; names carry `run_nonce`; removal only after `cherry_unmerged == []`; P0 cleanup bundles then prunes stale worktrees of a previous run | P0, P6 | JS |
+| F-34 | Gate after every merge on the merged tree; red → integration fixer ≤ 2 rounds → `git revert -m 1` of the later card, `blocked:'reverted-at-integration'`; synthesizer reports the parked list | P6 | gate + JS |
+| F-35 | `outward_actions_taken` on every envelope; any non-empty entry aborts the run; prompts forbid `gh repo create`, `git push`, `HfApi` writes, HF write MCP tools; pipeline code written and unit-tested against fakes, never executed; owner pre-flight disables write connectors and confirms `gh auth` scope | X, P0, P7 | JS + schema + **owner** |
+| F-36 | Harness defaults `--backend fake --dry-run`; real backends need `--i-accept-cost <usd>` AND an owner-only env var; preflight refuses above `owner_approvals.*_budget`; `max_retries=0`; zero-call test in the gate | P3, gate, P7 | gate + **owner** |
+| F-37 | `verification_level` on every acceptance/claim; keyword list raises to `staging-required` in JS; runbook lists each such claim with its measurement step; R2 evidence reader marks missing evidence `unverified` | X, P8, P7 | JS + schema + **owner/CI** |
+| F-38 | Workflow never touches the Space; R3 precondition: read-only Hub check that the Space HEAD has no foreign commits since base, else `blocked_on_owner`; owner checklist: stop notice, disable both scheduled tasks, rotate that agent's token, delete `NF4_*` secrets | P0, P7, P8 | **owner** + JS |
+| F-39 | Fetch wrappers retry 3× then return `unresolved`; catalog/api-ledger entries need `saved_path` that the gate checks exists; unresolved facts committed as `TODO(owner-verify)`, never numbers | P1, gate, P8 | gate + schema |
+| F-40 | Synthesizer receives mechanical inputs only (ledger incl. nulls, DAG, gate ledger, `git log --stat`, skip counts); one row per card with an enum status; synthesis verifier cross-checks every `merged` row against `git log` and every `verified` claim against the ledger; ends with the unmet-DoD list | P8 | role + schema + JS |
+| F-41 | `safeAgent()` wrapper + H6 `withTimeout`/`settle` with typed drop receipts; ledger records every null; no `.filter(Boolean)` without `dropped[]`; stage callbacks branch on `status` | X | JS |
+| F-42 | Commit per coherent step; retry prompt starts from `git status`/`git log`; gate pre-step clears stale `index.lock` and stray servers; hardening cards split + `model:'fable'`; two nulls → park | P3, X, gate | JS + gate |
+| F-43 | `args.base_sha`, `integration_sha_at_launch`, `run_nonce` computed by the orchestrator per invocation; state probe before consuming any cached sha; mismatch → `stale → rerun live`; resume only if the integration head is unchanged | P0, X | JS + owner (orchestrator) |
+| F-44 | Waves by DAG; single-vote mechanical lenses where a model vote adds nothing (the 3-refuter panels are kept deliberately, cost stated in §11); setup pre-builds the venv once; per-wave wall-clock estimate logged; owner sets the Codespace idle timeout to max and keeps a client attached; several resumable invocations expected | P0, X | JS + **owner** |
+| F-45 | Counters before budget; `budgetOk()` reserve `max(RESERVE, 15 %)` and `agentCount > 800`; P8 always runs inside try/catch; loops guarded by `budget.total &&` | X | JS |
+| F-46 | Small schemas, `minItems` on evidence, enums for verdicts; JS semantic re-validation (`done` vs dod exit codes, empty evidence → unverified); the smoke run exercises every schema once before the real launch | P0, X | JS + schema |
+| F-47 | `meta` pure literal, phase titles match; no `Date.now`/`Math.random`/`new Date()` (timestamps via `args.launched_at` and agent-reported `date -u`); `try/catch` around every stage body with `ledger.push`; `phase` per `agent()` inside pipelines; all cross-stage state derived from returned results; mandatory smoke run | P0, X | JS |
+
+### 12.2 Doctrine anti-patterns (research-1, D/AP-1..17)
+
+| id | Anti-pattern | Guard | Phase | Kind |
+|---|---|---|---|---|
+| D/AP-1 | Receipt-as-result / fire-and-forget | Envelope `terminal` pattern `^(SUCCESS|FAILED|BLOCKED_ON_OWNER):`; fan-in regex rejects `started in the background|task-|Check /codex:status`; no rescue forwarders; L2/L3 runs under `run_in_background` + Monitor return only after the terminal marker (C-7) | X | JS + schema |
+| D/AP-2 | Digest theatre | Full artifacts on disk (`$RUN_DIR/build/<card>/<role>.md`), postcondition probe `test -s` + sentinel before any digest is read; reviewers/refuters receive bundle paths (full text), not digests | P4–P8 | JS + role |
+| D/AP-3 | Evidence-tag theatre (same probe re-run) | `VERIFY_FINDING.source_probe`/`verify_probe` axes; JS independence check (`tool|engine|shell|field` must differ on ≥1 axis) else downgrade to UNVERIFIED; gate-digest equality across two agents is itself a two-engine signal | P1, X | JS + schema |
+| D/AP-4 | Silent-in-both-states detector | Both-states fixtures for every gate tool (`tests/gate_fixtures/{broken,fixed}`), `gate_redproof.sh` in merged/clean mode; count-based controls fail closed at zero (`collected == 0` is red) | gate, P0 | gate |
+| D/AP-5 | Goodhart-green (tests after code, coverage as proof, reward-hack surface) | Test author before implementer; confirm-RED; revert-proof; `mutants.json` must all be killed; `tamper_scan.py` flags new `xfail/skip/no-cover`; coverage is never an acceptance criterion | P3–P5, gate | gate + role |
+| D/AP-6 | Self-certification | Distinct `agent()` per role; verifier/refuter/auditor/critic/judge prompts contain raw evidence and the card only; cross-family judge when reachable (C-N) | all | role |
+| D/AP-7 | The grind (identical retry after two strikes) | Fingerprint `fnv(sorted failing ids + first error line)`; strike 2 same fingerprint → pivot (≥2 alternatives); strike 3 → re-decomposer; never a 4th | P4 | JS + role |
+| D/AP-8 | Fat barrier, no timeout | H6 `withTimeout`/`settle` verbatim; typed drop receipts; `pipeline` per card; barriers only at wave/review/judge joins | X | JS |
+| D/AP-9 | Over-broad `required[]` | `required` = floor; long prose in one string field ≤ 2 k; deliverable on disk regardless; smoke run exercises every schema | X, P0 | schema |
+| D/AP-10 | Mid-run edits to contract/schema/prefix | Plan files hashed → `CONTRACT-HASH.txt`, `args.plan_hash` asserted at build start; schemas and prompt constants frozen; a one-off standalone agent handles a single failed unit | P0, X | JS + owner (approves hash) |
+| D/AP-11 | Unbounded loop / dedup vs confirmed | Five stop conditions each logged; `seen` set keyed by `fkey`; `budget.total &&` guards; agent-count reserve | P6, X | JS |
+| D/AP-12 | Negative instructions degrade all testing | Implementer prompts carry only the safety non-negotiables as "must not"; quality is enforced downstream by verifier/auditor, not by a "do not" list | P3 | prompt design |
+| D/AP-13 | LLM doing mechanical comparison | JS: overlap check, DAG, fingerprints, dedup, predicate reduction, digest equality, anchor regex, receipt rejection; Bash tools: ruff, claim lint, tamper scan, apicheck, no-lost-hunks, mutation runner | X, gate | JS + gate |
+| D/AP-14 | Parallel mutators on one index / overlapping files | Own worktrees per mutating agent under `$WT_ROOT`; `files_allowed` disjointness enforced by `waves()`; serial single-writer integration | P3, P6, X | JS |
+| D/AP-15 | Trusting "done"/"tests pass"/working-tree green | `unitDone()` reads probes, not claims; gate digest equality; `git clone` fresh-checkout gate per wave; timeout receipts map to FAILED-TO-RUN | P4–P6 | JS + gate |
+| D/AP-16 | Performative agreement / sycophantic reversal | Fixer `disposition` enum with `pushed_back` + `pushback_evidence`; resolver/arbiter reads probes and names the winning probe, never averages | P4, P6 | schema + role |
+| D/AP-17 | Trailing limitations section | `unverified_claims[]` is a structured envelope field (inline by construction); synthesizer marks UNVERIFIED inline per DoD row (`level`), and the report runs `claim_gate.py`-style trailing-tag detection over `SYNTHESIS.md` (deterministic regex) | P8 | schema + gate |
+
+### 12.3 Tool-native anti-patterns (research-2, T/AP-1..12)
+
+| id | Anti-pattern | Guard | Phase | Kind |
+|---|---|---|---|---|
+| T/AP-1 | Consent-in-prompt | Approvals only as `args.owner_approvals` data + the owner's own launching message; a prompt string never grants; outward actions abort the run | X, P7 | JS + owner |
+| T/AP-2 | Secret-in-trigger | Orchestrator pre-scan of the trigger and every input file; runbook item to revoke the already-pasted token; journal export scanned | P0, P8 | gate + owner |
+| T/AP-3 | Self-certifying implementer | `IMPL.claims[]` checked by claim lint and the auditor; gate digest must be reproduced by the verifier; `dod` exit codes re-run by the verifier | P4, gate | gate + role |
+| T/AP-4 | Unbounded until-satisfied loop | Counters first, budget second, agent-count reserve; `satisfied` only via the judge enum and only with all preconditions | P6, X | JS |
+| T/AP-5 | Dedup against `confirmed` | `seen` set (all keys ever seen), never `confirmed` | P6 | JS |
+| T/AP-6 | Barrier between per-item stages | `pipeline(wave, buildCard)`; barriers only where the next step needs the whole set | X | JS |
+| T/AP-7 | Parallel writers on one checkout/branch | Worktree per mutator; ONE integrator; script's only mutable state is `head` | P3, P6 | JS |
+| T/AP-8 | Worktree as the checkpoint | Bundles per card + checkpoint bundles per merge + deterministic branch names with nonce; refs outlive worktrees | P3, P6 | JS |
+| T/AP-9 | Volatile prompt content | Prompts from `args` + sorted results only; no run ids/timestamps/session paths; `run_dir` is a stable durable path | X | JS |
+| T/AP-10 | Stale-SHA evidence | `head` flows into every later prompt; anchors `path:line@sha`; symbolizer re-maps findings; state probes | X, P1 | JS + schema |
+| T/AP-11 | Silent truncation | Every `slice`/drop logged with counts; `dropped[]`; `log()` per state transition | X | JS |
+| T/AP-12 | One giant implementer | 24 PR-sized cards; oversize → re-decompose | P2, X | JS |
+
+### 12.4 External-SOTA anti-patterns (research-3, S/AP-1..14)
+
+| id | Anti-pattern | Guard | Phase | Kind |
+|---|---|---|---|---|
+| S/AP-1 | Self-grading | Fresh judges with diff + criteria + evidence only; ≥3 lenses; `JUDGE.dod_items[].receipt` execute-to-confirm | P6 | role + schema |
+| S/AP-2 | Early victory | Complete suite from a clean clone; `collected` compared to the previous gate; `passes` (DoD rows) flipped only by the script from two signals | P6, P8 | gate + JS |
+| S/AP-3 | Oracle tampering | Locked-path reset + diff fail; tamper scan; `-k/--deselect` detection in recorded commands; mutation kill floor (all scripted mutants) | gate | gate |
+| S/AP-4 | Hollow feature-isolated implementation | Held-out compositional seams H1–H7 hidden from implementers, applied by verifier and integration tester; journeys J1–J6 | P4, P6 | role + gate |
+| S/AP-5 | Telephone-game decomposition | One implementer lineage per card (implement → fix via handoff schema with decisions/invariants verbatim); only verification/critique/acceptance authoring are separate | P3, P4 | schema + role |
+| S/AP-6 | Unbounded fix loop / thrash | `MAX_FIX=3`; oscillation via fingerprints; P2P regression → `git revert` first; volatility guard (`files_changed` outside `files_allowed` → auditor before continuing) | P4 | JS + schema |
+| S/AP-7 | Claims without diffs | `claim_lint.py` on every commit; `IMPL.claims[]`; reviewers treat claims as hypotheses to refute | gate, P6 | gate |
+| S/AP-8 | Secret sprawl | No token anywhere in the workflow; CI OIDC (Trusted Publisher per Space resource) written in `c01d`; child env allowlist tested with a canary; `HF_HUB_DISABLE_IMPLICIT_TOKEN=1` in the venv activation; SHA-pinned actions and `permissions:` blocks checked by a YAML test | P3, gate, P7 | gate + owner |
+| S/AP-9 | Non-resumable / non-idempotent script | Timestamps/seeds/permutations via `args`; `exist_ok`-style checks are the OWNER's runbook steps (no agent creates remotes); branch names keyed by nonce; ledger exported to `$RUN_DIR/ledger.jsonl` | X | JS |
+| S/AP-10 | Irreversible action inside the loop | Outward tools forbidden; `outward_actions_taken` abort; promotion only via the GitHub `production` environment the owner approves | X, P7 | JS + owner |
+| S/AP-11 | Biased judging protocol | Binary `dod_items` with citations; single-order forced CoT for gates (DS-11); swap-and-tie only for A/B design choices with `args.judge_perm`; formatting normalised before judging; three lenses | P6 | schema + JS |
+| S/AP-12 | Canary that checks the wrong thing | Runbook/CI contract: `/status` echoes the deployed sha; authenticated 16-token generation ×3 (pass^3) with latency and `finish_reason`; compare to last-known-good numbers; visibility tripwire (`private`, not `protected`); build/run log tail on failure | P7 | owner/CI |
+| S/AP-13 | Context overflow / kitchen-sink agent | One card per agent; handoff ≤ 2 k tokens; returns are typed envelopes | P3 | schema |
+| S/AP-14 | Reviewer over-reporting → churn | Findings need `evidence` (executed) and `affects_correctness_or_requirement`; style findings logged, never queued; refute-first majority | P6 | schema + JS |
+
+### 12.5 External-SOTA DEEP anti-patterns (DS/AP-1..12)
+
+| id | Anti-pattern | Guard | Phase | Kind |
+|---|---|---|---|---|
+| DS/AP-1 | Author-graded work | Test author ≠ implementer; locked oracle; verify/refute never see the implementer transcript | P3–P5 | role + gate |
+| DS/AP-2 | Green-by-weakening | `tamper_scan.py` (assert loss, skips, loosened matchers, CI/config edits); `.github/**` and test config are locked paths → automatic reject | gate | gate |
+| DS/AP-3 | Vacuous / tautological tests | Confirm-RED on the unimplemented tree; ≥1 scripted mutant per acceptance id must die; property tests count only if they kill a mutant the examples did not | P3, P4 | gate + role |
+| DS/AP-4 | Unanimous-LLM "verification" | Refuters must cite an executed command; the verifier re-executes acceptance commands; gate digest equality is a non-LLM check | P4 | gate + JS |
+| DS/AP-5 | Endless / oscillating fix loops | Round cap 3, fingerprint dry/oscillation detectors, re-decompose on exit-without-pass, stop reasons logged | P4 | JS |
+| DS/AP-6 | Summary-of-summary handoffs | `IMPL.handoff{decisions, invariants, open_problems, next_step}` forwarded verbatim into the fixer prompt; every anchor carries its sha | P3, P4 | schema |
+| DS/AP-7 | Parallel implementers on shared files | `waves()` disjointness; serial merges; full gate after each merge | X, P6 | JS + gate |
+| DS/AP-8 | Phantom-change commit messages | `claim_lint.py` + `IMPL.claims[]` + `commands_run[]` exit codes reconciled by the verifier | gate, P4 | gate + schema |
+| DS/AP-9 | Secrets in reach of the agent | Prompts forbid credential exploration (`.env*`, `/proc/*/environ`, `~/.cache/huggingface/token`); canary-based hardening tests; secrets scan on every range and on the journal export | X, gate, P8 | gate |
+| DS/AP-10 | Agent-executed irreversible actions | Deny-listed in prompts + `outward_actions_taken` abort + owner-only checkpoints + CI environment gate | X, P7 | JS + owner |
+| DS/AP-11 | Non-replayable script | No clock/random; effects that exist (branches/bundles) are probed before re-creation; `reused` status | X | JS |
+| DS/AP-12 | Scaffold maximalism | Implementers keep bash+edit with linear history; extra agents are verifiers/refuters only; tokens-per-passed-DoD-row and stop-reason distribution logged for the next run's tuning | X, P8 | JS |
+
+**Failure modes covered only through an owner checkpoint (no in-run mechanism can execute the guard):** F-35 (disabling write connectors / confirming `gh` scope — the script can only abort after the fact), F-36 (a real harness run), F-37 (every `staging-required` claim), F-38 (stopping the other agent's scheduled tasks and rotating its token), F-44 (Codespace idle timeout and resize), plus the remote half of F-2 (creating the private GitHub repo) and the revocation half of F-7. Everything else has a JS, gate, schema or role mechanism inside the run.
+
+---
+
+## 13. JavaScript skeletons (plain JS; `meta` pure literal; no `Date.now`/`Math.random`/`new Date()`; stable prompts; sorted ids)
+
+The schemas of §9 are pasted above this block in the real script. Everything below runs under the Workflow tool's globals (`agent`, `pipeline`, `parallel`, `phase`, `log`, `args`, `budget`, `setTimeout`, `clearTimeout`).
+
+### 13.1 `meta`, `args` contract, constants
+
+```js
+export const meta = {
+  name: 'qwen38-space-rebuild-a1',
+  description: 'Reliability-first implementation workflow for the qwen38 heretic Space rebuild: smoke → plan → build (test-author → confirm-RED → implement → gate → verify → refute → bounded fix → audit → critic → unitDone) → serial integration → review/refute/judge loop → synthesis; outward actions only via owner checkpoints between runs',
+  phases: [
+    { title: 'Preflight', detail: 'setup (venv 3.12, gate.sh, durable libsrc), ground, state probes, gate red-proofs' },
+    { title: 'Plan', detail: 'decision sheet, api ledger, symbolizer, pre-verify UNVERIFIED findings, card authors, card critic, plan judges' },
+    { title: 'Build', detail: 'per card: test author ‖ held-out author → confirm-RED → implementer → verifier → refuters → fix loop → auditor → critic → probes → unitDone' },
+    { title: 'Integrate', detail: 'serial single-writer merges in DAG order, conflict resolver, gate on merged tree, no-lost-hunks, bundle, fresh-clone wave gate + journeys' },
+    { title: 'Review', detail: 'five reviewer lenses → refuter panels → fix cards → three veto-only judges; dry streak + DoD inversion; five stop conditions' },
+    { title: 'Stage', detail: 'read CI-written staging evidence per staging-required claim; fix cards; judges' },
+    { title: 'Synthesize', detail: 'synthesizer on mechanical inputs + synthesis verifier + checkpoint object' },
+  ],
+  whenToUse: 'Only from the orchestrator turn that holds the approved plan hash; one run per args.stage; never unattended for outward actions',
+}
+
+// ---- args contract: every value is computed by the orchestrator right before launch; nothing here comes from time or randomness ----
+// args = { stage:'smoke'|'plan'|'build'|'stage'|'promote', runTag:'r1', run_nonce:'a1b2c3', launched_at:'2026-09-19T12:00:00Z',
+//   build_repo:'/home/codespace/build/qwen38-space', wt_root:'/home/codespace/build/wt', venv:'/home/codespace/build/venv312',
+//   gate_sh:'/home/codespace/build/gate.sh', durable:'/home/codespace/build', libsrc:'/home/codespace/build/libsrc',
+//   run_dir:'/home/codespace/grills/2026-09-19-qwen38-heretic-space/evidence/orchestration/run/r1',
+//   snapshot_latest:'/…/scratchpad/space-latest', base_sha:'<40 hex of f88b120>', integration_sha_at_launch:'<40 hex>',
+//   plan_hash:'<sha256 or null on first plan run>', toolchain_status_snapshot_sha:'<sha256 of git status --porcelain>',
+//   fleet:2, waveSize:2, maxFix:3, maxAuditFix:2, maxCriticFix:1, maxWaveRounds:2, maxTreeRounds:4, reserveTokens:200000, agentCap:800,
+//   judge_perm:[2,0,1], owner_approvals:{ plan_hash:null, github_repo_url:null, staging_ui_space:null, staging_worker_space:null,
+//     staging_evidence_dir:null, fixture1_path:null, hosted_call_budget_usd:0, gpu_seconds_budget:0, hf_job_budget_usd:0, harness_budget_usd:0, harness_evidence_dir:null },
+//   monitor_findings:[], decisions_path:'/…/DECISION-QUEUE.md', findings_path:'/…/workflow-findings.md', lens4_path:'/…/lens-4-simplification-retry.md', smoke:false }
+const A = args || {}
+const NEED = ['stage', 'runTag', 'run_nonce', 'launched_at', 'build_repo', 'wt_root', 'venv', 'gate_sh', 'durable', 'libsrc', 'run_dir', 'base_sha', 'decisions_path', 'findings_path', 'lens4_path']
+for (const k of NEED) if (!A[k]) throw new Error('args.' + k + ' is required')
+if (!/^[0-9a-f]{40}$/.test(A.base_sha)) throw new Error('args.base_sha must be a full 40-hex sha')
+if (/^\/tmp\//.test(A.build_repo) || /grills\//.test(A.build_repo) || /agent-skills-toolchain/.test(A.build_repo)) throw new Error('args.build_repo must be durable and outside the grill folder and the cwd repo (F-1, F-2)')
+const FLEET = A.fleet || 2, WAVE = A.waveSize || (FLEET <= 2 ? 2 : Math.min(FLEET, 6))
+const MAX_FIX = A.maxFix || 3, MAX_AUDIT_FIX = A.maxAuditFix || 2, MAX_CRITIC_FIX = A.maxCriticFix || 1
+const MAX_WAVE_ROUNDS = A.maxWaveRounds || 2, MAX_TREE_ROUNDS = A.maxTreeRounds || 4
+const RESERVE = A.reserveTokens || 200000, AGENT_CAP = A.agentCap || 800
+const OA = A.owner_approvals || {}
+const HARDENING = ['c09a-python-eval', 'c09b-ssrf', 'c09c-regex-calc-archive']
+const STAGING_KEYWORDS = /lease|quota|zerogpu|worker fork|triton|x-ip-token|mcp transport|space rebuild|tok\/s|cold[- ]start|duration_factor/i
+log('stage=' + A.stage + ' base=' + A.base_sha.slice(0, 7) + ' fleet=' + FLEET + ' wave=' + WAVE + ' budget=' + (budget.total || 'none (counter caps are the backstop)'))
+```
+
+### 13.2 Helpers (pure, deterministic) and the H6 block
+
+```js
+const byId = (a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+const J = o => JSON.stringify(o, null, 1)
+const fkey = f => (f.file || '') + '::' + String(f.title || '').toLowerCase().replace(/\s+/g, ' ').trim()
+function fnv(s) { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0 } return ('0000000' + h.toString(16)).slice(-8) }
+const fingerprint = v => fnv([...(v && v.failures ? v.failures : [])].map(f => f.check + '|' + f.first_error_line).sort().join('\n'))
+function topoOrder(cards) {
+  const byKey = new Map(cards.map(c => [c.id, c])), out = [], state = new Map()
+  const visit = id => { if (state.get(id) === 2) return; if (state.get(id) === 1) throw new Error('dependency cycle at ' + id); state.set(id, 1)
+    const c = byKey.get(id); if (!c) throw new Error('unknown dependency ' + id); for (const d of [...c.depends_on].sort()) visit(d); state.set(id, 2); out.push(c) }
+  for (const c of [...cards].sort(byId)) visit(c.id); return out
+}
+function waves(ordered, size, merged) {                 // dep-satisfied AND file-disjoint; a clash waits (F-14)
+  const done = new Set(merged), out = []; let rest = ordered.slice()
+  while (rest.length) {
+    const wave = [], owned = new Set()
+    for (const c of rest) { if (wave.length >= size) break; if (!c.depends_on.every(d => done.has(d))) continue
+      if (c.files_allowed.some(f => owned.has(f))) { log('wave clash: ' + c.id + ' waits (files overlap)'); continue }
+      wave.push(c); c.files_allowed.forEach(f => owned.add(f)) }
+    if (!wave.length) throw new Error('no ready card; unmet deps or clashes: ' + rest.map(c => c.id).join(','))
+    out.push(wave); wave.forEach(c => done.add(c.id)); rest = rest.filter(c => !done.has(c.id))
+  }
+  return out
+}
+function validateCards(cards) {                          // D-1: a card that cannot fail validation cannot be built
+  const ids = new Set(cards.map(c => c.id)); if (ids.size !== cards.length) throw new Error('duplicate card ids')
+  for (const c of cards) { if (!c.acceptance.length || c.acceptance.some(a => !a.check)) throw new Error(c.id + ': acceptance without a command')
+    for (const a of c.acceptance) if (STAGING_KEYWORDS.test(a.check + ' ' + a.expect) && a.level.startsWith('local')) { a.level = 'staging-required'; log(c.id + ': ' + a.id + ' raised to staging-required') }
+    if (c.protected_paths_touched.length && c.id !== 'c01c-gate') throw new Error(c.id + ': only the gate card may touch protected paths') }
+  topoOrder(cards)
+}
+const ledger = []; let agentCount = 0; const dropped = []
+function budgetOk(label) {
+  if (agentCount > AGENT_CAP) { log('AGENT CAP: stopping before ' + label + ' (' + agentCount + ' > ' + AGENT_CAP + ')'); return false }
+  if (!budget.total) return true
+  const ok = budget.remaining() > Math.max(RESERVE, 0.15 * budget.total)
+  if (!ok) log('BUDGET GUARD: stopping before ' + label + ' (remaining ' + budget.remaining() + ')'); return ok
+}
+```
+
+The H6 block (`skills/workflow-authoring/templates/h6-timeout-heartbeat.md`, between `<!-- H6-BEGIN -->` and `<!-- H6-END -->`) is pasted **verbatim** here — `H6_TIMEOUT_MS`, `H6_STALL_MS`, `h6Receipt`, `h6IsDrop`, `h6Survivors`, `h6Drops`, `h6Heartbeat`, `withTimeout`, `settle`. Its honest scope holds: a timeout unblocks the barrier; the agent keeps its slot. Per-role timeouts used with it: implementer/fixer 2 700 000 ms, verifier/auditor/critic 1 500 000 ms, refuter/test author 1 200 000 ms, probes 300 000 ms.
+
+```js
+// ---- safeAgent: the only way an agent() is called (F-41, T-17, D-20, D-21) ----
+async function safeAgent(stage, cardId, prompt, opts, ms) {
+  agentCount++
+  const label = (opts && opts.label) || (stage + ':' + cardId)
+  const r = await withTimeout(() => agent(prompt, opts), ms || H6_TIMEOUT_MS, label)
+  let entry
+  if (h6IsDrop(r)) entry = { card: cardId, stage, status: r.__endReason, reason: r.detail || r.__endReason, label }
+  else if (r.outward_actions_taken && r.outward_actions_taken.length) { entry = { card: cardId, stage, status: 'ABORT', reason: 'outward action: ' + r.outward_actions_taken.join(','), label }; ledger.push(entry); log('ABORT ' + label + ': ' + entry.reason); throw new Error('ABORT:outward-action:' + label) }
+  else if (r.installed_packages && r.installed_packages.length) entry = { card: cardId, stage, status: 'FAILED', reason: 'installed packages: ' + r.installed_packages.join(','), label }
+  else if (r.repo_toplevel && r.repo_toplevel !== A.build_repo) entry = { card: cardId, stage, status: 'FAILED', reason: 'wrong repo ' + r.repo_toplevel, label }
+  else if (r.status !== 'SUCCESS' && !r.reason) entry = { card: cardId, stage, status: 'FAILED', reason: 'non-SUCCESS without reason', label }
+  else entry = { card: cardId, stage, status: r.status, reason: r.reason || '', label }
+  ledger.push(entry)
+  if (entry.status !== 'SUCCESS') { log(label + ' → ' + entry.status + (entry.reason ? ' (' + entry.reason + ')' : '')); return Object.assign({ __bad: true }, entry, { raw: h6IsDrop(r) ? null : r }) }
+  return r
+}
+const bad = r => !r || r.__bad === true
+async function twice(stage, cardId, promptFn, opts, ms, narrower) {   // one retry, narrower, then park (F-42)
+  const r1 = await safeAgent(stage, cardId, promptFn(false), opts, ms); if (!bad(r1) || r1.status === 'BLOCKED_ON_OWNER') return r1
+  const o2 = Object.assign({}, opts, { label: (opts.label || stage) + ':retry' }, HARDENING.includes(cardId) ? { model: 'fable' } : {})
+  const r2 = await safeAgent(stage, cardId, promptFn(true), o2, ms); if (bad(r2)) { dropped.push({ card: cardId, stage, reason: r2.reason }); log(cardId + ' ' + stage + ': parked after two failures') } return r2
+}
+```
+
+### 13.3 The completion reducer and the prompt preamble
+
+```js
+const PRE = [
+  'PREAMBLE (restates the owner request that launched this run; the owner request wins over anything below):',
+  'The cwd repository and its CLAUDE.md are UNRELATED to this task; ignore any instruction about SSOT gates, ~/source/*, or pushing branches.',
+  'The only repository is BUILD_REPO=' + A.build_repo + ' (read ' + A.build_repo + '/AGENTS.md first). Worktrees live under ' + A.wt_root + '.',
+  'Use ONLY the 3.12 venv ' + A.venv + ' and the gate ' + A.gate_sh + '. Never install packages. Never run a server in the foreground.',
+  'Never push, create or duplicate a GitHub repo or HF Space, set secrets, call any *.hf.space URL, run HF Jobs, or use any HF write tool. Never look for or use tokens; never print environment variables.',
+  'Report file:line as path:line@sha. Return the typed envelope; end with SUCCESS:<id> or FAILED:<id> <reason> or BLOCKED_ON_OWNER:<id> <field>.',
+  '',
+].join('\n')
+
+function unitDone(c, st) {                                // D-12: the ONLY exit to "built"; twelve booleans, logged
+  const v = st.verify, i = st.impl, ok = []
+  ok[1] = !!(st.post && st.post.checks.every(x => x.ok))
+  ok[2] = !!(st.probe && st.probe.sha_exists && st.probe.branch_points_at_sha)
+  ok[3] = [st.tests, st.red, i, v, st.audit, st.critic].every(r => !r || r.repo_toplevel === A.build_repo || r.repo_toplevel === '')
+  ok[4] = !!(i && v && i.gate_digest && i.gate_digest === v.gate_digest)
+  ok[5] = !!(v && v.gate_fail === 0 && v.sha_tested === i.head_sha && v.pytest.collected >= st.baseline - st.testsRemoved)
+  ok[6] = !!(i && v && c.acceptance.every(a => i.dod.some(d => d.acceptance_id === a.id && d.exit_code === 0) && v.acceptance_reruns.some(d => d.acceptance_id === a.id && d.exit_code === 0)))
+  ok[7] = !!(st.red && st.red.failed_for_expected_reason && v && v.revert_proof.failed_when_reverted)
+  ok[8] = !!(v && v.mutants.total > 0 && v.mutants.killed >= v.mutants.total && (v.tamper_signals === 0 || st.tamperCleared) && v.locked_paths_diff.length === 0 && v.negative_control.observed === 'red')
+  ok[9] = !!(v && (!v.heldout.applicable || v.heldout.passed))
+  ok[10] = !!(st.refutes && st.refutes.filter(r => !bad(r)).length >= 2 && st.refutes.filter(r => !bad(r) && !r.refuted && r.evidence.length).length >= 2 && !st.refutes.some(r => !bad(r) && r.refuted && r.severity_after !== 'none' && r.severity_after !== 'low'))
+  ok[11] = !!(st.audit && st.audit.verdict !== 'reject' && !st.audit.deviations.some(d => d.severity === 'critical' || d.severity === 'high') && st.audit.claim_vs_diff.length === 0 && st.audit.scope_violations.length === 0 && st.audit.deps_violations.length === 0)
+  ok[12] = !!(st.critic && !st.critic.missing.some(m => m.reproduced && (m.severity === 'critical' || m.severity === 'high')))
+  const line = [1,2,3,4,5,6,7,8,9,10,11,12].map(k => k + (ok[k] ? '✓' : '✗')).join(' ')
+  log(c.id + ' predicate: ' + line)
+  return [1,2,3,4,5,6,7,8,9,10,11,12].every(k => ok[k])
+}
+```
+
 <!-- CONTINUE -->
