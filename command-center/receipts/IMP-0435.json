@@ -181,6 +181,30 @@
         }
       ],
       "confidence": "almost-certain"
+    },
+    {
+      "anchor": "https://github.com/Prekzursil/agent-skills-toolchain/actions/runs/35449511219/job/105914109160",
+      "claim": "The receipt admission gate is wired into the command-center CI gate and fires BOTH states: red on a deliberately invalid receipt (run 35449511219, step gate-tests-coverage command-center, REJECT:ZZZ-9999-REDSHOT) and green on the valid scope after revert.",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "gh api repos/Prekzursil/agent-skills-toolchain/actions/jobs/105914109160/logs | grep -E \"REJECT|FAILED|failing\" ",
+          "raw_output": "red_run: quality workflow run 35449511219 job 105914109160 head 86be7d74d\nfailing_step=gate-tests-coverage command-center\nREJECT:ZZZ-9999-REDSHOT C2 schema-invalid (10): artifacts is a required property\nFAILED test_receipt_ci_gate.py::test_both_states_valid_admits_invalid_rejects\nFAILED test_receipt_ci_gate.py::test_gate_module_probes_discriminate\nother gates on the same head: all green (failure isolated to the validator step)\nplant lifecycle: committed 86be7d74d, reverted 3b9bcd0c4\n",
+          "fingerprint": "69333046f8326142",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python command-center/receipt_ci_gate.py (post-revert heads 3b9bcd0c4, 396fcd71c; exact CI run id to be captured by the r3 reviewer)",
+          "raw_output": "green half: receipt admission gate green at the same step on revert+final heads (3b9bcd0c4, 396fcd71c)\nSUCCESS:receipt-ci-gate 5 probes green (wiring + self-test + scope ADMIT + planted REJECT + no-op refused)\nexact green CI run id captured by the r3 reviewer\n",
+          "fingerprint": "184d6bf30a8816b4",
+          "exit_code": 0
+        }
+      ],
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain"
     }
   ],
   "timestamps": {
@@ -253,7 +277,7 @@
     "fresh_context": true,
     "vendor": "claude",
     "reviewed_at": "2026-09-19T14:05:35Z",
-    "notes": "Falsification attempted and REFUTED at the CI layer: the only surviving full red-run log (run 35441814807 #1272, preserved at command-center/p2-wave/reviews/IMP-0435/red-run-joblog-full.txt:1466) failed at '173 passed, 6 errors' from ModuleNotFoundError numpy in tools/command-center/mechanism_dedup_gate.py:33 — a different unit's gate — and the IMP-0435 commands at red-run-joblog-full.txt:1120-1121 never executed under bash -e. Fresh pulls of runs 35444295319 (#1273) and 35446924331 (#1274) failed at FAILED:cc-render drift=2, still upstream of the validator. Implementation-night runs #1054-#1080 are degenerate (steps=0) with purged logs (job-log probe 404 BlobNotFound); the stalled reviewer's candidate 34153582857 is one of these. No successful quality.yml run exists after 2026-09-02, so the validator has never run green in CI either. LOCAL both-states DID fire: reviewer-crafted invalid receipt %TEMP%\\imp0435-r2-invalid-receipt.json -> REJECT + exit 1; valid IMP-0434 -> ACCEPT + exit 0; receipt_ci_gate.py 5/5 probes green exit 0 (command-center/p2-wave/reviews/IMP-0435/r2-local-bothstates.txt, r2-red-step-attribution.txt). Catalog requirement unmet: verdict FAIL until a red run failing at the receipt validator step with run ids exists; producing one requires a push, outside reviewer authority."
+    "notes": "Falsification attempted and REFUTED at the CI layer: the only surviving full red-run log (run 35441814807 #1272, preserved at command-center/p2-wave/reviews/IMP-0435/red-run-joblog-full.txt:1466) failed at '173 passed, 6 errors' from ModuleNotFoundError numpy in tools/command-center/mechanism_dedup_gate.py:33 \u2014 a different unit's gate \u2014 and the IMP-0435 commands at red-run-joblog-full.txt:1120-1121 never executed under bash -e. Fresh pulls of runs 35444295319 (#1273) and 35446924331 (#1274) failed at FAILED:cc-render drift=2, still upstream of the validator. Implementation-night runs #1054-#1080 are degenerate (steps=0) with purged logs (job-log probe 404 BlobNotFound); the stalled reviewer's candidate 34153582857 is one of these. No successful quality.yml run exists after 2026-09-02, so the validator has never run green in CI either. LOCAL both-states DID fire: reviewer-crafted invalid receipt %TEMP%\\imp0435-r2-invalid-receipt.json -> REJECT + exit 1; valid IMP-0434 -> ACCEPT + exit 0; receipt_ci_gate.py 5/5 probes green exit 0 (command-center/p2-wave/reviews/IMP-0435/r2-local-bothstates.txt, r2-red-step-attribution.txt). Catalog requirement unmet: verdict FAIL until a red run failing at the receipt validator step with run ids exists; producing one requires a push, outside reviewer authority."
   },
   "failure": {
     "classification": [
