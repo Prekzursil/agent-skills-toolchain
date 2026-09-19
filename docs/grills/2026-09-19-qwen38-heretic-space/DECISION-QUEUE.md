@@ -492,3 +492,16 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
 - ⚠ The pasted HF token is STILL VALID (clone succeeded) — revocation remains outstanding.
 - R0 grounding fan-out launched: findings symbolizer (with executed reproduction of critic-1..5) · API ledger from wheel source ·
   catalog provenance (public anonymous Hub reads only — claude.ai connectors are disconnected in this session).
+- R0 grounding: **symbolizer done** (50/50 mapped; 32 re-anchored + 9 already-f88b120 + 9 wheel-only; repros 5/5 matched).
+  Sharpenings absorbed into the plan: 5 undefined names over 9 sites at f88b120 (card 01 red-proof widened); the template
+  hard-closes `</think>` + rstrip drops seam whitespace ⇒ `continue_final_message="reasoning_content"` is actively harmful,
+  token-level seam only; the 1.5x lease factor is runtime-UNVERIFIED (silent H200 fallback = 1.0) ⇒ estimator must log it.
+  `plan/decisions.json` drafted (21 rows incl. the accepted defaults). API-ledger + catalog-provenance still running.
+- R0 grounding: **catalog provenance done** — 21 repos checked, all exist, pins recorded (40-hex); 9 provider-live (featherless;
+  the mapping needs `expand[]=inferenceProviderMapping` — a default API read falsely shows none); 7/14 bases + 7 sidecars with
+  verified 4-bit/FP8 builds; contradictions vs scouts recorded (coder3101 = 2 shards 54.71 GB not 49.8; "the JC1DA quant" is TWO
+  repos — W4A16 auto-round 19.56 GB vs INT4-INT8-GPTQ 23.19 GB which declares NO LICENCE and is excluded; llmfan46 GPTQ keeps
+  vision+MTP at weight level — 333 visual + 15 mtp — but ships no preprocessor_config; nerkyor AWQ folder internally inconsistent
+  compressed-tensors vs NVFP4). **Resident-worker pin proposed: magiccodingman FP8 @ ae4c4a3… — 30.87 GB, 333 visual + 22 mtp
+  tensors, preprocessor AND video_preprocessor present ⇒ satisfies the vision clarification; no VLM-class export job needed if it
+  loads.** models.yaml proposal: 9 hosted + 1 local (pending admission) + 5 parked. API-ledger still running.
