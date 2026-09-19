@@ -251,6 +251,20 @@ jobs:
         run: |
           npm ci
           npm test
+      # chrome-bridge-mcp — the shipped browser bridge. Its full `npm test` needs a live
+      # Chrome + companion extension (smoke / multi-client are local-only lanes by design;
+      # on the dev box the estate's own bridge hub owns port 8787), so CI gates the
+      # security core that CAN run hermetically: the estate CDP allowlist, at 100%
+      # line+branch+functions via test/cdp-allowlist.test.mjs against the built dist.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is not a new
+      # gate. The module is imported in-process, so the never-imported-file coverage trap
+      # documented at the agentspec-js step below does not apply.
+      - name: gate-tests-coverage chrome-bridge-mcp (cdp-allowlist; scoped, offline)
+        working-directory: browser-bridge/chrome-bridge-mcp
+        run: |
+          npm ci
+          npm run build
+          npm run test:unit
       # agentspec-js — the JS half of the two-runtime spec. `npm ci` at :157 already installs it
       # (it is a root workspace) and root `npm test` at :158 already invokes it; this explicit
       # step exists for FAILURE ATTRIBUTION, mirroring the two steps above.
