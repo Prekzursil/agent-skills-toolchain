@@ -168,6 +168,8 @@ def main() -> int:
     ap.add_argument("--contract", default="command-center/p2-loop/agent_contract.md")
     ap.add_argument("--budget-min", type=int, default=270)
     ap.add_argument("--model", default=os.environ.get("GLM_MODEL", "glm-4.6"))
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--shards", type=int, default=1)
     a = ap.parse_args()
 
     client = Client()
@@ -176,10 +178,24 @@ def main() -> int:
         [sys.executable, "command-center/p2-loop/p2_goal.py"],
         cwd=ROOT, capture_output=True, text=True,
     ).stdout
+    shard_note = ""
+    if a.shards > 1:
+        cat = json.loads(
+            (ROOT / "command-center/WORK-UNIT-CATALOG.json").read_text(encoding="utf-8")
+        )
+        unbuilt = sorted(u["id"] for u in cat["work_units"])
+        mine = [uid for i, uid in enumerate(unbuilt) if i % a.shards == a.shard]
+        shard_note = (
+            "\n\n## SHARD ASSIGNMENT (shard %d of %d)\n"
+            "You MUST only deliver/review units from this list (%d units):\n%s\n"
+            "Units outside this list belong to sibling shards; do not touch them."
+            % (a.shard, a.shards, len(mine), ", ".join(mine[:400]))
+        )
     messages = [
         {
             "role": "system",
             "content": contract
+            + shard_note
             + "\n\n## Goal function output right now\n```json\n"
             + goal
             + "\n```\nWork within this repo root. Use tools; end with your structured report.",
