@@ -13,8 +13,9 @@ const meta = {
   ],
   whenToUse: 'One run per args.stage (plan | build | stage | promote); launch only from the orchestrator turn that holds the owner\'s approval words; never with a secret in args or the trigger message',
 }
-
   return (async function main(){
+
+// ---------------------------------------------------------------------------------------------
 // args contract — every value computed by the orchestrator with git rev-parse / sha256sum right
 // before invocation; NEED lists every arg a prompt interpolates for that stage (J2: complete NEED)
 // ---------------------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ const RETRYABLE_RE = /^(not_attempted|starved):|agent-null|threw|timeout-or-dial
 const TOOLCHAIN_STATUS_CMD = 'git -C ' + TOOLCHAIN + ' status --porcelain -- . ":!docs/grills"'   // C-17: the grill sync loop writes docs/grills every 5 min; that is not a mutation of the toolchain
 // C-21 / C-14: protected paths (only platform-01-gate may create or modify them) and the design's minimum required-files manifest per card.
 // The persona-boundary fixture is NOT protected by name — it is pinned by owner_approvals.persona_boundary_fixture_sha256 (gate step boundary-fixture).
-const PROTECTED = ['tests/test_personas.py', 'tests/test_constants_pin.py', 'tests/test_import_contract.py', 'tests/test_python_eval_surfaces.py', 'tests/test_catalog_policy.py', 'tests/fixtures/gate/false-claim.patch', 'tests/fixtures/gate/false-claim-target.txt', 'tests/journeys/conftest.py', 'tests/protected.txt', 'tools/gate.sh', 'tools/gate.pin', 'tools/baseline.json', 'tools/baseline.pin', 'tools/make_boundary_fixture.py', 'ruff.toml', 'pytest.ini', '.gitattributes', '.editorconfig', '.gitignore', 'conftest.py']
+const PROTECTED = ['tests/test_personas.py', 'tests/test_constants_pin.py', 'tests/test_import_contract.py', 'tests/test_python_eval_surfaces.py', 'tests/test_catalog_policy.py', 'tests/fixtures/gate/false-claim.patch', 'tests/fixtures/gate/false-claim-target.txt', 'tests/journeys/conftest.py', 'tests/protected.txt', 'tools/gate.sh', 'tools/gate.pin', 'tools/baseline.json', 'tools/baseline.pin', 'tools/make_boundary_fixture.py', 'ruff.toml', 'pytest.ini', '.gitattributes', '.editorconfig', '.gitignore']
 const MANIFEST_MIN = {
   'platform-01-gate': ['tools/gate.sh', 'tools/gate.pin', 'tools/baseline.json', 'tools/baseline.pin', 'tests/protected.txt', 'tests/test_constants_pin.py', 'tests/test_import_contract.py', 'tests/fixtures/gate/false-claim.patch', 'tests/fixtures/gate/false-claim-target.txt', 'tests/journeys/conftest.py', 'tools/make_boundary_fixture.py', 'tools/stubs/torch/__init__.py', 'tools/stubs/transformers/__init__.py', 'tools/stubs/spaces/__init__.py', 'config.py', 'ruff.toml', 'pytest.ini', '.gitattributes', '.editorconfig', '.gitignore'],
   'platform-03a-types-fake': ['core/types.py', 'core/engine.py', 'backends/base.py', 'backends/fake.py', 'tools/record_fixture.py', 'tests/conformance/conftest.py'],
@@ -169,7 +170,8 @@ function validateCards(cards) {                        // throws on a plan that 
     if (c.protected_touch && c.id !== 'platform-01-gate') throw new Error(c.id + ': only platform-01-gate may touch protected paths')
     if (c.bootstrap) throw new Error(c.id + ': bootstrap must be false on every card (the profile exists only for the setup red-proof at base_sha)')
     const protHit = (c.tests_allowed || []).concat(c.files_allowed || [], c.new_modules || [], c.required_files || []).filter(p => PROTECTED.includes(p))
-    if (protHit.length && !c.protected_touch) throw new Error(c.id + ': write set intersects the protected list (' + protHit.join(',') + ') without protected_touch (C-21)')
+    const unowned = protHit.filter(p => !(MANIFEST_MIN[c.id] || []).includes(p))   // C-21: ownership, not a 01-only ban — a card may write a protected path its MANIFEST_MIN declares
+    if (unowned.length && !c.protected_touch) throw new Error(c.id + ': write set intersects the protected list outside its owner manifest (' + unowned.join(',') + ') without protected_touch (C-21)')
     if ((c.expected_green_tests || []).some(t => !/^[A-Za-z0-9_.\/-]+::[A-Za-z0-9_\[\]-]+$/.test(t))) throw new Error(c.id + ': expected_green_tests must be module::name ids')
     if (c.finding_ids.some(f => !f.corrected_text || f.corrected_text.length < 20)) throw new Error(c.id + ': every cited finding must carry its CORRECTED text (F-10)')
     if (c.risk === 'security' && !c.dod.some(d => /surface|operator|flag|unreachable/i.test(d.expect + ' ' + d.command))) throw new Error(c.id + ': a security card needs a surface/operator-flag DoD line (G-15 point 5)')
@@ -410,7 +412,6 @@ const REPORT = { type: 'object', properties: { ...COMMON,
   owner_actions: { type: 'array', items: { type: 'string' } },
   what_would_most_improve_confidence: { type: 'string' },
 }, required: ['status', 'report_path', 'report_bytes', 'status_json_path', 'rows', 'owner_actions', 'what_would_most_improve_confidence', ...COMMON_REQ] }
-
 
 // ---------------------------------------------------------------------------------------------
 // Prompt builders (pure functions of args + sorted results; the sha pins the cache)
@@ -911,6 +912,5 @@ try {
 } catch (e) { log('synthesizer threw: ' + String(e && e.message)) }
 log('RUN END stage=' + A.stage + ' stop=' + stop + ' head=' + String(head).slice(0, 12) + ' agents=' + agentCount + ' ledger=' + ledger.length + ' dropped=' + ledger.filter(l => /null|timeout|threw/.test(l.status)).length + (HALT ? ' HALT=' + HALT : ''))
 return cp
-
   })();
 }

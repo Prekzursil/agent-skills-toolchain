@@ -20,17 +20,17 @@ close = next(i for i, l in enumerate(lines) if l == '}')
 meta = '\n'.join(lines[:close + 1])
 helpers = '\n'.join(lines[close + 1:])
 schemas = pathlib.Path('schemas.js').read_text()
-body = helpers + schemas + post
+full = meta + '\n' + helpers + schemas + post          # meta + helpers + §9 + body = the whole §13 text (un-exported)
 mjs = ('export function makeScript(H) {\n'
        '  const { agent, pipeline, parallel, log, phase, args, budget } = H;\n'
        + meta + '\n'
        '  return (async function main(){\n'
-       + body +
+       + helpers + schemas + post +
        '  })();\n'
        '}\n')
 pathlib.Path('assembled.mjs').write_text(mjs)
-pathlib.Path('assembled.js').write_text(body)
-pathlib.Path('assembled-check.js').write_text('(async () => {\n' + body + '\n})();\n')
+pathlib.Path('assembled.js').write_text(full)
+pathlib.Path('assembled-check.js').write_text('(async () => {\n' + full + '\n})();\n')
 print('gen: assembled.mjs / assembled.js / assembled-check.js written',
-      len(mjs.splitlines()), len(body.splitlines()), len(body.splitlines()) + 2)
+      len(mjs.splitlines()), len(full.splitlines()), len(full.splitlines()) + 2)
 PYEOF
