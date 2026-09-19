@@ -65,11 +65,25 @@ def checks(sha: str) -> list[dict]:
     ]
 
 
+BAD_CONCLUSIONS = {"failure", "cancelled", "timed_out", "startup_failure"}
+
+
 def main() -> int:
     playbook = json.loads(
         (ROOT / "command-center/p2-loop/FIXPLAYBOOK.json").read_text()
     )
     for it in range(1, MAX_ITER + 1):
+        # the branch may have moved since dispatch (or since our own last push):
+        # fast-forward to the remote head before judging anything
+        run(
+            [
+                "git",
+                "pull",
+                "--ff-only",
+                f"https://x-access-token:{os.environ['RUNNER_PAT']}@github.com/{REPO}.git",
+                BRANCH,
+            ]
+        )
         sha = run(["git", "rev-parse", "HEAD"])[1].strip()
         # wait for terminal
         for _ in range(30):
@@ -78,8 +92,12 @@ def main() -> int:
                 break
             time.sleep(POLL_MIN * 60 // 2)
         cs = checks(sha)
-        failing = [c["name"] for c in cs if c["conclusion"] == "failure"]
+        failing = [
+            c["name"] for c in cs if c["conclusion"] in BAD_CONCLUSIONS
+        ]
         pending = [c["name"] for c in cs if c["status"] != "completed"]
+        # cancelled checks also appear as completed+non-success; treat any
+        # non-success terminal conclusion as needing attention (recipe or issue)
         print(
             f"[iter {it}] head={sha[:9]} failing={failing} pending={len(pending)}",
             flush=True,
