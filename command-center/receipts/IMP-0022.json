@@ -312,13 +312,20 @@
   "policy": "two-strikes-then-pivot; SUCCESS withheld until CI-FS extraction shortfall is measured and independent NFC/casefold review PASS."
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Implementer emit only. Signal (1) CONFIRMED on this Linux worker (planted README.md/readme.md collision_group_count=1; NFC pair collapses; clean set silent). Signal (2) NOT CONFIRMED: host filesystem is case-sensitive ext4; no IMP0022_CI_FS_ROOT case-insensitive mount provided; diagnostic extract of planted zip lands both members (shortfall=0) \u2014 inventing a CI-FS shortfall is forbidden. Catalog reviewer_requirement also unmet: independent reviewer must confirm normalisation is casefold (not lower()) with NFC applied first. SUCCESS:IMP-0022 not invented; independent-review.json not invented.",
-  "reviewed_at": "2026-09-08T05:12:39Z",
-  "reviewer_id": "awaiting-independent-nfc-casefold-and-ci-fs-reviewer",
-  "vendor": "openai",
-  "verdict": "NOT-REVIEWED"
+  "evidence": [
+   "command-center/p2-wave/reviews/IMP-0022/casefold-nfc-discrimination.raw.txt",
+   "command-center/p2-wave/reviews/IMP-0022/independent-review.json",
+   "command-center/p2-wave/reviews/IMP-0022/probe2-ci-fs-extract.raw.txt"
+  ],
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent review on Windows/NTFS (CPython 3.14.6). Falsification attempted with discriminating pairs where lower() and casefold() disagree: 'STRASSE.md' vs 'Stra\u00dfe.md' (control: lower gives 'strasse.md' vs 'stra\u00dfe.md', i.e. lower MISSES) -- implementation find_casefold_collisions returned collision_group_count=1, key='strasse.md', paths=['STRASSE.md','Stra\u00dfe.md'], keys of both inputs = 'strasse.md'; 'file-\u03c3.md' vs 'file-\u03c2.md' (sigma vs final sigma; lower MISSES) -- group_count=1, key='file-\u03c3.md'. NFC applied: NFD 'Cafe\u0301.md' vs NFC 'caf\u00e9.md' -- keys both 'caf\u00e9.md', group formed over NFC-normalised exacts; '\u1e9b.md' vs '\u017f\u0307.md' -- keys both '\u1e61.md' (NFC composed U+017F+U+0307 to U+1E9B before casefold; a no-NFC key would yield 's\u0307.md' and differ). NFC-before-casefold ORDER anchored in code at tools/plugin/casefold_paths.py:88-95 (nfc_path() then .casefold()); on this build full folding commutes with composition (verified premise), so no behavioral order claim is made -- the counter-example hunt is in command-center/p2-wave/reviews/IMP-0022/casefold-nfc-discrimination.raw.txt (24/24 checks PASS). Negative controls: exact-duplicate dedupe (README.md x2 => group of exactly 2), clean set 0 groups. Packer pre-emit refusal re-proven on NTFS via an index-built colliding git tree (tools/plugin/pack.py:271-275): PackError named both paths, no zip emitted. Unit probes rerun green here, including catalog signal (2) on a real case-insensitive filesystem: NTFS extraction of the planted zip gave archive_entry_count=2, extracted_file_count=1, shortfall=1 (settles the Linux worker's missing-CI-FS-substrate block; reviews/IMP-0022/probe2-ci-fs-extract.raw.txt). pytest 4/5 on NTFS: test_packer_refuses_planted_case_collision is substrate-blocked (its own comment assumes Linux coexistence; on NTFS the second write overwrites -- corroborated: case-variant double-write leaves 1 name), intent independently confirmed by the index-tree check. Residual (LOW, APFS-only): NFC-composition variants dedupe as exact duplicates rather than being flagged. Receipt artifact hashes (2026-09-08 Linux pack) drift from the live worktree (edits by other lanes); this PASS certifies the live worktree bytes actually executed.",
+  "prior_implementer_notes": "Implementer emit only. Signal (1) CONFIRMED on this Linux worker (planted README.md/readme.md collision_group_count=1; NFC pair collapses; clean set silent). Signal (2) NOT CONFIRMED: host filesystem is case-sensitive ext4; no IMP0022_CI_FS_ROOT case-insensitive mount provided; diagnostic extract of planted zip lands both members (shortfall=0) \u2014 inventing a CI-FS shortfall is forbidden. Catalog reviewer_requirement also unmet: independent reviewer must confirm normalisation is casefold (not lower()) with NFC applied first. SUCCESS:IMP-0022 not invented; independent-review.json not invented.",
+  "prior_implementer_verdict": "NOT-REVIEWED",
+  "reviewed_at": "2026-09-19T13:12:46Z",
+  "reviewer_id": "c5-imp-0022-claude",
+  "vendor": "claude",
+  "verdict": "PASS"
  },
  "schema_version": 1,
  "sentinel": "FAILED:IMP-0022 blocked-on-case-insensitive-filesystem-substrate; implementer evidence partial (pytest catalog node PASS; probe1 planted_collision_group_count=1 set_check_fired=true; probe2 missing_ci_fs=True extraction_count_check_fired=False); SUCCESS:IMP-0022 withheld (did_not_promote=true; success_invented=false); BLOCKED:IMP-0022 pending CI-FS extraction shortfall + independent NFC/casefold review",

@@ -120,9 +120,13 @@ def part_a() -> bool:
         # `git ls-files --eol` MUST report w/crlf for ctrl.ps1 through the exact
         # parsing code PART C uses.
         global EOL_PARSER_CONTROL_OK
-        eol_out = git_bytes(["git", "ls-files", "--eol"], tmp).decode("utf-8", "replace")
+        eol_out = git_bytes(["git", "ls-files", "--eol"], tmp).decode(
+            "utf-8", "replace"
+        )
         ps1_lines = [ln for ln in eol_out.splitlines() if ln.rstrip().endswith(".ps1")]
-        EOL_PARSER_CONTROL_OK = bool(ps1_lines) and any(" w/crlf" in ln for ln in ps1_lines)
+        EOL_PARSER_CONTROL_OK = bool(ps1_lines) and any(
+            " w/crlf" in ln for ln in ps1_lines
+        )
         print(
             f"  A6 parser control: {len(ps1_lines)} *.ps1 in the throwaway repo, "
             f"w/crlf seen={EOL_PARSER_CONTROL_OK}  ok={EOL_PARSER_CONTROL_OK}"

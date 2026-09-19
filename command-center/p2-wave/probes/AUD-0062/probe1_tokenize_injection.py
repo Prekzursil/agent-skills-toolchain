@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """AUD-0062 Probe 1: tokenize each always-on injected file and sum (tiktoken cl100k)."""
+
 from __future__ import annotations
 
 import json

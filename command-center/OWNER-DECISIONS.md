@@ -97,33 +97,3 @@ Substitute pass condition: a green CI run on the PR head exercising install -> u
 Rejected alternative: 'all members done' leaves all 876 edges permanently unsatisfiable, because 1,735 units carry no bucket field and nothing assigns them one. tools/measure-guard/wudeps.py ratchets the bucket counts so this reading cannot silently drift.
 
 *Answered 2026-08-11. Provenance: owner DELEGATED the default in session 30bd50d4 ('go', 'you proceed'). This is a delegated default, NOT an owner-authored selection - override freely..*
-
-## CC-0023 — option-id namespace adjudication (58 refs)
-
-Durable record for the 58 algorithmically unresolvable option-id references
-(CC-0023). **Only rows with state=OWNER_ANSWERED and a non-empty timestamp
-are owner evidence.** DEFERRED rows are implementer recordings of silence —
-not invented answers.
-
-Machine ledger: `command-center/option-id/OWNER-ADJUDICATION-LEDGER.json`
-Question packet: `command-center/option-id/OWNER-ADJUDICATION-PACKET.md`
-Census: `command-center/option-id/CC-0023-UNRESOLVED-REFS.json`
-
-| question | state | answer | answered_at |
-|---|---|---|---|
-| OQ-CC23-01 | DEFERRED | DEFERRED: leave mentions untouched; no rewrite. | — |
-| OQ-CC23-02 | DEFERRED | DEFERRED: no rewrite of any doc-16 M-NN token. | — |
-| OQ-CC23-03 | DEFERRED | DEFERRED: BLOCKS: fields stay bare M-NN. | — |
-| OQ-CC23-04 | DEFERRED | DEFERRED: no rewrite in doc 19 unsettled cites. | — |
-| OQ-CC23-05 | DEFERRED | DEFERRED: diagram tokens unchanged. | — |
-| OQ-CC23-06 | DEFERRED | DEFERRED: leave M-1/M-3; do not rewrite to M-01/MECH-01. | — |
-| OQ-CC23-07 | DEFERRED | DEFERRED: scratch tooling remains out of rewrite scope. | — |
-| OQ-CC23-08 | DEFERRED | DEFERRED: M-18 stays unresolved wherever bare. | — |
-| OQ-CC23-09 | DEFERRED | DEFERRED applies to every unanswered ref (this question's own default). | — |
-| OQ-CC23-10 | DEFERRED | Ban stands (catalog evidence_requirement). | — |
-| OQ-CC23-11 | DEFERRED | No silent rewrites authorized. | — |
-| OQ-CC23-12 | DEFERRED | Ledger + OWNER-DECISIONS section remain the durability targets. | — |
-
-### Recorded owner answers (re-read target)
-
-_None. Owner session unavailable on Linux Cloud; zero invented answers._

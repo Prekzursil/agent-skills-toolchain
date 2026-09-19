@@ -48,7 +48,9 @@ def load_identity() -> dict[str, str]:
     return headers
 
 
-def normalize_audio(path: Path, speed: float = 1.0, trim_silence: bool = False) -> tuple[bytes, str]:
+def normalize_audio(
+    path: Path, speed: float = 1.0, trim_silence: bool = False
+) -> tuple[bytes, str]:
     """16k mono mp3 @64k. speed: atempo (pitch-preserving) -- cuts billed voiced seconds
     proportionally (2.0x measured = quantity halves). trim_silence: latency/size (silence
     is already unbilled server-side)."""
@@ -56,13 +58,20 @@ def normalize_audio(path: Path, speed: float = 1.0, trim_silence: bool = False) 
     data = path.read_bytes()
     try:
         import hashlib as _h
-        cache_key = _h.sha256((str(path) + str(path.stat().st_size) + str(speed) + str(trim_silence)).encode()).hexdigest()[:16]
+
+        cache_key = _h.sha256(
+            (
+                str(path) + str(path.stat().st_size) + str(speed) + str(trim_silence)
+            ).encode()
+        ).hexdigest()[:16]
         cache = Path(tempfile.gettempdir()) / f"zai-asr-cache-{cache_key}.mp3"
         if cache.exists():
             return cache.read_bytes(), "mp3"
         filters = []
         if trim_silence:
-            filters.append("silenceremove=stop_periods=-1:stop_duration=0.35:stop_threshold=-38dB")
+            filters.append(
+                "silenceremove=stop_periods=-1:stop_duration=0.35:stop_threshold=-38dB"
+            )
         if speed and speed != 1.0:
             filters.append(f"atempo={speed}")
         out = Path(tempfile.gettempdir()) / ("zai-asr-norm-" + path.stem + ".mp3")
@@ -129,7 +138,9 @@ def call_official(name: str, arguments: dict, headers: dict, timeout: int = 600)
     return {"error": {"code": -1, "message": "no SSE data frame", "raw": raw[:300]}}
 
 
-def transcribe(path: Path, headers: dict, speed: float = 1.0, trim_silence: bool = False) -> dict:
+def transcribe(
+    path: Path, headers: dict, speed: float = 1.0, trim_silence: bool = False
+) -> dict:
     data, fmt = normalize_audio(path, speed=speed, trim_silence=trim_silence)
     args = {
         "audio_base64": base64.b64encode(data).decode(),
@@ -182,6 +193,7 @@ def main(argv: list[str]) -> int:
         )
     if len(argv) >= 3 and argv[1] == "transcribe":
         import argparse as _ap
+
         pr = _ap.ArgumentParser(add_help=False)
         pr.add_argument("--speed", type=float, default=1.0)
         pr.add_argument("--trim-silence", action="store_true")
@@ -189,7 +201,9 @@ def main(argv: list[str]) -> int:
         for p in files:
             if p.startswith("--"):
                 continue
-            res = transcribe(Path(p), headers, speed=opts.speed, trim_silence=opts.trim_silence)
+            res = transcribe(
+                Path(p), headers, speed=opts.speed, trim_silence=opts.trim_silence
+            )
             print(json.dumps(res, indent=2, ensure_ascii=False)[:4000])
         return 0
     if len(argv) >= 4 and argv[1] == "tts":

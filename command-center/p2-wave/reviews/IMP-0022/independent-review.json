@@ -1,0 +1,103 @@
+{
+  "unit_id": "IMP-0022",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude",
+  "reviewer_id": "c5-imp-0022-claude",
+  "reviewed_at_local": "2026-09-19",
+  "substrate": {
+    "host_platform": "windows",
+    "filesystem": "NTFS (case-insensitive)",
+    "python": "3.14.6",
+    "repo": "C:/Users/Prekzursil/source/agent-skills-toolchain (worktree basis)"
+  },
+  "catalog_reviewer_requirement": "Reviewer confirms the normalisation is casefold, not lower(), and that Unicode NFC normalisation is applied first.",
+  "discriminating_tests": [
+    {
+      "id": "D1-casefold-not-lower-sharp-s",
+      "input_pair": ["STRASSE.md", "Stra\u00dfe.md"],
+      "premise_control": "lower(): 'strasse.md' != 'stra\u00dfe.md' (lower MISSES); casefold(): both 'strasse.md' (catches)",
+      "implementation_returned": "find_casefold_collisions -> collision_group_count=1, key='strasse.md', paths=['STRASSE.md','Stra\u00dfe.md']; casefold_key of both inputs = 'strasse.md'",
+      "result": "PASS"
+    },
+    {
+      "id": "D2-casefold-not-lower-final-sigma",
+      "input_pair": ["file-\u03c3.md", "file-\u03c2.md"],
+      "premise_control": "lower(): 'file-\u03c3.md' != 'file-\u03c2.md' (lower MISSES); casefold(): both 'file-\u03c3.md'",
+      "implementation_returned": "collision_group_count=1, key='file-\u03c3.md', both paths in group",
+      "result": "PASS"
+    },
+    {
+      "id": "D3-nfc-presence-accent",
+      "input_pair": ["Cafe\u0301.md (NFD)", "caf\u00e9.md (NFC)"],
+      "premise_control": "d3a verified not is_normalized('NFC') and NFC(d3a)=='Caf\u00e9.md'; a casefold-only key would leave keys distinct",
+      "implementation_returned": "casefold_key both = 'caf\u00e9.md'; collision group formed over NFC-normalised exacts ['Caf\u00e9.md','caf\u00e9.md']",
+      "result": "PASS"
+    },
+    {
+      "id": "D4-nfc-presence-u1e9b",
+      "input_pair": ["\u1e9b.md", "\u017f\u0307.md"],
+      "premise_control": "casefold(\u1e9b)='\u1e61' and casefold(\u017f\u0307)='s\u0307' on this build, so a no-NFC key differs; lower() also differs",
+      "implementation_returned": "casefold_key both = '\u1e61.md' (NFC composed the \u017f+U+0307 form to \u1e9b BEFORE casefold)",
+      "order_note": "strict NFC-before-casefold ORDER is not behaviorally observable on this build (full folding commutes with canonical composition here; both orders yield \u1e61.md, verified as a premise); order is anchored in code at tools/plugin/casefold_paths.py:88-95 (nfc_path() first, .casefold() second)",
+      "result": "PASS"
+    },
+    {
+      "id": "C1-negative-control-exact-duplicate",
+      "input": ["README.md", "README.md", "readme.md"],
+      "expected": "exact duplicate deduped; group holds exactly 2 paths",
+      "implementation_returned": "collision_group_count=1, group paths=2",
+      "result": "PASS"
+    },
+    {
+      "id": "C2-negative-control-clean-set",
+      "input": ["LICENSE", "README.md", "bin/tool.py"],
+      "expected": "0 groups",
+      "implementation_returned": "0 groups",
+      "result": "PASS"
+    },
+    {
+      "id": "P1-packer-preemit-on-ntfs",
+      "method": "case-variant members cannot coexist on NTFS disk, so the colliding git tree was built via hash-object + update-index --cacheinfo + commit-tree; ls-tree confirmed BOTH names present",
+      "expected": "pack() raises PackError naming both paths; no zip emitted",
+      "implementation_returned": "PackError: \"casefold collision group key='readme.md' paths=['README.md', 'readme.md']\"; out.exists()=False (gate wired at tools/plugin/pack.py:271-275)",
+      "result": "PASS"
+    }
+  ],
+  "unit_probes_rerun": {
+    "probe1_casefold_set": {
+      "command": "python -B command-center/p2-wave/reviews/IMP-0022/probe1_casefold_set.py (verbatim copy of the unit probe, run from the review dir so implementer artifacts were not clobbered)",
+      "exit_code": 0,
+      "sentinel": "SUCCESS:IMP-0022-probe1",
+      "note": "signal (1) re-confirmed on Windows substrate"
+    },
+    "probe2_ci_fs_extract": {
+      "command": "python -B command-center/p2-wave/reviews/IMP-0022/probe2_ci_fs_extract.py (verbatim copy)",
+      "exit_code": 0,
+      "sentinel": "SUCCESS:IMP-0022-probe2",
+      "note": "CATALOG SIGNAL (2) NOW MEASURED on a real case-insensitive filesystem: dest_parent_case_insensitive=True (NTFS), archive_entry_count=2, extracted_file_count=1, shortfall=1, collision_shortfall_observed=True. This is the substrate the implementer's Linux/ext4 worker lacked (receipt defect IMP-0022-D1, residual_unknowns[0]). Raw: command-center/p2-wave/reviews/IMP-0022/probe2-ci-fs-extract.raw.txt"
+    },
+    "pytest_suite": {
+      "command": "python -m pytest -q tools/plugin/tests/test_case_collision_paths.py",
+      "result": "4 passed, 1 failed",
+      "failure_analysis": "test_packer_refuses_planted_case_collision is SUBSTRATE-BLOCKED on Windows, not an implementation defect: the fixture writes README.md then readme.md to one dir and its own comment says 'On Linux both files can coexist'; on NTFS the second write overwrites the first (corroborated independently: a case-variant double-write in a scratch dir leaves exactly 1 name), so the colliding pair never exists and PackError correctly does not fire. The test's intent (packer refuses colliding members pre-emit) is independently confirmed on this substrate by P1 above, and was green on the implementer's Linux run recorded in the receipt."
+    }
+  },
+  "residuals": [
+    {
+      "severity": "LOW",
+      "scope": "macOS/APFS-class filesystems only",
+      "summary": "NFC-composition variants (e.g. '\u1e9b.md' vs '\u017f\u0307.md') dedupe as exact duplicates post-NFC instead of being flagged as collisions, so a zip carrying both would still overwrite on a normalization-insensitive FS; on Windows/NTFS these names never collide (NTFS compares case only). Does not violate the stated NFC+casefold contract; recorded as an honest residual."
+    }
+  ],
+  "worktree_drift_note": "The receipt's artifact sha256 values describe the 2026-09-08 Linux/LF pack state. The live worktree has since drifted (casefold_paths.py -14B and both probe scripts edited 2026-09-19 ~15:03 local by another lane; pack.py +~2.5KB). Not CRLF (all files are LF on disk here; LF-normalised hashes still differ). This PASS certifies the live worktree bytes actually executed, consistent with the --basis worktree gate mode.",
+  "evidence_files": [
+    "command-center/p2-wave/reviews/IMP-0022/casefold-nfc-discrimination.raw.txt",
+    "command-center/p2-wave/reviews/IMP-0022/casefold_nfc_discrimination.py",
+    "command-center/p2-wave/reviews/IMP-0022/probe1-casefold-set.raw.txt",
+    "command-center/p2-wave/reviews/IMP-0022/probe1-measurement.json",
+    "command-center/p2-wave/reviews/IMP-0022/probe2-ci-fs-extract.raw.txt",
+    "command-center/p2-wave/reviews/IMP-0022/probe2-measurement.json"
+  ]
+}
