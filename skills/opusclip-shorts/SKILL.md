@@ -5,7 +5,7 @@ description: Turn a long talk/conference recording into OpusClip-style vertical 
 
 # OpusClip-style shorts pipeline
 
-End-to-end recipe (validated 2026-09-19 on a 93-min Romanian conference, producing 6 shorts reconciled against 44 existing OpusClip outputs). Reference implementation: `render_final.py` bundled next to this SKILL.md (validated 2026-09-19, end-to-end).
+End-to-end recipe (validated 2026-09-19 on a 93-min Romanian conference, producing 6 shorts reconciled against 44 existing OpusClip outputs). Bundled scripts: `render_final.py` (render), `merge_chunks.py` (audio split + word-timeline merge), `plan_clips.py` (anchor clip planning, OpusClip-set location, overlap audit, renumber map) (validated 2026-09-19, end-to-end).
 
 ## 0. Preconditions
 - ffmpeg/ffprobe, Python with `cv2` (OpenCV) + `numpy`, video-agent-kit MCP (`speech_transcribe`, `inspect_media`).
@@ -61,3 +61,19 @@ UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly
 - `durs` lookup: OpusClip files are `#1`, not `#01`.
 - ASR chunk 0 goes to default `out/transcript.json` unless `output_json` is set.
 - vision: `Read` on images offloads to CDN; verify via `mcp__4_5v_mcp__analyze_image` with the returned URL.
+
+## Portability & dependencies (any harness)
+- Registered harness-wide as stdio MCP **`video-agent-kit`** in `~/.agents/agents.json`
+  (targets claude/codex/zcode; deployed by `sync_shared_state.ps1`; verified `claude mcp list`
+  → ✔ Connected). Server: `python <zcode-plugin-cache>/video-agent-kit/<ver>/mcp/video_edit_server.py`
+  with `VE_PLUGIN_ROOT` set — update the path in agents.json when the plugin version bumps.
+- Works everywhere with NO extra config: inspect/analyze media, shot detection, timeline
+  build/validate/render, subtitle scout/build/render/QC, basic ops (all local ffmpeg).
+- **Cloud speech (speech_transcribe / speech_synthesize): inside ZCode the host injects
+  identity (nothing to configure). On other hosts the tools need ONE of:**
+  1. `VE_SPEECH_MCP_URL` (+ optional `VE_SPEECH_MCP_TOKEN`) pointing at a remote speech MCP, or
+  2. direct-backend env (`VE_SPEECH_ASR_ENDPOINT` etc. — process env only, see plugin `.env.example`).
+  Without them, run the ASR step inside ZCode and carry the per-chunk `t*.json` forward —
+  `merge_chunks.py merge` is harness-agnostic from there.
+- Local bindeps: ffmpeg/ffprobe on PATH, python with cv2+numpy (face-tracked reframe).
+- Harness tool timeouts vary (ZCode MCP: 900s) — the chunk sizes here are chosen to stay far below.
