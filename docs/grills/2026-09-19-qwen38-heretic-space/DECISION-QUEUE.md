@@ -517,3 +517,11 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   never transcribed into decisions.json) · 2 major (c21 undeclared protected writes; c10-d3's total continue_final_message ban
   stricter than CLAR-2 and undeclared) · 10 minor. Mechanical backbone confirmed sound: corrected_text 0 mismatches, DAG/waves/
   tallies clean, deferred DoDs honestly annotated. Bounded repair runs after critic-2 (feasibility) lands, closing both lists at once.
+- R0 critique: **critic-2 (feasibility/contract): needs-repair** — 6 high (cards speak write_set/apis vs the gate's
+  files_allowed/deps_allowed/apis_expected; ledger at grounding/ not plan/api-ledger.json; gate imports yaml the venv lacked;
+  execution repo $R never scripted — build repo freezes the Space under base/ with f88b120 not an object; plan branch fails the
+  gate's own ruff ×3 F401; c02-d3's pathspec-filtered rename DoD empirically unpassable) · 4 medium · 5 low. Clean side: DAG/waves/
+  manifest recomputed pass; 89 citations verbatim; 42 ledger refs verified; every restricted-idiom occurrence is a prohibition; base
+  suite collects 73 under the pinned venv; critical path ~300 min confirmed. **Coordinator decisions for the repair:** add PyYAML to
+  the gate venv (done; gate bytes stay pinned) rather than rewriting the gate; script $R as base/-rooted checkout + plan merge via
+  tools/make-exec-repo.sh with the lift/junk/F401 fixes absorbed into c01's write_set. ONE bounded repair closes BOTH critics' lists.
