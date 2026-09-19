@@ -1,0 +1,96 @@
+[
+  {
+    "name": "frida-mcp",
+    "health": "STATIC-OK",
+    "disposition": "registry-pinned",
+    "why": "Static-only per lane mandate (never spawned). Registry entry verified by jq (mechanically different from the 05:41 python probe): enabled, claude-only, stdio exe. Canonical exe EXISTS on disk (Test-Path, detector control agents.json=EXISTS passed). NOT in this session's failed-MCP banner AND no direct mcp__frida_mcp__ tools: explained — frida-mcp/ghidra-mcp/github_cli are listed in disabledMcpServers of 36 project blocks in ~/.claude.json (incl. cwd agent-skills-toolchain, ~, D:/Research), so they are deliberately not attempted here. This refines GT#3: 'not listed = connected fine' is wrong for these three at gated cwds; they were never attempted. Reachable via the McpHub multiplexer (mcp__McpHub__frida_mcp__* tools advertised) — hub-path liveness UNVERIFIED INLINE (settling experiment: call mcp__McpHub__frida_mcp__enumerate_devices or spawn the exe with a 15s kill).",
+    "paths": {
+      "status": "canonical",
+      "command": "C:\\Users\\Prekzursil\\.local\\opt\\frida-mcp\\.venv\\Scripts\\frida-mcp.exe",
+      "note": "Identical string across agents.json, ~/.claude.json, ~/.mcp.json, ~/.gemini/settings.json (gemini adds trust:true, forward slashes). Install dir holds only .venv (no separate source checkout — vendored venv is the impl)."
+    },
+    "scatter": {
+      "surfaces": [
+        "~/.agents/agents.json (mcp.servers, targets=claude)",
+        "~/.claude.json mcpServers (present, disabled in 36 project blocks)",
+        "~/.mcp.json (present)",
+        "~/.gemini/settings.json (present, trust:true)",
+        "McpHub multiplexer (sse 127.0.0.1:24680/mcp) exposes it as 'frida_mcp' underscore variant"
+      ],
+      "absent": ["~/.codex/config.toml", "~/.cursor/mcp.json", "~/.gemini github-security slot"],
+      "name_variants": ["frida-mcp (registry/claude/mcp.json/gemini)", "frida_mcp (McpHub tool prefix)"]
+    }
+  },
+  {
+    "name": "ghidra-mcp",
+    "health": "STATIC-OK",
+    "disposition": "registry-pinned",
+    "why": "Static-only per lane mandate. All three pinned paths EXIST (venv python.exe, GhidraMCP-release-1-4/bridge_mcp_ghidra.py, release dir). Stdio bridge server itself started fine in the 05:16 audit session (claude-targeted, absent from failed list). Its BACKEND (Ghidra plugin, http://127.0.0.1:8089/) is NOT listening now — netstat validated by two live controls on the same invocation (18765, 18812 LISTENING): Ghidra simply is not running, which is by-design for this on-demand RE harness (re-ensure/re-harness brings Ghidra up). Whether bridge tools degrade gracefully with 8089 down is UNVERIFIED INLINE (settling experiment: start Ghidra via re-ensure, curl :8089, call one bridge tool). Same 36-project disable gating as frida-mcp — no direct tools this session, no failure banner.",
+    "paths": {
+      "status": "canonical",
+      "command": "C:\\Users\\Prekzursil\\.local\\opt\\ghidra-mcp\\.venv\\Scripts\\python.exe",
+      "args": ["C:\\Users\\Prekzursil\\.local\\opt\\ghidra-mcp\\GhidraMCP-release-1-4\\bridge_mcp_ghidra.py", "--ghidra-server", "http://127.0.0.1:8089/"],
+      "note": "Identical across agents.json, ~/.claude.json, ~/.mcp.json, ~/.gemini/settings.json. Dir also holds GhidraMCP-release-1-4.zip and _lauriewired_12.0.3_fallback/."
+    },
+    "scatter": {
+      "surfaces": [
+        "~/.agents/agents.json (targets=claude)",
+        "~/.claude.json (present, disabled in 36 project blocks)",
+        "~/.mcp.json (present)",
+        "~/.gemini/settings.json (present, trust:true)",
+        "McpHub multiplexer as 'ghidra_mcp' underscore variant",
+        "cyberstrike mcp-ssot.json general_stdio_lazy list (lazy, no front)"
+      ],
+      "absent": ["~/.codex/config.toml", "~/.cursor/mcp.json"],
+      "name_variants": ["ghidra-mcp", "ghidra_mcp (McpHub)"]
+    }
+  },
+  {
+    "name": "github",
+    "health": "LIVE-SESSION",
+    "disposition": "vendor-source",
+    "why": "Official GitHub Copilot remote MCP (https://api.githubcopilot.com/mcp). Connected in THIS live session: mcp__github__authenticate / mcp__github__complete_authentication tools resolved, absent from the failed-MCP banner (fresh banner = independent signal vs the 05:16 transcript probe). curl -m 8 returns HTTP 401 (endpoint up, auth-gated) vs rc=7 for dead local fronts — detector discrimination proven. Registry requires env GITHUB_MCP_PAT; x_zcode.enabled=false AND agents-doctor line 18 shows the zcode target silently ignored by agents CLI 0.8.10 (GT#5 confirmed for this server): effective targets = codex+claude only.",
+    "paths": {
+      "status": "AMBIGUOUS",
+      "url": "https://api.githubcopilot.com/mcp",
+      "offending": "In ~/.gemini/settings.json the key 'github' is a DIFFERENT implementation: \"command\": \"gh-cli-mcp\" with GH_TOKEN/GITHUB_MCP_PAT env — the gh CLI wrapper, duplicating the sibling github_cli entry; the registry/claude/codex 'github' is the Copilot HTTP endpoint. Also ~/.mcp.json 'github' is a header-less http stub (no auth -> would 401), unlike ~/.claude.json which carries a literal Authorization header (value never printed).",
+      "canonical_fix_hint": "Rename gemini 'github' -> 'github_cli' or point it at the Copilot URL; add header/env to the .mcp.json copy."
+    },
+    "scatter": {
+      "surfaces": [
+        "~/.agents/agents.json (targets codex,claude,zcode; zcode dropped by CLI)",
+        "~/.claude.json (http + literal Authorization header)",
+        "~/.codex/config.toml (url + bearer_token_env_var, enabled=true; env-based, cleanest)",
+        "~/.mcp.json (http, no auth)",
+        "~/.gemini/settings.json (gh-cli-mcp stdio under same name — WRONG impl, collides with github_cli)",
+        "D:/opt/cyberstrike-mcp/mcp-ssot.json general_http (bearer-env GITHUB_MCP_PAT)"
+      ],
+      "absent": ["~/.cursor/mcp.json"],
+      "name_variants": ["github (Copilot http)", "github_cli / gh-cli-mcp (separate stdio server, registry+claude+gemini)", "github-security (unrelated local audit server) — three 'github*' families must not be conflated"]
+    }
+  },
+  {
+    "name": "github-security",
+    "health": "UNREACHABLE",
+    "disposition": "local-impl-move",
+    "why": "GT claim 'local backend down' REFUTED by two mechanically independent probes. Real root cause: the CyberStrike front-fleet portband migration (portband_migration.ps1, stamp 20260907-0130) moved 31410->31110 but only rewrote D:\\opt\\cyberstrike-mcp\\* files — ~/.agents/agents.json, ~/.claude.json and ~/.mcp.json still pin the dead port. Evidence: (a) curl http://127.0.0.1:31110/mcp answers HTTP 400 (same MCP-endpoint signature as healthy control 18765; rc=0) while 31410 refuses rc=7; (b) a live MCP tool call through the McpHub 'github_security' rail (mcp__McpHub__github_security__github_list_checks) returned the full 10-check org catalog — implementation ALIVE and serving; (c) supervisor.log 2026-09-18T22:57:11 'HAVE github-security :31110'; (d) cyberstrike-mcp-lib.ps1 maps github-security Port=31110 Band=Core. The registry entry's own description still says 'HTTP hub on 127.0.0.1:31410' (written 2026-09-03, pre-migration). Fix (owner action — audit is read-only): change url to http://127.0.0.1:31110/mcp in agents.json (both github-security and github-security-hub), ~/.claude.json, ~/.mcp.json, and update the stale description.",
+    "paths": {
+      "status": "STALE-URL (impl canonical, registry port wrong)",
+      "registry_url_verbatim": "http://127.0.0.1:31410/mcp",
+      "correct_url": "http://127.0.0.1:31110/mcp",
+      "impl": "D:\\opt\\cyberstrike-mcp\\node_modules\\github-security-mcp\\dist\\index.js (launcher D:\\opt\\cyberstrike-mcp\\github-security-mcp.cmd -> node dist/index.js; 39-tool GitHub security audit server, Core band)"
+    },
+    "scatter": {
+      "surfaces": [
+        "~/.agents/agents.json github-security (targets=claude) — stale 31410",
+        "~/.agents/agents.json github-security-hub (targets=hermes ONLY — GT hint 'hermes-only' CONFIRMED via jq) — same stale 31410; hermes target ALSO dropped by agents CLI 0.8.10 (agents-doctor line 19) => zero effective targets => decommission-candidate twin",
+        "~/.claude.json (http 31410 — the entry that produced the session ConnectionRefused banner)",
+        "~/.mcp.json (http 31410)",
+        "McpHub multiplexer as 'github_security' (LIVE — verified by direct tool call)",
+        "CyberStrike TUI catalog (mcp-ssot.json specialized + general_cs_kit + profiles.core) on 31110"
+      ],
+      "absent": ["~/.codex/config.toml", "~/.cursor/mcp.json", "~/.gemini/settings.json"],
+      "name_variants": ["github-security", "github-security-hub (hermes twin)", "github_security (McpHub)"]
+    }
+  }
+]

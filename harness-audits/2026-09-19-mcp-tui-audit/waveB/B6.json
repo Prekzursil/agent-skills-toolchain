@@ -1,0 +1,108 @@
+{
+  "surface": "Lane B6 core-3 reconcile: SSOT registry (~/.agents/agents.json) vs ~/.claude.json vs ~/.codex/config.toml vs ~/.cursor/mcp.json, plus extension surfaces (zcode, hermes, gemini, opencode) and sync_shared_state.ps1 capability audit. All numbers measured 2026-09-19 ~06:0x by independent probes (jq, tomllib, grep, python set math), not copied from the 05:41 tagged probes.",
+  "current_state": {
+    "registry_ssot": {
+      "path": "C:/Users/Prekzursil/.agents/agents.json",
+      "servers": 81,
+      "syncMode": "source-only",
+      "target_counts": { "claude": 68, "codex": 6, "zcode": 17, "hermes": 17, "cursor": 0 },
+      "enabled_false": ["burp", "glm53-space", "kaggle", "libgen", "markitdown", "meta-tool"],
+      "note": "Cursor is NOT a registry target (0); cursor policy lives in code constants of merge_generated_cursor_mcp.py (CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS etc.), invisible to registry tooling."
+    },
+    "claude_json": {
+      "path": "C:/Users/Prekzursil/.claude.json",
+      "root_mcpServers": 87,
+      "governed_present": 64,
+      "ungoverned_extras_23": ["McpHub", "apktool-mcp", "cloud-hub", "codex", "elevenlabs", "fiddler", "figma", "figma-rest", "gitlab", "jadx-mcp", "mcp-windbg", "ocr-suite", "openmm-md", "perplexity", "qdx-rush", "rdkit", "schrodinger", "search-hub", "searxng", "serena", "social-hub", "tooluniverse", "zai-mcp-server"],
+      "targeted_but_absent_4": ["glm53-space", "libgen", "markitdown", "meta-tool"],
+      "enabled_drift": "All 4 registry enabled:false claude-targeted servers are correctly WITHHELD from mcpServers (0 leaks). Inverse drift instead: root-level disabledMcpServers has 131 entries, 37 of which hit registry-governed present servers (incl. context7, firecrawl, chrome-devtools, tavily, paper-search, scholarly-access, docker, notion) and 19 hit extras; per-project disabledMcpServers in 36 of 43 projects (130 unique names, 36 governed / 19 extras). The key the task hypothesized, 'deniedMcpServers', DOES NOT EXIST at root or project scope; the real key is disabledMcpServers (detector validated: same scan found disabledMcpServers, so the absence is real)."
+    },
+    "codex_toml": {
+      "path": "C:/Users/Prekzursil/.codex/config.toml",
+      "mcp_servers": 16,
+      "parity": "EXACT 6/6 registry codex-targeted present: agent-mail, apify, basic-memory, github, sci-hub, video-agent-kit",
+      "ungoverned_extras_10": ["brightdata", "cve", "figma", "firecrawl-kit", "hacktricks", "mcphub", "metasploit", "node_repl", "sliver", "sliver-full"],
+      "note": "Ground-truth sweep listed 'node_repl.env' as a server and missed video-agent-kit - two cancelling errors that kept the count at 16. node_repl.env is a TOML subtable ([mcp_servers.node_repl.env] at line 170), not a server. Layout: hand-maintained block ~lines 165-170+, agents-generated block lines 1063-1147."
+    },
+    "cursor_mcp": {
+      "path": "C:/Users/Prekzursil/.cursor/mcp.json",
+      "servers": 7,
+      "names": ["agent-mail", "basic-memory", "chrome-devtools", "context7", "dbx-ai", "firecrawl", "playwright"],
+      "policy_verdict": "7 = exactly CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS (core-6 G-6=6B keep-list + owner-requested dbx-ai) minus glm53-space, which the registry disables (enabled:false) so it is not rendered. POLICY-CORRECT, not drift. The HOME AGENTS.md claim of a '~37/40 Claude mirror' is stale: the 2026-09-02 merge reunion replaced mirror-all with safe-default attachment; the remaining definitions are parked in .agents/mcp-cursor-parked-31.json (which exists and holds 32 entries - filename says 31, content 32)."
+    },
+    "zcode": {
+      "path": "C:/Users/Prekzursil/.zcode/cli/config.json",
+      "servers": 29,
+      "parity": "17/17 registry zcode-targeted present; x_zcode.enabled per-runtime overrides honored (apify/github registry-enabled but live enabled:false, matching x_zcode.enabled:false in SSOT); registry-disabled burp/kaggle rendered as enabled:false BY DESIGN (merge keeps disabled entries visible). Best-behaved surface.",
+      "ungoverned_extras_12": ["brightdata", "consult-offsec", "cua_repl", "cve", "figma", "firecrawl-kit", "hacktricks", "mcphub", "metasploit", "node_repl", "sliver", "sliver-full"],
+      "note": "10 of 12 extras are the SAME security cluster ungoverned on codex (sliver/sliver-full/metasploit/hacktricks/cve/firecrawl-kit/mcphub/brightdata/node_repl/figma); consult-offsec + cua_repl are zcode-only."
+    },
+    "hermes": {
+      "path": "C:/Users/Prekzursil/AppData/Local/hermes/config.yaml",
+      "deployed": 17,
+      "parity": "EXACT 17/17 match of registry hermes-targeted (HTTP-hub-only transport, G-1); deploy_hermes_mcp.py is idempotent, backup-first, removes re-targeted servers.",
+      "detector_note": "tui-inventory.json reported zcode/hermes 'found: []' - a detector miss (wrong paths probed). Real paths: .zcode/cli/config.json and AppData/Local/hermes/config.yaml."
+    },
+    "gemini": {
+      "path": "C:/Users/Prekzursil/.gemini/settings.json",
+      "mcpServers": 33,
+      "managed_by_sync": false,
+      "composition": "31 of 33 exist in the registry (as names) + 2 unregistered: figma, memory. Zero sync coverage - hand-maintained drift surface. 'memory' (official memory MCP) is adjacent to estate rule G-81 (basic-memory sole semantic-memory writer) - observation only, usage UNVERIFIED (settling experiment: check gemini sessions for memory tool calls)."
+    },
+    "opencode": {
+      "path": "C:/Users/Prekzursil/.config/opencode/opencode.json",
+      "top_keys": ["$schema", "model", "provider"],
+      "mcp_block": "ABSENT - zero MCP wiring (confirmed by two probes: jq keys and grep '\"mcp\"')"
+    },
+    "sync_script": {
+      "path": "C:/Users/Prekzursil/.agents/scripts/sync_shared_state.ps1",
+      "already_covers": ["codex (merge_generated_codex_mcp.py)", "claude (merge_generated_claude_mcp.py)", "cursor (merge_generated_cursor_mcp.py, safe-default attach)", "zcode (merge_generated_zcode_mcp.py -> .zcode/cli/config.json)", "hermes (deploy_hermes_mcp.py -> AppData/Local/hermes/config.yaml, HTTP-only)", "registry validation + reference views + local bridge sync + skills junction gates"],
+      "missing": ["gemini (~/.gemini/settings.json)", "opencode (~/.config/opencode/opencode.json)"],
+      "guarantees": "Invoke-CheckedPython requires SUCCESS: sentinel + exit 0 per step (fail-closed); integrations.enabled intentionally empty (native agents sync bypassed); backup-first on cursor/claude/codex writes; skills junction HARD-STOP checks."
+    }
+  },
+  "violations": [
+    "V1 SSOT breach (claude): 23 servers live in ~/.claude.json root mcpServers with NO registry entry (McpHub, cloud-hub, social-hub, search-hub, schrodinger, qdx-rush, serena, tooluniverse, openmm-md, rdkit, searxng, perplexity, figma+figma-rest, gitlab, elevenlabs, fiddler, apktool-mcp, jadx-mcp, mcp-windbg, ocr-suite, zai-mcp-server, codex mount) - violates '.agents/agents.json is the shared MCP inventory' contract. 19 of 23 are also root-disabled dead weight carried in a multi-MB config parsed at session start.",
+    "V2 SSOT breach (codex+zcode, shared): 10 servers ungoverned in codex TOML and 12 in zcode config - the same hand-maintained security cluster (sliver, sliver-full, metasploit, hacktricks, cve, firecrawl-kit, mcphub, brightdata, node_repl, figma [+consult-offsec, cua_repl zcode-only]). Registry edits cannot reach them; registry-side disables of lookalikes do not propagate.",
+    "V3 enablement split-brain (claude, inverse direction): registry says enabled:true for 37 servers that Claude's OWN root disabledMcpServers (131 entries) disables globally (context7, firecrawl, chrome-devtools, tavily, docker, notion, paper-search, scholarly-access, ...) plus 36 more per-project. Two control planes disagree about enablement; 'enabled' in the registry overstates the effective surface. No sync step reads or reconciles these lists.",
+    "V4 governance invisibility (cursor): registry has 0 cursor targets; cursor's attachment/deny/retire policy (CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS, CURSOR_DENIED_SERVERS, CURSOR_RETIRED_SERVERS) is hardcoded in merge_generated_cursor_mcp.py, so registry tooling (agents doctor, mcp-scanner shadow check) cannot see or validate cursor intent.",
+    "V5 gemini unmanaged: 33-server surface (31 registry-nameable + figma + memory) outside the sync pipeline - pure hand-drift; nothing regenerates it and no --check exists.",
+    "V6 stale ground truth artifacts: registry-inventory.json (80) and tui-inventory.json (86-claude, node_repl.env-as-server, zcode/hermes found:[]) are already wrong; any lane consuming them inherits 5 factual errors."
+  ],
+  "health_sample": {
+    "measured_at": "2026-09-19T06:0x local, post-05:41-probe",
+    "registry": { "servers": 81, "targets": { "claude": 68, "codex": 6, "zcode": 17, "hermes": 17, "cursor": 0 }, "enabled_false": 6 },
+    "claude": { "surface": 87, "governed_present": 64, "extras": 23, "enabled_false_withheld": "4/4 correct", "root_disabledMcpServers": 131, "root_dis_hitting_governed": 37, "perproj_projects_with_disables": 36, "perproj_unique": 130, "deniedMcpServers_key_exists": false },
+    "codex": { "surface": 16, "registry_parity": "6/6 exact", "extras": 10 },
+    "cursor": { "surface": 7, "policy": "safe-default core-6 + dbx-ai (glm53-space correctly unrendered: registry enabled:false)", "parked_snapshot_entries": 32 },
+    "zcode": { "surface": 29, "registry_parity": "17/17 exact incl. x_zcode overrides", "extras": 12 },
+    "hermes": { "surface": 17, "registry_parity": "17/17 exact" },
+    "gemini": { "surface": 33, "managed": false, "unregistered": ["figma", "memory"] },
+    "opencode": { "surface": 0, "config_exists": true, "mcp_key": false }
+  },
+  "gap_list": [
+    "G1 No gemini writer: settings.json mcpServers is shape-compatible with the claude merge (a variant of merge_generated_claude_mcp.py with gemini path + backup would cover 31/33 immediately).",
+    "G2 No opencode writer: opencode.json has no mcp block at all; writer must create/maintain it. Exact current opencode mcp schema (local/remote entry shape) UNVERIFIED - settling experiment: curl https://opencode.ai/docs/mcp/ (curl allowed) or run `opencode` doctor before writing the merge.",
+    "G3 Cursor intent not expressible in the registry (no cursor target; mcp_control_plane VALID_TARGETS is {claude, codex} per cursor-merge docstring).",
+    "G4 agents CLI 0.8.10 drops zcode/hermes targets (30+ warnings confirmed in agents-doctor.txt lines 3-12) - harmless to sync_shared_state.ps1 (custom scripts bypass the CLI) but breaks agents doctor/sync parity views; 0.9.1 upgrade held pending post-audit.",
+    "G5 23 claude extras + 10 codex + 12 zcode extras unclassified: each is live, working capability - registration vs retirement is an owner decision (HARD rule: never silently remove capability).",
+    "G6 No reconciliation of Claude's 131-entry root disabledMcpServers / 36-project disabledMcpServers with registry enablement; also mcpNeedsAuthNoticed=7 and claudeAiMcpEverConnected=44 (remote connectors) are outside all current tooling.",
+    "G7 parked-31 file holds 32 entries (label vs content off by one); harmless but will confuse the next auditor."
+  ],
+  "max_legal_plan": {
+    "constraint": "This lane is READ-ONLY: report plans and snippets, never write config. Plan below is for the owner to execute.",
+    "phase_0_baseline": "Regenerate registry-inventory.json/tui-inventory.json with corrected facts (81 registry; claude 87; codex 16 via tomllib not regex; cursor 7 policy note; zcode 29 at .zcode/cli/config.json; hermes 17 at AppData/Local/hermes/config.yaml; gemini 33; opencode 0). Without this, every downstream lane inherits 5 stale facts.",
+    "phase_1_extras_adjudication": "One-by-one owner decision table for the 23 claude / 10 codex / 12 zcode ungoverned servers: (a) register into agents.json with targets, or (b) retire from the live surface. Security cluster (sliver/metasploit/hacktricks/cve/firecrawl-kit/mcphub/brightdata/node_repl/figma/consult-offsec/cua_repl) is one group decision, likely one registry group targeting codex+zcode. Present capability-loss impact per retirement - never bulk-delete.",
+    "phase_2_gemini_writer": "Add scripts/merge_generated_gemini_mcp.py cloned from merge_generated_claude_mcp.py: --live ~/.gemini/settings.json, select_target_servers(config,'gemini'), render mcpServers, backup-first, --check dry-run mode, SUCCESS sentinel; wire one Invoke-CheckedPython line into sync_shared_state.ps1 after the cursor merge. First run --check to quantify drift (expect ~31 renderable, figma+memory flagged as ungoverned).",
+    "phase_3_opencode_writer": "After verifying the opencode mcp schema (G2 settling experiment), add merge_generated_opencode_mcp.py writing the mcp block into ~/.config/opencode/opencode.json; same guarantees; start --check-only for one week before any --write.",
+    "phase_4_cursor_formalization_and_cli_0.9.1": "After the audit freeze lifts, upgrade agents CLI to 0.9.1 (adds zcode/hermes as native targets, silencing the 30+ doctor warnings); then EITHER add 'cursor' to mcp_control_plane VALID_TARGETS with registry targets mirroring CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS, OR persist the cursor policy sets into agents.json metadata so doctor can validate them. Keep the approvals-file fail-closed gate untouched.",
+    "phase_5_enablement_reconcile": "Add a read-only reporting step to sync (not a write): diff root+per-project disabledMcpServers vs registry enabled flags and print drift names; resolve V3 by owner choice (either registry-side enabled:false for the 37, or pruning stale root disables). Never auto-edit .claude.json disabled lists.",
+    "phase_6_verify": "Run each merge with --check (expect 0 drift on codex/zcode/hermes/cursor, quantified drift on gemini), then mcp-scanner cfg_check_shadow_servers on agents.json, and regenerate tui-inventory. Acceptance: every surface's ungoverned set is either 0 or an owner-signed allowlist."
+  },
+  "notes": [
+    "GROUND-TRUTH CORRECTIONS vs the 05:41 probe set: (1) registry is 81 not 80 - video-agent-kit added to registry+claude.json+codex TOML between 05:41 and 06:0x (live edit in flight during the audit); jq confirms 81 and python diff names the single addition. (2) claude root mcpServers is 87 not 86 (same edit). (3) codex '16' was right by luck: the sweep counted node_repl.env (a TOML env subtable) as a server and missed video-agent-kit; tomllib gives the true 16 with names. (4) tui-inventory zcode/hermes 'found: []' was a detector miss - both surfaces exist and are the two MOST paritous surfaces (17/17 each). (5) 'deniedMcpServers' does not exist; the operative key is disabledMcpServers (root, 131) + per-project (36 projects).",
+    "PROBE INDEPENDENCE: claim 1 (registry) re-probed via jq vs tagged python parse; claim 2 (counts) re-probed via jq (json surfaces), tomllib+grep (TOML: 20 table headers = 16 servers + 4 subtables), python set math; claim 5 (CLI target drop) re-probed via static read of agents-doctor.txt lines 3-12 + sync script source showing custom-script bypass. All absences validated against known-present controls (e.g. the same scan that found no deniedMcpServers found disabledMcpServers; the hermes regex detector recovered the exact expected 17).",
+    "Non-finding closed: the feared 'enabled:false leaks onto claude surface' does NOT occur (4/4 withheld). The real enablement problem is the inverse (V3). Zcode's disabled-rendering (burp/kaggle as enabled:false) is documented design (x_zcode.enabled), not drift.",
+    "The relayed user request 'try a 10 concurency' is a workflow-harness concurrency knob, not a B6 instruction; no action taken beyond noting it."
+  ]
+}

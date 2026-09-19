@@ -1,0 +1,68 @@
+[
+  {
+    "name": "deepscan",
+    "health": "LIVE-SESSION",
+    "disposition": "registry-pinned",
+    "why": "MCP layer healthy end-to-end on this box, measured two independent ways: (1) LIVE in this session via the McpHub hub - mcp__McpHub__deepscan__deepscan_status answered with javaOk=true (Microsoft OpenJDK 17.0.18.8 at the DEEPSCAN_JAVA_BIN path); (2) the direct user-scope mount script completed a clean initialize handshake when spawned standalone (serverInfo deepscan 0.1.0). HOWEVER its analysis capability is env-gated OFF: the live status call returned blocked=true with reason 'DEEPSCAN_CLI_JAR is not configured'. The registry entry's own description says 'Requires Java and DEEPSCAN_CLI_JAR' yet its env block wires only DEEPSCAN_JAVA_BIN, and DEEPSCAN_CLI_JAR is absent at both User and Machine OS scope - so deepscan_analyze only works if jar_path/license_path are passed per call. Not in the session failed-connect list because every audited Claude project cwd (including this one) lists it in disabledMcpServers, so the direct mount never spawns; the connected path is the hub. Direct-mount connect behavior in a cwd where it is NOT disabled: UNVERIFIED (settling experiment: scratch cwd without the disable, read the session MCP banner).",
+    "paths": "canonical - C:/Program Files/nodejs/node.exe exists (92,279,112 B); C:/Users/Prekzursil/.agents/meta-tool/src/deepscan_mcp_server.mjs exists (4,705 B, modified 2026-08-28); SDK import @modelcontextprotocol/sdk resolves from C:/Users/Prekzursil/.agents/meta-tool/node_modules/@modelcontextprotocol/sdk/ (proven by successful spawn handshake + dir listing). ~/.claude.json root entry carries identical command/args.",
+    "scatter": {
+      "surfaces_present": [
+        "SSOT registry ~/.agents/agents.json (enabled, targets [claude], tags approved/claude-only/local/stdio)",
+        "~/.claude.json root mcpServers (86 total) - identical command/args",
+        "McpHub hub - claude.json 'McpHub' + ~/.codex/config.toml 'mcphub' (16) - the route actually live in-session"
+      ],
+      "surfaces_absent": ["~/.codex/config.toml (direct)", "~/.cursor/mcp.json (7)", "~/.gemini/settings.json (33)", "~/.mcp.json (34 keys)"],
+      "variants": ["deepscan", "plugin:local-mcp-bridge:deepscan", "mcp__McpHub__deepscan__* (hub-routed tool prefix)"],
+      "note": "disabledMcpServers lists deepscan in all 35 audited project cwds: configured at user scope, suppressed at project scope everywhere."
+    }
+  },
+  {
+    "name": "deepsource",
+    "health": "SPAWN-OK",
+    "disposition": "registry-pinned",
+    "why": "Wrapper completed a clean initialize handshake when spawned (serverInfo deepsource-mcp-server 1.8.3) - server layer proven bootable on this box, with the deepsource-mcp-server package present in local node_modules. DEEPSOURCE_API_KEY is wired in registry env (inline, len 21) AND at User+Machine OS scope; the initialize handshake does not require it. Whether that key still authenticates against the DeepSource API is UNVERIFIED (settling experiment: tools/list then one API-backed call). Not connected in this live session - it sits in disabledMcpServers for this cwd (and every other audited cwd), and no hub route exposes it. Two drift findings: (a) registry description 'Imported from .codex/config.toml (deepsource)' is stale lineage - no deepsource entry exists in the current .codex/config.toml (grep zero matches + tui-inventory codex list of 16); (b) ~/.gemini/settings.json carries deepsource although registry targets are [claude] only - an extra surface the source-only SSOT sync does not account for.",
+    "paths": "canonical - C:/Program Files/nodejs/node.exe exists; C:/Users/Prekzursil/.local/opt/deepsource-mcp-server/deepsource-mcp-wrapper.mjs exists (230 B) with package.json, package-lock.json and node_modules/ including node_modules/deepsource-mcp-server/. Same command/args on claude.json and gemini surfaces.",
+    "scatter": {
+      "surfaces_present": [
+        "SSOT registry (enabled, targets [claude], tags approved/claude-only/local/stdio, requiredEnv DEEPSOURCE_API_KEY)",
+        "~/.claude.json root mcpServers",
+        "~/.gemini/settings.json (EXTRA surface - not in registry targets)"
+      ],
+      "surfaces_absent": ["~/.codex/config.toml (despite 'Imported from .codex/config.toml' description - stale)", "~/.cursor/mcp.json", "~/.mcp.json"],
+      "variants": ["deepsource", "plugin:local-mcp-bridge:deepsource"],
+      "note": "Consumer skill 'deepsource' exists in .agents/skills. disabledMcpServers lists deepsource in all 35 audited project cwds."
+    }
+  },
+  {
+    "name": "deepwiki",
+    "health": "OFF-BY-DESIGN",
+    "disposition": "registry-pinned",
+    "why": "Hosted HTTP MCP pinned ONLY to targets [zcode, hermes] - surfaces that have no config files on this box (tui-inventory: zcode found:[], hermes found:[]) and that agents CLI 0.8.10 silently drops (agents-doctor.txt lines 13-14: 'MCP server \"deepwiki\" has unsupported target \"zcode\"; ignored' and same for hermes). Confirmed with a mechanically different probe than agents doctor: a full sweep of all five config surfaces finds deepwiki on ZERO of them (claude 0/86, codex 0/16, cursor 0/7, gemini 0/33, .mcp.json 0/34) - it is registry-only and inert. The remote endpoint itself is ALIVE: GET https://mcp.deepwiki.com/mcp returns 406 (correct streamable-HTTP rejection of a plain GET) and GET / returns 200. Recommendation: keep the registry pin (approved vendor-hosted shared entry, endpoint healthy); it materializes nowhere until agents CLI >=0.9.1 or a target change. If zcode/hermes never land locally, it becomes dead registry weight - re-evaluate at the 0.9.1 update.",
+    "paths": "canonical - url https://mcp.deepwiki.com/mcp (remote transport, no local artifacts to verify); endpoint verified responding 2026-09-19.",
+    "scatter": {
+      "surfaces_present": ["SSOT registry ONLY (enabled, transport http, tags approved/http/remote/zcode-only/shared)"],
+      "surfaces_absent": ["~/.claude.json", "~/.codex/config.toml", "~/.cursor/mcp.json", "~/.gemini/settings.json", "~/.mcp.json"],
+      "variants": ["deepwiki (single canonical name; zero name variants - absent from every consumer surface)"],
+      "note": "This server is the cleanest measured instance of ground-truth item 5 (zcode/hermes target drop): registry entry exists, no consumer anywhere."
+    }
+  },
+  {
+    "name": "digitalocean",
+    "health": "SPAWN-OK",
+    "disposition": "decommission-candidate",
+    "why": "The server still boots and speaks MCP: 'npx -y @digitalocean/mcp --services apps --transport stdio' answered initialize (serverInfo mcp-digitalocean 1.0.70) with stdio logs confirming startup. Decommission evidence: (1) upstream repo github.com/digitalocean/digitalocean-mcp is archived:true, last push 2025-07-23 - the 'archived MCP' premise confirmed, and precisely: digitalocean/mcp (no suffix) returns 404, the real archived repo is digitalocean-mcp; (2) every audited Claude project cwd suppresses it via disabledMcpServers - a sustained user-side do-not-spawn signal; (3) token is env-gated (DIGITALOCEAN_API_TOKEN present at User+Machine OS scope and inline in registry env, len 25) but the npm package remains installable (latest 1.0.70, registry modified 2026-09-11, latest not deprecated-flagged), so removal is a choice rather than a forced break. Counterweights the owner must weigh: the toolchain README records the archived package as an intentional 'selected by user request' choice; two skills depend on it (digitalocean-app-platform-ops, digitalocean-mcp-setup - both self-describe as operating 'the archived' server and forbid silent migration to the maintained successor); the wrapper dir tools/mcp/digitalocean-mcp/ (README, scripts, validation) exists in agent-skills-toolchain. Full decommission touches: registry entry + env, ~/.claude.json root entry, ~/.gemini/settings.json entry, 2 skills, the tooling dir, and the token env vars. NOT decommissioned here - read-only mandate.",
+    "paths": "canonical - command 'npx' resolvable on PATH (spawn-verified); package @digitalocean/mcp installable and cached (v1.0.70 booted). Arg drift noted: gemini entry omits '-y' and '--transport stdio' vs registry; claude.json wraps as 'cmd /c npx ...' (standard Windows wrapper, not path ambiguity).",
+    "scatter": {
+      "surfaces_present": [
+        "SSOT registry (enabled, targets [claude], npx -y @digitalocean/mcp --services apps --transport stdio, requiredEnv DIGITALOCEAN_API_TOKEN)",
+        "~/.claude.json root mcpServers - cmd /c npx wrapper variant",
+        "~/.gemini/settings.json - npx with drifted args (extra surface vs registry targets)",
+        "agent-skills-toolchain tools/mcp/digitalocean-mcp/ (README.md, scripts/, validation/, references/)",
+        "skills: digitalocean-app-platform-ops, digitalocean-mcp-setup"
+      ],
+      "surfaces_absent": ["~/.codex/config.toml (description 'Imported from .codex/config.toml' is stale - zero matches)", "~/.cursor/mcp.json", "~/.mcp.json"],
+      "variants": ["digitalocean (single name; no plugin:local-mcp-bridge variant, unlike deepscan/deepsource)"],
+      "note": "disabledMcpServers lists digitalocean in all 35 audited project cwds. npm _npx cache has no separate digitalocean entry dir but package resolved and ran on demand."
+    }
+  }
+]

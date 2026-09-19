@@ -1,0 +1,158 @@
+{
+  "scope": "Lane C5: ~/.mcp.json vs SSOT (~/.agents/agents.json) reconciliation for the 21 named 'undocumented-active' servers. Probes used (mechanically different from the GT python sweep): jq 1.8.1 key/entry extraction on ~/.mcp.json and ~/.claude.json; jq extraction on registry-inventory.json (SSOT distill); raw-text grep of ~/.agents/agents.json as independent absence-confirmation; on-disk ls of server entry points; live socket probes (curl -m 5); sync-script source read; this session's own MCP connection banner as behavioral corroboration. Detector control: jq+grep found all 9 known-present SSOT names (agent-mail, angr, apify, cursor-bridge, cve-mcp, github-security, nuclei, osint, semgrep-hub) before any absence was reported.",
+  "findings": [
+    {
+      "item": "GROUND-TRUTH CORRECTION 1",
+      "classification": "correction",
+      "evidence": "~/.mcp.json (5356 bytes, mtime 2026-09-06 14:38) holds 34 mcpServers entries, not 19. jq count=34; keys: agent-mail,angr,apify,basic-memory,brightdata,cloud-audit,cloud-hub,context7,cursor-bridge,cve,cve-mcp,figma,firecrawl,firecrawl-kit,frida-mcp,ghidra-mcp,github,github-security,hacktricks,hexstrike-ai,ida-pro-mcp,metasploit,mitmproxy,nuclei,osint,playwright,playwright-cdp,playwright-extension,schrodinger,search-hub,semgrep,sliver,sliver-full,social-hub.",
+      "recommendation": "Update the audit frame: 21 items were named for '19 undocumented'; measured SSOT-absent set from ~/.mcp.json is 11 (metasploit, sliver, sliver-full, hacktricks, search-hub, cloud-hub, firecrawl-kit, brightdata, playwright-cdp, playwright-extension, social-hub), of which social-hub was not even on the lane list."
+    },
+    {
+      "item": "GROUND-TRUTH CORRECTION 2",
+      "classification": "correction",
+      "evidence": "The GT probe tag for the ~/.mcp.json claim points at tui-inventory.json, but that file has NO ~/.mcp.json section at all (surfaces covered: claude, codex, cursor, gemini, opencode, goose, agy, aider, grok-agent, cyberstrike, fabric, zcode, hermes). The surface went unprobed by the GT sweep; this lane is its first mechanical coverage.",
+      "recommendation": "Add a 'home-mcp' section to future tui-inventory sweeps so the surface is not silently dropped again."
+    },
+    {
+      "item": "SURFACE: ~/.mcp.json is outside the sync pipeline",
+      "classification": "deliberate-fleet-home (surface-level)",
+      "evidence": "C:/Users/Prekzursil/.agents/scripts/sync_shared_state.ps1 lines 65-73 and 179-186 merge only .codex/config.toml, .claude.json, and .cursor/mcp.json. ~/.mcp.json is never written by sync. 25 of its 34 entries shadow same-name user-scope ~/.claude.json entries. Claude Code loads it as PROJECT scope whenever a session starts with cwd=HOME - proven behaviorally by this session's banner attempting metasploit/sliver/sliver-full/hacktricks/cve/firecrawl-kit, which exist in NO Claude surface except ~/.mcp.json.",
+      "recommendation": "Owner decision: either register ~/.mcp.json as a fourth sync target or retire it (move its 11 unique servers into SSOT and delete the file) - it is a pre-SSOT legacy fleet home (memory: 'canonical ~/.mcp.json -> promote script -> USER scope', 2026-07-04, superseded by .agents/agents.json)."
+    },
+    {
+      "item": "agent-mail",
+      "classification": "SSOT-documented-exact (premise fails: NOT undocumented)",
+      "evidence": "SSOT agent-mail: enabled, targets codex,claude,zcode,hermes, url http://127.0.0.1:18812/mcp/ - byte-identical to the ~/.mcp.json entry. Independent live probe: curl http://127.0.0.1:18812/api/health returned {\"status\":\"ok\",\"timestamp\":\"2026-09-19T04:02:11\"}. Port 8812 (still documented in agent-skills-toolchain CLAUDE.md and multi-ai-mingle skill) is DEAD.",
+      "recommendation": "Remove the ~/.mcp.json duplicate; fix the stale 8812 port references in toolchain CLAUDE.md / multi-ai-mingle docs to 18812."
+    },
+    {
+      "item": "angr",
+      "classification": "SSOT-documented-exact",
+      "evidence": "SSOT angr: enabled, targets=claude, cmd C:\\Users\\Prekzursil\\.local\\opt\\angr\\.venv\\Scripts\\angr-mcp.exe - identical to ~/.mcp.json and ~/.claude.json entries. Present in this live session (mcp__angr__* tools). GT#4 angr x6 process pile-up is multi-session spawn, not config duplication alone.",
+      "recommendation": "Drop the ~/.mcp.json copy (shadowed by user-scope anyway); address pile-up via mcp_doctor ceiling, not config."
+    },
+    {
+      "item": "apify",
+      "classification": "SSOT-documented-exact",
+      "evidence": "SSOT apify: enabled, targets codex,claude,zcode, url https://mcp.apify.com/ - identical to ~/.mcp.json and codex config entries.",
+      "recommendation": "Drop the ~/.mcp.json duplicate."
+    },
+    {
+      "item": "cursor-bridge",
+      "classification": "SSOT-documented-exact (with estate-lock tension)",
+      "evidence": "SSOT cursor-bridge: enabled=true, targets=claude, cmd C:\\Python314\\python.exe, args D:\\opt\\cursor-bridge\\cursor_bridge_mcp.py - identical in ~/.mcp.json. Entry point exists on disk (4452 B, mtime 2026-09-06 14:37; ~/.mcp.json modified 14:38 - wired the same minute). Live in this session (mcp__cursor-bridge__bridge_* tools). TENSION: HOME AGENTS.md estate lock G-32 says 'NO persistent Cursor-bridge mode'.",
+      "recommendation": "Owner-level decision: either G-32 covers a different mechanism (then document that) or the SSOT entry + binaries violate a standing lock - do not silently keep both."
+    },
+    {
+      "item": "github-security",
+      "classification": "SSOT-documented-exact",
+      "evidence": "SSOT github-security: enabled, targets=claude, url http://127.0.0.1:31410/mcp - identical to ~/.mcp.json and ~/.claude.json copies. Raw SSOT grep confirms 2 mentions (name+targets). Failed in banner because the 31xxx supervisor is down (curl :31410 -> 000, connection refused), not because it is unconfigured.",
+      "recommendation": "Drop ~/.mcp.json duplicate; banner-failure triage should target the hexstrike supervisor, not the config."
+    },
+    {
+      "item": "osint",
+      "classification": "SSOT-documented-exact",
+      "evidence": "SSOT osint: enabled, targets=claude, url http://127.0.0.1:31412/mcp - identical to ~/.mcp.json. Hub twin osint-hub (same port, targets=hermes) also in SSOT.",
+      "recommendation": "Drop ~/.mcp.json duplicate."
+    },
+    {
+      "item": "nuclei",
+      "classification": "SSOT-documented-exact",
+      "evidence": "SSOT nuclei: enabled, targets=claude, url http://127.0.0.1:31417/mcp - identical to ~/.mcp.json. Hub twin nuclei-hub (targets=hermes) in SSOT.",
+      "recommendation": "Drop ~/.mcp.json duplicate."
+    },
+    {
+      "item": "cve",
+      "classification": "SSOT-name-variant",
+      "evidence": "~/.mcp.json cve = http://127.0.0.1:31411/mcp - byte-identical endpoint to SSOT cve-mcp (and to ~/.mcp.json's OWN separate cve-mcp key). So ~/.mcp.json carries two keys (cve, cve-mcp) to the same port; codex config.toml separately carries cve. Failed in banner: supervisor down.",
+      "recommendation": "Delete the cve alias key; keep cve-mcp as the SSOT name. Remove from ~/.mcp.json entirely once SSOT-sync covers the surface."
+    },
+    {
+      "item": "semgrep",
+      "classification": "SSOT-name-variant (transport conflict)",
+      "evidence": "~/.mcp.json semgrep = http://127.0.0.1:31419/mcp, which is the exact endpoint of SSOT semgrep-hub (targets=hermes). But SSOT ALSO has semgrep (targets=claude) as stdio C:\\Users\\Prekzursil\\.local\\bin\\semgrep-mcp.exe --semgrep-path ... - a DIFFERENT transport for the same tool. Project-scope (cwd=HOME) vs user-scope therefore race on which semgrep a session gets; the npx semgrep MCP family has sunset (this session's semgrep exposes only mcp__semgrep__deprecation_notice).",
+      "recommendation": "Delete the ~/.mcp.json http entry; keep exactly one SSOT semgrep definition (the local exe) so transport is deterministic."
+    },
+    {
+      "item": "metasploit",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: http://127.0.0.1:31416/mcp (hexstrike supervisor port family 314xx). Also wired in ~/.codex/config.toml. NOT in SSOT: raw grep of ~/.agents/agents.json = 0 mentions; port 31416 appears nowhere in SSOT. curl :31380-family probe -> 000 (backend down; banner ConnectionRefused consistent).",
+      "recommendation": "Register in SSOT as an on-demand hexstrike-served server (enabled=false default, targets codex+claude), or remove from both surfaces if the supervisor fleet is retired."
+    },
+    {
+      "item": "sliver",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: http://127.0.0.1:31380/mcp; also in ~/.codex/config.toml. SSOT raw grep 0 mentions; no SSOT entry on 31380. curl :31380 -> 000.",
+      "recommendation": "Register in SSOT (enabled=false, on-demand) or remove from both surfaces."
+    },
+    {
+      "item": "sliver-full",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: http://127.0.0.1:31381/mcp; also in ~/.codex/config.toml. SSOT raw grep 0 mentions.",
+      "recommendation": "Same as sliver: register on-demand or remove."
+    },
+    {
+      "item": "hacktricks",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: http://127.0.0.1:31415/mcp; also in ~/.codex/config.toml. SSOT raw grep 0 mentions; port 31415 absent from SSOT. The hacktricks skill explicitly references a 'connected hacktricks MCP' - deliberate tooling.",
+      "recommendation": "Register in SSOT (enabled=false, targets codex+claude) so the codex copy is sync-managed instead of hand-maintained."
+    },
+    {
+      "item": "firecrawl-kit",
+      "classification": "deliberate-fleet-home (unregistered; NOT a firecrawl variant)",
+      "evidence": "~/.mcp.json: http://127.0.0.1:31414/mcp; also in ~/.codex/config.toml. Distinct from SSOT firecrawl which is http://127.0.0.1:31114/mcp (different port, different server) - so this is not a name variant of the documented firecrawl. SSOT raw grep 0 mentions of firecrawl-kit; port 31414 absent from SSOT.",
+      "recommendation": "Register as its own SSOT entry (hexstrike-served, on-demand) or remove; do not merge with firecrawl."
+    },
+    {
+      "item": "search-hub",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json + ~/.claude.json: stdio C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\search-hub\\hub.py - file exists on disk (25661 B, 2026-07-19), built in the executed checkout. SSOT raw grep 0 mentions. Env names (values not read): EXA_API_KEY(x2), FIRECRAWL_API_KEY(x2), TAVILY_API_KEY(x2). Banner CONNECTION_CLOSED (stdio server exits).",
+      "recommendation": "Register in SSOT as a toolchain exe server (targets=claude) - it is a first-class estate multiplexer with live API-key env wiring; or retire the binary if exa/tavily/firecrawl direct entries have superseded it."
+    },
+    {
+      "item": "cloud-hub",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json + ~/.claude.json: stdio tools/mcp/cloud-hub/hub.py (exists, 21247 B, 2026-07-19); README in repo worktree .worktrees/consult-offsec-wave/tools/mcp/cloud-hub/README.md. cloud-infra-toolchain skill documents cloud-hub as the estate's cloud multiplexer rail. SSOT raw grep 0 mentions. GT#4: cloud-hub x6 process pile-up. Env names: AWS_PROFILE, AWS_REGION, GOOGLE_CLOUD_PROJECT, KAGGLE_*, LIGHTNING_*, MODAL_*, RUNPOD_API_KEY.",
+      "recommendation": "Register in SSOT (targets=claude, toolchain exe) and fix the x6 pile-up via mcp_doctor ceiling; it is the load-bearing entry point for the whole cloud-infra-toolchain skill family."
+    },
+    {
+      "item": "brightdata",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: http https://mcp.brightdata.com/mcp?token=${BRIGHTDATA_TOKEN} - env placeholder, no literal secret in config. Also in ~/.codex/config.toml. SSOT raw grep (case-insensitive) 0 mentions. Connected live in this session (mcp__brightdata__* tools). Memory: 'Bright Data wired; #176 merged' (2026-07-24).",
+      "recommendation": "Register in SSOT (http, targets codex+claude, env-token) so the codex copy is sync-managed."
+    },
+    {
+      "item": "tooluniverse",
+      "classification": "deliberate-fleet-home (unregistered; wrong surface blamed)",
+      "evidence": "NOT in ~/.mcp.json at all (jq keys: absent). Lives ONLY in ~/.claude.json root: stdio uvx tooluniverse==1.2.4 (version-pinned = deliberate). SSOT raw grep 0 mentions. The ddi-admet-research / devtu / tooluniverse skill family depends on it. Banner CONNECTION_CLOSED (uvx resolution failed or timed out).",
+      "recommendation": "Register in SSOT (uvx, targets=claude, pin the version) - a research-load-bearing server currently surviving only as a hand-edit in .claude.json, one curation sweep away from silent loss."
+    },
+    {
+      "item": "playwright-cdp",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: stdio npx -y @playwright/mcp@0.0.78 --cdp-endpoint http://127.0.0.1:9222. SSOT has only plain 'playwright' (npx @playwright/mcp@latest, targets=claude) - a different launch mode, so not a name variant. GT#4: playwright family x10 each vs ceiling 3. Connected live in this session (mcp__playwright-cdp__* tools). browser-rail skill documents the CDP mode as deliberate.",
+      "recommendation": "Register playwright-cdp/-extension in SSOT with an explicit process-ceiling note (they are the pile-up offenders), or consolidate to one playwright entry with mode flags chosen per session."
+    },
+    {
+      "item": "playwright-extension",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "~/.mcp.json: stdio npx -y @playwright/mcp@0.0.78 --extension. Same story as playwright-cdp: pinned 0.0.78 vs SSOT playwright @latest; live in session (mcp__playwright-extension__* tools).",
+      "recommendation": "Same as playwright-cdp."
+    },
+    {
+      "item": "fiddler",
+      "classification": "rogue",
+      "evidence": "Lives ONLY in ~/.claude.json root: type=http, url=http://localhost:8868/mcp (Fiddler desktop app's MCP endpoint). NOT in ~/.mcp.json (jq keys absent), NOT in SSOT (raw grep 0), no wiring provenance found in toolchain docs or .agents docs (engagement-report/session-catalog hits were for social-hub/McpHub, not fiddler). Banner ConnectionRefused - the Fiddler app is not running. Detector control: jq successfully extracted the known-present fiddler entry from .claude.json before this absence claim.",
+      "recommendation": "Remove from ~/.claude.json, or register in SSOT as enabled=false app-dependent (like burp, which IS registered disabled). As-is it is a dead, undocumented endpoint in the primary Claude surface."
+    },
+    {
+      "item": "BONUS (outside lane list, same defect class)",
+      "classification": "deliberate-fleet-home (unregistered)",
+      "evidence": "social-hub: ~/.mcp.json + ~/.claude.json stdio tools/mcp/social-hub/hub.py, live in session (mcp__social_hub__* and mcp__McpHub__social_hub__*), SSOT raw grep 0 mentions, README only in a worktree (.worktrees/consult-offsec-wave/tools/mcp/social-hub/README.md - not merged to the executed checkout's tracked docs). McpHub: ~/.claude.json sse http://127.0.0.1:24680/mcp, live (mcp__McpHub__* namespace serving cve_mcp/osint/github_security/hexstrike_ai/social_hub sub-tools), SSOT 0 mentions, referenced by .agents/skills/owner-ops-authorization/SKILL.md.",
+      "recommendation": "Fold both into the SSOT registration pass; McpHub especially - it duplicates the whole 31xxx security fleet under one SSE umbrella with zero registry provenance."
+    }
+  ],
+  "summary": "Measured on this box 2026-09-19: ~/.mcp.json holds 34 servers (not 19; tui-inventory.json, the GT-cited artifact, never covered this surface). Of the 21 named items: 7 are SSOT-documented byte-identical (agent-mail, angr, apify, cursor-bridge, github-security, nuclei, osint - premise 'undocumented' fails for these), 2 are SSOT name-variants (cve == cve-mcp @31411; ~/.mcp.json semgrep == semgrep-hub @31419 and conflicts with SSOT's stdio semgrep), 11 are deliberate-but-unregistered (metasploit, sliver, sliver-full, hacktricks, firecrawl-kit on dead hexstrike supervisor ports 31380/31381/31414-31416; search-hub + cloud-hub as on-disk toolchain hub.py builds; brightdata; tooluniverse (uvx-pinned, .claude.json-only - not even in ~/.mcp.json); playwright-cdp/-extension), and 1 rogue (fiddler, .claude.json-only localhost:8868, zero provenance, dead). ~/.mcp.json is not a sync_shared_state.ps1 target - it is a pre-SSOT legacy fleet home loaded as project scope for HOME-cwd sessions, shadowing 25 same-name user-scope entries. Banner 'failed to connect' for the 31xxx family is backend-down (curl: 000), not unconfigured. agent-mail is healthy at 18812 (8812 doc refs are stale). Bonus SSOT-absent: social-hub, McpHub. Recommended single fix: one registration pass into ~/.agents/agents.json for the 11 (+2 bonus), delete the cve alias and the redundant ~/.mcp.json copies, and resolve the cursor-bridge G-32 tension at owner level. All absences double-confirmed by raw-text grep of ~/.agents/agents.json with a passing known-present detector control.",
+  "lane": "C5",
+  "delivered": "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/waveC/C5.json"
+}

@@ -1,0 +1,140 @@
+{
+  "lane": "V4",
+  "role": "adversarial cross-lane verification: read ALL waveC/*.json (C1-C8, 98 findings), hunt overlaps/conflicts, adjudicate with mechanically different probes; verify B3/C2 drop-premise",
+  "probes_used_by_this_lane": [
+    "python json.load re-parse of ~/.agents/agents.json + os.stat mtime (GT used python@05:41; C8 used jq -> my python re-parse at a third time is independent of both)",
+    "python json.load of ~/.mcp.json + set intersection with SSOT server names (C5 used jq)",
+    "python json.load of ~/.claude.json root mcpServers count",
+    "os.path.isdir on repo skills/ + repo .agents/skills + vault for opusclip-shorts and disk-space-manager",
+    "read-only git -C ~/.agents log/branch (live-capture flow)",
+    "os.listdir of ~/.claude/rules and ~/.claude/rules/common",
+    "json.load of waveB/B3.json + waveA listing + resume-manifest done.jsonl read"
+  ],
+  "verifications": [
+    {
+      "claim": "C4[0] + C8[12]: agents.json mcp.servers holds 81 servers, not GT#1's 80; delta = video-agent-kit added by a post-probe edit (file mtime 06:59)",
+      "verdict": "CONFIRMED",
+      "settling_probe": "independent python json.load + os.stat at ~07:2x (mechanically distinct from GT's 05:41 python parse and C8's jq)",
+      "evidence": "my count = 81; 'video-agent-kit' IS a key; file mtime 06:59:46 (after GT probe 05:41); syncMode=source-only confirmed. Corroborating artifact: run dir contains .video_agent/ (mtime 06:32) - the mid-audit addition story closes. C4 and C8 agree with each other; GT#1 was correct at probe time, stale now - an edit-delta, not a counting error."
+    },
+    {
+      "claim": "C5[0]: ~/.mcp.json holds 34 mcpServers, not GT#2's '19+'; C5[1]: the GT sweep never actually probed ~/.mcp.json (tui-inventory.json has no such section)",
+      "verdict": "CONFIRMED",
+      "settling_probe": "python json.load + exact-name set-intersection with SSOT mcp.servers",
+      "evidence": "my count = 34. Exact-name documented in SSOT = 20; undocumented = 14 (brightdata, cloud-hub, cve(name-variant of SSOT cve-mcp), figma, firecrawl-kit, hacktricks, metasploit, playwright-cdp, playwright-extension, schrodinger, search-hub, sliver, sliver-full, social-hub). Arithmetic reconciles with C5's per-item classes exactly: C5's 10 in-file unregistered + social-hub bonus = 11, + figma + schrodinger (outside C5's 21-name lane) + cve variant = 14. No residual discrepancy."
+    },
+    {
+      "claim": "GT#2 as stated: '~/.mcp.json 19+ active-but-undocumented'",
+      "verdict": "REFUTED",
+      "settling_probe": "whole-file python count + SSOT intersection (above)",
+      "evidence": "both numbers wrong: total is 34, and of the 21 GT-named servers 9 were already SSOT-documented (7 exact + 2 name-variant per C5; my whole-file probe independently agrees). True undocumented set in ~/.mcp.json = 14. GT number understated the surface and overstated the undocumented share simultaneously."
+    },
+    {
+      "claim": "C2[5] 'opusclip-shorts genuinely unreposed (absent from all 3 repo trees)' VS C8[7] 'opusclip-shorts IS captured: commits 0be5302b/20d8ec1c/ce1d6048 pushed today'",
+      "verdict": "CONFIRMED-BOTH (apparent contradiction, adjudicated as complementary)",
+      "settling_probe": "os.path.isdir on both canonical-repo trees + read-only git -C ~/.agents log -- skills/opusclip-shorts",
+      "evidence": "canonical repo: skills/opusclip-shorts = absent, .agents/skills/opusclip-shorts = absent (C2 right). Live ~/.agents clone: IS a git repo on branch live-capture/2026-09-02 and git log shows exactly 0be5302b, 20d8ec1c, ce1d6048 touching skills/opusclip-shorts (C8 right). ADJUDICATION: 'reposed' is scope-dependent. Correct synthesis: absent from the canonical toolchain repo (feat/tool-registry-governance); captured on the live-capture branch of the live clone. C2's ACTIVE-EDIT-RISK flag (vault mtime 06:58) stands regardless."
+    },
+    {
+      "claim": "C1[2] + C8[7] + C2 convergence: exactly 6 real skills in vault absent from canonical repo skills/: estate-offensive-doctrine, jailbreak, opusclip-shorts, fabric-patterns, hosted-model-agents, qwen-space-tool-api (+ junk synced/ and .ruff_cache)",
+      "verdict": "CONFIRMED",
+      "settling_probe": "three-lane cross-check (C1 name+hash diff, C8 os.listdir set-diff, C2 per-skill git/sha probes) - all three enumerate the identical 6-name set; my isdir probes spot-confirmed 2 of 6 (opusclip-shorts) plus disk-space-manager edge",
+      "evidence": "C1: only-vault = 6 + synced/ + .ruff_cache, only-repo = 0. C8: live 383 - repo 375 = same 6 + 2 junk. C2 deep-dives each name and adds privacy classification (estate-offensive-doctrine + jailbreak = SENSITIVE-PRIVATE-ONLY; fabric-patterns = PRIVATE-ONLY-CONTENT; qwen-space-tool-api = self-declared deprecated). No lane dissents on membership."
+    },
+    {
+      "claim": "C2[0] + C1[11] + C8[3] triangulation on disk-space-manager: present in repo skills/ on-disk-untracked (byte-identical to vault), ABSENT from repo .agents/skills mirror",
+      "verdict": "CONFIRMED",
+      "settling_probe": "os.path.isdir triple-check",
+      "evidence": "repo skills/disk-space-manager = True, repo .agents/skills/disk-space-manager = False, vault = True. Matches C2 (sha-identical, git ls-files 0, not ignored), C1[11] ('?? skills/disk-space-manager/' untracked), C8[3] (mirror stale). Three lanes, three probes, one state - model convergence."
+    },
+    {
+      "claim": "C3[1] '~/.claude/rules/common/ is EMPTY (0 of 20 repo files materialized)' VS C8[6] '~/.claude/rules is a separate 15-entry language-tree dir'",
+      "verdict": "CONFIRMED-BOTH (no conflict - different levels of the same tree)",
+      "settling_probe": "os.listdir of both levels",
+      "evidence": "~/.claude/rules = 15 entries (README.md + common + 13 language dirs) exactly as C8[6] said; common/ = 0 entries exactly as C3[1] said. The HIGH severity of C3[1] stands (dangling references from live config into the empty dir, C3[2])."
+    },
+    {
+      "claim": "C8[5] 'sync flow map COMPLIANT' VS C3[3] 'the MANDATED sync never covers rules/guides'",
+      "verdict": "CONFIRMED-BOTH (complementary, not contradictory)",
+      "settling_probe": "comparison of C8[5]'s own enumerated sync targets against C3[3]'s claim",
+      "evidence": "C8[5] evidence enumerates sync outputs: ~/.codex/config.toml, ~/.claude.json, ~/.cursor/mcp.json, skills junction chain - NO rules/guides stage appears anywhere in its own confirmation. So C8's 'compliant' verdict is about what the pipeline DOES cover; C3's finding is that rules/guides fall outside it. Both true; C3[3] is the actionable gap."
+    },
+    {
+      "claim": "C6[8]: the session environment header 'Is a git repository: false' for agent-skills-toolchain is wrong",
+      "verdict": "CONFIRMED",
+      "settling_probe": "os.path.exists/isdir on .git + independent second signal",
+      "evidence": ".git exists and is a directory (True/True). Second mechanically independent signal: THIS V4 session's own environment header carries the identical false 'Is a git repository: false' for the same path - the harness header defect reproduces across sessions. Any lane that trusted the header over disk state inherited a wrong premise."
+    },
+    {
+      "claim": "V4-discovered (no waveC lane caught it): GT#2 '~/.claude.json 86 mcpServers' is now stale",
+      "verdict": "CONFIRMED (stale-by-edit, same class as the 80->81 delta)",
+      "settling_probe": "python json.load root mcpServers count",
+      "evidence": "count = 87 and 'video-agent-kit' IS present in root mcpServers - the same 06:59 post-probe edit that bumped agents.json 80->86+1 also bumped this surface 86->87. All three registry-adjacent GT numbers aged together; treat any 05:41 count as pre-edit."
+    },
+    {
+      "claim": "Task premise: 'these lanes dropped with receipts (B3, C2)'",
+      "verdict": "REFUTED",
+      "settling_probe": "disk check + manifest read",
+      "evidence": "waveB/B3.json exists (9.5KB) and parses - different schema (surface/current_state/violations/health_sample/cross_ref/gap_list/max_legal_plan/notes) but a substantive delivered verdict; resume-manifest done.jsonl marks B3 done (line 56) and C2 done (line 84); waveC/C2.json holds 9 real findings. Both 'dropped' lanes recovered and delivered. Matches the known box pattern: subagents appear canceled but their work is on disk - re-verify before declaring loss."
+    }
+  ],
+  "contradictions": [
+    {
+      "id": "CON-1",
+      "kind": "apparent (definitional), adjudicated",
+      "lanes": "C2[5] vs C8[7]",
+      "subject": "opusclip-shorts reposed status",
+      "resolution": "C2 'genuinely unreposed' = not in canonical toolchain repo (true); C8 'captured' = committed on live-capture/2026-09-02 branch of the live ~/.agents clone (true). Synthesis for the final report: 'absent from canonical repo; captured on live-capture branch; vault copy actively edited 06:58'. Neither lane needs correction."
+    },
+    {
+      "id": "CON-2",
+      "kind": "real, against ground truth",
+      "lanes": "C5[0]/[1] vs GT#2 (~/.mcp.json)",
+      "subject": "~/.mcp.json size and undocumented share",
+      "resolution": "GT '19+ active-but-undocumented' REFUTED: 34 total, 14 truly undocumented (incl. 1 name-variant), 20 exact-documented. GT's own probe artifact never covered the surface. C5's numbers confirmed by independent count with perfect arithmetic reconciliation."
+    },
+    {
+      "id": "CON-3",
+      "kind": "real, against ground truth (aging)",
+      "lanes": "C4[0] + C8[12] vs GT#1; V4 vs GT#2 (~/.claude.json)",
+      "subject": "server counts 80->81 (agents.json) and 86->87 (~/.claude.json root)",
+      "resolution": "both stale-by-edit from one 06:59 mid-audit edit adding video-agent-kit across surfaces. GT counts were right at 05:41. Downstream lanes must timestamp count claims."
+    },
+    {
+      "id": "OVL-1",
+      "kind": "overlap, convergent (no conflict)",
+      "lanes": "C1[2]+C1[9] = C8[7] = C2[1..7]",
+      "subject": "vault-vs-repo orphan skills and vault junk",
+      "resolution": "identical 6-skill set from three independent methods; C2 adds the actionable layer (privacy classification per skill; synced/ = hook false-positive, do NOT commit). Merge as one finding with C2's classifications attached."
+    },
+    {
+      "id": "OVL-2",
+      "kind": "overlap, convergent (no conflict)",
+      "lanes": "C8[6] vs C3[1]/[3]",
+      "subject": "rules tree state and sync coverage",
+      "resolution": "different tree levels and different questions (layout vs materialization vs pipeline coverage); all confirmed by my direct listing. Combined actionable item: rules/guides are outside the sync pipeline AND common/ is unmaterialized AND the .gitignore junction comment is wrong - three defects, one surface."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "GAP-0",
+      "severity": "premise-correction (no coverage gap)",
+      "item": "B3 and C2 were reported to this lane as 'dropped with receipts'. Both DELIVERED: B3.json parses with a full (differently-shaped) verdict, C2.json holds 9 findings, manifest marks both done. No re-run needed."
+    },
+    {
+      "id": "GAP-1",
+      "severity": "minor (bookkeeping, not work)",
+      "item": "resume-manifest anomaly: A01 was re-marked partial at ts 1789789340 AFTER its done mark (ts 1789787097) and never re-closed; waveA/A01.json exists on disk, so the artifact delivered - only the manifest trail is inconsistent. Same pattern (repeat partial marks) visible for A06-A09/A16-A18 in the 1789789xxx window - looks like a re-verification pass that reused --mark-partial without closing."
+    },
+    {
+      "id": "GAP-2",
+      "severity": "info",
+      "item": "waveD V1/V2/V3/V5 marked partial at spawn (manifest lines 88-92); their verdict files were not present when V4 checked. In-flight siblings, not adjudicable by this lane."
+    },
+    {
+      "id": "GAP-3",
+      "severity": "scope-honesty note",
+      "item": "V4 read all 98 waveC finding items+classifications and deep-read the evidence of every finding in the named conflict clusters (C1[2,11], C2[0,5], C3[1], C4[0], C5[0,1,20,24], C6[8], C8[3,5,6,7,12]); remaining findings (e.g. C5 per-server details, C6 script scatter, C7 port map) were checked for cross-lane overlap only, not independently re-probed. No contradictions surfaced among them at the item level."
+    }
+  ]
+}

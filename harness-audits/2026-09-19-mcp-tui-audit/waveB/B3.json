@@ -1,0 +1,85 @@
+{
+  "surface": "gemini (~/.gemini/settings.json, mcpServers)",
+  "current_state": {
+    "file": "C:/Users/Prekzursil/.gemini/settings.json",
+    "parses": true,
+    "server_count": 33,
+    "count_confirmed_by": "jq keys (mechanically different from tagged python sweep) + exact match vs tui-inventory.json gemini list",
+    "top_level_keys": ["general", "mcpServers", "model", "security", "skills", "tools"],
+    "transport_mix": { "http": 4, "npx": 11, "bare_path_exe": 7, "uvx_fullpath": 3, "local_interpreter_script": 6, "wsl": 1, "docker": 1 },
+    "http_servers": ["figma", "linear", "notion", "huggingface"],
+    "secrets_check": "mcpServers entries carry env $VAR references only; no literal token values observed (names/presence inspected, values not printed)"
+  },
+  "violations": [
+    "V1: Entire surface (33/33) is outside the SSOT sync design — zero servers in ~/.agents/agents.json carry a 'gemini' target (jq: gemini_in_targets=[]); sync_shared_state.ps1 merges only codex/claude/cursor. ~/.gemini is a hand-maintained 4th surface; drift is already realized in 7+ entries. Violates the 'never maintain a second diverged copy' control-plane contract.",
+    "V2: 2 servers not in SSOT registry at all: figma (http https://mcp.figma.com/mcp — also live on the Claude surface per tui-inventory, so an SSOT gap across 2 surfaces) and memory (npx -y @modelcontextprotocol/server-memory — a parallel memory system; estate rule G-81 makes basic-memory the SOLE semantic-memory writer).",
+    "V3: Duplicate mount: 'github' and 'github_cli' BOTH run gh-cli-mcp; the 'github' name shadows SSOT github (https://api.githubcopilot.com/mcp HTTP) with a completely different local stdio server — name collision with different semantics per surface.",
+    "V4: linear URL is https://mcp.linear.app (no endpoint path). Curl: POST / -> 404, POST /mcp -> 401 (alive, auth-gated). Gemuni-side URL is missing the /mcp endpoint path = probable dead entry UNVERIFIED against a real MCP client handshake (settling experiment: live gemini mcp list / client init).",
+    "V5: GROUND-TRUTH CORRECTION: SSOT registry now holds 81 servers, not 80. Live-minus-inventory delta = 'video-agent-kit' (targets claude,codex,zcode; no gemini). agents.json mtime 2026-09-19 06:29:34 is AFTER the 05:41 sweep, so the 05:41 registry-inventory.json is stale for every downstream lane. UNVERIFIED whether video-agent-kit was added at 06:29 or the python sweep under-counted (settling experiment: diff against a pre-06:29 agents.json backup).",
+    "V6: Heavy RE/security stdio fleet mirrored onto the TUI: hexstrike-ai, ida-pro-mcp, ghidra-mcp, frida-mcp, cheatengine, binary-ninja-mcp plus docker-based sonarqube — each gemini session can spawn these, the same pile-up class as GT#4; sonarqube is in the audit spawn-banned (docker) class.",
+    "V7: ralph-orchestrator split-runtime: gemini routes via wsl.exe -> /home/prekzursil/.local/bin/ralph (verified present+executable in WSL), SSOT/Claude use C:\\Users\\Prekzursil\\.cargo\\bin\\ralph.exe — two ralph instances can silently diverge; codex-vscode-host-routing doctrine says Windows is canonical."
+  ],
+  "health_sample": {
+    "policy": "static + curl -m 5 only; zero servers spawned; no credential values printed",
+    "items": [
+      { "name": "figma", "check": "curl POST https://mcp.figma.com/mcp", "result": "HTTP 400 (endpoint alive, rejects empty handshake)", "verdict": "reachable" },
+      { "name": "linear", "check": "curl POST root vs /mcp", "result": "root 404, /mcp 401", "verdict": "gemini URL missing /mcp path — probable broken" },
+      { "name": "context7", "check": "curl https://mcp.context7.com/mcp + npm @upstash/context7-mcp", "result": "HTTP 400 alive; npm 200 (gemini's npx pkg exists)", "verdict": "both variants viable" },
+      { "name": "notion", "check": "curl https://mcp.notion.com/mcp", "result": "HTTP 401 (auth-gated, alive)", "verdict": "reachable" },
+      { "name": "memory", "check": "npm registry @modelcontextprotocol/server-memory", "result": "200 exists", "verdict": "installable but unregistered" },
+      { "name": "tavily", "check": "npm registry tavily-mcp", "result": "200", "verdict": "ok" },
+      { "name": "local_artifacts", "check": "file existence x9", "result": "9/9 OK: deepsource-wrapper.mjs, hexstrike python.exe, frida-mcp.exe, ida python.exe, ghidra python.exe, cheatengine python.exe, uvx.exe, ralph.exe(win), semgrep-mcp.exe", "verdict": "all present" },
+      { "name": "bare_exe_resolution", "check": "command -v x7", "result": "7/7 ONPATH: gh-cli-mcp, playwright-mcp, chrome-devtools-mcp, codacy-mcp-server, mcp-codecov, semgrep, docker 29.8.0", "verdict": "gemini's bare-exe style entries all resolve" },
+      { "name": "ralph-orchestrator", "check": "wsl.exe lookup (single cheap spawn, <12s)", "result": "/home/prekzursil/.local/bin/ralph present + executable", "verdict": "WSL wiring self-consistent (but diverges from SSOT Windows exe)" },
+      { "name": "detector_control", "check": "grep '\"figma\"' settings.json", "result": "1 (known-present found); the 0-count absences in agents.json (figma, memory) are therefore trusted", "verdict": "detector validated" }
+    ]
+  },
+  "cross_ref": {
+    "ssot_live_count": 81,
+    "in_ssot_exact_name": 31,
+    "not_in_ssot": ["figma", "memory"],
+    "name_matches_content_diverges": {
+      "github": "gemini=gh-cli-mcp stdio vs SSOT=http api.githubcopilot.com/mcp",
+      "context7": "gemini=npx @upstash/context7-mcp vs SSOT=http mcp.context7.com/mcp",
+      "firecrawl": "gemini=npx firecrawl-mcp@latest vs SSOT=http 127.0.0.1:31114/mcp (local kit)",
+      "semgrep": "gemini='semgrep mcp' CLI subcommand vs SSOT=semgrep-mcp.exe wrapper",
+      "ralph-orchestrator": "gemini=WSL ralph vs SSOT=Windows ralph.exe",
+      "codacy": "gemini=codacy-mcp-server (different npm package) vs SSOT=@codacy/codacy-mcp",
+      "linear": "gemini URL missing /mcp endpoint path (404 at root)"
+    },
+    "name_matches_style_only_diverges": {
+      "playwright": "bare playwright-mcp --headless (on PATH) vs SSOT npx -y @playwright/mcp@latest",
+      "chrome-devtools": "bare chrome-devtools-mcp (on PATH) vs SSOT npx -y chrome-devtools-mcp@latest",
+      "codecov": "bare mcp-codecov (on PATH) vs SSOT npx -y @egulatee/mcp-codecov@latest"
+    },
+    "content_matching": 21,
+    "gemini_targeted_ssot_servers": 0
+  },
+  "gap_list": [
+    "SSOT has no 'gemini' target anywhere and sync has no gemini merge step — the surface cannot be managed by the control plane as built",
+    "figma live on 2 surfaces (claude + gemini) but absent from SSOT registry",
+    "memory unregistered on gemini and in tension with G-81 (basic-memory sole semantic-memory writer)",
+    "registry-inventory.json stale (80 vs live 81) — downstream lanes reconciling against it inherit the error",
+    "'github' name collision: gh-cli-mcp mounted as github while SSOT github means the copilot HTTP endpoint",
+    "linear endpoint path missing on gemini copy",
+    "ralph-orchestrator dual-runtime (WSL vs Windows) unmanaged"
+  ],
+  "max_legal_plan": {
+    "constraint": "READ-ONLY lane — this is a REPORT; nothing below was written",
+    "phase1_owner_decision": "(a) bring gemini in-band: extend sync_shared_state.ps1 with a gemini merge + add 'gemini' to targets of an approved subset, or (b) declare ~/.gemini out-of-band with a pinned written allowlist; regenerate the stale registry-inventory first (81).",
+    "phase2_config_edits": "Regenerate gemini mcpServers from SSOT for the approved subset — recommended lightweight set: context7, notion, linear (with /mcp fix), huggingface, figma (after SSOT registration); drop heavy RE stdio + docker servers from the TUI surface (hexstrike-ai, ida-pro-mcp, ghidra-mcp, frida-mcp, cheatengine, binary-ninja-mcp, sonarqube) to stop per-session pile-ups; dedupe github/github_cli (keep one gh-cli-mcp mount under github_cli); delete memory per G-81 unless owner explicitly exempts it; register figma in SSOT with targets [claude, gemini].",
+    "phase3_verify": "Re-run this lane's jq cross-ref expecting not_in_ssot=[] under option (a); live 'gemini mcp list' as the linear-endpoint settling experiment (gemini CLI behavior not probed this lane — no spawn).",
+    "report_only_snippets": [
+      "SSOT target addition example (agents.json): \"targets\": [\"claude\", \"gemini\"]",
+      "Merge output example (settings.json): \"context7\": {\"command\": \"npx\", \"args\": [\"-y\", \"@upstash/context7-mcp\"]}",
+      "linear fix: \"url\": \"https://mcp.linear.app/mcp\""
+    ]
+  },
+  "notes": [
+    "Load-bearing counts re-probed with mechanically DIFFERENT instruments than the tagged probes: jq (distinct parser) for 33/81/length and the name join; raw-text grep for the figma/memory absences in agents.json (0 hits) with a known-present control (grep figma in settings.json = 1 hit).",
+    "syncMode=source-only re-confirmed via jq on live agents.json.",
+    "sonarqube gemini entry fully matches SSOT (same image docker.io/mcp/sonarqube:latest, same -e flags, env block passes all 4 required vars by $VAR reference) — the registry-inventory's truncated args row had suggested divergence; live jq refuted that.",
+    "UNVERIFIED inline items: video-agent-kit addition timing (06:29 mtime is evidence, not proof); linear breakage under a real MCP handshake; gemini CLI's own listing of these servers (never spawned per policy).",
+    "No MCP tools were attached or called; no ToolSearch; no config writes; only this verdict file and manifest marks."
+  ]
+}

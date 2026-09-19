@@ -1,0 +1,102 @@
+{
+  "surface": "goose TUI (~/.config/goose/config.yaml + extensions; XDG SSOT per G-39/G-44)",
+  "current_state": {
+    "config_path": "C:/Users/Prekzursil/.config/goose/config.yaml",
+    "config_size_bytes": 9002,
+    "config_lines": 335,
+    "mtime": "2026-09-05 23:09",
+    "backups_present": ["config.yaml.bak-20260826", "config.yaml.bak-20260826-184151", "config.yaml.bak-20260827", "config.yaml.bak-20260828", "config.yaml.bak-twocat-20260905-230903"],
+    "extensions_dir": "absent (all extensions declared inline in config.yaml)",
+    "extension_count": 37,
+    "type_breakdown": {"streamable_http": 20, "platform": 12, "builtin": 5, "stdio": 0},
+    "enabled_streamable_http_count": 15,
+    "sanctioned_hubs": {
+      "basic-memory": {"enabled": true, "uri": "http://127.0.0.1:18765/mcp", "alive": true},
+      "agent-mail": {"enabled": true, "uri": "http://127.0.0.1:18812/mcp/", "alive": true, "note": "trailing slash load-bearing: bare /mcp returns 404, /mcp/ returns 200 then SSE stream"}
+    },
+    "builtin_developer_enabled": true,
+    "bundled_memory_disabled": true,
+    "goose_mcp_serve_present": false,
+    "goosehints": "compliant <=10-line pointer to HOME AGENTS.md + .agents skills vault",
+    "skills_dir": "symlink ~/.config/goose/skills -> ~/.agents/skills (pure consumer of skills SSOT, G-79/G-97 compliant)",
+    "provider": {"GOOSE_PROVIDER": "goose-cursor-proxy", "GOOSE_MODEL": "cursor-grok-4.6", "OPENAI_HOST": "http://127.0.0.1:18317 (auth2api Cursor quota bridge, G-23/G-34: retire within 7 days of official /v1 GA; provider-level, not an extension)"},
+    "telemetry_enabled": true
+  },
+  "violations": [
+    {
+      "id": "B1-V1",
+      "class": "G-42-letter / active / dead-wiring",
+      "severity": "medium",
+      "finding": "8 ENABLED streamable_http extensions wired outside the G-42-enumerated hubs (:18765/:18812), all pointing at the CS-kit front range 31410-31419 which is DOWN (connection refused on every probed port)",
+      "items": ["github-security->31410", "cve->31411", "osint->31412", "firecrawl-kit->31414", "hacktricks->31415", "nuclei->31417", "semgrep->31419", "firecrawl->31414 (exact duplicate of firecrawl-kit's URI)"],
+      "note": "HTTP-only, so NOT a stdio violation; but they exceed G-42's hub list and are dead weight goose retries per session"
+    },
+    {
+      "id": "B1-V2",
+      "class": "G-42-letter / active / non-loopback egress",
+      "severity": "low",
+      "finding": "5 ENABLED remote-cloud streamable_http extensions from a TUI whose G-42 lane enumerates only the two local hubs",
+      "items": ["context7->https://mcp.context7.com/mcp", "figma->https://mcp.figma.com/mcp", "brightdata->https://mcp.brightdata.com/mcp?token=${BRIGHTDATA_TOKEN}", "apify->https://mcp.apify.com/", "github->https://api.githubcopilot.com/mcp"],
+      "note": "brightdata token is an env-var reference, no literal secret in config (good). G-82 bans cloud MEMORY sync, not cloud tool MCPs generally - classed as G-42-letter violation; owner may amend"
+    },
+    {
+      "id": "B1-V3",
+      "class": "G-42-letter / latent",
+      "severity": "low",
+      "finding": "5 DISABLED CS-kit fronts still wired: hexstrike-ai(31413), metasploit(31416), cloud-audit(31418), sliver(31380), sliver-full(31381). Not active violations; dormant wiring"
+    },
+    {
+      "id": "B1-V4",
+      "class": "config defect",
+      "severity": "medium",
+      "finding": "5 extensions share name/display_name 'mcp' (context7, figma, brightdata, apify, github) - duplicate client-side tool namespaces risk shadowing/collision in goose"
+    },
+    {
+      "id": "B1-V5",
+      "class": "hygiene",
+      "severity": "low",
+      "finding": "GOOSE_TELEMETRY_ENABLED: true - cloud telemetry from an estate-local TUI. UNVERIFIED what it transmits; settling experiment: observe goose egress or read goose telemetry docs. Presence in config is measured"
+    }
+  ],
+  "health_sample": {
+    "timestamp": "2026-09-19",
+    "method": "curl -s -m 5 -o /dev/null -w %{http_code} (no processes spawned)",
+    "results": {
+      "http://127.0.0.1:18765/mcp": "HTTP 400 (listening; expected for bare GET on streamable endpoint) - basic-memory hub ALIVE",
+      "http://127.0.0.1:18765/": "HTTP 404 (server bound, path absent)",
+      "http://127.0.0.1:18812/api/health": "HTTP 200 - agent-mail ALIVE",
+      "http://127.0.0.1:18812/mcp": "HTTP 404 (trailing slash required)",
+      "http://127.0.0.1:18812/mcp/": "HTTP 200 then stream hang, curl rc=28 (SSE open) - MCP endpoint alive exactly as wired",
+      "http://127.0.0.1:31410/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31411/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31414/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31415/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31417/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31419/mcp": "connection refused (rc=7)",
+      "http://127.0.0.1:31380/mcp": "connection refused (rc=7)"
+    },
+    "verdict": "CS-kit 314xx/31380 hub DOWN across the whole range; corroborates ground-truth item 3 via a mechanically different probe (raw curl vs Claude session-start banner)"
+  },
+  "gap_list": [
+    "tui-inventory.json goose.mcp_servers=null ('manual parse needed') - now filled by this lane: 37 extensions, 20 streamable_http (15 enabled), 0 stdio",
+    "CS-kit front range 31410-31419/31380-31381 undocumented on this box beyond config descriptions 'Shared CS-kit HTTP front X' - UNVERIFIED what launches it; settling experiment: netstat + process tree when the hub runs",
+    "Whether goose tolerates duplicate name:'mcp' namespaces without shadowing - UNVERIFIED statically; settling experiment: enable two and diff tool lists",
+    "Stale doc: injected user-global CLAUDE.md still says basic-memory transport :8765; HOME AGENTS.md and this probe say :18765 (alive). Flag for the doc lane",
+    "Sliver fronts (31380/31381) disabled but wired - if CS-kit hub is retired, these and V1/V3 items all go together"
+  ],
+  "max_legal_plan": {
+    "principle": "G-42 maximum = basic-memory (:18765) + agent-mail (:18812/mcp/) + builtin developer. Everything else streamable_http comes out unless the owner AMENDS G-42 to enumerate more hubs; any amendment must stay streamable_http - stdio and 'goose mcp serve' remain banned unconditionally. Platform extensions (apps/skills/analyze/todo/scheduler/summon/tom/extensionmanager) are goose-internal features, not MCP transports, and stand outside G-42's enumeration.",
+    "owner_decisions_required": [
+      "Amend G-42 to enumerate the CS-kit 314xx hub (and fix its liveness) or drop the 13 CS-kit fronts (8 enabled + 5 disabled)",
+      "Amend G-42 to permit the 5 remote-cloud endpoints (context7/figma/brightdata/apify/github) or drop them",
+      "Set GOOSE_TELEMETRY_ENABLED: false (recommended, one line)"
+    ],
+    "compliant_yaml_snippet_report_only": "GOOSE_TELEMETRY_ENABLED: false\nextensions:\n  basic-memory:\n    enabled: true\n    type: streamable_http\n    name: basic-memory\n    display_name: basic-memory\n    description: Shared semantic-memory vault over HTTP\n    uri: http://127.0.0.1:18765/mcp\n    timeout: 300\n    bundled: false\n  agent-mail:\n    enabled: true\n    type: streamable_http\n    name: agent-mail\n    display_name: agent-mail\n    description: Peer agent-mail channel over HTTP\n    uri: http://127.0.0.1:18812/mcp/   # trailing slash is load-bearing (bare /mcp = 404)\n    timeout: 300\n    bundled: false\n  developer:\n    enabled: true\n    type: builtin\n    name: developer\n    display_name: Developer\n    description: default\n    timeout: 300\n    bundled: true\n  # platform extensions (apps/skills/analyze/todo/scheduler/summon/tom/extensionmanager)\n  # are goose-internal features, not MCP transports; keep per owner preference.\n  # bundled memory stays enabled: false (G-42: never Goose bundled memory)."
+  },
+  "notes": [
+    "Probes: (a) full Read of the 335-line config; (b) python yaml.safe_load enumeration - detector control validated by finding the 5 known-present builtins BEFORE asserting stdio=0; (c) curl -m 5 on 12 endpoints. Three mechanically distinct probes; ground-truth item 3 confirmed from the goose side by raw-TCP curl rc=7 vs Claude's session banner.",
+    "G-42 hard core SATISFIED: zero stdio extensions, no 'goose mcp serve' anywhere, bundled memory disabled, both sanctioned hubs enabled and alive. Violations are against the ENUMERATION (extra HTTP endpoints), not the transport class.",
+    "READ-ONLY mandate respected: no config written, no processes spawned, no kills. Only this verdict file was written.",
+    "agent-mail URI trailing slash is a correctness landmine if anyone 'normalizes' it - recorded in health_sample."
+  ]
+}

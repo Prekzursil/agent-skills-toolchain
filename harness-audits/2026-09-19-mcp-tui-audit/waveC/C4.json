@@ -1,0 +1,90 @@
+{
+  "scope": "Lane C4 - registry path canonicality: every command/args/url token of all servers under mcp.servers in C:/Users/Prekzursil/.agents/agents.json, checked for absoluteness, existence on disk, 8.3 short names, env-var dependence, cwd-dependence, and C:/D: drive duplication. Static scan + os.path.exists probes only; no servers spawned. Detector positive controls validated before any negative claim (synthetic PREKZU~1/PROGRA~1 strings fired; npx/http/relative controls fired).",
+  "findings": [
+    {
+      "item": "ground-truth claim #1: '80 servers under mcp.servers'",
+      "classification": "GROUND_TRUTH_CORRECTION",
+      "evidence": "Fresh json.load (independent script, 2026-09-19 this lane) -> len(mcp.servers) = 81. Reconciliation against the original probe artifact registry-inventory.json: 80 name values, all 80 are a subset of the live 81; only_in_live = video-agent-kit; only_in_inventory = NONE. syncMode=source-only CONFIRMED by the same parse.",
+      "recommendation": "Audit baseline is now 81 servers. video-agent-kit was added after the 05:41 snapshot; it uses bare `python` + C:\\Users\\Prekzursil\\.agents\\mcp-servers\\video-agent-kit\\mcp\\video_edit_server.py (script EXISTS on disk)."
+    },
+    {
+      "item": "server bedrock-claude (args)",
+      "classification": "BROKEN_PATH_DEAD_ENTRY",
+      "evidence": "Verbatim: \"C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\bedrock-claude-mcp\\server.py\" - os.path.exists = False; the entire directory tools/mcp/bedrock-claude-mcp is ABSENT (siblings enumerated: cloud-hub, search-hub, hexstrike-ai, ... no bedrock-claude-mcp). Correlates with ground truth #3: bedrock-claude failed to connect live (CONNECTION_CLOSED). Interpreter C:\\Python314\\python.exe itself EXISTS.",
+      "recommendation": "Delete the registry entry or restore the tool directory. With syncMode=source-only this dead entry propagates to every materialized surface (Claude/Codex/Cursor/Gemini) on each sync, manufacturing a guaranteed connect failure everywhere."
+    },
+    {
+      "item": "server burp (command)",
+      "classification": "BROKEN_PATH_VERSION_PIN_DRIFT",
+      "evidence": "Verbatim: \"C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.exe\" - os.path.exists = False. Installed JDKs under C:/Program Files/Microsoft: jdk-17.0.18.8-hotspot and jdk-21.0.11.10-hotspot (java on PATH resolves to jdk-21.0.11.10). A JDK micro-version update silently broke the pin. The -jar target C:\\Users\\Prekzursil\\AppData\\Roaming\\BurpSuite\\mcp-proxy\\mcp-proxy-all.jar existence UNVERIFIED - settling experiment: os.path.exists on that path.",
+      "recommendation": "Repin to jdk-21.0.11.10-hotspot or switch to PATH-resolved `java`; expect re-breakage on every JDK patch if the absolute micro-version pin is kept."
+    },
+    {
+      "item": "server kaggle (command)",
+      "classification": "BROKEN_PATH_VOLATILE_LOCATION",
+      "evidence": "Verbatim: \"C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe\" - os.path.exists = False; C:\\Users\\Prekzursil\\Downloads\\bionlp is entirely gone. A venv under Downloads is doubly unstable (volatile folder + venv paths never survive relocation). The wrapper C:\\Users\\Prekzursil\\.codex\\mcp-wrappers\\kaggle_mcp_stdio.py EXISTS, so only the interpreter reference is dead.",
+      "recommendation": "Rebuild the venv under a stable location (e.g. D:\\opt or ~/.agents/mcp-servers) or point at C:\\Python314\\python.exe if the wrapper's deps allow, then update the registry entry."
+    },
+    {
+      "item": "8.3 short names in registry command/args/url tokens",
+      "classification": "NEGATIVE_CONFIRMED_CLEAN (registry) / ENV_CONTAMINATED (TEMP/TMP)",
+      "evidence": "0 of 195 scanned tokens match the 8.3 pattern (~digit). Detector validated first: synthetic controls 'C:\\Users\\PREKZU~1\\AppData\\Local\\x.exe' and 'C:/PROGRA~1/tool/bin.exe' both fired SHORT83 in the same run. However the live process environment carries an 8.3 path: TEMP and TMP both = \"C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\" (observed via os.environ in this lane's probe) - any tool that derives registry paths from TEMP inherits short names at runtime.",
+      "recommendation": "Registry itself needs no 8.3 fix. Owner may optionally reset TEMP/TMP to the long form; low priority since no registry token embeds it."
+    },
+    {
+      "item": "C:/D: drive duplication of the same binary across servers",
+      "classification": "NEGATIVE_CONFIRMED_NONE",
+      "evidence": "Cross-server basename analysis over all 42 existing absolute tokens: no basename appears on both C: and D:. D: usage total = 3 servers: cursor-bridge (args D:\\opt\\cursor-bridge\\cursor_bridge_mcp.py), dbx-ai (args D:\\opt\\cyberstrike-mcp\\dbx-ai-mcp-server.py), paper-search (command D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe). Verified twice: classify-tag sweep AND regex-free string compare + dump grep (grep -c 'DRIVE:D' = 3) after a heredoc-mangled regex in an intermediate probe disagreed (artifact, discarded).",
+      "recommendation": "No action; the paper-search D: install has no C: twin inside the registry."
+    },
+    {
+      "item": "server cursor-bridge",
+      "classification": "MIXED_DRIVE_COUPLING",
+      "evidence": "Verbatim: command \"C:\\Python314\\python.exe\" + args \"D:\\opt\\cursor-bridge\\cursor_bridge_mcp.py\" - interpreter on C:, payload on D:. Both exist.",
+      "recommendation": "Info-level: server breaks if either drive's layout changes; acceptable if intentional (D: holds tool payloads, C: holds interpreters - same pattern as dbx-ai)."
+    },
+    {
+      "item": "server dbx-ai",
+      "classification": "MIXED_DRIVE_COUPLING",
+      "evidence": "Verbatim: command \"C:\\Python314\\python.exe\" + args \"D:\\opt\\cyberstrike-mcp\\dbx-ai-mcp-server.py\". Both exist.",
+      "recommendation": "Same as cursor-bridge: info-level portability note, no defect."
+    },
+    {
+      "item": "bare (PATH-resolved) commands cohort",
+      "classification": "PATH_DEPENDENT",
+      "evidence": "27 servers launch via bare command names: npx x19 (annas-archive, binary-ninja-mcp, browserstack, chrome-devtools, claude-code-mcp, codacy, codecov, digitalocean, libgen, mcp-graphql, openalex, openalex-alt, pdf-reader, playwright, pubmed, repomix, sci-hub, sentry, tavily), uvx x3 (arxiv, crossref, pubmed-tool), docker x2 (postgres, sonarqube), python x1 (video-agent-kit), gh-cli-mcp x1 (github_cli), cmd x1 (zai-vision). Env-stable only relative to PATH and package registries.",
+      "recommendation": "Acceptable norm, but bare `python` (video-agent-kit) is the riskiest on Windows (WindowsApps alias / multi-version resolution); consider pinning to C:\\Python314\\python.exe like the other stdio servers."
+    },
+    {
+      "item": "floating @latest package refs",
+      "classification": "UNPINNED_VERSION_DRIFT",
+      "evidence": "7 args tokens end in @latest: e.g. \"@playwright/mcp@latest\" (playwright), \"@codacy/codacy-mcp@latest\" (codacy), \"@egulatee/mcp-codecov@latest\" (codecov), \"@sentry/mcp-server@latest\" (sentry), \"@steipete/claude-code-mcp@latest\" (claude-code-mcp), \"@digitalocean/mcp\" plus \"z_ai/mcp-server@latest\" (zai-vision). Pinned counterexamples exist: \"@browserstack/mcp-server@1.2.11\", \"tavily-mcp@0.2.15\". Docker refs float too: \"ghcr.io/pgedge/postgres-mcp:latest\" (postgres), \"docker.io/mcp/sonarqube:latest\" (sonarqube).",
+      "recommendation": "Behavior can silently change on any redeploy; pin versions for servers whose tool surface is load-bearing (playwright/sentry/codacy feed gates)."
+    },
+    {
+      "item": "server zai-vision",
+      "classification": "CMD_INDIRECTION_SUSPECT",
+      "evidence": "Verbatim: command \"cmd\", args [\"/c\", \"npx\", \"-y\", \"z_ai/mcp-server@latest\"] - double process indirection (cmd -> npx -> node) plus a floating @latest ref. zai-vision is in the live failed-to-connect set (CONNECTION_CLOSED, ground truth #3). The lone \"/c\" token my first-pass classifier flagged as RELPATH was a classifier over-match (cmd flag, not a path).",
+      "recommendation": "Root-cause candidate for its connect failure: the cmd/npx chain adds failure modes Windows-direct launch avoids. Rewrite as npx-direct (command \"npx\", args [\"-y\", \"z_ai/mcp-server@<pinned>\"])."
+    },
+    {
+      "item": "server meta-tool (args)",
+      "classification": "FILE_URL_ARG_FUNCTIONAL",
+      "evidence": "Verbatim: \"file:///C:/Users/Prekzursil/.agents/meta-tool/node_modules/tsx/dist/loader.mjs\" alongside plain path \"C:\\Users\\Prekzursil\\.agents\\meta-tool\\src\\server.ts\" in one argv. The file URL target EXISTS on disk. node --import requires URL form, so this is by-design, not a defect; only the mixed representation (file:// URL next to backslash path) is a readability wart.",
+      "recommendation": "No action needed; note node_modules paths break if tsx relocates on a reinstall."
+    },
+    {
+      "item": "basic-memory nested x_cursor.stdio_bridge block",
+      "classification": "PATHS_OUTSIDE_STANDARD_FIELDS",
+      "evidence": "Recursive walk found absolute paths outside command/args/url: basic-memory.x_cursor.stdio.command = \"C:\\Python314\\python.exe\", basic-memory.x_cursor.stdio_bridge.args[0] = \"C:\\Users\\Prekzursil\\.agents\\scripts\\bm_cursor_http_session.py\". Both EXIST. Top-level basic-memory entry is URL-based (\"http://127.0.0.1:18765/mcp\").",
+      "recommendation": "Structural note: any sync/audit tool that only walks the standard fields will miss these; keep them in the audit surface. No canonicality defect (absolute, long-name, existing)."
+    },
+    {
+      "item": "style hygiene across all 195 tokens",
+      "classification": "CLEAN",
+      "evidence": "0 lowercase-drive-letter tokens, 0 tokens mixing / and \\, all 27 url fields are http/https (17 of them loopback http://127.0.0.1/*), no env-var placeholders (${VAR}/%VAR%) and no unexpanded ~ home refs anywhere.",
+      "recommendation": "None - registry path style is internally consistent."
+    }
+  ],
+  "summary": "Scanned 81 servers (195 command/args/url tokens; 45 absolute filesystem tokens, 42 exist / 3 missing) with validated detectors. GROUND-TRUTH CORRECTION: the registry holds 81 servers, not 80 - video-agent-kit was added after the 05:41 snapshot (registry-inventory.json's 80 names are a strict subset). syncMode=source-only confirmed. Three registry entries are dead as-written and two map to live failed-connect servers: bedrock-claude points at a nonexistent tools/mcp/bedrock-claude-mcp/server.py (directory gone entirely), burp pins JDK 21.0.10.7 which has been replaced by 21.0.11.10, and kaggle points at a vanished Downloads\\bionlp venv. No 8.3 short names anywhere in the registry (positive controls fired), though TEMP/TMP in the live environment is itself an 8.3 path (C:\\Users\\PREKZU~1\\...). No C:/D: binary duplication across servers; D: carries only 3 payloads (cursor-bridge, dbx-ai, paper-search), and cursor-bridge/dbx-ai couple C: interpreters to D: payloads. 27 servers launch via bare PATH-resolved commands (npx x19, uvx x3, docker x2, python x1, cmd x1, gh-cli-mcp x1); 7 npm refs plus 2 docker refs float on @latest/:latest. zai-vision's cmd /c npx @latest double-indirection is a plausible contributor to its live CONNECTION_CLOSED. All url fields are clean http(s). Honesty ledger: first-pass RELPATH hits on @scope/pkg and registry.host refs were over-matches (reclassified by inspection); one intermediate probe's heredoc-mangled regex under-counted D: tokens and was overturned by a regex-free string compare plus dump grep (3)."
+}

@@ -1,0 +1,34 @@
+{
+  "lane": "R1",
+  "wave": "D",
+  "reprobe_of": "V1 row 'A20[0,1,2] web-reader/web-search-prime/zread: remote endpoints up; token-401 caveat'",
+  "claim": "z.ai web-reader/web-search-prime/zread token-expired (200/code:401) sub-claims: settled only to the no-auth rung (code:1001); needs one credentialed POST /initialize per endpoint",
+  "verdict": "CONFIRMED",
+  "settling_probe": "THIRD MECHANISM: PowerShell Invoke-WebRequest (pwsh, .NET HTTP stack) POST of MCP initialize JSON-RPC to each canonical /mcp endpoint, twice per endpoint: (a) unauthed control rung, (b) credentialed with the stored Authorization header (token passed to the child process via env var only; never printed, never on disk). Instrument lineage: originating lane A20 used python urllib WITH token (authed 401); verifier V1 used curl WITHOUT credential (1001 no-auth rung); this probe is mechanically distinct from both (different HTTP engine + paired authed/unauthed rungs in one pass).",
+  "measured": {
+    "web-reader": {
+      "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+      "unauth_control": "http=200 envelope_code=1001 msg='Authentication parameter not received in Header, unable to authenticate'",
+      "authed_initialize": "http=200 envelope_code=401 msg='token expired or incorrect'"
+    },
+    "web-search-prime": {
+      "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+      "unauth_control": "http=200 envelope_code=1001 msg='Authentication parameter not received in Header, unable to authenticate'",
+      "authed_initialize": "http=200 envelope_code=401 msg='token expired or incorrect'"
+    },
+    "zread": {
+      "url": "https://api.z.ai/api/mcp/zread/mcp",
+      "unauth_control": "http=200 envelope_code=1001 msg='Authentication parameter not received in Header, unable to authenticate'",
+      "authed_initialize": "http=200 envelope_code=401 msg='token expired or incorrect'"
+    }
+  },
+  "evidence": [
+    "Detector validation (honesty contract): the unauthed control rung returned exactly V1's no-auth result (200/code:1001, same msg) on all 3 endpoints — the probe pipeline demonstrably reaches the gateway and can distinguish rungs, so the authed 401 is not a header-plumbing artifact.",
+    "Credential provenance: Authorization header extracted in-code from ~/.claude.json mcpServers.{web-reader,web-search-prime,zread}.headers.Authorization; python equality check shows ONE distinct token across all 6 slots (3 servers x ~/.claude.json + ~/.agents/agents.json mcp.servers), length 21 ('Bearer '+14 chars), matching A20's byte-identity finding. Values never printed (only length/prefix/equality).",
+    "Authed rung result: with the stored credential actually sent, all three endpoints return HTTP 200 wrapping {code:401, msg:'token expired or incorrect'} — the gateway ACCEPTS the auth header (no longer rung 1001) and REJECTS the credential itself. This settles V1's explicitly-deferred residual ('would require sending the stored credential, deliberately not done').",
+    "Nuance kept honest: 'expired' vs 'incorrect' is the gateway's own message wording; the probe proves the STORED credential (the exact one both config surfaces instruct clients to send) is rejected; it cannot independently distinguish expiry from invalidity. Either way the owner action stands: refresh ZAI_API_KEY (owner-managed; nothing rotated in-lane per NEVER-ROTATE).",
+    "Zombie-mount corroboration: mcp__web-reader__webReader, mcp__web-search-prime__web_search_prime, mcp__zread__{get_repo_structure,read_file,search_doc} are all enumerated as live tools in THIS session's inventory while every credentialed call would 401 — consistent with A20's zombie-mount risk finding.",
+    "Ground-truth reconciliation: no corrections to any tagged ground-truth item; V1's verdict row is upgraded from 'no-auth rung only' to fully settled (authed rung measured), same final direction (endpoints UP, auth chain enforced, credential rejected)."
+  ],
+  "provenance": "disk-verified (verdict written by this lane after re-reading probe output above; token handled env-only)"
+}

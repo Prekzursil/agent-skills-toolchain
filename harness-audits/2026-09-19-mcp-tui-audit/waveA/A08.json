@@ -1,0 +1,107 @@
+[
+  {
+    "name": "docker",
+    "health": "UNRESOLVED",
+    "health_detail": "SPAWN-BROKEN (deterministic, fail-closed UNRESOLVED): the MCP package cannot start, while the Docker engine itself is healthy",
+    "disposition": "registry-pinned",
+    "why": "Registry/claude/gemini all define uvx docker-mcp (identical command). Docker ENGINE is UP: 'docker version --format server={{.Server.Version}}' returned 29.8.0 and Docker Desktop processes are running. But the MCP server itself is import-broken: stdio spawn of 'uvx docker-mcp' (cached env D:\\uv\\cache\\archive-v0\\8QBTOZeFzHPXGQSywAxCg) crashes deterministically with 'AttributeError: Server object has no attribute list_prompts' at docker_mcp/server.py:14 — the cached build uses an API removed from the currently resolved mcp Python SDK, so NO client can ever connect to it. GROUND-TRUTH CORRECTION: the 05:16 banner inference 'Claude-targeted servers NOT listed connected fine' is FALSE for docker — it was not listed because it is per-project DISABLED, not because it connected; it cannot connect anywhere in its current state. Fix is package-level (pin a docker-mcp version compatible with the resolved mcp SDK, then re-verify), not registry-level, hence registry-pinned with needs_reprobe.",
+    "paths": {
+      "status": "canonical",
+      "canonical": "C:\\Users\\Prekzursil\\.local\\bin\\uvx.exe docker-mcp",
+      "surfaces": [
+        "~/.agents/agents.json mcp.servers.docker (command C:\\Users\\Prekzursil\\.local\\bin\\uvx.exe, args [docker-mcp], targets=claude, enabled)",
+        "~/.claude.json root mcpServers.docker (same command verbatim)",
+        "~/.gemini/settings.json mcpServers.docker (same, forward-slash variant C:/Users/Prekzursil/.local/bin/uvx.exe)"
+      ]
+    },
+    "scatter": {
+      "surfaces": [
+        "registry ~/.agents/agents.json (targets=claude)",
+        "~/.claude.json root mcpServers (86 servers total, node-parsed, cross-checks the python probe)",
+        "~/.gemini/settings.json (33 servers)",
+        "~/.claude.json projects[*].disabledMcpServers: docker is DISABLED in ~37 project scopes incl. 'C:/Users/Prekzursil' (home) and 'C:/Users/Prekzursil/source/agent-skills-toolchain' (this audit cwd) — explains zero mcp__docker__* tools and absence from failure banners"
+      ],
+      "not_present_in": ["~/.codex/config.toml (verified by plain grep incl. quoted table names)", "~/.cursor/mcp.json", "~/.mcp.json"],
+      "name_variants": ["docker (everywhere)"]
+    }
+  },
+  {
+    "name": "exa",
+    "health": "STATIC-OK",
+    "health_detail": "remote endpoint runtime-verified live via MCP initialize (HTTP 200), but mounted on ZERO local surfaces",
+    "disposition": "registry-pinned",
+    "why": "Registry entry is a remote HTTP endpoint (https://mcp.exa.ai/mcp, targets=zcode,hermes). Both targets are dropped by agents CLI 0.8.10 as unsupported (agents-doctor.txt lines 15-16), so exa is currently delivered NOWHERE: absent from ~/.claude.json (root and all projects), ~/.codex/config.toml, ~/.cursor/mcp.json, ~/.gemini/settings.json, ~/.mcp.json (all verified by node parse + plain grep — codex needs quoted-table-aware grep, see firecrawl). The endpoint itself is alive and MCP-correct: direct POST initialize returned HTTP 200 with serverInfo 'exa-search-server v3.2.1' (title Exa). Caveat UNVERIFIED INLINE (settling experiment: one authenticated exa tool call): the registry entry carries no auth header/env while EXA_API_KEY exists in the environment — tool calls may fail for want of key wiring. Disposition registry-pinned: entry is valid and the defect is the dropped zcode/hermes targets (agents CLI 0.9.1 update held until post-audit), not the entry.",
+    "paths": {
+      "status": "canonical",
+      "canonical": "https://mcp.exa.ai/mcp",
+      "surfaces": ["~/.agents/agents.json mcp.servers.exa ONLY"]
+    },
+    "scatter": {
+      "surfaces": ["registry ~/.agents/agents.json (targets=zcode,hermes — both silently dropped by agents CLI 0.8.10)"],
+      "not_present_in": ["~/.claude.json", "~/.codex/config.toml", "~/.cursor/mcp.json", "~/.gemini/settings.json", "~/.mcp.json"],
+      "name_variants": ["exa (registry only; the firecrawl skill references an 'Exa MCP' as a related capability but that is documentation, not a config surface)"]
+    }
+  },
+  {
+    "name": "excel",
+    "health": "LIVE-SESSION",
+    "disposition": "registry-pinned",
+    "why": "Healthy on BOTH delivery paths. (1) LIVE-SESSION via McpHub aggregator: mcp__McpHub__excel__get_workbook_metadata roundtrip in this session returned a server-side structured error 'Error: File not found: C:\\Users\\Prekzursil\\__a08_probe_nonexistent__.xlsx' — full client->hub->excel-server->client proof; 24+ excel tool schemas exposed. (2) Direct stdio SPAWN-OK: 'uvx excel-mcp-server stdio' answered initialize with serverInfo 'excel-mcp v1.30.0' (the post-handshake traceback is stdin-EOF shutdown noise). The direct ~/.claude.json entry is merely per-project DISABLED (~37 projects incl. home and this cwd), which is why this session shows no bare mcp__excel__* tools — that is scope config, not breakage. Note: uvx re-resolved its env at spawn ('Installed 84 packages in 4.41s') — cached env had drifted; expect first-call latency after cache clears.",
+    "paths": {
+      "status": "canonical",
+      "canonical": "C:\\Users\\Prekzursil\\.local\\bin\\uvx.exe excel-mcp-server stdio",
+      "surfaces": [
+        "~/.agents/agents.json mcp.servers.excel (targets=claude)",
+        "~/.claude.json root mcpServers.excel (identical)",
+        "~/.gemini/settings.json mcpServers.excel (identical, forward slashes)",
+        "McpHub aggregator child (delivers mcp__McpHub__excel__* in live sessions)"
+      ]
+    },
+    "scatter": {
+      "surfaces": [
+        "registry ~/.agents/agents.json (targets=claude)",
+        "~/.claude.json root mcpServers",
+        "~/.gemini/settings.json",
+        "McpHub hub exposure (LIVE in this session)",
+        "~/.claude.json projects[*].disabledMcpServers: excel DISABLED in ~37 project scopes incl. home and this cwd"
+      ],
+      "not_present_in": ["~/.codex/config.toml", "~/.cursor/mcp.json", "~/.mcp.json"],
+      "name_variants": ["excel (direct entries)", "McpHub__excel (hub-prefixed tool namespace)"]
+    }
+  },
+  {
+    "name": "firecrawl",
+    "health": "SPAWN-OK",
+    "health_detail": "backend at 31114 runtime-verified live via direct MCP initialize handshake (HTTP 200, firecrawl-fastmcp v3.24.0); already running, launched on demand — not spawned by this probe",
+    "disposition": "registry-pinned",
+    "why": "GROUND-TRUTH CORRECTION (settled by curl initialize + CIM process genealogy, mechanically different from the session-banner probe): the registry/claude/cursor backend is NOT down. http://127.0.0.1:31114/mcp answered a proper MCP initialize with HTTP 200, serverInfo 'firecrawl-fastmcp 3.24.0'. Process genealogy: PID 62596 node mcp-proxy (--port 31114) wrapping 'C:\\Python314\\python.exe D:\\opt\\cyberstrike-mcp\\firecrawl-mcp-launch.py' -> node D:\\opt\\cyberstrike-mcp\\node_modules\\firecrawl-mcp\\dist\\index.js with FIRECRAWL_API_KEY read from HKCU (cloud-keyed, launcher code reads registry, never prints the key). PID 62596 was started ~2026-09-17T20:36Z by parent 'powershell -File D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1 -Profile Full -Force' and has been up continuously since BEFORE the 05:16 banner probe. WHY SESSIONS STILL FAIL: ConnectionRefused is TCP-level and only matches port 31414, which has NO listener (curl rc=7). ~/.mcp.json (project-scope config for cwd ~) still defines 'firecrawl' AND 'firecrawl-kit' at http://127.0.0.1:31414/mcp — the RETIRED portband (D:\\opt\\cyberstrike-mcp\\backups\\portband-20260907-0130 shows firecrawl Port=31414 pre-migration; live cyberstrike-mcp-lib.ps1:53 now says Port=31114 Band='Core'). The project-scope 31414 entry shadows the healthy user-scope 31114 entry in home-project Claude sessions, so the banner's 'firecrawl' failure is the stale shadow, not the backend. ON-DEMAND BY DESIGN? YES: the 311xx gateway farm is started by an explicit on-demand launcher (start-cyberstrike-mcp-http.ps1 -Profile Full -Force), no service/scheduled task owns it — the 'McpHub Autostart' scheduled task NEVER ran (LastRunTime epoch 1999-12-29, vestigial). Separately, the self-hosted firecrawl docker stack at D:\\opt\\firecrawl IS down (api/playwright/rabbitmq/redis/postgres/foundationdb containers Exited(255) ~4h ago, firecrawl-nuq-worker-1 crash-looping 'Restarting (1)') but NO MCP entry points at it — it is an unrelated experiment. Codex's firecrawl-kit WAS migrated to 31114 (healthy); only ~/.mcp.json's two copies are stranded. Disposition registry-pinned: the registry entry is correct and current; the cleanup targets are the two stale ~/.mcp.json entries (decommission-candidates for waveB) — flagged in scatter, not changed by this read-only lane.",
+    "paths": {
+      "status": "AMBIGUOUS",
+      "canonical": "http://127.0.0.1:31114/mcp",
+      "offending_strings_verbatim": [
+        "http://127.0.0.1:31414/mcp  (~/.mcp.json mcpServers.firecrawl — retired portband, no listener; SHADOWS the healthy 31114 entry in home-project sessions; this is the entry the failure banner actually hit)",
+        "http://127.0.0.1:31414/mcp  (~/.mcp.json mcpServers.firecrawl-kit — same dead URL, duplicate legacy alias)",
+        "npx -y firecrawl-mcp@latest + env FIRECRAWL_API_KEY (~/.gemini/settings.json mcpServers.firecrawl — a THIRD implementation: vendor cloud npm client, not the local gateway; key present in env, value not inspected)"
+      ],
+      "surfaces_of_canonical": [
+        "~/.agents/agents.json mcp.servers.firecrawl (targets=claude,hermes)",
+        "~/.claude.json root mcpServers.firecrawl (type http)",
+        "~/.cursor/mcp.json mcpServers.firecrawl",
+        "~/.codex/config.toml line 1076 [mcp_servers.\"firecrawl-kit\"] url = \"http://127.0.0.1:31114/mcp\""
+      ]
+    },
+    "scatter": {
+      "surfaces": [
+        "registry ~/.agents/agents.json — http://127.0.0.1:31114/mcp",
+        "~/.claude.json root — http://127.0.0.1:31114/mcp (shadowed in home-project sessions by ~/.mcp.json)",
+        "~/.mcp.json — 'firecrawl' AND 'firecrawl-kit' BOTH at http://127.0.0.1:31414/mcp (dead retired band; both ConnectionRefused in this session)",
+        "~/.codex/config.toml:1076 — [mcp_servers.\"firecrawl-kit\"] at http://127.0.0.1:31114/mcp (migrated, healthy)",
+        "~/.cursor/mcp.json — http://127.0.0.1:31114/mcp (healthy)",
+        "~/.gemini/settings.json — npx -y firecrawl-mcp@latest, envKeys [FIRECRAWL_API_KEY] (vendor cloud variant)",
+        "D:\\opt\\cyberstrike-mcp gateway (the actual backend: mcp-proxy 31114 wrapping firecrawl-mcp-launch.py; on-demand via start-cyberstrike-mcp-http.ps1 -Profile Full)",
+        "D:\\opt\\firecrawl — self-hosted docker compose stack, containers crashed ~4h ago, referenced by NO MCP entry"
+      ],
+      "name_variants": ["firecrawl (registry/claude/cursor/gemini/~.mcp.json)", "firecrawl-kit (codex TOML quoted table + ~/.mcp.json — legacy cyberstrike-generated alias for the same gateway)"]
+    }
+  }
+]

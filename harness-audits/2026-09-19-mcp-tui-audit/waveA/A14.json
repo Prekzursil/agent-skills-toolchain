@@ -1,0 +1,73 @@
+[
+  {
+    "name": "nuclei",
+    "health": "UNREACHABLE",
+    "disposition": "registry-pinned",
+    "why": "Overdetermined failure, and NOT merely lazy. (a) Lazy component: the backend is the on-demand CyberStrike MCP HTTP hub; 127.0.0.1:31417 refuses connections right now (curl -m 5 exit 7, validated against known-dead control port 39999 which also exits 7; live controls openalex API 200 and OpenAI docs 405 prove the detector sees live endpoints). (b) Confirmed DEFECT: the hub fleet's port band moved 31380-31419 -> 31100-31119 on 07.09.2026 (documented at ~/.config/cyberstrike/config.md:123 and preserved in D:/opt/cyberstrike-mcp/backups/portband-20260907-0130/); the current supervisor table binds nuclei at 31117 (cyberstrike-mcp-lib.ps1:68, mtime 2026-09-18) and the current TUI config already uses http://127.0.0.1:31117/mcp (~/.config/cyberstrike/cyberstrike.json:243-246). The registry (and both materialized surfaces) still pin 31417, so this entry would stay dead EVEN WITH the hub running. Lazy-vs-defect ruling: DEFECT (stale port) layered on an intentionally lazy backend. Fix: repin url to http://127.0.0.1:31117/mcp in ~/.agents/agents.json + ~/.claude.json + ~/.mcp.json (or rerun the cyberstrike reconcile/apply-client scripts). Blast radius beyond this lane: registry hub-family entries cve-mcp=31411, github-security=31410, osint=31412, hexstrike-ai-hub=31413, cloud-audit=31418, semgrep-hub=31419 all share the same stale band; only firecrawl (31114) is on the current band. Interim capability coverage exists in-session via the McpHub plugin (mcp__McpHub__hexstrike_ai__nuclei_scan, mcp__McpHub__cve_mcp__nuclei_check).",
+    "paths": {
+      "status": "AMBIGUOUS (stale + duplicated URL)",
+      "registry_url_verbatim": "http://127.0.0.1:31417/mcp",
+      "current_hub_url": "http://127.0.0.1:31117/mcp",
+      "hub_impl": "D:/opt/cyberstrike-mcp/nuclei-mcp-server.py + nuclei-mcp.cmd (C:\\Python314\\python.exe), stdio front behind mcp-proxy",
+      "supervisor": "D:/opt/cyberstrike-mcp/start-cyberstrike-mcp-http.ps1; port table in D:/opt/cyberstrike-mcp/cyberstrike-mcp-lib.ps1:68",
+      "ambiguity": "the exact string \"http://127.0.0.1:31417/mcp\" is shared verbatim by two registry names (nuclei and nuclei-hub) AND is stale on both"
+    },
+    "scatter": {
+      "registry ~/.agents/agents.json": "present, targets=[claude], enabled=true, transport=http (description documents the 2026-09-03 stdio->HTTP conversion)",
+      "~/.claude.json": "top-level mcpServers (87 total): {type:http, url:http://127.0.0.1:31417/mcp}",
+      "~/.mcp.json": "present (34 servers): {type:http, url:http://127.0.0.1:31417/mcp}",
+      "~/.codex/config.toml | ~/.cursor/mcp.json | ~/.gemini/settings.json": "absent",
+      "name_variants": ["nuclei (claude lane)", "nuclei-hub (hermes lane, same URL)"],
+      "in_session": "no mcp__nuclei__* tools (consistent with UNREACHABLE); McpHub plugin exposes nuclei_scan/nuclei_check under other prefixes"
+    }
+  },
+  {
+    "name": "nuclei-hub",
+    "health": "UNREACHABLE",
+    "disposition": "decommission-candidate",
+    "why": "Dead on two independent axes. (1) Same stale, dead URL as nuclei (31417; current band is 31117) — backend unreachable by construction. (2) Unwired: its only target 'hermes' is unsupported by agents CLI 0.8.10 and silently dropped (verbatim warning in run-dir agents-doctor.txt: MCP server \"nuclei-hub\" has unsupported target \"hermes\"; ignored for that target), so it materializes on ZERO surfaces — verified absent from all 13 TUI surfaces in tui-inventory.json and from ~/.claude.json / ~/.mcp.json / codex / cursor / gemini. It is a name-duplicate of the nuclei registry entry pointing at the identical URL, intended as the 'HTTP-hub-only Hermes transport per G-1 2026-09-03'. Ruling: decommission (or fold into one entry per backend); if a hermes-targeted twin is still wanted after the held 0.9.1 CLI update restores zcode/hermes targets, re-add it at the CURRENT port 31117, not 31417.",
+    "paths": {
+      "status": "AMBIGUOUS (duplicate of nuclei's URL, verbatim)",
+      "registry_url_verbatim": "http://127.0.0.1:31417/mcp",
+      "ambiguity": "byte-identical URL string shared with the 'nuclei' registry entry; two names -> one (stale) backend address"
+    },
+    "scatter": {
+      "registry ~/.agents/agents.json": "present, targets=[hermes], enabled=true, transport=http — DROPPED by agents CLI 0.8.10",
+      "all other surfaces": "absent (13 TUI surfaces + 5 config files checked, zero hits)",
+      "name_variants": ["nuclei-hub (hermes twin of nuclei)"]
+    }
+  },
+  {
+    "name": "openaiDeveloperDocs",
+    "health": "STATIC-OK",
+    "disposition": "vendor-source",
+    "why": "Registry entry is valid and the VENDOR backend is alive: curl -m 5 -H 'Accept: application/json, text/event-stream' https://developers.openai.com/mcp returns HTTP 405 (exit 0) — the expected response of a Streamable-HTTP MCP endpoint to a bare GET, proving TCP/TLS + service up (a dead endpoint would look like the 31417/39999 exit-7 controls). But it has NO consumer on this box: targets=[zcode,hermes] are both unsupported by agents CLI 0.8.10 and silently dropped (two verbatim warnings in agents-doctor.txt: MCP server \"openaiDeveloperDocs\" has unsupported target \"zcode\"/\"hermes\"), so it materializes on zero surfaces — absent from all 13 TUI surfaces and all 5 config files; no mcp__openaiDeveloperDocs__* tools in the live session (detector control: mcp__openalex__* tools ARE listed, so absence here is meaningful). Disposition: vendor-source — OpenAI's hosted docs MCP; no local implementation to move. Keep pinned in registry for post-0.9.1 (which restores zcode/hermes targets) or extend targets to claude/codex if docs lookup is wanted now. Minor registry self-inconsistency: tags contain 'zcode-only' while targets list both zcode and hermes.",
+    "paths": {
+      "status": "canonical (registry-only, no local path)",
+      "url_verbatim": "https://developers.openai.com/mcp"
+    },
+    "scatter": {
+      "registry ~/.agents/agents.json": "present, targets=[zcode,hermes], enabled=true, transport=http, tags=[approved,http,remote,zcode-only,shared] — both targets dropped by CLI 0.8.10",
+      "all other surfaces": "absent (zero materialization anywhere)",
+      "name_variants": ["openaiDeveloperDocs (exact camelCase; no variants)"]
+    }
+  },
+  {
+    "name": "openalex",
+    "health": "LIVE-SESSION",
+    "disposition": "registry-pinned",
+    "why": "The working canonical member of the collision pair. Connected in THIS live session: mcp__openalex__* tools (search_works, autocomplete, get_entity, search_authors, ...) are present in the session tool inventory, and the session's own failed-connection list names openalex-alt but NOT openalex (two mechanically distinct confirmations vs the 05:16 banner: tool-schema listing + in-session connect status). Upstream API healthy: curl https://api.openalex.org/works?per-page=1 -> HTTP 200. Package chain sound: npm registry openalex-mcp (reetp1) at 0.1.8 and cached locally at D:/npm-cache/_npx/1bd54c586f531f6e. COLLISION VERDICT (openalex vs openalex-alt): two DIFFERENT npm packages under near-identical server names, both enabled, both claude-targeted, both materialized in ~/.claude.json — openalex = \"npx -y openalex-mcp\" (works), openalex-alt = \"npx -y mcp-openalex\" (jmearman v1.0.1; exists on npm but ABSENT from the npx cache; failed CONNECTION_CLOSED in the live session, i.e. the spawned process died mid-handshake — exact crash mechanism UNVERIFIED, settle by one manual spawn of mcp-openalex outside this read-only lane). Recommendation: keep openalex (registry-pinned), decommission openalex-alt — it only produces a session-start failure line and duplicates coverage already triple-served (openalex server, paper-search's search_openalex/download_openalex tools, and scholarly-access).",
+    "paths": {
+      "status": "canonical (with a documented sibling collision)",
+      "registry_command_verbatim": "npx -y openalex-mcp",
+      "claude_json_materialized": "cmd /c npx -y openalex-mcp (Windows wrapper, consistent with registry)",
+      "colliding_sibling_verbatim": "npx -y mcp-openalex  (server name 'openalex-alt')"
+    },
+    "scatter": {
+      "registry ~/.agents/agents.json": "present, targets=[claude], enabled=true, transport=stdio",
+      "~/.claude.json": "top-level mcpServers: cmd /c npx -y openalex-mcp; sibling openalex-alt also present",
+      "~/.codex/config.toml | ~/.cursor/mcp.json | ~/.gemini/settings.json | ~/.mcp.json": "absent",
+      "name_variants": ["openalex", "openalex-alt (different package mcp-openalex, failed CONNECTION_CLOSED this session)"]
+    }
+  }
+]

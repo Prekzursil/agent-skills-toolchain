@@ -1,0 +1,49 @@
+{
+ "claim": "codecov and digitalocean (tied at 5 consumer surfaces) share the same McpHub-child + gemini-variant + inline-credential pattern as codacy (flagged by verifier V2, not deep-verified in the 6-slot budget)",
+ "verdict": "CONFIRMED",
+ "verdict_scope": "Sameness CONFIRMED: codecov and digitalocean are exactly tied with codacy on every measured axis (surface set, McpHub children, gemini divergent impls, env-reference credential wiring, 36+1 disable marks). One component label REFUTED: 'inline-credential' is a misdescription of the shared pattern - NONE of the three (codacy included) carries inline literal credentials; all use ${VAR}/$VAR references that resolve to real OS env vars. This retires V2's lost-credential hazard for codacy too.",
+ "settling_probe": "Third mechanism, distinct from the original lane (python sweep -> tui-inventory.json) and V2 (python json parse + credential length compare): (1) Node.js v24 V8 JSON.parse structured extraction across 7 surfaces (waveD/r4_probe.cjs -> r4_probe_out.json), (2) structure-independent ripgrep raw-text counts of the server names in every surface file with known-present controls, (3) safe exact-value check printing env values ONLY where they strictly match ^\\$\\{?[A-Za-z_][A-Za-z0-9_]*\\}?$ (pure reference, no secret possible), (4) PowerShell [Environment]::GetEnvironmentVariable presence/length probe at Process/User/Machine scope (waveD/r4_envars.ps1), (5) on-disk existence check of the gemini-variant binaries.",
+ "components": {
+  "surface_tie": {
+   "result": "CONFIRMED (exact tie with codacy)",
+   "definition_surfaces_present_all_three": [
+    "C:/Users/Prekzursil/.agents/agents.json (registry mcp.servers, total 81)",
+    "C:/Users/Prekzursil/.claude.json (root mcpServers, total 87)",
+    "C:/Users/Prekzursil/.gemini/settings.json (total 33)",
+    "C:/Users/Prekzursil/.McpHub/config.json (servers.* children)"
+   ],
+   "mark_layer": ".claude.json disabledMcpServers: 36 per-project marks + 1 root mark = 37 for EACH of codacy/codecov/digitalocean (identical)",
+   "surfaces_absent_all_three_detector_validated": [
+    "C:/Users/Prekzursil/.codex/config.toml (control hit: basic-memory)",
+    "C:/Users/Prekzursil/.cursor/mcp.json (control hit: basic-memory)",
+    "C:/Users/Prekzursil/.mcp.json (control hit: basic-memory)",
+    "~/.config/cyberstrike/cyberstrike.json, opencode.json, goose config.yaml, aider.conf.yml (zero hits)"
+   ],
+   "counting_note": "4 file-level definition surfaces + 1 disable-mark layer = 5 consumer surfaces under the registry+claude+gemini+McpHub+marks counting; strictly file-level it is 4. Either way the tie among the three servers is exact - every surface holding codacy holds codecov and digitalocean with identical footprint shape."
+  },
+  "mcp_hub_child": {
+   "result": "CONFIRMED",
+   "evidence": "~/.McpHub/config.json walk paths /servers/codecov and /servers/digitalocean, each {command:'cmd', args:['/c','npx','-y',<pkg>,...]} identical to /servers/codacy; children carry no env at all (keys=command,args env=none). Live corroboration: this audit session's own tool inventory exposes mcp__McpHub__codecov__* tools (codecov actively served through McpHub). No mcp__McpHub__digitalocean__* tools in this session - config child present but not exposed to this session (selective/lazy), not load-bearing for the config-level claim."
+  },
+  "gemini_variant": {
+   "result": "CONFIRMED",
+   "evidence": "gemini codecov command='mcp-codecov' (local binary, verified on disk at C:/Users/Prekzursil/AppData/Roaming/npm/mcp-codecov) vs registry/claude/McpHub impl 'npx -y @egulatee/mcp-codecov@latest' - divergent impl, same class as codacy's 'codacy-mcp-server' (also on disk). gemini digitalocean = 'npx @digitalocean/mcp --services apps' - same package but variant arg-set (no cmd /c wrapper, no --transport stdio): weak variant. All gemini entries also use unbraced $VAR refs vs braced ${VAR} elsewhere."
+  },
+  "inline_credential": {
+   "result": "REFUTED (for codecov, digitalocean AND codacy - ground-truth correction to V2)",
+   "evidence": "Every env value on registry, claude.json, and gemini for all three servers strictly matches a pure env-var reference: ${CODECOV_TOKEN} (len 16), ${CODECOV_BASE_URL} (len 19), ${DIGITALOCEAN_API_TOKEN} (len 25), ${CODACY_ACCOUNT_TOKEN} (len 23), ${CODACY_API_TOKEN} (len 19); gemini uses unbraced forms ($CODECOV_TOKEN len 14 etc.). No literal secret material inline anywhere; McpHub children have no env at all. References RESOLVE: OS env has CODECOV_TOKEN len36, CODECOV_BASE_URL len18 (Process/User; absent Machine), DIGITALOCEAN_API_TOKEN len71, CODACY_* len20 - all at Process+User+Machine unless noted."
+  }
+ },
+ "ground_truth_corrections": [
+  "V2 codacy verdict axis (1) LOST CREDENTIALS is WRONG in mechanism: V2 read the len-23/19 claude.json env values as inline literals and inferred non-recoverable material because OS env tokens are len 20/20. The 23/19 lengths are the REFERENCE STRINGS ${CODACY_ACCOUNT_TOKEN}/${CODACY_API_TOKEN}; the tokens exist in OS env and the references resolve. Nothing inline is lost on decommission; credentials live in OS env vars. V2's decommission-path sequencing concern (file rewrites destroying literals) is moot for this trio.",
+  "Minor drift, not load-bearing: claude.json root mcpServers counts 87 now vs 86 in the 05:41 tui-inventory probe; registry counts 81 vs 80 - one entry appeared or the python sweep filtered one; does not affect the codecov/digitalocean/codacy tie."
+ ],
+ "detector_validation": "Absences validated with known-present controls per surface (basic-memory found in codex TOML, .mcp.json, cursor; codacy itself is the known-present control that the Node extraction recovered on all 4 definition surfaces). Two independent mechanisms agree on every hit and every zero: Node V8 JSON.parse structured walk AND ripgrep raw-text counts (codacy=16/81/6/3, codecov=13/80/6/2, digitalocean=9/41/4/2 occurrences in agents.json/claude.json/gemini/McpHub respectively).",
+ "probe_artifacts": [
+  "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/waveD/r4_probe.cjs",
+  "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/waveD/r4_probe_out.json",
+  "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/waveD/r4_envars.ps1"
+ ],
+ "lane": "R4",
+ "manifest_note": "lane id R4 accepted by plan_lint_stage0.py (PLAN_RESUME:partial R4 then --mark-done); no R-id rejection occurred."
+}

@@ -1,0 +1,37 @@
+{
+  "surface": "agy (Antigravity CLI/IDE) — C:/Users/Prekzursil/AppData/Local/agy + ~/.agy config discovery",
+  "current_state": {
+    "install": {
+      "binary": "C:/Users/Prekzursil/AppData/Local/agy/bin/agy.EXE (197,602,456 bytes) plus agy.EXE.1789772154338311100.old (188,758,168 bytes) — update-in-place artifact; no config files anywhere under AppData/Local/agy (os.walk, whole tree, 2 files total)",
+      "ide_artifacts": "C:/Users/Prekzursil/AppData/Local/Antigravity contains ONLY bin/ and staging/ (installer artifacts; top-level enumerated). AppData/Roaming/Antigravity ABSENT — no IDE user-level settings/mcp config exists on this box."
+    },
+    "config_root": "C:/Users/Prekzursil/.agy EXISTS. Non-skills contents: exactly one file, AGENTS.md (790 bytes) — the G-72/G-95 wiring pointer (junction declaration + HTTP-hub-only rule). No settings.json, no mcp.json, no config.json (os.walk with skills/ pruned; detector validated by the walk seeing the known-present AGENTS.md).",
+    "skills_wiring": "~/.agy/skills is a real NTFS JUNCTION -> C:/Users/Prekzursil/.agents/skills (verified via PowerShell Get-Item -Force: LinkType=Junction, Target=C:\\Users\\Prekzursil\\.agents\\skills). Compliant with G-79/G-95: vault SSOT consumed by pointer, no forked skill bodies. The DEPLOYED-MANIFEST.json / SKILLS-MANIFEST.md seen through it are the vault's own files.",
+    "registry_relationship": "SSOT ~/.agents/agents.json: 0 of 81 servers list agy in targets; integrations.enabled=[]; zero occurrences of 'agy' anywhere in registry text. The sync tooling never materializes MCP config into agy — exactly the G-72 HTTP-hubs-only posture.",
+    "other_discovery_surfaces": "~/.mcp.json EXISTS at home root (shared Claude-fleet canonical file, GT #2: 19+ servers) — it is not agy-owned; UNVERIFIED whether any agy build reads ~/.mcp.json (settling experiment: `agy --help` / `agy mcp list` in a RAM-safe shell — NOT run per spawn policy, 197MB binary under ~5GB free RAM). No mcp.json / .agy / agy.json in the toolchain repo cwd or home root besides the above.",
+    "compliance_verdict": "G-72 COMPLIANT: no private agy mcp.json exists in any agy-owned location. HTTP-hubs + vault-pointer model is structurally intact."
+  },
+  "violations": [],
+  "health_sample": {
+  "method": "curl -s -o /dev/null -w %{http_code} -m 5 (mechanically different from the 05:41 python-sweep and MCP-banner probes)",
+    "results": {
+      "http://127.0.0.1:8765/mcp": "HTTP 000 — REFUSED/DEAD (port agy AGENTS.md pins for basic-memory)",
+      "http://127.0.0.1:18765/mcp": "HTTP 400 — ALIVE (bare GET to streamable-HTTP endpoint; 400 without initialize payload is expected liveness proof; matches HOME AGENTS.md basic-memory port)",
+      "http://127.0.0.1:8812/api/health": "HTTP 000 — REFUSED/DEAD (port agy AGENTS.md pins for agent-mail)",
+      "http://127.0.0.1:18812/api/health": "HTTP 200 — ALIVE (matches HOME AGENTS.md agent-mail port)",
+      "http://127.0.0.1:8811/api/health": "HTTP 000 — dead (consistent with HOME AGENTS.md '8811 is dead')"
+    }
+  },
+  "gap_list": [
+    "GAP-1 (highest impact, measured live): ~/.agy/AGENTS.md lines 10-11 pin DEAD hub endpoints — basic-memory 'http://127.0.0.1:8765/mcp' (refused) and agent-mail ':8812' (refused). Live hubs are 18765 (basic-memory) and 18812 (agent-mail). A compliant agy instance following its own G-72 pointer cannot reach either hub. Same stale 8765/8812 pair also appears in ~/.claude/CLAUDE.md ('http://127.0.0.1:8765/mcp only'; 'port 18812' in HOME vs 8812 elsewhere in CLAUDE.md) — a cross-surface stale-port doc family; the estate-lock text in HOME AGENTS.md (18765/18812 owners) is the form the live network agrees with.",
+    "GAP-2: run-dir tui-inventory.json agy entry is empty ({found:[], mcp_servers:null, notes:''}) while real agy surfaces DO exist (197MB binary + ~/.agy config root + Antigravity install dir) — under-reporting in the audit's own inventory; this lane's findings fill it.",
+    "GAP-3 (ground-truth correction, GT #1): SSOT registry grew 80 -> 81 servers since the 05:41 snapshot. Diff of snapshot names vs live keys: exactly one new server 'video-agent-kit', zero removed. GT #1's '80' is now stale; use 81."
+  ],
+  "max_legal_plan": [
+    "REPORT-ONLY (owner actions; this lane writes nothing): 1) One-line corrections in ~/.agy/AGENTS.md: basic-memory http://127.0.0.1:18765/mcp, agent-mail http://127.0.0.1:18812 — plus the matching stale lines in ~/.claude/CLAUDE.md to retire the 8765/8812 doc family. No config creation, junction untouched.",
+    "2) Keep G-72 posture as-is: registry continues to carry zero agy targets; do NOT let any future sync materialize an agy mcp config; skills stay served through the junction (it tracks the vault automatically — no per-sync action needed).",
+    "3) Optional hardening (report only): add a fail-closed pre-engagement probe to the agy pointer — curl -m 5 both hubs (expect 400 on 18765/mcp, 200 on 18812/api/health) before any agy engagement; refuses-to-run matches 'non-compliant Agy must not run'.",
+    "4) Refresh tui-inventory.json agy entry from this verdict so the next audit starts from measured state."
+  ],
+  "notes": "Probes used (each mechanically different from the tagged GT probes): os.walk enumerations of ~/.agy, AppData/Local/agy, AppData/Local/Antigravity (vs GT's python config-sweep); PowerShell Get-Item -Force LinkType/Target for the junction; direct json.loads of agents.json vs the run-dir snapshot artifact; curl -m 5 port probes (vs GT's session MCP banner). Detector validation performed on every absence claim: the ~/.agy walk demonstrably saw the known-present AGENTS.md; the Antigravity scan listed top-level (bin, staging) proving traversal before reporting zero config JSONs. Credential values never read or printed (none encountered — no config files exist to contain them). UNVERIFIED tags: (a) whether agy reads ~/.mcp.json (settling experiment: agy --help / agy mcp list, deferred per RAM spawn policy); (b) agy binary's internal config-discovery order (static audit only — the 197MB EXE was never executed). No violations of the READ-ONLY mandate: zero config edits, zero commits, zero process kills; only writes were this verdict file and the two manifest marks."
+}

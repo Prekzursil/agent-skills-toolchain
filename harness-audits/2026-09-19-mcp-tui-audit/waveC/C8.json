@@ -1,0 +1,90 @@
+{
+  "scope": "Lane C8 (2026-09-19 estate MCP/TUI/skills audit, read-only): toolchain repo C:/Users/Prekzursil/source/agent-skills-toolchain (branch feat/tool-registry-governance @ 3c9cece7f, incl. platform/ layout and .agents/ mirror) vs live C:/Users/Prekzursil/.agents (harness-at-root layout, git branch live-capture/2026-09-02 @ ce1d6048). Map what syncs where; find orphaned either-side artifacts. Probes: python os.listdir set-diffs, git (ls-files/status/log/ls-remote/worktree list, read-only), PowerShell Get-Item LinkType, jq, file sha256, direct Reads.",
+  "findings": [
+    {
+      "item": "Estate rule 'live ~/.agents keeps harness-at-root layout (agents.json + scripts + skills at root)'",
+      "classification": "COMPLIANT",
+      "evidence": "Live root listing (142 entries): agents.json, scripts/, skills/, commands/, harness/, rules/ at root. No repo-root-layout artifacts (no package.json, .github, ci/, node_modules) at live root. Detector control: same listing surfaced known-present agents.json/scripts/skills, so the absence reads are trustworthy.",
+      "recommendation": "None; keep as is."
+    },
+    {
+      "item": "Estate rule 'never check out the repo's platform layout into the live folder'",
+      "classification": "COMPLIANT",
+      "evidence": "No platform/ subtree at live root (142-entry listing). Repo platform/ (14 entries: registry, routing, schema, plugin, lib, corpus, council, cyberstrike, marketplace, architecture, coordination, workflows + 2 DEFECT md) exists only in the repo. The live checkout's branch tree is the harness-at-root layout, not platform/.",
+      "recommendation": "None. The one-command-away risk is captured in the git-checkout finding below."
+    },
+    {
+      "item": "Live ~/.agents is a full git clone of the toolchain remote (live-capture flow) — one wrong checkout breaks load paths",
+      "classification": "RISK (owner-installed, deliberate)",
+      "evidence": "C:/Users/Prekzursil/.agents/.git/config: remote origin = https://github.com/Prekzursil/agent-skills-toolchain.git; HEAD = refs/heads/live-capture/2026-09-02; branch tracks origin. Capture rail proven end-to-end today: live HEAD ce1d60489cd4542443e986e0f01c95974889dd04 == git ls-remote origin tip (opusclip-shorts commits 2026-09-19). Risk: any 'git checkout main' / 'git pull' run in live would materialize repo-root layout (package.json, .github, ci/, platform/, node_modules path) into ~/.agents, breaking load paths — exactly what the estate rule guards. Also contradicts the 2026-07-11 memory ('Edit ~/.agents in-place, NOT git').",
+      "recommendation": "Keep live-capture/2026-09-02 as the only branch ever checked out in live; add a cheap guard (e.g. a PATH-anchored README + a pre-checkout hook, or 'git config remote.origin.fetch' narrowed to the live-capture ref) so a routine pull in live cannot fetch/checkout repo-root-layout branches."
+    },
+    {
+      "item": "Repo .agents/ mirror (in-repo copy of live layout) is stale vs live; two parallel truths of live state",
+      "classification": "DRIFT",
+      "evidence": "agents.json: repo mirror sha256 27e8d64cb787b59a..., 52,670 bytes, mtime 2026-09-07 21:01 vs live sha256 2904eb1f373e3a51..., 62,603 bytes, mtime 2026-09-19 06:59. Mirror skills/ missing >=1 skill present in repo skills/ (disk-space-manager absent from repo .agents/skills, present in repo skills/ and live). .gitignore hashes differ (repo-capture 6849fa9c1d0a vs live 9fc0a72f7999). Canonical checkout's origin/live-capture remote-tracking ref is fetch-stale at 726687ecf (2026-09-02) while remote tip is ce1d6048 (2026-09-19).",
+      "recommendation": "Declare origin/live-capture/2026-09-02 the single reunion point for live state and stop hand-maintaining the .agents/ dir on dev branches (or automate a freshness check); 'git fetch' in the canonical checkout before any repo-side work that assumes live state."
+    },
+    {
+      "item": "Live working tree dirty: 133 modified files since last capture commit",
+      "classification": "INFO (normal live-first flow, flag for capture)",
+      "evidence": "git -C ~/.agents status --porcelain: 133 entries, incl. M agents.json, M .gitignore, M harness/* (dispatcher, modules, redaction, registration, adapters, install, schemas, tests). Same-day parallel: canonical repo HEAD 3c9cece7f 'harness-patches: metaswarm sessionstart latency gate' (2026-09-19) — the live-side harness/* edits are the uncaptured counterpart.",
+      "recommendation": "Capture-commit the live harness/* + agents.json changes on live-capture branch at next natural checkpoint."
+    },
+    {
+      "item": "Sync flow map (what syncs where) — confirmed with mechanically different probes (script Read + PowerShell LinkType + jq)",
+      "classification": "COMPLIANT",
+      "evidence": "C:/Users/Prekzursil/.agents/scripts/sync_shared_state.ps1 (exists in live and repo .agents/scripts, NOT in repo root scripts/): source of truth ~/.agents (agents.json + skills vault); merge scripts merge_generated_{codex,claude,cursor,zcode}_mcp.py + sync_local_bridge_mcp.py + validate_mcp_control_plane.py + publish_reference_views.py write ~/.codex/config.toml, ~/.claude.json, ~/.cursor/mcp.json. Skills chain measured via Get-Item LinkType: C:/Users/Prekzursil/.claude/skills = Junction -> .claude/skills.daily = Junction -> .agents/skills (LEGAL chain INTACT; real-dir .claude/skills would be ILLEGAL per script comments). Live vault 383 skill dirs; .claude/skills parity exact (0 diff via the junction chain). .codex/skills is a REAL dir with 4 entries (.system, hatch-pet, jailbreak, skill-stocktake) — Codex-local built-ins by design (G-79/G-97), not drift.",
+      "recommendation": "None; junction chain health could be added to agents doctor as a standing check."
+    },
+    {
+      "item": "~/.agents/rules is a real 3-file dir, not the junction the live .gitignore comment claims",
+      "classification": "DRIFT (minor, doc-vs-disk)",
+      "evidence": "PowerShell Get-Item: C:/Users/Prekzursil/.agents/rules LinkType empty (real dir). Contents: README.md, estate-locks.md, estate-locks.md.bak-20260828-q2mem (3 entries). Live .gitignore line 26-27 comment says 'junction into ~/.claude/rules'; ~/.claude/rules is a separate 15-entry language-tree dir (common, cpp, python, rust, ...). rules/ is untracked in the live git (ignored), so no duplication is committed.",
+      "recommendation": "Fix the .gitignore comment (it is already Modified-uncommitted in live) and either junction or leave as small live-only rules home; move the .bak out."
+    },
+    {
+      "item": "Live-only skills absent from canonical repo skills/ (unsynced live-side content)",
+      "classification": "ORPHAN-LIVE (partial)",
+      "evidence": "Set-diff (os.listdir, dirs only): live .agents/skills (383) minus repo skills/ (375) = estate-offensive-doctrine, fabric-patterns, hosted-model-agents, jailbreak, opusclip-shorts, qwen-space-tool-api (+ junk .ruff_cache, synced/). Same set absent from repo .agents/skills mirror; additionally disk-space-manager missing from the mirror. opusclip-shorts IS captured: commits 0be5302b/20d8ec1c/ce1d6048 on live-capture branch pushed to origin today. qwen-space-tool-api self-declares DEPRECATED in favor of hosted-model-agents.",
+      "recommendation": "Fold the remaining live-only skills into the live-capture commit flow (they ride the same 'git add' as harness edits) or retire them in the vault; delete qwen-space-tool-api per its own deprecation once consumers are checked."
+    },
+    {
+      "item": "Stale toolchain duplicates around ~/source (memory said '5 stale dupes' — re-measured and typed)",
+      "classification": "ORPHAN-REPO",
+      "evidence": "ast-docspr: registered git worktree, DETACHED HEAD 097df4971; ast-harness-reconcile: registered worktree on chore/enshrine-runtime-config 4bcc65ec0; ast-consol-wt and ast-integrate: plain dirs with NO .git (unregistered copies, invisible to 'git worktree remove'); ast-patch167: FULL separate clone. Also registered: canonical .worktrees/consult-offsec-wave (fb2e27a1d) plus two D:-drive worktrees. 'git worktree list' from canonical repo.",
+      "recommendation": "'git worktree remove' for the two stale registered ast-* worktrees after confirming no uncommitted work; owner decision to trash the two unregistered dirs and the ast-patch167 full clone (no-delete rule -> move to trash)."
+    },
+    {
+      "item": "Live root and vault cruft",
+      "classification": "HYGIENE",
+      "evidence": "Live root: vm_*.ps1 x15 + vm_docker*/vm_keycheck scripts, wsl_*.log x4, phaseBC.log, read_log.ps1, agents.json.bak-* x7 (one IS committed to git: agents.json.bak-frida-codex-20260427-001533), skills-index.md.bak, mcp-claude-collapsed-9/mcp-cursor-parked-31/mcp-grok-parked json/toml. Vault: skills/synced/ containing 2 GUID bucket dirs (.bucket-... + bare GUID), skills/.ruff_cache.",
+      "recommendation": "Sweep logs/ps1 debris and .bak files into live trash/ (existing dir) at next capture; untrack the committed agents.json.bak-frida-codex; empty skills/synced/ buckets."
+    },
+    {
+      "item": "Secrets exposure via the live-capture git — checked, clean",
+      "classification": "COMPLIANT",
+      "evidence": "git -C ~/.agents ls-files -- local.json secrets '*.key' '*.pem' '*token*': only false-positive skill SOURCE files (skills/design-tokens-pipeline/*, skills/codex-databricks-fanout/scripts/engine/tokens.py) — no credentials. Live .gitignore excludes secrets/, secure-evidence/, local.json, *.token, *token*.json, *credential*, *.pem, *.key, .env*, plus runtime dirs (logs, tmp, state, backups, generated, node_modules). browser-profiles/ 660 files tracked = documented owner exception (private repo, plaintext by explicit decision).",
+      "recommendation": "Note: broad ignore patterns (*token*.json, *credential*) can silently exclude legitimate files from capture — worth a periodic 'git status --ignored' review of skills/."
+    },
+    {
+      "item": "Repo-root hazards and debris",
+      "classification": "HYGIENE",
+      "evidence": "mitm_mcp_traffic.db at repo root: gitignored + untracked (safe from commit) but it is a live mitmproxy traffic capture DB sitting in a working tree — may hold sensitive flows; relocate off-repo. 'nul' file at repo root and 'NUL' in ~/source (Windows redirect artifacts, both ignored). One-off probe debris at repo root: _f7_syncskills_probe.py, _refute_f1/f4/f6*.py (prior audit waves), plus matching _refute_* files scattered in ~/source.",
+      "recommendation": "Move mitm_mcp_traffic.db to secure-evidence/ or D: storage; sweep _refute_*/_f*_probe files and nul/NUL artifacts."
+    },
+    {
+      "item": "Ground-truth reconciliation: registry server count",
+      "classification": "GT-DELTA",
+      "evidence": "GT#1 said 80 servers under mcp.servers (python parse 2026-09-19 05:41). Fresh jq probe (different parser): jq '.mcp.servers | keys | length' on C:/Users/Prekzursil/.agents/agents.json = 81. File mtime 06:59 today — edited AFTER the 05:41 probe, so the delta is a post-probe edit, not a counting error.",
+      "recommendation": "Treat 81 (and rising — the 09-21 Sci-Hub/full-allow wave landed after) as current; other lanes consuming the count should re-read, not reuse 80."
+    },
+    {
+      "item": "skills-claude-only/ lane (repo-only) does not flow through the live vault",
+      "classification": "INFO (map completeness)",
+      "evidence": "Repo skills-claude-only/ holds 37 pinned GitHub-sourced skills (azure-*, metaswarm-*, ralph-*, superpowers, qdx-rush...) with MANIFEST.md; live .skill-lock.json (v3) pins the same family (e.g. microsoft/GitHub-Copilot-for-Azure). sync_shared_state.ps1 never references skills-claude-only — materialization to .claude rides the vault junction only, so these are materialized by the lock-file installer lane, not by shared-state sync.",
+      "recommendation": "Document this second skills lane in the same README that documents sync_shared_state.ps1 so future audits do not misread it as drift."
+    }
+  ],
+  "summary": "Layout rule HELD: live ~/.agents is genuine harness-at-root (agents.json/scripts/skills at root), no platform/ checkout, and the junction chain .claude/skills -> skills.daily -> .agents/skills is intact (PowerShell LinkType), giving exact 383/383 vault parity. The structural surprise: live ~/.agents is itself a git clone of the toolchain repo on branch live-capture/2026-09-02, actively capturing live state (HEAD == GitHub remote tip ce1d6048 today; 133 dirty files = today's uncaptured harness/agents.json edits) — deliberate, but one 'git pull/checkout main' in live would materialize repo-root layout and break load paths; guard it. Main drift: the repo's .agents/ mirror is 12 days stale (agents.json 52,670B/09-07 vs 62,603B/09-19, sha 27e8d64c vs 2904eb1f) while the fresh truth lives on the live-capture branch the canonical checkout has not fetched since 09-02. Orphans: 6-7 live-only skills never captured to repo (opusclip-shorts excepted — captured today), 5 stale toolchain dupes (2 registered worktrees, 2 unregistered dirs, 1 full clone), plus live-root cruft (15 vm_*.ps1, 7 agents.json.bak, committed bak-frida-codex) and repo-root debris incl. an ignored-but-sensitive mitm_mcp_traffic.db. Secrets hygiene clean: local.json/secrets/*.key/*.pem untracked; browser-profiles tracked only by documented owner exception. GT correction: registry now 81 servers (jq), not 80 — file edited at 06:59 after the 05:41 probe."
+}

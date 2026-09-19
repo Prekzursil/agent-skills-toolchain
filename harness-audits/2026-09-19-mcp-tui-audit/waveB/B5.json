@@ -1,0 +1,79 @@
+{
+  "surface": "Lane B5 — TUI wiring audit: zcode (live config ~/.zcode/cli/config.json; npx lane D:/npm-cache/_npx/2f024689b4d0d3b0 = @z_ai/coding-helper 0.1.1, bins coding-helper/chelper -> dist/cli.js) and hermes (AppData/Local/hermes, config.yaml) MCP wiring vs SSOT ~/.agents/agents.json, plus installed agents CLI (@agents-dev/cli) supported-targets enum.",
+  "current_state": {
+    "ssot": {
+      "server_count": 81,
+      "count_note": "GROUND-TRUTH CORRECTION: registry-inventory.json says 80; live agents.json (mtime 2026-09-19 06:29:34) holds 81 — a 'video-agent-kit' entry (targets claude,codex,zcode) was added AFTER the 05:41 probes. Probe: jq '.mcp.servers|length' (mechanically different from the tagged python parse).",
+      "syncMode": "source-only (jq-confirmed)",
+      "zcode_targeted_total": 17,
+      "zcode_targeted_enabled": 15,
+      "zcode_targeted_disabled": ["kaggle", "burp"],
+      "hermes_targeted_total": 17,
+      "hermes_targeted_disabled": [],
+      "zcode_targeted_list": ["agent-mail","apify","basic-memory","bedrock-claude","biomni-hub","burp","deepwiki","exa","github","kaggle","openaiDeveloperDocs","scholarly-access","video-agent-kit","web-reader","web-search-prime","zai-vision","zread"],
+      "hermes_targeted_list": ["agent-mail","basic-memory","cloud-audit-hub","context7","cve-mcp-hub","deepwiki","exa","firecrawl","github-security-hub","hexstrike-ai-hub","nuclei-hub","openaiDeveloperDocs","osint-hub","semgrep-hub","web-reader","web-search-prime","zread"]
+    },
+    "zcode_surface": {
+      "live_config": "C:/Users/Prekzursil/.zcode/cli/config.json (mtime 2026-09-19 06:31:59 — synced this morning)",
+      "total_servers": 29,
+      "registry_wired": "17/17 zcode-targeted SSOT servers present (parity exact; detector validated: it found all 17 known-present registry names in the live config before any absence claim)",
+      "zcode_local_preserved_12": ["brightdata","consult-offsec","cua_repl","cve","figma","firecrawl-kit","hacktricks","mcphub","metasploit","node_repl","sliver","sliver-full"],
+      "x_zcode_overrides": "apify and github carry x_zcode.enabled=false in the registry (registry enabled=true) — INTENDED owner-local disable mechanism per merge_generated_zcode_mcp.py docstring, not drift",
+      "stdio_path_check": "bedrock-claude (C:\\Python314\\python.exe), biomni-hub (.venv python), scholarly-access (.venv exe) all exist on disk. kaggle targets C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe which DOES NOT EXIST (dangling disabled entry). zai-vision (cmd /c npx) and video-agent-kit (bare python) resolve via PATH — not path-checkable, not counted as missing."
+    },
+    "hermes_surface": {
+      "live_config": "C:/Users/Prekzursil/AppData/Local/hermes/config.yaml (mtime 2026-09-19 06:32:00); hermes home also has .mcp-discovery.lock, backups/, auth.json (NOT read — credential hygiene)",
+      "wired": "17/17 hermes-targeted SSOT servers present in mcp_servers block (lines 189-228), all as url-style HTTP entries per G-1 HTTP-hub-only policy (deploy_hermes_mcp.py skips non-HTTP transports; all 17 registry entries are http so none skipped)",
+      "deploy_rail": ".agents/scripts/deploy_hermes_mcp.py — stateless re-derive from agents.json, preserves manual entries, removes re-targeted-away servers, backs up to backups/"
+    },
+    "wiring_rails": {
+      "sync_script": ".agents/scripts/sync_shared_state.ps1 lines 188-189 run merge_generated_zcode_mcp.py --write; lines 200-213 run deploy_hermes_mcp.py + sync_hermes_skills.ps1",
+      "conclusion": "The estate's custom rails FULLY COMPENSATE for the agents CLI dropping zcode/hermes targets — zero SSOT servers are actually un-wired on these surfaces. The CLI's drop is cosmetic (warning noise) because syncMode=source-only and these two targets never ride the CLI sync."
+    },
+    "agents_cli": {
+      "installed_version": "0.9.1",
+      "version_probe": "agents.cmd --version -> 0.9.1; package.json version 0.9.1; package mtime 2026-09-19 05:38:47",
+      "GROUND_TRUTH_CORRECTION": "Claim 'agents CLI 0.8.10 ... Update 0.9.1 held until post-audit' is REFUTED: 0.9.1 was installed at 05:38:47, BEFORE the 05:41 agents-doctor probe — the 31 unsupported-target warnings in agents-doctor.txt were emitted by 0.9.1, not 0.8.10.",
+      "supported_targets_enum": "INTEGRATION_IDS (dist/integrations/registry.js, INTEGRATIONS.map(id)) = ['codex','claude','claude_desktop','gemini','copilot_vscode','copilot_cli','cursor','antigravity','windsurf','opencode','junie','grok','amp','droid','kilo','devin','zed','goose'] — 18 ids, NO zcode, NO hermes",
+      "drop_mechanism": "dist/core/mcp.js: for each registry target, if (!ALL_INTEGRATIONS.includes(target)) -> warnings.push('MCP server \"<name>\" has unsupported target \"<target>\"; ignored for that target.') and the server is excluded from that target's sync set",
+      "does_091_add_zcode_hermes": false,
+      "evidence": "grep zcode|hermes across the entire dist/ tree: 0 matches in any file; CHANGELOG 0.9.1 (2026-09-13) adds Grok/Droid/Devin/Zed/Goose/Kilo integrations — none named zcode or hermes; detector validated (regex id extraction found 18 known-present ids before asserting the two absences)",
+      "silently_drops_nuance": "Not silent — the CLI warns per server per target (31 warnings = 14 zcode + 17 hermes). 'Silently DROPS' overstates; the accurate statement is: loudly warns, then ignores those targets — and the estate ignores the CLI for these targets anyway."
+    },
+    "timeline_all_fresher_than_probes": "CLI install 05:38:47 -> probes 05:41 -> registry edit 06:29:34 (video-agent-kit) -> zcode config 06:31:59 -> hermes config 06:32:00. One sync pass ran ~06:30-06:32 today; all three surfaces and the CLI postdate the audit's ground-truth capture."
+  },
+  "violations": [
+    "GROUND-TRUTH CLAIM 5 HALF-REFUTED: '0.8.10 silently drops zcode/hermes; 0.9.1 held until post-audit' — 0.9.1 was already installed (05:38:47) before the 05:41 doctor run, and 0.9.1 still drops both targets (0 refs in dist). The drop is real and PERSISTS in 0.9.1; upgrading fixed nothing for zcode/hermes.",
+    "GROUND-TRUTH CLAIM 1 STALE-BY-ONE: registry now holds 81 servers, not 80; registry-inventory.json and the doctor warning set both predate the video-agent-kit addition (which is why no video-agent-kit warning appears in agents-doctor.txt).",
+    "'Silently drops' mischaracterization: the CLI emits 31 loud warnings; nothing is silent. The genuine risk would be if the estate relied on the CLI for these targets — it does not (custom rails, source-only syncMode).",
+    "6 of 17 hermes-wired servers point at a DOWN local hub supervisor (ports 31410-31419, all HTTP 000) — hermes sessions get connection failures for cloud-audit-hub, cve-mcp-hub, github-security-hub, osint-hub, hexstrike-ai-hub, nuclei-hub, semgrep-hub until the cyberstrike mcp-proxy supervisor is started. Wiring is correct; backends are dead.",
+    "Dangling disabled entry: kaggle (zcode+registry, enabled=false) references a nonexistent venv python (C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv) — would fail instantly if ever re-enabled."
+  ],
+  "health_sample": {
+    "method": "curl -s -m 5 -o /dev/null -w %{http_code} per URL (HTTP only; no MCP clients, no spawns)",
+    "results": {
+      "http://127.0.0.1:18812/mcp/ (agent-mail, zcode+hermes)": "200 ALIVE",
+      "http://127.0.0.1:18765/mcp (basic-memory, zcode+hermes)": "400 = endpoint alive, rejects bare GET (expected for MCP HTTP)",
+      "http://127.0.0.1:31114/mcp (firecrawl, hermes)": "400 = alive",
+      "ports 31410,31411,31412,31413,31417,31419 (github-security-hub, cve-mcp-hub, osint-hub, hexstrike-ai-hub, nuclei-hub, semgrep-hub; hermes)": "000 = connection refused, supervisor DOWN",
+      "remote https (context7, deepwiki, exa, openaiDeveloperDocs, web-reader, web-search-prime, zread)": "not probed (out of read-only local mandate)"
+    },
+    "hermes_fleet_bottom_line": "of 17 wired: 3 local-verified-alive, 6 local-dead, 8 remote-unprobed"
+  },
+  "gap_list": [
+    "agents CLI has no zcode/hermes integration in ANY version through 0.9.1 — the registry's zcode/hermes targets are an estate extension beyond the CLI enum; every doctor run will emit 31+ warning lines (more as targets grow) that a future reader may mistake for breakage.",
+    "Dead 314xx hub supervisor starves 6/17 hermes servers (and their claude twins per ground-truth #3) — single point of failure shared across both surfaces.",
+    "Run-dir artifacts (registry-inventory.json=80, agents-doctor.txt warning set) are stale vs live state (81, +video-agent-kit zcode warning would now be 32); synthesis lanes must not diff against them as ground truth.",
+    "kaggle dangling venv path (disabled, latent).",
+    "UNVERIFIED (static-only mandate): whether the zcode TUI (@z_ai/coding-helper 0.1.1) and hermes binaries actually LOAD these wired entries at runtime. Settling experiment: launch each TUI once with an MCP-list command and count connected servers (forbidden this run — spawn policy; zcode lane npx package was inspected statically only).",
+    "UNVERIFIED: no 0.9.2+ upstream check (npm registry query not run — network beyond local curl mandate); 0.9.1 is the newest locally installed."
+  ],
+  "max_legal_plan": [
+    "1. NO estate action needed for wiring: zcode 17/17 and hermes 17/17 are correctly wired via custom rails; treat agents-doctor unsupported-target warnings as expected noise (optionally filter them in the doctor wrapper or file an upstream feature request for a pluggable integration registry).",
+    "2. To revive the 6 dead hermes hub servers: start the cyberstrike mcp-proxy supervisor (owner action, outside read-only mandate); alternatively re-target them off hermes if the hubs are being retired. Do NOT delete the config entries — wiring is SSOT-correct.",
+    "3. Before synthesis: re-snapshot registry inventory (81 servers) and re-run agents doctor on 0.9.1 so downstream lanes diff against current state.",
+    "4. If a future @agents-dev/cli ever adds zcode/hermes natively: guard against double-wiring (native sync + custom merge would duplicate entries, the documented agents__-prefix class of problem); keep integrations.enabled: [] and prefer the custom rails until a migration is deliberately chosen.",
+    "5. Fix kaggle's dangling path only when re-enabling it (registry edit — owner decision, not this lane)."
+  ],
+  "notes": "Probe-mechanism ledger (honesty contract): registry parsed with jq (tagged probe was python parse); CLI drop established by direct dist/ source inspection + id-enum extraction (tagged probe was agents doctor run) + live agents.cmd --version; live surfaces read via python JSON/YAML structure walk printing names/keys only (no env/header VALUES printed; auth.json and .env in hermes home deliberately unread); health via curl HTTP codes. Absence claims validated against known-present controls: id-extraction found 18 known ids before asserting zcode/hermes absent; live-config detector found all 17 registry names on both surfaces before any missing-entry conclusion. The mtime chain (05:38 CLI -> 05:41 probes -> 06:29 registry -> 06:31/06:32 surfaces) was checked with stat, not inferred. Registry-inventory.json line count independently reconciled: 80 entries, video-agent-kit absent between tavily and web-reader."
+}

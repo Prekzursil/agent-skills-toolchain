@@ -1,0 +1,96 @@
+{
+  "lane": "V5",
+  "method": "Path-canonicality spot-check. Corpus = all path-like strings extracted from waveA/A01-A20 + waveC/C4 verdicts (194 distinct). 10 ambiguous specimens selected across ambiguity classes (tilde-relative, 8.3 short-name, forward-slash absolute, interior '..', path:lineno suffix, deliberately-nonexistent probe path). Probe = PowerShell Resolve-Path (pwsh) — mechanically different from the python os.path/os.environ probes used by waveA/C4. Discrimination validated BEFORE any absence claim: known-present control C:\\Users\\Prekzursil\\.claude.json RESOLVED, fresh known-absent sentinel C:\\Users\\Prekzursil\\__v5_never_exists__.txt REJECTED ('Cannot find path ... does not exist'). No servers spawned, no config writes.",
+  "verifications": [
+    {
+      "claim": "~/.claude.json (most-quoted path in the audit corpus, 174 mentions, A01 et al.) resolves to a real file",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath '~/.claude.json'",
+      "evidence": "BEFORE='~/.claude.json' AFTER='C:\\Users\\Prekzursil\\.claude.json' RESOLVED=True. Tilde expanded natively by Resolve-Path (no USERPROFILE join needed)."
+    },
+    {
+      "claim": "~/.McpHub/config.json (A19 live-server evidence; A16 quotes the absolute form C:/Users/Prekzursil/.McpHub/config.json) resolves; the CamelCase dir spelling matches the on-disk name",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path '~/.McpHub/config.json' + Get-Item .Name for true on-disk case",
+      "evidence": "BEFORE='~/.McpHub/config.json' AFTER='C:\\Users\\Prekzursil\\.McpHub\\config.json' RESOLVED=True; Get-Item reports on-disk directory Name literally '.McpHub' — both quoted spellings agree with disk case."
+    },
+    {
+      "claim": "C4 'ENV_CONTAMINATED' finding: live TEMP/TMP carry the 8.3 form C:\\Users\\PREKZU~1\\AppData\\Local\\Temp, which is a real resolvable path",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path + Get-Item on 'C:\\Users\\PREKZU~1\\AppData\\Local\\Temp'",
+      "evidence": "BEFORE='C:\\Users\\PREKZU~1\\AppData\\Local\\Temp' AFTER(same string) RESOLVED=True — but Resolve-Path PRESERVES the 8.3 form; Get-Item -LiteralPath 'C:\\Users\\PREKZU~1' expands to FullName='C:\\Users\\Prekzursil'. Canonicality note: the 'canonical' spelling of one disk path is tool-dependent (Resolve-Path vs Get-Item disagree)."
+    },
+    {
+      "claim": "C4 synthetic SHORT83 control 'C:/PROGRA~1/tool/bin.exe' is nonexistent (quoted in C4 as a deliberately-fake detector control)",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath 'C:/PROGRA~1/tool/bin.exe'",
+      "evidence": "BEFORE='C:/PROGRA~1/tool/bin.exe' AFTER=ERROR: Cannot find path 'C:/PROGRA~1/tool/bin.exe' because it does not exist. RESOLVED=False TestPath=False. Paired with P03 (real 8.3 form resolves) this proves 8.3 acceptance is discriminated, not blanket."
+    },
+    {
+      "claim": "A17 ralph-server scatter: Gemini config quotes 'C:/Windows/System32/wsl.exe' — forward-slash absolute form is a real binary",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath 'C:/Windows/System32/wsl.exe'",
+      "evidence": "BEFORE='C:/Windows/System32/wsl.exe' AFTER='C:\\Windows\\System32\\wsl.exe' RESOLVED=True. Forward slashes accepted and normalized to backslashes."
+    },
+    {
+      "claim": "A15 receipt: exe 'D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe' EXISTS with 108,366 bytes, LastWrite 2026-06-29 06:17 (also the D:-usage census item in C4)",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path (existence/canonical form) + Get-Item Length/LastWriteTime (size corroboration, same cmdlet family as A15)",
+      "evidence": "BEFORE='D:/ReverseTools/mcp/paper-search-mcp/venv/Scripts/paper-search-mcp.exe' AFTER='D:\\ReverseTools\\mcp\\paper-search-mcp\\venv\\Scripts\\paper-search-mcp.exe' RESOLVED=True; Get-Item: size=108366 LastWrite=06/29/2026 06:17:01 — byte-exact match with A15's receipt."
+    },
+    {
+      "claim": "A19 live-process evidence: tavily-mcp node pid 31900 argv contains interior-dotdot path 'D:/npm-cache/_npx/814ebe1c4dc1f905/node_modules/.bin/../tavily-mcp/build/index.js' — the target exists",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath (interior '..' path)",
+      "evidence": "BEFORE='D:/npm-cache/_npx/814ebe1c4dc1f905/node_modules/.bin/../tavily-mcp/build/index.js' AFTER='D:\\npm-cache\\_npx\\814ebe1c4dc1f905\\node_modules\\tavily-mcp\\build\\index.js' RESOLVED=True — '..' collapsed by the resolver and the collapsed target exists on disk."
+    },
+    {
+      "claim": "A19 evidence quotes 'D:/opt/cyberstrike-mcp/mcp-ssot.json:97' as a path — canonicality: the string AS QUOTED is not a resolvable filesystem path (':97' parses as an NTFS alternate-data-stream name)",
+      "verdict": "REFUTED",
+      "settling_probe": "pwsh Resolve-Path/Test-Path on as-quoted form, then on ':lineno'-stripped form",
+      "evidence": "BEFORE='D:\\opt\\cyberstrike-mcp\\mcp-ssot.json:97' AFTER(as-quoted)=TestPath=False; AFTER(stripped)='D:\\opt\\cyberstrike-mcp\\mcp-ssot.json' RESOLVED=True. The underlying file exists; the path:lineno citation form must be stripped before any filesystem use. Applies to all :NNN and :NNN-NNN suffixed citations in A04/A08/A10/A14/A19 (7 instances corpus-wide)."
+    },
+    {
+      "claim": "A04 'engine is local' finding: '~/.local/opt/cloud-audit-mcp' (tilde + engine dir for the failed-to-connect cloud-audit server) exists",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath '~/.local/opt/cloud-audit-mcp'",
+      "evidence": "BEFORE='~/.local/opt/cloud-audit-mcp' AFTER='C:\\Users\\Prekzursil\\.local\\opt\\cloud-audit-mcp' RESOLVED=True — dir exists even though the server connection failed, consistent with A04's root-cause analysis (port-band drift, not missing engine)."
+    },
+    {
+      "claim": "A08's deliberately-nonexistent probe file 'C:\\Users\\Prekzursil\\__a08_probe_nonexistent__.xlsx' (excel-mcp roundtrip returned 'File not found') really is absent",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path -LiteralPath (corpus-embedded known-absent item; discrimination proven by C-PRESENT/C-ABSENT controls first)",
+      "evidence": "BEFORE='C:\\Users\\Prekzursil\\__a08_probe_nonexistent__.xlsx' AFTER=ERROR: Cannot find path ... because it does not exist. RESOLVED=False TestPath=False — independent corroboration of A08's server-side 'File not found' evidence."
+    },
+    {
+      "claim": "BONUS (C4 load-bearing): 'file:///C:/Users/Prekzursil/.agents/meta-tool/node_modules/tsx/dist/loader.mjs' — C4 claims 'The file URL target EXISTS on disk'",
+      "verdict": "CONFIRMED",
+      "settling_probe": "pwsh Resolve-Path on raw URI vs stripped local path",
+      "evidence": "RAW-URI=ERROR: Cannot find drive. A drive with the name 'file' does not exist. STRIPPED='C:\\Users\\Prekzursil\\.agents\\meta-tool\\node_modules\\tsx\\dist\\loader.mjs' RESOLVED=True. Existence claim holds; canonicality hazard: the raw file:// URI is not a filesystem path."
+    }
+  ],
+  "contradictions": [
+    {
+      "item": "Harness statement vs disk/manifest state for B3/C2",
+      "detail": "The workflow described lanes B3 and C2 as 'dropped with receipts'. Disk + manifest reconciliation: BOTH verdict files exist and are substantive (waveB/B3.json 9,543 bytes: 7 violations, cross_ref, gap_list, max_legal_plan, notes; waveC/C2.json 10,247 bytes: 9 findings + summary with ground-truth corrections), and resume-manifest.jsonl/done.jsonl records BOTH as final state='done' (B3 partial@1789789646 -> done@1789789977; C2 partial@1789790161 -> done@1789790633). No contradiction with waveA/C4 content; the 'dropped' description fits only the missing final digest return, not missing artifacts."
+    },
+    {
+      "item": "Resolve-Path vs Get-Item canonical forms for the same disk path (P03)",
+      "detail": "Resolve-Path('C:\\Users\\PREKZU~1\\AppData\\Local\\Temp') returns the path WITH the 8.3 segment intact; Get-Item on 'C:\\Users\\PREKZU~1' returns the expanded 'C:\\Users\\Prekzursil'. C4's 'ENV_CONTAMINATED' conclusion (TEMP/TMP carry short names) is correct, but any downstream tool assuming Resolve-Path output is 8.3-free would be wrong — canonicalization is tool-specific."
+    }
+  ],
+  "gaps": [
+    {
+      "lane": "B3",
+      "note": "Dropped with receipt per harness. Verdict file waveB/B3.json IS on disk and manifest-done, but its findings were never author-reviewed via a final digest. Treat B3 content as agent-claimed until re-read by a consumer lane. Surface: gemini (~/.gemini/settings.json, 33 servers) — its 'SSOT has no gemini target' gap_list stands unchallenged by this audit."
+    },
+    {
+      "lane": "C2",
+      "note": "Dropped with receipt per harness. Verdict file waveC/C2.json IS on disk and manifest-done (9 findings, incl. ground-truth correction that disk-space-manager is untracked-not-absent), but same caveat: no final digest returned; content is agent-claimed until re-read."
+    },
+    {
+      "lane": "V5 (self)",
+      "note": "Sample skew: the corpus quotes config surfaces predominantly in tilde form, so tilde-relative specimens are over-represented relative to registry backslash forms (which are unambiguous to Windows APIs). Also Resolve-Path was run under pwsh 7 — 8.3 preservation behavior may differ under Windows PowerShell 5.1 UNVERIFIED; settling experiment = repeat P03 under powershell.exe 5.1."
+    }
+  ]
+}

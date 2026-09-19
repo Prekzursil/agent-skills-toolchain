@@ -1,0 +1,61 @@
+{
+  "scope": "Lane C6 — script scatter audit: ~/.local/opt/* vs agent-skills-toolchain repo (scripts/, tools/, skills/). Items: re-harness, monitorcore, mingle (+ mcp_agent_mail), mcp_doctor. READ-ONLY; measured on this box 2026-09-19. Probes: os.walk listings, sha256 hash maps, git plumbing reads + read-only git log/status, schtasks /query /xml, curl -m 3, targeted file Reads, scoped content greps. Repo filename-absence claims come from a full-tree walk of 13,309 files (excluded: .git, browser-profiles, harness-audits, .worktrees, caches) validated by a known-present control (longrun.ps1 FOUND at scripts\\longrun.ps1).",
+  "findings": [
+    {
+      "item": "re-harness (~/.local/opt/re-harness)",
+      "classification": "local-only (no repo copy; repo and skills reference it by path only)",
+      "evidence": "19 top-level entries: re_launch.py 11,122b (mtime 2026-07-12), config.yaml + 2 .bak, mcp_budget.yaml + .bak, lib/ (15 files incl. mcp_doctor_core.py), adapters/ (ida, ghidra, bn, jadx, apktool, radare2, generic + NOTES), tests/ (5 files), state/registry.json + per-tool logs (live runtime state). Full-tree filename walk: 0 copies of re_launch.py in the repo. Path is load-bearing: >=7 skill files reference ~/.local/opt/re-harness (re-ensure, re-triage-preflight SKILL.md + triage.py, ida-multi-mcp, reverse-engineering-toolkit SKILL.md + tool-selection.md, hacktricks security-mcp-routing, mcp-fleet-curation). Cruft: 2 stray top-level test files (test_needle_collision.py, test_reap_orphan_only.py) outside tests/, 3 .bak files, .pytest_cache/.ruff_cache/__pycache__. README documents the port-registry safety design (headless IDA on 8745, GUI 13337 never touched).",
+      "recommendation": "House the source in the repo (e.g. tools/re-harness) and treat ~/.local/opt/re-harness as the deployed runtime — same SSOT-then-materialize model as skills. config.yaml / mcp_budget.yaml / state/ stay local (live-wired). Keep the live path stable until skills are repointed. Lowest urgency of the four: wiring is self-consistent today."
+    },
+    {
+      "item": "mcp_doctor (re-harness/mcp_doctor.py + lib/mcp_doctor_core.py)",
+      "classification": "local-only, load-bearing estate tooling",
+      "evidence": "mcp_doctor.py 6,180b (mtime 2026-06-29) + lib/mcp_doctor_core.py (+ .bak-parentaware-20260704). 0 repo copies (validated filename walk; also absent from ~/.claude/harness-meta whose listing was checked independently). Referenced by SKILLS-MANIFEST.md, skills/mcp-fleet-curation/SKILL.md, skills/deep-research/references/research_harness/preflight.py and __init__.py. It is the instrument that produced this audit's ground-truth probe #4 (process pile-ups) — the ground-truth tool itself has no versioned copy.",
+      "recommendation": "Version it in the repo together with re-harness (it is the recurring fleet-audit instrument). Do NOT move the live path — 3+ skill surfaces invoke it there; commit a copy instead."
+    },
+    {
+      "item": "mcp_agent_mail clone (~/.local/opt/mcp_agent_mail)",
+      "classification": "third-party pinned clone (correct placement) + untracked estate layer at risk",
+      "evidence": "git clone (upstream Dicklesworthstone/mcp_agent_mail); HEAD 35e774f == PINNED_COMMIT.txt (clean pin; FETCH_HEAD 5e48183 fetched-not-merged, correct pin behavior). git status --porcelain: only 6 UNTRACKED estate entries — supervisor/, store/, PINNED_COMMIT.txt, _checkchannel.py, _verify.py, server.longrun.pid. Scheduled Task MCPAgentMailSupervisor (schtasks /query /xml) executes C:/Users/Prekzursil/.local/opt/mcp_agent_mail/supervisor/agentmail_supervisor.ps1 via hidden-launchers/runhidden.exe — the always-on rail's supervisor lives INSIDE the untracked layer of a third-party clone. Registry wiring is clean: agents.json 'agent-mail' = http://127.0.0.1:18812/mcp/, transport http, no clone-path dependency.",
+      "recommendation": "Keep the pinned clone as runtime (do not fork upstream into the repo). House the estate layer (supervisor/, probes, PINNED_COMMIT.txt) in the repo and deploy it INTO the clone, mirroring the skills sync model. Today a git clean -fdx or a re-pin re-clone silently destroys the always-on Claude<->Codex rail."
+    },
+    {
+      "item": "agentmail_supervisor.ps1 (live, 16,862b, mtime 2026-09-04)",
+      "classification": "local-only with NO versioned copy anywhere + drifted stale duplicate",
+      "evidence": "Live copy (clone supervisor/, hash efb5ee5e6f38) is what the Scheduled Task runs; supervisor/ also holds 2 .bak generations + a BEFORE-20260719 task XML. Duplicate at ~/.local/opt/mingle/agentmail/agentmail_supervisor.ps1 is an OLDER generation: 13,246b, hash 20152ee84118, mtime 2026-07-12 (drifted). install_service.ps1 byte-identical in both (4,551b, d1eb5b342d1e). Filename walk: 0 repo copies of either version.",
+      "recommendation": "Highest-priority housing gap on this lane: commit the live supervisor + install_service.ps1 to the repo, then mark the mingle/agentmail copy superseded (keep as history). One unversioned script is the single point keeping the peer channel alive across reboots."
+    },
+    {
+      "item": "mingle wrapper suite (~/.local/opt/mingle)",
+      "classification": "local-only estate suite, partially stale",
+      "evidence": "5 subdirs / 15 files: agentmail/ (drifted supervisor dup — see above), doctor/mingle_doctor.py 15,279b (2026-07-12; invoked by global ~/.claude/CLAUDE.md troubleshooting), monitor/codex_monitor.py 29,693b standalone board (+ .bak-ctxfix-20260718) — SUPERSEDED: deployed monitors.toml [codexmon] launches the 730b shim in ~/.agents/skills/workflow-monitor instead; relay/codex_stream.py + RELAY_PROMPT.md; configfixes/EDITS.md. 0 repo copies of mingle_doctor.py / codex_stream.py / install_service.ps1 (validated walk). The multi-ai-mingle skill and SKILLS-MANIFEST reference these paths.",
+      "recommendation": "House doctor/, relay/, configfixes/ and wiring docs in the repo (e.g. skills/multi-ai-mingle/scripts/); keep ~/.local/opt/mingle as deployed runtime. Archive — do not sync — the 29.7KB codex_monitor.py generation."
+    },
+    {
+      "item": "codex_monitor.py — four copies, four contents",
+      "classification": "split-drifted (repo skills copy canonical and correctly deployed; repo .agents mirror one edit behind; mingle copy a superseded different tool)",
+      "evidence": "repo skills/workflow-monitor/codex_monitor.py = 730b sha bbcae3e591c2 (2026-07-19) — byte-identical to the LIVE ~/.agents/skills/workflow-monitor/codex_monitor.py that [codexmon] launches; repo .agents/skills/workflow-monitor mirror = 714b sha abc93e3bc91c (2026-07-18, one generation behind); mingle/monitor copy = 29,693b sha 25b7d00e6b50 (different, older tool).",
+      "recommendation": "No action on live wiring (correct). Refresh the repo's internal .agents mirror via the existing sync flow; treat the mingle copy as archived history."
+    },
+    {
+      "item": "monitorcore",
+      "classification": "housed-repo (canonical tools/monitorcore; vendored subset deliberately propagated; NOT in ~/.local/opt — no local-only scatter)",
+      "evidence": "Canonical: repo tools/monitorcore = 117 files (pyproject.toml, tests/, scripts/, _propagate_vendored.py + _vendordrift_control.py — vendoring is a controlled pipeline, not accident). Vendored runtime: repo skills/workflow-monitor/monitorcore = 38-file subset, byte-identical (38/38 by name+sha) to the repo .agents mirror. Deployed: ~/.agents/skills/workflow-monitor/monitorcore = 38 files, 37/38 identical, exactly ONE drift: redact.py (repo f2c13dc928 vs live a537a92e30). Strays: harness/ast-integrate/tools/monitorcore = a lone .coverage artifact (junk); command-center/ssot/salvaged-at-risk/wt-salvage-probe copy = deliberate quarantine; .worktrees/consult-offsec-wave copies = disposable scratch per repo CLAUDE.md. Live wiring: deployed monitors.toml (~/.claude/skills.daily/monitor-launcher/ + repo skill) launches entries from deployed skill dirs (wfmon, agentmon, codexmon, crcp, csmon, cockpit, p2r2e), importing the vendored package; header documents sync-skills.ps1 deployment.",
+      "recommendation": "Placement is correct — keep. Close the 1-file live drift by running the vendor-propagate/sync (redact.py); delete the stray .coverage-only dir under harness/ast-integrate/tools/monitorcore; leave quarantine and worktree copies alone."
+    },
+    {
+      "item": "agent-mail port — stale doc, correct config",
+      "classification": "doc drift (config and live service correct)",
+      "evidence": "curl -m 3: http://127.0.0.1:18812/api/health -> {\"status\":\"ok\",...}; :8812 -> no answer. ~/.agents/agents.json agent-mail url = http://127.0.0.1:18812/mcp/; HOME AGENTS.md states 18812. But user-global ~/.claude/CLAUDE.md mingle sections repeatedly say 8812 (health-check curl, troubleshooting).",
+      "recommendation": "Doc-only fix outside this lane's write mandate: update ~/.claude/CLAUDE.md mingle block to 18812. Left untouched (READ-ONLY mandate)."
+    },
+    {
+      "item": "audit-scope footnote: repo versioning header",
+      "classification": "measurement correction (environment header wrong)",
+      "evidence": "Session env header said cwd 'Is a git repository: false'; os.path.isdir(.git) -> True, and repo CLAUDE.md documents agent-skills-toolchain as the executed checkout of a 178-checkout population with GitHub remote as history SSOT.",
+      "recommendation": "Treat the tree as git-versioned; nothing to change on disk."
+    }
+  ],
+  "ground_truth_reconciliation": "GT#1-#3 (registry counts, config surfaces, connect failures) not re-probed — orthogonal to script housing. GT#4 (process pile-ups via mcp_doctor.py audit): instrument located (~/.local/opt/re-harness/mcp_doctor.py) and confirmed local-only by two independent probes (direct dir listing + validated full-tree filename walk) — no refutation, but the instrument itself is unversioned (finding 2). GT#5 (agents CLI drops zcode/hermes targets): corroborated incidentally — agents.json 'agent-mail' targets include zcode+hermes, the exact targets GT#5 says get dropped; not independently re-measured by me (different mechanism would be 'agents doctor' re-run, out of READ-ONLY comfort for this lane). New correction not in GT: agent-mail port is 18812 live; the 8812 references in user-global ~/.claude/CLAUDE.md are stale.",
+  "summary": "The scatter is asymmetric. monitorcore is the model citizen: repo-housed at tools/monitorcore with a deliberate vendor-propagate pipeline into skills/workflow-monitor (38-file subset), correctly deployed to ~/.agents/skills — its only defects are a 1-file live drift (redact.py), a repo-internal .agents mirror one edit behind (codex_monitor shim 714b vs 730b), and junk strays (a .coverage-only dir). The mingle side is the risk concentration: the third-party mcp_agent_mail clone is correctly pinned (HEAD==PINNED_COMMIT 35e774f, clean), but the always-on rail's supervisor — executed by Scheduled Task MCPAgentMailSupervisor — lives in an UNTRACKED layer inside that clone with zero versioned copies anywhere, and its duplicate in mingle/agentmail has drifted (13,246b vs live 16,862b). re-harness (incl. mcp_doctor, the instrument behind this audit's own ground-truth probe #4) and the whole mingle wrapper suite are local-only with path-lock from 7+ skills. Priority order: (1) version the live agentmail_supervisor.ps1 + estate layer into the repo and deploy-in; (2) version mcp_doctor + re-harness source; (3) house mingle doctor/relay; (4) re-run vendor sync for redact.py and refresh the repo .agents mirror; (5) fix the 8812->18812 doc drift in ~/.claude/CLAUDE.md. No config was modified; all probes read-only."
+}

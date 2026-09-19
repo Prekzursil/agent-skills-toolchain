@@ -1,0 +1,97 @@
+{
+  "lane": "V2",
+  "role": "adversarial verification of highest-blast-radius local-impl-move and decommission-candidate dispositions from waveA",
+  "ranking_method": "mechanical consumer sweep of 13 surfaces (SSOT registry, ~/.claude.json incl. per-project disable marks, ~/.codex/config.toml, ~/.cursor/mcp.json, ~/.gemini/settings.json, ~/.mcp.json, ~/.claude/settings.json, ~/.config/cyberstrike/cyberstrike.json, D:/opt/cyberstrike-mcp/mcp-ssot.json + cyberstrike-mcp-lib.ps1, ~/.McpHub/config.json, run-dir tui-inventory.json, sync_shared_state.ps1) with hyphen-safe word-boundary regex; every reported absence is detector-validated by >=1 known-present control hit in the same file",
+  "top6": ["semgrep", "github-security", "cloud-audit", "apify", "dbx-ai", "codacy"],
+  "tie_note": "5-way tie at 5 surfaces (dbx-ai, codacy, codecov, digitalocean); dbx-ai and codacy chosen for hazard-class diversity (byte-identical 3-client path consumers incl. Cursor; inline literal credentials). codecov and digitalocean remain UNVERIFIED at depth by this lane.",
+  "verifications": [
+    {
+      "claim": "semgrep (local-impl-move, 10 surfaces): recommended move — rewrite SSOT command to 'semgrep mcp', re-sync, retire semgrep-mcp.exe — is SAFE",
+      "verdict": "CONFIRMED",
+      "settling_probe": "spawn C:/Users/Prekzursil/.local/bin/semgrep.exe --help (rc=0) lists subcommand 'mcp  Start the Semgrep MCP server'; sha256 compare of semgrep-mcp.exe vs semgrep.exe; consumer enumeration across all surfaces",
+      "evidence": "'semgrep mcp' is viable on this box (help text). semgrep-mcp.exe (sha 36886575f864af39) != semgrep.exe (sha f0cd45543b722c41) — retiring the stub exe cannot affect the CLI. Consumers of the OLD exe path C:/Users/Prekzursil/.local/bin/semgrep-mcp.exe: (1) ~/.agents/agents.json mcp.servers.segrep [source, fixed by edit]; (2) ~/.claude.json mcpServers.semgrep [auto-regenerated: merge_generated_claude_mcp.py line 179 overwrites claude-targeted rows from SSOT on every sync]. gemini already runs the target form {semgrep, [mcp]} — the move CONVERGES surfaces, no conflict. Skills consumer ~/.agents/skills/semgrep drives the CLI, unaffected. CAVEAT 1: ~/.mcp.json mcpServers.semgrep = http://127.0.0.1:31419/mcp (dead) is covered by NO sync script — a SSOT-only move leaves this dead twin forever; hand-edit required. CAVEAT 2: bare command name 'semgrep' works (gemini entry is the live existence proof) but pin C:/Users/Prekzursil/.local/bin/semgrep.exe for consistency with sibling registry entries. CAVEAT 3: 37 per-project + 1 root disabledMcpServers marks in ~/.claude.json go stale; harmless.",
+      "safe_path": "edit SSOT command/args -> run sync_shared_state.ps1 -> hand-fix ~/.mcp.json -> only then delete semgrep-mcp.exe"
+    },
+    {
+      "claim": "github-security (local-impl-move, 8 surfaces): URL fix 31410->31110 is SAFE",
+      "verdict": "CONFIRMED",
+      "settling_probe": "curl -m 5 http://127.0.0.1:31110/mcp -> HTTP 400 (live MCP endpoint signature, same as healthy 18765 control); 31410 -> 000; impl files stat'd",
+      "evidence": "Impl canonical and intact: D:/opt/cyberstrike-mcp/github-security-mcp.cmd (148 B) + node_modules/github-security-mcp/dist/index.js (1260 B), both real files, not symlinks (lstat). Consumers of the stale URL string http://127.0.0.1:31410/mcp: (1) ~/.agents/agents.json mcp.servers.github-security; (2) ~/.agents/agents.json mcp.servers.github-security-hub [hermes twin]; (3) ~/.claude.json root mcpServers.github-security [auto-healed by sync]; (4) ~/.mcp.json mcpServers.github-security [NOT sync-managed - hand-edit]; (5) C:/Users/Prekzursil/AppData/Local/hermes/config.yaml github-security-hub [healed by deploy_hermes_mcp.py IF the -hub row is fixed or disabled in SSOT]. No credentials in any row -> zero lost-config risk. Independent live consumers already on 31110: McpHub github_security rail, ~/.config/cyberstrike/cyberstrike.json (remote 31110, enabled), cyberstrike-mcp-lib.ps1 portmap — unaffected by the fix.",
+      "safe_path": "fix URL in SSOT github-security row; disable (not delete) the github-security-hub twin; sync; hand-edit ~/.mcp.json"
+    },
+    {
+      "claim": "cloud-audit (local-impl-move, 8 surfaces): URL fix 31418->31118 is SAFE",
+      "verdict": "CONFIRMED",
+      "settling_probe": "curl -m 5: 31418 -> 000 AND 31118 -> 000 (both down at audit time); lib authority + TUI config cross-read",
+      "evidence": "Consumers of stale URL http://127.0.0.1:31418/mcp: (1) ~/.agents/agents.json mcp.servers.cloud-audit; (2) same file mcp.servers.cloud-audit-hub [hermes twin]; (3) ~/.claude.json root [auto-healed by sync]; (4) ~/.mcp.json [hand-edit]; (5) hermes config.yaml cloud-audit-hub [healed via SSOT disable+sync]. No credentials anywhere in the family -> no lost config. ADVERSARIAL CAVEAT vs A04: the canonical port 31118 itself has NO listener right now (curl 000, mechanically different probe than A04's config reads). The URL fix is config-correct (cyberstrike-mcp-lib.ps1:73, ~/.config/cyberstrike/cyberstrike.json cloud-audit remote 31118 enabled) but the service stays dead until a Heavy-band profile is started (lazy-by-design per lib). No consumer BREAKS; the benefit is deferred, not lost.",
+      "safe_path": "same as github-security; do not expect service until Heavy band starts"
+    },
+    {
+      "claim": "apify (decommission-candidate, 6 surfaces): deleting/disabling the row is SAFE",
+      "verdict": "REFUTED",
+      "settling_probe": "redacted-shape compare: ~/.claude.json apify headers.Authorization literal (len 21) vs env APIFY_TOKEN (len 46, set at Process+User+Machine via winreg) vs registry row (NO headers key, only bearer_token_env_var indirection); merge_generated_claude_mcp.py build_claude_server() read",
+      "evidence": "UNSAFE as stated. (1) LOST CONFIG: the literal Authorization value exists ONLY in ~/.claude.json and is length-divergent from the env token (21 vs 46) -> distinct credential material, unrecoverable after deletion. (2) LATENT HAZARD independent of decommission: registry has no headers, so build_claude_server() renders headers={'Authorization': 'Bearer ${APIFY_TOKEN}'} and merge line 179 OVERWRITES the claude entry on the NEXT sync — the literal is one sync away from silent destruction even with no decommission. Archive to .agents/local.json or env (OWNER action; NEVER-ROTATE — do not re-mint) BEFORE any sync or disable. (3) ORPHAN PATTERN: merge_generated_claude_mcp.py lines 162-171 only pop claude entries for rows STILL PRESENT in the registry — deleting the row entirely orphans the materialized ~/.claude.json entry (keeps spawning); disable (enabled:false) is what prunes. Full consumer list: agents.json row (targets codex+claude+zcode, x_zcode.enabled=false); ~/.claude.json (entry + ROOT disable + 37 per-project disable marks); ~/.codex/config.toml (enabled, env-indirected bearer — credential-safe); ~/.mcp.json (url only, no creds); ~/.zcode/cli/config.json mcp.apify (bearer_token_env_var — credential-safe; zcode merge keeps disabled rows as enabled:false stubs); D:/opt/cyberstrike-mcp/mcp-ssot.json (2 catalog refs, auth bearer-env).",
+      "safe_path": "archive literal (owner) -> enabled:false -> sync (prunes claude entry) -> hand-clean ~/.mcp.json, codex toml, mcp-ssot.json, zcode stub -> much later, row deletion"
+    },
+    {
+      "claim": "dbx-ai (local-impl-move, 5 surfaces): moving the impl D:/opt/cyberstrike-mcp/dbx-ai-mcp-server.py is SAFE",
+      "verdict": "CONFIRMED",
+      "settling_probe": "lstat impl (real file 10383 B, not a link); scoped grep of D:/opt/cyberstrike-mcp (excluding node_modules/backups) for 'dbx-ai' -> only self-hits (8) inside the file itself; consumer enumeration",
+      "evidence": "Every consumer of the path string: (1) ~/.agents/agents.json dbx-ai args; (2) ~/.claude.json mcpServers.dbx-ai; (3) ~/.cursor/mcp.json dbx-ai [regenerated by merge_generated_cursor_mcp.py from same SSOT — auto-heals]; (4) ~/.config/cyberstrike/cyberstrike.json dbx-ai {type: local, command: [C:/Python314/python.exe, D:/opt/cyberstrike-mcp/dbx-ai-mcp-server.py], enabled, timeout 180000} — NOT covered by any sync script; a move that edits only SSOT+sync leaves the CyberStrike TUI dbx-ai lane silently broken on the old path. No credentials in any consumer; no symlinks anywhere in the chain. Generated tui-mcp-inventory.json has 0 dbx-ai hits (not a consumer).",
+      "safe_path": "single pass: move file -> edit SSOT -> run sync (heals claude+cursor) -> hand-edit ~/.config/cyberstrike/cyberstrike.json in the SAME pass"
+    },
+    {
+      "claim": "codacy (decommission-candidate, 5 surfaces): decommissioning the codacy row is SAFE",
+      "verdict": "REFUTED",
+      "settling_probe": "redacted-shape compare of credentials: registry env literals vs ~/.claude.json env literals (len 23/19) vs OS env CODACY_ACCOUNT_TOKEN/CODACY_API_TOKEN (len 20/20 at Process+User+Machine, winreg) vs ~/.McpHub/config.json codacy child; merge orphan-pattern read",
+      "evidence": "UNSAFE as stated, on three axes. (1) LOST CREDENTIALS: three inline literal copies exist — registry env (lengths unmeasured, redacted), ~/.claude.json env (len 23/19), ~/.gemini/settings.json (divergent impl codacy-mcp-server + its own literals). OS env lengths (20/20) DIVERGE from the claude.json literals (23/19) -> the inline material is NOT recoverable from env. (2) HIDDEN LIVE CONSUMER contradicting A05: ~/.McpHub/config.json carries a codacy child {cmd /c npx -y @codacy/codacy-mcp@latest} (codecov and digitalocean children also present) — the McpHub aggregator keeps serving codacy in Claude sessions regardless of registry decommission; no sync script manages ~/.McpHub/config.json. A05's 'Absent: McpHub aggregator surface' is REFUTED. (3) ORPHAN PATTERN: row deletion never prunes the ~/.claude.json entry (merge pops only rows still in registry); disable-then-sync prunes it but also destroys the claude literal (whole-file rewrite) — archive first. Additional consumers: 37 per-project + root disabledMcpServers marks and plugin:local-mcp-bridge:codacy variants in ~/.claude.json (stale, harmless); npx cache D:/npm-cache/_npx/@codacy; ~/.gemini/settings.json (NO gemini merge step exists — hand-clean).",
+      "safe_path": "archive all three literal copies (owner) -> enabled:false -> sync -> hand-clean gemini + McpHub config + stale disable marks -> later row deletion"
+    },
+    {
+      "claim": "waveA/GT#5 premise: hermes- and zcode-targeted rows 'materialize on ZERO surfaces' (agents CLI 0.8.10 drops them)",
+      "verdict": "REFUTED",
+      "settling_probe": "read sync_shared_state.ps1 end-to-end; stat + parse C:/Users/Prekzursil/AppData/Local/hermes/config.yaml and C:/Users/Prekzursil/.zcode/cli/config.json",
+      "evidence": "sync_shared_state.ps1 (independent of the agents CLI, which only matters because integrations.enabled=[] disables NATIVE sync) invokes deploy_hermes_mcp.py — and C:/Users/Prekzursil/AppData/Local/hermes/config.yaml EXISTS (5189 B) with mcp_servers entries: cloud-audit-hub(31418), cve-mcp-hub(31411), github-security-hub(31410), hexstrike-ai-hub(31413), nuclei-hub(31417), osint-hub(31412), semgrep-hub(31419) — all on the RETIRED 314xx band (while firecrawl in the same file is already 31114, proving the file is partially migrated and live-managed). merge_generated_zcode_mcp.py writes ~/.zcode/cli/config.json — EXISTS (7156 B) with mcp entries incl. apify, bedrock-claude, biomni-hub, kaggle, burp, zai-vision. Every zcode/hermes row therefore has a real consumer surface; decommission blast radius is higher than waveA assessed. tui-inventory.json's 'zcode/hermes found=[]' scanned the wrong places."
+    },
+    {
+      "claim": "decommission-by-deletion from the SSOT registry cleanly removes a server",
+      "verdict": "REFUTED",
+      "settling_probe": "read merge_generated_claude_mcp.py (lines 162-181), merge_generated_zcode_mcp.py docstring/logic, deploy_hermes_mcp.py (lines 88-99)",
+      "evidence": "All three materializers prune ONLY names still present in the registry: claude merge pops disabled/non-targeted rows (mcp_servers.pop) but never sees deleted rows -> ~/.claude.json entry orphaned and keeps spawning; hermes deploy preserves non-registry names as 'manual' entries verbatim -> stale -hub entries live forever in config.yaml; zcode merge preserves registry-absent local entries. The ONLY clean path is enabled:false -> sync -> verify -> (archive credentials BEFORE, since the claude whole-file rewrite destroys inline literals) -> delete rows last."
+    },
+    {
+      "claim": "a SSOT edit + sync_shared_state.ps1 covers all consumers of a moved/fixed MCP path",
+      "verdict": "REFUTED",
+      "settling_probe": "enumerate write targets across all .agents/scripts merge scripts",
+      "evidence": "sync writes only ~/.codex/config.toml, ~/.claude.json, ~/.cursor/mcp.json, ~/.zcode/cli/config.json (+hermes config.yaml, +local-bridge). OUT OF SCOPE of any sync: ~/.mcp.json (19+ servers, incl. stale github-security 31410, cloud-audit 31418, dead semgrep 31419), ~/.gemini/settings.json (33 servers, no gemini merge step exists — corroborated by B3's gap_list), ~/.config/cyberstrike/cyberstrike.json (dbx-ai local command), ~/.McpHub/config.json (codacy/codecov/digitalocean children). Every URL-fix or impl-move is INCOMPLETE without hand-edits to these four.",
+      "consumers_note": "naming every consumer of each moved path, per the lane question — see per-server evidence fields"
+    },
+    {
+      "claim": "GT#1: registry holds 80 servers under mcp.servers",
+      "verdict": "REFUTED",
+      "settling_probe": "python json parse of ~/.agents/agents.json at 2026-09-19 (this lane, V2): len(mcp.servers) = 81",
+      "evidence": "81 keys at parse time. Either drift since the 05:41 probe or an off-by-one in the original count; non-load-bearing for dispositions but recorded for reconciliation."
+    },
+    {
+      "claim": "cloud-audit canonical port 31118 is serving (implied by A04 'correct URL 31118')",
+      "verdict": "UNVERIFIED",
+      "settling_probe": "settling experiment: start CyberStrike -Profile Heavy (owner action; READ-ONLY lane cannot spawn it) then curl -m 5 http://127.0.0.1:31118/mcp expecting HTTP 400-class MCP signature like 31110/31119",
+      "evidence": "31118 -> HTTP 000 at audit time (same probe returns 400 on live 31110/31119). Consistent with lazy Heavy-band gating per cyberstrike-mcp-lib.ps1, so the URL fix remains correct-by-authority; service liveness unproven."
+    }
+  ],
+  "contradictions": [
+    "A05 codacy scatter 'Absent: McpHub aggregator surface' vs this lane's ~/.McpHub/config.json codacy child present (also codecov, digitalocean children) — A05's absence claim fails its own honesty contract here",
+    "waveA + agents-doctor premise 'zcode/hermes targets dropped => materialize nowhere' vs sync_shared_state.ps1's custom deploy_hermes_mcp.py + merge_generated_zcode_mcp.py writing real, existing consumer files (hermes config.yaml 7 -hub entries on the dead 314xx band; .zcode config with 6 zcode rows)",
+    "A04 'canonical current value 31118' (config-authority reading) vs measured 000 on 31118 — config-correct does not mean serving; both old and new cloud-audit ports are down at audit time",
+    "GT#1 '80 servers' vs 81 counted by this lane's independent parse",
+    "A01/A05 treat absence from the failed-connect banner + disabledMcpServers marks as full-off, while McpHub children and hermes/zcode surfaces keep the same capabilities alive on surfaces the waveA lanes did not scan"
+  ],
+  "gaps": [
+    "B3 (gemini surface lane) DROPPED with receipt on disk: waveB/B3.json contains substantive content (surface ~/.gemini/settings.json, 7 violations, gap_list incl. 'no gemini merge step exists') — per verification doctrine treat as agent-claimed, NOT disk/orchestrator-verified; its key claim (no gemini sync step) was independently corroborated by this lane's script enumeration, but the 7 violations remain unverified",
+    "C2 (skills hygiene lane) DROPPED with receipt on disk: waveC/C2.json contains scope + 9 findings + 2 ground-truth corrections (disk-space-manager identical copy in repo, merely untracked) — agent-claimed only; uncredited by the orchestrator; sha claims unverified",
+    "codecov and digitalocean tied dbx-ai/codacy at 5 surfaces but were not deep-verified by this lane (6-slot budget); both have McpHub children + gemini variants + inline-credential exposure patterns similar to codacy — flagged for a follow-up lane",
+    "Hermes RUNTIME liveness UNVERIFIED (config.yaml exists and is backup-managed; whether a hermes process reads it today was not probed — settling experiment: process enumeration / hermes doctor)",
+    "codex merge (merge_generated_codex_mcp.py) prune semantics for disabled rows read only via zcode twin's docstring analogy — not line-by-line; residual uncertainty on whether disabled rows leave enabled:false stubs in config.toml",
+    "registry codacy env literal lengths unmeasured (probe redacted before measuring length) — the 23/19 vs 20/20 divergence proof rests on the claude.json copies only"
+  ]
+}

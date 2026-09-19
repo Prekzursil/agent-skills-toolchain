@@ -1,0 +1,53 @@
+{
+  "claim": "R2 (from V1 gaps[1]): playwright per-variant MCP process pile-up count — V1 relayed 'x2 instances per variant now' (A16's CIM scan ~06:30) vs ground-truth mcp_doctor.py 'playwright/-cdp/-extension x10 each' at 05:41 (GT#4, ceiling 3).",
+  "verdict": "CONFIRMED",
+  "verdict_scope": "Confirmed with one material correction. The x10-per-variant pile-up is REFUTED as current state (drained by ~06:30, still drained at 07:21). At settle time (07:21:25): cdp=2 instances, extension=2 instances (exactly x2), base=3 instances (regrew past x2 after A16's snapshot via the ~06:59 waveD verifier-session wave). Total 7 server instances = 14 playwright-matching node.exe + 14 cmd.exe shims. Per-variant counts 2-3; the mcp_doctor ceiling-3 is currently respected, with base AT ceiling.",
+  "settling_probe": "Two-part probe, third mechanism vs both prior sources: (1) fresh Get-CimInstance Win32_Process full-population cmdline sweep at 2026-09-19 07:21:25 (935 procs, 907 with cmdline, 87 node.exe), grouped by variant/role/version-pin/age/parent — the experiment V1 prescribed; (2) independent ctypes CreateToolhelp32Snapshot census via kernel32 (995 procs, 91 node.exe) — a different Windows API with no WMI involvement. The 14-PID playwright cohort matches EXACTLY across both APIs. Prior instruments for lineage: mcp_doctor.py at 05:41 (internals UNVERIFIED — file not located in three scoped hunts under agent-skills-toolchain, .claude, .agents; its x10 was the GT tag), A16's Get-CimInstance scan at ~06:30 (ungrouped count of 12 node procs).",
+  "evidence": {
+    "detector_controls": {
+      "total_procs_cim": 935,
+      "with_cmdline_cim": 907,
+      "node_total_cim": 87,
+      "total_procs_toolhelp": 995,
+      "node_total_toolhelp": 91,
+      "known_present_control": "CONTROL_CLAUDE_MATCH=13 (pattern 'claude' in cmdline fires — detector sees a live population, validated before any absence claim)",
+      "cross_api_agreement": "all 14 playwright PIDs from the CIM sweep present in Toolhelp32 TH_NODE_PIDS (38432,45648,57052,34756,33084,116616,85296,96728,94584,79592,93556,50232,22900,85384); totals differ only in transient churn between snapshot instants, cohort identical"
+    },
+    "per_variant_instances": {
+      "base": {
+        "instances": 3,
+        "node_procs": 6,
+        "pids": "33084+116616 (launcher pin=0.0.78 + server, age~94min, cache a5b920f00216d246); 93556+50232 (launcher pin=latest + server, age~22min, cache a5b920f00216d246); 22900+85384 (launcher pin=latest + server, age~22min, cache 9833c18b2d85bc59)"
+      },
+      "cdp": {
+        "instances": 2,
+        "node_procs": 4,
+        "pids": "38432+57052 (age~537min, --cdp-endpoint http://127.0.0.1:9222); 96728+79592 (age~93min)"
+      },
+      "extension": {
+        "instances": 2,
+        "node_procs": 4,
+        "pids": "45648+34756 (age~537min, --extension); 85296+94584 (age~93min)"
+      }
+    },
+    "process_chain_closure": "7 instances x (1 outer cmd.exe 'cmd /c npx -y @playwright/mcp@...' + 1 npx-cli node launcher + 1 inner cmd.exe shim 'playwright-mcp [--cdp-endpoint|--extension]' + 1 cli.js node server) = 14 cmd.exe + 14 node.exe. Gap check NONNODE_PW=14 at 07:22:53: every non-node playwright match is one of these cmd.exe shims — no python/other-image playwright server processes exist (absence validated against a detector that fired on the 14 shims).",
+    "age_cohorts": "~537min cohort (started ~22:24 prior day): cdp+extension only — overnight session leftovers, still resident; ~93-94min cohort (started ~05:47-05:48, the GT probe session wave): base+cdp+extension; ~22min cohort (started ~06:59, the waveD verifier sessions): base @latest x2, one per session, each resolving to a different npx cache dir (0.0.78-cache vs the 9833c18 cache A16 identified as the 0.0.82/latest-resolved runtime).",
+    "reconciliation": [
+      "GT#4 'x10 each' (mcp_doctor 05:41): REFUTED as current state — measured 2-3 per variant at 07:21 across two independent APIs. Consistent with A16's ~06:30 observation that the pile had already drained to 2/variant (12 node procs).",
+      "V1/A16 'x2 per variant now': CONFIRMED for cdp and extension (exactly 2 each); base regrew to 3 at ~06:59 when two new Claude sessions each spawned a base @latest instance — the count is session-count-volatile, exactly as A16's structural-multiplier finding predicted (every Claude session adds playwright-family instances; pile-up scales linearly with live sessions).",
+      "Live corroboration of the pin divergence V1 verified config-side: launchers visibly split between @0.0.78 (project-scope ~/.mcp.json) and @latest (user-scope ~/.claude.json root); servers resolve into two distinct npx cache dirs (a5b920f00216d246, 9833c18b2d85bc59)."
+    ],
+    "caveats": [
+      "Classifier correction disclosed: the sweep script tagged 3 server rows variant='other' because the server cmdline path uses backslashes ('@playwright\\mcp\\cli.js'), defeating the forward-slash '@playwright/mcp' regex; no-flags cli.js servers are the BASE variant. Counts reported here are post-correction (base=3, cdp=2, extension=2).",
+      "Process counts are volatile by nature: this verdict is a timestamped snapshot (07:21:25-07:22:53); each new Claude session under ~ adds instances until it exits. The 537-min overnight cohort shows instances also OUTLIVE their sessions (orphan-resident), so 'drained' is not monotonic.",
+      "mcp_doctor.py's internal enumeration mechanism could not be independently verified (UNVERIFIED — file not found in three scoped maxdepth hunts); the settlement does not depend on it, since the current count is settled by two mutually independent APIs.",
+      "Read-only mandate honored: nothing spawned beyond one-shot CIM/Toolhelp probes, nothing killed."
+    ]
+  },
+  "artifacts": {
+    "sweep_script": "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/R2_probe.ps1",
+    "crosscheck_script": "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/R2_toolhelp.py",
+    "gapcheck_script": "C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/R2_gapcheck.ps1",
+    "prior_verdicts": "waveA/A16.json (original reconciliation), waveD/V1.json gaps[1] (this unit)"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "lane": "V3",
+  "wave": "D — adversarial cross-lane verification over ALL waveB verdicts (B1-B7)",
+  "verifications": [
+    {
+      "claim": "SSOT registry holds 81 servers (not 80); video-agent-kit added after the 05:41 snapshot; syncMode=source-only — the unanimous correction to GT#1 by B2/B3/B4/B5/B6/B7",
+      "verdict": "CONFIRMED",
+      "settling_probe": "python json.load of C:/Users/Prekzursil/.agents/agents.json (mechanically different from the tagged 05:41 python parse artifact: live re-read + membership checks, not the run-dir snapshot)",
+      "evidence": "registry_servers=81; video-agent-kit present; syncMode=source-only"
+    },
+    {
+      "claim": "B5: agents CLI is ALREADY 0.9.1 (installed 05:38:47, before the 05:41 doctor run); the 31 unsupported-target warnings in agents-doctor.txt were emitted by 0.9.1; 0.9.1 does NOT add zcode/hermes",
+      "verdict": "CONFIRMED",
+      "settling_probe": "static package read (no spawn): package.json of C:/Users/Prekzursil/AppData/Roaming/npm/node_modules/@agents-dev/cli + agents.cmd shim resolution + os.walk grep of dist/",
+      "evidence": "package.json version=0.9.1, mtime 2026-09-19 05:38:47.527 (matches B5 to the second); agents.cmd shim resolves to %dp0%/node_modules/@agents-dev/cli/bin/agents (same install, loop closed); dist grep zcode=0 hits, hermes=0 hits; dist/integrations/registry.js id extraction = 18 ids ['amp','antigravity','claude','claude_desktop','codex','copilot_cli','copilot_vscode','cursor','devin','droid','gemini','goose','grok','junie','kilo','opencode','windsurf','zed'] — identical to B5's list"
+    },
+    {
+      "claim": "B7: the security-front live band is 311xx (moved 2026-09-07); 314xx/3138x wiring everywhere is stale; fronts themselves are alive — vs B1/B4/B5 which measured 314xx dead and proposed liveness fixes",
+      "verdict": "CONFIRMED",
+      "settling_probe": "curl -s -m 5 -o /dev/null -w %{http_code} on both bands (fresh third measurement, independent of B1/B4/B5/B7 runs)",
+      "evidence": "31110=400, 31113=400, 31115=400, 31119=400 (alive), 31118=000 (cloud-audit front down — the only dead backend in the live band, matches B7 V3); 31410=000, 31415=000, 31418=000, 31419=000 (dead, matches B1/B4/B5); the 1:1 mapping 3141x->3111x plus 31380/31381->31101 (sliver-full) is complete"
+    },
+    {
+      "claim": "The SSOT registry ITSELF is mid-migration: hermes-targeted firecrawl already points at 31114 (alive) while 7 hermes-targeted siblings still point at the dead 314xx band",
+      "verdict": "CONFIRMED",
+      "settling_probe": "python extraction of name+url for every hermes-targeted registry server",
+      "evidence": "dead-band URLs in SSOT: cloud-audit-hub 31418, cve-mcp-hub 31411, github-security-hub 31410, hexstrike-ai-hub 31413, nuclei-hub 31417, osint-hub 31412, semgrep-hub 31419 (= SEVEN servers; B5 says '6 of 17' — undercount, see contradiction C4); firecrawl=http://127.0.0.1:31114/mcp targets [claude, hermes] (already migrated)"
+    },
+    {
+      "claim": "figma is unregistered in SSOT while live on multiple surfaces (B3: claude+gemini; B6 V1: claude extras incl. figma-rest; B4/B5: zcode/codex extras)",
+      "verdict": "CONFIRMED — and coverage is WIDER than B3's plan assumes",
+      "settling_probe": "per-surface membership checks with validated detectors: .claude.json root mcpServers keys; .gemini/settings.json keys; .zcode/cli/config.json mcp.servers block (located via sliver/mcphub known-present controls); .codex/config.toml via tomllib; ~/.mcp.json keys",
+      "evidence": "figma present on 5 surfaces: claude root (figma + figma-rest), gemini, zcode (mcp.servers, 29 entries), codex (tomllib, 16 entries), ~/.mcp.json (34 entries); figma NOT in agents.json registry (python membership)"
+    },
+    {
+      "claim": "B4 gap: mcphub route on :24680 'UNVERIFIED what the correct route is' (grok wired to /sse which 404s)",
+      "verdict": "SETTLED-CONFIRMED-ALIVE",
+      "settling_probe": "curl -s -m 5 http://127.0.0.1:24680/mcp",
+      "evidence": "HTTP 200 — mcphub backend is alive; correct route is /mcp; grok's /sse path is stale wiring, not a dead server"
+    },
+    {
+      "claim": "~/.mcp.json server count (GT#2 said '19+ active-but-undocumented'; B7 said 34)",
+      "verdict": "CONFIRMED at 34 (B7's number; GT#2's 19+ is a large undercount)",
+      "settling_probe": "python json keys count of ~/.mcp.json mcpServers",
+      "evidence": "len(mcpServers)=34"
+    },
+    {
+      "claim": "Task-text assertion: 'lanes B3 and C2 dropped with receipts — note them as gaps'",
+      "verdict": "REFUTED (stale)",
+      "settling_probe": "disk + manifest reconciliation: file existence, schema completeness of B3.json/C2.json, and final states in resume-manifest.jsonl/done.jsonl",
+      "evidence": "waveB/B3.json (9,543 B) complete: all sections present (current_state, violations V1-V7, health_sample, cross_ref, gap_list, max_legal_plan, notes); waveC/C2.json (10,247 B) complete: scope + 9 findings (each with item/classification/evidence/recommendation) + summary carrying its own ground-truth corrections; done.jsonl final states: B3=done, C2=done (92 marks total, waveA 20/20 done files present, waveB 7/7, waveC 8/8). Both lanes re-delivered — the drop receipts are superseded. No gap remains from B3/C2."
+    }
+  ],
+  "contradictions": [
+    {
+      "id": "C1",
+      "severity": "major",
+      "subject": "agents CLI version and whether 0.9.1 fixes the zcode/hermes target drop",
+      "lanes": { "B6": "G4 + phase_4: 'agents CLI 0.8.10 drops zcode/hermes targets ... 0.9.1 upgrade held pending post-audit' and 'upgrade agents CLI to 0.9.1 (adds zcode/hermes as native targets, silencing the 30+ doctor warnings)'", "B5": "agents_cli: 0.9.1 installed 05:38:47 BEFORE the 05:41 doctor run; the warnings came FROM 0.9.1; 0.9.1 adds NO zcode/hermes (0 dist refs; changelog adds Grok/Droid/Devin/Zed/Goose/Kilo)" },
+      "adjudication": "B5 WINS — B6 REFUTED on both sub-claims. V3 independent probes: package.json version=0.9.1 with mtime 05:38:47.527; the agents.cmd shim resolves to that exact install; dist/ contains zero zcode/hermes references; the 18-id INTEGRATION enum excludes both. B6's G4 merely restated the (stale) ground-truth text without an independent probe, and its phase_4 parenthetical is doubly wrong: the upgrade already happened AND 0.9.1 does not add these targets. Consequence for synthesis: there is NO pending upgrade that silences the doctor warnings; the estate's custom rails (merge_generated_zcode_mcp.py / deploy_hermes_mcp.py) remain the only wiring path for zcode/hermes, and B5's 'treat the warnings as expected noise' is the correct disposition. B6's phase_4 must be struck except for its cursor-formalization half.",
+      "evidence": "see verification #2"
+    },
+    {
+      "id": "C2",
+      "severity": "major",
+      "subject": "remediation direction for the dead 314xx security-front band (same server family wired on goose/grok/codex/zcode/hermes/~/.mcp.json/claude)",
+      "lanes": {
+        "B5": "for hermes: 'start the cyberstrike mcp-proxy supervisor ... Do NOT delete the config entries — wiring is SSOT-correct' (implies reviving 314xx)",
+        "B7": "the band MOVED to 311xx on 07.09.2026; 314xx is the old band; fronts alive on 311xx; fix = re-point stale URLs (8 in ~/.mcp.json, 5 in ~/.claude.json) / register at 311xx in SSOT",
+        "B1": "goose 314xx fronts down -> owner choice 'amend G-42 to enumerate the CS-kit 314xx hub (and fix its liveness) or drop the 13 fronts'",
+        "B4": "grok -hub fronts down -> 'prune the 3 enabled-but-dead servers or restart their backends'"
+      },
+      "adjudication": "B7 WINS. Three independent lines of evidence: (1) V3 fresh curl: 3111x answers (400) on every probed front except 31118, all probed 3141x refuse — the services RUN, the URLs are stale; a supervisor restart cannot revive ports its current config no longer binds. (2) The SSOT registry is ITSELF mid-migration: hermes-targeted firecrawl already points at 31114 while 7 hermes siblings still carry 3141x — proof the estate's own direction of travel is re-pointing, not band revival. (3) B7's 1:1 port mapping (31410->31110 ... 31419->31119, 31381->31101) is complete and matches every probed front. Knock-on corrections: B1's 'fix 314xx liveness' option and B4's 'restart their backends' option are misdirected (backends are up on 311xx); B4's phase_2 option (a) 'add hacktricks-hub/firecrawl-hub to agents.json' must carry the 311xx URLs, not grok's stale 314xx ones; B5's 'wiring is SSOT-correct' holds only for registry-parity, not liveness — the registry URLs themselves need the 3141x->3111x edit (7 entries). Unified fix (merges B7 plan + B6 phase_1 + B4 phase_2): register the security fronts in SSOT at 311xx with appropriate targets, run sync_shared_state.ps1, re-point or delete the stale hand-maintained copies on goose/grok/codex/zcode, prune ~/.mcp.json duplicates per the canonical-promote pattern. Single genuinely dead backend: cloud-audit 31118 (B7 V3, V3-confirmed) — repair via start-cyberstrike-mcp-http.ps1.",
+      "evidence": "see verifications #3 and #4"
+    },
+    {
+      "id": "C3",
+      "severity": "minor",
+      "subject": "figma SSOT registration target set",
+      "lanes": { "B3": "phase2: 'register figma in SSOT with targets [claude, gemini]'", "B6": "phase_1: one-by-one owner decision table (register-with-targets or retire) for every ungoverned extra; figma listed among claude extras (plus figma-rest)", "B4/B5": "figma also counted among codex/zcode ungoverned extras" },
+      "adjudication": "Not a hard conflict — mechanisms are compatible (B6's decision table subsumes B3's registration) — but B3's proposed target set UNDER-COVERS the measured surface: V3 confirms figma live on 5 surfaces (claude, gemini, zcode, codex, ~/.mcp.json, plus figma-rest on claude) and absent from the registry. Registering with targets [claude, gemini] only would leave 3 of 5 carrying surfaces ungoverned and duplicative. Adjudicated direction: make ONE figma decision in B6's table covering all surfaces (either targets spanning every surface that should keep it, then prune the untargeted copies, or retire everywhere). B3's gemini-regeneration plan remains valid once the target set is fixed.",
+      "evidence": "see verification #5"
+    },
+    {
+      "id": "C4",
+      "severity": "minor",
+      "subject": "B5 internal count: '6 of 17' hermes servers on the dead band vs its own 7-name violation list",
+      "lanes": { "B5": "violation text lists 7 servers (cloud-audit-hub, cve-mcp-hub, github-security-hub, osint-hub, hexstrike-ai-hub, nuclei-hub, semgrep-hub) but says '6 of 17'; health probed only 6 ports (31418 skipped)" },
+      "adjudication": "The true count is SEVEN. V3 registry extraction finds exactly 7 hermes-targeted URLs on 314xx (31410/31411/31412/31413/31417/31418/31419); V3 curl additionally confirms 31418 (the one B5 skipped probing) is dead. Synthesis should use 7/17.",
+      "evidence": "see verification #4"
+    },
+    {
+      "id": "C5",
+      "severity": "info",
+      "subject": "non-contradiction audited: gemini/opencode/grok writer strategy across B3/B4/B6",
+      "lanes": { "B3": "extend sync_shared_state.ps1 with a gemini merge (option a) or declare out-of-band (option b)", "B4": "phase_3: extend agents.json target vocabulary + teach sync_shared_state.ps1 the opencode.json and config.toml writers", "B6": "phase_2/3: add merge_generated_gemini_mcp.py / merge_generated_opencode_mcp.py cloned from the claude merge, wired into sync_shared_state.ps1" },
+      "adjudication": "ALIGNED, not conflicting — all three converge on custom merge scripts inside sync_shared_state.ps1, consistent with the estate doctrine (integrations.enabled=[] stays empty; native agents sync stays bypassed). One nuance no B-lane except B5 surfaced: the CLI 0.9.1 enum ALREADY includes gemini, opencode, grok, goose, cursor, antigravity — so adding such targets to agents.json will NOT hit the unsupported-target warning path (they flow into the CLI's native sync set, which remains dormant while integrations.enabled=[]). Keep B5's double-wiring guard: if native sync is ever enabled, disable the custom merges for the same targets first (agents__-prefix duplication class).",
+      "evidence": "verification #2 integration_ids; B5 max_legal_plan item 4; B6 sync_script.already_covers/missing"
+    }
+  ],
+  "gaps": [
+    {
+      "id": "G1",
+      "description": "Task-text gap 'B3, C2 dropped with receipts' is STALE — both lanes delivered complete verdicts (disk + manifest verified, see verification #8). Recorded so the synthesizer does not skip B3/C2 findings: B3's gemini V1-V7 (81-server correction, github/github_cli dedupe, linear /mcp path fix, ralph dual-runtime) and C2's 9 hygiene findings are IN SCOPE for synthesis."
+    },
+    {
+      "id": "G2",
+      "description": "B7's 'root cause of the tagged failures' claim covers 11 of the 19 session-failed servers (stale-band family + firecrawl sync-lag V4). Eight failures are unexplained by ANY waveB lane: bedrock-claude, cloud-hub, fiddler (:8868 dead per B4, but no 311xx mapping exists for it), openalex-alt, pubmed-tool, search-hub, tooluniverse, zai-vision. Settling experiments: per-server liveness/URL audit of those eight on the claude surface (waveC may hold part of this; V3's mandate was waveB-only)."
+    },
+    {
+      "id": "G3",
+      "description": "No lane established what, if anything, still OWNS the 314xx/3138x band (B1: 'UNVERIFIED what launches it'). Under B7's moved-band model the answer is likely 'nothing — dead wiring', but that inference is untested. Settling experiment: netstat/process-tree when the cyberstrike supervisor is next started, confirming it binds only 311xx."
+    },
+    {
+      "id": "G4",
+      "description": "Detector lesson recorded for the synthesizer (V3 self-audit): V3's FIRST zcode/codex figma probes used the wrong block (zcode mcpServers top-level vs actual mcp.servers) and a quote-blind TOML regex, and initially read as false refutations of B5/B6. Known-present controls (sliver/mcphub on zcode; loose table regex on codex) caught both before reporting. Any downstream lane re-probing these surfaces must use mcp.servers (zcode) and tomllib (codex)."
+    }
+  ],
+  "notes": "Probes used (all read-only, output-capped): python json/tomllib structural extraction of agents.json, .claude.json, .gemini/settings.json, .zcode/cli/config.json, ~/.mcp.json, .codex/config.toml (name/key membership only — no values printed); static package read + shim resolution + os.walk grep of the @agents-dev/cli install (no CLI spawned); curl -m 5 on 10 local ports; manifest/disk reconciliation of lane delivery. Every absence claim validated with a known-present control in the same probe (sliver/mcphub for zcode; basic-memory/sliver loose-regex for codex; done-mark vs file for B3/C2). No config writes, no spawns, no kills; only this verdict file and the two manifest marks. Spawn policy respected. The relayed user request ('try a 10 concurrency') is a harness knob noted by B6 already; no lane action required."
+}

@@ -1,0 +1,24 @@
+{
+  "lane": "R5",
+  "reprobe_of": "V2 gaps item 'Hermes RUNTIME liveness UNVERIFIED'",
+  "claim": "hermes runtime liveness: config.yaml exists and is backup-managed, but no probe confirmed a running hermes process reads it",
+  "verdict": "CONFIRMED",
+  "settling_probe": "Live OS-state enumeration (third mechanism, mechanically different from waveA's config reads/curl/netstat and V2's stat+parse+script-read): (1) Get-CimInstance Win32_Process over 988 processes matching 'hermes' in Name/CommandLine/ExecutablePath, artifact-excluded (self/probe shells filtered via CommandLine 'Win32_Process' + own PID) -> CLEAN hermes=0, EXE_PATH_hermes=0; detector validated on the same query shape with known-present controls: agent_mail=4, basic_memory=4, cyberstrike=31, claude=10 (openclaw=0, consistent). (2) Win32_Service + Get-ScheduledTask 'hermes|curator' -> 0 each. (3) WSL Ubuntu 'ps aux | grep -i hermes' -> none (distro running). (4) docker ps -a -> 0/24 containers match hermes. (5) Filesystem activity cross-check inside C:/Users/Prekzursil/AppData/Local/hermes: find -newermt 2026-09-05 (excluding backups/) hits ONLY config.yaml; logs/agent.log mtime 2026-09-04 20:36, .hermes_history 2026-09-04 20:18, cron/ empty -> runtime frozen since Sep 4.",
+  "evidence": "CONFIRMED in the strong sense: not merely 'no probe confirmed a reader' — there IS no running hermes process on any lane (Windows process table incl. image paths, service DB, task scheduler, WSL Ubuntu, Docker), so nothing reads config.yaml today. Config substrate of the claim re-anchored: C:/Users/Prekzursil/AppData/Local/hermes/config.yaml EXISTS (5419 B, mtime 2026-09-19 06:59:50) and IS backup-managed (backups/ holds stamped copies; newest config.yaml.bak-20260919-065950; three more minted today 06:17/06:29/06:32). V2's size 5189 B vs current 5419 B reconciles by timeline: V2 stat'd before the 06:59:50 deploy write; the 230 B growth predates today's 06:17 backup (all today's baks are 5419 B). WRITER IDENTIFIED, not the runtime: the backup naming 'config.yaml.bak-{stamp}' via shutil.copy2 matches deploy_hermes_mcp.py:108 exactly — today's four writes are estate-sync (deploy_hermes_mcp.py, invoked by sync_shared_state.ps1) pushing registry state INTO the hermes home; none of them require or prove a hermes process (note: 4 sync runs landed inside the audit window under the read-only mandate — attributable to owner-side activity, not to any audit lane; hermes runtime itself never logged after Sep 4). CONFOUNDED SIGNAL DISCARDED: config.yaml atime 2026-09-19 07:20:06 was set seconds before my own first stat of the file (probe contamination; also subject to 1h atime batching with fsutil DisableLastAccess=2) — not used as evidence. The hermes runtime home is an OpenClaw-style layout (SOUL.md, memories/, cron/, bin/ stub exes, hermes-agent/ repo clone) that ran Sep 3-4 and has been resident-dead since; its MCP config is freshly maintained estate-side while its consumer is absent. Reconciliation vs tui-inventory.json hermes.found=[]: V2 already showed that sweep scanned the wrong places (config.yaml does exist); R5 adds the missing half — the config's runtime consumer does NOT exist, so the hermes-targeted -hub registry rows (cloud-audit-hub, cve-mcp-hub, github-security-hub, hexstrike-ai-hub, nuclei-hub, osint-hub, semgrep-hub) materialize to a config file that no process reads.",
+  "instruments": {
+    "waveA_original": "config-file reads (python/jq), curl port probes, netstat/Get-NetTCPConnection",
+    "V2_verifier": "stat + parse of config.yaml; deploy/sync script source reads",
+    "R5_this_lane": "live OS process table (Win32_Process/CIM, artifact-excluded, control-validated) + Win32_Service + Get-ScheduledTask + WSL ps aux + docker ps -a + filesystem-mtime activity sweep"
+  },
+  "caveats": [
+    "A non-resident hermes invoked-and-exited between my probes cannot be excluded by a point-in-time process table; however the 15-day freeze of logs/agent.log, .hermes_history, cron/ (empty), and cache/ makes any post-Sep-4 runtime execution highly unlikely (settling experiment if ever needed: enable 4688 process-audit or Prefetch timestamps for the hermes bin/ images).",
+    "Deploy attribution rests on filename-signature match (deploy_hermes_mcp.py:108) + copy2 mtime-preservation behavior observed in the .bak files; process-level attribution of the 06:17-06:59 sync runs was not possible without audit logs."
+  ],
+  "anchors": [
+    "C:/Users/Prekzursil/AppData/Local/hermes/config.yaml (5419 B, mtime 2026-09-19 06:59:50)",
+    "C:/Users/Prekzursil/AppData/Local/hermes/backups/config.yaml.bak-20260919-065950 (+3 same-day)",
+    "C:/Users/Prekzursil/.agents/scripts/deploy_hermes_mcp.py:108",
+    "C:/Users/Prekzursil/AppData/Local/hermes/logs/agent.log (mtime 2026-09-04 20:36)",
+    "waveD/V2.json gaps[] 'Hermes RUNTIME liveness UNVERIFIED'"
+  ]
+}

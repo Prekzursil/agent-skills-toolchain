@@ -1,0 +1,34 @@
+[
+  {
+    "name": "semgrep-hub",
+    "health": "UNREACHABLE",
+    "disposition": "decommission-candidate",
+    "why": "HTTP endpoint dead by two independent probes (curl -m 5 GET and POST -> http_code=000, no TCP connect; netstat shows no listener on 31419). Root cause is port-band drift, not service death: D:/opt/cyberstrike-mcp/mcp-ssot.json:97 and ~/.config/cyberstrike/cyberstrike.json:255-257 map semgrep to port 31119, and the live cyberstrike mcp-proxy (pid 75256) is LISTENING on 31119; 31419 survives only under D:/opt/cyberstrike-mcp/backups/portband-20260907-0130/ -- the port band migrated 2026-09-07 and the registry URL was never updated. Additionally targets=[hermes], which agents CLI 0.8.10 silently drops, so the entry never materializes to any surface; and the capability is already covered by four other semgrep variants, incl. live semgrep-mcp.exe processes and an McpHub child whose only tool is a deprecation_notice.",
+    "paths": "canonical-but-stale: http://127.0.0.1:31419/mcp (~/.agents/agents.json mcp.servers.semgrep-hub). Correct live URL per cyberstrike SSOT: http://127.0.0.1:31119/mcp. Twin dead reference: ~/.mcp.json mcpServers.semgrep = http://127.0.0.1:31419/mcp.",
+    "scatter": "Registry agents.json only under name 'semgrep-hub' (absent from .claude.json/.codex/.cursor/.gemini/.mcp.json -- hermes target dropped by agents CLI 0.8.10). Name variants, different impls: .claude.json 'semgrep' = C:/Users/Prekzursil/.local/bin/semgrep-mcp.exe --semgrep-path .../semgrep.exe (LIVE x2 instance-sets: pids 44776+14040+15168 and 50116+22824+69416 -- pile-up); .mcp.json 'semgrep' type=http :31419 (dead); .gemini 'semgrep' = 'semgrep mcp' CLI; ~/.McpHub/config.json servers.semgrep (live child this session, exposes only mcp__McpHub__semgrep__deprecation_notice); plugin semgrep@claude-plugins-official 2.3.0 installed but user-disabled; per-project disabledMcpServers 'plugin:semgrep:semgrep' and 'semgrep' in 36 projects."
+  },
+  {
+    "name": "sentry",
+    "health": "STATIC-OK",
+    "disposition": "vendor-source",
+    "why": "Task scope = token presence: SENTRY_AUTH_TOKEN SET, len 71, identical at User+Machine+Process scopes (winreg probe of HKCU Environment + HKLM Session Manager Environment; value never read). Note the registry entry does NOT wire SENTRY_AUTH_TOKEN -- it wires SENTRY_ACCESS_TOKEN (SET len 199) + SENTRY_HOST (SET len 9), both satisfied, so requiredEnv is fully met. Package resolvable upstream: @sentry/mcp-server@latest = 0.39.0 (registry.npmjs.org probe). No sentry process alive at scan time (Win32_Process command-line sweep); session banner neither lists it failed nor exposes mcp__sentry__* tools, so live-connect state is indeterminate from subagent vantage -- static evidence all green.",
+    "paths": "canonical: npx -y @sentry/mcp-server@latest (registry, stdio, targets [claude], enabled, credentialNames [SENTRY_ACCESS_TOKEN]); materialized to .claude.json mcpServers.sentry as cmd /c npx -y @sentry/mcp-server@latest with env SENTRY_ACCESS_TOKEN + SENTRY_HOST.",
+    "scatter": "agents.json; .claude.json 'sentry'; .gemini settings.json 'sentry' (npx, SENTRY_HOST hardcoded 'sentry.io'); ~/.McpHub/config.json servers.sentry; plugins sentry@claude-plugins-official 1.4.0 AND sentry-cli installed but user-disabled (settings.json enabledPlugins=false); .codex/config.toml has no mcp_servers table but [plugins.\"sentry@openai-curated\"] enabled = true (lines 543-544); per-project disables 'sentry', 'plugin:sentry:sentry', 'claude.ai Sentry' each across 36 projects; .cursor absent."
+  },
+  {
+    "name": "sonarqube",
+    "health": "STATIC-OK",
+    "disposition": "vendor-source",
+    "why": "Docker static-only per mandate (never spawned). Docker daemon UP (Server 29.8.0); image mcp/sonarqube:latest PRESENT locally (381MB); zero sonar containers in docker ps -a, consistent with spawn-on-demand 'docker run -i --rm'; all 4 requiredEnv SET (SONARQUBE_TOKEN len 40, SONARQUBE_ORG len 10, SONARQUBE_URL len 21, SONARQUBE_IDE_PORT len 5; winreg probe, values unread). Uses the official vendor image docker.io/mcp/sonarqube; the official claude-plugins-official plugin 2.5.0 is ALSO installed (user-disabled) -- the estate currently carries three parallel provisioning paths (registry/docker, McpHub child, disabled plugin) for one vendor capability.",
+    "paths": "canonical: docker run -i --rm -e SONARQUBE_TOKEN -e SONARQUBE_ORG -e SONARQUBE_URL -e SONARQUBE_IDE_PORT docker.io/mcp/sonarqube:latest (registry, targets [claude], enabled); identical copy in .claude.json mcpServers.sonarqube.",
+    "scatter": "agents.json; .claude.json 'sonarqube'; .gemini settings.json 'sonarqube' (docker, trust, timeout 180000); ~/.McpHub/config.json servers.sonarqube; plugin sonarqube@claude-plugins-official 2.5.0 installed but user-disabled; per-project disables 'sonarqube' and 'plugin:local-mcp-bridge:sonarqube' across 36 projects; .codex absent; .cursor absent."
+  },
+  {
+    "name": "tavily",
+    "health": "LIVE-SESSION",
+    "disposition": "registry-pinned",
+    "why": "Dedup question RESOLVED: no tavily plugin exists anymore (0 occurrences of 'tavily' in ~/.claude/plugins/installed_plugins.json; no tavily key in settings.json enabledPlugins) -- the CLAUDE.md 'plugin-provided tavily' Cursor note dated 2026-08-20 is STALE. The real duplication is registry-materialized entry vs McpHub child, and BOTH are live concurrently: process sweep found TWO tavily-mcp instances -- node pid 31900 (D:/npm-cache/_npx/814ebe1c4dc1f905/node_modules/.bin/../tavily-mcp/build/index.js, spawned via 'cmd /d /s /c tavily-mcp' pid 45072 = McpHub child) and node pid 22756 (npx-cli.js -y tavily-mcp@0.2.15 via 'cmd /c npx -y tavily-mcp@0.2.15' pid 57660 = the exact .claude.json registry-materialized command line). This session exposes tavily ONLY as mcp__McpHub__tavily__{tavily_search,tavily_extract,tavily_crawl,tavily_map}; no plain mcp__tavily__* tools. TAVILY_API_KEY SET len 57; pinned tavily-mcp@0.2.15 resolvable upstream (npm probe). Action: collapse to ONE path (keep the version-pinned registry entry; drop or gate the McpHub duplicate) -- two concurrent instances double RAM and API-key burn.",
+    "paths": "AMBIGUOUS: registry = npx -y tavily-mcp@0.2.15 materialized to .claude.json as \"command\":\"cmd\",\"args\":[\"/c\",\"npx\",\"-y\",\"tavily-mcp@0.2.15\"]; McpHub duplicate = ~/.McpHub/config.json servers.tavily spawned as 'cmd /d /s /c tavily-mcp' (unpinned npx-cache resolution); third config copy in .gemini settings.json 'tavily' (npx tavily-mcp@0.2.15, no -y).",
+    "scatter": "agents.json (pinned 0.2.15); .claude.json 'tavily'; .gemini settings.json 'tavily'; ~/.McpHub/config.json servers.tavily (LIVE in this session under the McpHub SSE endpoint 127.0.0.1:24680, pid 19480); NO plugin variant installed (stale CLAUDE.md note notwithstanding); absent from .codex and .cursor; per-project disables 'tavily' across 36 projects."
+  }
+]

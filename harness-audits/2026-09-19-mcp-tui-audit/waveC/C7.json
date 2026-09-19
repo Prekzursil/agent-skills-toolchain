@@ -1,0 +1,48 @@
+{
+  "scope": "Lane C7: estate hygiene audit of C:/Users/Prekzursil/.agents/memory-map.md and C:/Users/Prekzursil/.agents/memory-contract.md vs measured box state. Every path and port named in the two files was checked. Ports probed with 3 mechanically different mechanisms: netstat TCP table, raw curl HTTP (GET /api/health and a raw MCP initialize POST), and process command lines via Win32_Process. Path checks via python os.path/scandir with two known-present controls (the audited files themselves). No MCP client tools used; no config writes; no processes spawned or killed.",
+  "findings": [
+    {
+      "item": "Port :18765 = basic-memory daemon (memory-contract.md line 11 'http://127.0.0.1:18765/mcp'; memory-map.md line 18)",
+      "classification": "CONFIRMED",
+      "evidence": "netstat: 'TCP 127.0.0.1:18765 LISTENING PID 61384'. curl POST /mcp initialize -> serverInfo {name:'Basic Memory', version:'4.0.0b1'}. Win32_Process PID 61384 cmdline: 'basic-memory.exe mcp --transport streamable-http --host 127.0.0.1 --port 18765 --path /mcp'. Three independent probes agree; the handshake proves the identity, not just a listener.",
+      "recommendation": "None. Transport claim is exact, including the /mcp path."
+    },
+    {
+      "item": "Port :18812 = agent-mail (memory-contract.md line 77 ':18765/:18812/:18317 stay bound only by their owners'; memory-map.md line 27 'ports migrated 04.09.2026 to 18765/18812/18317')",
+      "classification": "CONFIRMED",
+      "evidence": "netstat: 'TCP 127.0.0.1:18812 LISTENING PID 39036'. curl http://127.0.0.1:18812/api/health -> {\"status\":\"ok\",\"timestamp\":\"2026-09-19T04:01:25Z\"}. Win32_Process PID 39036 cmdline: 'python.exe -m mcp_agent_mail.cli serve-http --host 127.0.0.1 --port 18812'. Port-migration receipt exists on disk: C:/Users/Prekzursil/Cowork/output/rail-port-migrate-sota_2026-09-04.md (5858 B).",
+      "recommendation": "None for these two files."
+    },
+    {
+      "item": "Port :18317 = auth2api (same contract/map port claims as above)",
+      "classification": "MISMATCH-RUNTIME (documented but not live)",
+      "evidence": "netstat -ano -p tcp | grep listening: NO row for :18317. curl -m 5 http://127.0.0.1:18317/ -> 000 (connection failed). Detector validated: the same two probes returned LISTENING + 200/404 on :18765 and :18812, so the absence is real, not detector failure. The map documents the port as migrated-to (04.09.2026, receipt on disk), not as always-on.",
+      "recommendation": "Not a doc defect if auth2api is an on-demand bridge, but the contract line 'stay bound only by their owners' is presently unverifiable for :18317 (nothing binds it). Optionally annotate memory-map.md that :18317 is on-demand so a down probe is not misread as port drift."
+    },
+    {
+      "item": "Stale port claims in OTHER estate docs vs the audited files: ~/.claude/CLAUDE.md and ~/CLAUDE.md still document agent-mail at 127.0.0.1:8812 (curl /api/health and netstat both dead on 8812; 8811 also dead)",
+      "classification": "INFORMATIONAL (cross-file drift; the two audited files are correct)",
+      "evidence": "curl 8812/api/health -> empty, GET / -> 000; netstat shows no 8812/8811 listener; live service is on 18812 per PID 39036 cmdline. The audited memory-map.md/memory-contract.md contain no 8812 references.",
+      "recommendation": "Update the 8812 references in ~/.claude/CLAUDE.md and ~/CLAUDE.md to 18812 (post-audit; this lane was read-only)."
+    },
+    {
+      "item": "All 19 file/dir paths named in the two files",
+      "classification": "CONFIRMED (19/19 exist)",
+      "evidence": "python os.path sweep with 2 known-present controls, all OK: memory-contract.md (3414 B), memory-map.md (4388 B), .agents/state/harness/recall-digest.json (7912 B), recall-index.json (1,876,965 B - 'HUGE' warning justified), .basic-memory/config.json (3202 B, parses; project 'main' -> D:\\basic-memory, matching the vault claim), .basic-memory/memory.db (70,283,264 B), D:\\basic-memory (dir), D:\\basic-memory/index/WHERE.md (588 B, 16 lines vs '~20' claim - consistent), .agents/skills (dir), skills/hosted-model-agents (dir), skills/qwen-space-tool-api (dir, the deprecated pointer the map mentions), AGENTS.md (29,295 B), .agents/scripts/bm_cursor_http_session.py (11,552 B), Cowork/tools/hf-space-qwen38-27b-heretic (dir), D:\\Research/projects/phenibut + docs + compute (dirs), Cowork/memory.md (2036 B, retired-archive status intact), Cowork/output/basic-memory-full-audit_2026-08-28.md (66,714 B), Cowork/output/rail-port-migrate-sota_2026-09-04.md (5858 B). COUNCIL-*_2026-08-28.md glob: 12 files found.",
+      "recommendation": "None."
+    },
+    {
+      "item": "memory-map.md 'Load-bearing vault notes' list (11 numbered items, 12 permalinks incl. the two techniques/ notes of item 8)",
+      "classification": "CONFIRMED (12/12 resolve in vault)",
+      "evidence": "Targeted per-folder scandir (no recursive vault scan): notes/estate-locks-2026-08-27.md, harness/Basic-memory SOTA session contract (hook-injected not recognition-invoked).md, harness/Basic-memory hard gate is shared harness not Grok-only 2026-08-25.md, harness/Cowork dump RETIRED option A 2026-08-24.md, harness/Harness Stop auto-captures any mutation (WRITE gate 2026-08-25).md, phenibut/Paper A post-UWHAM extensive grill CONVERGED G-1 to G-18 2026-08-26.md, phenibut/Paper A UWHAM GPN NO-GO RS replicate magnitude miss 2026-08-26.md, techniques/Three verification traps that each defeated a written rule (2026-08-09).md, techniques/Green gates found zero of eleven defects - what actually found them.md, harness/Scheduled tasks that spawn windows - inventory 2026-08-28.md, harness/Cursor RAM vs Claude Grok CLI - measured 2026-08-28.md, harness/Rail port migrate Hyper-V exclusion SOTA 2026-09-04.md.",
+      "recommendation": "None."
+    },
+    {
+      "item": "memory-map.md line 21: HF Hub MCP 'huggingface' registered",
+      "classification": "CONFIRMED",
+      "evidence": "Grep of run-dir registry-inventory.json: line 447 '\"name\": \"huggingface\"' (HTTP URL https://huggingface.co/mcp?login); server also connected in the live session banner.",
+      "recommendation": "None."
+    }
+  ],
+  "summary": "The two memory control-plane files are in unusually good shape: 19/19 paths exist, 12/12 load-bearing vault permalinks resolve, BM config parses and maps project 'main' to the documented vault, and both always-on ports are live with verified owners (:18765 basic-memory via MCP initialize handshake returning 'Basic Memory 4.0.0b1'; :18812 agent-mail via /api/health {status:ok} plus serve-http cmdline). The single runtime gap is :18317 auth2api - documented as migrated-to but currently bound by nothing (two-probe-validated absence, detector control-passed). That is consistent with an on-demand bridge, not a doc error, but it makes the contract's ':18317 stays bound only by its owners' line presently unverifiable. The real hygiene debt sits OUTSIDE the audited files: ~/.claude/CLAUDE.md and ~/CLAUDE.md still point agent-mail at dead :8812. Verdict: memory-map.md and memory-contract.md match measured reality on every path and on 2 of 3 ports; recommend a one-line on-demand annotation for :18317 and post-audit fixes to the stale 8812 references elsewhere."
+}

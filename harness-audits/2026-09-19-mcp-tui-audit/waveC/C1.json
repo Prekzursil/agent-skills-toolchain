@@ -1,0 +1,78 @@
+{
+  "scope": "Lane C1 skills-drift audit 2026-09-19. Name+signature diff across 5 trees: vault C:/Users/Prekzursil/.agents/skills (383 dirs), claude C:/Users/Prekzursil/.claude/skills, codex C:/Users/Prekzursil/.codex/skills (4), repo C:/Users/Prekzursil/source/agent-skills-toolchain/skills (375), repo skills-claude-only/ (36). Method: python os.walk + SHA-256 of each SKILL.md (c1_skills_sweep.py, raw dump in %TEMP%/c1_skills_sweep.json); junction topology cross-checked by a second mechanically different probe (PowerShell Get-Item LinkType vs python lstat); content drift settled by newline-normalized re-hash + difflib. Detector validation: 4/4 known-present items FOUND (vault: estate-offensive-doctrine, multi-ai-mingle; claude: multi-ai-mingle, fabric-patterns) before any absence claim was recorded. Design contract read from .agents/scripts/sync_shared_state.ps1 (lines 74-167: legal layout = .claude/skills junction -> skills.daily junction -> vault; real dir = ILLEGAL; full-vault daily required).",
+  "findings": [
+    {
+      "item": "claude target topology: .claude/skills -> .claude/skills.daily -> .agents/skills junction chain",
+      "classification": "sync-artifact",
+      "evidence": "PowerShell Get-Item: LinkType=Junction Target=C:\\Users\\Prekzursil\\.claude\\skills.daily; skills.daily LinkType=Junction Target=C:\\Users\\Prekzursil\\.agents\\skills. Python lstat agrees (junction, reparse mount-point tag). Name sets identical 383/383; SKILL.md hash diffs vault-vs-claude = 0. Claude edge is byte-identical to the vault BY CONSTRUCTION. LEGAL layout per sync_shared_state.ps1.",
+      "recommendation": "No action. Keep the HARD-STOP in sync_shared_state.ps1 (real-dir detection) as the guard; any future 'claude skills drift' report is suspect if this chain is intact."
+    },
+    {
+      "item": "skills.daily is the FULL vault, not a subset (G-94 compliance)",
+      "classification": "sync-artifact",
+      "evidence": "skills.daily is a junction directly onto the vault (not the old copy/subset); count 383 = vault 383. The script's copy-fallback branch (real dir with full coverage) is not in play.",
+      "recommendation": "None; compliant with the owner override ('skills.daily must be the vault, not a subset')."
+    },
+    {
+      "item": "6 skills live in vault but are absent from repo skills/ (and from skills-claude-only/, .claude/, .agents/ subdirs of the repo - probed all candidate roots): estate-offensive-doctrine (mt 2026-09-18), jailbreak (2026-09-10), opusclip-shorts (2026-09-19, edited TODAY), fabric-patterns (2026-09-02), hosted-model-agents (2026-08-29), qwen-space-tool-api (2026-08-29, DEPRECATED redirect tombstone per its own SKILL.md)",
+      "classification": "drift",
+      "evidence": "vault-vs-repo name diff: only-vault = these 6 + synced/ + .ruff_cache; repo is a strict name-subset of vault (only-repo = 0). None of the 6 exist anywhere under the repo candidate roots (os.path.isdir sweep). All 6 are recent live-vault additions never backported to the canonical repo checkout.",
+      "recommendation": "Backport the 5 live skills to repo skills/ via the reconcile flow (repo is the declared canonical source; it is private-only, so doctrine content is not a blocker - owner call). qwen-space-tool-api is a deprecated redirect: either commit the tombstone for history or drop it at next vault prune."
+    },
+    {
+      "item": "ci-silent-pass-lint SKILL.md: repo ahead of vault",
+      "classification": "drift",
+      "evidence": "hash 734c00d709c3 (vault, mt 2026-08-10, 119 lines) vs ce1e966c2466 (repo, mt 2026-09-02, 120 lines); repo adds one line ('The red gate under-reports: one fixed defect, still red' note). NOT a CRLF phantom (difflib shows a real + line). Live Claude sessions read the OLDER vault copy through the junction.",
+      "recommendation": "Copy repo -> vault for this one skill (or re-run the skill sync direction repo-to-vault) so the live text carries the 2026-09-02 fix note."
+    },
+    {
+      "item": "deep-research SKILL.md: vault ahead of repo",
+      "classification": "drift",
+      "evidence": "hash 7e705f1f34ac (vault, mt 2026-09-18, 316 lines) vs 1fe135bb8a77 (repo, mt 2026-09-02, 308 lines); vault contains the 2026-09-21 full-allow doctrine block (sci-hub/libgen/annas-archive ACTIVE, superseded exclusions removed) absent from repo. Real content diff (14 difflines), not CRLF.",
+      "recommendation": "Backport vault -> repo (private repo). Note the vault copy embeds estate doctrine text; committing it to the private repo is consistent with repo privacy, but it is an owner decision."
+    },
+    {
+      "item": "qdx-rush vault-vs-repo SKILL.md hash mismatch",
+      "classification": "sync-artifact",
+      "evidence": "Raw hashes differ (e56bb30e39a4 vs 0314b7217de2) but both 101 lines, difflib 0 changed lines, and newline-normalized re-hash EQUAL -> pure CRLF/LF line-ending phantom (vault LF, repo checkout CRLF). Matches the known 'most drift is CRLF phantoms' pattern.",
+      "recommendation": "No content action. Optionally enforce EOL via .gitattributes for skills/** to silence future phantom drift reports."
+    },
+    {
+      "item": "skill-stocktake codex copy",
+      "classification": "stale-dupe",
+      "evidence": "~/.codex/skills/skill-stocktake: same 193 lines as vault, 0 difflines, newline-normalized hash EQUAL (CRLF phantom only), but mtime 2026-04-09 - a stale same-content duplicate hand-copied 5 months ago.",
+      "recommendation": "Harmless; refresh or drop. If Codex should track shared skills, wire it once instead of hand-copies."
+    },
+    {
+      "item": "repo skills-claude-only/ tree (36 skills): dead/stale",
+      "classification": "stale-dupe",
+      "evidence": "Last commit touching it 2026-07-06 (git log 69a822760). 31 of 36 names exist in NO live target (absent from vault/claude/codex): azure-observability, azure-postgres, azure-rbac, azure-resource-lookup, azure-resource-visualizer, azure-storage, azure-validate, codecov-cli, digitalocean-cli, docker-cli, docs-research, entra-app-registration, find-skills, graphql-cli, mcp-troubleshooting, metaswarm-brainstorming-extension, metaswarm-create-issue, metaswarm-design-review-gate, metaswarm-external-tools, metaswarm-handling-pr-comments, metaswarm-migrate, metaswarm-orchestrated-execution, metaswarm-plan-review-gate, metaswarm-pr-shepherd, metaswarm-setup, metaswarm-start, metaswarm-status, metaswarm-visual-review, read-github, skill-guide, superpowers (metaswarm-*/superpowers are now supplied by plugins). Of the 5 names overlapping vault: microsoft-foundry is an OLD version (v1.0.7, 76 files, 2026-04-04 vs vault v1.1.44, 204 files, 2026-08-26; 220 difflines) and qdx-rush an older frontmatter variant (2026-07-03); only ralph-hats, ralph-loop, ralph-orchestrator-setup hash-match the vault.",
+      "recommendation": "Retire the tree: move to project trash or archive (never permanent delete), after confirming the 31 names are truly superseded (metaswarm/superpowers plugin parity check). Do not let it masquerade as a live distribution lane - nothing syncs from it."
+    },
+    {
+      "item": "codex/skills tree (4 entries) does not mirror the vault - 381 shared skills absent from Codex",
+      "classification": "sync-artifact",
+      "evidence": "Contents: .system (Codex built-in, 60 files, 2026-09-12), hatch-pet (codex-local, 31 files, 2026-08-19), jailbreak (hash-matches vault, both 2026-09-10 - hand-synced), skill-stocktake (stale CRLF dupe, see above). config.toml grep: 'skills = true' at line 90, no path wiring to the vault anywhere in the file. Consistent with HOME contract ('.codex/skills remains Codex-owned for built-ins, plugins, and Codex-local-only skills') - but note the asymmetry is de-facto, enforced by nothing: sync_shared_state.ps1 materializes skills ONLY into Hermes (robocopy /MIR), never Codex.",
+      "recommendation": "By design - accept and document. If cross-runtime parity is ever wanted, add a codex materialization step beside the Hermes one; otherwise the two hand-copies (jailbreak, skill-stocktake) are the only 'sync' and will rot silently."
+    },
+    {
+      "item": "vault pollution: synced/ third-party skill pack (393 files) + .ruff_cache/ inside the SSOT",
+      "classification": "stale-dupe",
+      "evidence": "C:/Users/Prekzursil/.agents/skills/synced/ holds a 0-byte marker '.bucket-<uuid>_<uuid>' (created 2026-09-16 23:22) + GUID dir (1-byte file, 2026-09-18 00:02) containing anthropic-skills-style names (algorithmic-art, brainstorming, brand-guidelines, canvas-design, competitive-programming-solver, dispatching-parallel-agents, ...), content mt through 2026-09-19. Nested (no top-level SKILL.md) so inert to the skill loader, but it is junctioned verbatim into every Claude session's skills dir and counted in vault stats. .ruff_cache/ (6 files, 2026-07-20) is lint cache junk in the same position. Provenance UNVERIFIED: no producer found in .agents/scripts/*.py|*.ps1 (grep '.bucket-' zero hits) - settling experiment: grep '.bucket-' across plugin caches / Claude Code plugin dirs, or audit the process writing there on next occurrence.",
+      "recommendation": "Relocate the pack out of the vault (a packs/ or archive dir), purge .ruff_cache from the vault, then re-run the manifest builder. Add a vault-integrity check (only dirs with SKILL.md at depth 1) to sync_shared_state.ps1 so staging buckets cannot silently land in the SSOT again."
+    },
+    {
+      "item": "SKILLS-MANIFEST.md stale in vault",
+      "classification": "sync-artifact",
+      "evidence": "vault manifest 374 lines vs repo 392; repo has 18 rows the vault manifest lacks (c4-architecture, claim-verify-gate, cli-anything, clone-website, codex-audit, codex-brainstorm, codex-coordinate, codex-curate, codex-discuss, codex-fix, codex-governance, codex-review, ...). Content differs even after newline normalization (real drift of a GENERATED index, not CRLF). Vault also carries an extra root README.md (cosmetic).",
+      "recommendation": "Regenerate the vault manifest (same builder that produced the repo's 2026-09-02 version) so the SSOT self-describes its current 381 skills."
+    },
+    {
+      "item": "repo working tree has uncommitted skill work (trees agree, git behind)",
+      "classification": "drift",
+      "evidence": "git status --porcelain: 'M skills/research-paper-craft/SKILL.md' (content hash-MATCHES vault - synced but uncommitted) and '?? skills/disk-space-manager/' (untracked; also present in vault). Last commit touching skills/ 2026-09-07 (2b24a9b01).",
+      "recommendation": "Commit both (interactive/owner-invoked per G-68 - background agents never commit); this is process drift, not tree divergence."
+    }
+  ],
+  "summary": "Claude-side distribution is HEALTHY: the junction chain .claude/skills -> skills.daily -> .agents/skills is intact (two independent probes) and byte-identical (383/383 names, 0 hash diffs); skills.daily is the full vault, not a subset. Real drift is concentrated vault<->repo: 6 live skills never backported (incl. opusclip-shorts edited today), 2 one-sided content edits (repo ahead on ci-silent-pass-lint, vault ahead on deep-research), and a stale vault SKILLS-MANIFEST (-18 rows); plus one uncommitted repo skill. skills-claude-only/ is a dead 2.5-month-old tree (31/36 names reach no live target; microsoft-foundry/qdx-rush copies are old versions) - retire it. Codex deliberately receives nothing from the vault (only 2 hand-copies, one stale); that asymmetry is unenforced-by-anything except absence of a sync step. Two hygiene hits inside the SSOT itself: a 393-file third-party pack under synced/ (provenance UNVERIFIED, actively written 2026-09-16..19) and .ruff_cache/, both junctioned straight into Claude's live skills dir. CRLF phantoms (qdx-rush vault/repo, skill-stocktake vault/codex) were confirmed as non-drift by newline-normalized re-hash. Count reconciliation: vault 383 = 381 real skills + synced + .ruff_cache; repo 375 is a strict name-subset; codex 4; skills-claude-only 36."
+}

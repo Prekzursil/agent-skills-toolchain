@@ -1,0 +1,54 @@
+{
+  "scope": "Lane C3 — rules/guides tree hygiene: ~/.claude/rules vs repo (C:/Users/Prekzursil/source/agent-skills-toolchain) rules/ + guides/; broken relative references, missing files, drift; ~/.claude/AGENTS.md G-96 pointer-chain resolution. Static probes only: python os.walk/sha256, bash ls/find/stat/grep, one pwsh -WhatIf dry-run. Zero servers spawned; no writes except this verdict + manifest marks. Detector validation: link/backtick extractor returned OK on known-present controls (guides/behavior-contract-rationale.md, guides/owner-ops-authorization.md, guides/codex-databricks-ops.md, guides/tool-routing-and-quality.md, all @-includes) before any MISS was reported; every MISS corroborated by >=2 mechanically different signals. None of the 5 tagged MCP ground-truth items intersect this lane's scope, so no cross-lane reconciliation was due.",
+  "findings": [
+    {
+      "item": "G-96 pointer chain (~/.claude/AGENTS.md -> HOME AGENTS.md) resolves end-to-end",
+      "classification": "PASS/verified",
+      "evidence": "~/.claude/CLAUDE.md @-includes AGENTS.md, AGENTS-RUNTIME.md, C:/Users/Prekzursil/AGENTS.md — all exist (os.path.exists probe, 3/3 OK). ~/.claude/AGENTS.md is a pure G-96 pointer (head-verified: 'Shared harness pointer (G-96)... read and obey C:\\Users\\Prekzursil\\AGENTS.md') whose @HOME include resolves; ~/.codex/AGENTS.md is likewise pointer-form with HOME present. HOME file confirmed present via three independent probes.",
+      "recommendation": "None — chain healthy. The breakage is DOWNSTREAM of the chain (rules/common refs), not in the chain."
+    },
+    {
+      "item": "~/.claude/rules/common/ exists but is EMPTY — 0 of 20 repo files materialized (windows-shell.md, static-analyzer.md, owner-ops-authorization.md, ci-hygiene.md, single-signal-verification.md, fan-out-contract.md, harness-vcs-hygiene.md, ...) ",
+      "classification": "HIGH/missing-files",
+      "evidence": "Three independent signals: (1) python os.walk of ~/.claude/rules lists 68 files, none under common/; (2) bash `ls -la ~/.claude/rules/common` shows only ./ .. (dir entry present, created/last-modified 2026-09-03 17:06); (3) `find ... -mindepth 1 | wc -l` = 0. Repo side intact: rules/common holds 20 files (ls count 20; windows-shell.md 18586B, mtime 2026-08-10). Settling experiment run: `pwsh scripts/sync-rules.ps1 -WhatIf` (dry-run, no writes) today reports 'would sync 20 rule file(s) ... -> C:\\Users\\Prekzursil\\.claude\\rules\\common', proving the bridge works and the dest simply never received the copy. Aggravator: ~/.claude/rules/README.md (byte-identical to repo) documents common/ as the load-bearing layer ('20 files under common/ and 13 language dirs'; 'common/ splits into two groups that behave completely differently at load time'; an earlier partial sync 'hid 7 of the 8 always-on rules') — the live tree is self-inconsistent with its own README.",
+      "recommendation": "Owner-approved write (outside this read-only lane): run `pwsh -File scripts/sync-rules.ps1` from the repo — non-destructive by design (copy-only, no prune), WhatIf-verified to land exactly the 20 managed files. Then add a rules/common guard (file-count >= 20 or per-file existence) to `agents doctor` / audit gates so a silent re-empty cannot recur."
+    },
+    {
+      "item": "Three dangling hard references from live Claude config into the empty rules/common/",
+      "classification": "HIGH/broken-reference",
+      "evidence": "(1) ~/.claude/AGENTS-RUNTIME.md:171 md-link [`rules/common/windows-shell.md`](rules/common/windows-shell.md) — the §11 'Windows-shell non-negotiables' pointer to the five 'ledger-proven, silent-data-loss footguns' declared hard rules; target absent. (2) ~/.claude/AGENTS-RUNTIME.md:18 backtick `rules/common/owner-ops-authorization.md` (§0 policy file for owner-ops v3); absent (its guide twin guides/owner-ops-authorization.md:19 DOES exist — the rules/ path named for the policy is the dangling one). (3) ~/.claude/CLAUDE.md:21 backtick `rules/common/static-analyzer.md`; absent. All three resolved relative to the file's own dir (~/.claude); all corroborated by the empty-dir probes above.",
+      "recommendation": "Fixed automatically by populating rules/common (see previous finding). Until then, agents following §11 'read it before any shell op' hit a dead path on every shell-touching task."
+    },
+    {
+      "item": "Sync-pipeline gap: the MANDATED sync never covers rules/guides; the designed rules bridge never effectively ran; guides have NO bridge at all",
+      "classification": "MEDIUM/sync-gap",
+      "evidence": "grep -c -i 'rules' and 'guides' on C:/Users/Prekzursil/.agents/scripts/sync_shared_state.ps1 = 0 and 0 — the contract-mandated sync (run after skill/rule edits per HOME AGENTS.md) has no rules/guides handling. The only repo->live rules bridge is C:/Users/Prekzursil/source/agent-skills-toolchain/scripts/sync-rules.ps1 (mtime 2026-07-17), whose dest has been empty since at least 2026-09-03 17:06 (dir mtime) — i.e., no successful copy in >= 5 weeks despite repo common/ churn through 2026-08-10. grep 'guides' in sync-rules.ps1 and sync-from-live.ps1 = 0 matches: no script materializes or reconciles guides in either direction.",
+      "recommendation": "Either fold rules/common (+decide guides ownership) into sync_shared_state.ps1, or wire sync-rules.ps1 into the same post-edit workflow the contract mandates, and add drift detection (agents doctor) so an empty common/ fails loudly."
+    },
+    {
+      "item": "Guides trees are forked source sets, not a sync pair: repo guides/ 4 files vs ~/.claude/guides 10 files",
+      "classification": "LOW/drift",
+      "evidence": "Hash compare (raw + LF-normalized): only 2 filenames overlap (codex-databricks-ops.md, owner-ops-authorization.md), both CRLF-only differences (0 real content drift). 8 live-only files: metaswarm template set (agent-coordination, build-validation, coding-standards, git-workflow, testing-patterns, worktree-development) + behavior-contract-rationale.md + cache-economics.md. 2 repo-only files never materialized live: codex-invocation.md (15687B) and codex-monitor-reconcile.md (6516B) — grep of the live chain files finds no reference to either, so latent gap, not a broken link.",
+      "recommendation": "Declare intent: either add the 2 repo-only guides to the live set or mark them Codex-side-only in README; document that ~/.claude/guides intentionally mixes metaswarm + toolchain sources so future audits don't re-flag it."
+    },
+    {
+      "item": "~/CLAUDE.md (HOME, metaswarm project block active at cwd ~) references guides that only exist under ~/.claude/guides",
+      "classification": "LOW/broken-reference-adjacent",
+      "evidence": "~/CLAUDE.md:40 'See guides/agent-coordination.md' and :41 naming the guides/ set — ~/guides/ contains ONLY tool-routing-and-quality.md (verified ls); the actual files live in ~/.claude/guides. Relative resolution from HOME fails for 6 named guides. (guides/tool-routing-and-quality.md at :line ~52 resolves OK.)",
+      "recommendation": "Rewrite the two lines to absolute ~/.claude/guides paths, or drop the relative guide list from the HOME-level CLAUDE.md (it is metaswarm template output that assumes a project checkout)."
+    },
+    {
+      "item": "ADJACENT (outside lane's primary pair): ~/.codex/rules is a half-flattened, stale merge of the repo corpus",
+      "classification": "INFO/adjacent-drift",
+      "evidence": "78 files at ~/.codex/rules: top level holds ONLY dart/ (5) + web/ (7) + default.rules; another 64 files sit under a NESTED rules/ subdir (~/.codex/rules/rules/...). Prefix-stripped hash compare of the nested tree vs repo: 65 path-matches, 46 identical, 19 REAL drift (all 9 nested common/* + README + golang/coding-style + java/testing + ...), and 23 repo files absent entirely (incl. windows-shell.md, static-analyzer.md, owner-ops-authorization.md, ci-hygiene.md). Top-level dart/web vs repo: 8 of 12 real drift (all 7 web/* + dart/patterns.md). Net: the Codex runtime reads an older, structurally inconsistent rules corpus than Claude.",
+      "recommendation": "Route to whichever lane owns Codex config: flatten to one level and re-run a codex-targeted rules sync; treat the nested rules/rules/ artifact like the known 'platform layout checked into live folder' hazard class."
+    },
+    {
+      "item": "CRLF phantom drift dominates the shared rules surface; zero real content drift in shared files",
+      "classification": "INFO/phantom-drift",
+      "evidence": "repo rules/ -> ~/.claude/rules: 68 shared, 16 byte-identical, 52 differ ONLY by CRLF/LF (LF-normalized hashes equal), 0 real drift. Guides: 2 shared, both CRLF-only. Matches the estate memory note 'most drift is CRLF phantoms' — do not re-flag these as content drift in future audits.",
+      "recommendation": "Optional: normalize line endings at sync time so size-based drift checks stop tripping on phantoms."
+    }
+  ],
+  "summary": "G-96 pointer chain: HEALTHY (resolves end-to-end; breakage is downstream, not in the chain). Headline defect: ~/.claude/rules/common/ is an EMPTY directory — 0 of the 20 repo rule files ever landed — so the §11 windows-shell hard-rules pointer (AGENTS-RUNTIME.md:171), the §0 owner-ops policy pointer (:18), and the static-analyzer pointer (~/.claude/CLAUDE.md:21) all dangle on every live Claude session, and the live rules README contradicts the tree it sits in. Root cause is a sync gap, not content loss: the mandated sync_shared_state.ps1 has zero rules/guides handling, the designed bridge scripts/sync-rules.ps1 works (WhatIf dry-run verified: would copy 20 files, non-destructive) but has never successfully populated the dest since at least 2026-09-03, and no guides bridge exists at all. Shared per-language rules are content-clean (0 real drift; 52/68 CRLF-only). Guides trees are intentionally-forked-ish but undocumented (2 repo-only guides never materialized, unreferenced). Adjacent: ~/.codex/rules is a half-flattened stale merge (nested rules/rules/, 19+8 real-drift files, 23 repo files missing). One-command owner fix for the headline: run sync-rules.ps1 for real; then gate common/ file-count in agents doctor."
+}
