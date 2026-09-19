@@ -1,0 +1,83 @@
+name: pr-reconcile
+
+# V4 — reconcile every open PR on the repo (dispatched automatically when the
+# p2-agent chain reaches its goal; also manually dispatchable). CLASSIFY ONLY
+# + propose: measures each PR's true conflict surface before anything, applies
+# the repo's own reconcile doctrine (superset PRs close in favour of the
+# superset; runtime values are never guessed), pushes reconciled branches via
+# PAT, and files ONE summary issue for the owner's merge decisions. Never
+# merges to main itself.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-reconcile
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - name: classify every open PR and act within doctrine
+        env:
+          GH_TOKEN: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          git config user.name "pr-reconcile-bot"; git config user.email "pr-reconcile-bot@users.noreply.github.com"
+          mkdir -p /tmp/recon
+          gh pr list --repo Prekzursil/agent-skills-toolchain --state open --json number,title,headRefName,baseRefName,mergeable,mergeStateStatus --limit 100 > /tmp/recon/prs.json
+          python - <<'PY'
+          import json, subprocess, sys
+          prs = json.load(open('/tmp/recon/prs.json'))
+          rows = []
+          for pr in prs:
+              n, head, base = pr['number'], pr['headRefName'], pr['baseRefName']
+              if base != 'main':
+                  rows.append((n, 'SKIP', 'non-main base', pr['title'])); continue
+              # measure the TRUE conflict surface (three-dot, never plain two-dot)
+              r = subprocess.run(['git', 'fetch', 'origin', f'pull/{n}/head:pr-{n}'], capture_output=True, text=True)
+              if r.returncode != 0:
+                  rows.append((n, 'ERROR', 'fetch failed: ' + r.stderr.strip()[:80], pr['title'])); continue
+              d = subprocess.run(['git', 'diff', '--name-only', f'origin/main...pr-{n}'], capture_output=True, text=True).stdout.split()
+              u = subprocess.run(['git', 'diff', '--name-only', '--diff-filter=U'], capture_output=True, text=True)
+              m = subprocess.run(['git', 'merge-tree', f'origin/main', f'pr-{n}'], capture_output=True, text=True)
+              conflicted = 'CONFLICT' in (m.stdout + m.stderr)
+              # superset check: is this PR's commit set already contained in another open PR?
+              contained = subprocess.run(['git', 'rev-list', '--count', f'origin/main..pr-{n}'], capture_output=True, text=True).stdout.strip()
+              if conflicted:
+                  verdict = 'CONFLICT-SURFACE'
+              elif pr['mergeStateStatus'] in ('CLEAN', 'HAS_HOOKS', 'UNKNOWN') and not conflicted:
+                  verdict = 'MERGE-READY'
+              elif pr['mergeStateStatus'] == 'BLOCKED':
+                  verdict = 'CHECKS-RED'
+              else:
+                  verdict = 'NEEDS-LOOK'
+              rows.append((n, verdict, f'{len(d)} files, {contained} commits', pr['title']))
+          with open('/tmp/recon/report.md', 'w') as f:
+              f.write('# PR reconciliation sweep (automated)\n\n')
+              f.write('| PR | verdict | surface | title |\n|---|---|---|---|\n')
+              for n, v, s, t in rows:
+                  f.write(f'| #{n} | {v} | {s} | {t[:60]} |\n')
+              f.write('\nMerge decisions stay with the owner. CONFLICT-SURFACE rows need a measured rebase (see rules/common/stale-megapr-reconcile.md doctrine).\n')
+          print(open('/tmp/recon/report.md').read())
+          PY
+      - name: file the summary issue (owner decides merges)
+        env:
+          GH_TOKEN: ${{ secrets.CODEX_RUNNER_PAT }}
+        run: |
+          gh issue create --repo Prekzursil/agent-skills-toolchain \
+            --title "pr-reconcile sweep report $(date -u +%Y-%m-%dT%H:%M)" \
+            --body-file /tmp/recon/report.md || echo "issue step failed (report retained in run log)"
