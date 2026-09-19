@@ -120,8 +120,19 @@ class Client:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=180) as r:
+                with urllib.request.urlopen(req, timeout=300) as r:
                     return json.loads(r.read())
+            except TimeoutError:
+                # deep-reasoning turns can exceed a single socket read window;
+                # the request is idempotent — back off and resend
+                wait = 15 + attempt * 10
+                print(f"[read-timeout] long generation; retry in {wait}s (attempt {attempt + 1})", flush=True)
+                time.sleep(wait)
+                continue
+            except ConnectionError as e:
+                print(f"[conn-error] {type(e).__name__}; retry in 10s", flush=True)
+                time.sleep(10)
+                continue
             except urllib.error.HTTPError as e:
                 detail = ""
                 try:
