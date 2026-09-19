@@ -54,4 +54,98 @@ The script is one file. `args.stage` selects the run. Every run is resumable (`r
 
 Rules that hold for every run: the trigger message must contain no secret (T-2, F-7) and must state the authority ("edit only inside `$BUILD_REPO` worktrees; never push/create/deploy/spend"); `args` are computed immediately before launch (§10); a run always ends with the synthesizer AND the synthesis verifier, even on budget exhaustion (F-45); a run never retries a `blocked_on_owner` stage (F-6).
 
+---
+
+## 3. Agent roles and the separation table
+
+Every role is a distinct `agent()` call with its own label. Nothing that votes authored what it votes on (T-6, D-15). "Fresh" means the prompt contains only the card, the diff range/bundle path, the frozen contract excerpts and the previous stage's *typed* return — never a transcript or narrative (F-30). `model` is inherited except where marked (C-F).
+
+| Role | May author code/tests? | May vote/veto? | Sees | Effort | Schema | Notes |
+|---|---|---|---|---|---|---|
+| `setup` (bash) | no (writes venv, `gate.sh`, `AGENTS.md`, durable libsrc copy) | no | args only | low | `SETUP` | Idempotent; refuses if `python -V` ≠ 3.12; copies wheels + sources from the volatile scratchpad to `$DURABLE/libsrc` (F-2, F-5) |
+| `ground` (read-only) | no | no | snapshots, DQ, findings | high | `GROUND` | Facts with `[probe]` tags, assumption ledger, reviewer-rail probe (Codex availability), toolchain status snapshot (D-3) |
+| `decision-sheet author` | no | no | DECISION-QUEUE only | high | `DECISION_SHEET` | One line per G/M id → decided value → consequences; owner approves at R0 checkpoint (F-9) |
+| `api-ledger author` | no | no | `$DURABLE/libsrc` only | high | `API_LEDGER` | ~40 symbols with `libsrc/path:line`; the only source implementers may cite for gradio/spaces/transformers/hub APIs (F-8) |
+| `symbolizer` | no | no | findings + base tree | medium | `SYMBOLS` | Maps every actionable finding to `file::symbol@base_sha`; UNVERIFIED findings routed to `pre-verifier` first (F-11) |
+| `pre-verifier` | no (repro scripts in `$RUN_DIR/pre/`) | verdict on a finding | one UNVERIFIED finding + snapshot | medium | `VERIFY_FINDING` | Refute-first on critic-1..5 before any card cites them |
+| `spec/card author` (per area ×6) | no | no | decision sheet, symbols, LENS-4 §B/§D/§F, CORRECTED lines for its area | high | `CARD_GRAPH` | Never sees raw finder recommendations (F-10) |
+| `card critic` | no | veto (must_fix) | full card graph + decision sheet | xhigh | `PLAN_JUDGE` | Completeness vs LENS-4's 14 steps, DAG sanity, CPU-runnable acceptance, sizing (F-13/F-14) |
+| `plan judge` ×3 lenses | no | veto only | card graph + critique | xhigh | `PLAN_JUDGE` | `ready` requires all three not-vetoing; the owner still approves (R0 checkpoint) |
+| `test author` (per card) | tests only (visible acceptance + unit skeleton) on `tests/<card>` | no | card + interfaces + `api-ledger`; NOT the implementation | medium | `TESTS_WRITTEN` | Also writes `mutants.json` (≥1 scripted one-line mutant per acceptance id) |
+| `heldout author` (per seam card) | tests only, on a bundle the implementer never receives | no | card graph (composition) + spec | medium | `TESTS_WRITTEN` | Compositional seams only (§4.6); committed by the integrator after the card is built |
+| `red-confirmer` | no | verdict | tests bundle + base tree | medium | `RED_PROOF` | Tests must fail on the unimplemented tree for the expected reason; `collected > 0` (D-6, S-4) |
+| `implementer` | code + optional extra unit tests, in its own worktree | no | card, visible tests path, api-ledger, decision sheet, `AGENTS.md` | high (`model:'fable'` on hardening cards) | `IMPL` | Commits per coherent step; runs `gate.sh`; forbidden: tests/protected paths, installs, servers in foreground, `env` dumps |
+| `verifier` | no (may write repro scripts under `$RUN_DIR`) | verdict | bundle + card + tests + mutants; NOT `IMPL.notes` | medium | `VERIFY` | Re-runs `gate.sh` (digest must equal the implementer's), revert-proof, held-out tests, mutants, tamper scan, locked-path diff, claim-vs-diff, each acceptance command |
+| `refuter` ×3 lenses (correctness-reproduce · security-secrets · decision-fidelity) | no | kill (majority) | the PASS claim + bundle + card | medium | `REFUTE` | Default `refuted:true` if uncertain; a refutation counts only with an executed command (DS-8/DS-9) |
+| `fixer` | code, in a fresh worktree on the card branch | no | card + verbatim failing evidence + previous fingerprint | high | `FIX` | Must state `root_cause` with an evidence anchor and a `disposition`; must reproduce before editing (S-15) |
+| `pivot` | no | no | two failed attempts' evidence | high | `PIVOT` | ≥2 alternatives, one chosen with reason (D-8) |
+| `re-decomposer` | no (writes sub-cards) | no | card + all attempts | high | `REDECOMPOSE` | Splits once; sub-cards enter the DAG; never a 4th identical fix |
+| `arbiter` | no | decision | both rationales of a re-opened finding | xhigh | `ARBITER` | Writes `accepted_risk` or `decision`; ends oscillation (F-27) |
+| `auditor` | no | veto (critical/high deviations) | diff + card + decision sheet + CORRECTED texts | high | `AUDIT` | Decision fidelity, CORRECTED fidelity, scope allowlist, deps allowlist, blast-radius on deletions (D-30) |
+| `critic` (completeness) | no | veto only if reproduced | diff + card + audit; NOT implementer narrative | high | `CRITIC` | Mechanical lenses first (apicheck, idiom lint, mutation red-proof, traceability), model judges the residue; `hunks_cited minItems 1` for any pass |
+| `tamper judge` | no | verdict | tamper-scan hunks only | medium | `TAMPER` | Runs only when the deterministic scan flags something; fails closed if the hunk is missing (S-6) |
+| `integrator` (serial) | merge commits only, on `integration/<runTag>` | no | bundle + head sha | high | `INTEGRATION` | Aborts on conflict; runs gate on merged tree; returns `cherry_unmerged`, `patch_id_missing` |
+| `conflict resolver` | resolves hunks only, in a fresh worktree on integration | no | conflict hunks + both cards | xhigh | `INTEGRATION` | Then the integrator fast-forwards and re-gates |
+| `integration tester` | no | verdict | integration head sha only | medium | `VERIFY` | Fresh `git clone` of the integration head; full gate + conformance + journeys J1–J6 |
+| `reviewer` ×5 lenses | no | findings (not verdicts) | integration head + KNOWN ids | high | `REVIEW_FINDINGS` | New findings only; anchors `path:line@sha` |
+| `judge` ×3 lenses | no | veto; `satisfied` only through the enum | blocked list, gate ledger, open findings, DoD table | xhigh | `JUDGE` | Cannot say `satisfied` while any card is blocked or any DoD row lacks two signals |
+| `inversion scout` | no | findings | GOAL + DoD + list of forbidden (already used) probes | high | `REVIEW_FINDINGS` | Runs only after dry ≥ 2 (D-23) |
+| `postcondition prober` (bash) | no | booleans | artifact paths | low | `POSTCONDITION` | `test -s`, JSON parse, sentinel grep, anchor count (D-12) |
+| `state prober` (bash) | no | booleans | sha + branch | low | `STATE_PROBE` | `git cat-file -e`, `git rev-parse`; guards cached results (F-43) |
+| `staging evidence reader` (R2) | no | verdict per claim | CI-written `boot.json`/`canary.json`/logs, read-only Hub metadata | medium | `STAGE_CLAIM` | Never calls `*.hf.space`; a missing evidence file is `unverified`, never `pass` |
+| `synthesizer` | no | no | mechanical inputs only: ledger, DAG, gate ledger, `git log --stat`, skip counts | high | `SYNTH` | One row per card with an enum status; emits the checkpoint |
+| `synthesis verifier` | no | rewrites rows that do not match | synthesizer output + `git log` + ledger | high | `SYNTH_VERIFY` | Second signal on the report itself (F-40) |
+
+**Process monitor (S-25/DS-5).** In-run transcript access for a subagent is UNVERIFIED (the script does not know its own run id, so the transcript directory cannot be named in a prompt). Defensive form: the in-run monitor reads `IMPL.commands_run[]` + the deterministic tamper scan; the transcript-reading monitor runs **between runs** on the orchestrator side (which has `<transcriptDir>`) and its findings enter the next run as `args.monitor_findings[]` (data, never instruction to the implementer).
+
+---
+
+## 4. Task model
+
+### 4.1 The card (PR-sized task) — schema in §9 (`CARD`)
+A card is a cold-executable brief (D-1). Required fields: `id` (stable slug, e.g. `c03-thin-slice`), `title`, `area` ∈ {platform, core, backends, api, ui, tools, worker, ci, docs, eval}, `tier` ∈ {trivial, small, medium, large}, `depends_on[]`, `files_allowed[]` (exclusive ownership), `files_read[]`, `deps_allowed[]` (requirements lines it may add), `in_scope[]`, `out_of_scope[]`, `decision_ids[]` (ids from the decision sheet, whose decided VALUE is quoted into the card), `finding_ids[]` with ONLY the CORRECTED text quoted (F-10), `symbols[]` (`file::symbol@base_sha`, F-11), `acceptance[]` = `{id, check (exact command), expect (exit code / regex / JSON path), level ∈ VERIFICATION_LEVEL}`, `must_not_change[]` (Kiro "SHALL CONTINUE TO"), `journeys[]` (J-ids the card must keep green), `heldout_seams[]`, `protected_paths_touched[]` (non-empty only on the gate card), `outward_facing`, `needs_gpu`, `owner_approval_required`, `size_budget` = `{max_changed_lines: 300, max_files: 12}`. A card with an empty `acceptance[]`, an acceptance without a command, or a `level` of `staging-required` presented as locally checkable throws at script start (D-1) — the script validates the card graph in JS before any implementer is launched.
+
+### 4.2 From the plan's 14 steps to cards
+LENS-4 §D is the seed; six area authors produce cards; the card critic and three plan judges check completeness; JS validates shape, DAG acyclicity, file-ownership disjointness within a wave, and sizing. Expected split (the authors decide the final cut; the numbers are the sizing rule applied to LENS-4's own line counts):
+
+| LENS-4 step | Cards | Why split |
+|---|---|---|
+| 1 repo + gate | `c01a-hygiene` (junk deletion, `.gitignore`, `.gitattributes`+`.editorconfig`), `c01b-renormalize` (pure `git add --renormalize` commit, `Renormalize-Only: yes` trailer), `c01c-gate` (ruff/pytest/claim-lint/import-contract/protected list/red-proof fixtures), `c01d-ci` (`.github/workflows/*.yml` with Trusted Publisher, `permissions:` blocks, SHA-pinned actions; unit-tested with `act`-free YAML tests, never executed) | F-21, F-22, F-28, D-9 |
+| 2 lift-and-pin | `c02a-pins` (10 characterisation tests, xfails for known-bads, written by test authors before any move), `c02b-lift` (verbatim moves, `--color-moved` shows moves only) | T-23, C-3 |
+| 3 thin slice | `c03-types-fake-hosted` (core/types, backends/fake, FakeEngine, HostedBackend against a recorded/synthetic fixture with `provenance`), `c03b-app-root` (composition root, `/healthz` with sha, `gr.mount_gradio_app`) | F-20 |
+| 4 StreamParser | `c04-parser-events` | — |
+| 5 registry/agent/session | `c05a-registry` (THE `python_eval` gate), `c05b-agent-loop`, `c05c-session` | sizing |
+| 6 UI factory | `c06-ui` | — |
+| 7 gateway hardening | `c07a-api-validation` (auth, size/role/range, threadpool, 429), `c07b-ledger-preflight-status` | sizing |
+| 8 worker + backend | `c08a-worker-pure` (encode/lease pure modules, estimator rows at measured-or-UNVERIFIED rate), `c08b-worker-app` (import-time load, `@spaces.GPU`, Gradio endpoint; `staging-required`), `c08c-backend-worker` (gradio_client backend + fallback order, default OFF) | F-37 |
+| 9 hardening | `c09a-python-eval` (env allowlist, `PR_SET_DUMPABLE`, rlimits via runner, killpg, fresh cwd, operator flag), `c09b-ssrf` (one opener, resolve-once, redirect validation, ports), `c09c-regex-calc-archive` (`regex` timeout, calculator allowlist, archive caps) | F-31/F-42 split; `model:'fable'` |
+| 10 vision/video | `c10-media-parts` (video default OFF) | — |
+| 11 MCP | `c11-mcp-ask-poll` | — |
+| 12 eval harness | `c12-harness` (`--backend fake --dry-run` default; zero-call test) | F-36 |
+| 13 catalog/personas/README | `c13a-catalog` (`models.yaml` + provenance files), `c13b-personas` (no history access; absence test protected), `c13c-readme-render` | F-17, F-24, F-25 |
+| 14 promotion | `c14-promote-scripts` (`promote.py`, rollback, health job — written and unit-tested against fakes, never run) | F-35 |
+
+≈ 24 cards. Fix cards created by review rounds are `rf<round>-<finding-id>` with `depends_on: []` and `files_allowed` = the finding's file (integration serialises them anyway).
+
+### 4.3 DAG, waves and sizing rules
+- `topoOrder()` (deps first, ties by id) and `waves(ordered, WAVE)` are pure JS (§13). A wave admits a card only if all its deps are merged AND its `files_allowed` is disjoint from every other card in the wave; a clash is not "resolved at integration" — the later card (by id) waits for the next wave (F-14, D/AP-14).
+- `WAVE = args.fleet <= 2 ? 2 : Math.min(args.fleet, 6)`; at cap 2 the spine (c01→c02→c03→c04→c05) is serial anyway; at cap 14 the fan-out after c05 (c06..c14) runs in ~2 waves. Enqueue order = critical path first (T-8).
+- Oversize detection is deterministic: the verifier reports `changed_lines`/`files_changed` from `git diff --numstat`; > 300 lines or > 12 files → `blocked:'oversize'` and a re-decomposer splits the card (F-13).
+
+### 4.4 Worktree → branch → bundle/SHA lifecycle
+1. Test author: `git -C $BUILD_REPO worktree add $WT_ROOT/t-<id>-<nonce> -b tests/<id>-<nonce> <base>`; commits tests; `git bundle create $RUN_DIR/bundles/tests-<id>.bundle <base>..tests/<id>-<nonce>`; returns branch/base/head/bundle/`repo_toplevel`.
+2. Held-out author: same, branch `heldout/<id>-<nonce>`, bundle `$RUN_DIR/heldout/<id>.bundle` — the path is never placed in an implementer prompt.
+3. Implementer: worktree on `card/<id>-<nonce>` from `<base>` with the visible tests branch merged in first (`git merge --no-ff tests/<id>-<nonce>`); commits per step; `gate.sh`; bundle `$RUN_DIR/bundles/<id>.bundle <base>..HEAD`.
+4. Verifier/refuters/auditor/critic: read-only worktrees created from the bundle (`git -C $BUILD_REPO fetch <bundle> card/<id>-<nonce>` then `worktree add … <head_sha>`), removed by themselves in a `finally`.
+5. Integrator: merges `card/<id>-<nonce>` into `integration/<runTag>` in `$BUILD_REPO` (the ONE writer of that branch); then `git -C $BUILD_REPO worktree remove` of the card's worktrees ONLY after `cherry_unmerged == []` (F-33); checkpoint bundle `$RUN_DIR/bundles/checkpoint-<n>.bundle <base>..integration/<runTag>` (size asserted ≤ 20 MB so the grill-folder sync stays sane; larger → `blocked:'bundle-too-large'` and the runbook tells the owner to push from the checkout).
+6. Branch and worktree names carry `args.run_nonce`; a P0 cleanup step bundles then prunes stale worktrees of a previous run.
+
+### 4.5 Integration order, conflict resolution, integration test
+- Strictly topological order, ties by id, serial, single writer (T-10/T-11). `git merge --no-ff <head_sha>`; on ANY conflict `git merge --abort` and return `status:'conflict'` with the hunks; the conflict resolver (fresh worktree on the integration head) resolves only those hunks so that BOTH cards' acceptance still holds, runs `gate.sh`, bundles; the integrator fast-forwards and re-gates.
+- After every merge: `gate.sh` on the merged tree (F-34) + deterministic `tools/no_lost_hunks.sh` (`git cherry` + `git patch-id` set difference) → `cherry_unmerged` and `patch_id_missing` must be empty (F-32). Red merged tree → one fix agent scoped to `integration` with both cards; unresolved after 2 rounds → `git revert -m 1` of the later card, card `blocked:'reverted-at-integration'`.
+- After every wave: the integration tester clones the integration head into a fresh directory (`git clone --branch integration/<runTag> $BUILD_REPO $TMP/clone-<n>`), runs the full gate, the conformance suite parametrised over `{fake, recorded-hosted(skipped: needs owner recording), recorded-worker(skipped)}` and journeys J1–J6; its ledger digest is the wave's verdict (T-12). A red wave stops further waves; remaining cards are `blocked:'gate-red-upstream'`.
+
+### 4.6 Held-out compositional seams (authored from the spec, hidden from implementers)
+H1 tool loop × streaming × Continue (turn 2 contains turn 1's tool results; `finish_reason:'length'` → Continue resumes at token level); H2 `/v1` × identity (`x-ip-token` bound inside the generator body; 429 on the non-blocking semaphore); H3 MCP `ask → poll → status → preflight` with `chat` hidden; H4 `python_eval` × operator flag × every surface (UI checkbox alone cannot enable it; unreachable over `/v1` and MCP); H5 catalog admission × `models.yaml` schema × harness zero-call; H6 session isolation × TTL sweep × no rmtree on unload; H7 error taxonomy (quota/illegal-duration/abort) → titled notice in UI, `{"error":…}` event on `/v1`, partial text kept. Each is applied by the verifier and by the integration tester exactly like SWE-bench applies gold tests (checkout of the oracle paths from the held-out bundle before `pytest`).
+
 <!-- CONTINUE -->
