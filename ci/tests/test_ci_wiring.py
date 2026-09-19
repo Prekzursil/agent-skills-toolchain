@@ -33,7 +33,7 @@ README = REPO_ROOT / "README.md"
 PROJECT_SETTINGS = REPO_ROOT / ".claude" / "settings.json"
 MARKETPLACE_ADD_MARKER = (
     "claude plugin marketplace add Prekzursil/agent-skills-toolchain "
-    "--sparse .claude-plugin .agents/skills skills skills-claude-only"
+    "--sparse .claude-plugin .agents/skills skills"
 )
 PLUGIN_INSTALL_MARKER = (
     "claude plugin install agent-skills-toolchain@agent-skills-toolchain"

@@ -44,7 +44,7 @@ import sys
 import io
 
 CANONICAL_ROOT = ".agents/skills"
-PROJECTION_ROOTS = ("skills", "skills-claude-only")
+PROJECTION_ROOTS = ("skills",)
 KNOWN_PRESENT_SKILL = "010-editor"
 MARKETPLACE_PATH = pathlib.PurePosixPath(".claude-plugin/marketplace.json")
 

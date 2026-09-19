@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 CANONICAL_ROOT = Path(".agents/skills")
-PROJECTION_ROOTS = (Path("skills"), Path("skills-claude-only"))
+PROJECTION_ROOTS = (Path("skills"),)
 DEFAULT_ALLOWLIST = Path("ci/codex-skill-allowlist.txt")
 DEFAULT_RUNTIME_ROOT = Path("ci/skills-allowlist")
 DEFAULT_MAX_TRIGGER_CHARS = 8_000

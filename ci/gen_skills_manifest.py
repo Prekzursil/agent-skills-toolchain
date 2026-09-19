@@ -44,7 +44,7 @@ The root is ``skills/`` -- the document lives there and that is the inventory ru
 audit used (``scripts/sync-skills.ps1``: a directory counts when it holds a ``SKILL.md``).
 Measured on the same commit: 12 names exist under the canonical ``.agents/skills`` root
 and not under ``skills/`` (``claim-verify-gate``, ``microsoft-foundry``, ``qdx-rush`` and
-the nine superseded ``codex-*`` per-mode wrappers), and ``skills-claude-only/`` holds 35
+the nine superseded ``codex-*`` per-mode wrappers), and
 more. Those remain outside this document by design; the published union of all three roots
 is already gated by ``gen_skill_index.py``. Settling experiment for widening it: change
 this root list and re-run both gates -- the open question is editorial (does a document in

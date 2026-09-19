@@ -20,7 +20,6 @@ SCHEMA = "skill-surface-reconcile/v1"
 
 REPO_CANONICAL = "repo_canonical"
 REPO_PROJECTION = "repo_projection"
-REPO_CLAUDE_ONLY = "repo_claude_only"
 LIVE_VAULT = "live_vault"
 LIVE_DAILY = "live_daily"
 ROOT_ARTIFACT = "<root-artifacts>"
@@ -28,11 +27,10 @@ ROOT_ARTIFACT = "<root-artifacts>"
 SURFACE_ORDER = (
     REPO_CANONICAL,
     REPO_PROJECTION,
-    REPO_CLAUDE_ONLY,
     LIVE_VAULT,
     LIVE_DAILY,
 )
-REPO_SURFACES = frozenset({REPO_CANONICAL, REPO_PROJECTION, REPO_CLAUDE_ONLY})
+REPO_SURFACES = frozenset({REPO_CANONICAL, REPO_PROJECTION})
 LIVE_SURFACES = frozenset({LIVE_VAULT, LIVE_DAILY})
 
 DEPLOY_EXCLUDE_NAMES = frozenset(
@@ -339,8 +337,6 @@ def _classify(inventories: Inventories) -> ClassifyResult:
             reasons.append("projection-without-authority")
         if REPO_CANONICAL in surface_names and REPO_PROJECTION not in surface_names:
             reasons.append("canonical-not-projected")
-        if REPO_CLAUDE_ONLY in surface_names and REPO_CANONICAL not in surface_names:
-            reasons.append("claude-only-without-authority")
         if case_mismatch:
             reasons.append("case-mismatch")
         if reparse_paths:

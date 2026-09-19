@@ -100,15 +100,11 @@ def test_catalog_unions_projection_only_and_prefers_canonical(tmp_path: Path) ->
     _write_skill(tmp_path / ".agents" / "skills", "shared", "canonical")
     _write_skill(tmp_path / "skills", "shared", "projection")
     _write_skill(tmp_path / "skills", "projection-only", "retained library")
-    _write_skill(
-        tmp_path / "skills-claude-only", "claude-only", "retained provider skill"
-    )
 
     catalog = budget.build_catalog(tmp_path)
 
     assert catalog["shared"] == canonical
     assert "projection-only" in catalog
-    assert "claude-only" in catalog
 
 
 def test_canonical_trigger_growth_cannot_hide_behind_stale_runtime(
