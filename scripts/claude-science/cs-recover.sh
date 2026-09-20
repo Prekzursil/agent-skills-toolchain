@@ -47,6 +47,13 @@ echo "=== 4) wait for port $CS_PORT to free, then clean start (pinned) ==="
 for i in 1 2 3 4 5 6; do
   if (exec 3<>/dev/tcp/"$CS_HOST"/"$CS_PORT") 2>/dev/null; then exec 3>&- 2>/dev/null; echo "port still busy, waiting ($i)"; sleep 1; else break; fi
 done
+# Model bridge (owner-directed 2026-09-20): same optional env injection as
+# cs-start.sh; written by cs-model, absent = native Anthropic.
+if [ -f "$HOME/.claude-science/daemon-env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.claude-science/daemon-env"
+  echo "[cs-recover] model bridge active: ${CS_MODEL_BRIDGE:-unspecified}"
+fi
 read -ra cs_extra <<<"$(cat "$HOME/.cs-serve-extra" 2>/dev/null || true)"
 claude-science serve --no-browser --detached --no-auto-update "${cs_extra[@]}" 2>&1 | tail -3
 sleep 6

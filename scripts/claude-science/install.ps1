@@ -27,7 +27,7 @@ foreach ($f in 'cs.ps1', 'cs.cmd', 'cs-lib.ps1', 'cs.conf', 'cs-doctor.ps1', 'cs
 }
 
 # --- 2. WSL scripts -> ~/.local/bin (ALL of them; CR-stripped, extension-less, +x) ---
-foreach ($f in 'cs-start.sh', 'cs-recover.sh', 'cs-restore.sh', 'cs-backup.sh', 'cs-maintain.sh', 'cs-supervisor.sh', 'cs-install.sh', 'cs-serve-prep.sh', 'cs-finish.sh') {
+foreach ($f in 'cs-start.sh', 'cs-recover.sh', 'cs-restore.sh', 'cs-backup.sh', 'cs-maintain.sh', 'cs-supervisor.sh', 'cs-install.sh', 'cs-serve-prep.sh', 'cs-finish.sh', 'cs-model.sh', 'cs_glm_router.py') {
   $src = Join-Path $here $f
   if (Test-Path $src) {
     $name = [IO.Path]::GetFileNameWithoutExtension($f)
