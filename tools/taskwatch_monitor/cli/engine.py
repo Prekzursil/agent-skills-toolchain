@@ -15,6 +15,8 @@ sample can't be trusted) while keeping the last frontier.
 
 from __future__ import annotations
 
+import re
+import sys
 import time
 from collections.abc import Mapping, Sequence
 
@@ -68,6 +70,29 @@ def _stall_after_for(spec: TaskSpec, default: float) -> float:
     return float(value)
 
 
+def _terminal_pattern_kwargs(spec: TaskSpec, probe: Probe) -> dict[str, str]:
+    """Per-task ``config.terminal_pattern`` → generic-probe override kwarg.
+
+    Only the generic probe accepts the override; other parsers get ``{}``.
+    An unparseable pattern is dropped loudly (stderr note) rather than
+    crashing the watch loop for every registered task.
+    """
+    if not isinstance(probe, GenericLogfileProbe):
+        return {}
+    pattern = spec.config.get("terminal_pattern")
+    if not isinstance(pattern, str) or not pattern:
+        return {}
+    try:
+        re.compile(pattern)
+    except re.error as exc:
+        print(
+            f"taskwatch: invalid terminal_pattern for '{spec.id}' ({exc}); ignoring",
+            file=sys.stderr,
+        )
+        return {}
+    return {"terminal_pattern": pattern}
+
+
 def poll_spec(
     spec: TaskSpec,
     *,
@@ -81,7 +106,8 @@ def poll_spec(
         spec, fs=fs, http_get=http_get, pid_alive=pid_alive, clock=clock
     )
     poll = adapter.poll()
-    reading = resolve_probe(spec.parser).parse(poll.lines)
+    probe = resolve_probe(spec.parser)
+    reading = probe.parse(poll.lines, **_terminal_pattern_kwargs(spec, probe))
     return poll, reading
 
 

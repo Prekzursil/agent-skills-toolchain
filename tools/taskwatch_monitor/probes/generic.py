@@ -23,7 +23,20 @@ class GenericLogfileProbe:
 
     name = "generic-logfile"
 
-    def parse(self, lines: list[str]) -> ProbeReading:
+    def parse(self, lines: list[str], *, terminal_pattern: str | None = None) -> ProbeReading:
+        """Lift progress + terminal state from ``lines``.
+
+        ``terminal_pattern`` pins the terminal flag to a per-task regex:
+        when set, ONLY a matching line marks the task terminal. This is the
+        escape hatch for logs whose ordinary churn contains the builtin
+        terminal vocabulary (conda ``done`` spinners, R's per-package
+        ``DONE (pkg)`` lines) — the builtin regex would flag them terminal
+        forever while the underlying install still runs.
+        """
+        override = None
+        if terminal_pattern:
+            override = re.compile(terminal_pattern)
+
         ratios: list[tuple[int, int]] = []
         percents: list[float] = []
         gpu = ""
@@ -44,7 +57,10 @@ class GenericLogfileProbe:
             if heartbeat is not None:
                 gpu = heartbeat
 
-            if _TERMINAL_RE.search(line):
+            if override is not None:
+                if override.search(line):
+                    terminal = True
+            elif _TERMINAL_RE.search(line):
                 terminal = True
 
         frontier = frontier_of(ratios)
