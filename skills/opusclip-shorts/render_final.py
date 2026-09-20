@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """Final render: OpusClip-matched style (SINGLE-LAYER timed color-flip karaoke),
 corrected Romanian captions, face-tracked 9:16, #N naming, Romanian titles."""
-import json, os, subprocess, sys, time
+import json, os, shutil, subprocess, sys, time
+
+FFMPEG = shutil.which("ffmpeg") or r"C:\Users\Prekzursil\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe"
+FFPROBE = shutil.which("ffprobe") or r"C:\Users\Prekzursil\AppData\Local\Microsoft\WinGet\Links\ffprobe.exe"
 import numpy as np
 import cv2
 
@@ -70,6 +73,12 @@ def build_ass(cid, w0, w1, t0):
                 cues.append(cur); cur = []
         cur.append(x)
     if cur: cues.append(cur)
+    # timing sanitation: monotonic, no zero/negative durations, min 90ms per word
+    for j in range(len(words)):
+        w = words[j]
+        w["t"] = max(w["t"], words[j-1]["e"] if j else 0.0)
+        if w["e"] - w["t"] < 0.09:
+            w["e"] = w["t"] + 0.09
     lines = [HDR]
     for i, cue in enumerate(cues):
         start = max(0.0, cue[0]["t"] - 0.12)
@@ -92,32 +101,64 @@ def build_ass(cid, w0, w1, t0):
     open(p, "w", encoding="utf-8-sig").write("".join(lines))
     return p
 
+class OneEuro:
+    """1-euro filter (Casiez et al.): adaptive low-pass, jitter-free without lag."""
+    def __init__(self, freq=25.0, mincutoff=0.8, beta=0.02, dcutoff=1.0):
+        self.freq, self.mincutoff, self.beta, self.dcutoff = freq, mincutoff, beta, dcutoff
+        self.x_prev = None; self.dx_prev = 0.0
+    @staticmethod
+    def _alpha(cutoff, dt):
+        tau = 1.0 / (2 * 3.141592653589793 * cutoff)
+        return 1.0 / (1.0 + tau / dt)
+    def __call__(self, x):
+        import math
+        if self.x_prev is None:
+            self.x_prev = x; return x
+        dt = 1.0 / self.freq
+        dx = (x - self.x_prev) / dt
+        edx = self.dx_prev + self._alpha(self.dcutoff, dt) * (dx - self.dx_prev)
+        self.dx_prev = edx
+        cutoff = self.mincutoff + self.beta * abs(edx)
+        self.x_prev = self.x_prev + self._alpha(cutoff, dt) * (x - self.x_prev)
+        return self.x_prev
+
 def track_crop(cid, start, dur, seed_pct):
+    """YuNet per-frame detection -> One-Euro smoothing -> hold-then-recenter camera.
+    (OpusClip behavior: static crop, discrete re-centers; One-Euro removes jitter.)
+    Haar cascades kept only as fallback if YuNet model file is missing."""
+    import cv2, numpy as np
+    YUNET = "shorts-work/models/yunet.onnx"
     cap = cv2.VideoCapture(SRC)
     cap.set(cv2.CAP_PROP_POS_MSEC, start * 1000.0)
     n_frames = int(dur * 25)
+    detector = None
+    if os.path.exists(YUNET):
+        detector = cv2.FaceDetectorYN.create(YUNET, "", (640, 360), 0.6, 0.3, 5000)
+        detector.setScoreThreshold(0.55)
     frontal = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    profile = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_profileface.xml")
     det_t, det_x = [], []
     prev_cx = seed_pct * 1280
     fi = 0
     while fi < n_frames:
         ok, frame = cap.read()
         if not ok: break
-        if fi % 12 == 0:
+        if fi % 3 == 0:                      # YuNet is ms-level: every 3rd frame is plenty
             small = cv2.resize(frame, (640, 360))
-            gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
             best = None
-            for flip in (False, True):
-                g = cv2.flip(gray, 1) if flip else gray
-                for cascade in (frontal, profile):
-                    for (x, y, w2, h2) in cascade.detectMultiScale(g, 1.12, 5, minSize=(24, 24)):
-                        cx = (x + w2 / 2) * 2
-                        if flip: cx = 1280 - cx
-                        score = w2 * h2 - abs(cx - prev_cx) * 1.2
+            if detector is not None:
+                detector.setInputSize((640, 360))
+                _, faces = detector.detect(small)
+                if faces is not None:
+                    for f in faces:
+                        cx = (f[0] + f[2] / 2) * 2
+                        score = f[2] * f[3] - abs(cx - prev_cx) * 1.2
                         if best is None or score > best[0]: best = (score, cx)
-                    if best: break
-                if best: break
+            if best is None:                 # Haar fallback (rare)
+                gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+                for (x, y, w2, h2) in frontal.detectMultiScale(gray, 1.12, 5, minSize=(24, 24)):
+                    cx = (x + w2 / 2) * 2
+                    score = w2 * h2 - abs(cx - prev_cx) * 1.2
+                    if best is None or score > best[0]: best = (score, cx)
             if best:
                 det_t.append(fi / 25.0); det_x.append(best[1]); prev_cx = best[1]
         fi += 1
@@ -128,11 +169,13 @@ def track_crop(cid, start, dur, seed_pct):
         det_t = np.array(det_t); det_x = np.array(det_x)
         sm = np.array([np.median(det_x[np.abs(det_t - tt) <= 2.0]) for tt in det_t])
         tgt = np.interp(np.arange(n_frames) / 25.0, det_t, sm)
-        xs = np.zeros(n_frames); cur = tgt[0]
+        euro = OneEuro(freq=25.0, mincutoff=0.6, beta=0.015)
+        filt = np.array([euro(v) for v in tgt])
+        # hold-then-recenter: deadband 70px; beyond it, glide at 0.05/frame
+        xs = np.zeros(n_frames); cur = filt[0]
         for i in range(n_frames):
-            d = tgt[i] - cur
-            if abs(d) > 60: cur += d * 0.06
-            elif abs(d) >= 25: cur += d * 0.02
+            d = filt[i] - cur
+            if abs(d) > 70: cur += d * 0.05
             xs[i] = cur
     return np.clip(xs, 0, 1280 - 405)
 
@@ -144,13 +187,13 @@ def render(fc):
     xs = track_crop(cid, start, dur, SEED[cid])
     print(f"[{fc['num']}] {fc['file']}: {start:.1f}+{dur:.1f}s crop[{xs.min():.0f}..{xs.max():.0f}] mean {xs.mean():.0f}", flush=True)
     p1 = subprocess.Popen(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error",
+        [FFMPEG, "-hide_banner", "-loglevel", "error",
          "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", SRC,
          "-map", "0:v", "-f", "rawvideo", "-pix_fmt", "bgr24", "-"],
         stdout=subprocess.PIPE)
     out = os.path.join(OUTDIR, fc["file"] + ".mp4")
     p2 = subprocess.Popen(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+        [FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
          "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", "1080x1920", "-r", "25", "-i", "-",
          "-ss", f"{start:.3f}", "-t", f"{dur:.3f}", "-i", SRC,
          "-map", "0:v", "-map", "1:a",
@@ -180,10 +223,10 @@ def render(fc):
         p2.stdin.write(big.tobytes())
         fi += 1
     p1.stdout.close(); p2.stdin.close(); p2.wait(); p1.wait()
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+    subprocess.run([FFMPEG, "-hide_banner", "-loglevel", "error", "-y",
                     "-ss", f"{dur*0.45:.2f}", "-i", out, "-frames:v", "1", "-q:v", "3",
                     os.path.join(OUTDIR, fc["file"] + ".jpg")])
-    pr = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration,size",
+    pr = subprocess.run([FFPROBE, "-v", "error", "-show_entries", "format=duration,size",
                          "-of", "default=nw=1", out], capture_output=True, text=True)
     print(f"[{fc['num']}] DONE\n{pr.stdout.strip()}", flush=True)
 

@@ -46,7 +46,24 @@ UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly
 - Cues: split at gaps >0.65s / >3.2s / >=4 words / >26 chars.
 - Write ASS as UTF-8 BOM (`utf-8-sig`).
 
-## 7. Face-tracked 9:16 render
+## 7. Camera + caption GOAT upgrades (v2, 2026-09-19, evidence-based)
+- **Camera**: YuNet (cv2.FaceDetectorYN, opencv_zoo onnx ~230KB, every 3rd frame) — Haar only as
+  fallback. Smooth with a **1-euro filter** (freq=25, mincutoff=0.6, beta=0.015; Casiez et al.).
+  Behavior: **hold-then-recenter** (deadband 70px, glide 0.05/frame) — measured OpusClip behavior:
+  their crops are STATIC per segment with discrete re-centers (phase-correlation: dx~0 on two
+  shorts, jump offsets on others); continuous panning feels worse than hold+recenter.
+- **Caption pop (SubMagic-style)**: two-stage — 100%->112% in 40ms, settle to 104% by +200ms,
+  back to 100% at word end (+120ms tail). Single layer, color-only + scale on current word.
+- **Timing sanitation + micro-lead**: enforce monotonic words, min duration 90ms, and start each
+  highlight 25ms EARLY — karaoke reads right when the highlight leads the audio, never lags.
+- **Forced alignment: TESTED AND REJECTED for this content class** — torchaudio MMS_FA (1.18GB,
+  uroman pipeline) on hall-reverberant accented Romanian scored mean 0.60 with low-confidence
+  words drifting >600ms; vs fresh-ASR ground truth: aligned median 107ms/p95 246ms WORSE than
+  raw cloud timestamps (median 20ms/p95 222ms). Cloud Seed-ASR word timestamps already agree
+  cross-run at median 10-20ms. Use alignment only when ASR lacks word timestamps at all.
+- Measured baseline (v1 renders): median 10ms / p95 40ms word-start deviation (5 of 6 clips).
+
+## 7b. Face-tracked 9:16 render (superseded by v2 above)
 1. Track: cv2 read clip at start; Haar frontal+profile (with flipped pass for turned heads) every 12th frame at 640×360; score = area − 1.2·|dist to prev|; median-smooth ±2s; interp to per-frame; ease (deadband <25px, follow 0.06/0.02); clamp to [0, 1280−405]. Seed from one sampled frame per clip.
 2. Render per clip (two chained ffmpeg processes, python in the middle):
    - p1: `ffmpeg -ss S -t D -i SRC -map 0:v -f rawvideo -pix_fmt bgr24 -` (stdout)
