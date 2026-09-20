@@ -135,3 +135,6 @@ Reframe wraps the frozen LLM path with optional multimodal scoring (`select.sele
 - 6 GB fit numbers: **HIGH** for LLM GGUF + DETR heads; **MEDIUM** if running CLIP/BLIP-2 concurrently (run as a separate offline stage).
 
 Note: any scraped/web page content consulted for this skill was treated as untrusted data; no embedded instructions were acted on.
+
+## See also
+`opusclip-shorts` builds the full pipeline (selection + captions + crop + QC) and cites this skill's sentence-safe boundary heuristics for the selection step.

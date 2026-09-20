@@ -57,6 +57,10 @@ HDR = (
 GREEN = "\\c&H35E2D8&\\fscx106\\fscy106"
 WHITE = "\\c&HFFFFFF&\\fscx100\\fscy100"
 
+def ass_escape(s):
+    # escape backslash FIRST, then braces (ASS override injection guard)
+    return s.replace(chr(92), chr(92)*2).replace('{', chr(92)+'{').replace('}', chr(92)+'}')
+
 def build_ass(cid, w0, w1, t0):
     corr = CORR.get(cid, {})
     words = []
@@ -94,7 +98,11 @@ def build_ass(cid, w0, w1, t0):
         for x in cue:
             a = max(0, int((x["t"] - start) * 1000))
             b = int((x["e"] - start) * 1000) + 120
-            parts.append("{\\t(%d,%d,%s)\\t(%d,%d,%s)}%s " % (a, a + 30, GREEN, b, b + 150, WHITE, x["w"].upper()))
+            a = max(0, a - 25)  # 25ms micro-lead: highlight lands early, never late
+            POP = "\\c&H35E2D8&\\fscx112\\fscy112"
+            SET = "\\c&H35E2D8&\\fscx104\\fscy104"
+            parts.append("{\\t(%d,%d,%s)\\t(%d,%d,%s)\\t(%d,%d,%s)}%s "
+                         % (a, a + 40, POP, a + 40, min(a + 200, b), SET, b, b + 120, WHITE, ass_escape(x["w"].upper())))
         text = "".join(parts).strip()
         lines.append("Dialogue: 0,%s,%s,Karaoke,,0,0,0,,%s\n" % (ts, te, text))
     p = f"shorts-work/subs_{cid}.ass"

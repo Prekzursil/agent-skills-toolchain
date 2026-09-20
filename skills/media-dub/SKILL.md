@@ -130,3 +130,6 @@ NOT in the set** — Parakeet can ASR it, but Chatterbox cannot yet synthesize i
 - Muxing an already-finished dub/VO track -> `audio-extract-mix`.
 - Transcription / subtitles only -> `transcribe` / `caption-burn`.
 - Trimming dead air / silence -> `silence-trim`.
+
+## See also
+For re-voicing SHORTS produced by `opusclip-shorts` (or long talks before clipping), chain: `opusclip-shorts` (clip+captions) -> this skill (dub) -> re-burn captions.

@@ -359,3 +359,6 @@ Verification, not vibes: round-trip the exported file
 (`subtitles.load("out/ro.srt")`) and assert the cue count + first/last
 timestamps match `ro_track`; for RTL targets (`ar`/`he`) confirm via a burn-in
 render (libass/fribidi) rather than trusting raw-text order.
+
+## See also
+To translate/localize shorts produced by `opusclip-shorts`, feed it their ASS/SRT exports; `opusclip-shorts` is the upstream producer.

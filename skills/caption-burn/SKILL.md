@@ -150,3 +150,6 @@ out = engine.render("clip.mkv", cues, "clip-sub.mkv", burn=False,
 #       -c:v copy -c:a copy -c:s ass -progress pipe:1 -nostats clip-sub.mkv
 ```
 (For MP4 this would emit `-c:s mov_text` and the karaoke styling would be lost — burn for MP4.)
+
+## See also
+`opusclip-shorts` owns the END-TO-END long-video -> karaoke shorts pipeline (selection, tracking, timing, QC) and consumes these burn rules when rendering standalone; its karaoke engine is the single-layer timed color-flip in this repo's own `render_final.py`. Cross-checked 2026-09-20: both techniques are single-layer/layout-safe.

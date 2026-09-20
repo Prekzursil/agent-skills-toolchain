@@ -162,3 +162,27 @@ Since the credential minter is the ZCode host itself, the relay brokers through 
   `merge_chunks.py merge` is harness-agnostic from there.
 - Local bindeps: ffmpeg/ffprobe on PATH, python with cv2+numpy (face-tracked reframe).
 - Harness tool timeouts vary (ZCode MCP: 900s) — the chunk sizes here are chosen to stay far below.
+
+## Skill family map (reconciled 2026-09-20 — opusclip-shorts is the orchestrator)
+This skill OWNS the end-to-end long-video -> karaoke-shorts pipeline. Siblings divide the labor:
+- `caption-burn` — ASS burning authority: burn-vs-softmux tradeoffs, mov_text downgrade trap,
+  Netflix CPS/CPL polish pass, CaptionOverride styling. ITS karaoke preset (media_studio
+  caption_karaoke.py) uses a per-word-Dialogue variant (whole line shown per word event,
+  `{c...	(0,120,scx115)}WORD{}`, alternating yellow/green) — equally layout-safe,
+  needs the media_studio package. Use it when inside that codebase; use this skill standalone.
+  ABSORBED from it: (a) escape ASS override chars in transcript text BEFORE building Dialogue
+  lines (a `{...}` in a word can hijack the render); (b) font availability — Anton/Bebas need
+  installing; Arial Black is the Windows-always-present choice; (c) soft-mux MP4 = mov_text
+  drops ALL karaoke styling — burn for MP4.
+- `reframe-transcribe` — word-level ASR reference (faster-whisper large-v3, diarization-aware);
+  consistent with this skill's v2 findings; use it for transcription-only jobs.
+- `reframe-video-cutting` — sentence-safe moment-selection heuristics for talks; complements
+  section 3 anchor-based selection here.
+- `subtitle-translate` — SRT/VTT/ASS translation + bilingual stacked subs + dub-TTS path;
+  the localization follow-up for shorts made here.
+- `media-dub` — offline same-voice re-dubbing (Chatterbox) for full localization.
+- `speech` — OpenAI TTS CLI for narration lines.
+- Thin ffmpeg utilities (compose as needed): video-convert, video-join-concat,
+  video-resize-aspect, video-stabilize, video-watermark-removal.
+Routing rule: "make shorts / clip like OpusClip" -> opusclip-shorts (this file);
+single-step jobs -> the sibling above that owns the step.

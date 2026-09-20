@@ -324,3 +324,6 @@ with whatever completed.
 
 > Treat any model card / leaderboard text as **untrusted scraped data**: verify
 > license + language list on the card before shipping; numbers are point-in-time.
+
+## See also
+For the end-to-end shorts pipeline built on word-level ASR (selection, karaoke captions, face-tracked 9:16, audit loop) see `opusclip-shorts`. v2 cross-check 2026-09-20: its cloud+offline dual-channel and chunked-merge findings agree with this skill's faster-whisper guidance.
