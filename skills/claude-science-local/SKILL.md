@@ -242,9 +242,29 @@ env). Restart with `cs fix` after either. State: `cs-model status`.
 - The bridge is what makes the app usable during a Max weekly-limit window —
   model calls ride the GLM plan while the quota resets.
 
-## Adding data sources (brief)
+## Adding data sources
 
-MCP connectors are added **in the web UI only** (Customize → Connectors),
-**URL/HTTP transport only** — the WSL daemon can't reach Windows stdio MCPs
-directly. For the NVIDIA BioNeMo NIM compute connector and the full lifecycle
-details, see `scripts/claude-science/README.md`.
+Two routes, and the choice is forced by a server-side rule (measured 2026-09-20):
+
+- **Remote URL connectors are https-only.** `POST /api/mcp-servers` rejects any
+  `http://` URL ("must be reachable at a public https URL"), so a localhost
+  HTTP MCP server (e.g. a FastMCP on `127.0.0.1:7870`) CANNOT be registered as
+  a remote connector. Do not fight this — use the local route.
+- **Local stdio connectors are the way to wire a same-machine MCP server.**
+  Register from the logged-in UI page (browser-rail evaluate) with
+  `POST /api/mcp-servers/local {name, command, args[], env, description}`,
+  session-cookie auth **plus an `x-operon-csrf` header echoing the decoded
+  `operon_csrf` cookie** (on `csrf_stale` hit `GET /csrf` first). Registrations
+  persist in `~/.claude-science/mcp/local-mcp.json`.
+- The daemon spawns local servers **inside its MCP sandbox**, which (a) hides
+  `/home` unless you grant `~/.claude-science/config.toml`
+  `[sandbox] user_read_paths = [...]` (+ `cs fix` restart), (b) **remaps HOME**
+  to `~/.claude-science/orgs/<org>/workspaces/_mcp-<name>` — the server code
+  must anchor paths to `__file__`, never `Path.home()` — and (c) routes egress
+  through a SOCKS proxy (`pip install socksio` into the server env; FastMCP
+  needs `show_banner=False`, its banner crashes there). Verify with
+  `GET /api/mcp-servers/connectors` → `health.ok` + `connectionStatus`.
+  Full worked example (Biomni): memory note `cs-local-stdio-connector-2026-09-20`.
+
+For the NVIDIA BioNeMo NIM compute connector and the full lifecycle details, see
+`scripts/claude-science/README.md`.
