@@ -153,6 +153,26 @@ class TestRecordedFalsePositives:
         ctx = Context(tool_name="", file_path="", source="assistant_message")
         assert not _judge(msg, "TODO", ctx, "marker")
 
+    def test_fire10_stub_negated_absence_message_text_source(self):
+        """STUB-FP-negated-absence: source=message_text must be prose, not code.
+
+        Recorded live when the stub-ledger scanned an assistant final message that
+        asserted the ABSENCE of TODO/FIXME. The corpus labelled the source
+        ``message_text``; only ``assistant_message`` was treated as prose, so the
+        stub rule fell through to pending-work-in-code and fired.
+        """
+        msg = (
+            "zero TODO/FIXME/NotImplementedError exist in any code file "
+            "across this session's artifact roots"
+        )
+        ctx = Context(
+            tool_name="",
+            file_path="<assistant final message>",
+            source="message_text",
+        )
+        assert not _judge(msg, "TODO", ctx, "stub")
+        assert not _judge(msg, "FIXME", ctx, "stub")
+
 
 # --------------------------------------------------------------------------
 # TRUE POSITIVES — known-present controls. Every one MUST still be a USE.
@@ -255,6 +275,38 @@ class TestResultKind:
         """The discriminating control: key-vs-value is the ONLY difference."""
         raw = '{"state": {"result_state": "TIMEDOUT"}}'
         assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
+
+    def test_snake_identifier_prose_mention_is_silent(self):
+        """Unquoted ``user_cancelled_or_timedout`` in docs embeds timedout — MENTION."""
+        prose = "examples include user_cancelled_or_timedout and related fields"
+        assert not _judge(prose, "timedout", self.RESULT_CTX, "result")
+
+    def test_hyphenated_compound_embed_is_mention(self):
+        """timeout inside timeout-needle compound is identifier mention."""
+        prose = "blocked_on cites result-needle / timeout-needle compounds"
+        assert not _judge(prose, "timeout", self.RESULT_CTX, "result")
+
+    def test_etimedout_value_still_fires(self):
+        """ETIMEDOUT has no underscore; must not be silenced by snake-embed rule."""
+        raw = '{"error": "ETIMEDOUT"}'
+        # Needle matches the casefold of the embedded substring inside ETIMEDOUT.
+        assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
+
+    def test_unit_sentinel_failed_vocabulary_is_mention(self):
+        """Receipt sentinel FAILED:TST-0341 is schema vocabulary, not a tool failure."""
+        raw = '{"sentinel": "FAILED:TST-0341 blocked-on-independent-review"}'
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
+
+    def test_unit_template_sentinel_failed_unit_is_mention(self):
+        """FAILED:UNIT schema template (no digits) is vocabulary, not a report."""
+        raw = "docs name FAILED:UNIT sentinel vocabulary"
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
+
+    def test_simple_quoted_needle_is_mention(self):
+        """ASCII-quoted needle in review notes is a token mention."""
+        raw = "hits on 'timedout' (user_cancelled_or_timedout example) and 'FAILED'"
+        assert not _judge(raw, "timedout", self.RESULT_CTX, "result")
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
 
     def test_multiword_phrase_is_never_read_as_a_key(self):
         raw = '{"detail": "timed out waiting for the server"}'

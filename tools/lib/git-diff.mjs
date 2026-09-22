@@ -9,6 +9,13 @@
 // Carried over with ONE change, and no behaviour change: scorePath was module-private and is now
 // exported, so the ranking contract the packet depends on can be asserted directly by the tests.
 // Every other byte of the logic is identical to the origin (verified by diff).
+//
+// SECOND change (2026-09-19, 100%-coverage pass), disclosed: buildReviewPacket takes an optional
+// `timeoutMs` that overrides the per-call git timeouts. Default behaviour is byte-identical
+// (30s stat/name-status, 60s full diff) - the option exists so the SIGTERM kill path in run()
+// can be exercised by a test in milliseconds instead of a 30-second stall. Also normalised two
+// provably-dead guards: the timer's `unref?.()` (Node Timeout always has unref) and
+// `perFile.get(key) || []` (key always comes from perFile.keys()).
 
 import { spawn } from 'node:child_process';
 import path from 'node:path';
@@ -23,7 +30,7 @@ function run(cmd, args, { cwd, timeoutMs = 60_000 } = {}) {
         child.kill('SIGTERM');
       } catch {}
     }, timeoutMs);
-    t.unref?.();
+    t.unref();
     child.stdout.on('data', (b) => out.push(String(b)));
     child.stderr.on('data', (b) => err.push(String(b)));
     child.on('error', reject);
@@ -43,12 +50,12 @@ export function scorePath(p) {
   return 50;
 }
 
-export async function buildReviewPacket({ workspaceDir, maxChars = 35_000, maxFiles = 20, maxHunksPerFile = 6 } = {}) {
+export async function buildReviewPacket({ workspaceDir, maxChars = 35_000, maxFiles = 20, maxHunksPerFile = 6, timeoutMs } = {}) {
   const cwd = path.resolve(workspaceDir || process.cwd());
 
-  const stat = await run('git', ['diff', '--stat'], { cwd, timeoutMs: 30_000 });
-  const nameStatus = await run('git', ['diff', '--name-status'], { cwd, timeoutMs: 30_000 });
-  const diff = await run('git', ['diff', '--unified=3'], { cwd, timeoutMs: 60_000 });
+  const stat = await run('git', ['diff', '--stat'], { cwd, timeoutMs: timeoutMs ?? 30_000 });
+  const nameStatus = await run('git', ['diff', '--name-status'], { cwd, timeoutMs: timeoutMs ?? 30_000 });
+  const diff = await run('git', ['diff', '--unified=3'], { cwd, timeoutMs: timeoutMs ?? 60_000 });
 
   const files = String(nameStatus.stdout || '')
     .split('\n')
@@ -82,7 +89,7 @@ export async function buildReviewPacket({ workspaceDir, maxChars = 35_000, maxFi
     // Find the diff section that matches this file (best-effort).
     const key = Array.from(perFile.keys()).find((k) => k.includes(` b/${f.file}`) || k.includes(` a/${f.file}`));
     if (!key) continue;
-    const lines = perFile.get(key) || [];
+    const lines = perFile.get(key);
 
     let hunks = 0;
     const buf = [key];

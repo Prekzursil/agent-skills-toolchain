@@ -1,0 +1,115 @@
+{
+  "unit_id": "AUD-0083",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "openai",
+  "probe_rerun": 2,
+  "reviewer_id": "fresh-context-openai-codex-reviewer-aud-0083-01",
+  "reviewed_at": "2026-09-08T00:15:35Z",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0083-script-interpreter-audit.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "b3b8927ac3725a7b25df64f13f6b5d104527baa6",
+  "method": [
+    "Fetched origin/cursor/p2-loop-to-green-0db0 and created only cursor/aud-0083-review-0db0 at base tip b3b8927ac3725a7b25df64f13f6b5d104527baa6.",
+    "Read the BLOCKED receipt, probe2_platform_resolver_matrix.py, control_windows_bare_vs_explicit.py, _platform_resolver.py, and probe1_inventory_scripts.py as non-authoritative context.",
+    "Re-ran only probe 2 and its required control; probe 1 was not executed or re-authored.",
+    "Reconstructed the Windows totals from the committed probe1 row classes: 3173 .py rows and 606 non-.py rows, totaling 3779.",
+    "Cross-checked all four reported executable scripts against both filesystem execute permission and git index mode 100755.",
+    "Spot-checked two .sh Windows-failure rows and one extensionless shebang Windows-failure row through the shared resolver.",
+    "Reverted all probe-generated JSON mutations with git checkout -- before writing this review.",
+    "Did not run _pack_receipt.py, did not modify the receipt or probe scripts, and did not promote the receipt."
+  ],
+  "falsification_attempts": [
+    {
+      "id": "F1-count-partition",
+      "target_claim": "windows bare SUCCESS=3173 and FAILURE=606 over 3779 rows",
+      "action": "Partitioned the committed census rows independently by extension instead of trusting probe2's aggregate: counted .py versus every non-.py row.",
+      "expected_if_claim_false": "The independent partition would differ from 3173/606 or fail to sum to 3779.",
+      "observed": ".py=3173, non-.py=606, total=3779.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F2-executable-bit-provenance",
+      "target_claim": "exec_bit_count=4 and therefore Linux bare SUCCESS=4",
+      "action": "Selected every exec_bit=true census row and checked each path using filesystem mode/os.access plus git ls-files -s.",
+      "expected_if_claim_false": "A fifth executable would appear, a listed path would lack execute permission, or its git index mode would not be 100755.",
+      "observed": "Exactly four rows; all four are mode 0755, os.access(..., X_OK)=true, git mode 100755, and carry a bash shebang.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F3-windows-failure-sample",
+      "target_claim": "Representative .sh and extensionless-shebang scripts fail under simulated Windows bare invocation",
+      "action": "Passed two independent .sh census rows and one extensionless shebang census row to _platform_resolver.resolve(platform='windows', mode='bare').",
+      "expected_if_claim_false": "At least one representative row would resolve SUCCESS.",
+      "observed": ".agents/skills/autofix-bot-api/scripts/poll_analysis.sh=FAILURE; .agents/skills/autofix-bot-api/scripts/sync_repo.sh=FAILURE; skills-claude-only/metaswarm-setup/templates/pre-push=FAILURE.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F4-control-discrimination",
+      "target_claim": "The control distinguishes bare .sh Windows FAILURE from explicit bash SUCCESS",
+      "action": "Re-ran control_windows_bare_vs_explicit.py unmodified and compared the shared resolver against its deliberately broken shebang-only resolver.",
+      "expected_if_claim_false": "The real resolver would pass both modes, fail both modes, or fail to distinguish itself from the naive resolver.",
+      "observed": "real bare=FAILURE, real explicit=SUCCESS, while naive bare=SUCCESS and explicit=SUCCESS; second script check also diverged correctly.",
+      "result": "NOT FALSIFIED"
+    }
+  ],
+  "re_runs": {
+    "probe2_platform_resolver_matrix.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0083/probe2_platform_resolver_matrix.py",
+      "exit_code": 0,
+      "rows_resolved": 3779,
+      "resolver_verified_against_real_linux": true,
+      "linux_bare": {
+        "SUCCESS": 4,
+        "FAILURE": 3775
+      },
+      "windows_bare": {
+        "SUCCESS": 3173,
+        "FAILURE": 606
+      },
+      "matches_receipt": true
+    },
+    "control_windows_bare_vs_explicit.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0083/control_windows_bare_vs_explicit.py",
+      "exit_code": 0,
+      "bare": "FAILURE",
+      "explicit": "SUCCESS",
+      "naive_resolver_incorrectly_passes_both": true,
+      "ok": true,
+      "matches_receipt": true
+    }
+  },
+  "headline_claims_checked": {
+    "inventory_counts": {
+      "claim": "script_rows_found=3779, exec_bit_count=4, shebang_count=1243",
+      "observed": "3779 rows, 4 exec-bit rows, 1243 shebang rows",
+      "probe1_rerun": false,
+      "verdict": "HOLDS from committed census data plus independent row recount and executable-bit spot-check"
+    },
+    "linux_bare": {
+      "claim": "SUCCESS=4 / FAILURE=3775",
+      "observed": "SUCCESS=4 / FAILURE=3775",
+      "verdict": "HOLDS"
+    },
+    "windows_bare_simulated": {
+      "claim": "SUCCESS=3173 / FAILURE=606",
+      "observed": "SUCCESS=3173 / FAILURE=606",
+      "verdict": "HOLDS"
+    },
+    "control": {
+      "claim": "bare .sh Windows is FAILURE; explicit bash is SUCCESS",
+      "observed": "bare=FAILURE; explicit=SUCCESS; naive shebang-only resolver passed both and was detected",
+      "verdict": "HOLDS"
+    }
+  },
+  "notes": "PASS means the scoped probe2 aggregates and control survived this independent falsification review. It does not promote AUD-0083: the source receipt remains BLOCKED with reviewer state NOT-REVIEWED, and this review intentionally leaves it untouched. Probe-generated output JSON was restored after reruns, so this independent-review.json is the only deliverable.",
+  "residual_unknowns": [
+    "The Windows outcomes remain documented simulation, not measurements on a real Windows 10/11 host.",
+    "The 3173 bare-.py successes are conditional on the expected Python launcher/file association being installed and enabled.",
+    "macOS behavior remains inferred rather than measured on macOS hardware.",
+    "The committed probe1 census is the input to probe2 and was not rerun, as explicitly required by this review scope."
+  ]
+}

@@ -1,0 +1,48 @@
+[
+ {
+  "id": "CC-0007",
+  "title": "Make the append-only event log survive concurrent Windows writers and torn tails",
+  "phase": "0",
+  "question_or_target": "Question: can several agents append to command-center/events/EVENTS.jsonl simultaneously on Windows without interleaved or torn records, and is a truncated tail detected rather than silently accepted? Implementation target: hash-chained records (each carrying the previous record's digest), an atomic append path that does not rely on POSIX fcntl, and a repair routine that truncates to the last valid chain link and reports the loss instead of hiding it.",
+  "inputs": [
+   "command-center/events/EVENTS.jsonl",
+   "_USER-PROMPTS.md:10603 (append-only event logs), :11313 (partial artifact without sentinel)",
+   "rules/common/windows-shell.md (Windows file semantics)"
+  ],
+  "dependencies": [],
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "role": "implementer"
+  },
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "PowerShell",
+   "Bash"
+  ],
+  "execution_substrate": "local-serialized",
+  "timeout_seconds": 5400,
+  "output_path": "command-center/receipts/CC-0007.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "evidence_requirement": "The concurrency result must be a measured count from an executed run (records written vs records parsed vs chain links verified), not a design argument. State the exact writer count, record count and wall-clock of the run.",
+  "tests_required": [
+   "8 concurrent writers x 500 records -> 4000 parseable records, 4000 intact chain links, zero interleaved lines.",
+   "Torn-write control: truncate the final record mid-line -> the reader must report a broken tail and the repair must report how many records were lost.",
+   "Tamper control: alter one record in the middle -> the chain must break at that record and name it.",
+   "Idempotence: replaying the log twice must not double-count events."
+  ],
+  "reviewer_requirement": "One independent reviewer who re-runs the concurrency test on a cold machine state and confirms the counts.",
+  "completion_sentinel": "SUCCESS:CC-0007",
+  "retry_policy": "Two strikes then pivot; if in-process locking fails twice, move to a single-writer queue process rather than attempting a third locking scheme.",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "green-not-live"
+  ],
+  "owner_approval_required": false
+ }
+]

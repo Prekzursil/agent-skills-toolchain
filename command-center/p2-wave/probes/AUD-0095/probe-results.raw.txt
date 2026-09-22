@@ -1,0 +1,22 @@
+AUD-0095 re-run on the Linux runner, 2026-09-19 (GLM delivery agent, agent_contract.md)
+
+$ PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0095/probe1_freeze_anchors.py
+  -> exit 0  "SUCCESS:AUD-0095-probe1 freeze-anchors present=343"  (schema_vacuity garbage_errors=12)
+$ PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0095/probe2_change_detection.py
+  -> exit 0  "SUCCESS:AUD-0095-probe2 both-states unversioned-red bump-green non-frozen-silent"
+$ python command-center/p2-wave/probes/AUD-0095/write_unit_manifest.py
+  -> exit 0  "SUCCESS:AUD-0095-manifest ... rows=9"
+$ python platform/lib/receipt_schema_gate.py --repo-root . command-center/audit/AUD-0095-freeze-inventory.json
+  -> BLOCKED-signature only: c1 UNSATISFIED (BLOCKED not completion), c5 UNSATISFIED (FAILED
+     sentinel), c9 UNSATISFIED (reviewer NOT-REVIEWED). Conditions 2,3,4,6,7,8,10,11,12 SATISFIED.
+$ python command-center/receipt_validate.py command-center/audit/AUD-0095-freeze-inventory.json
+  -> ACCEPT (admission only)
+
+Probe tree source: captured commit 2c36875df (harness/ast-integrate, 2026-09-02), files
+restored byte-for-byte from git; detector.py scratch mutators generalised to any file type
+(measured: the JSON-only mutator crashed on the .py launcher pick_target selects here);
+probe1 output_schema validation moved to the repo's disk-only schema_resolver (the shim $ref
+is an https://ast-integrate.invalid URI; a bare Draft7Validator attempted a NETWORK fetch and
+died on the runner -- the exact ci-hygiene violation the resolver exists to prevent).
+Receipt re-emitted schema-valid, state=BLOCKED pending the catalog cross-vendor Codex probe-2
+review. Review left NOT-REVIEWED: no fabricated vendor PASS.

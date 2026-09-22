@@ -107,7 +107,10 @@ def test_substructure_search_uses_root_wrapper_and_resolves_patents() -> None:
                                         "pd": "2024-01-04",
                                         "titles": [
                                             {"lang": "fr", "titles": ["Titre"]},
-                                            {"lang": "en", "titles": ["Example compound"]},
+                                            {
+                                                "lang": "en",
+                                                "titles": ["Example compound"],
+                                            },
                                         ],
                                     },
                                     "pa": "Example Pharma",
@@ -233,7 +236,10 @@ def test_patent_metadata_normalizes_bibliography_claims_and_legal_events() -> No
             "family": "12345",
             "abstracts": [
                 {"lang": "FR", "section": {"content": "Resume"}},
-                {"lang": "EN", "section": {"content": "An <b>English</b> abstract.</p>"}},
+                {
+                    "lang": "EN",
+                    "section": {"content": "An <b>English</b> abstract.</p>"},
+                },
             ],
             "claimResponses": {"lang": "EN", "section": {"content": claims}},
             "legalStatus": {
@@ -298,7 +304,10 @@ def test_boundary_validation(call: Callable[[], object], message: str) -> None:
 @pytest.mark.parametrize(
     ("response", "message"),
     [
-        (httpx.Response(503, json={"error_message": "maintenance"}), "HTTP 503: maintenance"),
+        (
+            httpx.Response(503, json={"error_message": "maintenance"}),
+            "HTTP 503: maintenance",
+        ),
         (
             httpx.Response(
                 200,

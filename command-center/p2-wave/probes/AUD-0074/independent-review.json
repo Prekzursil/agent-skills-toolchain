@@ -1,0 +1,105 @@
+{
+  "unit_id": "AUD-0074",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "fresh-context-claude-falsify-reviewer-aud0074-01",
+  "reviewed_at": "2026-09-08T01:13:30Z",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0074-source-lineage-graph.json",
+  "base_tip_sha": "a5d0f9e02de4f332cd4bf4f8ddadb16977c9f7e8",
+  "base_branch": "origin/cursor/p2-loop-to-green-0db0",
+  "method": "Created cursor/aud-0074-review-0db0 from origin/cursor/p2-loop-to-green-0db0 tip a5d0f9e02. Read the BLOCKED receipt, UNIT-ARTIFACT-MANIFEST, probe1_citation_edges.py, probe2_timestamp_ordering.py, control_doc13_stale.py, fixtures/build_corpus.py, corpus-meta.json, versions pre/post doc-13 fixtures, and control stale/fresh decision-log fixtures without treating packed headlines as ground truth. Independently rebuilt the fixture corpus then re-ran probe1, probe2, and control_doc13_stale unmodified; compared EDGE_COUNT/NODES_PRESENT/STALE_DOWNSTREAM_FLAGS/DOC13_STALE_FLAGS and control fired_bad/silent_good against receipt headlines. Independently re-derived citation edges with an ad hoc pathlib+regex recount outside the probe process (51 hits / 22 unique edges / 29 nodes). Spot-checked on-disk citation edges including the 19-DIAGRAMS README→doc-13 edge, planted-stale citers 15 and 17 (mtime 2026-08-05), post-correction citers 14/18/19 (mtime 2026-08-10), and pre/post doc-13 version bodies (M-## vs MECH-##). Ran ≥4 falsification attempts (wrong edge count via planted_edges=21, inert timestamp check, misclassified stale flags, live-scope overclaim). Reverted all probe JSON/raw mutations and deleted control temps via git checkout -- / rm so only this review file is committed. Did not run _pack_receipt.py; did not edit the receipt or probe scripts; left state BLOCKED.",
+  "notes": "PASS on falsification of the fixture-scoped headline counts only: citation_edges=22, nodes_present=29/29, stale_downstream_flags=2, doc13_stale_flags=2, control fired_on_bad=True / silent_on_good=True all reproduced on independent re-run and survived active attempts to disprove them. Receipt correctly remains BLOCKED (reviewer.verdict=NOT-REVIEWED on disk; sentinel still FAILED:...blocked-on-independent-review+fixture-scope); this review does not promote to SUCCESS and does not invent live Prompt-One Windows tree counts. Scope disclosure holds: AUD-0067 current_repo_root_fresh=0, corpus_kind=fixture-reconstruction, single-checkout Linux. Minor meta nit (not a falsification): fixtures/corpus-meta.json PLANTED_EDGES lists 21 edges while probe1 measures 22 because 19-DIAGRAMS/README.md citation is built outside PLANTED_EDGES — the extra edge is real on disk and correctly included in the headline.",
+  "falsification_attempts": [
+    {
+      "id": "F1-wrong-edge-count",
+      "target_claim": "citation_edges=22 (headline) is inflated vs the 21 planted_edges in corpus-meta / build_corpus.PLANTED_EDGES",
+      "action": "Diffed meta.planted_edges (21) against probe1 edges and independently re-scanned the corpus with the same citation regex outside the probe process; inspected fixtures/corpus/19-DIAGRAMS/README.md on disk.",
+      "expected_if_claim_false": "Measured unique edges would be 21, or the 22nd edge would be a phantom with no on-disk evidence.",
+      "observed": "Independent recount: citation_match_hits=51, unique edges=22, nodes_present=29. Extra edge exactly {19-DIAGRAMS → 13-ARCHITECTURE-CANDIDATES.md} evidenced by README.md text `See `13-ARCHITECTURE-CANDIDATES.md`.` which is written by build_corpus outside PLANTED_EDGES. Re-run probe1 EDGE_COUNT=22.",
+      "result": "NOT FALSIFIED — headline 22 is correct; the planted_edges=21 list is incomplete meta, not a wrong count"
+    },
+    {
+      "id": "F2-inert-timestamp-check",
+      "target_claim": "stale_downstream_flags=2 could be an always-zero / inert timestamp check that citation graph alone would also produce",
+      "action": "Listed all five probe1 edges targeting doc-13; compared each citer mtime to DOC13_CORRECTION_AT=2026-08-07T12:00:00Z on disk; re-ran probe2 and the both-states control.",
+      "expected_if_claim_false": "Flags would be 0 despite pre-correction citers, or every doc-13 citer would be flagged regardless of mtime.",
+      "observed": "Pre-correction citers (15, 17) mtime=2026-08-05T12:00:00Z → flagged; post-correction citers (14, 18, 19-DIAGRAMS) mtime=2026-08-10T12:00:00Z → not flagged. Probe2 STALE_DOWNSTREAM_FLAGS=2 DOC13_STALE_FLAGS=2. Control BAD_DOC13_STALE_FLAGS=2 / GOOD_DOC13_STALE_FLAGS=0 (FIRED_ON_BAD=True, SILENT_ON_GOOD=True).",
+      "result": "NOT FALSIFIED — timestamp ordering is discriminatory, not inert"
+    },
+    {
+      "id": "F3-misclassified-stale-flag",
+      "target_claim": "The two stale flags misclassify post-correction consumers or miss a planted-stale citer",
+      "action": "Compared probe2.stale_downstream_flags set to the expected planted pair {(15→doc13), (17→doc13)}; verified 14/18/19 cite doc-13 but are absent from flags; spot-checked 17-DECISION-LOG.md still carries pre-correction M-NN wording and versions/*.pre-correction uses M-## while *.post-correction uses MECH-##.",
+      "expected_if_claim_false": "Flag set ≠ expected planted pair, or a post-correction citer appears in flags, or pre/post version bodies are identical.",
+      "observed": "flagged == expected exactly. 14/18/19 not flagged. pre≠post (2184 vs 2299 bytes); corpus doc-13 embeds post-correction MECH-## body; stale control fixture retains F-B-02 present-tense collision wording.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F4-scope-overclaim-live-windows",
+      "target_claim": "Headline/answer invents live Prompt-One Windows tree edge/stale counts rather than disclosing fixture-reconstruction scope",
+      "action": "Read receipt extensions.corpus_kind/scope/answer/sentinel/state/reviewer and AUD-0067 for current_repo_root_fresh; checked whether any live-host count is asserted as SUCCESS.",
+      "expected_if_claim_false": "Receipt would claim SUCCESS or present 22/2 as live Windows measurements without fixture disclosure.",
+      "observed": "state=BLOCKED; corpus_kind=fixture-reconstruction; scope names unmounted Windows trees; AUD-0067 current_repo_root_fresh=0; sentinel starts with FAILED: and ends blocked-on-independent-review+fixture-scope; residual_unknowns still marks live-tree recount as NOT-CHECKED.",
+      "result": "NOT FALSIFIED — no live-host overclaim; fixture scope is disclosed and BLOCKED is honest"
+    },
+    {
+      "id": "F5-control-always-fires",
+      "target_claim": "Control discrimination is fake (always fires on both bad and good)",
+      "action": "Re-ran control_doc13_stale.py which mutates 15/17 to post-correction mtimes for the good arm, then restores planted-stale state; also simulated all-after mtimes analytically.",
+      "expected_if_claim_false": "good_state_doc13_stale_flags ≥ 1 or silent_on_good_state=False.",
+      "observed": "bad_state_doc13_stale_flags=2, good_state_doc13_stale_flags=0, fired_on_bad_state=True, silent_on_good_state=True, ok=True; synthetic all-after flag count=0.",
+      "result": "NOT FALSIFIED"
+    }
+  ],
+  "re_runs": {
+    "probe1_citation_edges.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0074/probe1_citation_edges.py --raw-output .../probe1-citation-edges.raw.txt --result-json .../probe1-citation-edges.json",
+      "exit_code": 0,
+      "edge_count": 22,
+      "nodes_present": 29,
+      "contract_items": 29,
+      "citation_match_hits": 51,
+      "corpus_kind": "fixture-reconstruction",
+      "ok": true,
+      "matches_receipt": true,
+      "independent_ad_hoc_recount": {
+        "edge_count": 22,
+        "citation_match_hits": 51,
+        "nodes_present": 29
+      }
+    },
+    "probe2_timestamp_ordering.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0074/probe2_timestamp_ordering.py --raw-output .../probe2-timestamp-ordering.raw.txt --result-json .../probe2-timestamp-ordering.json",
+      "exit_code": 0,
+      "edges_checked": 22,
+      "stale_downstream_flag_count": 2,
+      "doc13_stale_downstream_flag_count": 2,
+      "stale_from": [
+        "15-IMPLEMENTATION-PRECONDITIONS.md",
+        "17-DECISION-LOG.md"
+      ],
+      "ok": true,
+      "matches_receipt": true
+    },
+    "control_doc13_stale.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0074/control_doc13_stale.py --raw-output .../control-doc13-stale.raw.txt --result-json .../control-doc13-stale.json",
+      "exit_code": 0,
+      "bad_state_doc13_stale_flags": 2,
+      "good_state_doc13_stale_flags": 0,
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "ok": true,
+      "matches_receipt": true
+    }
+  },
+  "residual_unknowns": [
+    "Live Prompt-One Windows tree citation-edge and stale-downstream counts remain NOT-CHECKED (AUD-0067 current_repo_root_fresh=0; trees unmounted on this Linux substrate). This review deliberately does not invent those counts.",
+    "Whether a live remount would change EDGE_COUNT or STALE_DOWNSTREAM_FLAGS relative to the fixture-reconstruction corpus is unknown until the settling experiment in the receipt residual_unknowns is run.",
+    "corpus-meta planted_edges omits the 19-DIAGRAMS→doc-13 edge that build_corpus writes into README.md; harmless for the measured headline but a meta completeness gap if someone treats planted_edges as the authoritative edge list."
+  ]
+}

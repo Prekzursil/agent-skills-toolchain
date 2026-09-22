@@ -1,0 +1,1187 @@
+[
+  {
+    "id": "REL-0001",
+    "title": "Semantic-version contract with a diff-derived bump linter",
+    "phase": "4",
+    "question_or_target": "Implementation target: turn the release policy and versioning rules the spec demands at lines 10817-10820 into a machine-checkable artifact. Enumerate, for the plugin package, the registry entry, the blueprint pack and the CouncilSpec schema, exactly which change classes force MAJOR, MINOR or PATCH -- manifest key removal, permission widening, hook-contract signature change, blueprint id retirement, a schema field becoming required -- then ship a linter that derives the REQUIRED bump from the git diff between the previous tag and HEAD and exits non-zero whenever the declared version is lower than the derived one.",
+    "inputs": [
+      "the formal contract set produced by the specification lane (B06)",
+      "the current plugin manifest and marketplace registry entry",
+      "git tags and the tag-to-HEAD diff",
+      "_USER-PROMPTS.md:10797-10822 (contracts) and 11100-11123 (release ceremony)"
+    ],
+    "dependencies": [
+      "B06"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contract-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0001.json",
+    "output_schema": "command-center/schema/contract-spec-receipt.schema.json",
+    "evidence_requirement": "Cite the change-class rule table by file:line and paste the linter exit code for three crafted diffs (one per bump class). A claim that the rule is enforced must cite an exit code, not the presence of the rule in a document.",
+    "tests_required": [
+      "Mutation: delete a required manifest key and declare a PATCH bump -> linter exits non-zero.",
+      "Both-states: a genuinely patch-only diff declared as PATCH -> linter silent (no false positive).",
+      "Widening a declared tool permission must classify MAJOR even though no key was removed.",
+      "A pure file rename with byte-identical content must classify as no-bump-required."
+    ],
+    "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than this unit's executor; a same-vendor reviewer inherits the executor's blind spots",
+    "completion_sentinel": "SUCCESS:REL-0001",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+    "failure_classification": [
+      "spec-underspecified",
+      "detector-failure",
+      "overclaim"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0002",
+    "title": "Rollback contract: every mutating install action declares a typed inverse",
+    "phase": "4",
+    "question_or_target": "Implementation target: write the rollback contract named at spec line 10817 as a typed schema rather than prose. Each action an installer may perform -- write a file, register a hook, add an MCP entry, edit a settings key, create a scheduled task, seed a cache -- must declare its target path or key, whether the pre-existing value is captured first, its inverse action, the invariant that must hold once the inverse has run, and whether the inverse is total or partial. Encode two hard invariants: an inverse may never remove a path the installer did not create, and it may never remove a command, skill or setting that pre-dated the install (spec 11347).",
+    "inputs": [
+      "_USER-PROMPTS.md:10797-10820 (formal contracts) and 11347 (rollback removes user data)",
+      "command-center/ROLLBACK-MANIFEST.md as it stands today",
+      "the installer action inventory from the implementation lane (B07)"
+    ],
+    "dependencies": [
+      "B06"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-designer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/REL-0002.json",
+    "output_schema": "command-center/schema/contract-spec-receipt.schema.json",
+    "evidence_requirement": "The schema file must exist on disk and validate against its own meta-schema; quote the two invariants verbatim with file:line. Every action type must be listed with its inverse or explicitly marked IRREVERSIBLE with an owner-visible impact statement.",
+    "tests_required": [
+      "An action declared with no inverse and no IRREVERSIBLE marker must fail schema validation.",
+      "An inverse whose target lies outside the recorded creation set must fail validation.",
+      "A partial inverse must be forced to declare its residue; omitting the residue field must fail.",
+      "Positive control: the full real action inventory must validate cleanly, proving the schema is not so strict that nothing conforms."
+    ],
+    "reviewer_requirement": "two reviewers who file independently and do not see each other's verdict until both are filed; disagreement escalates to raw-artifact adjudication, never to a vote",
+    "completion_sentinel": "SUCCESS:REL-0002",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+    "failure_classification": [
+      "contract-gap",
+      "data-loss-risk",
+      "spec-underspecified"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0003",
+    "title": "Owner ruling that makes stop condition 13 satisfiable under PR-ONLY",
+    "phase": "15",
+    "question_or_target": "Question: under the binding PR-ONLY release mode there is no canary channel, so what must succeed in place of program stop condition 13, 'release/canary succeeds' (spec 11390), which currently has no satisfiable referent and therefore makes the program unable to ever meet its own stopping rule? Produce a single-question owner packet carrying a recommendation (redefine 13 as: a merged PR plus a clean-profile install, upgrade and rollback rehearsal evidenced by the REL-0004, REL-0005 and REL-0006 receipts), the strongest tradeoff against the alternative of marking 13 permanently N/A, the default that applies if the owner does not answer, and the durable record location.",
+    "inputs": [
+      "PHASE-GRAPH.json constrained_by_release_mode (owner_decision_needed field)",
+      "command-center/OWNER-DECISIONS.md (release mode = PR-ONLY, already binding)",
+      "_USER-PROMPTS.md:11125-11133 (promote-only-after) and 11376-11398 (the 21 conditions)",
+      "_USER-PROMPTS.md:11364-11370 (how to ask: one question, recommendation, tradeoff, default)"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "owner-liaison"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "AskUserQuestion"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/REL-0003.json",
+    "output_schema": "command-center/schema/owner-decision-packet.schema.json",
+    "evidence_requirement": "The packet must quote spec line 11390 verbatim and cite the PHASE-GRAPH.json field that measured the gap. The answer, once given, must be written to OWNER-DECISIONS.md in the same turn and the receipt must cite the resulting file:line.",
+    "tests_required": [
+      "Structural: the packet contains exactly one question; a second question fails the check (spec 11366).",
+      "Satisfiability: each receipt path named by the recommendation must be producible by a unit that exists in this catalog, checked by id lookup, not by assertion.",
+      "Negative control: a packet missing the default-if-unanswered field must be rejected by the validator.",
+      "Anti-re-ask: the question must not match any decision already recorded in OWNER-DECISIONS.md."
+    ],
+    "reviewer_requirement": "owner sign-off is the terminal authority; one reviewer additionally checks that the packet asks exactly one question and re-asks nothing already settled in OWNER-DECISIONS.md",
+    "completion_sentinel": "SUCCESS:REL-0003",
+    "retry_policy": "no retry without a new owner input. Re-asking the same question with different wording is a contract violation, not a retry",
+    "failure_classification": [
+      "unsatisfiable-stop-condition",
+      "owner-blocked",
+      "re-asking-answered-question"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "REL-0004",
+    "title": "Clean-profile canary rig whose pass condition is a hook firing, not a file landing",
+    "phase": "15",
+    "question_or_target": "Implementation target: build the private-canary rig -- a throwaway Windows user profile, or an equivalently isolated HOME, into which the packaged artifact is installed from a local file-backed mirror -- and make its acceptance condition a RUNTIME observation. After installing, start the client, trigger every contracted hook event, and require each hook's own observable side effect. Spec line 11303 names the failure class directly: a plugin that appears installed while its hooks are unloaded. A directory listing cannot tell those two states apart, so a listing may not be the acceptance signal.",
+    "inputs": [
+      "the packaged artifact produced by the implementation lane (B07)",
+      "the hook contract and its declared events",
+      "_USER-PROMPTS.md:11125 (private canary first) and 11303 (hooks unloaded)",
+      "REL-0003's owner ruling on what canary means under PR-ONLY"
+    ],
+    "dependencies": [
+      "REL-0003",
+      "B07"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "release-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0004.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Record the profile path, the install command, and for each hook event the observed side effect with its timestamp. Any hook whose side effect could not be observed is NOT-CHECKED, never PASS. State explicitly that no read or write touched the owner's live profile, and show the isolation assertion.",
+    "tests_required": [
+      "Known-broken control: deliberately mis-register one hook in the manifest -> the runtime probe fires.",
+      "Both-states: show that the file-listing check passes in BOTH the broken and the good state, which is the reason it is disqualified as the acceptance signal.",
+      "Clean build -> runtime probe silent, every contracted event observed.",
+      "Isolation assertion: the rig must fail loudly if its HOME resolves to the owner's real profile."
+    ],
+    "reviewer_requirement": "one reviewer who re-executes the drill end to end on a freshly created profile from the recorded commands alone; a reviewer who reads the transcript has not rehearsed it",
+    "completion_sentinel": "SUCCESS:REL-0004",
+    "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+    "failure_classification": [
+      "green-not-live",
+      "detector-failure",
+      "profile-contamination"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0005",
+    "title": "Upgrade rehearsal N-1 to N: state survives and each migration executes exactly once",
+    "phase": "15",
+    "question_or_target": "Implementation target: rehearse the in-place upgrade. Install the previous release into the canary profile, populate it with representative state -- custom settings keys, a user-authored skill, an edited rule file, an in-flight ledger -- then upgrade to the candidate and assert three independent properties: state is byte-preserved except where a migration is declared, every declared migration executed exactly once, and repeating the upgrade mutates nothing. Also settle the skip-version case: N-2 to N must either work completely or refuse loudly, never apply half of a chain.",
+    "inputs": [
+      "the N-1 release artifact and the candidate artifact",
+      "the declared migration list with per-migration idempotence claims",
+      "the canary profile rig from REL-0004",
+      "_USER-PROMPTS.md:10836 (install, update, repair, rollback, uninstall commands)"
+    ],
+    "dependencies": [
+      "REL-0004"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "reproduction-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0005.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Report the mutation count of the second consecutive upgrade run; it must be zero, and the number must be measured, not asserted. Each migration must be shown with its execution count from the migration ledger.",
+    "tests_required": [
+      "Idempotence: run the upgrade twice; the second run produces zero mutations.",
+      "Mutation control: make one migration deliberately non-idempotent -> the double-run check fires.",
+      "A user-authored skill placed in the live tree before the upgrade survives with an identical sha256.",
+      "Skip-version: N-2 to N either completes fully or refuses; a partially applied chain fails the drill."
+    ],
+    "reviewer_requirement": "one reviewer given only the raw receipts and told to re-derive the verdict before being shown this unit's conclusion; reading the conclusion first anchors the review",
+    "completion_sentinel": "SUCCESS:REL-0005",
+    "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+    "failure_classification": [
+      "migration-non-idempotent",
+      "state-clobber",
+      "partial-apply"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0006",
+    "title": "Downgrade drill: artifact retrievability precondition, behaviour-restored proof, measured MTTR",
+    "phase": "15",
+    "question_or_target": "Implementation target: rehearse going backwards. Check the blocking precondition first -- the N-1 artifact must be fetchable from the release store and its sha256 must equal the value recorded in ROLLBACK-MANIFEST.md, because a plan that assumes an artifact nobody can fetch is not a plan -- then downgrade the canary and prove restoration by re-running the N-1 acceptance probe rather than by reading a version string. Record wall-clock time from decision to restored behaviour as the MTTR figure the runbook will quote.",
+    "inputs": [
+      "command-center/ROLLBACK-MANIFEST.md recorded hashes",
+      "the release store holding the N-1 artifact",
+      "the N-1 acceptance probe and the upgraded profile left by REL-0005",
+      "the typed inverse actions from REL-0002"
+    ],
+    "dependencies": [
+      "REL-0002",
+      "REL-0005"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "recovery-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0006.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Quote the fetched artifact sha256 alongside the manifest value. Quote the acceptance-probe output before and after. Report MTTR in seconds with the clock source named; an estimated duration is not a measurement.",
+    "tests_required": [
+      "Precondition control: corrupt the stored N-1 artifact -> the retrievability gate blocks before any downgrade begins.",
+      "Show that a version-string read reports N-1 while behaviour is still N, which is why the behaviour probe is the acceptance signal.",
+      "Zero owner-authored files are removed during the downgrade, verified against the pre-downgrade hashes.",
+      "MTTR is recorded and compared against the figure the runbook publishes; a divergence fails the drill."
+    ],
+    "reviewer_requirement": "one reviewer who re-executes the drill end to end on a freshly created profile from the recorded commands alone; a reviewer who reads the transcript has not rehearsed it",
+    "completion_sentinel": "SUCCESS:REL-0006",
+    "retry_policy": "resumable with mandatory restore: on interruption the profile is rolled back to its captured baseline before the next attempt, and the resume boundary is recorded",
+    "failure_classification": [
+      "unfetchable-artifact",
+      "false-restore",
+      "manifest-hash-mismatch"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0007",
+    "title": "Orphan sweep after uninstall: dangling registrations must be zero",
+    "phase": "15",
+    "question_or_target": "Implementation target: after uninstalling, prove the machine retains no dangling registration of the package -- no hook entry, no MCP server record, no scheduled task, no settings key, no mirror entry, no PATH shim -- by enumerating each registry surface directly rather than inferring emptiness from a missing install directory. Deleting the payload folder does not deregister anything, so the sweep must query each surface and enumerate the surfaces it does NOT query.",
+    "inputs": [
+      "the registration surfaces: settings.json, .mcp.json, scheduled tasks, live skill tree, PATH",
+      "the uninstall command from the packaged artifact",
+      "the typed inverse actions from REL-0002",
+      "_USER-PROMPTS.md:10836 (uninstall) and 11330 (skill in repo but not in live directory)"
+    ],
+    "dependencies": [
+      "REL-0002"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "systems-auditor"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0007.json",
+    "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+    "evidence_requirement": "List every surface queried with the query used, and every surface deliberately not queried, marked NOT-CHECKED with a reason. A zero-orphan claim covering an unenumerated surface is an overclaim.",
+    "tests_required": [
+      "Plant an orphan: leave one hook registered after uninstall -> the sweep reports it.",
+      "Detector control: the sweep must find a known-present registration before any zero result is trusted.",
+      "Clean uninstall -> sweep reports zero orphans across every enumerated surface.",
+      "A surface the sweep cannot query must appear as NOT-CHECKED in the receipt, never be omitted."
+    ],
+    "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+    "completion_sentinel": "SUCCESS:REL-0007",
+    "retry_policy": "no blind retry. Re-runs count as flake measurement and every outcome is recorded; a green on run 5 of 5 does not overwrite the 4 reds, it is reported as 1/5",
+    "failure_classification": [
+      "orphan-residue",
+      "incomplete-enumeration",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0008",
+    "title": "Destruction oracle over all four lifecycle operations, seeded with hostile filenames",
+    "phase": "15",
+    "question_or_target": "Implementation target: answer spec line 11132, 'no data loss occurs', identically for install, upgrade, rollback and uninstall with one oracle: hash every owner-owned path in the profile before the operation, hash again afterwards, and require that nothing present beforehand is missing or altered unless the operation declared that change. Seed the profile first with adversarial names -- a path beyond 260 characters, a name differing from a package path only in letter case, and a directory holding a file named after a Windows reserved device -- because the walker crashing or silently skipping those paths is what turns a real loss into a clean report.",
+    "inputs": [
+      "the canary profile rig from REL-0004",
+      "the four lifecycle commands and their declared change sets",
+      "_USER-PROMPTS.md:11016-11017 (path casing, long paths) and 11132 (no data loss)",
+      "the measured relpath crash on a file named NUL from the Phase-0 baseline lane"
+    ],
+    "dependencies": [
+      "REL-0004"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "data-integrity-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0008.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Report per operation: paths hashed, paths skipped, and paths altered. A skipped path is NOT-CHECKED and must be counted separately from a verified-unchanged path; folding skips into the pass count is the exact way this oracle would lie.",
+    "tests_required": [
+      "Plant and delete: have the installer remove a seeded owner file -> the oracle reports loss.",
+      "Clean run -> oracle silent, with the hashed-path count reported as a number.",
+      "The walker must traverse a reserved-device-name path without raising, and must hash a 260+ character path rather than skipping it.",
+      "A case-only-colliding name must be tracked as a distinct path, not collapsed onto its sibling."
+    ],
+    "reviewer_requirement": "one reviewer who must attempt to destroy a planted owner-authored file through any lifecycle path and demonstrate the oracle catches it before signing off",
+    "completion_sentinel": "SUCCESS:REL-0008",
+    "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+    "failure_classification": [
+      "data-loss",
+      "silent-skip-as-pass",
+      "walker-crash"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0009",
+    "title": "Distributable content allowlist and byte ceiling computed from the archive entry list",
+    "phase": "15",
+    "question_or_target": "Implementation target: enforce spec line 10842 mechanically. The shipped package must not carry the repository .git directory, caches, logs, transcripts, worktrees, dependency folders or gigabytes of unrelated material. Express what may ship as an explicit glob allowlist plus a total-byte ceiling and a file-count ceiling, and evaluate all three against the ARCHIVE ENTRY LIST read back out of the built package -- never against the source tree, because the source tree is not what ships and a tree that looks clean can still be packed dirty.",
+    "inputs": [
+      "the built distributable and its entry listing",
+      "the packaging configuration and its include/exclude rules",
+      "_USER-PROMPTS.md:10842 (never ship .git or unrelated content) and 11307",
+      "measured size budget for the distributable"
+    ],
+    "dependencies": [
+      "B07"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "build-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__cloud-hub__modal_sandbox_create",
+      "mcp__cloud-hub__modal_sandbox_exec",
+      "mcp__cloud-hub__modal_sandbox_read_file",
+      "mcp__cloud-hub__modal_sandbox_terminate"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/REL-0009.json",
+    "output_schema": "command-center/schema/bundle-scan-receipt.schema.json",
+    "evidence_requirement": "Paste the total byte count, entry count and the top ten entries by size, all read from the archive. Report remaining headroom against each ceiling as a number so the next release can see it shrinking.",
+    "tests_required": [
+      "Stage a .git directory into the packaging input -> the allowlist gate rejects the build.",
+      "Stage a 200 MB unrelated blob -> the byte ceiling fires and names the offending entry.",
+      "A legitimate build passes with headroom reported against both ceilings.",
+      "Prove the gate reads the archive, not the tree, by packing a gitignored file and requiring detection."
+    ],
+    "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+    "completion_sentinel": "SUCCESS:REL-0009",
+    "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is filed, never retried",
+    "failure_classification": [
+      "bloated-artifact",
+      "wrong-input-surface",
+      "packaging-misconfiguration"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0010",
+    "title": "Credential scan of the extracted bundle with a planted canary and read-only handling",
+    "phase": "15",
+    "question_or_target": "Implementation target: hunt for tokens, private keys and decrypted secrets inside the EXTRACTED release bundle and any produced image layers -- the failure class at spec line 11345. Two non-negotiables. The scan runs against extracted bytes rather than the repository, because bundling can introduce files version control never tracked. And a hit is reported as variable name, containing path, byte length and whether it still authenticates -- never the value -- with no rotation, revocation or unsetting performed by this unit under any circumstances; that lifecycle belongs to the owner alone.",
+    "inputs": [
+      "the extracted release bundle and any container layer set",
+      "the scanner and its ruleset, pinned to a version",
+      "_USER-PROMPTS.md:11345 (secrets enter an artifact bundle) and 10659 (backups without secrets)",
+      "the estate rule forbidding any credential modification"
+    ],
+    "dependencies": [
+      "REL-0009"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-scanner"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__qlty__qlty_check"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0010.json",
+    "output_schema": "command-center/schema/bundle-scan-receipt.schema.json",
+    "evidence_requirement": "Name the scanner and its pinned version, the number of files examined, and the file types skipped. Redaction must be demonstrated by scanning this unit's own receipt and finding nothing -- a reporter that leaks into its own report is the defect it was built to catch.",
+    "tests_required": [
+      "Detector control: plant a synthetic high-entropy token in the staging tree -> the scan fires on it.",
+      "Clean bundle -> zero findings, with the examined-file count reported.",
+      "Self-scan: re-scan the emitted receipt; any credential material found there fails the unit.",
+      "A scanner that exits on a tooling error classifies as NOT-CHECKED; exit-code-non-zero must never be read as a clean result."
+    ],
+    "reviewer_requirement": "one security reviewer who authored none of the scanned code, plus a mechanical re-run of the identical scan by CI pinned to the same artifact sha256",
+    "completion_sentinel": "SUCCESS:REL-0010",
+    "retry_policy": "no blind retry. Re-runs count as flake measurement and every outcome is recorded; a green on run 5 of 5 does not overwrite the 4 reds, it is reported as 1/5",
+    "failure_classification": [
+      "secret-exposure",
+      "detector-failure",
+      "self-leak"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0011",
+    "title": "SBOM emitted, then falsified against the independently resolved dependency closure",
+    "phase": "15",
+    "question_or_target": "Implementation target: emit a CycloneDX or SPDX bill of materials for the release and then attack it. Independently resolve the true component closure from the lockfiles and the vendored trees and diff the two sets in both directions: components present in the closure but absent from the bill, and components listed in the bill that are not actually shipped. The bill is a claim about the artifact's contents; the gate is the diff, and generation alone proves nothing.",
+    "inputs": [
+      "the built distributable and its lockfiles",
+      "the vendored directory trees carried inside the package",
+      "the SBOM generator and the independent resolver (deliberately different tools)",
+      "_USER-PROMPTS.md:11110 (SBOM) and 10858 (marketplace SBOM metadata)"
+    ],
+    "dependencies": [
+      "REL-0009"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "supply-chain-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__cloud-hub__modal_sandbox_create",
+      "mcp__cloud-hub__modal_sandbox_exec",
+      "mcp__cloud-hub__modal_sandbox_read_file",
+      "mcp__cloud-hub__modal_sandbox_terminate"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0011.json",
+    "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+    "evidence_requirement": "Report both diff directions with counts, the transitive depth actually walked, and any depth the resolver refused to walk marked NOT-CHECKED. Generator and resolver must be different tools, named explicitly; one tool checking itself is a single signal.",
+    "tests_required": [
+      "Vendor an undeclared component into the tree -> the closure-minus-bill direction fires.",
+      "Hand-delete a component from the bill -> the same direction fires, proving the diff is not one-way.",
+      "Add a phantom entry to the bill -> the bill-minus-shipped direction fires.",
+      "Clean build -> both directions empty, with the walked depth stated."
+    ],
+    "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than this unit's executor; a same-vendor reviewer inherits the executor's blind spots",
+    "completion_sentinel": "SUCCESS:REL-0011",
+    "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is filed, never retried",
+    "failure_classification": [
+      "sbom-incomplete",
+      "phantom-component",
+      "single-tool-verification"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0012",
+    "title": "Tamper-evidence: provenance attestation and either a signature or a declared UNSIGNED gap",
+    "phase": "15",
+    "question_or_target": "Implementation target: settle how a consumer establishes that this artifact came from this source. Under PR-ONLY the publication-bound half is out of scope, so deliver the half that is not: an in-toto or SLSA-shaped provenance document generated from the real build inputs, plus a verification command a consumer can actually run. Where signing needs a key only the owner controls, the release notes must carry an explicit UNSIGNED declaration rather than staying silent about it. This unit creates, uses and rotates no key on its own authority.",
+    "inputs": [
+      "the built distributable and its recorded build inputs",
+      "the source commit sha and the builder identity",
+      "_USER-PROMPTS.md:11108-11109 (signed artifacts where supported, provenance attestation) and 11125 (release mode)",
+      "PHASE-GRAPH.json blocked_or_redefined_under_pr_only"
+    ],
+    "dependencies": [
+      "REL-0011"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "provenance-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__github__pull_request_read",
+      "mcp__github__list_commits",
+      "mcp__github__get_file_contents"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0012.json",
+    "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+    "evidence_requirement": "Paste the verification command and its output for both an untampered and a tampered copy. The provenance document must name the exact source commit, cross-checked against git, and the builder identity. If signing is deferred, cite the file:line of the UNSIGNED declaration.",
+    "tests_required": [
+      "Flip one byte of the artifact -> the verification command must fail.",
+      "Untampered artifact -> the verification command must pass, proving it is not failing unconditionally.",
+      "The commit named in the provenance must equal the commit git reports for the build tree.",
+      "If unsigned, a test asserts the UNSIGNED declaration is present in the shipped release notes."
+    ],
+    "reviewer_requirement": "one security reviewer who authored none of the scanned code, plus a mechanical re-run of the identical scan by CI pinned to the same artifact sha256",
+    "completion_sentinel": "SUCCESS:REL-0012",
+    "retry_policy": "zero retries. The first observation IS the verdict; a later disagreeing run is recorded as a discrepancy (spec 11039), never retried away",
+    "failure_classification": [
+      "tamper-undetectable",
+      "unsigned-artifact",
+      "owner-blocked"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "REL-0013",
+    "title": "Licence inventory rolled up from acquisition provenance, with riders as their own blocking class",
+    "phase": "15",
+    "question_or_target": "Implementation target: build the licence inventory for everything the release carries or derives -- including the workflow mechanisms the archaeology lane classified ADOPT-AS-IS, TRANSLATE, DISTILL or CLEAN-ROOM-REIMPLEMENT, whose provenance records already exist (spec 10723-10725). Then gate on compatibility. Anything incompatible with the release's declared licence, anything whose terms are UNKNOWN, and anything carrying a non-standard rider -- a permissive licence with an added no-ML-training clause, for instance -- blocks promotion until the owner rules, because a rider normalised to its base licence silently loses the obligation.",
+    "inputs": [
+      "the acquisition lane's provenance and licence graph (B04)",
+      "the component list produced by REL-0011",
+      "the release's own declared licence",
+      "_USER-PROMPTS.md:11111 (licence inventory), 10715 (legal and licence review), 11334"
+    ],
+    "dependencies": [
+      "REL-0011",
+      "B04"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "licence-reviewer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0013.json",
+    "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+    "evidence_requirement": "Every entry cites where its licence text was read from. UNKNOWN entries are listed individually with the reason the terms could not be established. The inventory entry count must reconcile against the component count from REL-0011, and any difference must be itemised rather than explained away.",
+    "tests_required": [
+      "Inject a copyleft component into a permissive release -> the compatibility gate blocks.",
+      "Inject an UNKNOWN-licence component -> the gate blocks; unknown must not default to permissive.",
+      "A rider-bearing entry must be surfaced as its own class, not folded into its base licence name.",
+      "Reconciliation: inventory count versus component count; a mismatch fails until itemised."
+    ],
+    "reviewer_requirement": "one licence reviewer independent of the acquisition lane that classified the components, plus owner ruling on every UNKNOWN or rider-bearing entry",
+    "completion_sentinel": "SUCCESS:REL-0013",
+    "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is filed, never retried",
+    "failure_classification": [
+      "licence-incompatible",
+      "unknown-terms",
+      "rider-normalised-away"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "REL-0014",
+    "title": "Advisory re-scan at the promotion moment with an enforced freshness window",
+    "phase": "15",
+    "question_or_target": "Implementation target: make the vulnerability gate decay-aware. A scan result is a query against a live advisory database, so last week's green says nothing about today's advisory set. Implement three properties: re-run the scanner against the exact artifact hash at the moment of promotion, record the advisory-database snapshot identifier and timestamp inside the receipt, and refuse to consume any stored result older than the declared window rather than reusing it.",
+    "inputs": [
+      "the artifact hash being promoted",
+      "the scanner, pinned, and its advisory database snapshot metadata",
+      "any previously stored scan results and their timestamps",
+      "_USER-PROMPTS.md:11112 (vulnerability scan) and 11129 (all required gates pass)"
+    ],
+    "dependencies": [
+      "REL-0011"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "vulnerability-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__cloud-hub__modal_sandbox_create",
+      "mcp__cloud-hub__modal_sandbox_exec",
+      "mcp__cloud-hub__modal_sandbox_read_file",
+      "mcp__cloud-hub__modal_sandbox_terminate"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/REL-0014.json",
+    "output_schema": "command-center/schema/supply-chain-receipt.schema.json",
+    "evidence_requirement": "The receipt carries the artifact sha256, the database snapshot id, the scan timestamp and the window length. A promotion consuming a result outside the window must be visible as a refusal in the log, not merely absent.",
+    "tests_required": [
+      "Feed a stored result older than the window -> the gate refuses to consume it and forces a re-scan.",
+      "Detector control: pin a dependency with a known advisory -> the scanner reports it.",
+      "A scanner exiting non-zero for a tooling reason classifies NOT-CHECKED; the estate has a measured case where exit 127 was read as a clean scan.",
+      "Two runs minutes apart must both record their own snapshot id; a reused id fails the freshness check."
+    ],
+    "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+    "completion_sentinel": "SUCCESS:REL-0014",
+    "retry_policy": "retry permitted only with a re-pulled advisory database; reusing the cached database makes the second run the same measurement as the first",
+    "failure_classification": [
+      "stale-green",
+      "tool-error-as-pass",
+      "detector-failure"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0015",
+    "title": "Support matrix executed cell by cell, with unrun cells rendered as NOT-CHECKED",
+    "phase": "15",
+    "question_or_target": "Implementation target: convert the compatibility matrix from a table somebody typed into a table something ran. Enumerate the supported cells as operating system by client by client version, execute the identical install-and-smoke journey inside each cell, and write one receipt per cell. A cell that did not execute is emitted as NOT-CHECKED with its reason; it may never be inferred from a neighbouring cell, and the published table must render NOT-CHECKED visually distinct from PASS so a reader cannot mistake an untested platform for a supported one.",
+    "inputs": [
+      "the declared support contract: which operating systems and clients are in scope",
+      "the smoke journey definition shared with the canary rig",
+      "the per-cell runners, including the live Windows clients on this box",
+      "_USER-PROMPTS.md:11113 (compatibility matrix), 10997-10998 (cross-platform, cross-client)"
+    ],
+    "dependencies": [
+      "REL-0004"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "matrix-runner"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 10800,
+    "output_path": "command-center/receipts/REL-0015.json",
+    "output_schema": "command-center/schema/matrix-cell-receipt.schema.json",
+    "evidence_requirement": "One receipt per executed cell, each naming the client build string it actually observed rather than the one it intended to test. The count of published cells must equal the count of receipts plus the count of NOT-CHECKED entries, and that arithmetic must appear in the receipt.",
+    "tests_required": [
+      "Delete one cell's receipt -> the renderer shows NOT-CHECKED, not blank and not pass.",
+      "A failing cell must survive into the published table; silently dropping it fails the unit.",
+      "Render a fabricated all-pass input and a mixed input and diff the outputs; identical output means the renderer is not reading its input.",
+      "Arithmetic check: published cells equal receipts plus NOT-CHECKED entries."
+    ],
+    "reviewer_requirement": "two reviewers who file independently and do not see each other's verdict until both are filed; disagreement escalates to raw-artifact adjudication, never to a vote",
+    "completion_sentinel": "SUCCESS:REL-0015",
+    "retry_policy": "no blind retry. Re-runs count as flake measurement and every outcome is recorded; a green on run 5 of 5 does not overwrite the 4 reds, it is reported as 1/5",
+    "failure_classification": [
+      "unrun-cell-as-pass",
+      "inferred-coverage",
+      "renderer-blind"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0016",
+    "title": "Release notes projected from the claim registry, never hand-written",
+    "phase": "15",
+    "question_or_target": "Implementation target: generate the changelog and the release notes by projection from CLAIM-REGISTRY.json, so a sentence can only appear when it is backed by a claim whose verification status is VERIFIED and whose evidence anchor resolves on disk. Spec line 11123 requires notes grounded in verified changes, and a hand-typed note is an unfalsifiable claim wearing a changelog's clothes. INFERRED, UNVERIFIED, REJECTED and DEFERRED items are either excluded or rendered in a separately labelled section carrying the tag inline beside each item.",
+    "inputs": [
+      "command-center/CLAIM-REGISTRY.json with per-claim verification status and evidence anchors",
+      "the synthesis lane's root-cause hierarchy (B12)",
+      "the version derived by REL-0001",
+      "_USER-PROMPTS.md:11105-11123 (changelog, release notes grounded in verified changes)"
+    ],
+    "dependencies": [
+      "B01",
+      "B12"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "release-notes-generator"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/REL-0016.json",
+    "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+    "evidence_requirement": "Every generated line carries its source claim id. The receipt reports how many registry claims were eligible, how many were emitted, and how many were withheld with the reason per status class.",
+    "tests_required": [
+      "Inject an UNVERIFIED claim into the registry -> it must not appear in the verified section.",
+      "Point a VERIFIED claim's evidence anchor at a missing file -> the generator refuses rather than emits.",
+      "Fabrication control: hand-edit a sentence into the generated notes -> the build fails on the diff against a regeneration.",
+      "Positive control: a genuinely VERIFIED claim with a resolving anchor appears, proving the generator is not simply emitting nothing."
+    ],
+    "reviewer_requirement": "one reviewer given only the raw receipts and told to re-derive the verdict before being shown this unit's conclusion; reading the conclusion first anchors the review",
+    "completion_sentinel": "SUCCESS:REL-0016",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+    "failure_classification": [
+      "ungrounded-claim",
+      "hand-edited-artifact",
+      "broken-anchor"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0017",
+    "title": "Legacy hand-managed layout migration, dry-run first, on a copy, refusing one-directional overwrite",
+    "phase": "15",
+    "question_or_target": "Implementation target: rehearse converting the pre-plugin hand-managed layout -- loose skills in the live tree, hand-edited hook registrations, rule files modified in place -- into the plugin-managed layout. Work on a copy of a captured real layout, run the conversion in dry-run mode first and require the printed plan to match the applied result exactly, and demonstrate reversibility by restoring from the backup the conversion takes. Where the source holds content the target does not, the conversion must preserve it or refuse: the measured baseline on this estate is 5 of 88 live rule files identical to their repository counterparts, with unique content on both sides, so copying in either direction destroys work.",
+    "inputs": [
+      "a captured copy of the real hand-managed layout, never the live tree itself",
+      "the two-directional divergence measurement from the current-state audit lane (B02)",
+      "the typed inverse actions from REL-0002",
+      "_USER-PROMPTS.md:10838 (migration from old layouts) and 11306 (repository differs from live)"
+    ],
+    "dependencies": [
+      "REL-0002",
+      "B02"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "migration-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0017.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Show the dry-run plan and the applied diff side by side; they must be identical. State explicitly that the operation ran against a copy, with the copy's path. Report how many source-unique files were preserved versus refused.",
+    "tests_required": [
+      "Dry-run plan versus applied result: the diff must be empty.",
+      "A file existing only in the source layout survives the conversion with its hash intact.",
+      "Restore from the conversion's own backup returns the tree to its exact pre-conversion hash set.",
+      "A file differing only in line endings is classified unchanged, not as a conflict; otherwise every Windows-authored file reads as spurious drift."
+    ],
+    "reviewer_requirement": "one reviewer who must attempt to destroy a planted owner-authored file through any lifecycle path and demonstrate the oracle catches it before signing off",
+    "completion_sentinel": "SUCCESS:REL-0017",
+    "retry_policy": "resumable with mandatory restore: on interruption the profile is rolled back to its captured baseline before the next attempt, and the resume boundary is recorded",
+    "failure_classification": [
+      "one-directional-sync",
+      "data-loss-risk",
+      "eol-false-positive"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0018",
+    "title": "Promotion decision as executable code over the twenty-one stopping conditions",
+    "phase": "15",
+    "question_or_target": "Implementation target: implement the go/no-go as a program rather than a meeting. Evaluate each of the twenty-one program stopping conditions at spec lines 11376-11398 against evidence on disk, emit TRUE, FALSE or NOT-CHECKED per condition together with its evidence anchor, and return GO only when every condition is TRUE. NOT-CHECKED must block precisely as hard as FALSE: the measured state of this program is that seven of the twenty-one were never probed, and a checklist that quietly treats an unprobed condition as satisfied is more dangerous than having no checklist at all.",
+    "inputs": [
+      "_USER-PROMPTS.md:11376-11398 (the twenty-one conditions, verbatim)",
+      "the evidence artifacts each condition points at, on disk",
+      "REL-0003's owner ruling for condition 13",
+      "the completion predicate shared by every fan-in (spec 10627-10648)"
+    ],
+    "dependencies": [
+      "REL-0003",
+      "REL-0006",
+      "REL-0008",
+      "REL-0014",
+      "REL-0019"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "gate-implementer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0018.json",
+    "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+    "evidence_requirement": "The receipt lists all twenty-one conditions with verdict and anchor. Any condition whose evaluation is an inference rather than a file read must say so in its own row. The aggregate verdict must be reproducible by re-running the evaluator on the same tree.",
+    "tests_required": [
+      "Remove one condition's evidence file -> the evaluator emits NOT-CHECKED and returns NO-GO.",
+      "Supply a passing-looking evidence file with the wrong schema -> it must not count as TRUE.",
+      "Run against today's tree: the result must be NO-GO. A GO on the current tree would prove the evaluator is not reading real evidence.",
+      "Condition 13 must read REL-0003's recorded ruling rather than hardcoding an interpretation of canary."
+    ],
+    "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than this unit's executor; a same-vendor reviewer inherits the executor's blind spots",
+    "completion_sentinel": "SUCCESS:REL-0018",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+    "failure_classification": [
+      "unprobed-as-pass",
+      "schema-blind-evidence",
+      "non-reproducible-verdict"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0019",
+    "title": "Numeric misfire budgets for every shipped gate, measured on labelled fixtures",
+    "phase": "15",
+    "question_or_target": "Implementation target: give spec line 11130 a number. For each gate that ships and can misfire -- the completion predicate, the credential scanner, the capability router, the near-duplicate detector, the drift detector -- define concretely what a false positive and a false negative are, assemble a labelled fixture set containing both known-good and known-bad inputs, measure both rates during canary observation, and publish a per-gate promote threshold accompanied by its sample size and interval rather than a bare percentage.",
+    "inputs": [
+      "the shipped gate inventory with each gate's decision surface",
+      "labelled fixtures: known-good and known-bad inputs per gate",
+      "canary observation output from the rig in REL-0004",
+      "_USER-PROMPTS.md:11130 (false-positive and false-negative telemetry acceptable)"
+    ],
+    "dependencies": [
+      "REL-0004",
+      "B08"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__cloud-hub__modal_sandbox_create",
+      "mcp__cloud-hub__modal_sandbox_exec",
+      "mcp__cloud-hub__modal_sandbox_read_file",
+      "mcp__cloud-hub__modal_sandbox_terminate"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0019.json",
+    "output_schema": "command-center/schema/telemetry-threshold-receipt.schema.json",
+    "evidence_requirement": "Each rate is published with its denominator and interval. A gate with no known-bad fixture has an unmeasurable false-negative rate and must be published as NOT-CHECKED, never assigned a passing threshold by default.",
+    "tests_required": [
+      "Every gate must be exercised by at least one known-bad fixture or be reported NOT-CHECKED.",
+      "Rates must reproduce exactly when the fixture set is re-run with the same seed.",
+      "Perturb one gate to always accept -> its false-negative rate must move measurably.",
+      "A published threshold whose sample size is below the declared minimum must be flagged, not rounded."
+    ],
+    "reviewer_requirement": "two reviewers who file independently and do not see each other's verdict until both are filed; disagreement escalates to raw-artifact adjudication, never to a vote",
+    "completion_sentinel": "SUCCESS:REL-0019",
+    "retry_policy": "no blind retry. Re-runs count as flake measurement and every outcome is recorded; a green on run 5 of 5 does not overwrite the 4 reds, it is reported as 1/5",
+    "failure_classification": [
+      "unmeasurable-rate",
+      "default-pass-threshold",
+      "sample-too-small"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0020",
+    "title": "Cache invalidation proved from the poisoned state, not the empty one",
+    "phase": "15",
+    "question_or_target": "Implementation target: prove the release's refresh step actually invalidates. Construct the broken state deliberately -- a stale copy of the previous package seeded into every cache location the client consults -- then install the candidate and assert the running client executes the new bytes. Spec line 11305 names the class: a stale cache masking a fixed package. An invalidation test run against an empty cache is silent in the broken state and the fixed state alike, and therefore measures nothing at all.",
+    "inputs": [
+      "the cache locations the client consults, enumerated from the client's own resolution order",
+      "the previous package used as the poison payload",
+      "the candidate package and its refresh step",
+      "_USER-PROMPTS.md:11305 (stale cache masks a fixed package) and 10837 (cache refresh)"
+    ],
+    "dependencies": [
+      "REL-0004"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "cache-forensics"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0020.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Enumerate every cache location seeded and every location the probe could not reach, the latter marked NOT-CHECKED. Quote the behavioural output that distinguishes old bytes from new bytes; a version string is not that output.",
+    "tests_required": [
+      "With the refresh step disabled the drill must FAIL, proving it can perceive the defect.",
+      "With the refresh step enabled and the cache poisoned, the client executes the new behaviour.",
+      "Show that a version-string read reports the new version while poisoned old bytes still execute.",
+      "Any cache location not covered appears as NOT-CHECKED rather than being omitted from the receipt."
+    ],
+    "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+    "completion_sentinel": "SUCCESS:REL-0020",
+    "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+    "failure_classification": [
+      "stale-cache-masking",
+      "silent-in-both-states",
+      "incomplete-enumeration"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0021",
+    "title": "Three-way byte parity between git blob, packaged copy and deployed copy",
+    "phase": "15",
+    "question_or_target": "Implementation target: before promoting, prove the three copies of every shipped file agree. Compare, per file, the git blob obtained with git cat-file (never git archive, which on this box hands back CRLF worktree bytes instead of the blob), the bytes inside the built package, and the bytes in the deployed tree, normalising line endings before comparison so that end-of-line noise cannot masquerade as content drift. Block when the deployed copy and the repository copy each hold unique content, because that is the two-directional case where reconciling in either direction destroys work.",
+    "inputs": [
+      "the git object store at the promotion commit",
+      "the built package entry contents",
+      "the deployed tree the package claims to represent",
+      "the two-directional divergence baseline from the current-state audit lane (B02)"
+    ],
+    "dependencies": [
+      "B02"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "parity-auditor"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0021.json",
+    "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+    "evidence_requirement": "Report the four-way classification counts: identical, package-only, deployed-only, and divergent-both-ways. Name the retrieval command used for the blob and show the measured CRLF count difference against the rejected alternative, so the recipe choice is evidenced rather than asserted.",
+    "tests_required": [
+      "Run git archive and git cat-file on one known file and record the differing CRLF counts, justifying the chosen recipe.",
+      "A file present only in the deployed tree classifies as deployed-only, not as missing.",
+      "A file differing only in line endings classifies as identical.",
+      "A planted two-directional divergence produces BLOCK, never a one-directional sync proposal."
+    ],
+    "reviewer_requirement": "one reviewer who must attempt to destroy a planted owner-authored file through any lifecycle path and demonstrate the oracle catches it before signing off",
+    "completion_sentinel": "SUCCESS:REL-0021",
+    "retry_policy": "zero retries. The first observation IS the verdict; a later disagreeing run is recorded as a discrepancy (spec 11039), never retried away",
+    "failure_classification": [
+      "repo-live-drift",
+      "wrong-blob-recipe",
+      "eol-false-positive"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0022",
+    "title": "Rollback coverage measured by instrumenting a real install, not by reading the manifest",
+    "phase": "15",
+    "question_or_target": "Implementation target: find out what the recorded recovery plan does NOT cover, by watching the installer run instead of by reading the plan. Attach a system-level observer to a genuine install so each side effect it produces is captured as it happens, then subtract the recorded inverse set from the observed side-effect set in both directions. Anything observed but unrecorded is a recovery hole; anything recorded but never observed is a stale entry that will send the next responder somewhere nothing happened. Coverage inferred from reading a document is not coverage.",
+    "inputs": [
+      "the system-level observer and the measured limits of what it can see",
+      "the installer under test, run inside the canary profile",
+      "the recorded inverse set standardised by REL-0002",
+      "_USER-PROMPTS.md:11107 (rollback guide) and 11391 (rollback is tested)"
+    ],
+    "dependencies": [
+      "REL-0002",
+      "REL-0004"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5.1-codex",
+      "vendor": "openai",
+      "role": "instrumentation-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash",
+      "PowerShell"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0022.json",
+    "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+    "evidence_requirement": "State what the observer can and cannot perceive -- side effects produced by a spawned child process, for instance -- and mark the blind region NOT-CHECKED. A zero-hole finding is only as wide as the observer's demonstrated reach, and that reach must be shown before the finding is stated.",
+    "tests_required": [
+      "Detector control: produce a known side effect and confirm the observer captures it, before any zero-hole finding is entertained.",
+      "Introduce an unrecorded side effect into the installer -> the subtraction reports a hole.",
+      "Remove a real side effect while leaving its recorded inverse -> the stale-entry direction fires.",
+      "Side effects produced by a child process are either captured or declared an uncovered region."
+    ],
+    "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+    "completion_sentinel": "SUCCESS:REL-0022",
+    "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+    "failure_classification": [
+      "rollback-hole",
+      "dead-manifest-entry",
+      "observer-blind-spot"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0023",
+    "title": "Withdrawal drill: deprecate then revoke in the private registry and measure the exposure window",
+    "phase": "15",
+    "question_or_target": "Implementation target: rehearse pulling a bad version back. In the private file-backed registry mark a version deprecated and then revoked, and measure what an already-installed client does at its next resolve: warn, refuse to move to the revoked version, or keep running it unaware. Under PR-ONLY the public half of withdrawal is a revert pull request, so the drill must exercise both halves and state plainly which of the two actually protects somebody who installed before the withdrawal, along with the measured delay between the revert merging and the registry reflecting it.",
+    "inputs": [
+      "the private file-backed registry and its deprecation and revocation fields",
+      "an installed client in the canary profile pinned to the version being withdrawn",
+      "the revert pull request mechanics under PR-ONLY",
+      "_USER-PROMPTS.md:10864 (deprecation and revocation) and 11122 (deprecation policy)"
+    ],
+    "dependencies": [
+      "REL-0001",
+      "B07"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "incident-rehearsal-lead"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__github__pull_request_read",
+      "mcp__github__list_commits",
+      "mcp__github__get_file_contents"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/receipts/REL-0023.json",
+    "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "evidence_requirement": "Record the client's observed behaviour at next resolve for each of the three registry states, and the measured delay in seconds between the revert merging and the registry reflecting it. That delay is the exposure window and must be published in the runbook, not left implicit.",
+    "tests_required": [
+      "An installed client offered a revoked version must refuse to move to it.",
+      "A fresh install must not resolve a revoked version at all.",
+      "A deprecated-but-not-revoked version still installs and emits a visible warning.",
+      "The exposure window is measured with a named clock source, not estimated."
+    ],
+    "reviewer_requirement": "one reviewer who re-executes the drill end to end on a freshly created profile from the recorded commands alone; a reviewer who reads the transcript has not rehearsed it",
+    "completion_sentinel": "SUCCESS:REL-0023",
+    "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is filed, never retried",
+    "failure_classification": [
+      "withdrawal-ineffective",
+      "unbounded-exposure-window",
+      "silent-downgrade-path"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "REL-0024",
+    "title": "Every ceremony defect becomes a permanent test, each proved red on the pre-fix commit",
+    "phase": "16",
+    "question_or_target": "Implementation target: close the loop demanded at spec line 11148 so a defect surfaced during the release ceremony cannot quietly come back. For each defect found anywhere in this bucket, author a regression test and prove it is real by executing it against the commit BEFORE the fix and requiring red, then against the commit after and requiring green. A test that stays green on both commits is protecting nothing and must be rejected by the generator rather than merged, and the mapping from defect identifier to test identifier must be total, with any unmapped defect listed rather than dropped.",
+    "inputs": [
+      "the defect records emitted by every other unit in this bucket",
+      "the pre-fix and post-fix commit pairs for each defect",
+      "the benchmark and regression suite the fix must be wired into (B08)",
+      "_USER-PROMPTS.md:11135-11150 (self-improvement loop) and 11298-11347 (seeded failure classes)"
+    ],
+    "dependencies": [
+      "REL-0018",
+      "B08"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "regression-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write",
+      "Bash",
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/receipts/REL-0024.json",
+    "output_schema": "command-center/schema/regression-seed-receipt.schema.json",
+    "evidence_requirement": "For every generated test, record both commit shas and both outcomes. A test lacking a recorded red run on the pre-fix commit is unproven and must not be counted toward coverage of that defect.",
+    "tests_required": [
+      "Fail-first control on each generated test: red on the pre-fix commit, green on the post-fix commit.",
+      "A trivially-passing test must be rejected by the generator rather than accepted into the suite.",
+      "Delete a fix and re-run the seeded suite in CI; it must go red, proving the wiring is live.",
+      "Totality: every defect identifier maps to a test identifier, or is listed as unmapped with a reason."
+    ],
+    "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than this unit's executor; a same-vendor reviewer inherits the executor's blind spots",
+    "completion_sentinel": "SUCCESS:REL-0024",
+    "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure carrying the same error fingerprint, enumerate at least two mechanically different approaches before any third attempt",
+    "failure_classification": [
+      "green-in-both-states",
+      "unwired-suite",
+      "coverage-overclaim"
+    ],
+    "owner_approval_required": false
+  }
+]

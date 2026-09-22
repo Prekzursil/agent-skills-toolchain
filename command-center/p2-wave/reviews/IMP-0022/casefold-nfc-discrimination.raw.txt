@@ -1,0 +1,42 @@
+IMP-0022 INDEPENDENT REVIEW: CASEFOLD/NFC DISCRIMINATION (fresh-context reviewer)
+REVIEW-BEGIN:IMP-0022
+reviewer_vendor=claude host_platform=windows
+python_version=3.14.6
+unit_under_review=C:\Users\Prekzursil\source\agent-skills-toolchain\tools\plugin\casefold_paths.py
+catalog_requirement=normalisation is casefold, not lower(); Unicode NFC applied first
+
+-- premise controls: prove each pair actually discriminates in Python semantics --
+[PASS] premise D1 lower() MISSES the sharp-s pair :: lower: strasse.md != stra\xdfe.md
+[PASS] premise D1 casefold() catches the sharp-s pair :: casefold: strasse.md == strasse.md
+[PASS] premise D2 lower() MISSES the final-sigma pair :: lower: file-\u03c3.md != file-\u03c2.md
+[PASS] premise D2 casefold() catches the final-sigma pair :: casefold: file-\u03c3.md == file-\u03c3.md
+[PASS] premise D3 d3a is really NFD and NFC-composes to capital-C 'Café.md' :: NFC(Cafe\u0301.md) == Caf\xe9.md
+[PASS] premise D4 NFC('ſ'+dot) == 'ẛ' (canonical composition) :: U+017F+U+0307 composes to U+1E9B
+[PASS] premise D4 casefold('ẛ') == 'ṡ' (observed on this CPython build) :: full fold of U+1E9B is \u1e61
+[PASS] premise D4 casefold('ſ') == 's' (full folding) :: U+017F full-folds to ASCII s
+[PASS] premise D4 NFC(casefold(d4b)) == casefold(NFC(d4b)) -- full folding COMMUTES with NFC composition on this build, so strict order is anchored in code (casefold_paths.py:88-95), not behavior :: both orders give \u1e61.md
+[PASS] premise D4 no-NFC fold of the two D4 forms DIFFERS (pair discriminates) :: casefold: \u1e61.md != s\u0307.md; lower: \u1e9b.md != \u017f\u0307.md
+
+[PASS] D1 impl keys are the CASEFOLD ('strasse.md' for both; lower would be 'straß.md' for one) :: key(STRASSE.md)=strasse.md key(Stra\xdfe.md)=strasse.md
+[PASS] D1 impl reports collision group for the sharp-s pair (lower() would MISS) :: groups=1 key=strasse.md paths=['STRASSE.md', 'Stra\\xdfe.md']
+
+[PASS] D2 impl reports collision group for sigma vs final sigma (lower() would MISS) :: groups=1 key=file-\u03c3.md paths=['file-\\u03c2.md', 'file-\\u03c3.md']
+
+[PASS] D3 impl keys equal for NFD vs NFC accent (NFC absent -> keys differ) :: key(Cafe\u0301.md)=caf\xe9.md key(caf\xe9.md)=caf\xe9.md
+[PASS] D3 impl reports mixed-case NFD/NFC collision group (group paths are the NFC-normalised exacts) :: groups=1 key=caf\xe9.md paths=['Caf\\xe9.md', 'caf\\xe9.md']
+
+[PASS] D4 impl key('ẛ.md') == 'ṡ.md' (observed fold of U+1E9B) :: key=\u1e61.md
+[PASS] D4 impl key('ẛ.md') == 'ṡ.md' -- NFC composed BEFORE casefold; a no-NFC key folds to 's'+dot and DIFFERS; lower() differs too :: key=\u1e61.md; no-NFC alternative would be s\u0307.md
+[PASS] D4 NFC PRESENCE: keys of both forms are EQUAL -- no-NFC and lower() both give DIFFERENT keys on this pair :: key(\u1e9b.md)=\u1e61.md key(\u017f\u0307.md)=\u1e61.md
+[PASS] D4 documented consequence: post-NFC the pair is an EXACT duplicate, so the dedupe absorbs it (paths=1, groups=0) -- recorded as a macOS/APFS residual, not a Windows one (NTFS compares case only; these two names never collide there) :: paths_after_dedupe=1 groups=0 deduped_to=\u1e9b.md
+
+[PASS] C1 negative control: exact duplicate deduped; group holds exactly 2 paths :: groups=1 key=readme.md paths=['README.md', 'readme.md']
+[PASS] C2 negative control: clean disjoint set reports 0 groups :: groups=0
+
+[PASS] P1 fixture: git tree holds BOTH case-variant names (impossible on NTFS disk) :: ls-tree=['README.md', 'readme.md']
+[PASS] P1 packer refuses colliding members before archive emit :: PackError names both paths; out.exists()=False; tail=casefold collision group key='readme.md' paths=['README.md', 'readme.md']
+
+discriminating_checks_failed=0
+independent_review_casefold_nfc=PASS
+REVIEW-COMPLETE:IMP-0022
+SUCCESS:IMP-0022-review-discrimination

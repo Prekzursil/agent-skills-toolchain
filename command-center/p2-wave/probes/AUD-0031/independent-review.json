@@ -1,0 +1,133 @@
+{
+  "reviewer_id": "fresh-context-openai-composer-AUD-0031-probe2-only",
+  "vendor": "openai",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:25:08Z",
+  "unit_id": "AUD-0031",
+  "head_sha": "48642263c2a4abe7374068f701c730445e82361c",
+  "artifact_state_observed": "BLOCKED",
+  "catalog_reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe",
+  "probe2_rerun": {
+    "command": "python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+    "exit_code": 0,
+    "success_line": "SUCCESS:AUD-0031-probe2",
+    "raw_byte_identical_to_committed": true,
+    "committed_raw_sha256": "5e2c6450390c1b714e92e8a1b2e4f3c5896ad9276ac3d624a9c50fa362127cb5",
+    "rerun_raw_sha256": "5e2c6450390c1b714e92e8a1b2e4f3c5896ad9276ac3d624a9c50fa362127cb5",
+    "committed_json_sha256": "e1546501c2fcd00f6488a427db5e29c4074a3b75cdfe69511698bcd286d61284",
+    "rerun_json_sha256": "e1546501c2fcd00f6488a427db5e29c4074a3b75cdfe69511698bcd286d61284",
+    "headline": {
+      "entry_point_count": 6,
+      "modules_executed_count": 0,
+      "modules_executed_by_non_test_entries": [],
+      "modules_never_executed_count": 6,
+      "modules_never_executed_by_non_test_entries": [
+        "codex-invocation.mjs",
+        "git-diff.mjs",
+        "handled-ledger.mjs",
+        "net-allowlist.mjs",
+        "security.mjs",
+        "workspace.mjs"
+      ],
+      "planted_mention_control_ok": true,
+      "ok": true
+    },
+    "matches_committed_headline": {
+      "modules_executed_count": true,
+      "modules_never_executed": true,
+      "entry_points": true,
+      "planted_mention_control_ok": true,
+      "ok": true
+    },
+    "log": "/opt/cursor/artifacts/aud0031-review-probe2.log"
+  },
+  "notes": "Cross-vendor (openai) independent review of AUD-0031 salvage consumption verify. Catalog requires re-run of ONLY probe2. Re-ran probe2_runtime_coverage.py at HEAD 48642263c; raw output byte-identical to committed; headline fields match (entry_point_count=6, modules_executed_count=0, modules_never_executed_count=6 for all six salvage modules, planted_mention_control.ok=True). Goal: FALSIFY zero non-test consumption. Could not. Independent static JS import scan over 358 files found exactly 6 import sites to tools/lib salvage modules \u2014 all under tools/lib/tests/*.test.mjs (testish=true); nontest import consumers=0. Package-name hunt for @prekzursil/tools-lib found no nontest import/require/from lines (only package-lock workspace link, AUD-0021/0022 audit text, and the planted comment-only control). No sibling package.json declares a dependency on @prekzursil/tools-lib. Six probe2 entry points contain zero tools/lib references. Suspect substring hits (agent-self workflows, salvaged-from-scratch codex-orchestrator, metaswarm, ui-audit) have no import/from/require of salvage modules. Planted mention-only control executes under NODE_V8_COVERAGE with tools/lib ranges=0. Claim holds: non_test consumers=0; all 6 modules never executed by nontest entries; mention-only control held. Did not pack SUCCESS / did not run _pack_receipt.py ADMIT; leaving promotion to parent. Only this independent-review.json is intended to be committed.",
+  "headline_reproduced": {
+    "non_test_consumer_edges_probe1_committed": 0,
+    "modules_executed_by_non_test_entries": [],
+    "modules_never_executed_by_non_test_entries": [
+      "codex-invocation.mjs",
+      "git-diff.mjs",
+      "handled-ledger.mjs",
+      "net-allowlist.mjs",
+      "security.mjs",
+      "workspace.mjs"
+    ],
+    "planted_mention_control_ok": true
+  },
+  "falsification_attempts": [
+    {
+      "target": "modules_executed_count=0 / never_executed=6 (probe2 headline)",
+      "method": "Re-run ONLY probe2_runtime_coverage.py; diff raw vs committed; compare headline JSON fields",
+      "result": "NOT-FALSIFIED",
+      "evidence": "exit 0; SUCCESS:AUD-0031-probe2; raw byte-identical; modules_executed=[]; never_executed=all 6; planted_mention_control.ok=True",
+      "log": "/opt/cursor/artifacts/aud0031-review-probe2.log"
+    },
+    {
+      "target": "Hidden nontest static import consumer of tools/lib (falsify edges=0)",
+      "method": "Independent comment-stripped JS import/require/from scan resolving specs to the 6 salvage modules across repo (excl node_modules)",
+      "result": "NOT-FALSIFIED",
+      "evidence": "files_scanned=358; import_hits_all=6 all under tools/lib/tests/*.test.mjs; import_hits_nontest=0",
+      "log": "/opt/cursor/artifacts/aud0031-review-falsify.log"
+    },
+    {
+      "target": "Package-name consumer via @prekzursil/tools-lib exports",
+      "method": "Search for package name + tools/lib path imports; check sibling package.json dependencies",
+      "result": "NOT-FALSIFIED",
+      "evidence": "nontest package-name IMPORT lines=0; sibling deps on @prekzursil/tools-lib=none; only lockfile workspace + audit/probe text + commented control",
+      "log": "/opt/cursor/artifacts/aud0031-review-falsify2.log"
+    },
+    {
+      "target": "Probe2 entry points miss a real consumer that still imports tools/lib",
+      "method": "Grep the 6 collected entry points for tools/lib / @prekzursil/tools-lib; cross-check with static nontest import scan",
+      "result": "NOT-FALSIFIED",
+      "evidence": "All 6 entry points have 0 tools/lib refs; static nontest imports also 0 \u2014 no missed consumer outside entry-point set",
+      "log": "/opt/cursor/artifacts/aud0031-review-falsify2.log"
+    },
+    {
+      "target": "Substring mention files are real consumers (salvaged-from-scratch / agent-self / metaswarm / ui-audit)",
+      "method": "Open each suspect and require import/from/require lines to salvage modules",
+      "result": "NOT-FALSIFIED (mentions only / unrelated substrings)",
+      "evidence": "No import/from/require lines to tools/lib salvage modules in any listed suspect file",
+      "log": "/opt/cursor/artifacts/aud0031-review-falsify2.log"
+    },
+    {
+      "target": "Planted mention-only control secretly executes tools/lib (deflate control)",
+      "method": "Node dynamic-import control under NODE_V8_COVERAGE; inspect coverage for tools/lib/*.mjs executed ranges",
+      "result": "NOT-FALSIFIED",
+      "evidence": "control exit 0; tools/lib executed ranges=[]; probe2 planted_mention_control.ok=True",
+      "log": "/opt/cursor/artifacts/aud0031-review-falsify2.log"
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud0031-independent-review-3dad",
+    "python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+    "diff committed vs rerun probe2 raw (identical); restored committed probe2 artifacts",
+    "python3 independent static import + package-name falsify scans",
+    "node NODE_V8_COVERAGE import of mention_only.mjs"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0031-review-probe2.log",
+    "/opt/cursor/artifacts/aud0031-review-compare.log",
+    "/opt/cursor/artifacts/aud0031-review-falsify.log",
+    "/opt/cursor/artifacts/aud0031-review-falsify2.log"
+  ],
+  "confirmed": [
+    "probe2_rerun_success",
+    "raw_byte_identical_to_committed",
+    "modules_executed_count_0",
+    "all_6_never_executed_by_nontest_entries",
+    "planted_mention_control_runtime_ok",
+    "nontest_static_import_consumers_0",
+    "no_sibling_package_dep_on_tools_lib"
+  ],
+  "falsified": [],
+  "promotion": {
+    "packed_success": false,
+    "reason": "PASS record only; parent should promote via packer+ADMIT when ready. Artifact remains BLOCKED until review field is applied by implementer."
+  },
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED"
+}

@@ -1,0 +1,90 @@
+{
+  "reviewer_id": "fresh-context-composer-reviewer-AUD-0047",
+  "vendor": "openai",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:20:31Z",
+  "unit_id": "AUD-0047",
+  "head_sha": "8eef8d40571463af15f6fc01e032a31c5c13843c",
+  "artifact_state_observed": "BLOCKED",
+  "notes": "Fresh-context independent review of AUD-0047 path-filter audit. Goal: FALSIFY headline filtered_workflow_count=0 / live_hole_count=0 / planted_miss_caught=True / vacuous_no_filter=12 on the declared scan surface (.github/workflows/*.yml). Could not. Re-ran both named probes; raw outputs byte-identical to committed. Independent census of all 12 root workflows: zero literal (non-comment) paths:/paths-ignore: keys; extract_event_path_filters empty for every on.push/pull_request/pull_request_target block (cfg keys are branches/types only). All 12 hit PyYAML on:→True quirk; load_workflow remaps it — planted fixture also uses True-key and would silently report hole_count=0 without the remap, so the control proves the quirk fix is load-bearing. Planted paths-ignore fixture yields 4 holes including command-center/receipt_validate.py on push and pull_request (planted_miss_caught=True). Synthetic injection of paths-ignore into a quality.yml-shaped copy and a paths-allowlist miss both fire the detector. No dorny/paths-filter or job-level path if: signals in root workflows (residual_unknown job-level remains NOT-CHECKED, does not move headline). Vendor/extra trees: ralph/metaswarm have no path filters; node_modules/fast-uri has paths-ignore but is outside probe1 glob and shows holes=0 against its own inferred set. Did not promote receipt to SUCCESS / did not run packer ADMIT; leaving promotion to parent. Only this independent-review.json is intended to be committed.",
+  "headline_reproduced": {
+    "workflows_scanned": 12,
+    "filtered_workflow_count": 0,
+    "live_hole_count": 0,
+    "planted_miss_caught": true,
+    "no_filter_vacuous_count": 12,
+    "api_unavailable": false,
+    "confirmed_run_count": 0,
+    "unconfirmed_count": 0
+  },
+  "falsification_attempts": [
+    {
+      "target": "filtered_workflow_count=0 / live_hole_count=0 (headline)",
+      "method": "Re-run probe1_path_filter_eval.py; diff raw vs committed; independent evaluate_workflow over all 12 root yml",
+      "result": "NOT-FALSIFIED",
+      "evidence": "probe1 exit 0; raw byte-identical; independent SUMMARY root: workflows=12 filtered=0 live_holes=0; LIVE-HOLES empty"
+    },
+    {
+      "target": "planted_miss_caught=True (deflate control)",
+      "method": "Re-evaluate fixtures/planted-paths-ignore/workflow.yml with protected_files.txt override; confirm receipt_validate.py hole",
+      "result": "NOT-FALSIFIED",
+      "evidence": "planted hole_count=4; PLANTED holes for receipt_validate.py and IMP-0435.json on push+pull_request; planted_miss_caught=True"
+    },
+    {
+      "target": "YAML on:→True quirk hides live path filters",
+      "method": "Compare yaml.safe_load True-key vs load_workflow remap for all 12 + planted",
+      "result": "NOT-FALSIFIED (no live filters to hide); CONTROL DEPENDS ON FIX",
+      "evidence": "All 12 have True-key and zero path filters under it — broken loader also yields filtered=0 (vacuous). Planted True-key filters exist; without remap extract_event_path_filters(on)=[] so planted_miss_caught would be False — quirk fix is proven by the control"
+    },
+    {
+      "target": "Missed .yaml / nested .github workflow files inflate under-count",
+      "method": "rglob under .github for workflow yml/yaml; compare *.yml vs *.yaml globs",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Exactly 12 files under .github/workflows; *.yaml=0; no nested workflow dirs"
+    },
+    {
+      "target": "Job-level / dorny paths-filter hole outside on: block",
+      "method": "Scan jobs/steps for paths-filter uses, with.filters, job.if path/filename conditions",
+      "result": "NOT-FALSIFIED on declared on.push/PR surface; residual scope acknowledged",
+      "evidence": "No job-level path-filter signals in root workflows. Catalog residual_unknowns already marks job-level/reusable NOT-CHECKED — does not falsify live_hole_count for on-block filters"
+    },
+    {
+      "target": "Detector blind to synthetic paths-ignore or paths allowlist miss",
+      "method": "Temp workflow with paths-ignore excluding inferred protected file; temp allowlist paths: docs/** vs protected receipt_validate.py",
+      "result": "REFUTED (detector catches both)",
+      "evidence": "Synthetic paths-ignore hole_count=1 reason=paths-ignore matches; allowlist miss reason=paths allowlist misses"
+    },
+    {
+      "target": "Vendor workflows in scope with live holes",
+      "method": "evaluate_workflow on metaswarm, ralph vendor, hacktricks node_modules workflow trees",
+      "result": "NOT-FALSIFIED for declared surface",
+      "evidence": "Probe1 surface is REPO/.github/workflows/*.yml only. Vendor non-nm: filters=False. node_modules/fast-uri has paths-ignore docs/**|*.md but holes=0 vs inferred protected; out of glob"
+    },
+    {
+      "target": "vacuous_no_filter=12 / probe2 ok misclassified",
+      "method": "Re-run probe2_run_history.py; dump on-block cfg keys for push/PR events; compare no_filter_vacuous_count",
+      "result": "NOT-FALSIFIED",
+      "evidence": "probe2 exit 0; raw byte-identical; no_filter_vacuous_count=12 api_unavailable=False; push/PR cfg_keys are branches or types only — no path keys"
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud0047-independent-review-0b16 origin/cursor/p2-loop-to-green-0db0",
+    "python3 -B command-center/p2-wave/probes/AUD-0047/probe1_path_filter_eval.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+    "diff committed vs rerun probe1/probe2 raw (identical); restored committed probe artifacts",
+    "python3 independent census (load_workflow + evaluate_workflow + vendor scan)",
+    "python3 aggressive falsify script (quirk ablation, synthetic holes, job-level scan, allowlist)"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0047-review-probe1.log",
+    "/opt/cursor/artifacts/aud0047-review-probe2.log",
+    "/opt/cursor/artifacts/aud0047-review-independent-census.log",
+    "/opt/cursor/artifacts/aud0047-review-falsify.log"
+  ],
+  "promotion": {
+    "packed_success": false,
+    "reason": "PASS record only; parent should promote via packer+ADMIT when ready. Artifact remains BLOCKED until review field is applied by implementer."
+  }
+}

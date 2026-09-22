@@ -670,3 +670,13 @@ Write your answer after the arrow. Anything left blank takes the stated default.
    F-B-02's own text — they are the evidence). Detail: `OPTION-ID-RESOLUTION.md` §7a.
 4. **Schedule the 58 unadjudicated `M-NN` references** and the third/fourth namespaces (§7b, §7c of
    the same file). Author work, not owner work — but it needs an owner-visible slot or it rots.
+
+## CC-0023 — 58 unresolvable option-id refs
+
+Owner adjudication for the 58 algorithmically unresolvable `M-NN` references lives in:
+
+- `command-center/option-id/OWNER-ADJUDICATION-PACKET.md` (one foundation question at a time)
+- `command-center/option-id/OWNER-ADJUDICATION-LEDGER.json` (machine ledger)
+- `command-center/OWNER-DECISIONS.md` section `CC-0023 — option-id namespace adjudication`
+
+Do not invent answers. Unanswered → DEFERRED + impact.

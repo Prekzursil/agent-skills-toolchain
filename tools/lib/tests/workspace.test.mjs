@@ -112,3 +112,106 @@ test('workspace: a package.json with no test script falls through, and malformed
   await fs.writeFile(path.join(broken, 'package.json'), '{ not json', 'utf8');
   assert.equal(await detectTestCommand(broken), null);
 });
+
+test('workspace: findRepoRoot and detectWorkspaceRoot default to process.cwd when startDir is omitted', async () => {
+  const here = await fs.realpath(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+  assert.equal(await findRepoRoot(), await findRepoRoot(here));
+  assert.equal(await detectWorkspaceRoot(), await detectWorkspaceRoot(here));
+});
+
+test('workspace: detectPackageManager recognises yarn and pnpm lockfiles', async () => {
+  const dir = await tmp();
+  try {
+    await fs.writeFile(path.join(dir, 'pnpm-lock.yaml'), '', 'utf8');
+    assert.equal(await detectPackageManager(dir), 'pnpm');
+    await fs.rm(path.join(dir, 'pnpm-lock.yaml'));
+    await fs.writeFile(path.join(dir, 'yarn.lock'), '', 'utf8');
+    assert.equal(await detectPackageManager(dir), 'yarn');
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('workspace: detectTestCommand maps the package manager into the npm-family test command', async () => {
+  const dir = await tmp();
+  try {
+    await fs.writeFile(path.join(dir, 'package.json'), JSON.stringify({ scripts: { test: 'node --test' } }), 'utf8');
+    await fs.writeFile(path.join(dir, 'pnpm-lock.yaml'), '', 'utf8');
+    assert.equal(await detectTestCommand(dir), 'pnpm test');
+    await fs.rm(path.join(dir, 'pnpm-lock.yaml'));
+    await fs.writeFile(path.join(dir, 'yarn.lock'), '', 'utf8');
+    assert.equal(await detectTestCommand(dir), 'yarn test');
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('workspace: a non-string or whitespace-only test script falls through to null', async () => {
+  const dir = await tmp();
+  try {
+    await fs.writeFile(path.join(dir, 'package.json'), JSON.stringify({ scripts: { test: '   ' } }), 'utf8');
+    assert.equal(await detectTestCommand(dir), null);
+    await fs.writeFile(path.join(dir, 'package.json'), JSON.stringify({ scripts: { test: 5 } }), 'utf8');
+    assert.equal(await detectTestCommand(dir), null);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('workspace: each python marker alone selects pytest', async () => {
+  for (const marker of ['pytest.ini', 'pyproject.toml', 'requirements.txt']) {
+    const dir = await tmp();
+    try {
+      await fs.writeFile(path.join(dir, marker), '', 'utf8');
+      assert.equal(await detectTestCommand(dir), 'pytest -q', `${marker} alone must select pytest`);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
+  }
+});
+
+test('workspace: an empty package.json has no test command', async () => {
+  const dir = await tmp();
+  try {
+    await fs.writeFile(path.join(dir, 'package.json'), '{}', 'utf8');
+    assert.equal(await detectTestCommand(dir), null);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('workspace: the 50-level walk cap gives up instead of looping forever', async () => {
+  // A 52-level-deep leaf with no .git and no marker anywhere above it (within the cap window):
+  // both walks must hit the iteration cap rather than reach the filesystem root or the home
+  // directory's package.json, which sits ~57 levels above the leaf - beyond the 50 cap.
+  const base = await tmp();
+  try {
+    // Single-char segment names keep the leaf path under the Windows chdir limit
+    // (ENAMETOOLONG measured with longer names).
+    let leaf = path.join(base, ...Array.from({ length: 51 }, () => 'a'));
+    await fs.mkdir(leaf, { recursive: true });
+
+    assert.equal(await findRepoRoot(leaf), null);
+    assert.equal(await detectWorkspaceRoot(leaf), leaf);
+
+    // With startDir omitted AND cwd deep inside the leaf, both detectors default to
+    // process.cwd() (the `startDir || process.cwd()` fallback) and still cap out.
+    const oldCwd = process.cwd();
+    try {
+      process.chdir(leaf);
+      assert.equal(await findRepoRoot(), null);
+      assert.equal(await detectWorkspaceRoot(), leaf);
+    } finally {
+      process.chdir(oldCwd);
+    }
+  } finally {
+    await fs.rm(base, { recursive: true, force: true });
+  }
+});
+
+test('workspace: the marker walk breaks at the drive root when no marker exists above it', async () => {
+  // The volume root has no marker files and dirname(root) === root, so the walk breaks
+  // immediately and returns the root itself.
+  const root = path.parse(await tmp()).root;
+  assert.equal(await detectWorkspaceRoot(root), root);
+});

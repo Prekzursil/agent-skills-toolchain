@@ -1,0 +1,103 @@
+{
+  "reviewer_id": "fresh-context-openai-reviewer-CC-0005",
+  "vendor": "openai",
+  "model": "composer-cloud-independent-reviewer",
+  "verdict": "BLOCKED",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:05:53Z",
+  "unit_id": "CC-0005",
+  "base_sha": "75da713d3bc3eacb388a49b52ab6af78917509dc",
+  "catalog_reviewer_requirement": "One independent reviewer who reproduces the gate on a Windows checkout, plus a Linux CI run of the identical commit for parity.",
+  "notes": "Independent fresh-context review of CC-0005 on Linux cloud host. Re-ran planted CRLF control + pytest: reach6-blob 5 passed, IMP-0439 sibling 4 passed; planted before_exit=1 after_exit=0; byte_delta=4==line_count=4. Code path hashes via git cat-file (blobread.read_blob); validate/seed return LF blob under planted CRLF worktree; archive is refused in comments and absent from executable hashing. Live REGISTER.md on this host has worktree==blob (LF) so cannot demonstrate Windows autocrlf divergence live; historic catalog pair 8b3e44cc3813/1a404a91d819 is not this commit's REGISTER (live sha12=f63cfeae2164). No Windows runner, no pwsh, core.autocrlf unset; quality CI for this branch is failing and workflows have zero windows-latest jobs. Catalog reviewer_requirement + platform-parity tests_required unmet. Do NOT invent Windows PASS. Keep receipt BLOCKED; do NOT emit SUCCESS:CC-0005.",
+  "confirmed": [
+    "pytest tools/command-center/tests/test_reach6_blob_provenance.py — 5 passed",
+    "pytest tools/command-center/tests/test_provenance_blob_hash.py — 4 passed",
+    "planted CRLF: before_exit=1 (raw worktree) after_exit=0 (cat-file blob); delta=4==line_count=4",
+    "validate._register_provenance_bytes returns LF blob under CRLF worktree; silent on EOL-only; fires on content change",
+    "seed._register_provenance_bytes_for_seed matches blob route under CRLF",
+    "blobread.read_blob uses git cat-file -p only (no archive)",
+    ".gitattributes has explicit CC-0005 Markdown EOL policy comment; no *.md eol=lf; no * text=auto",
+    "receipt remains BLOCKED / SUCCESS withheld pending Windows+Linux parity"
+  ],
+  "falsified": [],
+  "falsification_attempts": [
+    {
+      "target": "worktree raw vs blob divergence undetected",
+      "method": "Compare SHA-256 of planted CRLF worktree vs LF blob; simulate before/after gate exits; call validate._register_provenance_bytes under CRLF",
+      "result": "NOT-FALSIFIED",
+      "evidence": "raw[:12]=5bc344cd7840 != blob[:12]=e612dd471cc5; before_exit=1 after_exit=0; validate returns LF blob not raw CRLF"
+    },
+    {
+      "target": "archive fallback in provenance hashing",
+      "method": "Inspect read_blob source; grep validate.py/seed.py for executable archive; confirm comments only refuse archive",
+      "result": "NOT-FALSIFIED",
+      "evidence": "read_blob is cat-file only; validate L84 / seed L165 are refusal comments; no git archive invocation in hashing path"
+    },
+    {
+      "target": "Markdown EOL policy gaps",
+      "method": "Parse .gitattributes for *.md eol= and * text=auto; confirm recorded CC-0005 decision block",
+      "result": "NOT-FALSIFIED",
+      "evidence": "No *.md eol=lf; no * text=auto; policy comment present. Residual: bare CR (not CRLF) is not LF-normalised and fires as content change (out of Windows autocrlf scope)."
+    },
+    {
+      "target": "Linux-only false green",
+      "method": "Live three-route on REGISTER.md; compare archive vs blob on Linux; check Windows availability and CI runners",
+      "result": "OBSERVED-RESIDUAL / UNMET",
+      "evidence": "Live wt==blob==archive (LF, sha12=f63cfeae2164). Linux archive==blob hides Windows archive trap if archive were used (code does not). Planted CRLF is simulation, not core.autocrlf=true Windows checkout of THIS commit. No windows-latest in .github/workflows; pwsh missing; quality runs failing."
+    },
+    {
+      "target": "REACH-6 both-states e2e under planted CRLF",
+      "method": "Throwaway repo: commit LF, plant CRLF, digest-compare; then change content",
+      "result": "NOT-FALSIFIED",
+      "evidence": "CRLF silent=True; content fire=True"
+    },
+    {
+      "target": "seed.py blob route under CRLF",
+      "method": "Call seed._register_provenance_bytes_for_seed on CRLF worktree of committed LF",
+      "result": "NOT-FALSIFIED",
+      "evidence": "seed returns LF blob bytes"
+    },
+    {
+      "target": "catalog Windows checkout + Linux CI parity",
+      "method": "uname/core.autocrlf/pwsh/workflow runs-on scan; gh run list quality",
+      "result": "UNMET-CATALOG-REQUIREMENT",
+      "evidence": "Linux only; core.autocrlf unset; pwsh missing; windows runners NONE; quality CI failure/cancel — cannot certify platform parity"
+    }
+  ],
+  "commands_run": [
+    "git fetch/pull origin cursor/p2-loop-to-green-0db0",
+    "python3 -m pytest tools/command-center/tests/test_reach6_blob_provenance.py tools/command-center/tests/test_provenance_blob_hash.py -q --tb=line",
+    "python3 command-center/p2-wave/probes/CC-0005/measure_routes.py",
+    "independent falsification suite → /opt/cursor/artifacts/cc0005-review-falsify.log",
+    "platform/CI scan → /opt/cursor/artifacts/cc0005-review-platform.log"
+  ],
+  "artifact_logs": [
+    "/opt/cursor/artifacts/cc0005-review-pytest.log",
+    "/opt/cursor/artifacts/cc0005-review-planted-control.log",
+    "/opt/cursor/artifacts/cc0005-review-falsify.log",
+    "/opt/cursor/artifacts/cc0005-review-falsify-summary.json",
+    "/opt/cursor/artifacts/cc0005-review-platform.log"
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "REACH-6 silent on a real Windows core.autocrlf=true checkout of commit 75da713d3bc3eacb388a49b52ab6af78917509dc",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "On Windows: clone this SHA with core.autocrlf=true; confirm REGISTER.md worktree has CRLF and raw digest != blob; run tools/command-center/validate.py expect exit 0; flip one content byte expect exit 1."
+    },
+    {
+      "claim": "Linux CI of the identical commit returns the same REACH-6 verdict (platform parity)",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Green quality (or focused validate/pytest) job on ubuntu for the same SHA; record exit codes alongside Windows pair."
+    },
+    {
+      "claim": "Live historic Windows pair 8b3e44cc3813 vs 1a404a91d819 still applies to current REGISTER.md",
+      "verdict": "REFUTED-AS-LIVE",
+      "evidence": "Current HEAD REGISTER blob/worktree sha12=f63cfeae2164; historic pair is catalog-cited phenomenon evidence, not this commit's bytes."
+    }
+  ],
+  "promotion": {
+    "promoted_to_success": false,
+    "reason": "Catalog reviewer_requirement unmet (Windows checkout + Linux CI parity). Linux planted controls and pytest are green but insufficient for SUCCESS:CC-0005. Receipt stays BLOCKED."
+  }
+}

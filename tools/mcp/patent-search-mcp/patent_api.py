@@ -379,7 +379,9 @@ class SureChEMBLClient:
         )
 
     @staticmethod
-    def _normalize_structures(data: Mapping[str, Any]) -> tuple[list[dict[str, Any]], int]:
+    def _normalize_structures(
+        data: Mapping[str, Any],
+    ) -> tuple[list[dict[str, Any]], int]:
         results = data.get("results")
         if not isinstance(results, Mapping):
             return [], 0
@@ -500,7 +502,10 @@ class SureChEMBLClient:
             wait_seconds=normalized_wait,
         )
         if result["status"] == "pending":
-            result["query"] = {"smiles": normalized_smiles, "search_type": "substructure"}
+            result["query"] = {
+                "smiles": normalized_smiles,
+                "search_type": "substructure",
+            }
         return result
 
     def patent_metadata(

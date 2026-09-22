@@ -7,8 +7,8 @@
 
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -297,6 +297,203 @@ test('lintSource tolerates source with no schema at all', () => {
 })
 
 // ---------------------------------------------------------------------------
+// 100%-COVERAGE PASS (2026-09-19) - constructor guards, every lint rule, the full
+// type checker, and the lintSource scanner edges. House standard: 100 lines +
+// branches (agentspec-js already gates itself there; this workspace now matches).
+// ---------------------------------------------------------------------------
+
+test('fanoutSchema rejects an optional field spec it cannot expand', () => {
+  assert.throws(
+    () => fanoutSchema({ narrative: 'summary', optional: { x: 'blob' } }),
+    /unknown type 'blob' for field 'x'/,
+  )
+  // A number and a null are neither array, object nor string - the unsupported-spec throw.
+  assert.throws(() => fanoutSchema({ narrative: 'summary', optional: { x: 42 } }), /unsupported spec for field 'x'/)
+  assert.throws(() => fanoutSchema({ narrative: 'summary', optional: { x: null } }), /unsupported spec for field 'x'/)
+})
+
+test('fanoutSchema refuses the narrative repeated in optional', () => {
+  assert.throws(
+    () => fanoutSchema({ narrative: 'summary', optional: { summary: 'string' } }),
+    /'summary' is the narrative; do not repeat it in optional/,
+  )
+})
+
+test('fanoutSchema emits schema- and narrative-level descriptions when given', () => {
+  const s = fanoutSchema({ narrative: 'summary', description: 'schema doc', narrativeDescription: 'field doc' })
+  assert.equal(s.description, 'schema doc')
+  assert.equal(s.properties.summary.description, 'field doc')
+})
+
+test('lint flags a schema with NO required field at all', () => {
+  const out = lintSchema({ type: 'object', properties: { summary: { type: 'string' } } })
+  assert.deepEqual(out.map((v) => v.rule), [RULES.NO_REQUIRED])
+  assert.match(out[0].message, /cannot tell a real answer from an empty object/)
+})
+
+test('lint flags a non-string first required field even when it is the only one', () => {
+  const out = lintSchema({
+    type: 'object',
+    properties: { count: { type: 'number' } },
+    required: ['count'],
+  })
+  assert.deepEqual(out.map((v) => v.rule), [RULES.NARRATIVE_NOT_STRING])
+  assert.equal(out[0].property, 'count')
+})
+
+test('multi-required keeper falls back to the first field when no required field is a string', () => {
+  const out = lintSchema({
+    type: 'object',
+    properties: { a: { type: 'number' }, b: { type: 'boolean' } },
+    required: ['a', 'b'],
+  })
+  // keeper = null -> required[0] 'a' is kept, 'b' is flagged; 'a' also fires narrative-not-string.
+  assert.deepEqual(out.map((v) => v.rule), [RULES.MULTI_REQUIRED, RULES.NARRATIVE_NOT_STRING])
+  assert.equal(out[0].property, 'b')
+  assert.match(out[0].message, /only 'a' needs to be required/)
+})
+
+test('validator flags additional properties only when the schema forbids them', () => {
+  const s = {
+    type: 'object',
+    properties: { a: { type: 'string' } },
+    required: [],
+    additionalProperties: false,
+  }
+  const r = validate(s, { a: 'x', rogue: 1 })
+  assert.equal(r.valid, false)
+  assert.deepEqual(r.errors, [{ kind: 'additional_property', property: 'rogue' }])
+})
+
+test('validator without a usable schema accepts any object payload', () => {
+  assert.deepEqual(validate(null, { a: 1 }), { valid: true, errors: [] })
+})
+
+test('validator checks every scalar type and passes unknown types through', () => {
+  const s = {
+    type: 'object',
+    required: [],
+    properties: {
+      n: { type: 'number' },
+      i: { type: 'integer' },
+      b: { type: 'boolean' },
+      o: { type: 'object' },
+      u: { type: 'mystery' },
+      e: { enum: ['x', 'y'] },
+      list: { type: 'array' },
+    },
+  }
+  const bad = validate(s, { n: NaN, i: 1.5, b: 'true', o: [], u: 7, e: 'z', list: [1, 'two'] })
+  assert.equal(bad.valid, false)
+  const kinds = Object.fromEntries(bad.errors.map((err) => [err.property, err.kind]))
+  assert.equal(kinds.n, 'wrong_type') // NaN is not a finite number
+  assert.equal(kinds.i, 'wrong_type') // 1.5 is not an integer
+  assert.equal(kinds.b, 'wrong_type')
+  assert.equal(kinds.o, 'wrong_type') // [] is not a plain object
+  assert.equal(kinds.e, 'enum_mismatch')
+  assert.equal(kinds.u, undefined) // unknown type name: matchesType defaults to true
+  assert.equal(kinds.list, undefined) // array without `items`: no per-item recursion
+
+  const good = validate(s, { n: 1.5, i: 2, b: false, o: { k: 1 }, u: 'anything', e: 'x', list: [] })
+  assert.equal(good.valid, true)
+})
+
+test('validator recurses into nested object properties and skips undeclared nested keys', () => {
+  const s = {
+    type: 'object',
+    required: [],
+    properties: {
+      outer: {
+        type: 'object',
+        properties: { inner: { type: 'string' }, count: { type: 'integer' } },
+      },
+    },
+  }
+  const r = validate(s, { outer: { inner: 42, count: 'many', undeclared: true } })
+  assert.equal(r.valid, false)
+  assert.deepEqual(
+    r.errors.map((err) => [err.property, err.kind]),
+    [
+      ['outer.inner', 'wrong_type'],
+      ['outer.count', 'wrong_type'],
+    ],
+  )
+})
+
+test('lintSource skips matches with no enclosing brace, no close, no properties, or a seen open', () => {
+  // No '{' anywhere before the match.
+  assert.deepEqual(lintSource("type: 'object', properties: { a: { type: 'string' } }"), [])
+  // The enclosing brace never closes (matchBrace returns -1).
+  assert.deepEqual(
+    lintSource('const S = {\n  type: \'object\',\n  properties: {\n    summary: { type: \'string\' }\n'),
+    [],
+  )
+  // type:'object' present but no `properties:` inside the braces.
+  assert.deepEqual(lintSource("const S = { type: 'object', required: ['x'] }"), [])
+  // Untrusted source can repeat keys: two matches share one nearest '{', second is skipped.
+  assert.deepEqual(
+    lintSource(
+      "const S = { type: 'object', type: 'object', properties: { s: { type: 'string' } }, required: ['s'] }",
+    ),
+    [{ index: 10, required: ['s'], violations: [] }],
+  )
+})
+
+test('lintSource carries additionalProperties:false through to the lint rule', () => {
+  const out = lintSource(
+    "const S = { type: 'object', properties: { s: { type: 'string' } }, required: ['s'], additionalProperties: false }",
+  )
+  assert.equal(out.length, 1)
+  assert.deepEqual(out[0].violations.map((v) => v.rule), [RULES.NO_ADDITIONAL_PROPERTIES])
+})
+
+test('lintSource treats a missing required array as NO_REQUIRED and an empty one the same', () => {
+  const noRequired = lintSource("const S = { type: 'object', properties: { s: { type: 'string' } } }")
+  assert.deepEqual(noRequired[0].required, [])
+  assert.deepEqual(noRequired[0].violations.map((v) => v.rule), [RULES.NO_REQUIRED])
+
+  const emptyRequired = lintSource(
+    "const S = { type: 'object', properties: { s: { type: 'string' } }, required: [] }",
+  )
+  assert.deepEqual(emptyRequired[0].required, [])
+  assert.deepEqual(emptyRequired[0].violations.map((v) => v.rule), [RULES.NO_REQUIRED])
+})
+
+test('lintSource is not fooled by escaped quotes inside string literals', () => {
+  const src =
+    'const S = { type: "object", properties: { s: { type: "string" } }, required: ["s"], note: "a \\"quoted } brace\\"" }'
+  const out = lintSource(src)
+  assert.equal(out.length, 1)
+  assert.deepEqual(out[0].violations, [])
+})
+
+test('lintSource is not fooled by braces inside template literals', () => {
+  const src =
+    "const S = { type: 'object', properties: { s: { type: 'string' } }, required: ['s'], note: `curly } inside backtick` }"
+  const out = lintSource(src)
+  assert.equal(out.length, 1)
+  assert.deepEqual(out[0].violations, [])
+})
+
+test('lintSchema and validate tolerate schemas missing keys or property types', () => {
+  // lintSchema(null) / lintSchema({}) / no properties key / no required key.
+  assert.deepEqual(lintSchema(null), [])
+  assert.deepEqual(lintSchema({ type: 'object' }).map((v) => v.rule), [RULES.NO_REQUIRED])
+  // A required property declared WITHOUT a type key must not fire narrative-not-string.
+  assert.deepEqual(lintSchema({ type: 'object', properties: { s: {} }, required: ['s'] }), [])
+  // validate: a schema without properties/required accepts any object payload.
+  assert.deepEqual(validate({ type: 'object' }, { anything: 1 }), { valid: true, errors: [] })
+})
+
+test('validator skips object-typed properties that declare no nested properties', () => {
+  const r = validate(
+    { type: 'object', required: [], properties: { blob: { type: 'object' } } },
+    { blob: { x: 1 } },
+  )
+  assert.deepEqual(r, { valid: true, errors: [] })
+})
+
+// ---------------------------------------------------------------------------
 // ADOPTION WIRING - the library must gate a real workflow in the real CI lane
 // ---------------------------------------------------------------------------
 
@@ -347,6 +544,147 @@ test('lint CLI refuses missing inputs and zero-schema targets', (t) => {
 
   const missing = runLint(join(dir, 'missing.js'))
   assert.equal(missing.status, 2, missing.stdout + missing.stderr)
+})
+
+test('lint CLI recurses into nested subdirectories and only reads .js/.mjs sources', (t) => {
+  // Known gap (measured 2026-09-19: lint_fanout_schemas.mjs branch coverage 42.86%): the
+  // directory walker only ever saw a flat production workflows/ directory, so the recursion
+  // step and the extension filter were untested branches.
+  const dir = mkdtempSync(join(tmpdir(), 'fanout-schema-nested-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const schema = `const S = {
+  type: 'object',
+  properties: { summary: { type: 'string' } },
+  required: ['summary'],
+}
+`
+  mkdirSync(join(dir, 'sub', 'deeper'), { recursive: true })
+  writeFileSync(join(dir, 'top.js'), schema)
+  writeFileSync(join(dir, 'sub', 'mid.mjs'), schema)
+  writeFileSync(join(dir, 'sub', 'deeper', 'bottom.js'), schema)
+  writeFileSync(join(dir, 'sub', 'notes.txt'), 'not source')
+  writeFileSync(join(dir, 'sub', 'deeper', 'data.json'), '{}')
+
+  const result = runLint(dir)
+  assert.equal(result.status, 0, result.stdout + result.stderr)
+  assert.match(result.stdout, /OK \(3 schema\(s\), 3 file\(s\)\)/)
+})
+
+test('lint CLI survives a file that fails to READ mid-run (exit 2, not a crash)', (t) => {
+  // The readFileSync catch is the TOCTOU guard between collectSourcePaths (stat) and the
+  // read. Deterministic triggers per platform (both measured on this box):
+  //   win32: a PowerShell FileStream byte-range Lock(0,1) - stat still succeeds, read
+  //          fails EBUSY. (FileShare-based denial does NOT block Node reads - measured
+  //          against FileShare.Write and FileShare.None holders before falling back to
+  //          byte-range locks.)
+  //   POSIX: mode 000 blocks open-for-read while stat still succeeds.
+  const dir = mkdtempSync(join(tmpdir(), 'fanout-schema-unreadable-'))
+  const schema = `const S = {
+  type: 'object',
+  properties: { summary: { type: 'string' } },
+  required: ['summary'],
+}
+`
+  writeFileSync(join(dir, 'good.js'), schema)
+  const lockedPath = join(dir, 'locked.js')
+  writeFileSync(lockedPath, schema)
+
+  if (process.platform === 'win32') {
+    const script = [
+      '$fs = [System.IO.File]::Open($env:LOCKFILE, "Open", "Read", "ReadWrite")',
+      '$fs.Lock(0, 1)',
+      'Start-Sleep -Seconds 120',
+      '$fs.Unlock(0, 1)',
+      '$fs.Close()',
+    ].join('; ')
+    const holder = spawn('powershell.exe', ['-NoProfile', '-Command', script], {
+      stdio: ['ignore', 'ignore', 'ignore'],
+      env: { ...process.env, LOCKFILE: lockedPath },
+    })
+    t.after(() => {
+      holder.kill()
+      const killDeadline = Date.now() + 5_000
+      while (holder.exitCode === null && holder.signalCode === null && Date.now() < killDeadline) {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25)
+      }
+      try {
+        rmSync(dir, { recursive: true, force: true })
+      } catch {
+        // Lock release can lag holder teardown by milliseconds on Windows; the OS
+        // tmpdir owns the residue rather than failing the test run.
+      }
+    })
+    // Poll the lock itself rather than trusting a holder-side "ready" string: readFileSync
+    // succeeding means the lock is not held yet (powershell.exe cold start can take tens
+    // of seconds under memory pressure).
+    const lockDeadline = Date.now() + 60_000
+    let lockHeld = false
+    while (Date.now() < lockDeadline) {
+      try {
+        readFileSync(lockedPath, 'utf8')
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
+      } catch (error) {
+        // Only a sharing violation proves the lock; any other error (ENOENT, EACCES...)
+        // would let the test pass for the wrong reason.
+        if (error?.code === 'EBUSY' || error?.code === 'EPERM' || error?.code === 'EACCES') {
+          lockHeld = true
+          break
+        }
+        throw error
+      }
+    }
+    if (!lockHeld) {
+      return t.skip('byte-range lock never took effect within 60s; read-failure state unverifiable')
+    }
+  } else {
+    if (typeof process.getuid === 'function' && process.getuid() === 0) {
+      return t.skip('root bypasses mode 000, so the read would succeed and the assertion would be vacuous')
+    }
+    chmodSync(lockedPath, 0o000)
+    t.after(() => {
+      chmodSync(lockedPath, 0o666)
+      rmSync(dir, { recursive: true, force: true })
+    })
+  }
+
+  const result = runLint(dir)
+  assert.equal(result.status, 2, result.stdout + result.stderr)
+  assert.match(result.stderr, /locked\.js: /)
+})
+
+test('lint CLI ignores inputs that are neither file nor directory (character devices)', (t) => {
+  // statSync('/dev/null') is a char device: isFile() false, isDirectory() false - the early
+  // return in collectSourcePaths. Windows has no stat-able device path (statSync('nul')
+  // throws ENOENT, statSync('\\\\.\\NUL') reports isFile=true - both measured), so this
+  // too is POSIX-only.
+  if (process.platform === 'win32') return t.skip('no stat-able char-device path on Windows')
+
+  const result = runLint('/dev/null')
+  assert.equal(result.status, 1, result.stdout + result.stderr)
+  assert.match(result.stderr, /no object schema literals found/)
+})
+
+test('lint CLI prints property-less rules without an empty bracket suffix', (t) => {
+  // NO_ADDITIONAL_PROPERTIES and NO_REQUIRED carry no `property` - the CLI's
+  // `violation.property ? ...` false side, which must not print "rule []: ...".
+  const dir = mkdtempSync(join(tmpdir(), 'fanout-schema-propless-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const path = join(dir, 'ap-false.js')
+  writeFileSync(
+    path,
+    `const S = {
+  type: 'object',
+  properties: { summary: { type: 'string' } },
+  required: ['summary'],
+  additionalProperties: false,
+}
+`,
+  )
+
+  const result = runLint(path)
+  assert.equal(result.status, 1, result.stdout + result.stderr)
+  assert.match(result.stderr, /ap-false\.js:1: no-additional-properties: /)
+  assert.doesNotMatch(result.stderr, /\[\]/)
 })
 
 test('production workflow schemas pass the fanout lint', () => {
@@ -616,7 +954,9 @@ test('preflight: the mutation probe is actually WIRED into the CI-invoked npm te
   // `npm test` in this directory, so the probe must hang off that script - otherwise the
   // guard-coverage evidence silently stops being produced.
   const packageJson = JSON.parse(readFileSync(TOOL_PACKAGE, 'utf8'))
-  assert.match(packageJson.scripts.test, /node --test test_fanout_schema\.mjs/)
+  // The script runs the suite via `node --test` (coverage-gate flags may sit in between) and
+  // then the mutation probe - both must stay on the CI-invoked `npm test`.
+  assert.match(packageJson.scripts.test, /node --test .*test_fanout_schema\.mjs/)
   assert.match(packageJson.scripts.test, /&& node test_preflight_mutations\.mjs/)
   const workflow = readFileSync(QUALITY_WORKFLOW, 'utf8')
   assert.match(workflow, /working-directory: tools\/fanout-schema\r?\n\s+run: \|\r?\n\s+npm test/)

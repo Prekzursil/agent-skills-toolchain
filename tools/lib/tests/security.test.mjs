@@ -124,3 +124,38 @@ test('security: CONTROL - the original predicate really did admit both attacks',
   // ...and still got the good case right, so the fix is a narrowing, not a rewrite.
   assert.equal(shippedOriginalPredicate('C:\\allowed\\root\\a.txt', [WIN_ROOT]), true);
 });
+
+test('security: POSIX semantics - same-volume containment, backslash names are legal, never UNC', () => {
+  const p = path.posix;
+  // The POSIX same-volume compare (line 46) only runs under posix semantics.
+  assert.equal(isPathWithin({ filePath: '/allowed/root/x', allowedRoots: ['/allowed/root'], pathImpl: p }), true);
+  assert.equal(isPathWithin({ filePath: '/elsewhere/x', allowedRoots: ['/allowed/root'], pathImpl: p }), false);
+  assert.equal(isPathWithin({ filePath: '/allowed/root/x', allowedRoots: [], pathImpl: p }), false);
+  // A leading double backslash is a legal POSIX filename, not a UNC share - must NOT be
+  // special-cased under posix semantics.
+  assert.equal(isUncPath('\\\\server\\share', p), false);
+});
+
+test('security: nullish inputs, non-array roots and UNC roots all reject containment', () => {
+  assert.equal(normalizeAbs(null), path.resolve(''));
+  assert.equal(isUncPath(null), false);
+  assert.equal(isPathWithin({ filePath: null, allowedRoots: [WIN_ROOT] }), false);
+  assert.equal(isPathWithin({ filePath: 'C:\\allowed\\root\\x', allowedRoots: 'not-an-array' }), false);
+  // A UNC allowed-root admits nothing: it would re-open the hole the UNC fix closes.
+  assert.equal(isPathWithin({ filePath: '\\\\evil.example\\share\\x', allowedRoots: ['\\\\somewhere\\share'] }), false);
+  // assertWithin reports the offending inputs in err.data even when they are nullish.
+  assert.throws(
+    () => assertWithin({ filePath: null, allowedRoots: null }),
+    (err) => err.message === 'path_not_allowed' &&
+      err.data.filePath === '' &&
+      err.data.allowedRoots.length === 0,
+  );
+});
+
+test('security: a filePath exactly equal to an allowed root is within it', () => {
+  assert.equal(isPathWithin({ filePath: WIN_ROOT, allowedRoots: [WIN_ROOT] }), true);
+  assert.equal(
+    isPathWithin({ filePath: '/allowed/root', allowedRoots: ['/allowed/root'], pathImpl: path.posix }),
+    true,
+  );
+});

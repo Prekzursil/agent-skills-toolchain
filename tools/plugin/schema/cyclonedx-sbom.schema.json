@@ -1,0 +1,202 @@
+{
+  "$id": "https://ast-integrate.invalid/tools/plugin/schema/cyclonedx-sbom.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "CycloneDX 1.5-shaped SBOM for the plugin's Node/Python lockfile closure plus vendored trees (IMP-0062). Subset: only fields the generator emits and the two-signal probes verify.",
+  "properties": {
+    "bomFormat": {
+      "const": "CycloneDX"
+    },
+    "components": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "bom-ref": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "hashes": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "alg": {
+                  "enum": [
+                    "SHA-256",
+                    "SHA-512",
+                    "SHA-1"
+                  ]
+                },
+                "content": {
+                  "maxLength": 128,
+                  "minLength": 8,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "alg",
+                "content"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "licenses": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "license": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "maxLength": 120,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              },
+              "required": [
+                "license"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 400,
+            "minLength": 1,
+            "type": "string"
+          },
+          "properties": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "purl": {
+            "maxLength": 500,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "library",
+              "application",
+              "file"
+            ]
+          },
+          "version": {
+            "maxLength": 120,
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "licenses"
+        ],
+        "type": "object"
+      },
+      "maxItems": 20000,
+      "minItems": 1,
+      "type": "array"
+    },
+    "metadata": {
+      "additionalProperties": false,
+      "properties": {
+        "component": {
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": {
+              "const": "application"
+            },
+            "version": {
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "name",
+            "version"
+          ],
+          "type": "object"
+        },
+        "timestamp": {
+          "minLength": 10,
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "version": {
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "version"
+            ],
+            "type": "object"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "timestamp",
+        "component",
+        "tools"
+      ],
+      "type": "object"
+    },
+    "serialNumber": {
+      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    },
+    "specVersion": {
+      "const": "1.5"
+    },
+    "version": {
+      "minimum": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "bomFormat",
+    "specVersion",
+    "serialNumber",
+    "metadata",
+    "components"
+  ],
+  "title": "Plugin dependency-closure SBOM (CycloneDX 1.5 subset)",
+  "type": "object"
+}

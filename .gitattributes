@@ -1,21 +1,22 @@
-# git-crypt — transparently encrypt per-user credential stores.
-# accounts.json holds real secrets (API keys, account tokens). With git-crypt
-# these are stored ENCRYPTED in the repo and decrypt to plaintext only after
-# `git-crypt unlock <key>` on a trusted device. The *.example.json templates
+# accounts.json credential stores: PLAINTEXT by owner decision 2026-09-20
+# (repo is PRIVATE-ONLY; git-crypt removed - filter lines deleted, history keeps old encrypted blobs)
 # stay plaintext (they only show ${ENV}-reference shapes).
 #
 # Plug-and-play on a new device:
-#   1. install git-crypt
 #   2. git clone …
-#   3. git-crypt unlock /path/to/agent-skills-toolchain.gitcrypt.key
 #   → all accounts.json decrypt in place; the MCP hubs read them normally.
-tools/mcp/*/accounts.json filter=git-crypt diff=git-crypt
-tools/mcp/**/accounts.json filter=git-crypt diff=git-crypt
 
-# Shell scripts MUST be LF (real WSL/Linux bash rejects CRLF); PS1 stays CRLF
+# IMP-0017 — line-ending policy enforced at build time (not developer discipline).
+# Shell / PS1 / Python / Markdown check out as LF. Packer additionally refuses any
+# shipped *.sh blob that contains CR (0x0D); the gate reads git cat-file / git show
+# blob bytes (never working-tree, never git archive).
 *.sh eol=lf
-*.ps1 eol=crlf
+*.ps1 eol=lf
+*.py eol=lf
+*.md eol=lf
+
+# CC-0005 / IMP-0439 note (superseded for attributes by IMP-0017, still true for hashing):
+# Provenance gates MUST hash via `git cat-file -p <rev>:<path>` (never working-tree
+# bytes, never `git archive`). See tools/measure-guard/blobread.py.
 
 # Phone-extracted browser session cookie stores (chatgpt/databricks/aws) — real
-# session tokens; stored ENCRYPTED, decrypt only after `git-crypt unlock`.
-tools/crcp/cookie-store/*.json filter=git-crypt diff=git-crypt

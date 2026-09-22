@@ -1,0 +1,101 @@
+AUD-0084 fresh-context falsification re-derivation — 2026-09-19 (glm/5.2 review context)
+Reviewer: c5-fresh-context-claude-2026-09-19-b (fresh context; had not seen this unit's transcript;
+deliberately avoided re-reading the receipt before re-deriving the headline from the detector).
+
+ENVIRONMENT
+python 3.11.16, Linux runner, branch cursor/p2-loop-to-green-0db0, worktree clean pre-probe.
+
+STEP 1 — HEADLINE RE-DERIVATION (both probes re-run in fresh processes; census imported a third
+time in a separate interpreter with no shared state):
+  probe1_literal_scan.py  -> source_files=4563 lexical_hits=5194 lexical_files=1463
+                             first_party_operational_files=266
+  probe2_ast_adjudication -> use_class_counts operational-path-use=412,
+                             first_party_operational=266, control passed
+  import census; summarize(scan_tree()) ->
+                             first_party_operational_file_count=266
+                             operational_hit_count=412 lexical_hit_count=5194 parse_issues=2
+  RECEIPT CLAIMS: 266 / 412 / 5194 / 1463 -> ALL FOUR MATCH. Headline SURVIVES re-derivation.
+
+STEP 2 — FINDINGS-LIST EQUALITY (mechanically different method than the receipt's emit path):
+  report.findings file set vs fresh summarize()['first_party_operational_files']
+  -> 266 rows, set-equal TRUE; per-file hit_count re-tally matches on 266/266.
+
+STEP 3 — USE-VS-MENTION MUTATION CONTROL (independent re-run + a NEW negative case of my own):
+  evaluate_control() -> passed=True (regex_silent, docstring_silent, open_flagged,
+  relative_glob_excluded, write_text_payload_excluded, mutant filter-disabled goes red on 4 rows).
+  New case I constructed and ran: re.compile(r"\\\\server\\share") at module scope (a regex whose
+  literals match the UNC pattern) -> excluded-regex; and shutil.copytree("C:/x", "C:/y") ->
+  operational-path-use. Consistent with the receipt's control claims.
+
+STEP 4 — VERBATIM SPOT-CHECK of report.findings examples against disk bytes
+  (independent of census's tokenizer): 12 randomly seeded files (seed=84), 17 examples,
+  every value found verbatim on its claimed line; 266/266 finding files exist on disk.
+
+STEP 5 — MANIFEST (condition 11) RE-HASH: 7/7 entries re-hashed with sha256; bytes+hash match,
+  none missing.
+
+STEP 6 — COUNTER-EXAMPLE HUNTS (the actual falsification attempts):
+
+  6a UNDERCOUNT ATTACK (could the 266 be too LOW?) — the one that bit:
+     1,243 hits are classified unresolved-non-python and are excluded from the operational and
+     first-party headline. First-party subset: 1,159 hits across 272 non-Python files
+     (config 272, javascript 277, powershell 417, shell 185, cmd 8 hits). 387 of them carry
+     HEADLINE-NAMED kinds (drive-letter, /Users/). Concrete example: .agents/mcp-grok-parked_
+     2026-08-27.toml lines 17-273 hardcode ~25 real C:\Users\Prekzursil\... and
+     C:\Program Files\... launch paths for MCP servers. Those are operational path uses in a
+     parked config, in first-party surface, NOT counted by the 266.
+     RESOLUTION: this is a DECLARED, bounded detector limitation, not a wrong number —
+     residual_unknowns[0] states non-Python strings are lexical-only and remain
+     unresolved-non-python, with a settling experiment (JS/TS literal walker). The unit's own
+     tests_required control is defined on Python AST (open() vs regex vs docstring), and the
+     catalog question asks which SOURCE FILES contain such paths — probe1's lexical layer
+     surfaces all of them (5,194 hits, 1,463 files) and 272 of the excluded files are
+     individually enumerable from probe1-literal-scan.json. So the headline is ACCURATE AS
+     SCOPED to Python AST adjudication, and the scope is disclosed in the artifact. It does not
+     overturn the count; it does overturn the receipt SUMMARY's prose (see 6c).
+     Candidate defect candidates NOT upheld as count-breaking: (a) title says "hardcoded absolute
+     path AND path-separator" while the headline counts only drive-letter//Users//home-posix
+     files — deliberate narrowing, printed verbatim in the headline string itself; I verified
+     19/266 findings rows carry only tilde/backslash kinds, and spot-checked 3 of them
+     (tools/mcp/closed-batch/apply_closed_batch.py: open(Path.home()/".claude.json") — genuine
+     operational use, correctly in scope for the home-directory half of the question).
+
+  6b DOUBLE-COUNT ATTACK (could the 266 be too HIGH?) — no:
+     the .agents/skills/X vs skills/X mirror trees contribute ZERO overlapped files to the 266
+     (9 skills/ + 9 .agents/skills/ files, disjoint paths). No file appears twice. __pycache__
+     and vendor dirs are excluded by SKIP_DIRS; the mirrors were checked for byte-identity
+     anyway to rule out divergent copies being counted as one (moot: disjoint).
+
+  6c SUMMARY-PROSE REFUTED (the attack that SUCCEEDED, on prose not numbers):
+     summary claims the 266 first-party files "are command-center/p2-wave scratch probes that
+     hardcode C:/Users/Prekzursil/source/ast-integrate". Recomputed composition:
+     command-center/ 209 (of which under p2-wave/ only 30 — the rest are casualty/, hook-audit/,
+     reviews/, and dozens of root-level _* probe scripts), .agents/ 16, tools/ 10, skills/ 9,
+     docs/ 8, root 4, platform/ 4, hooks/ 3, agent-self/ 1, ci/ 1, scripts/ 1.
+     Example-token census over findings examples: Prekzursil in 311/266 rows' examples, C: in
+     340, /Users/ in 290, ast-integrate in only 185. The "p2-wave scratch probes hardcoding
+     ast-integrate" characterization is stale (a leftover from the 2026-08-24 authoring-box
+     emission, where the dominant population differed). DISPOSITION: reviewer-corrected in the
+     receipt summary; the headline number and findings list are UNCHANGED and re-confirmed.
+
+  6d EVIDENCE-INTEGRITY ATTACK: evidence[1].probes[1] cites a "gate-verify.out" raw output file
+     under the probe dir; no such file exists on disk. The receipt's own earlier claim
+     (12-condition gate re-measured off disk) is therefore NOT reproducible as written; the
+     verbatim-output probe records (probe1-literal-scan.json, probe2-ast-adjudication.json) ARE
+     present and match. This weakens one evidence anchor, not the census. Recorded as a caveat;
+     the review's own evidence below supersedes it by re-running the gate live.
+
+STEP 7 — CLOSING THE 6d LOOP LIVE (this session, not the receipt's claim):
+  python platform/lib/receipt_schema_gate.py (post-edit artifact):
+  c2/c3/c4/c6/c7/c8/c10/c11/c12 ok; c1/c5/c9 UNSATISFIED only for the pre-review BLOCKED state,
+  sentinel and reviewer fields — exactly the three the review is chartered to flip.
+
+VERDICT: PASS. The headline 266 (operational 412 / lexical 5,194 / files 1,463) survived every
+count-directed attack: re-derived from the detector in fresh processes, set-equal findings list,
+per-file hit tallies, verbatim disk spot-checks, manifest hashes, both-statemutant control, plus
+my own new regex/UNC and copytree cases. Two prose defects found and corrected or recorded:
+the stale summary characterization (6c, corrected) and the un-reproducible gate-verify.out
+evidence anchor (6d, superseded by this review's live re-run). One real, disclosed scope gap
+stands and must not be read away: 272 first-party non-Python files (387 drive-letter//Users/
+hits) are lexically surfaced but not AST-adjudicated — enumerated by probe1, declared in
+residual_unknowns[0], and NOT part of the 266.

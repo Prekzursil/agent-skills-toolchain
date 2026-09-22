@@ -22,7 +22,10 @@ WHAT IT ASSERTS, in order:
      gate goes red -- silence on the current tree is only meaningful beside it.
   4. PRODUCER DETERMINISM.  ``rank_disposition.py`` and ``overlap_report.py`` are re-run into
      a temp file and compared BYTE-FOR-BYTE with the committed blob.  A hand-edited artifact,
-     or a producer that no longer reproduces what shipped, is drift and fails.
+     or a producer that no longer reproduces what shipped, is drift and fails.  The regen
+     runs under an isolated empty HOME so the LIVE ``~/.claude.json``/``~/.mcp.json`` on the
+     producing box (rank_disposition's live-first override) cannot masquerade as producer
+     drift; what is asserted is reproducibility from committed inputs, on any host.
 
 PLATFORM.  Every gate here was authored on Windows; four of them failed on Linux when first
 measured (``_i1_ci_portability.py``, 11/15).  The four causes were fixed -- host-flavour path
@@ -40,6 +43,7 @@ Run::
 from __future__ import annotations
 
 import argparse
+import os
 import pathlib
 import subprocess
 import sys
@@ -194,9 +198,9 @@ def drift(regenerated: bytes, committed: bytes) -> bool:
 
 
 # ------------------------------------------------------------------------- execution
-def run(argv: list[str]) -> tuple[int, str]:
+def run(argv: list[str], env: dict[str, str] | None = None) -> tuple[int, str]:
     proc = subprocess.run(
-        [sys.executable, *argv], cwd=HERE, capture_output=True, text=True
+        [sys.executable, *argv], cwd=HERE, capture_output=True, text=True, env=env
     )
     out = [ln for ln in proc.stdout.splitlines() if ln.strip()]
     marker = next(
@@ -224,14 +228,35 @@ def blob(rev: str, path: str) -> bytes | None:
 
 
 def determinism(rev: str) -> tuple[list[str], int]:
-    """Re-run both producers into a temp dir; require byte-identity with the committed blob.
+    """Re-run the producers into a temp dir; require byte-identity with the committed blob.
 
-    Both write with ``newline="\\n"`` explicitly, so this is byte-exact on either platform --
-    no line-ending normalisation, which would have hidden precisely the class of defect
-    round 4 spent itself on.
+    The producers write with ``newline="\\n"`` explicitly, so this is byte-exact on either
+    platform -- no line-ending normalisation, which would have hidden precisely the class
+    of defect round 4 spent itself on.
+
+    REGEN RUNS UNDER AN ISOLATED (EMPTY) HOME.  ``rank_disposition`` resolves a row's
+    ``definition_scope``/``source_file`` LIVE-FIRST: ``load_specs()`` reads
+    ``~/.claude.json`` and ``~/.mcp.json`` from the machine it runs on, falling back to
+    the committed capability sweep only when those files are absent.  On a CI runner they
+    are always absent, so byte-identity there asserts the committed-inputs contract.  But
+    on the box that produced the sweep the LIVE files win, and the moment its fleet
+    legitimately moves -- measured 2026-09-19: ``brightdata``, ``playwright-cdp`` and
+    ``playwright-extension`` moved from ``~/.mcp.json`` to ``~/.claude.json``, an 18-byte
+    diff over exactly those two fields on 3 of 23 rows -- this check went red even though
+    the artifact still reproduced byte-for-byte from committed inputs.  Regenerating under
+    an empty home makes every host measure what the runner measures, which is the claim
+    rank_disposition's own comment makes ("byte-identity ... asserted on both platforms"),
+    and keeps live host state OUT of what is documented as a committed-inputs assertion.
     """
     problems: list[str] = []
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="mcpaudit-determinism-"))
+    fakehome = tmp / "home"
+    fakehome.mkdir()
+    isolated = dict(os.environ)
+    isolated["HOME"] = str(fakehome)  # POSIX os.path.expanduser
+    isolated["USERPROFILE"] = str(fakehome)  # Windows ntpath.expanduser, checked first
+    isolated.pop("HOMEDRIVE", None)  # and its fallback pair, so no resolver
+    isolated.pop("HOMEPATH", None)  # route can reach the real home
     # (repo-relative committed path, argv, temp output).  The path is carried in full
     # rather than assembled from a fixed prefix: a produced artifact does not have to live
     # beside its producer, and DISPOSITION-TABLE.md -- the one that actually drifted --
@@ -270,7 +295,7 @@ def determinism(rev: str) -> tuple[list[str], int]:
     ]
     for path, argv, out in jobs:
         name = path.rsplit("/", 1)[-1]
-        rc, marker = run(argv)
+        rc, marker = run(argv, env=isolated)
         if rc != 0:
             problems.append(f"{name}: producer exited {rc} ({marker})")
             continue

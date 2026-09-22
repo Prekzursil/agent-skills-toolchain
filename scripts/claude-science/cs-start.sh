@@ -1,5 +1,15 @@
 #!/bin/bash
 export PATH="$HOME/.local/bin:$PATH"
+# Model bridge (owner-directed 2026-09-20): cs-model writes an optional env
+# file that redirects the daemon's Anthropic API calls at a GLM coding-plan
+# endpoint. Absent file = native Anthropic (the revert path is literally
+# `cs-model anthropic && cs fix`). Never hardcode keys here — the file is
+# generated per-swap from the live env by cs-model.
+if [ -f "$HOME/.claude-science/daemon-env" ]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.claude-science/daemon-env"
+  echo "[cs-start] model bridge active: ${CS_MODEL_BRIDGE:-unspecified} (ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-unset})"
+fi
 if claude-science status 2>/dev/null | grep -q '"running": true'; then
   echo "Claude Science already running."
 else

@@ -58,3 +58,31 @@ class TestGpuTerminalNone:
         assert r.total is None
         assert r.terminal is False
         assert r.gpu == ""
+
+
+class TestTerminalPatternOverride:
+    """``terminal_pattern`` pins DONE to a per-task marker line.
+
+    Logs full of incidental "done" words (conda spinners, R's per-package
+    ``DONE (pkg)`` lines) otherwise flag terminal=True while the install
+    is still running — measured live on the biomni E1 log.
+    """
+
+    def test_override_suppresses_builtin_words(self):
+        r = _P.parse(["done", "DONE (ggplot2)", "downloading 3/40"], terminal_pattern="Setup Completed")
+        assert r.terminal is False
+
+    def test_override_matches_real_completion(self):
+        r = _P.parse(
+            ["done", "DONE (lme4)", "=== Biomni Environment Setup Completed! ==="],
+            terminal_pattern="Setup Completed",
+        )
+        assert r.terminal is True
+
+    def test_override_regex_semantics(self):
+        r = _P.parse(["DATALAKE-DONE"], terminal_pattern=r"DATALAKE-\w+")
+        assert r.terminal is True
+
+    def test_no_override_keeps_builtin_behavior(self):
+        r = _P.parse(["done"])
+        assert r.terminal is True

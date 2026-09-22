@@ -251,6 +251,24 @@ jobs:
         run: |
           npm ci
           npm test
+      # chrome-bridge-mcp — the shipped browser bridge, now gated across the whole
+      # package (cdp-allowlist + hub + pagescript + setup + tools: 87 hermetic
+      # tests, 100% lines, branches/functions at measured floors). The full
+      # `npm test` still needs a live Chrome + companion extension (smoke /
+      # multi-client / e2e stay local-only by design; the dev box bridge hub
+      # owns port 8787), so CI gates the hermetic surface: a real Hub on an
+      # ephemeral loopback port, a programmable fake extension speaking the real
+      # wire protocol, and an MCP client over InMemoryTransport. dist/index.js
+      # is deliberately outside the gate: it is the side-effecting entrypoint
+      # (importing it binds the bridge port) and is exercised by the live lanes.
+      # Reuses the existing gate-tests-coverage charter slug on purpose - it is
+      # not a new gate.
+      - name: gate-tests-coverage chrome-bridge-mcp (package-wide, offline)
+        working-directory: browser-bridge/chrome-bridge-mcp
+        run: |
+          npm ci
+          npm run build
+          npm run test:unit
       # agentspec-js — the JS half of the two-runtime spec. `npm ci` at :157 already installs it
       # (it is a root workspace) and root `npm test` at :158 already invokes it; this explicit
       # step exists for FAILURE ATTRIBUTION, mirroring the two steps above.
@@ -416,7 +434,8 @@ jobs:
       # command-center/adversarial/ is not a failure), and that the two superseded round-1
       # outputs keep the banner that stops their six FALSE casualty verdicts being cited. It
       # also EXECUTES two instruments rather than checking their bytes -- the `launchpath`
-      # lesson. Stdlib-only plus git, so `pip install pytest` above is the whole install.
+      # lesson. Stdlib plus git plus numpy (mechanism_dedup_gate.py imports it at module
+      # level for embedding similarity), so `pip install pytest numpy` is the install.
       # Deliberately NOT a `gate-<slug>` step name: it rides inside this gate rather than adding
       # one, so .quality/charter.yml stays a closed set. `--selftest` (the per-probe both-states
       # control) is a local/reviewer command, not run here: it copies the tree six times.
@@ -431,13 +450,26 @@ jobs:
       # dominated by pytest --collect-only subprocesses.
       - name: gate-tests-coverage command-center
         run: |
-          pip install pytest
+          pip install pytest numpy
           python -m pytest tools/command-center/tests -q
-          python tools/command-center/validate.py
+          # IMP-0437: arm V-FIELDS field-completeness. Bare invocation used to
+          # leave require_complete=False, so incompleteness (and historically a
+          # deleted defaults block) could exit 0. Flag is also default-on in
+          # validate.py CLI; pass it explicitly so the workflow documents the arm.
+          python tools/command-center/validate.py --require-complete
           python tools/command-center/render.py --check
           python -m pytest command-center/casualty/tests -q
           python command-center/casualty/casualty_guard.py
           python command-center/casualty/integration_redproof.py
+          # IMP-0435: receipt admission gate. Rides inside this step (not a new
+          # charter slug) so .quality/charter.yml stays closed. Validates the
+          # scoped receipts in command-center/receipt_ci_scope.json, REQUIRES the
+          # planted invalid fixtures to REJECT, refuses empty/no-op invocation,
+          # and fails if this line is deleted (P1 wiring). Full-tree walks of
+          # command-center/receipts/ are out of scope: 31 pre-existing schema
+          # rejects would make the gate permanently red on historic debt.
+          python -m pytest command-center/p2-wave/probes/IMP-0435/test_receipt_ci_gate.py -q
+          python command-center/receipt_ci_gate.py
       # tools/measure-guard — two guards against measurements that report green while measuring
       # nothing, both derived from defects measured on this repo. `suitefloor` gives every
       # registered suite a declared minimum test count and fails below it regardless of exit code

@@ -1,0 +1,137 @@
+{
+  "unit_id": "AUD-0061",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "openai",
+  "probe_rerun": 2,
+  "reviewer_id": "fresh-context-openai-codex-reviewer-aud-0061-01",
+  "reviewed_at": "2026-09-08T00:31:46Z",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0061-mcp-process-multiplication.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "ff49b1fd07467ff640f8e8c54b66a77a479487f3",
+  "method": [
+    "Fetched origin/cursor/p2-loop-to-green-0db0 and created only cursor/aud-0061-review-0db0 at base tip ff49b1fd07467ff640f8e8c54b66a77a479487f3.",
+    "Read the BLOCKED receipt, probe2_memory_cost.py, control_self_exclusion.py, and _proc_census.py as non-authoritative context.",
+    "Re-ran probe2_memory_cost.py once and re-ran the requested self-exclusion control; probe1_process_census.py was not directly invoked by the reviewer.",
+    "Read CommitLimit, Committed_AS, MemTotal, MemAvailable, SwapTotal, and SwapFree directly from /proc/meminfo after the probe run.",
+    "Read the exec-daemon VmRSS and VmSize directly from /proc/753/status after independently locating the daemon.",
+    "Parsed the exec-daemon's --mcp-config JSON directly to re-establish three configured servers, then used exact-runtime pgrep checks, a ps command-line filter that excluded --mcp-config mentions, and a /proc PPID descendant walk to look for live server processes.",
+    "Recomputed the single-session and 23-session arithmetic independently from the rerun's measured daemon and idle-node RSS values.",
+    "Verified that the probe reruns left no tracked probe-output mutations before writing this review.",
+    "Did not run _pack_receipt.py, did not modify the receipt or any probe/control script, and did not promote the receipt."
+  ],
+  "falsification_attempts": [
+    {
+      "id": "F1-kernel-commit-cross-check",
+      "target_claim": "CommitLimit and Committed_AS are real /proc/meminfo measurements and represent the stated Linux commit-accounting analog.",
+      "action": "Read the relevant keys directly from /proc/meminfo after probe 2 completed, without using probe code.",
+      "expected_if_claim_false": "CommitLimit would disagree materially, Committed_AS would be absent or incompatible, or the probe would report a Windows-only pagefile value unavailable on this Linux host.",
+      "observed": "Probe 2 reported CommitLimit=8199192 kB and Committed_AS=1807940 kB. The independent read reported CommitLimit=8199192 kB and Committed_AS=1815708 kB; the 7768 kB Committed_AS movement is normal host-wide temporal drift. SwapTotal and SwapFree were both 0 kB.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F2-daemon-rss-cross-check",
+      "target_claim": "exec_daemon_rss_kb is sampled from the live exec-daemon's /proc status rather than being a fixed receipt value.",
+      "action": "Located the exec-daemon independently and read VmRSS and VmSize directly from /proc/753/status after the rerun.",
+      "expected_if_claim_false": "The process would not exist, or direct VmRSS would materially contradict the rerun's 204148 kB snapshot.",
+      "observed": "The later direct sample was VmRSS=207016 kB and VmSize=22908352 kB versus probe 2's VmRSS=204148 kB and VmSize=22905852 kB. The small increase confirms these are live snapshots and also explains why the older receipt value 208640 kB is not expected to be byte-stable.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F3-live-mcp-process-cross-check",
+      "target_claim": "mcp_live_process_count=0 of mcp_configured_server_count=3.",
+      "action": "Parsed the daemon's --mcp-config directly, checked exact node/npx/uvx runtime names with pgrep, filtered ps output for each configured package/entrypoint while excluding --mcp-config text mentions, and walked all current daemon descendants by PPID using /proc.",
+      "expected_if_claim_false": "A live npx, uvx, start.mjs, browser-use@latest, or chrome-devtools-mcp@1.2.0 execution would appear outside the daemon's configuration mention, or a matching server runtime would appear among daemon descendants.",
+      "observed": "The independent config parse returned Browser-use=uvx, Chrome-devtools=npx, and Context-mode=node. pgrep found no npx or uvx; the only exact node process was the exec-daemon itself. The package/entrypoint ps filter returned no process after excluding --mcp-config mentions. The descendant walk contained only the review's transient bash/python diagnostics and no configured server runtime.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F4-extrapolation-arithmetic",
+      "target_claim": "The rerun's 23-session extrapolation follows (exec_daemon_rss + 2 * idle_node_proxy_rss) * 23.",
+      "action": "Recomputed the formula independently using only the rerun's 204148 kB daemon RSS, 42404 kB idle-node RSS, two node-backed configured servers, and 23 sessions.",
+      "expected_if_claim_false": "The independent single-session or 23-session result would differ from probe 2.",
+      "observed": "single_session_kb=288956 and extrapolated_23_sessions_kb=6645988, exactly matching probe 2.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F5-control-discrimination",
+      "target_claim": "The starttime-tick self-exclusion control fires on the deliberately bad matcher and stays silent on the real matcher.",
+      "action": "Re-ran control_self_exclusion.py unmodified with its adversarial mcp self-tag.",
+      "expected_if_claim_false": "The naive bad state would not flag itself, or the real good state would retain its own process.",
+      "observed": "fired_on_bad_state=true, silent_on_good_state=true, self_excluded_by_starttime_filter=true, self_row_present_in_final_kept_set=false, and ok=true.",
+      "result": "NOT FALSIFIED"
+    }
+  ],
+  "re_runs": {
+    "probe2_memory_cost.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0061/probe2_memory_cost.py",
+      "exit_code": 0,
+      "exec_daemon_found": true,
+      "exec_daemon_rss_kb": 204148,
+      "exec_daemon_vsz_kb": 22905852,
+      "mcp_configured_server_count": 3,
+      "mcp_live_process_count": 0,
+      "mcp_live_total_rss_kb": 0,
+      "committed_as_kb": 1807940,
+      "commit_limit_kb": 8199192,
+      "idle_node_proxy_measured": true,
+      "idle_node_proxy_vmrss_kb": 42404,
+      "idle_node_proxy_vmsize_kb": 744916,
+      "single_session_kb": 288956,
+      "extrapolated_23_sessions_kb": 6645988,
+      "ok": true
+    },
+    "control_self_exclusion.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0061/control_self_exclusion.py",
+      "exit_code": 0,
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "self_excluded_by_starttime_filter": true,
+      "self_row_present_in_final_kept_set": false,
+      "ok": true
+    }
+  },
+  "headline_claims_checked": {
+    "configured_and_live_mcp_processes": {
+      "claim": "mcp_live_process_count=0 of mcp_configured_server_count=3",
+      "observed": "3 configured servers from an independent daemon-config parse; 0 matching live executions from probe 2, pgrep/ps, and daemon-descendant checks",
+      "verdict": "HOLDS"
+    },
+    "exec_daemon_memory": {
+      "claim": "exec_daemon RSS/VSZ are live /proc measurements",
+      "observed": "probe snapshot 204148/22905852 kB; later direct /proc snapshot 207016/22908352 kB",
+      "verdict": "HOLDS AS A TIME-VARYING SNAPSHOT"
+    },
+    "linux_commit_accounting": {
+      "claim": "Committed_AS/CommitLimit are the available Linux commit-accounting analog, not Windows pagefile measurements",
+      "observed": "probe 1807940/8199192 kB; later direct /proc read 1815708/8199192 kB; no swap configured",
+      "verdict": "HOLDS AS A TIME-VARYING HOST-WIDE SNAPSHOT"
+    },
+    "idle_node_proxy": {
+      "claim": "A real local idle Node child was measured as a proxy",
+      "observed": "measured=true, exit_code=0, VmRSS=42404 kB, VmSize=744916 kB using /exec-daemon/node",
+      "verdict": "HOLDS AS A PROXY, NOT AN ACTUAL MCP SERVER MEASUREMENT"
+    },
+    "twenty_three_session_extrapolation": {
+      "claim": "The 23-session value is an explicitly labeled extrapolation from daemon RSS plus two idle-node proxies",
+      "observed": "(204148 + 2 * 42404) * 23 = 6645988 kB",
+      "verdict": "HOLDS ARITHMETICALLY; NOT A MULTI-SESSION MEASUREMENT"
+    },
+    "self_exclusion_control": {
+      "claim": "starttime-tick control fires on bad and stays silent on good",
+      "observed": "bad=true, good=true, control ok=true",
+      "verdict": "HOLDS"
+    }
+  },
+  "notes": "PASS means the scoped probe2 measurements, arithmetic, zero-live-process census, and requested control survived this fresh-context falsification review. Live RSS and Committed_AS values moved modestly from the receipt and between samples, as expected for time-varying process and host snapshots; the invariant CommitLimit and independently recomputed arithmetic held. PASS does not validate the idle-node proxy as the real memory cost of any configured MCP package, does not validate 23 actual concurrent sessions, and does not promote AUD-0061. The source receipt remains BLOCKED with reviewer state NOT-REVIEWED and was intentionally left untouched; this independent-review.json is the only deliverable.",
+  "residual_unknowns": [
+    "The real RSS/VSZ of Context-mode, Chrome-devtools, and Browser-use after actual MCP tool activation remains unmeasured; a bare idle Node proxy cannot establish package-specific cost.",
+    "The claim that the extrapolation is an under-estimate is plausible because Browser-use is omitted, but it is not a proved bound until actual package processes and shared-memory accounting are measured.",
+    "The 23-session figure remains an arithmetic scenario, not a measurement on a host with 23 concurrent sessions.",
+    "A process that execs away its launcher and removes all configured package/entrypoint strings from argv could evade the current name-and-argument matcher; the independent descendant check reduced but cannot eliminate that identification risk.",
+    "Starttime is measured at clock-tick granularity, so excluding every process with the probe's start tick could theoretically exclude an unrelated process created in the same tick on a busier host, although this rerun excluded exactly one row."
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 name: claude-science-local
-description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, /claude-science, cs open, start claude science, open the science UI, science daemon wedged or off. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, and that NOT-CHECKED is not PASS. NOT for hosted or cloud compchem - scope is LOCAL only.
+description: Use to bring up, diagnose, or recover Anthropic's Claude Science local compchem / life-science workbench - a WSL2 daemon on 127.0.0.1:8000. Triggers - claude science, compchem or life-science workbench, :8000 down or unreachable, /claude-science, cs open, start claude science, open the science UI, science daemon wedged or off. Teaches the cs verbs (open, ensure, status, fix, doctor, backup, restore), why HTTP 401 means alive, the host-RAM SQLite wedge and that cs fix recovers it, and that NOT-CHECKED is not PASS. Also covers the env-build failure chart (missing socat egress proxy, logged-out daemon, wrong-account), the paste-code re-auth flow, and the GLM model bridge (cs-model glm/anthropic via the two-plane router). NOT for hosted or cloud compchem - scope is LOCAL only.
 license: MIT
 ---
 
@@ -175,6 +175,72 @@ for weeks while `install.ps1` never deployed it.
   backup root is stored once in WSL form (`/mnt/d/...`); the Windows form is derived.
 - **Scope is LOCAL.** Remote access / Tailscale (`cs-tailscale-serve.ps1`) is out
   of scope here — `cs` targets `127.0.0.1:8000` only.
+
+## Environment-build failures ("Couldn't reach the package server") — the full chart
+
+Measured 2026-09-20; all three failure layers are INDEPENDENT and each hides the
+next. Do not trust the UI's "check your internet" message — it is generic.
+
+1. **Missing `socat` in the distro (the real killer).** Every env build spawns a
+   sandbox egress proxy — literally `LD_PRELOAD=…/undumpable.so socat
+   TCP-LISTEN:3128,fork,reuseaddr UNIX-CONNECT:…/sbx-bind-src/…/http.sock` — and
+   micromamba downloads route through `localhost:3128`. No socat → the proxy
+   exits **127** → every download fails "via localhost" in 0-20 ms, which the UI
+   renders as a network outage. Probe: `wsl -- grep -a "Exit 127"
+   ~/.claude-science/logs/server-*.log`. Fix: install socat. If `dpkg` is wedged
+   (broken `install-info` postinst, same exit-127 class), bypass it:
+   `apt-get download socat && dpkg-deb -x socat_*.deb /tmp/x && cp /tmp/x/usr/bin/socat /usr/local/bin/`
+   — and also copy to `/usr/bin` (the sandbox spawns with a minimal PATH).
+2. **Daemon logged out.** Env specs/registry credentials come from the ACCOUNT
+   session (`claudeAiFetch`); logged-out = empty `~/.claude-science/conda/_netrc`
+   and builds fail with the same "package server" text. Probe: the log floods
+   `claudeAiFetch: 401 and refresh failed`. See the sign-in procedure below.
+3. **Wrong account.** The Max subscription lives on
+   **prekzursil1993@gmail.com** (`has_claude_max: true` — verify via
+   `api.anthropic.com/api/oauth/profile` with the local Claude Code token).
+   mariusvisalon70@gmail.com has **no** subscription; the OAuth authorize step
+   rejects it with "requires a Pro or Max subscription". The UI's cached
+   "Max 20x" badge survives logout and lies.
+
+**Re-auth is the paste-code flow, and it is scriptable end-to-end**: `claude-science url`
+mints a nonce → open it in the browser (the agent-persistent Playwright profile holds
+the Google session; account chooser → "Andrei Visalon prekzursil1993") → the daemon
+login page → "Paste code instead" → the authorize link auto-consents → copy the code
+→ paste → Continue. Redirect sign-in is REFUSED by the daemon ("cannot trust the
+localhost spelling"). A daemon restart DROPS the UI session — re-mint and re-login.
+
+## The GLM model bridge (`cs-model`) — and why v1 failed
+
+`cs-model glm` routes the daemon's **model calls** to the Z.AI GLM coding plan;
+`cs-model anthropic` reverts to native Anthropic (stops the router, removes the
+env). Restart with `cs fix` after either. State: `cs-model status`.
+
+- **A blunt `ANTHROPIC_BASE_URL=https://api.z.ai/...` CANNOT work** (v1,
+  measured): the daemon is not Claude Code — its session/OAuth validation, MCP
+  directory fetch and token refresh all ride the same SDK base URL, and they die
+  at z.ai ("claude.ai session expired … could not be refreshed"). Do not retry it.
+- **v2 is a two-plane local router** (`cs_glm_router.py`, `:8231`):
+  `/v1/messages*` → z.ai's **Anthropic-compat** endpoint
+  (`https://api.z.ai/api/anthropic/v1/messages` — NOT the OpenAI-style
+  `/api/coding/paas/v4` path), with claude-* model names mapped to `glm-4.6` and
+  auth swapped to the probe-selected plan key; **everything else passes through
+  to api.anthropic.com untouched**, so the session plane keeps working.
+- The env file `~/.claude-science/daemon-env` must be **`export`-prefixed** — it
+  is sourced by `~/.profile` AND by the patched `cs-start`/`cs-recover` before
+  `claude-science serve`; without `export` the vars stay shell-local and never
+  reach the daemon child. WSLENV bridges the ZAI keys into WSL
+  (`ZAI_API_KEY_prekzursil1993/u:ZAI_API_KEY_realprekzursil/u`, user scope).
+- **Verify the bridge end-to-end, not by env vars**: send a chat message in the
+  UI and check `~/.claude-science/logs/glm-router.log` for
+  `[router] POST /v1/messages -> 200 (glm)` — the UI reply text alone is NOT
+  sufficient proof (your own prompt echoes the sentinel; count occurrences and
+  check for a standalone reply "just now").
+- Router lifecycle: `cs-model glm` starts it (nohup, log at
+  `~/.claude-science/logs/glm-router.log`); `cs-model anthropic` kills it. If a
+  stale router holds `:8231`, `cs-model status` shows the pid. `pkill -f
+  cs_glm_router` self-matches your own shell — use `cs_glm_rout[e]r`.
+- The bridge is what makes the app usable during a Max weekly-limit window —
+  model calls ride the GLM plan while the quota resets.
 
 ## Adding data sources (brief)
 

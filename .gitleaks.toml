@@ -259,3 +259,82 @@ regexes = [
 [[allowlists]]
 description = "browser-profiles/: owner-tracked live browser state, governed by SECURITY.md not by entropy heuristics (1632 generic-api-key hits on SmartScreen/HMAC/component hashes)"
 paths = ['''^browser-profiles/''']
+
+# ---------------------------------------------------------------------------------------
+# 2026-09-19 -- three waiver classes added by pr-325 lane G7 (gate-secrets repair).
+#
+# Measured with the pinned gitleaks 8.30.1 + this config over `--full-history HEAD`
+# at 7a4bdf7 (pr-325 head): 14 findings = 9 pre-existing on origin/main's own history
+# + 5 introduced by the p2-wave commits on this PR. origin/main @ its own tip scans
+# RED with 9 findings under the same config, so no PR could merge until these are
+# reasoned. Each waiver below names its evidence and its precedent in this file.
+
+# --- Owner-intentional search-hub multi-account store (Allowlist-1 precedent) -----
+# tools/mcp/search-hub/accounts.json carries the owner's REAL plaintext API keys for
+# the search-hub multi-account rotation layer (exa x11, tavily x2, firecrawl x2
+# account slots; 9 trip the generic-api-key entropy rule). Same class as the
+# private-env.windows.json store waived in Allowlist 1: intentionally committed to
+# this PRIVATE-ONLY repo (SECURITY.md), input to the cswap-style account switcher,
+# not test fixtures. Credential lifecycle is the owner's alone (AGENTS.md §9 /
+# NEVER-ROTATE) -- this waiver registers the path as known-intentional; it does not
+# touch, judge or migrate the credentials themselves, and new real secrets anywhere
+# OUTSIDE this file still fail the gate. Path-scoped deliberately: the file's entire
+# content is credential JSON governed by owner policy, so there is nothing an entropy
+# heuristic can add here (same reasoning as the browser-profiles/ waiver above).
+# History note: findings sit at cc4ce41165 (already an ancestor of origin/main), so
+# this closes a gate that is red on MAIN, not just on this PR.
+[[allowlists]]
+description = "Owner-intentional search-hub multi-account key store (real keys, PRIVATE-ONLY repo, owner-managed lifecycle; Allowlist-1 class)"
+paths = ['''tools/mcp/search-hub/accounts\.json''']
+
+# --- IMP-0004 evasion fixtures (Allowlist-3 dedicated-fixture-file precedent) -----
+# Two dedicated fixture files whose own headers declare "IMP-0004 ... (SYNTHETIC
+# ONLY)". They exist so the P2 evasion-detection probes have a credential-shaped
+# positive control to detect: a .env.sample-shaped dotenv and a base64-encoded
+# variant. Shapes verified in isolation (never live): ghp_-prefixed 40-char
+# synthetic tokens, and one Z2hwX... value that is literally base64("ghp_") --
+# an issuer-agnostic encoding of the same synthetic prefix. Waiving the POSITIVE
+# CONTROL is the only way a detector test can live in a scanned repo (same
+# reasoning as the e2e-wave redaction positive control). Path-scoped to the two
+# fixture directories only -- dedicated fixture files like Allowlist 3's
+# fixtures/export/*; real code elsewhere is untouched.
+[[allowlists]]
+description = "IMP-0004 evasion-fixture files: header-declared SYNTHETIC ONLY detector positive controls (ghp_-shaped + base64('ghp_') synthetic)"
+paths = [
+  '''command-center/p2-wave/reviews/IMP-0004/evasion-fixture/.*''',
+  '''command-center/p2-wave/reviews/IMP-0004/evasion-fixture-r2-split/.*''',
+  '''command-center/p2-wave/reviews/IMP-0004/evasion-fixture-r3-env-sample/.*''',
+]
+
+# --- CC-0019 corpus: entropy FP on claim_id hex/slug fragments ------------------
+# generic-api-key fires on three record-identifier fragments inside
+# command-center/corpus/ (claim_id = CC19-<title-slug>-<hash12>; the matched
+# values are the slug suffix '-decr-<hex12>' plus two concatenated hex digest
+# runs). Pure identifiers, no key prefix, no credential semantics — the same
+# dictionary-word/identifier FP class as AUD-0062 above. FINDING-LEVEL, pinned
+# to the exact values: the corpus stays fully readable by every other rule, so
+# a REAL secret in a future record still fails the gate.
+[[allowlists]]
+description = "CC-0019 corpus claim_id hex/slug fragments (identifiers, not credentials)"
+regexTarget = "secret"
+regexes = [
+  '''^\-decr\-31a2fe148f47$''',
+  '''^3f5fb3833bd9942daae08c6b9aa8728642a0fd206a18ef52238cc345d39$''',
+  '''^d325fffdadb8c1e1d2a4ac0e61f8b3b581517c$''',
+]
+
+# --- AUD-0062 receipt: entropy FP on a probe FILENAME (e2e-wave precedent) --------
+# At c8ca14ed6c:310 the committed _pack_receipt.py reads
+#   for script in ("probe1_tokenize_injection.py", "probe2_occupancy_compare.py"):
+# and generic-api-key fires on the underscore-heavy SCRIPT FILENAME in that tuple --
+# the same dictionary-word/identifier FP class as "^reconciliation$" and the
+# harness-sota corpus UUIDs. FINDING-LEVEL, NOT PATH-SCOPED: the receipt is real
+# code a path waiver would blind; the anchor pins the exact filename so every other
+# rule still reads every byte of the file.
+[[allowlists]]
+description = "AUD-0062 _pack_receipt.py: generic-api-key FP on a probe script filename in a for-loop tuple (not a credential)"
+regexTarget = "secret"
+regexes = [
+  '''^probe1_tokenize_injection\.py$''',
+  '''^probe2_occupancy_compare\.py$''',
+]

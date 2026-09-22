@@ -31,6 +31,10 @@ Checks, each independently falsifiable:
                                    build_graph(catalog) byte for byte.
   V-FIELDS work-unit completeness- all 19 Prompt Two fields resolve per item,
                                    from the item or from the declared defaults.
+                                   Armed by default on the CLI (IMP-0437); pass
+                                   --no-require-complete only for deliberate
+                                   incomplete drafts. CI invokes with
+                                   --require-complete.
 
 FAIL CLOSED. An empty item list, an unreadable catalog, or a missing register
 snapshot is a FAILURE, never "nothing found -> pass" (`rules/common/ci-hygiene.md`
@@ -55,6 +59,54 @@ import register_parse as rp
 
 _ID_RE = re.compile(r"^(?:R|D|S|T)-[A-Z]?\d+$")
 
+_BLOBREAD = None
+
+
+def _blobread():
+    """Lazy-load tools/measure-guard/blobread.py (IMP-0439)."""
+    global _BLOBREAD
+    if _BLOBREAD is None:
+        blob_path = (
+            Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        )
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("cc_validate_blobread", blob_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {blob_path}")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _BLOBREAD = mod
+    return _BLOBREAD
+
+
+def _register_provenance_bytes(
+    snapshot: Path, catalog: dict[str, Any] | None = None
+) -> bytes:
+    """Bytes REACH-6 hashes: committed blob when the snapshot is a tracked path.
+
+    CC-0005: prefer ``git cat-file -p <rev>:<path>`` (never worktree, never archive).
+    Falls back to LF-normalised working-tree bytes for scratch / test catalogs
+    that are not in git. Never hashes raw CRLF worktree bytes as the blob.
+    """
+    wt_lf = snapshot.read_bytes().replace(b"\r\n", b"\n")
+    # Prefer an explicit repo-relative path from provenance.register when present.
+    rel = None
+    if isinstance(catalog, dict):
+        prov = catalog.get("provenance")
+        if isinstance(prov, dict) and prov.get("register"):
+            rel = str(prov["register"]).replace("\\", "/")
+    if rel is None:
+        try:
+            rel = snapshot.resolve().relative_to(cat.repo_root().resolve()).as_posix()
+        except (ValueError, OSError):
+            return wt_lf
+    try:
+        blob = _blobread().read_blob(rel, "HEAD", repo=cat.repo_root())
+    except Exception:
+        return wt_lf
+    return blob if wt_lf == blob else wt_lf
+
 
 class Violation(dict):
     """A single finding. `dict` so the JSON report needs no encoder."""
@@ -67,7 +119,18 @@ class Violation(dict):
 
 
 def _resolved(item: dict[str, Any], defaults: dict[str, Any], field: str) -> bool:
-    value = item.get(field, defaults.get(field))
+    """Whether a work-unit field resolves to a usable value.
+
+    Uses catalog.resolve_field so unit-level JSON null is explicit-null
+    (does not fall through to defaults). Explicit null is unresolved for
+    completeness except for disposition.
+    """
+    resolved = cat.resolve_field(item, defaults, field)
+    if resolved["provenance"] == "explicit-null":
+        return field == "disposition"
+    if resolved["provenance"] == "unset":
+        return False
+    value = resolved["value"]
     if value is None:
         return field == "disposition"
     if isinstance(value, str):
@@ -82,14 +145,23 @@ def validate(
     *,
     register_path: Path | None = None,
     graph: dict[str, Any] | None = None,
-    require_complete: bool = False,
+    require_complete: bool = True,
 ) -> tuple[list[Violation], dict[str, Any]]:
-    """Run every check. Returns (violations, stats). Never raises on bad data."""
+    """Run every check. Returns (violations, stats). Never raises on bad data.
+
+    ``require_complete`` defaults to True (IMP-0437). Library callers that need
+    the historical soft mode must pass ``require_complete=False`` explicitly.
+    """
     violations: list[Violation] = []
     items = cat.items(catalog)
     defaults = (
         catalog.get("defaults", {}) if isinstance(catalog.get("defaults"), dict) else {}
     )
+
+    # V-DEFAULTS — always on (IMP-0436). Bare CLI must catch a deleted defaults
+    # block; requiring --require-complete for this was the measured silence hole.
+    for finding in cat.defaults_block_violations(catalog):
+        violations.append(Violation(finding["check"], finding["id"], finding["detail"]))
 
     if not items:
         violations.append(
@@ -214,18 +286,13 @@ def validate(
             Violation("REACH-6", "-", f"register snapshot missing at {snapshot}")
         )
     else:
-        # LF-NORMALISE BEFORE HASHING — the register snapshot is text, git stores it
-        # with LF, and a Windows checkout under core.autocrlf=true materialises CRLF.
-        # Hashing raw working-tree bytes made REACH-6 unsatisfiable on ANY Windows
-        # checkout while passing on Linux CI (measured 2026-08-10: worktree digest
-        # 1a404a91d819 vs the recorded 8b3e44cc3813, which is exactly the committed
-        # blob). That is not a data defect, it is a portability defect in this gate.
-        #
-        # It was not cosmetic: render_status() embeds validate()'s violations, so the
-        # phantom Windows violation was baked into the COMMITTED STATUS.md and then
-        # showed up on CI as `cc-render drift=1` — a local-only measurement artifact
-        # leaking into a tracked artifact. Same root cause as render_manifest.
-        raw = snapshot.read_bytes().replace(b"\r\n", b"\n")
+        # CC-0005 / IMP-0439: hash the COMMITTED blob via git cat-file, not worktree bytes.
+        # LF-normalisation of the worktree was the 2026-08-10 stopgap (worktree digest
+        # 1a404a91d819 vs recorded blob 8b3e44cc3813 on Windows autocrlf). Blob hashing
+        # is the portable route: Windows and Linux both read the same git object.
+        # Fall back to LF-normalised worktree only when the path is not in HEAD
+        # (tests / scratch catalogs).
+        raw = _register_provenance_bytes(snapshot, catalog)
         digest = hashlib.sha256(raw).hexdigest()
         recorded = str(provenance.get("register_sha256", ""))
         if not recorded:
@@ -288,18 +355,27 @@ def validate(
             )
         )
 
-    # V-FIELDS
+    # V-FIELDS — armed by default (IMP-0437). Pre-0437 this block was gated on
+    # an opt-in flag while CI invoked the tool bare, so incompleteness (and,
+    # before IMP-0436 V-DEFAULTS, a deleted defaults block) could exit 0.
     unresolved: list[str] = []
     default_only = 0
+    override_count = 0
+    explicit_null_count = 0
     for node in sorted(index):
         item = index[node]
         for field in cat.WORK_UNIT_FIELDS:
             if field in ("dependencies", "inputs") and not item.get(field):
                 continue  # legitimately empty: a root item has neither
+            resolved = cat.resolve_field(item, defaults, field)
+            if resolved["provenance"] == "default":
+                default_only += 1
+            elif resolved["provenance"] == "override":
+                override_count += 1
+            elif resolved["provenance"] == "explicit-null":
+                explicit_null_count += 1
             if not _resolved(item, defaults, field):
                 unresolved.append(f"{node}.{field}")
-            elif field not in item and field in defaults:
-                default_only += 1
     if unresolved and require_complete:
         for entry in unresolved:
             node, _, field = entry.partition(".")
@@ -318,6 +394,8 @@ def validate(
         ),
         "work_unit_fields_unresolved": len(unresolved),
         "work_unit_fields_from_defaults": default_only,
+        "work_unit_fields_from_overrides": override_count,
+        "work_unit_fields_explicit_null": explicit_null_count,
         "by_program": _count(index, "program"),
         "by_status": _count(index, "status"),
     }
@@ -337,7 +415,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--catalog", default=str(cat.catalog_path()))
     parser.add_argument("--graph", default=str(cat.graph_path()))
     parser.add_argument("--register", default=None)
-    parser.add_argument("--require-complete", action="store_true")
+    # IMP-0437: field-completeness is ON by default. CI also passes the flag
+    # explicitly. Use --no-require-complete only for deliberate soft drafts.
+    parser.add_argument(
+        "--require-complete",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "fail when any Prompt Two work-unit field is unresolved "
+            "(default: true; IMP-0437)"
+        ),
+    )
     parser.add_argument(
         "--json", action="store_true", help="emit the machine-readable report"
     )

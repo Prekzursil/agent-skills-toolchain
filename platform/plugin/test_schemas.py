@@ -71,6 +71,47 @@ def artifacts(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 
     report = health.health_check(prefix, with_controls=True)
 
+    # IMP-0062: a REAL SBOM from the actual producer (tools/plugin/sbom.py), not a
+    # hand-written fixture -- layer 2 validates the artifact the code emits.
+    import sys as _sys
+
+    _sys.path.insert(0, str(root / "tools" / "plugin"))
+    import sbom as sbom_mod  # noqa: E402
+
+    lockfile = work / "package-lock.json"
+    lockfile.write_text(
+        json.dumps(
+            {
+                "name": "fixture-app",
+                "version": manifest.version,
+                "lockfileVersion": 3,
+                "packages": {
+                    "": {"name": "fixture-app", "version": manifest.version},
+                    "node_modules/left-pad": {
+                        "version": "1.3.0",
+                        "resolved": (
+                            "https://registry.npmjs.org/left-pad/-/left-pad-1.3.0.tgz"
+                        ),
+                        "integrity": "sha512-XxXFAKESECRET=",
+                        "license": "MIT",
+                    },
+                },
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sbom_doc = sbom_mod.build_sbom(
+        name="fixture-app",
+        version=manifest.version,
+        npm_lockfiles=[lockfile],
+        python_requirement_text="requests==2.32.3\n",
+        vendored_markers=[],
+        repo=work,
+        timestamp="2026-09-08T00:00:00Z",
+    )
+
     return {
         "payload-allowlist": payload.allowlist_document(
             ALLOW_RULES, budget_bytes=MAX_BYTES, budget_files=MAX_FILES
@@ -94,6 +135,7 @@ def artifacts(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
         "failure-policy": policy.failure_policy_document(),
         "exec-policy": policy.exec_policy_document(),
         "log-record": record.as_dict(),
+        "cyclonedx-sbom": sbom_doc,
         "_manifest": manifest.as_dict(),
     }
 
@@ -102,9 +144,9 @@ def artifacts(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
 
 
 def test_every_declared_target_has_a_schema() -> None:
-    assert len(schemas.TARGETS) == 19
+    assert len(schemas.TARGETS) == 20
     assert ".claude-plugin/plugin.schema.json" in schemas.TARGETS
-    assert sum(1 for k in schemas.TARGETS if k.startswith("tools/plugin/schema/")) == 18
+    assert sum(1 for k in schemas.TARGETS if k.startswith("tools/plugin/schema/")) == 19
 
 
 @pytest.mark.parametrize("name", sorted(schemas.SCHEMAS))
@@ -134,15 +176,15 @@ def test_the_shipped_manifest_validates_against_the_manifest_schema(
 def test_the_repo_root_manifest_also_validates_where_it_overlaps(
     repo_root: Path,
 ) -> None:
-    """The pre-existing root manifest must not be contradicted by this profile.
+    """The live root manifest must validate green under the IMP-0006 profile.
 
-    It carries only the client-understood fields, so it is valid once the additive
-    ``compatibility`` block (which this profile requires and the client does not) is supplied.
+    Phase-4 fields (compatibility/…) are contracted optional properties; the
+    current client surface (name/version/description/author/license/keywords)
+    alone must pass without injecting additive blocks.
     """
     doc = json.loads(
         (repo_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
-    doc["compatibility"] = {"min_client": "1.0.0"}
     VALIDATOR(schemas.PLUGIN_MANIFEST_SCHEMA).validate(doc)
 
 
@@ -194,6 +236,7 @@ MUTANTS: dict[str, Callable[[dict[str, Any]], None]] = {
     "failure-policy": lambda d: d.update(default_mode="fail-open"),
     "exec-policy": lambda d: d["rules"][0].update(credential_read_allowed=True),
     "log-record": lambda d: d.update(level="trace"),
+    "cyclonedx-sbom": lambda d: d.pop("serialNumber"),
 }
 
 
@@ -309,7 +352,7 @@ def test_shipped_package_carries_the_schemas(built_package: Path) -> None:
     from plugin.packager import list_members
 
     shipped = [m for m in list_members(built_package) if m.startswith("schema/")]
-    assert len(shipped) == 18, f"expected 18 shipped schemas, got {len(shipped)}"
+    assert len(shipped) == 19, f"expected 19 shipped schemas, got {len(shipped)}"
 
 
 def test_manifest_for_matches_the_schema_before_any_io() -> None:

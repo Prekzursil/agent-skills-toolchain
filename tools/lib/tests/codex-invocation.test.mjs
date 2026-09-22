@@ -253,3 +253,101 @@ test('codex: createCodexExecPlan mints its own temp dir when none is given', asy
   assert.equal(await fs.readFile(plan.promptFile, 'utf8'), 'p');
   await fs.rm(path.dirname(plan.promptFile), { recursive: true, force: true });
 });
+
+test('codex: resolveCodexInvocation with empty env on win32 falls through to codex.exe', async () => {
+  const r = await resolveCodexInvocation({ env: {}, platform: 'win32', nodeExecutable: 'node-x' });
+  assert.deepEqual(r, { command: 'codex.exe', args: [], shell: false });
+});
+
+test('codex: a script-path base without a bundled node.exe uses the given node executable', async () => {
+  const base = await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-codex-base-'));
+  try {
+    const script = path.join(base, 'npm', 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
+    await fs.mkdir(path.dirname(script), { recursive: true });
+    await fs.writeFile(script, '', 'utf8');
+    const r = await resolveCodexInvocation({
+      env: { APPDATA: base },
+      platform: 'win32',
+      nodeExecutable: 'given-node',
+    });
+    assert.equal(r.command, 'given-node', 'no bundled node.exe -> caller-supplied executable');
+    assert.deepEqual(r.args, [script]);
+
+    // Once a bundled node.exe appears next to the npm tree, it wins.
+    await fs.writeFile(path.join(base, 'npm', 'node.exe'), '', 'utf8');
+    const r2 = await resolveCodexInvocation({
+      env: { APPDATA: base },
+      platform: 'win32',
+      nodeExecutable: 'given-node',
+    });
+    assert.equal(r2.command, path.join(base, 'npm', 'node.exe'));
+  } finally {
+    await fs.rm(base, { recursive: true, force: true });
+  }
+});
+
+test('codex: CODEX_CLI_BIN shell flag follows platform AND extension', async () => {
+  assert.deepEqual(
+    await resolveCodexInvocation({ env: { CODEX_CLI_BIN: 'C:\\tools\\codex.cmd' }, platform: 'win32' }),
+    { command: 'C:\\tools\\codex.cmd', args: [], shell: true },
+  );
+  assert.deepEqual(
+    await resolveCodexInvocation({ env: { CODEX_CLI_BIN: '/usr/local/bin/codex' }, platform: 'linux' }),
+    { command: '/usr/local/bin/codex', args: [], shell: false },
+  );
+  assert.deepEqual(
+    await resolveCodexInvocation({ env: { CODEX_CLI_BIN: 'C:\\tools\\codex.exe' }, platform: 'win32' }),
+    { command: 'C:\\tools\\codex.exe', args: [], shell: false },
+  );
+  // POSIX never needs the .cmd shim, whatever the extension.
+  assert.deepEqual(
+    await resolveCodexInvocation({ env: { CODEX_CLI_BIN: '/opt/codex.cmd' }, platform: 'linux' }),
+    { command: '/opt/codex.cmd', args: [], shell: false },
+  );
+});
+
+test('codex: buildCodexExecArgs covers every optional and tolerates bad config entries', () => {
+  // All defaults on.
+  assert.deepEqual(buildCodexExecArgs({ cwd: '/w' }), [
+    'exec', '--ignore-user-config', '--json', '-C', '/w', '-',
+  ]);
+  // Everything on/off at once; ephemeral suppresses resume even with a sessionId.
+  assert.deepEqual(
+    buildCodexExecArgs({
+      cwd: '/w',
+      ephemeral: true,
+      skipGitRepoCheck: true,
+      model: 'gpt-x',
+      configOverrides: [null, '', 'x=1'],
+      ignoreUserConfig: false,
+      json: false,
+      outputLastMessage: '/out.txt',
+      sessionId: 's1',
+    }),
+    ['exec', '--ephemeral', '--skip-git-repo-check', '-m', 'gpt-x', '-c', 'x=1', '-o', '/out.txt', '-C', '/w', '-'],
+  );
+  // resume appears only when NOT ephemeral and a sessionId is given; non-array overrides are ignored.
+  assert.deepEqual(
+    buildCodexExecArgs({ sessionId: 's1', configOverrides: 'not-an-array' }),
+    ['exec', '--ignore-user-config', '--json', 'resume', 's1', '-'],
+  );
+});
+
+test('codex: writePromptFile falls back to its own mkdtemp dir when none is given', async () => {
+  const file = await writePromptFile('body');
+  try {
+    assert.match(file, /[\\/]codex-prompt-/);
+    assert.equal(await fs.readFile(file, 'utf8'), 'body');
+  } finally {
+    await fs.rm(path.dirname(file), { recursive: true, force: true });
+  }
+});
+
+test('codex: createCodexExecPlan defaults the working directory to process.cwd', async () => {
+  const plan = await createCodexExecPlan({ prompt: 'p', env: {}, platform: 'linux' });
+  try {
+    assert.equal(plan.cwd, path.resolve(process.cwd()));
+  } finally {
+    await fs.rm(path.dirname(plan.promptFile), { recursive: true, force: true });
+  }
+});

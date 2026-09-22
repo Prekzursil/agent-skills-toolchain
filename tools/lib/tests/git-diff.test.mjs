@@ -122,3 +122,31 @@ test('git-diff: a clean tree yields an empty packet without throwing', async () 
   assert.deepEqual(pkt.files, []);
   assert.equal(pkt.patch, '');
 });
+
+test('git-diff: a directory that is not a git repo yields ok:false and an empty packet', async () => {
+  const dir = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-nogit-')));
+  try {
+    const pkt = await buildReviewPacket({ workspaceDir: dir });
+    assert.equal(pkt.ok, false);
+    assert.deepEqual(pkt.files, []);
+    assert.equal(pkt.patch, '');
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('git-diff: scorePath treats nullish and empty paths as unranked code', () => {
+  assert.equal(scorePath(''), 50);
+  assert.equal(scorePath(null), 50);
+  assert.equal(scorePath(undefined), 50);
+});
+
+test('git-diff: a sub-50ms timeout kills git and the packet reports ok:false', async () => {
+  // timeoutMs:0 fires before any child process can complete, so the SIGTERM path in run()
+  // is exercised deterministically in milliseconds instead of a 30-second stall.
+  const dir = await tmpRepo();
+  const pkt = await buildReviewPacket({ workspaceDir: dir, timeoutMs: 0 });
+  assert.equal(pkt.ok, false);
+  assert.deepEqual(pkt.files, []);
+  assert.equal(pkt.patch, '');
+});

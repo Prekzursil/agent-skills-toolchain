@@ -1,0 +1,104 @@
+{
+  "reviewer_id": "fresh-context-openai-independent-reviewer-AUD-0057",
+  "vendor": "openai",
+  "independent": true,
+  "fresh_context": true,
+  "verdict": "PASS",
+  "probe2_rerun": true,
+  "reran_probe": 2,
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "reviewed_at": "2026-09-07T20:09:27Z",
+  "reviewed_tip_sha": "5d6484aa9d0bb93da6bf6a14738499a945920c4e",
+  "unit_id": "AUD-0057",
+  "artifact_path": "command-center/audit/AUD-0057-assertion-strength-census.json",
+  "artifact_state_observed": "BLOCKED",
+  "headline_under_review": "defs=27 unexercised=2 exercised=16 suite_local_holes=3 high_risk_unexercised=1 holes_confirmed=2 both_states=True. BLOCKED on cross-vendor Codex probe2 re-run.",
+  "notes": "Fresh-context independent OpenAI/Codex review of AUD-0057. Catalog reviewer_requirement: re-run ONLY probe 2 (scratch-worktree default mutation). Tip 5d6484aa9 packs BLOCKED (not SUCCESS). Re-ran python3 -B command-center/p2-wave/probes/AUD-0057/probe2_mutate_defaults.py → EXIT=0; fresh measured_at=2026-09-07T20:06:28Z; worktree_mode=git-worktree; control.both_states=True; holes_confirmed_count=2; all five labels matched expect (planted RED/GREEN, mutation-gate weak GREEN / strong RED, hooks completion RED). Restored committed probe2 json/raw after re-run so this commit is review-only. Did not treat receipt as authority: independently mutated planted + mutation-gate fixtures outside the probe harness and confirmed both-states (covered→RED, unexercised→GREEN), holes_confirmed=2, no-op 64→64 stays GREEN (RED not flake), weak suite never omits threshold=, and primary audit+manifest remain state=BLOCKED. Could not falsify headlines. Did NOT promote SUCCESS or rewrite the pack.",
+  "falsification_attempts": [
+    {
+      "id": 1,
+      "target": "both_states RED control (covered PLANTED_EXERCISED_DEFAULT mutation)",
+      "method": "Independent temp-copy mutate PLANTED_EXERCISED_DEFAULT 64→1; pytest fixtures/test_planted_strong.py (outside probe2 harness)",
+      "result": "NOT-FALSIFIED",
+      "evidence": "failed=1 passed=1; assert planted_exercised(63) breaks when default becomes 1. Log: /opt/cursor/artifacts/aud0057-review-falsification.json F1"
+    },
+    {
+      "id": 2,
+      "target": "unexercised hole stays GREEN (PLANTED_UNEXERCISED_DEFAULT)",
+      "method": "Independent temp-copy mutate PLANTED_UNEXERCISED_DEFAULT 1024→512; pytest fixtures/test_planted_weak.py",
+      "result": "NOT-FALSIFIED",
+      "evidence": "failed=0 passed=1; weak suite always passes threshold= explicitly so mutant survives. F2"
+    },
+    {
+      "id": 3,
+      "target": "planted weak/strong defaults are structurally weak vs strong",
+      "method": "Source inspection of test_planted_weak.py / test_planted_strong.py call forms",
+      "result": "NOT-FALSIFIED",
+      "evidence": "weak: planted_unexercised(..., threshold=512) only; strong: planted_exercised(64|63|65) omits kw. F3+F9"
+    },
+    {
+      "id": 4,
+      "target": "holes_confirmed including mutation-gate weak DEFAULT_MIN_BYTES",
+      "method": "Independent mutate tools/mutation-gate/sample/threshold.py DEFAULT_MIN_BYTES→512; pytest weak then strong",
+      "result": "NOT-FALSIFIED",
+      "evidence": "weak: 1 passed (hole); strong: 1 failed (kills mutant at 1023). Independent holes=2. F4+F5+F6"
+    },
+    {
+      "id": 5,
+      "target": "both_states control not harness flake",
+      "method": "No-op mutate PLANTED_EXERCISED_DEFAULT 64→64; strong suite must stay GREEN",
+      "result": "NOT-FALSIFIED",
+      "evidence": "failed=0 passed=2; RED only appears when value actually changes. F7"
+    },
+    {
+      "id": 6,
+      "target": "probe2 re-run reproduces committed semantics; receipt stays BLOCKED",
+      "method": "Compare fresh probe2 JSON semantics to committed; read audit+manifest state",
+      "result": "NOT-FALSIFIED",
+      "evidence": "ok/holes_confirmed_count/control.both_states/label ok+hole_confirmed+expect identical; audit.state=BLOCKED manifest.state=BLOCKED reviewer.verdict=NOT-REVIEWED. F8+F10. Logs: aud0057-review-probe2-rerun.log, aud0057-review-probe2-fresh.json"
+    },
+    {
+      "id": 7,
+      "target": "hooks completion DEFAULT_MIN_BYTES exercised→RED (probe2 fifth case)",
+      "method": "Independent temp-copy mutate hooks/_shared/completion.py DEFAULT_MIN_BYTES→512; run test_completion.py script",
+      "result": "NOT-FALSIFIED",
+      "evidence": "XX on default-gate partial case; RESULT has FAIL. Appended to aud0057-review-falsification.log"
+    }
+  ],
+  "confirmed": [
+    "probe2_rerun_exit_0",
+    "worktree_mode_git_worktree",
+    "both_states_control_ok",
+    "planted_exercised_turns_RED",
+    "planted_unexercised_stays_GREEN",
+    "holes_confirmed_count_2",
+    "mutation_gate_weak_hole_confirmed",
+    "mutation_gate_strong_kills_mutant",
+    "hooks_completion_default_turns_RED",
+    "planted_weak_never_omits_threshold",
+    "planted_strong_omits_threshold",
+    "noop_mutation_stays_GREEN",
+    "fresh_semantics_match_committed",
+    "receipt_state_BLOCKED"
+  ],
+  "falsified": [],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0057-review-0db0 origin/cursor/p2-loop-to-green-0db0",
+    "git rev-parse HEAD  # 5d6484aa9d0bb93da6bf6a14738499a945920c4e",
+    "python3 -B command-center/p2-wave/probes/AUD-0057/probe2_mutate_defaults.py  # ONLY probe 2; EXIT=0",
+    "restore committed probe2-mutate-defaults.json + .raw.txt after re-run",
+    "independent temp-copy mutations + pytest on planted weak/strong and mutation-gate weak/strong",
+    "independent completion.py DEFAULT_MIN_BYTES→512 + test_completion.py",
+    "compare fresh vs committed probe2 semantic fields; read AUD-0057 audit+manifest state=BLOCKED"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0057-review-probe2-rerun.log",
+    "/opt/cursor/artifacts/aud0057-review-probe2-fresh.json",
+    "/opt/cursor/artifacts/aud0057-review-probe2-fresh.raw.txt",
+    "/opt/cursor/artifacts/aud0057-review-probe2-summary.json",
+    "/opt/cursor/artifacts/aud0057-review-falsification.log",
+    "/opt/cursor/artifacts/aud0057-review-falsification.json"
+  ],
+  "promotion_note": "PASS for parent to consume; did_not_promote=true. Receipt remains BLOCKED — do not invent SUCCESS from this review alone."
+}
