@@ -29,7 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ZAI_MESSAGES_URL = "https://api.z.ai/api/anthropic/v1/messages"
 ANTHROPIC_ORIGIN = "https://api.anthropic.com"
-GLM_MODEL = os.environ.get("CS_GLM_MODEL", "glm-4.6")
+GLM_MODEL = os.environ.get("CS_GLM_MODEL", "glm-5.3")
 PORT = int(os.environ.get("CS_ROUTER_PORT", "8231"))
 ZAI_KEY = os.environ.get("ZAI_API_KEY", "")
 
