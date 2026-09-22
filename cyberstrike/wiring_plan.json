@@ -1,0 +1,186 @@
+{
+  "plan": "cs-sota-wiring",
+  "lane": "capability-gaps",
+  "date": "2026-09-22",
+  "repo_head_at_authoring": "04aff13c6600e9655aabbe5ee5081a31a4233140",
+  "apply_policy": "STAGE-ONLY. Owner/apply-lane applies. TUI is LIVE: cyberstrike.json mcp edits land at an owner-chosen config-reload/restart boundary; new fronts start via supervisor (-Include / -RepairFront / profile edit), ONE at a time, probe, next (RAM discipline). NEVER-ROTATE absolute. No credential values in this file (env-var names only).",
+  "fleet_ssot": "D:/opt/cyberstrike-mcp/mcp-ssot.json + D:/opt/cyberstrike-mcp/start-cyberstrike-mcp-http.ps1 + cyberstrike-mcp-lib.ps1 Get-CsMcpFrontCatalog",
+
+  "cs06_basic_memory": {
+    "defect": "CONFIRMED CS-06: contract orders basic-memory for decisions/findings but cockpit does not mount it",
+    "evidence": [
+      "contract: C:/Users/Prekzursil/.config/cyberstrike/AGENTS.md:100 + instructions-recon.md:23",
+      "absence: cyberstrike.json mcp block lines 243-448 (34 entries, none basic-memory)",
+      "transport: C:/Users/Prekzursil/.agents/agents.json:730-769 (http, http://127.0.0.1:18765/mcp, credentialNames [], singletonKey basic-memory/http)",
+      "no credentials exist: grep local.json for basic-memory/18765 = no matches (keyless loopback)",
+      "fleet ssot already knows it: D:/opt/cyberstrike-mcp/mcp-ssot.json:384-386",
+      "daemon live, 2 signals: HTTP 200 on MCP initialize (probe 2026-09-22) + live mcp__basic-memory__* tools in a concurrent Claude session",
+      "drop provenance: memory/2026-09-03.md:130 (formerly mounted on stale port :8765; lost in 311xx port-band migration)"
+    ],
+    "cyberstrike_json_entry": {
+      "basic-memory": {
+        "type": "remote",
+        "url": "http://127.0.0.1:18765/mcp",
+        "enabled": true,
+        "timeout": 300000
+      }
+    },
+    "cost": "zero new process (daemon already always-on, ~843 MiB warm singleton already paid per agents.json resourceException)",
+    "note": "entry shape byte-matches the live 34 (type/url/enabled/timeout only); no headers field needed — keyless"
+  },
+
+  "ranked_additions": [
+    {
+      "rank": 1,
+      "id": "basic-memory",
+      "why_rank_1": "contract-ordered (CS-06), keyless, zero new process, daemon VERIFIED live",
+      "kind": "direct-remote",
+      "cyberstrike_json_entry": {
+        "basic-memory": { "type": "remote", "url": "http://127.0.0.1:18765/mcp", "enabled": true, "timeout": 300000 }
+      },
+      "capability": "durable engagement memory: decisions/findings/observations survive TUI restarts and compaction (contract routing line)"
+    },
+    {
+      "rank": 2,
+      "id": "agent-mail",
+      "why_rank_2": "keyless loopback, zero new process, VERIFIED live (HTTP 200 initialize + live session tools), enables mid-engagement fleet coordination with Claude/Codex peers",
+      "kind": "direct-remote",
+      "cyberstrike_json_entry": {
+        "agent-mail": { "type": "remote", "url": "http://127.0.0.1:18812/mcp/", "enabled": true, "timeout": 300000 }
+      },
+      "capability": "peer-agent messaging + advisory file-leases; [IMPORTANT]/[STATUS] marker discipline",
+      "note": "mount itself keyless; a few tools take an optional registration_token (agent identity) — send/receive works after agent registration via the mailbox API"
+    },
+    {
+      "rank": 3,
+      "id": "breach-intel",
+      "why_rank_3": "new capability class for CS (breach/credential intel: Snusbase 18.5B rows, Hudson Rock Cavalry infostealer, SpyCloud, LeakCheck); stdio handshake VERIFIED (serverInfo breach-intel/1.29.0, probe 2026-09-22); keys are file-based (read by the server from D:/bolt/credentials/breach-vendor-keys.json — path only, never values)",
+      "kind": "supervisor-front",
+      "port": 31141,
+      "supervisor_front_def": {
+        "Name": "breach-intel", "Port": 31141, "Band": "Full",
+        "Exe": "C:\\Python314\\python.exe",
+        "Args": ["D:\\opt\\breach-mcp\\breach_intel_mcp.py"],
+        "Match": "--port 31141", "ExtraMatch": ["breach_intel_mcp.py"], "HealthTimeoutSec": 25
+      },
+      "cyberstrike_json_entry": {
+        "breach-intel": { "type": "remote", "url": "http://127.0.0.1:31141/mcp", "enabled": true, "timeout": 300000 }
+      },
+      "registry_anchor": "agents.json:2304-2323",
+      "frame_note": "G-7 e4 canonical frame: defensive/incident-report and owner-estate credential research in scope; no live use of third-party-victim (crime-victim) credentials",
+      "cost": "1 python proc, Full band (on-demand profile), ~50-80 MB"
+    },
+    {
+      "rank": 4,
+      "id": "skillspector",
+      "why_rank_4": "AI-agent-skill security scanner as MCP (verified subcommand exists); directly compensates the known-dead supply-chain (31135) and mcp-scanner (31132) fronts while those lanes repair them, and is a permanent complementary capability (skill/SCA vetting vs HTTP scanning)",
+      "kind": "supervisor-front",
+      "port": 31142,
+      "prerequisite": "D:/Research/tools/impl-venv/Scripts/python.exe -m pip install \"skillspector[mcp]\"  (probe error: 'The MCP server requires the optional mcp dependency' — one additive extra into the tools venv; resolver risk low but run with --no-deps if it tries to touch deepeval pins)",
+      "supervisor_front_def": {
+        "Name": "skillspector", "Port": 31142, "Band": "Full",
+        "Exe": "D:\\Research\\tools\\impl-venv\\Scripts\\skillspector.exe",
+        "Args": ["mcp"],
+        "Match": "--port 31142", "ExtraMatch": ["skillspector"], "HealthTimeoutSec": 30
+      },
+      "cyberstrike_json_entry": {
+        "skillspector": { "type": "remote", "url": "http://127.0.0.1:31142/mcp", "enabled": true, "timeout": 300000 }
+      },
+      "probe_receipt": "skillspector --help shows commands scan/mcp/baseline; mcp run blocked only on optional dep",
+      "cost": "1 python proc, Full band"
+    },
+    {
+      "rank": 5,
+      "id": "promptfoo",
+      "why_rank_5": "native MCP server VERIFIED (promptfoo 0.123.1 npm global, stdio initialize answered with tools+resources capabilities); serves the estate's LLM-offense/jailbreak lane (redteam eval harnessing for model surfaces under the Full-Surface Grant)",
+      "kind": "supervisor-front",
+      "port": 31143,
+      "supervisor_front_def": {
+        "Name": "promptfoo", "Port": 31143, "Band": "Full",
+        "Exe": "C:\\Windows\\System32\\cmd.exe",
+        "Args": ["/d", "/c", "C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\promptfoo.cmd", "mcp", "--transport", "stdio"],
+        "Match": "--port 31143", "ExtraMatch": ["promptfoo"], "HealthTimeoutSec": 60
+      },
+      "cyberstrike_json_entry": {
+        "promptfoo": { "type": "remote", "url": "http://127.0.0.1:31143/mcp", "enabled": true, "timeout": 300000 }
+      },
+      "opt_in": "start via -Include promptfoo only when the LLM-eval lane is active (node proc, keep off default profile)",
+      "cost": "1 node proc, opt-in"
+    }
+  ],
+
+  "gateway_phase_d_unlocks": {
+    "blocking_finding": "TUI remote mcp entries have NO auth surface — all 34 live entries are exactly {type,url,enabled,timeout} (cyberstrike.json:243-448). Remote-auth servers cannot be mounted directly; the gateway's env_keys resolver (gateway-DESIGN.md §4.6, schemes header-env/query-env/bearer-env already encoded in mcp-ssot.json:386-415) is the enabler.",
+    "unlock_list": [
+      { "name": "context7", "url": "https://mcp.context7.com/mcp", "auth": "header-env CONTEXT7_API_KEY", "fit": "current docs for exploit-dev library/API work (avoids stale-model exploit bugs)" },
+      { "name": "brightdata", "url": "https://mcp.brightdata.com/mcp", "auth": "query-env BRIGHTDATA_TOKEN", "fit": "web-unlocking/anti-bot scraping — strongest OSINT force-multiplier on the estate" },
+      { "name": "github", "url": "https://api.githubcopilot.com/mcp", "auth": "bearer-env GITHUB_MCP_PAT", "fit": "full GitHub read/write beyond github-security audit-only (issues/code/repos)" },
+      { "name": "apify", "url": "https://mcp.apify.com/", "auth": "bearer-env APIFY_TOKEN", "fit": "actor-based scraping/OSINT enrichment (ssot general_http lists it; not in agents.json registry)" },
+      { "name": "cloud-hub", "kind": "stdio-lazy", "fit": "ACTIVE cloud ops vs cloud-audit's read-only checks — RAM-heavy, mount ONLY behind the gateway stdio-lazy LRU lane, never an always-on front" },
+      { "name": "cheatengine", "kind": "stdio-lazy", "fit": "optional RE runtime-analysis lane (niche)" },
+      { "name": "mcp-graphql", "kind": "stdio-lazy", "fit": "GraphQL schema introspection for API attack-surface recon (needs per-target ENDPOINT config)" }
+    ]
+  },
+
+  "exclusions_honored": {
+    "owner_mandate_2026_09_03": {
+      "anchor": "C:/Users/Prekzursil/.config/cyberstrike/AGENTS.md:101 'No Tavily/Exa/search-hub/deep-research here'",
+      "excluded": ["tavily", "exa", "search-hub", "web-search-prime (same search class, Z.AI)", "deepwiki (search-adjacent docs, zcode/hermes-targeted)", "openaiDeveloperDocs (same class/targeting)"]
+    },
+    "fit_excluded": ["figma (design, no CS fit)", "notion", "linear", "linkedin", "huggingface", "sentry/sonarqube/codacy/deepsource/qlty/deepscan/codecov (dev-quality; github-security+semgrep cover CS needs)", "research fleet: arxiv/sci-hub/paper-search/pubmed/openalex/crossref/scholarly-access/annas-archive/biomni/tooluniverse/open-coscientist", "social-hub/video-agent-kit (no CS fit)", "cursor-bridge/claude-code-mcp/ralph-orchestrator (orchestration, not offense)", "playwright/chrome-devtools MCPs (redundant with hackbrowser front 31136)"]
+  },
+
+  "adopted_tools_probe_results": {
+    "skillspector 2.11.2 (impl-venv)": "VERIFIED mcp subcommand; blocked on optional dep — prerequisite pip install skillspector[mcp]",
+    "promptfoo 0.123.1 (npm global)": "VERIFIED promptfoo mcp --transport stdio answers initialize",
+    "breach-intel 1.29.0 (D:/opt/breach-mcp)": "VERIFIED stdio initialize handshake (this session's CONNECTION_CLOSED = transient spawn, disproved by direct probe)",
+    "mutmut (impl-venv)": "FAILED:mutmut-wsl-only — 'To run mutmut on Windows, please use the WSL'; no MCP mode",
+    "deepteam 1.0.9 (impl-venv)": "FAILED:deepteam-import — ModuleNotFoundError sentry_sdk at CLI import; no MCP entry point in dist-info; fix pip install sentry_sdk (adopted-tools lane); still no MCP mode",
+    "paper-qa 2026.8.12 (impl-venv)": "FAILED:paper-qa-no-mcp — library only (no console_scripts entry, no __main__)",
+    "AI-Infra-Guard": "FAILED:ai-infra-guard-not-installed — absent from impl-venv pip list, npm globals, and D:/Research/tools"
+  },
+
+  "gateway_skeleton_milestone": {
+    "source": "D:/bolt/admin-crack-2026-09-19/raw/cs-audit/phase2-5/gateway-DESIGN.md (G-9 = D, DESIGN ONLY, read in full)",
+    "definition": "SKELETON = design Phase A + Phase B pilot slice: modules M1 (generator) + M2-core (router) only. NOT in skeleton: M3 env-key resolution (structure only), M4 stdio lazy lane, M5 full 34-entry repoint, model plane, any key writes.",
+    "deliverables": [
+      {
+        "artifact": "D:/opt/cyberstrike-mcp/generated/gateway-routes.json (+ desc-hash baseline catalog)",
+        "module": "M1 generator",
+        "structure": "reads mcp-ssot.json; emits v3 rows {kind: front|remote-auth|stdio-lazy, url|cmd, keys[], aliases[], band, note, desc_sha8_baseline}; duplicate-alias lint FAILS non-zero on any dup; drift gate wired into gen_context --check"
+      },
+      {
+        "artifact": "D:/opt/cyberstrike-mcp/gateway/gateway.py",
+        "module": "M2-core skeleton",
+        "structure": "single asyncio process on 127.0.0.1:31150 (fallback 31151-31159); per-server path router /mcp/<name>; per-request lifecycle: resolve row (unknown => 404 + FAILED audit) -> auth stub -> poison/dead check (poisoned => 503) -> proxy to front; append-only audit JSONL audit/gw-YYYYMMDD.jsonl with immutable S6 vocabulary SUCCESS/FAILED/INTERRUPTED + supersedes corrections + req/resp sha8 + resolved_model attribution; lazy lifecycle: spawn-on-first-initialize, refcount on initialize/disconnect, 30-min idle exit, port-guarded idempotent start (NO scheduled task, NO always-on slot); two meta-tools: gateway.catalog, gateway.dead_list"
+      },
+      {
+        "artifact": "2-front pilot repoint (config-only, reversible)",
+        "scope": "cve + semgrep remotes in cyberstrike.json pointed at http://127.0.0.1:31150/mcp/cve and /mcp/semgrep; generated/direct-fallback.json kept warm for rollback"
+      }
+    ],
+    "what_the_skeleton_proves": [
+      "1. Collapses the design's headline UNVERIFIED: the TUI remote-MCP client accepts per-server distinct paths on one host:port (tools/list + one tool call succeed with byte-identical tool names mcp__cve__*, mcp__semgrep__*)",
+      "2. Added latency < 5 ms p95 for the local hop (vs 300000 ms TUI timeout)",
+      "3. Lazy spawn + refcount + idle exit does NOT become an always-on service (G-12 owner constraint honored; process absent when no clients)",
+      "4. Audit discipline catches the CS-2 stuck-call signature: black-hole a front => sweep reports the never-terminal call_id; audit lines are never rewritten",
+      "5. Dead-list both-states control: stop the semgrep front => mount receipt + gateway.dead_list report dead; restart => mounted (detector must fire in the broken state)"
+    ],
+    "acceptance_gate": "all 5 proofs green + alias lint negative-control (inject dup => generator exits non-zero) + gateway RSS < 100 MB measured",
+    "effort_estimate": "M1 0.5-1d + M2-core slice ~1d = 1.5-2 focused days (subset of the design's 6-9.5d full program; confidence likely 70-85% per design §7)"
+  },
+
+  "evidence_anchors": [
+    "C:/Users/Prekzursil/.agents/agents.json:730-769 (basic-memory), :2304-2323 (breach-intel), :248-279 (context7), :450-482 (github), :2084-2105 (brightdata)",
+    "C:/Users/Prekzursil/.agents/local.json — no basic-memory/18765 entries (keyless)",
+    "D:/opt/cyberstrike-mcp/mcp-ssot.json:384-386, :380-419 (general_http + auth schemes), :114-128 (stdio-lazy), :130-379 (fronts 31100-31140)",
+    "D:/opt/cyberstrike-mcp/cyberstrike-mcp-lib.ps1:21-207 (front catalog definition shape, Env per front, bands)",
+    "C:/Users/Prekzursil/.config/cyberstrike/cyberstrike.json:243-448 (34 mounted fronts, entry shape, no basic-memory/agent-mail)",
+    "C:/Users/Prekzursil/.config/cyberstrike/AGENTS.md:100-101 + instructions-recon.md:23 (contract order + exclusion mandate)",
+    "C:/Users/Prekzursil/.config/cyberstrike/memory/2026-09-03.md:130 (stale :8765 mount provenance)",
+    "D:/bolt/admin-crack-2026-09-19/raw/cs-audit/phase2-5/gateway-DESIGN.md (G-9 full design)",
+    "live probes 2026-09-22: HTTP 200 MCP initialize on 127.0.0.1:18765/mcp and 127.0.0.1:18812/mcp/; stdio initialize handshakes OK for breach-intel (v1.29.0) and promptfoo mcp; skillspector mcp blocked on optional dep; netstat: 31141/31142/31143/31150 free; git rev-parse HEAD 04aff13c6600e9655aabbe5ee5081a31a4233140"
+  ],
+
+  "receipt": "D:/bolt/admin-crack-2026-09-19/raw/cs-sota/capability-gaps-receipt_2026-09-22.md"
+}
