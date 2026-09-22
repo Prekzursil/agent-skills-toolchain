@@ -1,0 +1,20 @@
+{
+  "_comment": "Phase B pilot repoint (wiring_plan gateway_skeleton_milestone deliverable 3) — STAGED ONLY, owner-applied at a chosen TUI config-reload/restart boundary (apply_policy). Reversible config-only change: repoint cve + semgrep remotes through the gateway. Direct-fallback below is the exact current shape for rollback. The gateway must be running (lazy spawn on demand): C:/Python314/python.exe C:/Users/Prekzursil/.config/cyberstrike/gateway/skeleton.py",
+  "apply_steps": [
+    "1. Start the gateway (or let the first client spawn it): C:/Python314/python.exe gateway/skeleton.py",
+    "2. In cyberstrike.json mcp block, replace the cve and semgrep url values with the pilot urls below (entry shape unchanged: type/url/enabled/timeout only)",
+    "3. TUI restart / config reload at the owner boundary",
+    "4. Verify from the TUI: mcp__cve__* and mcp__semgrep__* tool calls succeed; audit lines appear in D:/opt/cyberstrike-mcp/audit/gw-YYYYMMDD.jsonl",
+    "5. Rollback: restore the direct urls (direct_fallback below) — no other state exists to reverse"
+  ],
+  "pilot_entries": {
+    "cve": { "type": "remote", "url": "http://127.0.0.1:31150/mcp/cve", "enabled": true, "timeout": 300000 },
+    "semgrep": { "type": "remote", "url": "http://127.0.0.1:31150/mcp/semgrep", "enabled": true, "timeout": 300000 }
+  },
+  "direct_fallback": {
+    "cve": { "type": "remote", "url": "http://127.0.0.1:31111/mcp", "enabled": true, "timeout": 300000 },
+    "semgrep": { "type": "remote", "url": "http://127.0.0.1:31119/mcp", "enabled": true, "timeout": 300000 }
+  },
+  "proof_note": "Session-affinity proxy proven live 2026-09-22 (battery 11/11): initialize returns front mcp-session-id through the gateway; tools/list WITH the session returns 41 byte-identical cve tool names; hop delta -12.9ms p50 vs direct. semgrep front was connection-refused at gateway mount time (flapping front, known dead-list lane) — pilot apply should wait for the semgrep repair lane or start with cve only.",
+  "unverified_until_first_wired_run": "TUI remote-MCP client accepts per-server distinct paths on one host:port (wiring_plan proof #1) — the proxy and session pass-through are proven with raw clients; the TUI itself must be exercised at the owner restart boundary."
+}
