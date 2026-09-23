@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: ca9aa7a4-16ad-4e9d-bafe-00eed0171063
-  modified: 2026-09-19T00:41:26.324Z
+  modified: 2026-09-23T05:17:40.102Z
 ---
 
 Grill about the user's private Hugging Face Space `Prekzursil/qwen38-27b-heretic-chat`. Everything durable is in
@@ -19,8 +19,7 @@ CI as the ONLY production writer + private staging Space + canary · production 
 HF router), ZeroGPU only as fallback · CPU-only UI/API Space + one ZeroGPU worker Space with one resident model · purpose = workbench
 AND agent gateway equally · curated evidence-gated `models.yaml` (12-prompt harness gate) · `python_eval` stays in-container, hardened
 (child env allowlist + parent `prctl(PR_SET_DUMPABLE,0)` + rlimits + operator flag; no upload token in the app) · personas: neutral
-set, cleaned, which Claude improves and extends (Claude does not write the clause about getting prompts past other AI systems'
-filters) · work split: Claude = platform (pipeline, core split, backends, gateway/MCP, tool-call reliability, hardening, eval harness),
+set, cleaned, which Claude improves and extends (Claude does not write one persona clause it declined on ethical grounds — flagged for safety review; see DECISION-QUEUE G-19) · work split: Claude = platform (pipeline, core split, backends, gateway/MCP, tool-call reliability, hardening, eval harness),
 the other agent = product (UI, vision/video, persona wiring, docs, worker loading experiments).
 
 **Why:** the Space was down, another AI agent was pushing broken, over-claimed commits to production with no gate, and the user wants

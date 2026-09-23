@@ -41,8 +41,7 @@ SCRATCH = /tmp/claude-1000/-workspaces-agent-skills-toolchain/ca9aa7a4-16ad-4e9d
    from source, or extract the pure function into a scratch file. No network calls to private/internal addresses; test SSRF
    guards by calling the guard functions directly. Never execute anything that needs a GPU.
 5. **Scope: engineering only** — reliability, correctness, performance, cost/quota, security hardening, UX, tests,
-   deployment hygiene, docs accuracy. **Out of scope:** anything whose purpose is to make the model or its personas better at
-   evading the safety guardrails of this or any other AI system, or better at producing harmful content. Treat the persona
+   deployment hygiene, docs accuracy. **Out of scope:** anything whose purpose is to reduce the model's adherence to the safety policies of this or any other AI system, or to improve harmful content generation. Treat the persona
    text in `system_prompt.py` as opaque product copy: you may comment on engineering properties only (token cost, conflicts
    with the tool protocol, prompt-injection robustness, maintainability). Do not rewrite or "strengthen" persona directives.
 6. Evidence standard: every finding cites `file:line` from space-src and quotes the relevant code. Claims about library or

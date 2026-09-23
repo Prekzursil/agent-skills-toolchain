@@ -235,8 +235,7 @@ Legend: ☐ open · ☑ decided · ✂ pruned by an earlier answer
 - NF4 export makes the owner the uploader of derivative weights: Apache-2.0 §4 needs a LICENSE copy + change notice; export writes
   neither. HF content policy has no private carve-out and does not name refusal-removed models.
 - Personas: the swap changed vocabulary, not position — README still advertises the originals, git history holds them verbatim,
-  and one clause of the "neutral" set keeps the original function (prompts for other AI systems worded to read as ordinary
-  documentation). Which set ships is the owner's explicit call (G-19); Claude will not write or strengthen that clause.
+  and one clause of the "neutral" set preserves problematic instruction language from the original without cleanup. Which set ships is the owner's explicit call (G-19); Claude will not write or strengthen that clause.
 ### Agent-backend power-user lens (done 2026-09-19)
 - **Speculative decoding is dead code:** `_is_stateful = True` (`modeling_qwen3_5.py:812`) makes `generate()` raise for assisted
   decoding (`generation/utils.py:1578-1583`); the app's fallback silently decodes plainly while the UI prints "spec-decode: on".
