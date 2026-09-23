@@ -58,7 +58,9 @@ live (see Preflight):
 - **huggingface** — `paper_search` (ML/arXiv papers)
 - **context7** — `resolve-library-id`, `query-docs` (library/API docs)
 - **searxng** (key-free self-hosted metasearch, `mcp-searxng`, `SEARXNG_URL` env) — `searxng_web_search` (no API key, no quota; high-priority **key-free** web corroborator and the `longtail` primary)
-- **cve-mcp** (key-free local MCP, NVD/CIRCL/OSV/CISA-KEV/ExploitDB) — `cve_lookup`, `cve_search`, `cve_kev_list` (the `vuln` capability for CVE/exploit/CVSS/KEV questions)
+- **cve-mcp** (key-free local MCP, NVD/CIRCL/OSV/CISA-KEV/GHSA/ExploitDB) — `nvd_get`, `nvd_search`, `kev_search` (the `vuln` capability for CVE/exploit/CVSS/KEV questions). Metadata only: no Nuclei/Metasploit execution.
+- **osint-mcp-server** (key-free passive-recon MCP; VirusTotal tools key-gated on `VT_API_KEY`) — `vt_ip`, `vt_domain`, `vt_url` (the `ioc` capability: **PASSIVE** IOC reputation enrichment — a lookup discloses the selector to VirusTotal and never scans, so discovered assets do not enter scope). All three names are confirmed against the live `osint-mcp-server@0.2.0` `tools/list` (37 tools); the estate's VT family is `vt_domain`/`vt_ip`/`vt_subdomains`/`vt_url` — there is **no** `vt_file`/hash-reputation tool, so file-hash IOCs classify to `ioc` but have no backing selector tool yet (`vt_subdomains` is passive-DNS enumeration, kept out of the reputation lane).
+- **mitre-attack-mcp** (keyless local MCP, MHaggis/mitre-attack-mcp 1.0.1, Apache-2.0, optional `ATTACK_DOMAIN`; registered + enabled in the SSOT, 29 tools) — `search_techniques`, `get_technique` (the `attack` capability for MITRE ATT&CK technique intel; fails closed to `web` when the server is not live at preflight)
 
 Parked (`~/.mcp.disabled.json`): `scrapegraph`, `apify` — the harness routes
 around them. Never call `mcp__sci-hub__*`; avoid `paper_find_oa_pdf` per the
@@ -201,19 +203,29 @@ providers (primary first), with a source-tier prior for grading:
 | `code` | exa.web_search_exa -> firecrawl.firecrawl_research_search_github -> context7.query-docs |
 | `library_docs` | context7.query-docs -> exa.web_search_exa |
 | `deep_read` | firecrawl.firecrawl_scrape -> exa.web_fetch_exa -> tavily.tavily_extract |
-| `vuln` | cve-mcp.cve_lookup -> cve-mcp.cve_search -> cve-mcp.cve_kev_list |
+| `vuln` | cve-mcp.nvd_get -> cve-mcp.nvd_search -> cve-mcp.kev_search |
+| `ioc` | osint-mcp-server.vt_ip -> osint-mcp-server.vt_domain -> osint-mcp-server.vt_url |
+| `attack` | mitre-attack-mcp.search_techniques -> mitre-attack-mcp.get_technique |
 | `longtail` | searxng.searxng_web_search -> exa.web_search_exa |
 
 `classify_capability(subquestion)` is a cheap, conservative keyword classifier
-(keywords like cve/cvss/exploit/kev/0-day/rce -> vuln; paper/study/doi -> academic;
-gene/protein/drug -> bio; repo/github -> code; api docs/sdk -> library_docs;
-obscure/long-tail/rarely-documented -> longtail; explain/compare/consensus ->
-synthesis; else web). The security-specific `vuln` rule runs first; domain rules
-win over synthesis phrasing (synthesis is the last rule); raw link/extraction
-stays on firecrawl/exa while synthesized **cited** answers route to Perplexity.
-The key-free additions: **searxng** (self-hosted metasearch) is the high-priority
-key-free corroborator on `web` and the `longtail` primary; **cve-mcp** drives
-`vuln`. `resolve_providers(capability, live_servers, top_n)` returns ordered live
+(keywords like cve/cvss/exploit/kev/0-day/rce -> vuln; virustotal/ioc/file-hash/
+reputation -> ioc; mitre/att&ck/technique-T1xxx -> attack; paper/study/doi ->
+academic; gene/protein/drug -> bio; repo/github -> code; api docs/sdk ->
+library_docs; obscure/long-tail/rarely-documented -> longtail; explain/compare/
+consensus -> synthesis; else web). The security-specific `vuln`/`ioc`/`attack`
+rules run first, each with false-positive guards (space-padded `_ioc_`/`_ttp_`
+tokens so they never fire inside biochemical/https, hash tokens that require the
+word "hash" so "is sha256 secure?" stays out, a bare "attack"/"technique"
+exclusion, and a structural `T\d{4}` matcher for ATT&CK technique IDs); domain
+rules win over synthesis phrasing (synthesis is the last rule); raw
+link/extraction stays on firecrawl/exa while synthesized **cited** answers route
+to Perplexity. The key-free additions: **searxng** (self-hosted metasearch) is
+the high-priority key-free corroborator on `web` and the `longtail` primary;
+**cve-mcp** drives `vuln`; **osint-mcp-server** VirusTotal tools drive the
+PASSIVE `ioc` enrichment lane (discovered assets do not enter scope);
+**mitre-attack-mcp** drives `attack` and fails closed to `web` until it probes
+live. `resolve_providers(capability, live_servers, top_n)` returns ordered live
 providers; Sci-Hub, the regressed `paper_find_oa_pdf`, and parked servers are
 hard-excluded.
 
@@ -253,6 +265,21 @@ at preflight.
 read-only) and returns live/down/quota statuses; `live_servers(...)` feeds the
 router. `harness.plan_research(subquestions, statuses, top_n)` is the pure glue
 that ties preflight + routing into a research plan.
+
+### Glue and evidence modules
+
+Four more pure (offline-testable) modules round out the package:
+
+- `harness.py` — the stateless glue (`plan_research`) that ties preflight ->
+  routing into a single research plan before any dispatch.
+- `academic.py` — lawful academic-record normalization/dedup that preserves
+  provider provenance and never equates a preprint with a peer-reviewed study.
+- `claims.py` — FACT claim/evidence contracts + a bounded RACE-style scorecard
+  (a native citation proves a span came from a source, not that it entails the
+  claim, so `support` stays an explicit verifier verdict).
+- `calibration.py` — two-axis source rating (Admiralty reliability A-F +
+  information credibility 1-6) plus forecast calibration (WEP labels keep a
+  numeric probability; Brier scores computed only after outcomes resolve).
 
 ### Using the package
 

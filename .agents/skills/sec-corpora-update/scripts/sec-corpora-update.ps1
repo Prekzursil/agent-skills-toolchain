@@ -16,7 +16,13 @@ param(
 $ErrorActionPreference = 'Continue'
 $env:GIT_TERMINAL_PROMPT = '0'  # never block on credential prompts
 
-$corpora = 'payloadsallthethings', 'gtfobins', 'lolbas', 'owasp-wstg', 'owasp-cheatsheets', 'atomic-red-team'
+$corpora = @(
+  'payloadsallthethings', 'gtfobins', 'lolbas', 'owasp-wstg', 'owasp-cheatsheets', 'atomic-red-team',
+  # Added 2026-09-02 (W-corpus): blue / purple / CTI corpora. Same fail-open per-repo contract.
+  'seclists', 'exploitdb', 'attack-stix-data', 'misp-galaxy', 'misp-warninglists',
+  'signature-base', 'adversary-emulation-library', 'control-validation-compass',
+  'sysmon-modular', 'loldrivers'
+)
 
 $ok = 0; $fail = 0; $skip = 0
 foreach ($name in $corpora) {

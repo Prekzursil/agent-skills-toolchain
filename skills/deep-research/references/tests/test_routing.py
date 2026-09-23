@@ -2,6 +2,7 @@
 
 from research_harness import routing
 from research_harness.routing import (
+    all_provider_specs,
     classify_capability,
     is_excluded,
     resolve_providers,
@@ -140,10 +141,13 @@ def test_classifier_vuln_tokens_guarded_against_false_positives():
 def test_vuln_capability_routes_cve_mcp_in_order():
     providers = resolve_providers("vuln")
     keys = [p.key for p in providers]
+    # Real cve-mcp tool names (registry G-11): by-id NVD lookup, keyword NVD
+    # search, then the CISA KEV search. The stale cve_lookup/cve_search/
+    # cve_kev_list names are gone (see test_skill_consistency stale guard).
     assert keys == [
-        "cve-mcp.cve_lookup",
-        "cve-mcp.cve_search",
-        "cve-mcp.cve_kev_list",
+        "cve-mcp.nvd_get",
+        "cve-mcp.nvd_search",
+        "cve-mcp.kev_search",
     ]
     assert all(p.server == "cve-mcp" for p in providers)
     # cve-mcp carries an authoritative (A) source-tier prior.
@@ -181,3 +185,113 @@ def test_vuln_live_filter_degrades_gracefully():
     # cve-mcp down -> vuln resolves to no providers (caller falls back to web).
     assert resolve_providers("vuln", live_servers={"firecrawl"}) == []
     assert resolve_providers("vuln", live_servers={"cve-mcp"})[0].server == "cve-mcp"
+
+
+# --- IOC reputation enrichment: osint-mcp-server vt_* (W-routing) ----------
+
+
+def test_classifier_routes_ioc_keywords():
+    assert classify_capability("Check the VirusTotal reputation of this IP") == "ioc"
+    assert classify_capability("Enrich these IOCs from the alert") == "ioc"
+    assert classify_capability("What is the md5 hash reputation of this file?") == "ioc"
+    assert classify_capability("Is this an indicator of compromise?") == "ioc"
+    assert classify_capability("Defang these URLs before sharing") == "ioc"
+    assert classify_capability("domain reputation lookup for evil.example") == "ioc"
+
+
+def test_classifier_ioc_tokens_guarded_against_false_positives():
+    # `` ioc `` is space-padded so it never fires inside these words.
+    assert (
+        classify_capability("Explain the biochemical pathway of this enzyme") == "bio"
+    )
+    # A crypto-*algorithm* question must NOT be pulled into ioc: the hash tokens
+    # require the word "hash"/"virustotal"/"reputation", not a bare algorithm name.
+    assert classify_capability("Is sha256 secure for password storage?") != "ioc"
+    # Bare "reputation" (no IOC type) stays a general/web question.
+    assert classify_capability("What is this company's reputation?") != "ioc"
+    assert classify_capability("How to manage a shared resource pool") != "ioc"
+
+
+def test_ioc_capability_routes_osint_vt_in_order():
+    providers = resolve_providers("ioc")
+    keys = [p.key for p in providers]
+    # Real, provenance-confirmed VT reputation tools (osint-mcp-server@0.2.0
+    # tools/list): ip -> domain -> url. There is no vt_file/hash tool upstream, so
+    # it is deliberately absent (proposed extension tracked in the W-routing receipt).
+    assert keys == [
+        "osint-mcp-server.vt_ip",
+        "osint-mcp-server.vt_domain",
+        "osint-mcp-server.vt_url",
+    ]
+    assert all(p.server == "osint-mcp-server" for p in providers)
+    # VirusTotal reputation carries an authoritative (A) source-tier prior.
+    assert providers[0].source_tier == routing.TIER_A
+    # Guard against silently reintroducing a fabricated hash tool.
+    assert "osint-mcp-server.vt_file" not in keys
+
+
+def test_ioc_live_filter_degrades_gracefully():
+    # osint down -> ioc resolves to nothing (caller falls back to web), like vuln.
+    assert resolve_providers("ioc", live_servers={"firecrawl"}) == []
+    live = resolve_providers("ioc", live_servers={"osint-mcp-server"})
+    assert live[0].server == "osint-mcp-server"
+
+
+# --- MITRE ATT&CK technique intel: mitre-attack-mcp (W-routing) ------------
+
+
+def test_classifier_routes_attack_keywords():
+    assert classify_capability("Map this to MITRE ATT&CK") == "attack"
+    assert classify_capability("Search att&ck techniques for phishing") == "attack"
+    assert classify_capability("What is technique T1059?") == "attack"
+    assert classify_capability("Details for T1566.001 spearphishing") == "attack"
+    assert classify_capability("Which mitre technique covers this?") == "attack"
+
+
+def test_classifier_attack_tokens_guarded_against_false_positives():
+    # Bare "attack" is intentionally NOT a keyword (too generic).
+    assert classify_capability("What is the attack surface of this API?") != "attack"
+    assert classify_capability("How to survive a DDoS attack") != "attack"
+    # `` ttp ``/`` ttps `` are space-padded so a URL scheme never trips them.
+    assert classify_capability("Use https for all transport") != "attack"
+    # A bare version like "T10" (not 4 digits) must not match the technique-ID regex.
+    assert classify_capability("Upgrade to Tomcat T10 release") != "attack"
+
+
+def test_attack_capability_routes_mitre_in_order():
+    providers = resolve_providers("attack")
+    keys = [p.key for p in providers]
+    assert keys == [
+        "mitre-attack-mcp.search_techniques",
+        "mitre-attack-mcp.get_technique",
+    ]
+    assert all(p.server == "mitre-attack-mcp" for p in providers)
+    # ATT&CK framework data is authoritative (A).
+    assert providers[0].source_tier == routing.TIER_A
+
+
+def test_attack_live_filter_degrades_gracefully():
+    # mitre-attack-mcp down/unregistered -> attack fails closed to web, like vuln.
+    assert resolve_providers("attack", live_servers={"firecrawl"}) == []
+    live = resolve_providers("attack", live_servers={"mitre-attack-mcp"})
+    assert live[0].server == "mitre-attack-mcp"
+
+
+def test_all_provider_specs_is_unique_and_covers_the_table():
+    specs = all_provider_specs()
+    keys = [p.key for p in specs]
+    # Deduped by key (a tool reused across capabilities appears once).
+    assert len(keys) == len(set(keys))
+    # Every routed provider is represented.
+    table_keys = {p.key for ps in routing.ROUTING_TABLE.values() for p in ps}
+    assert set(keys) == table_keys
+    # No excluded/parked tool sits in the routed table (so SKILL.md never has to
+    # document one).
+    assert all(not is_excluded(p) for p in specs)
+    # The new security capabilities' exact tool names are all present.
+    for tool in (
+        "cve-mcp.nvd_get",
+        "osint-mcp-server.vt_url",
+        "mitre-attack-mcp.search_techniques",
+    ):
+        assert tool in keys

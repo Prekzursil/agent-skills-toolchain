@@ -635,12 +635,17 @@ Use `references/security-mcp-routing.md` for the combined security workflow:
 - current CVE applicability, affected ranges, advisory, KEV, EPSS, patch, and
   public exploit-reference status route to the reviewed CVE MCP;
 - a `nuclei_check`, Metasploit reference, public PoC, or HackTricks payload is
-  metadata, not permission to execute it;
+  metadata, not permission to execute it (`cve-mcp` `msf_check` does not
+  invoke `metasploit-run`);
 - active validation requires a separate, schema-valid, scope-checked execution
   plan and one explicitly approved executor owner;
 - at most one non-`none` owner exists in a phase:
-  `none`, `hexstrike`, `cyberstrike`, `re:ida`, `re:ghidra`, or
-  `re:binary-ninja`;
+  `none`, `hexstrike`, `cyberstrike`, `metasploit`, `sliver`, `re:ida`,
+  `re:ghidra`, or `re:binary-ninja`;
+- `metasploit` uses registry server `metasploit-run`; `sliver` uses
+  `sliver-mcp`. When `executor_owner` is `hexstrike`, embedded `metasploit_run`
+  is allowed under the same scope + approved-plan gate as `nuclei_scan` — pick
+  one Metasploit path per phase, not both HexStrike MSF and `metasploit-run` MCP;
 - CyberStrike is optional and not assumed installed. When explicitly selected
   as top-level harness, HexStrike and other planners do not execute that phase;
 - finish a network executor phase before assigning one RE backend. Runtime

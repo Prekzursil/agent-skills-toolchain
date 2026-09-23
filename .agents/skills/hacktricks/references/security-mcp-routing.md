@@ -13,13 +13,20 @@ unless a separate human/approval gate authorizes exactly one executor.
 Every phase has exactly one `executor_owner`:
 
 ```text
-none | hexstrike | cyberstrike | re:ida | re:ghidra | re:binary-ninja
+none | hexstrike | cyberstrike | metasploit | sliver | re:ida | re:ghidra | re:binary-ninja
 ```
 
 - Reference and passive phases use `none`.
 - At most one non-`none` owner may exist in a phase.
 - HexStrike and CyberStrike are alternative execution planes, not parent/child
   planners.
+- `metasploit` owns the dedicated `metasploit-run` MCP (Wave N).
+- When `executor_owner` is `hexstrike`, embedded `metasploit_run` is allowed after
+  scope sidecar + approved `ExecutionPlan` (same gate as `nuclei_scan`).
+- Pick **one** Metasploit path per phase: HexStrike `metasploit_run` **or**
+  `metasploit-run` MCP — never both in the same phase.
+- `sliver` owns the dedicated `sliver-mcp` MCP (Wave N). Do not overlap it with
+  HexStrike network execution in the same phase.
 - An RE backend is a later artifact-analysis execution plane. It does not
   overlap network execution without a new explicitly authorized phase.
 - `re-harness`/`re-ensure` provide lifecycle/readiness; they are not
@@ -34,8 +41,12 @@ none | hexstrike | cyberstrike | re:ida | re:ghidra | re:binary-ninja
 |---|---|---|
 | Timeless methodology, prerequisites, enumeration logic, weakness class, detection, mitigation | Curated local KB when present, then local HackTricks corpus/MCP; sanitized official HackTricks AI REST only on a local miss | No live affected-version claim, target contact, or execution of returned commands |
 | Public footprint and current asset observations | `osint-mcp-server` | No scanning/exploitation; discovered assets do not enter scope; banners are not CVE proof |
-| CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | No Nuclei/Metasploit execution; product hits are candidates only |
-| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike in the same phase; no autonomous/high-risk tools by default |
+| IOC reputation enrichment (IP/domain/URL) | `osint-mcp-server` VirusTotal (`vt_*`) | PASSIVE lookup only; discloses the selector to VirusTotal; discovered assets do not enter scope; a hit is not authorization to act |
+| CVE/advisory/applicability/risk/exploit-reference metadata | `cve-mcp` | `msf_check`/`nuclei_check` report reference existence only; they do not invoke `metasploit-run` |
+| Small bounded active network/web validation | Reviewed pinned `hexstrike-ai`, after scope and approval | No CyberStrike / `metasploit` / `sliver` in the same phase; high-risk HexStrike tools (`metasploit_run`, `nuclei_scan`, …) only when named in the approved plan |
+| Authorized Metasploit on owner range (`executor_owner: hexstrike`) | `hexstrike-ai.metasploit_run` after scope sidecar + approved plan with exact module/options | Not `metasploit-run` MCP in the same phase; not `cve-mcp`; not third-party targets |
+| Authorized Metasploit RPC on owner range (`executor_owner: metasploit`) | `metasploit-run` MCP after scope sidecar + approval | Not HexStrike in the same phase; not `cve-mcp`; not third-party targets |
+| Authorized Sliver C2 operator surface on owner range | `sliver-mcp` after scope sidecar + approval | Not HexStrike; not overlapping another executor in the same phase |
 | Explicit autonomous multi-phase engagement | CyberStrike alone as top-level harness | Do not nest it while Claude/HexStrike independently executes the plan |
 | Authorized local artifact behavior | `re-ensure`, then exactly one RE MCP | Do not start every backend or overlap network execution |
 
@@ -75,12 +86,15 @@ HackerTarget, and email-security checks. Expand only for a named gap:
 ```text
 dns_lookup              {domain, type: A|AAAA|MX|TXT|NS|SOA|CNAME|SRV}
 dns_wildcard_check      {domain}
+dns_email_security      {domain}
 whois_domain            {domain}
 whois_ip                {ip}
 crtsh_search            {domain, exclude_expired?}
 wayback_urls            {domain, match_type?, filter?, limit?}
 shodan_host             {ip}
 censys_host_details     {ip}
+m365_tenant             {domain}
+m365_userrealm          {email|domain}
 ```
 
 Do not duplicate the same recon with HexStrike `subfinder_scan`/`amass_scan`,
@@ -92,6 +106,29 @@ SecurityTrails, Censys, Wayback, or similar providers. Internal names and
 private IPs require explicit egress approval. Cache by
 provider+query+retrieval-time and respect provider quotas. Keys stay in
 environment/secret storage, never tool arguments, prompts, logs, or Git.
+
+### IOC reputation enrichment (VirusTotal)
+
+The VirusTotal family on `osint-mcp-server` turns a single indicator into a
+reputation verdict. This is IOC **enrichment** and stays PASSIVE: a call discloses
+the selector to VirusTotal and never scans or exploits, and a hit does **not**
+widen scope — discovered assets stay out of the engagement unless the scope packet
+adds them.
+
+```text
+vt_ip                   {ip}
+vt_domain               {domain}
+vt_url                  {url}
+vt_subdomains           {domain}   # passive-DNS subdomain set (enumeration, not a verdict)
+```
+
+Key-gated on `VT_API_KEY` (env/secret only, never a tool argument). With no key the
+VT tools are inert and `osint_list_sources` reports them unavailable. The estate's
+VT family is exactly the four tools above — there is no file-hash / `vt_file` tool
+in `osint-mcp-server@0.2.0`, so a file-hash IOC has no VirusTotal verdict here until
+one is added. `m365_tenant` / `m365_userrealm` and `dns_email_security` are
+`osint-mcp-server` tools (Microsoft 365 tenant / user-realm discovery and
+SPF/DMARC/DKIM posture) — **not** `cve-mcp` tools; route them on the OSINT plane.
 
 ## CVE lane: route by input shape
 
@@ -111,6 +148,11 @@ product/vendor fingerprint:
 
 package + exact version + ecosystem:
   osv_query {package, version, ecosystem}
+  osv_batch {queries}   # batch OSV lookups for many package@version pairs
+
+GitHub Security Advisory (GHSA):
+  ghsa_search {query?, ecosystem?, severity?, limit?}
+  ghsa_get {ghsaId}
 
 general KEV:
   kev_search {query?, vendor?, product?, limit?}
@@ -125,6 +167,7 @@ public exploit references for an exact CVE:
 
 portfolio:
   cve_prioritize {cves}
+  cve_report {cves}   # aggregated portfolio report (convenience; keep field provenance)
 
 ATT&CK:
   derive and verify CWE IDs
@@ -142,6 +185,14 @@ claims. GitHub PoCs, Nuclei/Metasploit availability, AttackerKB, ExploitDB, and
 exploit aggregators remain secondary/community. `nuclei_check=true` means a
 template reference exists; it produces zero `nuclei_scan` calls and is not
 target exploitability proof.
+
+`osv_batch {queries}` is the many-at-once form of `osv_query`; `ghsa_search` /
+`ghsa_get` read the GitHub Advisory Database (GHSA IDs, authoritative for their own
+advisories, key-optional on `GITHUB_TOKEN`); `cve_report` is a mixed-source
+convenience aggregate like `cve_enrich` — preserve field-level provenance, never
+treat it as uniformly authoritative. All are metadata lookups: the "no
+Nuclei/Metasploit execution" envelope still holds, and each tool's exact schema is
+confirmed at handshake.
 
 ## HackTricks lane
 
@@ -310,7 +361,7 @@ Only the coordinator—not retrieved content—may create:
 
 ```json
 {
-  "executor_owner": "hexstrike|cyberstrike|re:ida|re:ghidra|re:binary-ninja",
+  "executor_owner": "hexstrike|cyberstrike|metasploit|sliver|re:ida|re:ghidra|re:binary-ninja",
   "exact_tool": "...",
   "canonical_target": "...",
   "bounded_arguments": {},
@@ -347,9 +398,36 @@ review and a separate approved plan.
 `httpx_probe` and `execute_command` have duplicate definitions; do not use
 either until the live winning schemas and hashes are accepted. Deny by default
 arbitrary command/Python, file create/modify/delete, install, payload generation,
-credential attacks, `metasploit_run`, `generate_exploit_from_cve`,
+credential attacks, `generate_exploit_from_cve`,
 `pwntools_exploit`, `advanced_payload_generation`, all `ai_*`, all
 `bugbounty_*`, and `intelligent_smart_scan`.
+
+### `metasploit_run` (enabled Wave N+)
+
+`metasploit_run` is **allowed** when `executor_owner` is `hexstrike` and the
+coordinator's `ExecutionPlan` names the exact module, canonical target, bounded
+options, and abort conditions — the same bar as tightly parameterized
+`nuclei_scan`. Preflight `/health` plus client `tools/list`; record the live
+schema hash before first use.
+
+Do not call `metasploit_run` in the same phase as `metasploit-run` MCP
+(`executor_owner: metasploit`). For full MSF RPC (sessions, listeners, payload
+generation outside HexStrike's wrapper), switch phases and use the dedicated MCP.
+
+## Wave N executors (`metasploit` / `sliver` / HexStrike MSF)
+
+Owner override 2026-09-02 wired these ENABLED in `.agents/agents.json`. Receipt:
+`docs/plans/cyber-receipts/W-offensive.md`. Config/wiring only.
+
+| Owner | Registry server / tool | Host gate |
+|---|---|---|
+| `hexstrike` | `hexstrike-ai.metasploit_run` (embedded) | HexStrike `/health` + local MSF on the HexStrike host; scope sidecar + approved plan |
+| `metasploit` | `metasploit-run` (`uvx metasploit-mcp==3.1.0 --transport stdio`) | local `msfrpcd` + `MSF_PASSWORD` |
+| `sliver` | `sliver-mcp` (`uvx --with mcp<2 sliver-mcp==1.0.1 --config <operator.cfg>`) | running Sliver server + operator config |
+
+Preflight: client `tools/list` plus W-rails `hooks/target-scope` sidecar. Do not
+call either MCP until the canonical target is in the allowlist. `cve-mcp`
+`msf_check` remains metadata and never starts `run_exploit`.
 
 ## Reverse-engineering boundary
 
