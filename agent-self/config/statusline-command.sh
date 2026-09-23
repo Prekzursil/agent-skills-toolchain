@@ -35,7 +35,7 @@ fi
 # --------------------------------------------------------- single jq read ----
 # Delimiter U+001F (non-whitespace) so absent fields do NOT shift `read` columns.
 IFS="$US" read -r sid sname tpath model model_id used ctxsize exceeds \
-    five five_reset seven cwd pdir gitwt pr_num pr_url effort ostyle thinking cost dur <<EOF
+    five five_reset seven cwd pdir gitwt pr_num pr_url effort ostyle thinking cost dur toks <<EOF
 $(printf '%s' "$input" | jq -r '[
     (.session_id//""),(.session_name//""),(.transcript_path//""),
     (.model.display_name // .model.id // "?"),(.model.id//""),
@@ -46,7 +46,8 @@ $(printf '%s' "$input" | jq -r '[
     (.cwd // .workspace.current_dir // ""),(.workspace.project_dir//""),(.workspace.git_worktree//""),
     (.pr.number//""),(.pr.url//""),
     (.effort.level//""),(.output_style.name//""),(.thinking.enabled//""),
-    (.cost.total_cost_usd//0),(.cost.total_duration_ms//0)
+    (.cost.total_cost_usd//0),(.cost.total_duration_ms//0),
+    (.context_window.total_input_tokens // .context_window.current_usage.input_tokens // 0)
   ] | map(tostring | gsub("[[:cntrl:]]";"")) | join("\u001f")' 2>/dev/null)
 EOF
 
@@ -77,6 +78,11 @@ colorize() { local g="${3-!}"; case "$1" in
 
 # ---------------------------------------------------- worst-of for tab-ring --
 worst=0; wst() { local v="${1%%.*}"; case "$v" in ''|*[!0-9]*) return;; esac; [ "$v" -gt "$worst" ] && worst="$v"; }
+# human-readable token count: 252844 -> 252k, 1000000 -> 1.0M
+hum() { local n="${1%%.*}"; case "$n" in ''|*[!0-9]*) n=0;; esac
+  if [ "$n" -ge 1000000 ]; then local d=$((n/100000)); printf '%d.%dM' $((d/10)) $((d%10))
+  elif [ "$n" -ge 1000 ]; then printf '%dk' $((n/1000))
+  else printf '%d' "$n"; fi; }
 
 # ================================================================ L1 =========
 # --- session label (ALWAYS; leftmost) + OSC-8 link -------------------------
@@ -157,10 +163,14 @@ L1=""; add1() { [ -n "$1" ] && L1="${L1:+$L1$sep}$1"; }
 add1 "$sess_out"; add1 "$auth"; add1 "$mlabel"; [ -n "$drift" ] && add1 "${D}${drift}${Z}"; add1 "$goal"
 
 # ================================================================ L2 =========
-# --- ctx (always) : colour by used%, /1M scale shown on model; +200k tripwire when % hides it
+# --- ctx (always): tokens used/max, used%, and room left before auto-compact ---
 wst "$used"; band "$used" 75 88; pct=$(printf '%.0f' "${used:-0}" 2>/dev/null || echo 0)
-colorize "$BAND" "ctx:${pct}%"; ctxseg="$REPLY"
+colorize "$BAND" "ctx:$(hum "$toks")/$(hum "$ctxsize") ${pct}%"; ctxseg="$REPLY"
 [ "$exceeds" = "true" ] && [ -z "$BAND" ] && ctxseg="$ctxseg${D}+200k${Z}"
+# room left before auto-compact fires (STATUSLINE_COMPACT_PCT = trigger %, default 92); lower = closer
+comp="${STATUSLINE_COMPACT_PCT:-92}"; till=$(( comp - pct )); [ "$till" -lt 0 ] && till=0
+cband=""; [ "$till" -le 15 ] && cband=amber; [ "$till" -le 8 ] && cband=red
+colorize "$cband" "cmpct:${till}%left"; ctxseg="$ctxseg$sep$REPLY"
 
 # --- 5h (ALWAYS when present): %left + time-to-empty countdown, colour by used% -----
 rl=""
