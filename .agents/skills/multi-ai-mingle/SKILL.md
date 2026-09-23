@@ -18,6 +18,26 @@ complementary rails:
 Keep the two rails distinct: fan-out is command-and-control (Claude tasks Codex); the channel is
 peer messaging + file-lease coordination that either side reads and writes.
 
+## Deprecation note (recorded 2026-09-02)
+As of 2026-08-24 `codex mcp-server` is deprecated upstream: the Codex docs page for it now opens
+with "use the Codex app server instead" and keeps the command documented for existing
+integrations (as the hosted-models hunt lens 12 recorded it). Nothing breaks today. The mount is
+KEPT under lock L7 (nothing is removed before its replacement has a receipt), so the fan-out rail
+above still works as written. Two consequences:
+- **Alternative mount, parallel path: `codex-plugin-cc`.** Codex as a Claude Code plugin exposing
+  `/codex:*` slash commands (`/plugin marketplace add openai/codex-plugin-cc`, `/plugin install
+  codex@openai-codex`, `/codex:setup`). It delegates through the local Codex CLI and the Codex app
+  server with the same auth, config and MCP setup. This repo already registers it as
+  `enabledPlugins."codex@openai-codex": true` + `extraKnownMarketplaces.openai-codex.source.repo =
+  "openai/codex-plugin-cc"` in `agent-self/config/settings.json`, and as
+  `[plugins."codex@openai-codex"]` + `[marketplaces.openai-codex]` in
+  `agent-self/config/codex/config.toml`. Honest limit: slash commands are interactive, not
+  autonomous fan-out - a Claude subagent cannot invoke them as native tool calls, so
+  `CODEX_FANOUT.md` still depends on the deprecated MCP surface until it is removed.
+- **Migration target (later) for autonomous fan-out:** Codex app-server (JSON-RPC over stdio) or
+  ACP workers; the planned `hma` hosted-model worker adapter is the same worker shape. Do not
+  re-plumb any new doc to the deprecated command.
+
 ## When to use
 - The user wants Claude and Codex to collaborate locally, in parallel, with a real back-channel.
 - The user asks to "run Codex from Claude", "set up the agent-mail channel", or "replace AgentBridge".
@@ -75,6 +95,11 @@ omits the token thereafter; the two-in-one-session token-passing above is a prob
    `VERIFY_PLAN.sh`). It starts an isolated server, proves symmetric claude to codex and codex to
    claude message visibility, and a file-lease acquire/release round-trip, printing SUCCESS: /
    FAILED: lines. Only after all-green: commit the configs and retire AgentBridge.
+   - Third identity (planned, hosted-models build wave WU-14): a hosted-model worker registers on
+     the same `:8812` server as `program="hma:<profile>"`, `model="<checkpoint>@<runtime>"`, is
+     accepted by a human `respond_contact`, and must round-trip one `ack_required` message plus one
+     lease against `claude`. The shipped `VERIFY_PLAN.ps1` / `VERIFY_PLAN.sh` still drive two
+     identities; the third is added when the `hma` adapter (`tools/hma/`, not built yet) lands.
 
 ## Wave B — teammate shim (LATER)
 Fork the `claude-anyteam` `CLAUDE_CODE_TEAMMATE_COMMAND` shim into `~/.agents/harness` so Codex can

@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
-"""T0 OpenRouter chat completion. Prints generation id + usage. Never logs the secret."""
+"""T0 OpenRouter chat completion. Prints generation id + usage. Never logs the secret.
+
+Request hardening (T0-5): ``provider.require_parameters`` is sent whenever the
+body carries ``tools`` or ``response_format`` (never otherwise) and
+``provider.data_collection = "deny"`` is sent by default
+(``--allow-data-collection`` opts out). ``--rank`` reads the keyless
+``GET /api/v1/models`` catalog and lists the top N models by
+``benchmarks.artificial_analysis``, skipping rows that expire within 30 days or
+whose ``status`` is present and not ``live``.
+"""
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import datetime
 import json
 import os
 import sys
@@ -11,11 +22,176 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable, Mapping
+from typing import Any
 
 BASE = "https://openrouter.ai/api/v1"
+MODELS_URL = BASE + "/models"
 DEFAULT_MODEL = "deepseek/deepseek-v4-flash-0731"
 APP_TITLE = "agents-openrouter-sidecar"
 APP_REFERER = "https://local.agents.openrouter"
+RANK_HORIZON_DAYS = 30
+RANK_INDICES = ("intelligence_index", "coding_index", "agentic_index")
+DEFAULT_RANK_INDEX = RANK_INDICES[0]
+DEFAULT_RANK_TOP = 10
+
+
+def build_request_body(
+    model: str,
+    prompt: str,
+    max_tokens: int,
+    *,
+    tools: Any = None,
+    response_format: Any = None,
+    deny_data_collection: bool = True,
+) -> dict[str, Any]:
+    """Chat-completions body; ``provider`` carries only the hardening fields that apply."""
+    body: dict[str, Any] = {
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": 0,
+    }
+    if tools is not None:
+        body["tools"] = tools
+    if response_format is not None:
+        body["response_format"] = response_format
+    provider: dict[str, Any] = {}
+    if tools is not None or response_format is not None:
+        provider["require_parameters"] = True
+    if deny_data_collection:
+        provider["data_collection"] = "deny"
+    if provider:
+        body["provider"] = provider
+    return body
+
+
+def fetch_models_catalog(
+    url: str = MODELS_URL, timeout: int = 30
+) -> list[dict[str, Any]]:
+    """Keyless catalog read: no Authorization header is ever attached."""
+    req = urllib.request.Request(url, headers={"Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, list):
+        raise ValueError("models payload lacks a data list")
+    return data
+
+
+@dataclasses.dataclass(frozen=True)
+class RankedModel:
+    id: str
+    score: float
+    expiration_date: str | None
+    prompt_price: str | None
+    completion_price: str | None
+
+
+@dataclasses.dataclass(frozen=True)
+class RankReport:
+    ranked: tuple[RankedModel, ...]
+    candidates: int
+    scored: int
+    skipped_expiring: int
+    skipped_not_live: int
+
+
+def _today() -> datetime.date:
+    return datetime.datetime.now(datetime.timezone.utc).date()
+
+
+def _number(value: object) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def model_is_live(model: Mapping[str, Any]) -> bool:
+    status = model.get("status")
+    return status is None or status == "live"
+
+
+def model_expires_soon(model: Mapping[str, Any], today: datetime.date) -> bool:
+    """True when ``expiration_date`` is present but unparseable, or under 30 days out."""
+    raw = model.get("expiration_date")
+    if raw is None:
+        return False
+    if not isinstance(raw, str):
+        return True
+    try:
+        expires = datetime.date.fromisoformat(raw[:10])
+    except ValueError:
+        return True
+    return (expires - today).days < RANK_HORIZON_DAYS
+
+
+def model_score(model: Mapping[str, Any], index: str) -> float | None:
+    benchmarks = model.get("benchmarks")
+    if not isinstance(benchmarks, dict):
+        return None
+    analysis = benchmarks.get("artificial_analysis")
+    if isinstance(analysis, dict):
+        return _number(analysis.get(index))
+    return _number(analysis)
+
+
+def rank_models(
+    models: list[dict[str, Any]],
+    n: int,
+    today: datetime.date,
+    *,
+    index: str = DEFAULT_RANK_INDEX,
+) -> RankReport:
+    """Top ``n`` live, non-expiring models by ``benchmarks.artificial_analysis[index]``."""
+    scored: list[RankedModel] = []
+    skipped_expiring = 0
+    skipped_not_live = 0
+    for model in models:
+        if not model_is_live(model):
+            skipped_not_live += 1
+            continue
+        if model_expires_soon(model, today):
+            skipped_expiring += 1
+            continue
+        score = model_score(model, index)
+        if score is None:
+            continue
+        pricing = model.get("pricing")
+        prices = pricing if isinstance(pricing, dict) else {}
+        scored.append(
+            RankedModel(
+                id=str(model.get("id")),
+                score=score,
+                expiration_date=model.get("expiration_date"),
+                prompt_price=prices.get("prompt"),
+                completion_price=prices.get("completion"),
+            )
+        )
+    scored.sort(key=lambda item: (-item.score, item.id))
+    return RankReport(
+        ranked=tuple(scored[:n]),
+        candidates=len(models),
+        scored=len(scored),
+        skipped_expiring=skipped_expiring,
+        skipped_not_live=skipped_not_live,
+    )
+
+
+def print_rank_report(report: RankReport, index: str, source: str) -> None:
+    print(f"rank_source={source}")
+    print(f"rank_index={index}")
+    print(f"rank_candidates={report.candidates}")
+    print(f"rank_scored={report.scored}")
+    print(f"rank_skipped_expiring={report.skipped_expiring}")
+    print(f"rank_skipped_not_live={report.skipped_not_live}")
+    for position, item in enumerate(report.ranked, start=1):
+        print(
+            f"rank={position} model={item.id} {index}={item.score} "
+            f"expiration_date={item.expiration_date or '-'} "
+            f"prompt_price={item.prompt_price or '-'} "
+            f"completion_price={item.completion_price or '-'}"
+        )
 
 
 def redact(text: str, secret: str) -> str:
@@ -57,7 +233,10 @@ def snippet(text: str, n: int = 120) -> str:
     return compact if len(compact) <= n else compact[: n - 1] + "..."
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(
+    argv: list[str] | None = None,
+    fetch_models: Callable[[], list[dict[str, Any]]] | None = None,
+) -> int:
     parser = argparse.ArgumentParser(
         description="T0 OpenRouter completion (never logs the secret)"
     )
@@ -66,7 +245,54 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--max-tokens", type=int, default=32)
     parser.add_argument("--show-limits", action="store_true")
     parser.add_argument("--skip-generation", action="store_true")
+    parser.add_argument(
+        "--tools-json",
+        type=json.loads,
+        default=None,
+        dest="tools",
+        help="inline JSON tools array; its presence turns on provider.require_parameters",
+    )
+    parser.add_argument(
+        "--response-format-json",
+        type=json.loads,
+        default=None,
+        dest="response_format",
+        help="inline JSON response_format; its presence turns on provider.require_parameters",
+    )
+    parser.add_argument(
+        "--deny-data-collection",
+        dest="deny_data_collection",
+        action="store_true",
+        default=True,
+        help="send provider.data_collection=deny (default)",
+    )
+    parser.add_argument(
+        "--allow-data-collection",
+        dest="deny_data_collection",
+        action="store_false",
+        help="omit provider.data_collection (providers that train on prompts stay eligible)",
+    )
+    parser.add_argument(
+        "--rank",
+        action="store_true",
+        help="keyless mode: list the top models from GET /models by "
+        "benchmarks.artificial_analysis, then exit (no completion is sent)",
+    )
+    parser.add_argument("--top", type=int, default=DEFAULT_RANK_TOP)
+    parser.add_argument(
+        "--rank-index", choices=RANK_INDICES, default=DEFAULT_RANK_INDEX
+    )
     args = parser.parse_args(argv)
+
+    if args.rank:
+        try:
+            models = (fetch_models or fetch_models_catalog)()
+        except (urllib.error.URLError, ValueError) as exc:
+            print("ERROR rank: " + snippet(str(exc), 240), file=sys.stderr)
+            return 3
+        report = rank_models(models, args.top, _today(), index=args.rank_index)
+        print_rank_report(report, args.rank_index, MODELS_URL)
+        return 0
 
     secret = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not secret:
@@ -94,12 +320,14 @@ def main(argv: list[str] | None = None) -> int:
                 if field in data:
                     print(f"key_{field}={data[field]}")
 
-    body = {
-        "model": args.model,
-        "messages": [{"role": "user", "content": args.prompt}],
-        "max_tokens": args.max_tokens,
-        "temperature": 0,
-    }
+    body = build_request_body(
+        args.model,
+        args.prompt,
+        args.max_tokens,
+        tools=args.tools,
+        response_format=args.response_format,
+        deny_data_collection=args.deny_data_collection,
+    )
     status, payload = request("POST", BASE + "/chat/completions", secret, body=body)
     print(f"http_status={status}")
     print(f"model_requested={args.model}")

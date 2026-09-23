@@ -590,37 +590,48 @@
           "remote"
         ]
       },
-      "glm53-space": {
-        "label": "glm53-space",
-        "description": "On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
+      "inference-hub": {
+        "label": "inference-hub",
+        "description": "Registry-driven inference hub (.agents/models.json): one resident process on 127.0.0.1:8901 with an MCP face (models_list, chat, chat_many, probe, budget_status) and an OpenAI-compatible /v1 face for Fabric/Goose/Aider/OpenCode and the TUI. This stdio shim lazy-starts the hub on first use (same session-healing bridge as bm_cursor_http_session.py) and the hub idle-exits after 10 min, so it costs 0 RAM when unused. Replaces the deleted glm53-space lane (D1, 2026-09-02): GLM-5.3 is model glm-5.3 on hf-router. Secrets by env NAME only; never send secrets or raw private transcripts.",
         "targets": [
-          "claude"
+          "claude",
+          "codex"
         ],
         "enabled": true,
         "transport": "stdio",
-        "command": "C:\\Users\\Prekzursil\\.local\\bin\\uv.exe",
+        "command": "C:\\Python314\\python.exe",
         "args": [
-          "run",
-          "--locked",
-          "--directory",
-          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\glm53-space",
-          "python",
-          "mcp_server.py"
+          "C:\\Users\\Prekzursil\\.agents\\scripts\\inference_hub_stdio.py",
+          "--stdio",
+          "--hub-root",
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\inference-hub"
         ],
         "env": {
-          "HUGGINGFACE_TOKEN": "${HUGGINGFACE_TOKEN}"
+          "HUGGINGFACE_TOKEN_INFERENCE": "${HUGGINGFACE_TOKEN_INFERENCE}"
         },
         "requiredEnv": [
-          "HUGGINGFACE_TOKEN"
+          "HUGGINGFACE_TOKEN_INFERENCE"
         ],
+        "x_codex": {
+          "env_vars": [
+            "HUGGINGFACE_TOKEN_INFERENCE"
+          ],
+          "startup_timeout_sec": 30
+        },
         "credentialNames": [
-          "HUGGINGFACE_TOKEN"
+          "HUGGINGFACE_TOKEN_INFERENCE"
+        ],
+        "singletonKey": "inference-hub",
+        "processMatch": [
+          "inference-hub",
+          "hub.server"
         ],
         "tags": [
           "approved",
-          "claude-only",
           "hosted-inference",
+          "local",
           "owner-requested",
+          "shared",
           "stdio"
         ]
       },

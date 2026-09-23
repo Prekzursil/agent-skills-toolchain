@@ -1,0 +1,718 @@
+# Gem-hunt lens 07 - the generic inference MCP tool that replaces `glm53_chat`
+
+- **Hunt:** `2026-09-02-hosted-models`
+- **Lens id:** `07-generic-inference-mcp-tool`
+- **Mode:** discovery, design + eval plan only. No code was changed by this lens.
+- **Branch:** `gemhunt/hosted-models-07-generic-inference-mcp-tool` (cut from `origin/main` at `5fa34fda`)
+- **Author:** Cursor cloud agent, 2026-09-02
+- **Status:** COMPLETE - all nine sections landed and pushed; a section that is not listed as DONE
+  in the checklist below was not finished when this run ended.
+
+## Section checklist
+
+| # | Section | Status |
+|---|---------|--------|
+| 0 | Frame, constraints, dedup-set, grading legend | DONE |
+| 1 | What `glm53_chat` does today and what a replacement must keep | DONE |
+| 2 | Survey: OSS MCP servers that expose OpenAI-compatible / HF endpoints as tools | DONE |
+| 3 | Alternative: the MCP sampling primitive (and why it is not enough alone) | DONE - deprecated upstream 2026-07-28 |
+| 4 | Hosting: how `tools/mcp/mcp-http-host` should host it once, not per session | DONE |
+| 5 | Tool surface specification | DONE |
+| 6 | Error taxonomy with truthful degradation | DONE |
+| 7 | Eval-harness spec (capability, regression, pass@k, fake endpoints for CI) | DONE |
+| 8 | Per-find rubric table | DONE |
+| 9 | Open questions and what this lens did NOT verify | DONE |
+
+## Grading legend (applies to every claim below)
+
+- **Tier A** - primary source: the project's own repository, spec, or vendor documentation, read this run.
+- **Tier B** - secondary but reputable: maintainer blog, package registry metadata, a widely cited write-up.
+- **Tier C** - tertiary: aggregator, directory listing, forum post, or a single uncorroborated page.
+- **corroborated** - two or more independent sources agree; **UNVERIFIED** - one source, or inferred from
+  repository shape without running the code.
+- Every claim is dated with the day it was read (all reads in this file: 2026-09-02 unless stated).
+- Each statement is labelled **[FACT]** (sourced), **[INFERENCE]** (derived by this lens), or
+  **[RECOMMENDATION]** (what this lens thinks the estate should do).
+
+---
+
+## 0. Frame, constraints and the dedup-set
+
+### 0.1 The question this lens answers
+
+The owner has decided to **deprecate `tools/mcp/glm53-space`** (one MCP tool, `glm53_chat`, hard-wired to
+`router.huggingface.co/v1` and the single model `zai-org/GLM-5.3`) and replace it with a **general
+integration layer**. This lens asks: *what should the one generic "call a hosted or local chat model"
+MCP tool look like, what already exists in the open that we could adopt instead of building, is the MCP
+sampling primitive a better fit than a tool at all, how does it get hosted exactly once under the
+`mcp-http-host` doctrine, and how would we know it works (evals, fake endpoints, pass@k)?*
+
+Design and eval plan only. Nothing here was built or run against a live model.
+
+### 0.2 Estate locks (hard constraints, cited as given by the hunt brief)
+
+These are inputs to this lens, not findings. Every recommendation below was checked against them.
+
+| Lock | Consequence for this lens |
+|------|---------------------------|
+| OpenRouter is a spend-capped CLI/Codex sidecar only - never a Cursor BYOK key, never Claude `ANTHROPIC_BASE_URL`, never a new OpenRouter MCP | The generic tool MAY list an `openrouter` profile as one backend among many for CLI/Codex callers, but this lens does **not** propose an OpenRouter-specific MCP server, and the tool must never be wired so that Cursor or Claude Code route their own traffic through it. |
+| No LiteLLM, no LangGraph, no second orchestration runtime, no vector-DB memory | Rules out the most common "generic inference" shortcut (a LiteLLM proxy) and every candidate below that embeds LangChain/LangGraph. The tool must be a thin HTTP client, not a router product. |
+| auth2api `:8317` stays the only Cursor bridge and retires within 7 days of an official Cursor `/v1` GA | The tool may register `:8317` as a backend **profile** (so a Fabric/Goose caller can reach Cursor-quota models) but must not become a second Cursor bridge and must not re-expose Cursor-quota models to Cursor itself. |
+| Ports 8765 / 8812 / 8317 are owned | The shared host for this tool needs its own port; this lens proposes one in section 4 and does not touch the three owned ones. |
+| `.agents/skills` is the ONE prompt SSOT (Fabric/Goose consume it) | Any system-prompt "profile" the tool ships must be a pointer into `.agents/skills`, never a second prompt store inside the MCP server. |
+| Never rotate credentials | Secret handling below is name-based (`${HUGGINGFACE_TOKEN}` style, as `.agents/agents.json` already does); no rotation is proposed. |
+| Never remove a feature to buy reliability - present trade-offs instead | Section 6 (error taxonomy) presents degradation modes as trade-off tables, not as removed features. |
+
+### 0.3 Dedup-set (already exists; not re-proposed)
+
+| Existing thing | Where | What this lens does with it |
+|----------------|-------|-----------------------------|
+| Skill `hosted-model-agents` (SKILL.md, environments.md, profiles.md, tool-loop.md, evals.md, recipes/hf-space-openai.md) | branch `live-capture/2026-09-02` | Treated as the **doctrine** this tool must implement. Its hard rule 2 ("an inference URL is not Hub MCP ... do not register every GPU URL in `agents.json` as MCP") is the reason the replacement is **one** generic tool with a model **registry**, not one MCP server per endpoint. Its rule 3 ("the hosted model proposes; the harness executes") decides the tools-passthrough question in section 5. [FACT, Tier A, read this run from `git show origin/live-capture/2026-09-02:skills/hosted-model-agents/SKILL.md`] |
+| `tools/mcp/glm53-space` (`glm53_core.py`, `mcp_server.py`, `openai_proxy.py`) | brief says "on main" | **Finding:** the *directory is not present on `origin/main`* (`5fa34fda`) nor on any pushed remote branch (`git ls-tree -r` over every `origin/*` for the string `glm53` returned only registry/test/provenance hits, no `tools/mcp/glm53-space/*` path). Only the **registry entry** `mcp.servers.glm53-space` in `.agents/agents.json` (lines 593-625), its provenance note, and the control-plane tests reference it. The code therefore lives only in an unpushed checkout on the Windows box - exactly the failure mode `CLAUDE.md` warns about ("132 of them hold unpushed commits"). [FACT, Tier A, measured this run] **[RECOMMENDATION]** before deprecating it, push the directory to a branch so its `openai_proxy.py` behaviour can be diffed against the replacement's eval fixtures; deprecating unpushed code loses the only executable spec of what `glm53_chat` accepted. |
+| auth2api on `127.0.0.1:8317` | Windows box | A backend profile candidate, see 0.2. Not re-described. |
+| Registry `.agents/agents.json` (`mcp.servers`, 42 servers) + secrets by name in `.agents/local.json` | main | The **model registry** the tool reads from should be a sibling section of this file (or a file it points at), reusing `requiredEnv` / `credentialNames` / `maxPrivateBytes` conventions that already exist there (`maxPrivateBytes` on line 27 and 713; `credentialNames` throughout). [FACT, Tier A] |
+| Installed runtimes (claude, codex, cursor-agent, grok, goose 1.47, fabric 1.4.470, agy, gemini CLI, opencode, aider 0.86, ollama, lms, ralph, basic-memory :8765, agent-mail :8812, browser-bridge :8770) | Windows box | Consumers, not competitors. Section 5 states which of them can call an MCP tool and which need the OpenAI-compatible shim instead. |
+
+### 0.4 One correction to the brief's assumptions
+
+The brief says "no GPU assumed unless you find otherwise". The in-repo audit
+`.agents/local-models-audit_2026-08-27.md` line 29 records `nvidia-smi` -> **NVIDIA GeForce RTX 4050 Laptop
+GPU, 6141 MiB total, 5762 MiB free**, and lines 36-48 record **Ollama v0.33.0** (OpenAI-compatible,
+weights on `D:`, `qwen2.5:7b` present) and **LM Studio** (JIT server, 1 h TTL, headless service) installed
+and running. [FACT, Tier A, dated 2026-08-27, corroborated by two sections of the same audit but not
+re-measured this run] **[INFERENCE]** the generic tool therefore has two *local* OpenAI-compatible backends
+available at zero marginal cost, which changes the eval plan (section 7): a "local smoke" tier can run
+against Ollama without any network, and the 6 GB VRAM envelope is a real constraint the registry should
+record per model (`fits_local_vram: true|false`).
+
+---
+
+## 1. What `glm53_chat` does today, and what the replacement must keep
+
+Sourced from the registry entry, since the code itself is not on any pushed branch.
+
+- **Surface today.** "Exposes one text-only chat tool with separate `user_prompt` and blank-default editable
+  `system_prompt` fields. Never send secrets or raw private transcripts." Transport `stdio`, launched with
+  `uv run --locked --directory ...\tools\mcp\glm53-space python mcp_server.py`, env `HUGGINGFACE_TOKEN`
+  only, targets `claude` only, tags `approved, claude-only, hosted-inference, owner-requested, stdio`.
+  [FACT, Tier A, `.agents/agents.json` lines 593-625]
+- **Attachment policy today.** Cursor attaches it by default (`CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS =
+  CURSOR_DEFAULT_APPROVED_SERVERS | {"glm53-space"}`) but it is *not* one of the "core six" runtime-approved
+  servers; tests pin that it uses the locked absolute `uv` path and carries the `owner-requested` tag.
+  [FACT, Tier A, `.agents/scripts/merge_generated_cursor_mcp.py` line 141-143;
+  `.agents/tests/test_mcp_control_plane_live.py` lines 651-662]
+- **Companion shim.** The brief names `openai_proxy.py`, "a mini OpenAI-compatible wrapper". [FACT, Tier C -
+  brief only; code UNVERIFIED this run] **[INFERENCE]** this exists because several installed consumers
+  (fabric, goose, aider, opencode) speak OpenAI `/v1`, not MCP; the replacement must keep *both* faces or
+  those consumers lose the backend.
+
+### 1.1 Keep / change / drop matrix for the replacement
+
+| Property of `glm53_chat` | Keep? | Why |
+|--------------------------|-------|-----|
+| One tool, not one tool per model | **Keep** | hosted-model-agents rule 2; `mcp-fleet-curation` catalogue pressure. |
+| Text-only chat | **Change** -> messages array with optional images left as a declared *unsupported* capability per model (section 5) | Vision models exist on every listed backend; refusing them silently is a truthfulness failure (section 6). |
+| Hard-coded `router.huggingface.co/v1` + `zai-org/GLM-5.3` | **Drop** -> model id resolved from a registry | The whole point of the deprecation. |
+| `HUGGINGFACE_TOKEN` as the only secret | **Change** -> per-backend `credentialNames` | Ollama needs none; `:8317` needs whatever auth2api wants; HF and Azure differ. |
+| Blank-default editable `system_prompt` | **Keep, but as a pointer** | `.agents/skills` is the SSOT; a free-text `system_prompt` stays allowed, a `profile` argument resolves to a skill path. |
+| "Never send secrets or raw private transcripts" (a sentence in a description) | **Change** -> an enforced redaction pass with a redaction receipt in the result (section 5.6) | A description is not a control. `tools/mcp/proxy-mcp/redaction.py` already has `redact_obj` / `redact_text` / `_is_sensitive_key` that can be lifted. [FACT, Tier A, file read this run] |
+| `stdio`, spawned per session | **Drop** -> one shared HTTP host (section 4) | The estate's measured RAM problem (`mcp-http-host/README.md`: "2037 -> 633 processes", "6 concurrent search-hub stdio copies"). |
+| `claude-only` target | **Change** -> `claude`, `codex`, `cursor` via HTTP; CLI consumers via the `/v1` face | Nothing about an inference tool is Claude-specific. |
+
+---
+
+## 2. Survey: OSS MCP servers that expose OpenAI-compatible / HF endpoints as tools
+
+Method: candidates named from prior knowledge and one web search, then **every repository's metadata was
+pulled from the GitHub REST API this run** (`gh api repos/<owner>/<repo>` - license SPDX id, stars,
+`pushed_at`, archived flag, language, open issues). Those seven fields are Tier A, dated 2026-09-02. Source
+reads are noted per row; anything not read is marked UNVERIFIED.
+
+### 2.1 Direct competitors: "call a chat model as an MCP tool"
+
+| Project | License | Stars | Last push | Lang | What it exposes | Fit for us |
+|---------|---------|-------|-----------|------|-----------------|------------|
+| [pyroprompts/any-chat-completions-mcp](https://github.com/pyroprompts/any-chat-completions-mcp) | MIT | 160 | **2025-05-01** | JS/TS | ONE tool `chat-with-<name>` per process; provider fixed by env (`AI_CHAT_BASE_URL`, `AI_CHAT_KEY`, `AI_CHAT_MODEL`, `AI_CHAT_NAME`, optional `AI_CHAT_SYSTEM_PROMPT`, `AI_CHAT_TIMEOUT`); input is a single `content` string. [FACT, Tier A - `src/index.ts` and `package.json` read this run] | Closest published match to `glm53_chat`, and it has the **same architectural defect**: one model = one process, so N models = N stdio children per session. Pins `@modelcontextprotocol/sdk` **0.6.0** (pre-Streamable-HTTP), 16 months without a push. Loads `dotenv` from cwd. No messages array, no tools, no usage/cost, no redaction. **Adopt: NO. Learn from: its 40-line shape proves how little code the wire needs.** |
+| [pierrebrunelle/mcp-server-openai](https://github.com/pierrebrunelle/mcp-server-openai) | MIT | 84 | 2024-11-28 | Python | OpenAI-only `ask-openai` tool. [Tier A metadata; code UNVERIFIED] | Vendor-fixed, 21 months stale. NO. |
+| [mzxrai/mcp-openai](https://github.com/mzxrai/mcp-openai) | MIT | 76 | 2024-12-06 | JS | OpenAI-only. [Tier A metadata; code UNVERIFIED] | Vendor-fixed, stale. NO. |
+| [sammcj/mcp-llm](https://github.com/sammcj/mcp-llm) | MIT | 78 | 2025-03-15 | JS | `generate_code`, `generate_documentation`, `ask_question` via LlamaIndexTS over any provider. [Tier A metadata; Tier C description from README summary, UNVERIFIED] | Embeds a framework (LlamaIndex) - brushes the "no second orchestration runtime" lock; task-shaped tools, not a generic chat surface. NO. |
+| [rawveg/ollama-mcp](https://github.com/rawveg/ollama-mcp) | **AGPL-3.0** | 170 | 2026-08-13 | TS | Ollama-native tools (list/pull/chat). [Tier A metadata; code UNVERIFIED] | Actively maintained but **AGPL** - fine to *run*, a licence question the moment any of it is vendored into this MIT-style repo. Ollama-only. NO as the generic layer; a possible reference for the local profile. |
+| [NightTrek/Ollama-mcp](https://github.com/NightTrek/Ollama-mcp) | **none** | 74 | 2025-01-01 | JS | Ollama-native. [Tier A metadata] | No licence = cannot adopt. NO. |
+| [infinitimeless/LMStudio-MCP](https://github.com/infinitimeless/LMStudio-MCP) | MIT | 168 | 2026-04-10 | Python | LM Studio chat/list via its OpenAI-compatible port. [Tier A metadata; code UNVERIFIED] | Vendor-fixed to LM Studio; but recent, MIT, Python - a candidate to **read** for the LM Studio profile's quirks (JIT load, TTL). NO as the layer. |
+| [shreyaskarnik/huggingface-mcp-server](https://github.com/shreyaskarnik/huggingface-mcp-server) | MIT | 72 | 2025-03-19 | Python | Hub search/metadata, not inference. [Tier A metadata] | Wrong layer (Hub control plane; the estate already has the official Hub MCP). NO. |
+
+**[INFERENCE, corroborated by the seven rows above]** Every published "LLM as a tool" MCP server in this
+class is (a) one provider per process, (b) text-in/text-out, (c) silent on usage, cost and redaction, and
+(d) mostly stale (5 of 7 last pushed before 2025-06). None reads a *registry* of models, none ships an eval
+harness, none runs as a shared HTTP host. The gap the owner identified is real and un-filled upstream.
+The correct posture is therefore **BUILD a thin house server (stdlib Python, house style) that adopts the
+40-line wire shape of any-chat-completions-mcp and adds the registry, ledger, redaction and evals** -
+not adopt-and-fork.
+
+### 2.2 Adjacent, inverse-direction projects (do not confuse with the target)
+
+| Project | License | Stars | Last push | What it is | Relevance |
+|---------|---------|-------|-----------|------------|-----------|
+| [SecretiveShell/MCP-Bridge](https://github.com/SecretiveShell/MCP-Bridge) | MIT | 929 | 2025-12-08 | Python; exposes **MCP tools to OpenAI-compatible clients** (the inverse: OpenAI API in, MCP tools out). [Tier A metadata; behaviour Tier C from README summary, UNVERIFIED] | Relevant to the `/v1` **face** (section 5.8): fabric/goose/aider speak OpenAI `/v1`, not MCP. But it is a full FastAPI app with its own config schema - heavier than the house `openai_proxy.py` it would replace. Watch, do not adopt. |
+| [bartolli/mcp-llm-bridge](https://github.com/bartolli/mcp-llm-bridge) | MIT | 333 | 2025-03-28 | **archived** | Dead. Listed only so nobody re-proposes it. |
+| [punkpeye/mcp-proxy](https://github.com/punkpeye/mcp-proxy) | MIT | 285 | 2026-08-26 | TS stdio<->HTTP bridge | **Already the adopted transport** in `tools/mcp/mcp-http-host` (README, RESCOPE.md). Section 4 uses it. |
+| [sparfenyuk/mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) | MIT | 2734 | 2026-07-20 | **Python** stdio<->SSE/HTTP bridge | The no-Node alternative to punkpeye's; **10x the stars**, `uv`-installable. Worth naming because the house `-Bridge stdlib` fallback exists precisely for "npx was failing on this box" days. [Tier A metadata; feature set UNVERIFIED this run] |
+| [huggingface/hf-mcp-server](https://github.com/huggingface/hf-mcp-server) (redirect from `evalstate/hf-mcp-server`) | MIT | 289 | **2026-09-01** | TS; the source of the official `https://huggingface.co/mcp` server already registered as `huggingface` in `agents.json` | Control plane (search, papers, Spaces). Its Gradio-Space-as-tool mounting is the one *native* path to "a Space's chat model as an MCP tool" without new code - but it is per-Space and Gradio-shaped, not OpenAI-`/v1`-shaped, so it does not replace the generic layer. [Tier A metadata; tool list UNVERIFIED this run] |
+| [PrefectHQ/fastmcp](https://github.com/PrefectHQ/fastmcp) (redirect from `jlowin/fastmcp`) | Apache-2.0 | 27,481 | 2026-09-02 | Python MCP framework | Would give the house server `ctx.sample()` plus a **sampling fallback handler** - but see section 3: sampling is now deprecated, so the framework buys little here, and the house style is stdlib. Not adopted; named so its `sampling_handler` idea is on record. [Tier A metadata; fallback-handler feature Tier C, UNVERIFIED] |
+
+### 2.3 Security posture summary of the class (what to copy, what to avoid)
+
+- **Secrets:** all seven direct competitors take the API key from an environment variable - the same
+  pattern `.agents/agents.json` uses (`"env": {"HUGGINGFACE_TOKEN": "${HUGGINGFACE_TOKEN}"}`). None logs
+  the key. any-chat-completions-mcp additionally calls `dotenv.config()`, which reads a `.env` from the
+  *current working directory* - a footgun when the same process is launched from many session cwds.
+  [FACT, Tier A for any-chat-completions-mcp; Tier C for the rest]
+- **Input validation:** any-chat-completions-mcp does `String(request.params.arguments?.content)` and then
+  `if (!content) throw` - `String(undefined)` is the truthy string `"undefined"`, so a missing argument is
+  sent to the model as the literal prompt "undefined". [FACT, Tier A, code read this run] Copy the
+  intent, not the check.
+- **Egress:** none pins the base URL to an allowlist; the URL is whatever the env says. For this estate
+  the base URL must come from the **registry**, never from a tool argument (section 5.2), or an injected
+  prompt can exfiltrate a transcript to an attacker's `/v1`.
+- **Transport:** all are stdio-only at the version pinned; none ships Streamable HTTP natively, which is
+  why the shared-host doctrine (section 4) has to wrap them - or the house server should speak Streamable
+  HTTP itself.
+
+---
+
+## 3. Alternative: the MCP sampling primitive - and why it cannot be the answer here
+
+**What sampling is.** `sampling/createMessage` lets a *server* ask the *client's* model for a completion,
+"with no server API keys necessary"; the client keeps model selection and must offer human-in-the-loop
+review. Revision 2025-11-25 added tool use inside sampling (`sampling.tools` capability, `toolChoice`,
+strict tool_use/tool_result balancing) and model preference hints. [FACT, Tier A,
+https://modelcontextprotocol.io/specification/2025-11-25/client/sampling, read this run]
+
+**Why it looked attractive for this lens.** A sampling-based server would need zero credentials and zero
+registry: the *host's* model answers. That is exactly the "use my Cursor/Claude quota" wish that produced
+auth2api.
+
+**Three facts that close the door:**
+
+1. **The primitive is deprecated.** Protocol revision **2026-07-28** marks Sampling *deprecated* under
+   SEP-2577: "New implementations SHOULD NOT adopt it; existing implementations SHOULD migrate to
+   integrating directly with LLM provider APIs." It stays in the spec for at least twelve months before it
+   is eligible for removal. `includeContext` values are separately deprecated (SEP-2596). [FACT, Tier A,
+   https://modelcontextprotocol.io/specification/2026-07-28/client/sampling, read this run]
+2. **The estate's main client never implemented it.** anthropics/claude-code issue
+   [#1785](https://github.com/anthropics/claude-code/issues/1785) ("Support for MCP Sampling") is open
+   (last updated 2026-05-20) and the spec-compliance tracker
+   [#31893](https://github.com/anthropics/claude-code/issues/31893) lists sampling as **"not
+   implemented"**. [FACT, Tier A, both issues read this run] Cursor's and Codex's sampling support was
+   **not verified** this run; given (1) it no longer matters.
+3. **It cannot do the job even where it works.** Sampling routes to *the client's* model. The purpose of
+   this tool is to reach models the client does *not* have - GLM on the HF router, a Space, Ollama on the
+   4050, Foundry. Sampling is by construction the wrong direction. [INFERENCE]
+
+**[RECOMMENDATION]** Do not build on sampling. Do not add a FastMCP dependency for `ctx.sample()`. The
+replacement is a **tool** whose server holds the credentials (by name, from `.agents/local.json`) and calls
+provider HTTP directly - which is precisely what the 2026-07-28 spec now tells implementers to do.
+
+**One thing worth keeping from the sampling spec** (as design input, not as protocol): its
+tool-loop rules - "every assistant `tool_use` MUST be followed by a user message of only `tool_result`s,
+one per `toolUseId`", "implement iteration limits" - are a clean statement of the invariants the harness
+side of `hosted-model-agents/tool-loop.md` already enforces informally. Section 5.4 adopts them as
+validation rules for the messages the tool accepts.
+
+---
+
+## 4. Hosting: one shared instance under the `mcp-http-host` doctrine, never one per session
+
+### 4.1 What the doctrine already says (in-repo, Tier A)
+
+- The estate's measured RAM failure is **per-session stdio duplication**: `S` sessions x `H` stdio servers;
+  6 concurrent `search-hub` copies were caught live; the cure named is "shared HTTP MCP". [FACT,
+  `tools/mcp/mcp-http-host/README.md` "The problem it cures"]
+- The adopted transport is `mcp-proxy` npm (pinned `--host 127.0.0.1`, `--shell`), the house value is the
+  **supervisor** `run_host.ps1` (port-scoped children-first reap, `-Status` spawn-count invariant,
+  `-InstallTask` logon task `McpHttpHost-<Port>`), and `mcp_http_host.py` is the no-Node fallback.
+  [FACT, README + RESCOPE.md]
+- **"A strongly stateful server should instead expose its own native streamable-HTTP mode (like
+  agent-mail / basic-memory) and be run once - don't share a stateful stdio child."** and "Single pipe =>
+  serialized round-trips ... a throughput-bound server wants native HTTP concurrency." [FACT, README
+  "Scope & honest caveats"]
+- Claude Code registers an HTTP server as `{"type": "http", "url": "http://127.0.0.1:<port>/mcp"}`;
+  `type` is mandatory. [FACT, README citing code.claude.com/docs/en/mcp]
+- The 2025-11-25 spec requires Streamable-HTTP servers to answer **HTTP 403 for invalid `Origin`
+  headers**, and lets stdio servers log freely on stderr. [FACT, Tier A,
+  https://modelcontextprotocol.io/specification/2025-11-25/changelog, minor changes 1 and 3]
+
+### 4.2 Decision: native Streamable HTTP, not "stdio behind mcp-proxy"
+
+**[RECOMMENDATION]** The replacement - call it **`inference-hub`** to match `search-hub` / `social-hub` /
+`cloud-hub` - should be written as a **native Streamable-HTTP server** (stdlib `http.server` +
+`ThreadingHTTPServer`, the same toolbox `mcp_http_host.py` already uses) rather than a stdio server wrapped
+by mcp-proxy. Reasons, each traceable to a fact above:
+
+| Concern | stdio child behind mcp-proxy | Native HTTP `inference-hub` |
+|---------|------------------------------|-----------------------------|
+| Concurrency | one pipe, lock-serialized: a 60 s GLM call blocks every other session's call | thread-per-request, bounded by a semaphore (proposed default **4** in-flight provider calls) so a slow provider never head-of-line-blocks Ollama |
+| Runtime | needs Node/npx on the box (README: "npx spawns were failing on this box earlier") | Python only; same interpreter family as every other hub |
+| Second face (`/v1`) | impossible through mcp-proxy | same process serves `/mcp` **and** `/v1/chat/completions` (section 5.8) |
+| Supervision | `run_host.ps1 -Bridge mcp-proxy` | `run_host.ps1` gains a third mode or the hub ships its own `-InstallTask` (the supervisor's reap/status logic is port-scoped and reusable as-is) |
+
+Trade-off stated, per the "never remove a feature" lock: writing Streamable HTTP by hand means owning
+session-id handling and SSE framing (~200 lines; the repo already has a working reference in
+`_fake_streamable_http_daemon.py`, which implements sessions, `-32600 Session not found`, JSON/SSE and GET
+streams as a **test fixture** - [FACT, README "Files" table]). The alternative (stdio + mcp-proxy) is
+zero-code on the transport but forfeits concurrency and the `/v1` face.
+
+### 4.3 Placement, port, registry entry
+
+- **Bind:** `127.0.0.1` only (house rule; both existing shared daemons do this).
+- **Port:** the three owned ports (8765, 8812, 8317) are untouched; ports already referenced in repo config
+  are 8089, 7820, 8766, 8767, 8770, 8799, 8888, 8890, 9222, 18787 (grep of `.agents/agents.json`,
+  `tools/mcp/*/README.md`, `docs/plans/*.md` this run). **Proposed: `8901`**, adjacent to the `8900`
+  used as the worked example in the mcp-http-host README, to be confirmed free on-box with
+  `Get-NetTCPConnection -LocalPort 8901` before any apply. [INFERENCE on free-ness; UNVERIFIED on-box]
+- **Registry entry** (`.agents/agents.json` -> `mcp.servers.inference-hub`), reusing existing keys only:
+  `transport: "http"`, `url: "http://127.0.0.1:8901/mcp"`, `targets: ["claude","codex","cursor"]`,
+  `requiredEnv: []` on the *client* side (credentials live in the hub process, not in each client),
+  `maxPrivateBytes: 268435456` (256 MiB; a stdlib Python server idles far below that - [INFERENCE]),
+  tags `approved, http, hosted-inference, shared-daemon`. The `glm53-space` entry is then flipped
+  `enabled: false` with a `description` pointing here, and removed from `CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS`
+  in the same change so `test_glm53_uses_locked_absolute_uv_and_is_owner_requested_default` is retired
+  deliberately, not broken.
+- **Cursor client caveat, inherited from basic-memory:** the repo already documents that Cursor does not
+  survive a shared daemon restart (stale `mcp-session-id` -> `-32600`, `ECONNREFUSED`) and shipped a
+  per-session stdio shim (`bm_cursor_http_session.py`) for `:8765`. [FACT, README "Basic Memory" section]
+  **[RECOMMENDATION]** `inference-hub` should be *lenient on unknown session ids* (treat an unknown
+  `Mcp-Session-Id` as a fresh implicit `initialize` instead of `-32600`) because it holds **no
+  per-session state** - which sidesteps the shim entirely. Trade-off: this deviates from the strict
+  reading of the spec (which says 404 for a terminated session) in exchange for restart-transparency;
+  it is safe *only* because the hub is stateless per call.
+
+### 4.4 The invariant the supervisor must be able to check
+
+`GET /healthz` returns `{host_pid, started_at, requests_served, inflight, ledger_lines_today,
+backends: {<id>: {last_ok_at, last_error_class, consecutive_failures}}}`. `run_host.ps1 -Status` checks
+exactly one process owns `:8901` (the existing spawn-count invariant) and that `/healthz` answers. This is
+the same shape the README specifies for the stdlib host (`host_pid`, `child_spawn_count`,
+`requests_served`) minus `child_*` because there is no child. [FACT for the shape; RECOMMENDATION for
+the backend block]
+
+---
+
+## 5. Tool surface specification
+
+### 5.1 Catalogue size: three tools, one of them optional
+
+`mcp-fleet-curation` pressure and hosted-model-agents rule 2 both say: do not let the model catalogue leak
+into the tool catalogue. So the *models* are data, the *tools* are fixed:
+
+| Tool | Purpose | Read-only? |
+|------|---------|-----------|
+| `inference_models` | list registry entries the caller may use, with capability manifest, health, and today's spend | yes |
+| `inference_chat` | one model round: messages (+ optional tools/schemas) in, assistant message (+ optional tool_calls / structured object) out | no (spends money) |
+| `inference_fetch` | fetch the remainder of a result that exceeded `max_result_chars` (chunked mode, 5.5) | yes |
+
+Tool names follow the 2025-11-25 tool-name guidance (SEP-986: lowercase, `_`-separated, stable).
+[FACT, Tier A, changelog item 4; exact guidance text UNVERIFIED this run]
+
+### 5.2 `inference_chat` input schema (JSON Schema 2020-12, the spec default per SEP-1613)
+
+```json
+{
+  "type": "object",
+  "required": ["model", "messages"],
+  "additionalProperties": false,
+  "properties": {
+    "model":     {"type": "string", "description": "Registry id from inference_models (e.g. 'hf/glm-5.3', 'ollama/qwen2.5-7b'). NOT a URL. NOT a provider model name."},
+    "messages":  {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/message"}},
+    "profile":   {"type": "string", "description": "Optional system-prompt profile = a path under .agents/skills (e.g. 'hosted-model-agents/profiles.md#red-team-reporter'). Resolved server-side; the file text becomes messages[0]. Mutually exclusive with a leading system message."},
+    "tools":     {"type": "array", "items": {"$ref": "#/$defs/openai_function_tool"}, "description": "Schemas the MODEL may propose calls to. The hub NEVER executes them (hosted-model-agents rule 3)."},
+    "tool_choice": {"enum": ["auto", "none", "required"], "default": "auto"},
+    "response_schema": {"type": "object", "description": "JSON Schema the assistant content must satisfy. See 5.4 for native vs prompted mode."},
+    "max_tokens": {"type": "integer", "minimum": 1},
+    "temperature": {"type": "number", "minimum": 0, "maximum": 2},
+    "reasoning_effort": {"enum": ["none", "low", "medium", "high", "max"]},
+    "content_class": {"enum": ["public", "internal", "private"], "default": "internal", "description": "Data classification of the messages. 'private' is refused for third-party backends unless the registry entry says private_ok."},
+    "allow_redacted_send": {"type": "boolean", "default": false, "description": "If a secret is detected, send with masking instead of refusing."},
+    "max_result_chars": {"type": "integer", "default": 20000, "description": "Chunk threshold; overflow is spooled and returned via inference_fetch."},
+    "timeout_s": {"type": "integer", "default": 120, "maximum": 600},
+    "idempotency_key": {"type": "string", "description": "Optional; identical key within 10 min returns the ledger'd result instead of re-spending."}
+  }
+}
+```
+
+**Deliberately absent:** `base_url`, `api_key`, `provider`, `headers`. Every network destination comes
+from the registry entry named by `model`. This is the single most important security property (section
+2.3: a base URL in a tool argument is a transcript-exfiltration primitive under prompt injection).
+[RECOMMENDATION, grounded in the llm-security AGENTS.md rules on SSRF/allow-listing]
+
+### 5.3 The model registry (`.agents/models.json`, new file, house-owned)
+
+One entry per *routable model*, not per endpoint:
+
+```json
+{
+  "hf/glm-5.3": {
+    "backend": {"kind": "openai-compatible", "base_url": "https://router.huggingface.co/v1",
+                "auth": {"header": "Authorization", "scheme": "Bearer", "credentialName": "HUGGINGFACE_TOKEN"},
+                "extra_headers": {}},
+    "provider_model": "zai-org/GLM-5.3",
+    "capabilities": {"tools": true, "tool_choice": true, "json_schema": "unknown", "vision_base64": false,
+                     "vision_url": false, "streaming": true, "usage": true, "reasoning_effort": false,
+                     "max_context": null},
+    "data_class": "third_party", "private_ok": false,
+    "limits": {"daily_usd_cap": 0.50, "max_tokens_default": 2048, "timeout_s": 120, "max_inflight": 2},
+    "pricing": {"input_per_mtok_usd": null, "output_per_mtok_usd": null,
+                "source": "https://huggingface.co/docs/inference-providers/pricing", "as_of": "2026-09-02",
+                "note": "HF passes provider prices through with no markup; per-model price must be filled from the provider page."},
+    "tags": ["hosted", "replaces:glm53_chat"]
+  },
+  "ollama/qwen2.5-7b": {
+    "backend": {"kind": "openai-compatible", "base_url": "http://127.0.0.1:11434/v1", "auth": null},
+    "provider_model": "qwen2.5:7b",
+    "capabilities": {"tools": true, "tool_choice": false, "json_schema": true, "vision_base64": true,
+                     "vision_url": false, "streaming": true, "usage": true, "reasoning_effort": true,
+                     "max_context": "modelfile:num_ctx"},
+    "data_class": "local", "private_ok": true, "fits_local_vram": true,
+    "limits": {"daily_usd_cap": 0, "timeout_s": 300, "max_inflight": 1},
+    "pricing": {"input_per_mtok_usd": 0, "output_per_mtok_usd": 0, "source": "local", "as_of": "2026-09-02"}
+  }
+}
+```
+
+The Ollama capability row is **sourced**, not guessed: Ollama's OpenAI-compatibility page lists
+`/v1/chat/completions` as supporting streaming, JSON mode, vision (base64 only, *not* image URL), tools,
+`response_format`, `stream_options`/`include_usage`, `reasoning_effort` (`none|low|medium|high|max`) -
+and **not** `tool_choice`, `logprobs`, `logit_bias`, `n`; context size cannot be set over the OpenAI
+API and needs a Modelfile `num_ctx`. [FACT, Tier A, https://docs.ollama.com/api/openai-compatibility,
+read this run] The HF row's `json_schema: "unknown"` is honest: it was not verified this run and is
+provider-dependent behind the router. Registry values are what the **capability evals** (section 7)
+exist to turn from `"unknown"` into `true|false`.
+
+Secrets are **by name only** (`credentialName`), resolved from the process environment that
+`.agents/local.json` populates - the same mechanism as every other `agents.json` entry. Never rotated,
+never written to the ledger. **Lock check:** an `openrouter/*` entry is allowed *only* with
+`deny_callers: ["cursor", "claude-code"]` and a hard `daily_usd_cap`, which keeps OpenRouter a CLI/Codex
+sidecar; a `cursor/*` entry pointing at `http://127.0.0.1:8317/v1` is allowed *only* with
+`deny_callers: ["cursor"]` and `enabled: false` by default (the hub is then a *client* of auth2api, not a
+second bridge; when auth2api retires, the entries retire with it). Both are presented as trade-offs, not
+defaults.
+
+### 5.4 Tools passthrough: schemas in, proposals out, execution never
+
+- `tools` are forwarded verbatim to backends whose manifest says `tools: true`; for others the hub returns
+  `error.class = "UNSUPPORTED_CAPABILITY"` with `detail: "tools"` (section 6) rather than silently dropping
+  them.
+- The hub performs **exactly one model round**. If the model answers with `tool_calls`, they are returned
+  as `structuredContent.tool_calls` (ids, names, JSON-parsed arguments, plus `arguments_raw` when parsing
+  fails) and the caller - Claude/Cursor/Codex - executes locally after its own allowlist and re-invokes
+  `inference_chat` with the `role: tool` messages appended. No loop lives in the hub. This is
+  hosted-model-agents rule 3 made structural, and it keeps the hub out of "second orchestration runtime"
+  territory.
+- Input validation borrowed from the (now deprecated, still correct) sampling spec: every assistant
+  `tool_calls` message must be followed by `role: tool` messages covering each `tool_call_id` before any
+  other content; violations are returned as **tool-execution errors, not protocol errors**, so the model can
+  self-correct (SEP-1303). [FACT for SEP-1303, Tier A changelog; RECOMMENDATION for applying it here]
+
+### 5.5 Structured output: three truthfully-labelled modes
+
+| `structured_mode` in result | When | What the hub does |
+|-----------------------------|------|-------------------|
+| `native` | manifest `json_schema: true` | sends `response_format: {type: json_schema, json_schema: {...strict}}`; validates the reply anyway |
+| `prompted` | manifest `json_schema: false` or `"unknown"` | appends a schema instruction to the system message, extracts the first JSON object, validates; on failure returns the raw text **and** `structured.valid: false` with validator errors |
+| `unsupported` | caller asked for `response_schema` and `allow_prompted_fallback: false` | error `UNSUPPORTED_CAPABILITY` |
+
+The result always says which mode ran. Reporting `prompted` as if it were `native` would be the
+truthfulness failure the error taxonomy exists to prevent.
+
+### 5.6 Streaming vs chunked results
+
+- **Facts that decide it:** an MCP tool call returns one result; progress is a separate notification that
+  Claude Code **ignores** ("no progress display for long-running tools", issue #31893 table) [FACT, Tier A];
+  durable "tasks" with polling are **experimental** in 2025-11-25 (SEP-1686) [FACT, Tier A changelog].
+- **Design:** the hub *always* consumes the provider's SSE stream internally (`stream: true`,
+  `stream_options.include_usage`) so it can (a) record `ttfb_ms`, (b) enforce `timeout_s` with a
+  **partial result** instead of nothing (`finish_reason: "timeout_partial"`, `partial: true`), and (c)
+  stop at `max_result_chars`. It returns **one** result. If the text exceeds `max_result_chars`, the
+  remainder is spooled to `<run-dir>/inference-hub/results/<result_id>.txt` (0600, TTL 24 h) and the
+  result carries `truncated: true, result_id, remaining_chars`; `inference_fetch(result_id, offset)` pages
+  it. MCP Tasks are the future replacement for this once Claude Code implements them; the registry gets a
+  `tasks: false` client note until then. [RECOMMENDATION]
+
+### 5.7 Cost ledger: one JSONL line per call, never the text
+
+Precedent: `tools/mcp/_shared/hardening.py` writes `shadow/confirm-gate.jsonl`, bounded at 256 KiB with
+rotate-once. [FACT, Tier A, lines 373 and 424] Same shape here, `inference-hub/ledger.jsonl`, daily
+rotation:
+
+```json
+{"ts":"2026-09-02T04:11:02Z","call_id":"c_01J...","caller":"claude-code/2.1.x","model":"hf/glm-5.3",
+ "provider_model":"zai-org/GLM-5.3","prompt_tokens":812,"completion_tokens":233,"cached_tokens":0,
+ "usage_source":"provider","ttfb_ms":1490,"latency_ms":6120,"cost_usd":null,
+ "cost_basis":"unknown_price","status":"ok","finish_reason":"stop","structured_mode":"prompted",
+ "redaction":{"secrets_masked":0,"refused":false},"content_class":"internal","idempotent_replay":false}
+```
+
+`cost_basis` is one of `provider_reported | table_estimate | unknown_price | local_zero`. **Fact that
+forces this field:** Hugging Face documents pass-through pricing, monthly credits ($0.10 free /
+$2.00 PRO, "subject to change"), a usage breakdown page, and an `X-HF-Bill-To` header - but the pricing
+page does not document any per-response cost field, so cost must be *estimated from a table* or marked
+unknown. [FACT for the documented items, Tier A, https://huggingface.co/docs/inference-providers/pricing;
+absence of a cost field is INFERENCE from that page only, UNVERIFIED against the router's actual
+response headers.] `usage_source` is `provider` when the backend returned `usage`, else
+`estimated_chars/4`. `caller` comes from the MCP `initialize` `clientInfo`, never from a tool argument.
+`inference_models` surfaces `spent_today_usd` per model from this ledger, and `BUDGET_EXCEEDED` (section 6)
+is computed from it.
+
+### 5.8 Redaction of secrets and private transcripts
+
+- **Secrets, pre-send:** every string in `messages` is scanned with the estate's existing
+  `tools/mcp/proxy-mcp/redaction.py` primitives (`_is_sensitive_key`, `redact_obj`, `redact_text` -
+  [FACT, Tier A, file read this run]) extended with the token shapes the llm-security rule lists
+  (`AKIA...`, `sk-...`, `ghp_...`, `hf_...`, `-----BEGIN ... PRIVATE KEY-----`, `Bearer <20+ chars>`).
+  **Default is refuse, not mask:** `error.class = "REFUSED_SECRET_IN_PROMPT"` with the *kind* and
+  *message index* of each hit, never the value. `allow_redacted_send: true` switches to masking and the
+  ledger records `secrets_masked: n`. Rationale: silently sending a masked transcript to a third party
+  still leaks its shape; the caller should decide knowingly.
+- **Private transcripts:** `content_class: "private"` is refused for any model whose registry
+  `data_class` is `third_party` unless `private_ok: true` (`REFUSED_PRIVATE_TO_THIRD_PARTY`). `local`
+  backends (Ollama, LM Studio) accept everything. This turns the `glm53-space` description sentence
+  "never send raw private transcripts" into a check.
+- **Post-receive:** the assistant text is scanned too; a secret *echoed back* by the model is masked in
+  the returned result and flagged `redaction.echo_masked: n` (models do regurgitate what they were sent).
+- **Never in the ledger, never in logs:** prompt text, completion text, headers. stderr logging is allowed
+  by the spec for stdio servers; the hub is HTTP, so it logs to a file with the same rule.
+
+### 5.9 The second face: OpenAI-compatible `/v1` on the same process
+
+Installed consumers that cannot speak MCP but speak OpenAI `/v1`: fabric 1.4.470, goose 1.47 (already
+configured against `:8317`), aider 0.86, opencode, gemini CLI (for local models). [FACT for the install
+list, brief; protocol support per tool UNVERIFIED this run] `openai_proxy.py` in glm53-space exists for
+exactly this. **[RECOMMENDATION]** keep the face, move it in-process: `POST /v1/chat/completions` and
+`GET /v1/models` on `:8901`, where `model` is the **registry id** and everything else (redaction,
+ledger, caps, capability errors mapped to OpenAI `error.code`) is the same code path. This is what the
+brief calls the "general integration layer": one process, two faces, one registry, one ledger.
+Lock check: this face must never be configured as a Cursor BYOK base URL or a Claude `ANTHROPIC_BASE_URL`;
+`deny_callers` cannot be enforced on an anonymous `/v1` client, so the `/v1` face **omits** any
+`cursor/*` and `openrouter/*` entries entirely (they are MCP-face only, where `clientInfo` is known).
+
+---
+
+## 6. Error taxonomy with truthful degradation
+
+Governing spec fact: **input-validation errors are Tool Execution Errors (`isError: true` in the result),
+not JSON-RPC protocol errors, so the model can self-correct** (SEP-1303). [FACT, Tier A, 2025-11-25
+changelog minor change 5] Protocol errors are reserved for malformed JSON-RPC and unknown tool names.
+Every error the hub returns therefore has the shape
+`{isError: true, structuredContent: {error: {class, retryable, detail, model, backend_status, hint}}}`
+plus a one-line human `text`. **No error class is ever converted into a fake success.**
+
+| Class | Trigger | `retryable` | Degradation offered (never silent) | Ledger `status` |
+|-------|---------|-------------|-------------------------------------|-----------------|
+| `UNKNOWN_MODEL` | `model` not in registry, or `enabled: false` | no | lists 5 nearest registry ids | `rejected` |
+| `CALLER_DENIED` | registry `deny_callers` matches `clientInfo.name` (the OpenRouter / auth2api lock rows) | no | names the lock; suggests an allowed model with the same tags | `rejected` |
+| `INVALID_MESSAGES` | schema violation; unbalanced `tool_calls`/`role: tool`; `profile` and leading system message both present | no | exact index + rule violated | `rejected` |
+| `PROFILE_NOT_FOUND` | `profile` path not under `.agents/skills` or missing | no | nearest skill paths | `rejected` |
+| `REFUSED_SECRET_IN_PROMPT` | pre-send scanner hit, `allow_redacted_send: false` | no (caller must decide) | kinds + message indexes; explains `allow_redacted_send` | `refused` |
+| `REFUSED_PRIVATE_TO_THIRD_PARTY` | `content_class: private` -> `data_class: third_party` without `private_ok` | no | lists `local` models that fit (`fits_local_vram: true`) | `refused` |
+| `UNSUPPORTED_CAPABILITY` | request uses `tools` / `tool_choice` / `response_schema` / image parts the manifest marks `false` | no | names the field; for `response_schema` offers `prompted` mode explicitly | `rejected` |
+| `CAPABILITY_UNKNOWN` | manifest says `"unknown"` for the field used | yes (after eval) | proceeds **only** if caller set `allow_unknown_capability: true`; result then carries `capability_probe: {field, observed}` and the ledger records it so the registry can be updated | `ok` or `provider_error` |
+| `BUDGET_EXCEEDED` | ledger `spent_today_usd + estimate > daily_usd_cap` (or `cost_basis: unknown_price` and `require_priced: true`) | after midnight UTC | shows spend, cap, and cheapest alternative model; **never silently downgrades the model** | `rejected` |
+| `BACKEND_AUTH` | 401/403 from provider | no | names the `credentialName` (not the value); reminds that credentials are never rotated automatically | `provider_error` |
+| `BACKEND_RATE_LIMIT` | 429 | yes, honours `Retry-After` up to `timeout_s` | at most 2 retries with jitter, then surfaces the 429 | `provider_error` |
+| `BACKEND_UNAVAILABLE` | connect refused / DNS / 5xx / Ollama model not pulled (404 from `:11434`) | yes | for `local` backends, says whether the daemon or the model is missing (`ollama pull` hint); **no automatic failover to another model** - the caller chose the model | `provider_error` |
+| `BACKEND_MALFORMED` | non-JSON body, missing `choices`, tool_call arguments not JSON | no | returns `raw_excerpt` (redacted, 500 chars) | `provider_error` |
+| `TIMEOUT_PARTIAL` | `timeout_s` hit after first token | no | **returns the partial text** with `partial: true`, `finish_reason: "timeout_partial"`, tokens so far | `partial` |
+| `TIMEOUT_NO_OUTPUT` | `timeout_s` hit before first token | yes | reports `ttfb_ms: null`; suggests a smaller `max_tokens` or a local model | `provider_error` |
+| `RESULT_SPOOLED` (not an error) | output > `max_result_chars` | - | `truncated: true`, `result_id`, `remaining_chars` (section 5.6) | `ok` |
+| `IDEMPOTENT_REPLAY` (not an error) | same `idempotency_key` within 10 min | - | returns the stored result, `idempotent_replay: true`, **no spend** | `replay` |
+
+### 6.1 What "truthful degradation" rules out (trade-offs stated, per the lock)
+
+| Tempting shortcut | Why it is refused here | What is offered instead |
+|-------------------|------------------------|-------------------------|
+| Auto-failover `hf/glm-5.3` -> `ollama/qwen2.5-7b` on 5xx | The caller's tool call named a model; answering from a different one is a silent lie about provenance and quality | `BACKEND_UNAVAILABLE` names the alternative; the *caller* re-invokes |
+| Silently dropping `tools` for a backend that lacks them | The model then answers in prose and the harness thinks no tool was needed | `UNSUPPORTED_CAPABILITY` |
+| Reporting `prompted` structured output as `native` | Downstream code trusts the schema guarantee it does not have | `structured_mode` always present |
+| Masking secrets by default and sending | Leaks transcript shape to a third party without the caller knowing | refuse-by-default, opt-in mask |
+| Returning `cost_usd: 0.0` when the price is unknown | Ledger totals become fiction; `BUDGET_EXCEEDED` never fires | `cost_basis: unknown_price`, `cost_usd: null` |
+| Retrying forever on 429 | Burns the daily cap on one call | 2 retries, then surface |
+
+### 6.2 Health degradation at the hub level
+
+`/healthz` marks a backend `degraded` after `consecutive_failures >= 3` within 10 min (the same
+`failureThreshold: 3 / failureWindowSeconds: 600` numbers `.agents/agents.json` already uses for
+supervision - [FACT, Tier A, `agents.json` "supervision" block]). `inference_models` shows the flag; the
+hub still forwards calls to a degraded backend (the lock forbids removing the feature to buy
+reliability) but prefixes the result `text` with a one-line warning and sets `backend_status: degraded`.
+
+---
+
+## 7. Eval-harness spec
+
+### 7.1 Principles
+
+1. **Everything runs in CI without a network and without money.** Fake endpoints (7.2) stand in for
+   every backend. Live runs are a separate, opt-in tier.
+2. **pytest only.** The repo's CI is per-package `pytest --cov ... --cov-fail-under=100` with no
+   repo-wide autodiscovery; ruff is pinned at 0.15.17. [FACT, Tier A, `.github/workflows/quality.yml`
+   lines 11-18, 295-334; `AGENTS.md` Cursor Cloud notes] A dedicated eval framework
+   ([inspect_ai](https://github.com/UKGovernmentBEIS/inspect_ai), MIT, 2,683 stars, pushed 2026-09-02;
+   [promptfoo](https://github.com/promptfoo/promptfoo), MIT, 24,738 stars, pushed 2026-09-02 - [FACT,
+   Tier A metadata]) would be a second runtime with its own provider adapters; **not adopted**, named
+   for the record. Trade-off: we forgo their dashboards and keep one test runner.
+3. **The suite must be wired into `quality.yml` explicitly.** Grep this run found **no** `mcp-http-host`
+   step in `quality.yml`, so its 52 tests appear to run only locally. [FACT, Tier A, grep this run;
+   INFERENCE that they are not in CI - UNVERIFIED against the workflow's full step list] The new
+   `inference-hub` suite must not inherit that gap.
+
+### 7.2 Fake endpoints for CI
+
+**House precedent (Tier A):** `tools/mcp/mcp-http-host/_fake_mcp_server.py` (minimal stdio MCP fixture)
+and `_fake_streamable_http_daemon.py` (sessions, `-32600`, JSON/SSE, GET stream, `--restart-every`,
+`--mode sse`) - 12 tests pin the daemon's contract. The eval harness follows the same pattern with a
+**stdlib `_fake_openai_v1.py`** (~250 lines) rather than an external mock:
+
+| Fake | Behaviour it must reproduce | Why |
+|------|-----------------------------|-----|
+| `--profile openai` | `/v1/chat/completions` JSON + SSE (`data:` chunks, `[DONE]`), `usage` incl. `prompt_tokens_details.cached_tokens`, `tool_calls` with string `arguments`, `response_format: json_schema` honoured | the general case |
+| `--profile ollama` | as above but **rejects `tool_choice`** and image URLs, accepts base64 images, returns `usage` only with `stream_options.include_usage`, 404 for an unpulled model | mirrors the sourced Ollama matrix (section 5.3) exactly, so `UNSUPPORTED_CAPABILITY` paths are exercised against a truthful fake |
+| `--profile hf-router` | Bearer required (401 otherwise), `X-HF-Bill-To` echoed, **no cost field**, provider-dependent `json_schema` (configurable) | the `glm53_chat` replacement path |
+| `--profile auth2api` | Bearer optional, 36 fixed model ids, refuses when `clientInfo.name` is Cursor **only via the hub's deny list** (the fake itself is oblivious - that proves the check is in the hub) | the lock row |
+| Fault injection flags | `--rate-limit-every N` (429 + `Retry-After`), `--fail-every N` (503), `--slow-first-token S`, `--hang-after-tokens N` (partial-timeout path), `--malformed` (non-JSON / missing `choices`), `--echo-secret` (regurgitates an injected `sk-...`), `--restart-every S` (borrowed from the daemon fixture) | every row of the section 6 table needs a deterministic trigger |
+
+Alternative considered: [Stoplight Prism](https://github.com/stoplightio/prism) (Apache-2.0, 5,022
+stars, pushed 2026-08-26) mocking [openai/openai-openapi](https://github.com/openai/openai-openapi)
+(MIT, 2,495 stars, pushed 2026-09-01). [FACT, Tier A metadata] Rejected as *the* CI fake because it
+needs Node in the Python lane and cannot express the Ollama capability gaps or the fault flags; useful
+as an occasional **schema-conformance oracle** for the `/v1` face (does our face satisfy the official
+OpenAPI?), which is a different question. [RECOMMENDATION; Prism's ability to validate against that
+spec is Tier B, UNVERIFIED this run]
+
+### 7.3 Eval tiers
+
+| Tier | Runs where | Network | Money | Gate |
+|------|-----------|---------|-------|------|
+| T0 unit | CI, every push | none | none | 100 % line+branch (house rule) |
+| T1 contract (fake endpoints) | CI, every push | loopback only | none | all rows of section 6 hit at least once; pass@1 = 1.0 (deterministic) |
+| T2 local live | on-box, nightly / on demand | `127.0.0.1:11434` (Ollama), `:1234` (LM Studio) | none | pass@3 >= 0.9 on the capability set for `ollama/qwen2.5-7b`; RAM check before run (`nvidia-smi` free >= 5 GiB; 6,141 MiB card - [FACT, local-models-audit]) |
+| T3 hosted live | on-box, weekly, opt-in `INFERENCE_HUB_LIVE=1` | real providers | capped: `daily_usd_cap` per model applies to the eval caller too | pass@3 >= 0.8 per model; failure updates the registry capability row rather than blocking |
+
+### 7.4 Capability evals (turn `"unknown"` into `true|false`)
+
+Run per registry model in T2/T3; each is a small fixed prompt set with a deterministic checker.
+
+| Probe | Prompt set | Checker | Registry field written |
+|-------|-----------|---------|------------------------|
+| `tools_roundtrip` | 5 prompts that require exactly one call to a `get_weather`-style stub | `tool_calls[0].name == expected` and arguments parse as JSON with the required key | `capabilities.tools` |
+| `tool_choice_required` | 3 prompts answerable without tools, `tool_choice: required` | a call is emitted anyway | `capabilities.tool_choice` |
+| `json_schema_native` | 5 prompts with a 4-field schema, `response_format: json_schema` | validates; fallback run in `prompted` mode to measure the delta | `capabilities.json_schema` |
+| `vision_base64` / `vision_url` | 2 tiny PNGs (a red square, a "7") | answer contains the colour / digit | `capabilities.vision_*` |
+| `usage_reported` | any prompt | `usage` present and non-zero | `capabilities.usage` |
+| `reasoning_effort` | same prompt at `low` vs `high` | request accepted (200) at both; completion tokens differ | `capabilities.reasoning_effort` |
+| `context_probe` | 8k / 32k / 128k filler + needle | needle recovered | `capabilities.max_context` |
+| `tool_call_id_roundtrip` | tool call -> `role: tool` reply -> final answer | final text references the tool result | (regression guard for hosted-model-agents/tool-loop.md "Tool-call IDs must round-trip") |
+
+### 7.5 Regression evals (protect the hub, not the model)
+
+Deterministic against the fakes, so pass@1 must be 1.0:
+
+- **Redaction:** 12 seeded secrets across message positions (system, user, tool result, nested JSON
+  string) -> `REFUSED_SECRET_IN_PROMPT` with correct indexes; with `allow_redacted_send` the fake receives
+  masked text (asserted by inspecting the fake's request log); `--echo-secret` -> `echo_masked: 1`.
+- **Private class:** `content_class: private` x every `data_class` -> correct refuse/allow matrix.
+- **Ledger:** one line per call including every error class; never contains any prompt substring
+  (property test: sample 200 random prompts, assert none appear in the ledger file); rotation at the
+  day boundary; `spent_today_usd` arithmetic; `BUDGET_EXCEEDED` fires at the cap and not one cent early.
+- **Chunking:** 60k-char reply -> `truncated: true` + `inference_fetch` pages reassemble byte-identical.
+- **Timeouts:** `--hang-after-tokens 40` -> `TIMEOUT_PARTIAL` with 40 tokens; `--slow-first-token 999` ->
+  `TIMEOUT_NO_OUTPUT`.
+- **Shared-host invariant:** 8 concurrent clients -> `inflight` never exceeds `max_inflight` per model,
+  `requests_served == 8`, one process (the same CONTROL-style test the mcp-http-host suite already has
+  for N stdio spawns -> N pids). [FACT for the precedent, Tier A README "Proof"]
+- **Lenient session ids:** unknown `Mcp-Session-Id` -> accepted as fresh, not `-32600` (section 4.3);
+  `--restart-every 5` from the daemon fixture pattern -> zero client-visible failures.
+- **Origin check:** disallowed `Origin` -> 403 (spec).
+- **Denied callers:** `clientInfo.name = "cursor"` + `cursor/*` model -> `CALLER_DENIED`; `/v1` face ->
+  `cursor/*` and `openrouter/*` absent from `GET /v1/models`.
+- **Deprecation parity:** a replay of `glm53_chat`-shaped calls (`user_prompt`, `system_prompt`) through a
+  thin compatibility shim returns equivalent results - **blocked until the unpushed
+  `tools/mcp/glm53-space` is pushed** (section 0.3), because there is no executable oracle otherwise.
+
+### 7.6 pass@k: definition and targets
+
+Use the **unbiased estimator** from Chen et al. 2021, *Evaluating Large Language Models Trained on Code*
+(arXiv:2107.03374, §2.1): generate n >= k samples, count c correct,
+pass@k = 1 - C(n-c, k) / C(n, k). [FACT, Tier A, https://arxiv.org/abs/2107.03374] For stochastic tiers
+set `temperature` to the model's default and n = 5, report pass@1 and pass@3; for the deterministic
+fake tiers pass@1 with n = 1 is the gate and anything below 1.0 is a bug in the hub, not in a model.
+
+| Suite | k | Target | On miss |
+|-------|---|--------|---------|
+| T1 contract | 1 | 1.00 | CI red |
+| T2 local capability | 3 | >= 0.90 | registry row flipped to `false` with `as_of`; not CI red |
+| T3 hosted capability | 3 | >= 0.80 | same; plus ledger line tagged `eval` so spend is visible |
+| Redaction / ledger / chunking regressions | 1 | 1.00 | CI red |
+
+### 7.7 What the evals deliberately do not measure
+
+Model *quality* (is GLM-5.3 a good coder?) is out of scope: that is the caller's judgment and the
+hosted-model-agents "pressure evals" already cover the doctrine. This harness measures **whether the hub
+told the truth** about capability, cost, and failure - which is the property that was missing from
+`glm53_chat` and from every upstream candidate in section 2.
+
+---
+
+## 8. Per-find rubric table
+
+Scale: value and effort 1-5 (5 = highest value / most effort); novelty-for-us = does the estate already have
+it (LOW) or not (HIGH); NATIVE = adopt something that exists, BUILD = write it here.
+
+| # | Name | What | Why THIS estate | How to build or adopt | Source | Value x Effort | Novelty-for-us | NATIVE-vs-BUILD |
+|---|------|------|-----------------|-----------------------|--------|----------------|----------------|-----------------|
+| F1 | `inference-hub` native Streamable-HTTP server | one shared process, `/mcp` + `/v1` faces, registry-driven, stdlib Python | the RAM problem is per-session stdio duplication; every upstream candidate is stdio-per-provider | new `tools/mcp/inference-hub/` (~800 lines incl. transport), supervised by `run_host.ps1` pattern on `:8901`; registry entry `transport: http` | mcp-http-host README/RESCOPE (Tier A); MCP 2025-11-25 transport (Tier A) | 5 x 3 | HIGH (nothing shared-HTTP + inference exists here) | **BUILD** (transport pattern NATIVE from `_fake_streamable_http_daemon.py`) |
+| F2 | Model registry `.agents/models.json` with capability manifest | data, not tools: base_url/auth-by-name/capabilities/limits/pricing/data_class per model | hosted-model-agents rule 2 forbids one MCP per GPU URL; `agents.json` already has `credentialNames`/`maxPrivateBytes` conventions to mirror | new file + JSON Schema + `.agents/tests` validator; capability rows seeded from Ollama docs (sourced) and `"unknown"` elsewhere | Ollama compat page (Tier A); agents.json (Tier A) | 5 x 2 | HIGH | **BUILD** |
+| F3 | Do NOT build on MCP sampling | sampling is deprecated in spec 2026-07-28 (SEP-2577) and unimplemented in Claude Code | saves a dead-end; the spec now says "integrate directly with LLM provider APIs", which is F1 | decision record only | spec 2026-07-28 (Tier A); claude-code #1785, #31893 (Tier A) | 4 x 0 | HIGH (was a live question in the brief) | NATIVE decision, no code |
+| F4 | Adopt the 40-line wire shape of `any-chat-completions-mcp`, not the project | MIT reference for how small the OpenAI->MCP relay is; its defects (one provider/process, SDK 0.6.0, `String(undefined)`) are the checklist of what not to copy | shows BUILD cost is low; avoids a stale dependency | read once, cite in the hub's README as prior art | github.com/pyroprompts/any-chat-completions-mcp (Tier A, code read) | 2 x 0 | LOW | NATIVE (as prior art) |
+| F5 | Refuse-by-default secret scanner + private-class gate | pre-send scan using `proxy-mcp/redaction.py` primitives; `content_class` x `data_class` matrix; post-receive echo masking | `glm53-space` only had a *description* saying "never send secrets"; the llm-security rule demands a control | lift `redact_obj`/`redact_text`/`_is_sensitive_key` into `tools/mcp/_shared/`, add token shapes, wire as a stage | proxy-mcp/redaction.py (Tier A); llm-security AGENTS.md (Tier A) | 4 x 2 | MEDIUM (primitives exist, gate does not) | **BUILD** on NATIVE primitives |
+| F6 | Cost ledger JSONL with `cost_basis` honesty field | one line per call, no text, daily rotation, `spent_today_usd` feeding `BUDGET_EXCEEDED` | HF passes provider prices through but documents no per-response cost; without `cost_basis` the ledger lies | mirror `_shared/hardening.py` confirm-gate sink (256 KiB rotate-once) with daily rotation | hardening.py (Tier A); HF pricing page (Tier A) | 4 x 1 | HIGH | **BUILD** on NATIVE pattern |
+| F7 | Truthful error taxonomy (17 classes) | tool-execution errors per SEP-1303; no auto-failover, no silent capability drop, `structured_mode` always reported | the "never remove a feature to buy reliability" lock needs trade-off tables, not fallbacks | section 6 table becomes `errors.py` + tests | MCP changelog SEP-1303 (Tier A) | 4 x 2 | HIGH | **BUILD** |
+| F8 | Stdlib `_fake_openai_v1.py` with provider profiles + fault flags | CI-only fake for openai / ollama / hf-router / auth2api behaviours and every failure trigger | house precedent is stdlib fakes; CI has no network, no money, no Node in the Python lane | ~250 lines next to the hub, 12+ contract tests like the daemon fixture | mcp-http-host fixtures (Tier A); Ollama matrix (Tier A) | 5 x 2 | MEDIUM (pattern exists, this fake does not) | **BUILD** |
+| F9 | Capability evals that write the registry | pass@3 probes flip `"unknown"` -> `true|false` with `as_of` | the registry must never claim a capability nobody measured | T2 against Ollama on the 4050 (free), T3 weekly capped | local-models-audit (Tier A); Chen et al. 2021 (Tier A) | 4 x 3 | HIGH | **BUILD** |
+| F10 | Lenient session ids in a stateless hub | unknown `Mcp-Session-Id` -> implicit re-init | Cursor already breaks on `:8765` restarts and needed a per-session shim; a stateless hub can avoid the shim | 15 lines + one test with `--restart-every` | mcp-http-host README Basic Memory section (Tier A) | 3 x 1 | MEDIUM | **BUILD** (trade-off vs strict spec noted) |
+| F11 | `/v1` face in-process replaces `openai_proxy.py` | fabric/goose/aider/opencode keep an OpenAI endpoint; registry ids as `model`; `cursor/*` + `openrouter/*` excluded from this face | the "general integration layer" the owner asked for is one process with two faces | same request pipeline, second route table | SecretiveShell/MCP-Bridge as the heavier alternative (Tier A metadata) | 4 x 2 | MEDIUM (a shim exists, unpushed) | **BUILD** (MCP-Bridge = NATIVE alternative, rejected as heavy) |
+| F12 | Push `tools/mcp/glm53-space` before deprecating it | the code is on no pushed branch; only the registry entry is | CLAUDE.md's unpushed-checkout warning, made concrete; the parity eval (7.5) has no oracle without it | `git -C ~/source/ast-integrate push` of the directory to a `archive/glm53-space` branch | measured this run (Tier A) | 3 x 1 | HIGH (nobody noticed) | NATIVE (git) |
+| F13 | Wire `mcp-http-host` and `inference-hub` suites into `quality.yml` | grep found no `mcp-http-host` step | 52 existing tests may be running only on the owner's box | add two pytest steps mirroring lines 295-334 | quality.yml (Tier A grep; INFERENCE on absence) | 3 x 1 | MEDIUM | NATIVE (CI edit) |
+| F14 | `sparfenyuk/mcp-proxy` as the Python no-Node bridge option | MIT, 2,734 stars, pushed 2026-07-20 | the house `-Bridge stdlib` exists because npx failed; this is the maintained Python equivalent | evaluate only if F1 is not built natively | GitHub API (Tier A metadata; features UNVERIFIED) | 2 x 1 | MEDIUM | NATIVE (watch) |
+| F15 | HF Hub MCP Space-as-tool mounting | official `huggingface/hf-mcp-server` (pushed 2026-09-01) can mount Gradio Spaces as tools | zero-code path for *one* Space's chat model; Gradio-shaped, not `/v1`-shaped | already registered as `huggingface`; verify the mount flow on-box | GitHub API (Tier A metadata; feature UNVERIFIED) | 2 x 0 | LOW (already in dedup-set) | NATIVE (already have) |
+
+---
+
+## 9. Open questions and what this lens did NOT verify
+
+1. **Where is `tools/mcp/glm53-space`?** Not on `origin/main` or any pushed branch. Everything said about
+   `openai_proxy.py` behaviour is from the brief (Tier C). F12 is the fix.
+2. **Does `router.huggingface.co/v1` return any cost or provider header per response?** The pricing page
+   documents `X-HF-Bill-To` (request side) and a usage dashboard, nothing per response. UNVERIFIED; one
+   `curl -i` on-box settles it and decides whether `cost_basis: provider_reported` is ever reachable for HF.
+3. **Does GLM-5.3 via the router honour `response_format: json_schema` and `tool_choice`?** Registry rows
+   are `"unknown"` until the T3 capability eval runs once.
+4. **Cursor's and Codex's MCP client capabilities** (sampling, tasks, progress) were not verified; only
+   Claude Code's were (issues #1785, #31893). Given sampling's deprecation this affects only the
+   `tasks` note in 5.6.
+5. **Port 8901 free-ness** and the exact `clientInfo.name` strings Claude Code / Cursor / Codex send on
+   `initialize` (needed for `deny_callers`) must be measured on-box.
+6. **`sparfenyuk/mcp-proxy` feature set** and **Prism's ability to mock the OpenAI OpenAPI** are Tier A on
+   metadata only; behaviour claims are UNVERIFIED.
+7. **Is the `mcp-http-host` test suite really absent from CI?** A grep miss is not proof; read the full
+   step list before acting on F13.
+8. **The 36 auth2api model ids** and Goose/fabric's exact provider configuration were taken from the
+   brief; not re-read this run.
+
+Sources read in full this run (all 2026-09-02): the MCP sampling pages for 2025-11-25 and 2026-07-28, the
+2025-11-25 changelog, Ollama's OpenAI-compatibility page, Hugging Face's Inference Providers pricing page,
+`pyroprompts/any-chat-completions-mcp` `src/index.ts` + `package.json`, anthropics/claude-code #1785 and
+#31893, and in-repo: `tools/mcp/mcp-http-host/{README,RESCOPE}.md`, `.agents/agents.json` (registry
+entries), `.provenance/.agents/agents.json.md`, `.agents/local-models-audit_2026-08-27.md`,
+`tools/mcp/_shared/hardening.py`, `tools/mcp/proxy-mcp/redaction.py`, `.github/workflows/quality.yml`
+(grep), and the `hosted-model-agents` skill files on `origin/live-capture/2026-09-02`. Repository metadata
+for 19 GitHub projects was pulled from the GitHub REST API.

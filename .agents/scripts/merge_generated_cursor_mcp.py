@@ -138,9 +138,16 @@ CURSOR_ENABLED_SERVERS = CURSOR_DEFAULT_APPROVED_SERVERS
 
 # Safe-default attachment policy. Without --attach-all-safe the merge writes
 # the core set plus explicitly owner-requested local adapters (live,
-# 2026-08-28: glm53-space). Everything else the registry selects is deferred to
-# the explicit, approval-gated mode.
-CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS = CURSOR_DEFAULT_APPROVED_SERVERS | {"glm53-space"}
+# 2026-08-28: glm53-space; 2026-09-02: its successor inference-hub took the slot
+# when the glm53-space lane was hard-deleted, D1). Everything else the registry
+# selects is deferred to the explicit, approval-gated mode.
+CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS = CURSOR_DEFAULT_APPROVED_SERVERS | {
+    "inference-hub"
+}
+
+# Names retired from the registry whose stale Cursor definitions must be dropped
+# by every merge (a hand-edited leftover cannot resurrect a deleted lane).
+CURSOR_RETIRED_SERVERS = CURSOR_RETIRED_SERVERS | {"glm53-space"}
 
 # Cursor approval-store entries are "<server-name>-<16 lowercase hex>".
 CURSOR_APPROVAL_ID_RE = re.compile(r"^(?P<name>.+)-(?P<digest>[0-9a-f]{16})$")

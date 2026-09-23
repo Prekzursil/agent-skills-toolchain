@@ -1,0 +1,511 @@
+{
+  "shape": "schemas-house",
+  "name": "schemas_house",
+  "recorded_at": "2026-09-02",
+  "description": "Fifteen house JSON schemas taken from documents this repo actually emits or consumes (lens 08 section 2.2, JSONSchemaBench's 'benchmark on your own schemas'): .agents/agents.json MCP server rows, .agents/models.json endpoint / model / cost rows, .agents/routing-policy.json classes and PACE plans, .autoresearch/log.tsv rows as JSON, tools/fanout-schema result and lint-rejection shapes, the inference-hub chat result and error envelope, the OpenAI tool_call wire object, an extract-json grunt task and a capability-probe record. Each entry carries one instance that validates and one that must not, so graders.tool_fidelity.schema_errors is exercised in both states.",
+  "schemas": [
+    {
+      "name": "mcp_http_server_entry",
+      "source": ".agents/agents.json mcp.servers.<id> (http transport)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string"},
+          "description": {"type": "string"},
+          "targets": {"type": "array", "items": {"type": "string", "enum": ["codex", "claude", "cursor", "grok", "goose", "agy", "gemini"]}},
+          "enabled": {"type": "boolean"},
+          "transport": {"type": "string", "enum": ["stdio", "http"]},
+          "url": {"type": "string"},
+          "requiredEnv": {"type": "array", "items": {"type": "string"}},
+          "credentialNames": {"type": "array", "items": {"type": "string"}},
+          "tags": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["label", "targets", "enabled", "transport"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "label": "apify",
+        "description": "Imported from .codex/config.toml (apify)",
+        "targets": ["codex", "claude"],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://mcp.apify.com/",
+        "requiredEnv": ["APIFY_TOKEN"],
+        "credentialNames": ["APIFY_TOKEN"],
+        "tags": ["approved", "http", "remote", "shared"]
+      },
+      "invalid": {
+        "label": "apify",
+        "targets": ["codex"],
+        "enabled": true,
+        "transport": "grpc"
+      }
+    },
+    {
+      "name": "mcp_stdio_server_entry",
+      "source": ".agents/agents.json mcp.servers.<id> (stdio transport)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string"},
+          "transport": {"type": "string", "enum": ["stdio"]},
+          "command": {"type": "string"},
+          "args": {"type": "array", "items": {"type": "string"}},
+          "env": {"type": "object"},
+          "enabled": {"type": "boolean"},
+          "singletonKey": {"type": "string"}
+        },
+        "required": ["label", "transport", "command"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "label": "inference",
+        "transport": "stdio",
+        "command": "python",
+        "args": [".agents/scripts/inference_hub_stdio.py", "--no-autostart"],
+        "env": {},
+        "enabled": false,
+        "singletonKey": "inference"
+      },
+      "invalid": {
+        "label": "inference",
+        "transport": "stdio",
+        "command": "python",
+        "args": [".agents/scripts/inference_hub_stdio.py", 8901]
+      }
+    },
+    {
+      "name": "autoresearch_log_row",
+      "source": ".autoresearch/log.tsv row as JSON (lens 08 section 4; score_policy.LOG_COLUMNS)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "variant": {"type": "integer"},
+          "sha": {"type": "string"},
+          "status": {"type": "string", "enum": ["keep", "discard", "crash", "insufficient"]},
+          "policy_score": {"type": "number"},
+          "spend_usd": {"type": "number"},
+          "spend_cum_usd": {"type": "number"},
+          "quota_units": {"type": "integer"},
+          "n_trials": {"type": "integer"},
+          "perf_gain": {"type": "number"},
+          "cost_save": {"type": "number"},
+          "p95_worst_ms": {"type": "number"},
+          "hypothesis": {"type": "string"}
+        },
+        "required": ["variant", "status", "spend_usd", "spend_cum_usd", "quota_units", "n_trials", "perf_gain", "cost_save", "p95_worst_ms"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "variant": 0,
+        "sha": "a1b2c3d",
+        "status": "keep",
+        "policy_score": 0.712345,
+        "spend_usd": 0.0,
+        "spend_cum_usd": 0.0,
+        "quota_units": 0,
+        "n_trials": 4,
+        "perf_gain": 0.0,
+        "cost_save": 0.0,
+        "p95_worst_ms": 1834.0,
+        "hypothesis": "baseline: current policy, no edit"
+      },
+      "invalid": {
+        "variant": 1,
+        "status": "kept",
+        "spend_usd": 0.01,
+        "spend_cum_usd": 0.01,
+        "quota_units": 0,
+        "n_trials": 4,
+        "perf_gain": 0.02,
+        "cost_save": 0.1,
+        "p95_worst_ms": 1900.0
+      }
+    },
+    {
+      "name": "fanout_result",
+      "source": "tools/fanout-schema buildSchema: exactly one required string narrative, every other field optional",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary_markdown": {"type": "string"},
+          "findings": {"type": "array", "items": {"type": "string"}},
+          "confidence": {"type": "number"},
+          "next_steps": {"type": "array", "items": {"type": "string"}},
+          "blocked": {"type": "boolean"}
+        },
+        "required": ["summary_markdown"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "summary_markdown": "Three of five probes pass; tool_choice is rejected with 400.",
+        "findings": ["tool_choice unsupported", "usage present"],
+        "confidence": 0.8
+      },
+      "invalid": {
+        "summary_markdown": ["not", "a", "string"],
+        "findings": []
+      }
+    },
+    {
+      "name": "fanout_lint_rejection",
+      "source": "tools/fanout-schema lint finding (RULES ids; historical-rejection.fixture.json)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "rule": {"type": "string", "enum": ["array-in-required", "multi-required", "no-additional-properties", "undeclared-required", "narrative-not-string", "no-required"]},
+          "field": {"type": "string"},
+          "message": {"type": "string"}
+        },
+        "required": ["rule", "message"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "rule": "array-in-required",
+        "field": "findings",
+        "message": "an array-typed field appears in required"
+      },
+      "invalid": {
+        "rule": "too-many-fields",
+        "message": "unknown rule id"
+      }
+    },
+    {
+      "name": "registry_endpoint_row",
+      "source": ".agents/models.json endpoints.<id> (BUILD-CONTRACT 1.1, load-bearing keys)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string"},
+          "kind": {"type": "string", "enum": ["hosted", "local", "bridge"]},
+          "enabled": {"type": "boolean"},
+          "baseUrl": {"type": "string"},
+          "api": {"type": "array", "items": {"type": "string", "enum": ["openai-completions", "openai-responses", "anthropic-messages", "google-generative-ai", "ollama-native"]}},
+          "concurrency": {
+            "type": "object",
+            "properties": {"maxInFlight": {"type": "integer"}},
+            "required": ["maxInFlight"],
+            "additionalProperties": false
+          },
+          "denyCallers": {"type": "array", "items": {"type": "string"}},
+          "tags": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["label", "kind", "enabled", "baseUrl", "api", "concurrency"]
+      },
+      "valid": {
+        "label": "Ollama",
+        "kind": "local",
+        "enabled": true,
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "api": ["openai-completions", "ollama-native"],
+        "concurrency": {"maxInFlight": 1},
+        "denyCallers": [],
+        "tags": ["local"]
+      },
+      "invalid": {
+        "label": "Somewhere",
+        "kind": "cloud",
+        "enabled": true,
+        "baseUrl": "https://example.invalid/v1",
+        "api": ["openai-completions"],
+        "concurrency": {"maxInFlight": 2}
+      }
+    },
+    {
+      "name": "registry_model_row",
+      "source": ".agents/models.json models.<id> (BUILD-CONTRACT 1.3, load-bearing keys)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "endpoint": {"type": "string"},
+          "remoteId": {"type": "string"},
+          "label": {"type": "string"},
+          "enabled": {"type": "boolean"},
+          "status": {"type": "string", "enum": ["live", "eval-gated", "parked", "unprobed"]},
+          "tier": {"type": "string", "enum": ["S", "M", "L", "hosted"]},
+          "context": {"type": "integer"},
+          "maxOutput": {"type": "integer"}
+        },
+        "required": ["endpoint", "remoteId", "enabled", "status", "tier", "context"]
+      },
+      "valid": {
+        "endpoint": "ollama",
+        "remoteId": "qwen2.5:7b",
+        "label": "Qwen 2.5 7B",
+        "enabled": true,
+        "status": "live",
+        "tier": "M",
+        "context": 32768,
+        "maxOutput": 4096
+      },
+      "invalid": {
+        "endpoint": "hf-router",
+        "remoteId": "zai-org/GLM-5.3",
+        "enabled": true,
+        "status": "live",
+        "tier": "hosted",
+        "context": "131072"
+      }
+    },
+    {
+      "name": "model_cost",
+      "source": ".agents/models.json models.<id>.cost (numbers or null; basis = graders.cost provenance class)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "inputPer1M": {"type": ["number", "null"]},
+          "outputPer1M": {"type": ["number", "null"]},
+          "basis": {"type": "string", "enum": ["provider_reported", "table_estimate", "unknown_price", "local_zero", "quota"]}
+        },
+        "required": ["inputPer1M", "outputPer1M", "basis"],
+        "additionalProperties": false
+      },
+      "valid": {"inputPer1M": null, "outputPer1M": null, "basis": "quota"},
+      "invalid": {"inputPer1M": 0, "outputPer1M": 0, "basis": "free"}
+    },
+    {
+      "name": "routing_policy_class",
+      "source": ".agents/routing-policy.json classes.<task_class> (BUILD-CONTRACT 7, without pace)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "primary": {"type": "string"},
+          "escalate_to": {"type": "array", "items": {"type": "string"}},
+          "floors": {"type": "object"},
+          "exponents": {
+            "type": "object",
+            "properties": {
+              "quality": {"type": "number"},
+              "speed": {"type": "number"},
+              "cost": {"type": "number"}
+            },
+            "required": ["quality", "speed", "cost"],
+            "additionalProperties": false
+          },
+          "spend_share": {"type": "number"},
+          "justification": {"type": "string"},
+          "pinned_until": {"type": "string"}
+        },
+        "required": ["primary", "escalate_to", "floors", "exponents", "spend_share", "justification"]
+      },
+      "valid": {
+        "primary": "qwen2.5-7b",
+        "escalate_to": ["glm-5.3"],
+        "floors": {"features.streaming": "declared"},
+        "exponents": {"quality": 0.2, "speed": 0.5, "cost": 0.3},
+        "spend_share": 0.05,
+        "justification": "Short factual turns fit the on-disk 7B model at zero cost."
+      },
+      "invalid": {
+        "primary": "qwen2.5-7b",
+        "escalate_to": ["glm-5.3"],
+        "floors": {},
+        "exponents": {"quality": 0.2, "speed": 0.5},
+        "spend_share": 0.05,
+        "justification": "exponents missing cost"
+      }
+    },
+    {
+      "name": "pace_plan",
+      "source": ".agents/routing-policy.json classes.<task_class>.pace (P/A/C/E rungs + triggers)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "P": {"type": "string"},
+          "A": {"type": "string"},
+          "C": {"type": "string"},
+          "E": {"type": "string"},
+          "triggers": {"type": "array", "items": {"type": "string", "enum": ["timeout", "BACKEND_AUTH", "BACKEND_RATE_LIMITED", "BACKEND_UNAVAILABLE", "BACKEND_ERROR", "MALFORMED_RESPONSE", "TIMEOUT_NO_OUTPUT", "TIMEOUT_PARTIAL", "BUDGET_EXCEEDED", "CONCURRENCY_SATURATED", "CREDENTIAL_MISSING", "ENDPOINT_DISABLED", "MODEL_DISABLED", "UNSUPPORTED_CAPABILITY", "HALTED"]}}
+        },
+        "required": ["P", "A", "C", "E", "triggers"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "P": "qwen2.5-7b@ollama",
+        "A": "glm-5.3@hf-router",
+        "C": "cursor-grok-4.6@cursor-auth2api",
+        "E": "handoff: basic-memory :8765 note (question + partial answer) + agent-mail :8812 message to the owner",
+        "triggers": ["timeout", "BACKEND_UNAVAILABLE", "BUDGET_EXCEEDED"]
+      },
+      "invalid": {
+        "P": "qwen2.5-7b@ollama",
+        "A": "glm-5.3@hf-router",
+        "C": "cursor-grok-4.6@cursor-auth2api",
+        "E": "handoff: basic-memory :8765 note + agent-mail :8812 message to the owner",
+        "F": "a fifth rung",
+        "triggers": ["timeout"]
+      }
+    },
+    {
+      "name": "hub_chat_result",
+      "source": "tools/mcp/inference-hub chat result (BUILD-CONTRACT 4, load-bearing keys)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "model": {"type": "string"},
+          "endpoint": {"type": "string"},
+          "remote_id": {"type": "string"},
+          "content": {"type": ["string", "null"]},
+          "tool_calls": {"type": "array"},
+          "finish_reason": {"type": "string"},
+          "usage": {
+            "type": "object",
+            "properties": {
+              "prompt_tokens": {"type": "integer"},
+              "completion_tokens": {"type": "integer"},
+              "total_tokens": {"type": "integer"}
+            },
+            "required": ["prompt_tokens", "completion_tokens", "total_tokens"]
+          },
+          "latency_ms": {"type": "number"},
+          "structured_mode": {"type": "string", "enum": ["native", "prompted", "unsupported"]}
+        },
+        "required": ["model", "endpoint", "content", "tool_calls", "finish_reason", "usage", "structured_mode"]
+      },
+      "valid": {
+        "model": "qwen2.5-7b",
+        "endpoint": "ollama",
+        "remote_id": "qwen2.5:7b",
+        "content": "echo:ping",
+        "tool_calls": [],
+        "finish_reason": "stop",
+        "usage": {"prompt_tokens": 3, "completion_tokens": 2, "total_tokens": 5},
+        "latency_ms": 412.5,
+        "structured_mode": "unsupported"
+      },
+      "invalid": {
+        "model": "qwen2.5-7b",
+        "endpoint": "ollama",
+        "content": "echo:ping",
+        "tool_calls": [],
+        "finish_reason": "stop",
+        "usage": {"prompt_tokens": "3", "completion_tokens": 2, "total_tokens": 5},
+        "structured_mode": "unsupported"
+      }
+    },
+    {
+      "name": "hub_error_envelope",
+      "source": "tools/mcp/inference-hub error result (BUILD-CONTRACT 4 taxonomy)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "class": {"type": "string", "enum": ["REGISTRY_UNAVAILABLE", "UNKNOWN_MODEL", "MODEL_DISABLED", "ENDPOINT_DISABLED", "CALLER_DENIED", "CREDENTIAL_MISSING", "REFUSED_SECRET_IN_PROMPT", "UNSUPPORTED_CAPABILITY", "INVALID_ARGUMENT", "BACKEND_AUTH", "BACKEND_RATE_LIMITED", "BACKEND_UNAVAILABLE", "BACKEND_ERROR", "MALFORMED_RESPONSE", "TIMEOUT_NO_OUTPUT", "TIMEOUT_PARTIAL", "BUDGET_EXCEEDED", "CONCURRENCY_SATURATED", "HALTED"]},
+              "message": {"type": "string"},
+              "retryable": {"type": "boolean"},
+              "endpoint": {"type": ["string", "null"]},
+              "model": {"type": ["string", "null"]}
+            },
+            "required": ["class", "message", "retryable"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["error"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "error": {
+          "class": "BACKEND_RATE_LIMITED",
+          "message": "upstream answered 429 (Retry-After: 1)",
+          "retryable": true,
+          "endpoint": "hf-router",
+          "model": "glm-5.3"
+        }
+      },
+      "invalid": {
+        "error": {
+          "class": "OOPS",
+          "message": "not a taxonomy class",
+          "retryable": false
+        }
+      }
+    },
+    {
+      "name": "openai_tool_call",
+      "source": "OpenAI chat.completion message.tool_calls[] wire object (arguments is a JSON STRING)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string", "enum": ["function"]},
+          "function": {
+            "type": "object",
+            "properties": {
+              "name": {"type": "string"},
+              "arguments": {"type": "string"}
+            },
+            "required": ["name", "arguments"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["id", "type", "function"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "id": "call_1",
+        "type": "function",
+        "function": {"name": "search_web", "arguments": "{\"query\": \"nonce=7f3a\"}"}
+      },
+      "invalid": {
+        "id": "call_1",
+        "type": "function",
+        "function": {"name": "search_web", "arguments": {"query": "nonce=7f3a"}}
+      }
+    },
+    {
+      "name": "extract_json_classification",
+      "source": "extract-json task class (T0 grunt: classify an issue into a closed label set)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "label": {"type": "string", "enum": ["bug", "feature", "question", "chore"]},
+          "confidence": {"type": "number"},
+          "evidence": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["label"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "label": "bug",
+        "confidence": 0.92,
+        "evidence": ["stack trace attached", "regression since 0.2.0"]
+      },
+      "invalid": {
+        "label": "other",
+        "confidence": 0.5
+      }
+    },
+    {
+      "name": "capability_probe_record",
+      "source": "capability_suite per-probe record (pass@3, pass^3, n, decision)",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "probe": {"type": "string"},
+          "pass_at_3": {"type": "number"},
+          "pass_hat_3": {"type": "number"},
+          "n": {"type": "integer"},
+          "decision": {"type": "string", "enum": ["keep", "discard", "crash", "insufficient"]}
+        },
+        "required": ["probe", "pass_at_3", "pass_hat_3", "n", "decision"],
+        "additionalProperties": false
+      },
+      "valid": {
+        "probe": "tools_roundtrip",
+        "pass_at_3": 1.0,
+        "pass_hat_3": 1.0,
+        "n": 4,
+        "decision": "keep"
+      },
+      "invalid": {
+        "probe": "tools_roundtrip",
+        "pass_at_3": 1.0,
+        "pass_hat_3": 1.0,
+        "n": 3.5,
+        "decision": "keep"
+      }
+    }
+  ]
+}

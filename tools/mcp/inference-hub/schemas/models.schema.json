@@ -1,0 +1,972 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-skills-toolchain/tools/mcp/inference-hub/schemas/models.schema.json",
+  "title": ".agents/models.json - registry SSOT, schema v1",
+  "description": "Closed shape of the model registry (BUILD-CONTRACT section 1). Every object is closed (additionalProperties false); the cross-field rules V1-V20 (secret literals, loopback http, /v1 suffix, downward lattice overrides, singleton keys, L1/L3/L4 port and caller locks, RAM budget, alias targets) live in .agents/scripts/models_control_plane.py and are not expressible here. Names only: credentials appear as environment-variable NAMES (L6).",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "description",
+    "policy",
+    "locks",
+    "endpoints",
+    "models",
+    "aliases",
+    "slots"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "enum": [1]
+    },
+    "description": {
+      "$ref": "#/$defs/nonemptyString"
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "capabilityProbe",
+        "localRamBudgetBytes",
+        "defaultTimeoutMs",
+        "hub"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "capabilityProbe": {
+          "type": "object",
+          "required": ["ttlHours"],
+          "additionalProperties": false,
+          "properties": {
+            "ttlHours": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "localRamBudgetBytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "defaultTimeoutMs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "hub": {
+          "type": "object",
+          "required": [
+            "host",
+            "port",
+            "idleExitSeconds",
+            "maxInFlightTotal",
+            "ledgerPath",
+            "haltFile",
+            "haltEnv"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "host": {
+              "$ref": "#/$defs/nonemptyString"
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "idleExitSeconds": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "maxInFlightTotal": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "ledgerPath": {
+              "$ref": "#/$defs/nonemptyString"
+            },
+            "haltFile": {
+              "$ref": "#/$defs/nonemptyString"
+            },
+            "haltEnv": {
+              "$ref": "#/$defs/envName"
+            }
+          }
+        }
+      }
+    },
+    "locks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "rule", "enforcedBy"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^L[0-9]+$"
+          },
+          "rule": {
+            "$ref": "#/$defs/nonemptyString"
+          },
+          "enforcedBy": {
+            "$ref": "#/$defs/nonemptyStringList"
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9][A-Za-z0-9._-]*$": {
+          "$ref": "#/$defs/endpoint"
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9][A-Za-z0-9._-]*$": {
+          "$ref": "#/$defs/model"
+        }
+      }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9][A-Za-z0-9._-]*$": {
+          "$ref": "#/$defs/identifier"
+        }
+      }
+    },
+    "slots": {
+      "type": "object",
+      "required": ["large", "small", "subagent", "web_search", "summary", "embed"],
+      "additionalProperties": false,
+      "properties": {
+        "large": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "small": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "subagent": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "web_search": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "summary": {
+          "$ref": "#/$defs/slotValue"
+        },
+        "embed": {
+          "$ref": "#/$defs/slotValue"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "nonemptyString": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "stringList": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "nonemptyStringList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "envName": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "slotValue": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/identifier"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "lattice": {
+      "description": "A capability lattice value: the string native / declared / emulated / absent, or the probed object (at + version required). Rank: native 4 > probed 3 > declared 2 > emulated 1 > absent 0.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": ["native", "declared", "emulated", "absent"]
+        },
+        {
+          "type": "object",
+          "required": ["state", "at", "version"],
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": ["probed"]
+            },
+            "at": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}"
+            },
+            "version": {
+              "type": "string"
+            },
+            "evidence": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "wire": {
+      "type": "object",
+      "required": ["completions", "responses", "messages"],
+      "additionalProperties": false,
+      "properties": {
+        "completions": {
+          "$ref": "#/$defs/lattice"
+        },
+        "responses": {
+          "$ref": "#/$defs/lattice"
+        },
+        "messages": {
+          "$ref": "#/$defs/lattice"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "required": [
+        "streaming",
+        "usage",
+        "tools",
+        "tool_choice",
+        "structured_output",
+        "vision",
+        "reasoning"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "streaming": {
+          "$ref": "#/$defs/lattice"
+        },
+        "usage": {
+          "$ref": "#/$defs/lattice"
+        },
+        "tools": {
+          "$ref": "#/$defs/lattice"
+        },
+        "tool_choice": {
+          "$ref": "#/$defs/lattice"
+        },
+        "structured_output": {
+          "$ref": "#/$defs/lattice"
+        },
+        "vision": {
+          "$ref": "#/$defs/lattice"
+        },
+        "reasoning": {
+          "$ref": "#/$defs/lattice"
+        }
+      }
+    },
+    "targets": {
+      "description": "One entry per runtime; exactly the ten runtimes.",
+      "type": "object",
+      "required": [
+        "codex",
+        "grok",
+        "goose",
+        "opencode",
+        "aider",
+        "fabric",
+        "cursor",
+        "claude",
+        "agy",
+        "gemini"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "codex": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "grok": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "goose": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "opencode": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "aider": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "fabric": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "cursor": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "claude": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "agy": {
+          "$ref": "#/$defs/targetValue"
+        },
+        "gemini": {
+          "$ref": "#/$defs/targetValue"
+        }
+      }
+    },
+    "targetValue": {
+      "type": "string",
+      "enum": ["native", "fallback", "unsupported", "excluded"]
+    },
+    "resource": {
+      "type": "object",
+      "required": ["ramBytes"],
+      "additionalProperties": false,
+      "properties": {
+        "ramBytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "quirkSection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "compat": {
+          "type": "object"
+        },
+        "stream_tool_calls": {
+          "type": "boolean"
+        },
+        "thinking_off_for_tools": {
+          "type": "boolean"
+        },
+        "tools_stream": {
+          "type": "boolean"
+        }
+      }
+    },
+    "quirks": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "openai": {
+          "$ref": "#/$defs/quirkSection"
+        },
+        "anthropic": {
+          "$ref": "#/$defs/quirkSection"
+        }
+      }
+    },
+    "auth": {
+      "description": "null for endpoints without credentials; otherwise the credential by environment-variable NAME plus the issuer hosts that credential may be sent to.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": ["env", "altEnv", "scheme", "header", "issuerHosts"],
+          "additionalProperties": false,
+          "properties": {
+            "env": {
+              "$ref": "#/$defs/envName"
+            },
+            "altEnv": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/envName"
+              }
+            },
+            "scheme": {
+              "$ref": "#/$defs/nonemptyString"
+            },
+            "header": {
+              "$ref": "#/$defs/nonemptyString"
+            },
+            "issuerHosts": {
+              "$ref": "#/$defs/nonemptyStringList"
+            }
+          }
+        }
+      ]
+    },
+    "x_codex": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "env_key": {
+          "$ref": "#/$defs/envName"
+        },
+        "wire_api": {
+          "type": "string",
+          "enum": ["responses"]
+        },
+        "http_headers": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/envName"
+          }
+        },
+        "query_params": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "x_grok": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_backend": {
+          "type": "string"
+        },
+        "context_window": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "models_base_url": {
+          "type": "string"
+        }
+      }
+    },
+    "x_goose": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "base_path": {
+          "type": "string"
+        },
+        "requires_auth": {
+          "type": "boolean"
+        }
+      }
+    },
+    "x_opencode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "npm": {
+          "type": "string"
+        },
+        "provider_id": {
+          "type": "string"
+        }
+      }
+    },
+    "x_aider": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "litellm_provider": {
+          "type": "string"
+        },
+        "alias": {
+          "type": "string"
+        }
+      }
+    },
+    "x_fabric": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "vendor": {
+          "type": "string"
+        },
+        "disable_responses_api": {
+          "type": "boolean"
+        }
+      }
+    },
+    "x_hub": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "profile_root": {
+          "type": "string"
+        },
+        "max_result_chars": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "x_openrouter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["env", "label", "consumers", "limitReset"],
+            "additionalProperties": false,
+            "properties": {
+              "env": {
+                "$ref": "#/$defs/envName"
+              },
+              "label": {
+                "$ref": "#/$defs/nonemptyString"
+              },
+              "consumers": {
+                "$ref": "#/$defs/nonemptyStringList"
+              },
+              "limitReset": {
+                "$ref": "#/$defs/nonemptyString"
+              },
+              "optional": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "guardrail": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "providerAllowlist": {
+              "$ref": "#/$defs/stringList"
+            },
+            "modelAllowlist": {
+              "$ref": "#/$defs/stringList"
+            },
+            "dataCollection": {
+              "type": "string"
+            },
+            "secretsPreset": {
+              "type": "boolean"
+            },
+            "limitUsd": {
+              "type": ["number", "string"]
+            }
+          }
+        }
+      }
+    },
+    "x_ollama": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "keepAlive": {
+          "type": "string"
+        },
+        "maxLoadedModels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "numParallel": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contextLength": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "kvCacheType": {
+          "type": "string"
+        },
+        "bind": {
+          "type": "string"
+        },
+        "minVersion": {
+          "type": "string"
+        }
+      }
+    },
+    "x_lmstudio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "daemon": {
+          "type": "string"
+        },
+        "jit": {
+          "type": "boolean"
+        },
+        "autoEvict": {
+          "type": "boolean"
+        },
+        "idleTtlSeconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bind": {
+          "type": "string"
+        }
+      }
+    },
+    "endpoint": {
+      "description": "endpoints.<id> (contract 1.1). baseUrl: https for hosted, http only for loopback, ends in /v1 when api has an openai-* value (V3/V4, validator). sidecarOnly must be true on openrouter (V14); retiresWhen is required on cursor-auth2api (V13); denyCallers must name cursor on openrouter and cursor-* endpoints (V15).",
+      "type": "object",
+      "required": [
+        "label",
+        "description",
+        "kind",
+        "enabled",
+        "baseUrl",
+        "api",
+        "auth",
+        "wire",
+        "features",
+        "concurrency",
+        "budget",
+        "resource",
+        "targets",
+        "discovery",
+        "health",
+        "denyCallers",
+        "locks",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "kind": {
+          "type": "string",
+          "enum": ["hosted", "local", "bridge"]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "baseUrl": {
+          "type": "string",
+          "pattern": "^https?://[^\\s/]+(/[^\\s]*)?$"
+        },
+        "api": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "openai-completions",
+              "openai-responses",
+              "anthropic-messages",
+              "google-generative-ai",
+              "ollama-native"
+            ]
+          }
+        },
+        "auth": {
+          "$ref": "#/$defs/auth"
+        },
+        "wire": {
+          "$ref": "#/$defs/wire"
+        },
+        "features": {
+          "$ref": "#/$defs/features"
+        },
+        "concurrency": {
+          "type": "object",
+          "required": ["maxInFlight"],
+          "additionalProperties": false,
+          "properties": {
+            "maxInFlight": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "budget": {
+          "type": "object",
+          "required": ["dailyUsdCap", "costBasis"],
+          "additionalProperties": false,
+          "properties": {
+            "dailyUsdCap": {
+              "type": ["number", "null"],
+              "minimum": 0
+            },
+            "costBasis": {
+              "type": "string",
+              "enum": [
+                "provider_reported",
+                "table_estimate",
+                "unknown_price",
+                "local_zero",
+                "quota"
+              ]
+            }
+          }
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "targets": {
+          "$ref": "#/$defs/targets"
+        },
+        "discovery": {
+          "type": "object",
+          "required": ["type", "timeoutMs"],
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ollama",
+                "llama.cpp",
+                "lm-studio",
+                "openai-models-list",
+                "proxy",
+                "none"
+              ]
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "injectV1": {
+              "type": "boolean"
+            }
+          }
+        },
+        "health": {
+          "description": "kind http requires path (validator rule; not expressible in this closed subset).",
+          "type": "object",
+          "required": ["kind", "timeoutMs"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["openai-models-list", "http", "none"]
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "timeoutMs": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "denyCallers": {
+          "$ref": "#/$defs/stringList"
+        },
+        "locks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^L[0-9]+$"
+          }
+        },
+        "tags": {
+          "$ref": "#/$defs/nonemptyStringList"
+        },
+        "sidecarOnly": {
+          "type": "boolean"
+        },
+        "singletonKey": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "retiresWhen": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "quirks": {
+          "$ref": "#/$defs/quirks"
+        },
+        "x_codex": {
+          "$ref": "#/$defs/x_codex"
+        },
+        "x_grok": {
+          "$ref": "#/$defs/x_grok"
+        },
+        "x_goose": {
+          "$ref": "#/$defs/x_goose"
+        },
+        "x_opencode": {
+          "$ref": "#/$defs/x_opencode"
+        },
+        "x_aider": {
+          "$ref": "#/$defs/x_aider"
+        },
+        "x_fabric": {
+          "$ref": "#/$defs/x_fabric"
+        },
+        "x_hub": {
+          "$ref": "#/$defs/x_hub"
+        },
+        "x_openrouter": {
+          "$ref": "#/$defs/x_openrouter"
+        },
+        "x_ollama": {
+          "$ref": "#/$defs/x_ollama"
+        },
+        "x_lmstudio": {
+          "$ref": "#/$defs/x_lmstudio"
+        }
+      }
+    },
+    "model": {
+      "description": "models.<id> (contract 1.3). endpoint must name an existing endpoint (V17); resource is required when that endpoint is local; wire / features may only override the endpoint DOWNWARD (V5); quota-billed cost numbers must be null, never 0.",
+      "type": "object",
+      "required": [
+        "endpoint",
+        "remoteId",
+        "label",
+        "description",
+        "enabled",
+        "status",
+        "tier",
+        "context",
+        "maxOutput",
+        "modalities",
+        "cost",
+        "denyCallers",
+        "tags"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "$ref": "#/$defs/identifier"
+        },
+        "remoteId": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "label": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "description": {
+          "$ref": "#/$defs/nonemptyString"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["live", "eval-gated", "parked", "unprobed"]
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["S", "M", "L", "hosted"]
+        },
+        "context": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxOutput": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "modalities": {
+          "type": "object",
+          "required": ["input", "output"],
+          "additionalProperties": false,
+          "properties": {
+            "input": {
+              "$ref": "#/$defs/nonemptyStringList"
+            },
+            "output": {
+              "$ref": "#/$defs/nonemptyStringList"
+            }
+          }
+        },
+        "cost": {
+          "type": "object",
+          "required": ["inputPer1M", "outputPer1M", "basis"],
+          "additionalProperties": false,
+          "properties": {
+            "inputPer1M": {
+              "type": ["number", "null"],
+              "minimum": 0
+            },
+            "outputPer1M": {
+              "type": ["number", "null"],
+              "minimum": 0
+            },
+            "basis": {
+              "type": "string",
+              "enum": [
+                "provider_reported",
+                "table_estimate",
+                "unknown_price",
+                "local_zero",
+                "quota"
+              ]
+            }
+          }
+        },
+        "resource": {
+          "$ref": "#/$defs/resource"
+        },
+        "quirks": {
+          "$ref": "#/$defs/quirks"
+        },
+        "denyCallers": {
+          "$ref": "#/$defs/stringList"
+        },
+        "tags": {
+          "$ref": "#/$defs/nonemptyStringList"
+        },
+        "wire": {
+          "$ref": "#/$defs/wire"
+        },
+        "features": {
+          "$ref": "#/$defs/features"
+        },
+        "modelsDev": {
+          "type": "string"
+        },
+        "x_codex": {
+          "$ref": "#/$defs/x_codex"
+        },
+        "x_grok": {
+          "$ref": "#/$defs/x_grok"
+        },
+        "x_goose": {
+          "$ref": "#/$defs/x_goose"
+        },
+        "x_opencode": {
+          "$ref": "#/$defs/x_opencode"
+        },
+        "x_aider": {
+          "$ref": "#/$defs/x_aider"
+        },
+        "x_fabric": {
+          "$ref": "#/$defs/x_fabric"
+        },
+        "x_hub": {
+          "$ref": "#/$defs/x_hub"
+        },
+        "x_openrouter": {
+          "$ref": "#/$defs/x_openrouter"
+        },
+        "x_ollama": {
+          "$ref": "#/$defs/x_ollama"
+        },
+        "x_lmstudio": {
+          "$ref": "#/$defs/x_lmstudio"
+        }
+      }
+    }
+  }
+}

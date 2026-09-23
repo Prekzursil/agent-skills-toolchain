@@ -108,5 +108,18 @@ are in the `multi-ai-mingle` skill (`skills/multi-ai-mingle/SKILL.md`):
 - **Live peer channel.** `mcp_agent_mail` on `127.0.0.1:8812` gives symmetric Claude/Codex
   messaging plus advisory file leases.
 
+Deprecation note, recorded 2026-09-02: as of 2026-08-24 `codex mcp-server` is deprecated
+upstream (the Codex docs now say "use the Codex app server instead", as the hosted-models hunt
+lens 12 recorded it). The mount is KEPT - lock L7 removes nothing before its replacement has a
+receipt - so `mcp__codex__codex` / `mcp__codex__codex-reply` remain the autonomous fan-out rail
+for now. The second, parallel path is the `codex-plugin-cc` route: Codex as a Claude Code plugin
+exposing `/codex:*` slash commands, registered in this repo as
+`enabledPlugins."codex@openai-codex": true` with marketplace
+`extraKnownMarketplaces.openai-codex.source.repo = "openai/codex-plugin-cc"` in
+`agent-self/config/settings.json`, and as `[plugins."codex@openai-codex"]` plus
+`[marketplaces.openai-codex]` (`source = "https://github.com/openai/codex-plugin-cc.git"`) in
+`agent-self/config/codex/config.toml`. Slash commands are interactive, not autonomous fan-out.
+The migration target for autonomous fan-out, later, is Codex app-server / ACP workers.
+
 Retiring AgentBridge also removed `get_budget`, so budget pacing is advisory and manual now
 rather than enforced; `agent-self/config/CLAUDE.md` records that consequence.
