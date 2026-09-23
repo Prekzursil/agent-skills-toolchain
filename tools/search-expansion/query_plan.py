@@ -151,7 +151,10 @@ def fuse_decomposed(
     """
     return reciprocal_rank_fusion(
         {
-            f"subquery-{i}": [{"url": r.display_url, "title": r.title} for r in fusion]
+            f"subquery-{i}": [
+                {"url": r.display_url, "title": r.title, "snippet": r.snippet}
+                for r in fusion
+            ]
             for i, fusion in enumerate(subquery_fusions)
         },
         k=k,

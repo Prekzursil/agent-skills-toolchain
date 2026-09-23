@@ -44,6 +44,9 @@ sys.path.insert(0, _HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(_HERE), "_shared"))
 
 import accounts  # noqa: E402
+import adapters  # noqa: E402
+import lanes  # noqa: E402
+import onions  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
 import usage  # noqa: E402
@@ -280,6 +283,7 @@ class SearchHub:
         store: "accounts.AccountStore | None" = None,
         rotator: "rotation.Rotator | None" = None,
         environ=None,
+        self_hosted: "list[adapters.SelfHostedAdapter] | None" = None,
     ) -> None:
         self.specs = specs
         self.by_platform = {s.platform: s for s in specs}
@@ -298,8 +302,27 @@ class SearchHub:
         )
         self.tools, self.routes, self.degraded = build_routes(specs, CACHE_DIR)
         self.account_tools, self.account_routes = self._account_surface(specs)
+        # Self-hosted, key-free lane: in-process HTTP adapters (no child spawned,
+        # no new import beyond urllib). Their tools/list surface is committed too.
+        if self_hosted is not None:
+            self.adapters = self_hosted
+        else:
+            # Registered lane modules (lanes.py) wire after the core adapters; a
+            # lane that fails to import/build is dropped and reported, not fatal.
+            extra, lane_degraded = lanes.extra_adapters(self.environ)
+            self.adapters = adapters.wired_adapters(self.environ) + extra
+            self.degraded.update(lane_degraded)
+        self.adapter_routes = {
+            name: ad for ad in self.adapters for name in ad.tool_names()
+        }
+        self.adapter_tools = [d for ad in self.adapters for d in ad.tool_defs()]
+        # Onion lane (Ahmia + VormWeb indexes via SearXNG): works by default, ASKS
+        # before searching, ENABLE_ONIONS=0 is a hard kill switch (§ onions.py).
+        self.onions_kill_switched = onions.is_kill_switched(self.environ)
         self._children: dict[tuple[str, str], ProviderKeyChild] = {}
-        self.all_tools = self.tools + self.account_tools + [_usage_tool_def()]
+        self.all_tools = (
+            self.tools + self.adapter_tools + self.account_tools + [_usage_tool_def()]
+        )
 
     # ---- advertised surface --------------------------------------------
     def _account_surface(self, specs):
@@ -405,6 +428,8 @@ class SearchHub:
             self._handle_usage(msg, mid)
         elif name in self.account_routes:
             self._handle_account(msg, mid, name)
+        elif name in self.adapter_routes:
+            self._handle_adapter(msg, mid, name)
         elif name in self.routes:
             self._handle_provider(msg, mid, name)
         else:
@@ -413,6 +438,25 @@ class SearchHub:
     def _handle_provider(self, msg: dict, mid, name: str) -> None:
         """Route a provider tool through the rotator (active key, rotate-retry)."""
         route = self.routes[name]
+        onion_mode = None
+        if route.platform == "searxng":
+            args = (msg.get("params") or {}).get("arguments") or {}
+            action, payload = onions.onion_decision(name, args, self.environ)
+            if action in (onions.FORBID, onions.KILLED):
+                # Refuse at the hub -- no child spawned, no query forwarded.
+                self._tool_result(mid, {"envelope": payload}, is_error=True)
+                return
+            if action == onions.ASK:
+                # Ask-before-searching: a confirmation request, NOT an error.
+                self._tool_result(mid, payload, is_error=False)
+                return
+            if action == onions.RUN:
+                # Confirmed onion search: forward the mode-applied (index-only) args
+                # and tag the response so onion hits are clearly differentiated.
+                onion_args, onion_mode = payload
+                params = dict(msg.get("params") or {})
+                params["arguments"] = onion_args
+                msg = {**msg, "params": params}
 
         def forward(key_name: str, request: dict) -> dict:
             req = dict(request)
@@ -428,9 +472,27 @@ class SearchHub:
             response = forward("keyless", msg)
         else:
             response = self.rotator.route_call(route.platform, msg, forward)
+        if onion_mode is not None:
+            # `msg` was rebound above with the pinned onion args; they name the
+            # index engine(s) that answered, so the lane tag can say which.
+            response = onions.tag_onion_response(
+                response, onion_mode, (msg.get("params") or {}).get("arguments")
+            )
         response.setdefault("jsonrpc", "2.0")
         response["id"] = mid
         self._emit(json.dumps(response, ensure_ascii=False))
+
+    def _handle_adapter(self, msg: dict, mid, name: str) -> None:
+        """Serve a self-hosted tool over HTTP, in-process (no child spawned).
+
+        The adapter always attempts the real backend and returns a truthful
+        ``isError`` result when it is unreachable -- it never fabricates hits, so
+        the keyless self-hosted lane is safe-inert exactly like SearXNG.
+        """
+        ad = self.adapter_routes[name]
+        args = (msg.get("params") or {}).get("arguments") or {}
+        result = ad.handle_call(name, args)
+        self._reply(mid, result)
 
     def _handle_account(self, msg: dict, mid, name: str) -> None:
         """Serve a ``<prefix>_account_*`` tool via the store (never forwarded)."""
@@ -450,14 +512,24 @@ class SearchHub:
         self._tool_result(mid, result, is_error=not result.get("ok", False))
 
     def _handle_usage(self, msg: dict, mid) -> None:
-        """On-demand per-key usage + rotation health for one or all providers."""
+        """On-demand per-key usage + rotation health for one or all providers.
+
+        Also reports the self-hosted lane's capability lattice. ``probe=true``
+        performs ONE health GET per self-hosted backend to upgrade the reported
+        state from config-declared to live-``probed`` / ``absent``.
+        """
         args = (msg.get("params") or {}).get("arguments") or {}
         want = args.get("provider") or ""
-        report = {"providers": []}
+        probe = bool(args.get("probe"))
+        report = {"providers": [], "self_hosted": []}
         for spec in self.specs:
             if want and want != spec.platform:
                 continue
             report["providers"].append(self._usage_for_provider(spec))
+        for ad in self.adapters:
+            if want and want != ad.platform:
+                continue
+            report["self_hosted"].append(ad.capabilities(probe=probe))
         self._tool_result(mid, report)
 
     def _usage_for_provider(self, spec: providers.ProviderSpec) -> dict:
@@ -509,20 +581,38 @@ def _usage_tool_def() -> dict:
         "name": "search_usage",
         "description": (
             "On-demand per-key usage + rotation health for the search providers "
-            "(Exa/Tavily/Firecrawl/SearXNG). Reports each stored key's label, remaining "
-            "credits/allowance (Firecrawl remainingCredits; Tavily plan+paygo "
-            "headroom), and cooldown state. Exa reports 'error-driven (no balance "
-            "API)'; SearXNG reports keyless and never cooled. Pass "
-            "provider='exa'|'tavily'|'firecrawl'|'searxng' to narrow, or omit for "
-            "all. Read-only; does not spawn a search child."
+            "(Exa/Tavily/Firecrawl/SearXNG, plus whichever gated providers are "
+            "wired: Parallel/grep.app/corroborate/open-webSearch/LDR), plus the "
+            "self-hosted lane's capability lattice. Reports each stored key's "
+            "label, remaining credits/allowance (Firecrawl remainingCredits; Tavily "
+            "plan+paygo headroom), and cooldown state. Exa reports 'error-driven "
+            "(no balance API)'; SearXNG and every keyless gated provider report "
+            "keyless and never cooled. The self-hosted section reports each tool's "
+            "state (native|probed|declared|emulated|absent). Pass "
+            "provider='exa'|'tavily'|'firecrawl'|'searxng'|'parallel'|'grepapp'|"
+            "'corroborate'|'openwebsearch'|'ldr'|'selfhosted'|'github'|"
+            "'read_url' to narrow, or "
+            "omit for all; probe=true does ONE health GET per self-hosted backend. "
+            "Read-only; does not spawn a search child."
         ),
         "inputSchema": {
             "type": "object",
             "properties": {
                 "provider": {
                     "type": "string",
-                    "description": "exa | tavily | firecrawl | searxng; empty = all",
-                }
+                    "description": (
+                        "exa | tavily | firecrawl | searxng | parallel | grepapp | "
+                        "corroborate | openwebsearch | ldr | selfhosted | github | "
+                        "read_url; empty = all"
+                    ),
+                },
+                "probe": {
+                    "type": "boolean",
+                    "description": (
+                        "self-hosted only: perform one live health GET to upgrade "
+                        "state from declared to probed/absent (default false)"
+                    ),
+                },
             },
         },
     }
@@ -598,7 +688,10 @@ def _safe_terminate(proc: subprocess.Popen) -> None:
 
 
 def _cmd_refresh(which: list[str]) -> int:
-    specs = providers.default_providers()
+    # Naming a provider is explicit operator intent: an OPT-IN cache can be
+    # (re)generated without switching it on. A bare --refresh touches only what
+    # the current environment actually wires.
+    specs = providers.all_providers() if which else providers.enabled_providers()
     if which:
         specs = [s for s in specs if s.platform in which]
     rc = 0
@@ -614,17 +707,27 @@ def _cmd_refresh(which: list[str]) -> int:
 
 
 def _cmd_print_plan() -> int:
-    specs = providers.default_providers()
+    specs = providers.enabled_providers()
     tools, routes, degraded = build_routes(specs, CACHE_DIR)
     account_tool_count = sum(not s.keyless for s in specs) * len(accounts.ACCOUNT_OPS)
     per_provider: dict[str, int] = {s.platform: 0 for s in specs}
     for route in routes.values():
         per_provider[route.platform] += 1
+    extra, lane_degraded = lanes.extra_adapters(os.environ)
+    degraded.update(lane_degraded)
+    self_hosted = adapters.wired_adapters(os.environ) + extra
+    adapter_tools = [d for ad in self_hosted for d in ad.tool_defs()]
+    for ad in self_hosted:
+        # Several adapters may share one platform bucket (a lane = many services).
+        per_provider[ad.platform] = per_provider.get(ad.platform, 0) + len(
+            ad.tool_names()
+        )
     summary = {
         "provider_tools": len(tools),
+        "self_hosted_tools": len(adapter_tools),
         "account_tools": account_tool_count,
         "usage_tools": 1,
-        "total_exposed": len(tools) + account_tool_count + 1,
+        "total_exposed": len(tools) + len(adapter_tools) + account_tool_count + 1,
         "per_provider": per_provider,
         "degraded": degraded,
     }
@@ -642,7 +745,7 @@ def main(argv: list[str]) -> int:
         return _cmd_refresh(argv[1:])
     if argv and argv[0] == "--print-plan":
         return _cmd_print_plan()
-    return SearchHub(providers.default_providers()).run()
+    return SearchHub(providers.enabled_providers()).run()
 
 
 if __name__ == "__main__":

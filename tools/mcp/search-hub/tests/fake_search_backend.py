@@ -10,6 +10,9 @@ providers' failure modes so rotation can be exercised without live keys:
 * key value contains ``exhaust`` -> an ``isError`` result carrying a hard
   HTTP-402 ``NO_MORE_CREDITS`` / "Insufficient credits" message.
 * key value contains ``ratelimit`` -> an ``isError`` 429 with ``Retry-After: 30``.
+* key value contains ``checkpoint`` -> an ``isError`` 429 "Vercel Security
+  Checkpoint" (the bot-wall a keyless remote such as grep.app shows a datacenter
+  IP; the hub must relay it verbatim, never fabricate results).
 * otherwise -> echoes the backend id, the tool NAME it received, and the key
   value it was spawned with (so a test can prove WHICH key served the call).
 """
@@ -32,6 +35,8 @@ def _error_text(key_value: str) -> str | None:
         return "HTTP 402 Payment Required: NO_MORE_CREDITS - Insufficient credits"
     if "ratelimit" in low:
         return "HTTP 429 Too Many Requests: rate limit exceeded, Retry-After: 30"
+    if "checkpoint" in low:
+        return "HTTP 429 Too Many Requests: Vercel Security Checkpoint"
     return None
 
 

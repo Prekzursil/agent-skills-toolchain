@@ -55,7 +55,7 @@
         "annotations": {
           "readOnlyHint": true,
           "destructiveHint": false,
-          "openWorldHint": false,
+          "openWorldHint": true,
           "idempotentHint": true
         },
         "execution": {
@@ -90,7 +90,7 @@
               "type": "string",
               "enum": [
                 "company",
-                "research paper",
+                "publication",
                 "news",
                 "pdf",
                 "github",
@@ -291,7 +291,7 @@
         "annotations": {
           "readOnlyHint": true,
           "destructiveHint": false,
-          "openWorldHint": false,
+          "openWorldHint": true,
           "idempotentHint": true
         },
         "execution": {
@@ -326,7 +326,7 @@
         "annotations": {
           "readOnlyHint": true,
           "destructiveHint": false,
-          "openWorldHint": false,
+          "openWorldHint": true,
           "idempotentHint": true
         },
         "execution": {
@@ -396,73 +396,6 @@
         }
       },
       {
-        "name": "deep_researcher_start",
-        "description": "[Deprecated] Start an AI research agent that searches, reads, and writes a detailed report. Takes 15 seconds to 2 minutes.\n\nBest for: Complex research questions needing deep analysis and synthesis.\nReturns: Research ID - use deep_researcher_check to get results.\nImportant: Call deep_researcher_check with the returned research ID to get the report.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "instructions": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Complex research question or detailed instructions for the AI researcher. Be specific about what you want to research and any particular aspects you want covered."
-            },
-            "model": {
-              "type": "string",
-              "enum": [
-                "exa-research-fast",
-                "exa-research",
-                "exa-research-pro"
-              ],
-              "description": "Research model: 'exa-research-fast' (fastest, ~15s, good for simple queries), 'exa-research' (balanced, 15-45s, good for most queries), or 'exa-research-pro' (most comprehensive, 45s-3min, for complex topics). Default: exa-research-fast"
-            },
-            "outputSchema": {
-              "type": "object",
-              "additionalProperties": {},
-              "description": "Optional JSON Schema for structured output. When provided, the research report will include a 'parsed' field with data matching this schema."
-            }
-          },
-          "required": [
-            "instructions"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "annotations": {
-          "readOnlyHint": false,
-          "destructiveHint": false,
-          "idempotentHint": false
-        },
-        "execution": {
-          "taskSupport": "forbidden"
-        }
-      },
-      {
-        "name": "deep_researcher_check",
-        "description": "[Deprecated] Check status and get results from a deep research task.\n\nBest for: Getting the research report after calling deep_researcher_start.\nReturns: Research report when complete, or status update if still running.\nImportant: Keep calling with the same research ID until status is 'completed'.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "researchId": {
-              "type": "string",
-              "description": "The research ID returned from deep_researcher_start tool"
-            }
-          },
-          "required": [
-            "researchId"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true
-        },
-        "execution": {
-          "taskSupport": "forbidden"
-        }
-      },
-      {
         "name": "get_code_context_exa",
         "description": "Find code examples, documentation, and programming solutions. \n\nBest for: Any programming question - API usage, library examples, code snippets, debugging help.\nReturns: Relevant code and documentation.\n\nQuery tips: describe what you're looking for specifically. \"Python requests library POST with JSON body\" not \"python http\".\nIf highlights are insufficient, follow up with web_fetch_exa on the best URLs.",
         "inputSchema": {
@@ -494,15 +427,20 @@
         }
       },
       {
-        "name": "agent_create_run",
-        "description": "Create an async Exa Agent run for multi-step research, list-building, enrichment, or structured output. Returns an agent_run_... ID immediately; poll with agent_wait_for_run before reading final output. Every run should include outputSchema when repeatable structured results are needed.",
+        "name": "agent_run",
+        "description": "Start or resume an Exa Agent run; runs may take several minutes. Retain the returned run ID and resume with runId when the tool reports the run is still running. An interrupted tool call is not an explicit cancellation request.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "query": {
               "type": "string",
               "minLength": 1,
-              "description": "Natural-language research or enrichment objective."
+              "description": "Natural-language research or enrichment objective. Provide query or runId, not both."
+            },
+            "runId": {
+              "type": "string",
+              "pattern": "^agent\\_run\\_",
+              "description": "agent_run_... ID returned by an earlier call. Use it to check or continue waiting for the same run; do not start a duplicate run."
             },
             "systemPrompt": {
               "type": "string",
@@ -519,14 +457,16 @@
                 "data": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/properties/outputSchema"
+                    "type": "object",
+                    "additionalProperties": {}
                   },
                   "description": "Known rows/entities to enrich or process."
                 },
                 "exclusion": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/properties/outputSchema"
+                    "type": "object",
+                    "additionalProperties": {}
                   },
                   "description": "Entities, rows, or records Agent should avoid returning again."
                 }
@@ -541,15 +481,15 @@
                   "provider": {
                     "type": "string",
                     "enum": [
-                      "fiber_ai",
+                      "fiber",
                       "financial_datasets",
-                      "similar_web",
+                      "similarweb",
                       "baselayer",
                       "affiliate",
-                      "particle_news",
-                      "jinko"
-                    ],
-                    "description": "Exa Connect provider to enable for the run."
+                      "particle",
+                      "jinko",
+                      "polymarket"
+                    ]
                   }
                 },
                 "required": [
@@ -558,143 +498,33 @@
                 "additionalProperties": false
               },
               "maxItems": 5,
-              "description": "Optional Exa Connect providers to enable for this run. Usable self-serve providers: fiber_ai, financial_datasets, similar_web, baselayer, affiliate, particle_news, jinko."
+              "description": "Optional Exa Connect providers to enable for this run."
             },
             "previousRunId": {
               "type": "string",
-              "description": "Completed prior agent_run_... ID to continue from."
+              "pattern": "^agent\\_run\\_",
+              "description": "Completed prior agent_run_... ID to use as context for a new run."
             },
             "effort": {
               "type": "string",
               "enum": [
+                "minimal",
                 "low",
                 "medium",
                 "high",
                 "xhigh",
                 "auto"
               ],
-              "description": "Agent effort: low, medium, high, xhigh, or auto. Defaults to auto."
+              "description": "Agent effort: minimal, low, medium, high, xhigh, or auto. Defaults to low."
             }
           },
-          "required": [
-            "query"
-          ],
           "additionalProperties": false,
           "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "annotations": {
-          "readOnlyHint": false,
+          "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": false
-        },
-        "execution": {
-          "taskSupport": "forbidden"
-        }
-      },
-      {
-        "name": "agent_wait_for_run",
-        "description": "Poll an Exa Agent run until it reaches completed/failed/cancelled or a bounded timeout. This is the ergonomic default after agent_create_run.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "runId": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The agent_run_... ID returned by agent_create_run."
-            },
-            "timeoutSeconds": {
-              "type": "number",
-              "description": "Maximum time to wait in this MCP call. Default 45, max 50. Longer runs are handled by calling this tool again."
-            },
-            "pollIntervalMs": {
-              "type": "number",
-              "description": "Polling interval. Default 4000, min 1000."
-            }
-          },
-          "required": [
-            "runId"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true
-        },
-        "execution": {
-          "taskSupport": "forbidden"
-        }
-      },
-      {
-        "name": "agent_get_run_output",
-        "description": "Retrieve completed Exa Agent output in a Claude-friendly shape: text, structured JSON, grounding, usage, and cost. Use after agent_wait_for_run reports completed.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "runId": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The completed agent_run_... ID."
-            },
-            "requireCompleted": {
-              "type": "boolean",
-              "description": "If true, return a status response until the run is completed. Default true."
-            },
-            "includeText": {
-              "type": "boolean",
-              "description": "Include output.text. Default true."
-            },
-            "includeStructured": {
-              "type": "boolean",
-              "description": "Include output.structured. Default true."
-            },
-            "includeGrounding": {
-              "type": "boolean",
-              "description": "Include output.grounding citations. Default true."
-            },
-            "includeUsage": {
-              "type": "boolean",
-              "description": "Include usage and costDollars. Default true."
-            }
-          },
-          "required": [
-            "runId"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true
-        },
-        "execution": {
-          "taskSupport": "forbidden"
-        }
-      },
-      {
-        "name": "agent_cancel_run",
-        "description": "Cancel a queued or running Exa Agent run. Use only when the user asks, the run is clearly wrong, or a duplicate run was accidentally created.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "runId": {
-              "type": "string",
-              "minLength": 1,
-              "description": "The agent_run_... ID to cancel."
-            }
-          },
-          "required": [
-            "runId"
-          ],
-          "additionalProperties": false,
-          "$schema": "http://json-schema.org/draft-07/schema#"
-        },
-        "annotations": {
-          "readOnlyHint": false,
-          "destructiveHint": false,
-          "idempotentHint": true
         },
         "execution": {
           "taskSupport": "forbidden"

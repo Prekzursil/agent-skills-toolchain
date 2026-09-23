@@ -17,8 +17,10 @@ COVERAGE — measured vs. asserted:
 | 2. Regional engine reachability | MEASURED — per engine, both states, two independent probes |
 | 3. Enablement: apply / verify / revert | MEASURED — full cycle exercised on the live instance |
 | 4. Reach-vs-latency trade-off | MEASURED |
-| 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each |
+| 5. RRF rank fusion | MEASURED — 88 tests; 100% line+branch on the two pure modules `rank_fusion.py` + `searxng_config.py` (`searxng_regional.py` I/O shell excluded — lint+types only); 21/21 mutations killed on each (2026-07-24 figures; current figures in §7) |
 | 6. Multilingual query strategy | Doctrine — `multilingual-search` skill |
+| 7. Wave 1 (2026-09-02): snippet carry, diversity, default-mix flips | MEASURED for the pure modules (191 tests, 100% line+branch, 53/53 + 24/24 + 8/8 mutations killed) and for the upstream evidence behind the flips; **NOT applied live** — the flip block is rendered and parsed only, see §7 |
+| 8. Wave 2 (2026-09-02): cross-encoder rerank stage, gated behind an eval | MEASURED — 124 tests, 100% line+branch on `rerank.py` + `eval_rerank.py`, 55/55 + 148/148 mutations killed; lift measured on BEIR SciFact with a real ONNX run: **-0.074 nDCG@10 on SERP-length snippets, +0.026 on full abstracts** — the stage ships DEFAULT OFF and the numbers say keep it off, see §8 |
 
 **Final state of the owner's instance: UNCHANGED.** The config change was applied, measured,
 and reverted. `D:\searxng\settings.yml` is byte-identical to as-found
@@ -222,3 +224,60 @@ See the `multilingual-search` skill: query in the target language, cite the orig
 translate only on output. A translated *query* is a different query — `国产大飞机` and
 "Chinese domestic airliner" retrieve different documents from different indexes. The skill
 carries the routing table, the two failure shapes, and the citation contract.
+
+## 7. Wave 1 additions — 2026-09-02 (rendered and tested; NOT applied live)
+
+Plan items 1a, 2 and 3 of `docs/plans/2026-09-02-search-research-tools-gemhunt.md`, landed
+in `tools/search-expansion/` from a cloud VM that **cannot reach the owner's instance**. The
+measurement discipline above still applies, so here is what was and was not measured.
+
+| What | State |
+|---|---|
+| Snippet carry into RRF (`extract_results` -> `FusedResult.snippet`, best-rank rule, 500-char cap; threaded through `query_plan.fuse_decomposed`) | MEASURED — pure; pinned by tests, incl. the best-rank tie and the "decided at the counted rank" cases |
+| Post-fusion diversity `diversify()` (host cap 2 / window 10, token-Jaccard near-dup > 0.8; re-ordering only, opt-in from both fusers) | MEASURED — pure; boundary pinned (0.8 exactly is kept), score untouched, `window=0` identity, fuser defaults reproduce the old ordering (HEAD's 105 tests re-run against the new modules: 102 pass unchanged; the 3 that fail are the one `extract_results` expected dict that now also carries `snippet: ""`, and two `searxng_config` tests that asserted the block enables only the regional set — the intended Item 1a change) |
+| Default-mix flips rendered in the managed block (`INDEPENDENT_ENGINES`: google off; mwmbl on; marginalia on + `inactive: false` + `api_key: public`) | MEASURED as YAML — the spliced `use_default_settings: true` file parses and the by-`name` merge replays in tests; `--dry-run` against a temp file prints the 56-line block (+1 separator line in the diff); re-run is a no-op |
+| Evidence behind the flips | MEASURED from this VM — upstream `searx/settings.yml` ships `google: disabled: true` and `marginalia: disabled: true, inactive: true, api_key: None`; `api.mwmbl.org/api/v1/search/?s=` -> HTTP 200, 44 results, 0.41 s; `api2.marginalia-search.com/search` with `API-Key: public` -> **HTTP 429 "QPM Limit Exceeded" on the first request** (0.45 s); Whoogle README EOL notice dated 2026-07-24; searxng/searxng#6359 closed 2026-08-22 |
+| The flips on the owner's instance | **NOT DONE.** No live `--apply`, no live `--probe`, no latency or reach numbers for mwmbl/marginalia in the default mix. The owner runs `--dry-run`, then `--apply`, then `--probe` on the box |
+| `--probe` extension (walks `MANAGED_ENGINES`, `block` column, attribution-only counting, `NOT-LOADED` verdict) | Exercised against a **loopback stub** of the JSON API only. The attribution change exists because SearXNG drops an unknown `engines=` name and answers with the default mix — the old count would have reported marginalia as `WORKS n=10` before `--apply` |
+| Verification | 191 tests (was 105), **100% line + branch** on `rank_fusion.py`, `searxng_config.py`, `query_plan.py`; mutation-check **53/53, 24/24, 8/8** (was 21/21, 21/21, 7/8) |
+
+Two things worth keeping from the run. First, the mutation tool surfaced an *equivalent
+mutant* in the new snippet rule (`snippet_rank.get(key, position + 1)` — any default above
+`position` behaves the same), which was removed by restructuring the code rather than by a
+test that would only have pinned an arbitrary constant. Second, `marginalia` is switched on
+with status `rate-limited`, not `works`: the shared `public` key is spent before any
+instance touches it, so expect `unresponsive_engines: [marginalia, too many requests]` and
+then a suspension; the entry exists because the approved plan calls for it and because
+SearXNG fails it truthfully at ~0 latency. A personal key in the spec's `extra` tuple is the
+only thing that makes it contribute results. `enabled_specs()` and therefore `query_plan`
+routing exclude it.
+
+## 8. Rerank stage — 2026-09-02 (measured; ships DEFAULT OFF, and the numbers say keep it off)
+
+Plan inventory item C / Wave 2 ("ONNX MiniLM rerank stage, gated behind a 30-50 query eval;
+ships only if it lifts"), landed in `tools/search-expansion/` as `rerank.py`,
+`eval_rerank.py`, `test_rerank.py` and `eval/`. Same discipline as §7: this was built on a
+cloud VM that **cannot reach the owner's SearXNG**, so the eval's first stage is a stand-in,
+and everything below says which side of the measured/asserted line it sits on. The package
+README's "Rerank stage (optional, default OFF)" section carries the API and the full table;
+`tools/search-expansion/eval/README.md` carries provenance, license and reproduction.
+
+| What | State |
+|---|---|
+| The stage: cross-encoder over `title + " " + snippet` for the top 30 fused results, tail untouched; backends `onnx` / `fastembed` / `flashrank` imported lazily and probed in that order; gates `RERANK_ENABLED` (default OFF), `RERANK_MODEL_DIR`, `RERANK_ALLOW_DOWNLOAD` (default never); every failure path is identity with the reason in the result | MEASURED as code — stdlib at import; 124 tests with every backend faked via `sys.modules`; **100% line + branch** on `rerank.py` and `eval_rerank.py`; mutation-check **55/55 and 148/148** killed |
+| Lift on SERP-length input: BEIR SciFact, all 300 test claims, stdlib BM25 top-30 as first stage, passages clipped to 300 chars, `Xenova/ms-marco-MiniLM-L-6-v2` int8 on onnxruntime 1.29.0 CPU | MEASURED — nDCG@10 **0.6588 -> 0.5846 (-0.0742)**, recall@5 0.7126 -> 0.6522; 59 queries improved / 84 worsened / 157 unchanged; 74 ms per query (p50 67) on 8 vCPU |
+| Lift on whole documents: same 300 claims, full abstracts (mean 1,590 chars) | MEASURED — nDCG@10 **0.6588 -> 0.6845 (+0.0256)**, recall@5 0.7126 -> 0.7337; 66 / 46 / 188; 398 ms per query. Reproduces the published BEIR pair for SciFact (BM25 0.665 -> BM25+CE 0.688), which is the check that the pipeline is right and the snippet result is real |
+| Break-even passage length (300 / 600 / 1000 / full chars) | MEASURED — lift -0.074 / -0.023 / +0.008 / +0.026: roughly 800-900 characters, well above `rank_fusion`'s 500-char snippet cap |
+| Committed fixture `eval/scifact-50q-top30-300c.jsonl.gz` (first 50 claims by sorted qid, top-30, 300 chars, 217 KB gzipped; claims CC BY 4.0, abstracts ODC-By 1.0) + three result files | MEASURED on it: 0.6334 -> 0.5306 (-0.1028); 5 / 15 / 30. Rebuildable byte-for-byte (`build-beir`, zero gzip MTIME, ASCII rows); `eval/` totals 292 KB |
+| Decision under the plan's rule (`RERANK_ENABLED=1` only if nDCG@10 lift >= +0.02) | **Leave `RERANK_ENABLED` unset.** The plan's own "medium confidence on lift for SERP snippets" resolves to *negative* lift. Worth revisiting only for a path that feeds page text (e.g. after a `read_url` extraction), re-measured on that input — the +0.026 there costs ~0.4 s per 30 candidates on CPU |
+| Against the estate's real fused output (SearXNG + Exa + Tavily snippets) | **NOT MEASURED** — unreachable from here. `eval_rerank.py run <set.jsonl>` takes any set in the documented JSONL shape, so a labelled sample of real SERPs is a one-command re-measure |
+| `fastembed` and `flashrank` backends against real packages | **NOT MEASURED** — faked in tests only; `auto` falls through to them when `onnxruntime`/`tokenizers` are absent |
+
+Two things worth keeping. First, the result is a property of the *input*, not the model:
+the same weights that beat BM25 on abstracts lose to it on snippets, because a 300-char
+snippet gives the cross-encoder less evidence than the first stage used to rank the whole
+document. Any future "add a reranker" proposal should say what text it will read. Second,
+the mutation run turned up an equivalent mutant of the kind §7 recorded: flashrank's scorer
+defaulted a passage the ranker dropped to `0.0`, and no default value could be told from
+another by a test, so the code was restructured (map scores back by id; a dropped passage
+raises, and the stage reports identity with the reason) rather than pinned.

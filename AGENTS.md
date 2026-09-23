@@ -82,7 +82,7 @@ tooling. Notes below cover only non-obvious caveats; standard commands live in
   (`pytest --cov=. --cov-branch --cov-fail-under=100 -q`) and its PySide6/Textual GUI needs a
   display while its CLI runs headless (`app.py status|preset list|json`); `tools/scholarly-access-mcp`
   auto-ignores the network suite `tests/test_live.py` via `addopts` (run it manually only), and
-  `list_tools.py` prints its 8-tool surface.
+  `list_tools.py` prints its 12-tool surface.
 - **`scripts/validate-all-skills.ps1` (`npm run validate:skills`) needs PowerShell (`pwsh`) plus an
   external skill-creator validator under `CODEX_HOME`; neither is present in cloud, so skip skill
   validation here.**

@@ -1,0 +1,124 @@
+# Minimal SearXNG settings for the `bundled` profile of the self-hosted search
+# stack. The ONE non-default that matters: `json` MUST be in search.formats or
+# TrailSearch (and any JSON API client) gets HTML it cannot parse. Everything
+# else is left at the image defaults on purpose -- this is a low-RAM, single-user
+# instance, not a public one -- except the default-mix engine flips and the two
+# clearnet onion-INDEX engines documented inline under `engines:` below.
+#
+# `secret_key` below is a LOCAL, non-sensitive dev placeholder for a loopback-only
+# instance (no cookies of value, not internet-facing). Override it via the
+# SEARXNG_SECRET env or edit here if you expose the instance. It is intentionally
+# NOT a credential in the .agents/local.json sense.
+#
+# use_default_settings is the MAPPING form (not the `true` scalar) so we keep every
+# default engine EXCEPT the two onion-only ones we must drop: stock SearXNG marks
+# any engine whose `categories` contains the literal string "onions" INACTIVE unless
+# a working Tor proxy is configured (searx/engines/__init__.py is_engine_active), and
+# it probes check.torproject.org at startup. Our envelope forbids Tor, so we remove
+# the Tor-gated `ahmia` (onion-only) and `torch` defaults and register a CLEARNET
+# Ahmia engine under a NON-"onions" category (`onion index`) that loads without Tor.
+use_default_settings:
+  engines:
+    remove:
+      - ahmia   # onion-only default (base_url = Ahmia .onion) -> needs Tor; drop it
+      - torch   # onion-only, Tor-gated, out of scope
+
+server:
+  secret_key: "selfhosted-search-local-dev-key-change-if-exposed"
+  limiter: false
+  image_proxy: false
+
+search:
+  formats:
+    - html
+    - json
+
+engines:
+  # Default-mix flips (Wave 1 item 1b, 2026-09-02; the same diff is rendered into
+  # the estate config by tools/search-expansion/searxng_config.py). Keyless Google
+  # scraping is DEAD: Whoogle EOL 2026-07-24, searxng/searxng#6359 closed
+  # 2026-08-23, and upstream now ships google `disabled: true` itself -- this file
+  # used to force it back on. Do not re-enable it (tests/test_deploy_settings.py).
+  - name: google
+    disabled: true
+  - name: duckduckgo
+    disabled: false
+  # Two dormant INDEPENDENT indexes (own crawls, uncorrelated with Bing/Google)
+  # turned ON for RRF diversity at +0 MB. mwmbl: keyless; probed 2026-09-02 from
+  # the cloud VM: GET api.mwmbl.org/api/v1/search/?s=privacy -> HTTP 200, 124 hits.
+  - name: mwmbl
+    disabled: false
+  # marginalia ships `disabled: true` AND `inactive: true` upstream; `inactive`
+  # keeps the module from loading at all, so BOTH must flip. `public` is
+  # Marginalia's documented shared key (about.marginalia-search.com/article/api):
+  # "often hits a rate limit" -- probed 2026-09-02 from the cloud VM: a SINGLE
+  # request already got HTTP 429, so expect 429s: SearXNG then suspends the engine
+  # for search.suspended_times.SearxEngineTooManyRequests (default 3660 s, ~1 h)
+  # and the search continues on the other engines. Upstream's init() logs an
+  # "invalid api_key (public)" error for this key but still loads the engine
+  # (verified against searx/engines/marginalia.py, master 2026-09-02). A personal
+  # key (free non-commercial, requested by e-mail) is a CREDENTIAL: never inline
+  # it here -- keep it in an untracked overlay.
+  - name: marginalia
+    disabled: false
+    inactive: false
+    api_key: public
+  # Onion lane (clearnet onion INDEXES ONLY: Ahmia + VormWeb). At the hub the lane
+  # is ON by default but ASKS before every search; ENABLE_ONIONS=0 kills the whole
+  # lane, ENABLE_VORMWEB=0 kills just the VormWeb engine. This file only makes the
+  # CLEARNET engines available in SearXNG. ENVELOPE
+  # (docs/legal/onions-lane-envelope.md): query the indexes over CLEARNET only --
+  # NO Tor/SOCKS proxy, NEVER an .onion host. Category is `onion index`, NOT the
+  # literal "onions" (which stock SearXNG forces onto Tor). Select with
+  # engines=ahmia, engines=vormweb, or categories="onion index" (= every enabled
+  # index). With NO `outgoing.proxies`, the lane FAILS CLOSED (empty / truthful
+  # error) rather than reaching for Tor. Verify Ahmia on your estate instance from
+  # a residential IP: ahmia.fi 302-redirects datacenter/bot queries to its homepage
+  # (measured 2026-09-02), while the clearnet /search/ markup the engine parses is
+  # confirmed.
+  - name: ahmia
+    engine: ahmia
+    disabled: false
+    categories: onion index
+    shortcut: ah
+    base_url: https://ahmia.fi
+    search_url: https://ahmia.fi/search/?{query}
+    timeout: 10.0
+  # VormWeb (owner decision G-7, 2026-09-02): SECOND clearnet onion INDEX engine,
+  # DEFAULT-ON, same `onion index` category and the same hub gate as Ahmia.
+  # Upstream SearXNG ships only `ahmia` + `torch` -- no vormweb -- so this is a
+  # generic `xpath` engine we carry ourselves (config beats adapter). Parameter
+  # names verified against docs.searxng.org/dev/engines/xpath.html and
+  # searx/engines/xpath.py (master, 2026-09-02): with `results_xpath` set, the
+  # url/title/content xpaths are evaluated RELATIVE to each result node; a result
+  # without a title or href aborts the engine, so both are asserted per node below.
+  # `about` keys must be EngineAbout struct fields (an unknown key fails the load).
+  # Probe receipt (cloud VM, 2026-09-02): GET /en/search?q=privacy -> HTTP 200 in
+  # ~0.6 s, 41 `div.query-box`, each with exactly one `a#urllink` (title + .onion
+  # href) and one `li > i` description; these xpaths matched 41/41 with lxml.
+  # Form: GET with `q`, minimum 3 characters; no API, no ToS, robots.txt 404.
+  # CAVEATS the owner accepted (envelope doc, G-7): (1) operator CONSENT is
+  # UNRESOLVED -- VormWeb publishes no ToS / robots policy and the cloud agent could
+  # not ask; ship documented (not silent) and keep the rate low (one GET per
+  # confirmed search, no paging). (2) VormWeb's "Verified"/"Warning"/"Risky" labels
+  # and its filtering are its own SELF-DECLARED policy, unverifiable from here --
+  # the hub adds no screen of its own and tags every hit `verified: false`.
+  # Results are onion INDEX entries (title + snippet + the .onion URL as a string):
+  # NEVER fetched or rendered, exactly like Ahmia's.
+  - name: vormweb
+    engine: xpath
+    disabled: false
+    categories: [onion index]
+    shortcut: vw
+    search_url: https://vormweb.de/en/search?q={query}
+    results_xpath: //div[@class="query-box"]
+    url_xpath: .//a[@id="urllink"]/@href
+    title_xpath: .//a[@id="urllink"]
+    content_xpath: .//li/i
+    timeout: 8.0
+    about:
+      website: https://vormweb.de
+      use_official_api: false
+      require_api_key: false
+      results: HTML
+      description: "VormWeb onion index over clearnet vormweb.de. No official API, no published ToS. Results are onion INDEX entries (title, snippet, hidden-service URL as a string), never fetched."

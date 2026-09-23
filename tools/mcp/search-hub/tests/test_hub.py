@@ -25,9 +25,13 @@ HUB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HUB_DIR)
 
 import accounts  # noqa: E402
+import adapters  # noqa: E402
 import hub  # noqa: E402
 import providers  # noqa: E402
 import rotation  # noqa: E402
+
+import fake_ossinsight_backend as fake_oss  # noqa: E402
+import fake_trailsearch_backend as fake_ts  # noqa: E402
 
 PY = sys.executable
 FAKE = os.path.join(
@@ -112,7 +116,22 @@ def hub_env(tmp_path):
     rotation.seed_backup_keys(store, keyed, environ)
     rot = rotation.Rotator.from_specs(keyed, store, environ=environ, getter=_getter)
     cap = Capture()
-    server = hub.SearchHub(specs, emit=cap, store=store, rotator=rot, environ=environ)
+    self_hosted = [
+        adapters.TrailSearchAdapter(
+            "http://127.0.0.1:8794", caller=fake_ts.fake_caller
+        ),
+        adapters.OSSInsightAdapter(
+            "https://api.ossinsight.io", caller=fake_oss.fake_caller
+        ),
+    ]
+    server = hub.SearchHub(
+        specs,
+        emit=cap,
+        store=store,
+        rotator=rot,
+        environ=environ,
+        self_hosted=self_hosted,
+    )
     try:
         yield server, cap, rot
     finally:
@@ -235,3 +254,143 @@ def test_unknown_tool_errors(hub_env):
     reply = cap.wait(1)[0]
     assert reply["id"] == 40 and reply["error"]["code"] == -32602
     assert server._children == {}
+
+
+def test_selfhosted_tools_listed_without_spawning(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
+    listing = cap.wait(1)[0]
+    names = {t["name"] for t in listing["result"]["tools"]}
+    assert {"selfhosted_search", "selfhosted_extract"} <= names
+    # Keyless self-hosted tools never collide with the keyed tavily_* provider.
+    assert not any(n.startswith("tavily_") for n in names)
+    assert server._children == {}  # HTTP lane spawns no child
+
+
+def test_selfhosted_search_routes_over_http_in_process(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(_call(60, "selfhosted_search", {"query": "keyless"}))
+    reply = cap.wait(1)[0]
+    assert reply["id"] == 60
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["query"] == "keyless"
+    assert payload["results"][0]["url"] == "https://example.test/1"
+    assert server._children == {}  # never spawns a subprocess
+
+
+def test_selfhosted_backend_down_degrades_truthfully(hub_env):
+    server, cap, _rot = hub_env
+
+    def dead(_m, _u, _b, _h, _t):
+        return 0, None, "connection refused"
+
+    server.adapters[0]._caller = dead
+    server.dispatch(_call(61, "selfhosted_search", {"query": "x"}))
+    reply = cap.wait(1)[0]
+    result = reply["result"]
+    assert result["isError"] is True
+    assert "not reachable" in result["content"][0]["text"]
+
+
+def test_search_usage_includes_selfhosted_capability_lattice(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(
+        _call(62, "search_usage", {"provider": "selfhosted", "probe": True})
+    )
+    reply = cap.wait(1)[0]
+    report = json.loads(reply["result"]["content"][0]["text"])
+    assert report["providers"] == []  # narrowed to the self-hosted lane
+    sh = report["self_hosted"][0]
+    assert sh["provider"] == "selfhosted" and sh["keyless"] is True
+    states = {t["state"] for t in sh["tools"]}
+    assert states <= set(adapters.LATTICE)
+    assert states == {"probed"}  # fake backend answers /docs healthy
+    assert server._children == {}
+
+
+def test_onion_search_asks_before_searching_by_default(hub_env):
+    """Default-ON but ask-first: an onion search returns a confirmation request
+    (not an error) and does NOT spawn a SearXNG child."""
+    server, cap, _rot = hub_env
+    assert server.onions_kill_switched is False  # works by default
+    server.dispatch(
+        _call(70, "searxng_web_search", {"query": "ahmia", "engines": "ahmia"})
+    )
+    reply = cap.wait(1)[0]
+    result = reply["result"]
+    assert result["isError"] is False  # an ask, not an error
+    payload = json.loads(result["content"][0]["text"])
+    assert payload["onion_confirmation_required"] is True
+    assert {m["mode"] for m in payload["modes"]} == {"low", "medium", "high", "deepest"}
+    # Nothing searched yet: no child spawned.
+    assert ("searxng", "keyless") not in server._children
+
+
+def test_onion_search_runs_and_tags_results_when_confirmed(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(
+        _call(
+            71,
+            "searxng_web_search",
+            {
+                "query": "ahmia",
+                "engines": "ahmia",
+                "onion_confirm": True,
+                "onion_mode": "high",
+            },
+        )
+    )
+    reply = cap.wait(1)[0]
+    content = reply["result"]["content"]
+    # First content block is the dark-web differentiation banner.
+    assert "DARK-WEB INDEX RESULTS" in content[0]["text"]
+    assert reply["result"]["_onion"]["tor"] is True
+    assert reply["result"]["_onion"]["onion_fetched"] is False
+    # The forwarded child call was pinned to the ahmia index with the mode breadth.
+    payload = json.loads(content[1]["text"])
+    assert payload["backend"] == "searxng"
+    assert payload["arguments"]["engines"] == "ahmia"
+    assert payload["arguments"]["num_results"] == 20  # high mode
+    assert "onion_confirm" not in payload["arguments"]
+
+
+def test_ordinary_searxng_search_unaffected_by_onion_lane(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(_call(72, "searxng_web_search", {"query": "python"}))
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["backend"] == "searxng"  # non-onion search runs immediately
+
+
+def test_ossinsight_tools_listed_and_route_through_hub(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}})
+    listing = cap.wait(1)[0]
+    names = {t["name"] for t in listing["result"]["tools"]}
+    assert {
+        "ossinsight_repo_stats",
+        "ossinsight_collections",
+        "ossinsight_collection_ranking",
+    } <= names
+    assert server._children == {}  # in-process HTTP, no child
+
+    server.dispatch(
+        _call(80, "ossinsight_repo_stats", {"owner": "pingcap", "repo": "tidb"})
+    )
+    reply = cap.wait(1)[0]
+    payload = json.loads(reply["result"]["content"][0]["text"])
+    assert payload["data"]["full_name"] == "pingcap/tidb"
+    assert server._children == {}
+
+
+def test_search_usage_reports_ossinsight_lattice(hub_env):
+    server, cap, _rot = hub_env
+    server.dispatch(
+        _call(81, "search_usage", {"provider": "ossinsight", "probe": True})
+    )
+    reply = cap.wait(1)[0]
+    report = json.loads(reply["result"]["content"][0]["text"])
+    assert report["providers"] == []
+    oi = report["self_hosted"][0]
+    assert oi["provider"] == "ossinsight"
+    assert {t["state"] for t in oi["tools"]} == {"probed"}

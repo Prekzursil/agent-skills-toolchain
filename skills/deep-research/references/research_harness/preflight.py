@@ -20,6 +20,13 @@ LIVE = "live"
 DOWN = "down"
 QUOTA = "quota"
 
+# Servers that are routed AROUND, never retried, once they probe non-live
+# within a run (G-5b). Perplexity is cookie/session-auth: a DOWN there means
+# the session cookie expired or the plan is rate-limited, and retrying only
+# burns wall-clock (and, on the deep-research lanes, metered quota). The fix is
+# an owner action (refresh ``PERPLEXITY_SESSION_TOKEN``), not a retry.
+NO_RETRY_SERVERS = frozenset({"perplexity"})
+
 ProbeFn = Callable[[str], str]
 
 
@@ -70,3 +77,18 @@ def live_servers(statuses: dict[str, ProviderStatus]) -> set[str]:
 def down_servers(statuses: dict[str, ProviderStatus]) -> list[str]:
     """Sorted servers that were DOWN or QUOTA-exhausted at preflight."""
     return sorted(s.server for s in statuses.values() if s.state != LIVE)
+
+
+def retry_allowed(status: ProviderStatus) -> bool:
+    """May the loop re-probe / re-call this server later in the same run?
+
+    ``QUOTA`` is never retried (the quota does not come back mid-run), and a
+    ``NO_RETRY_SERVERS`` member is never retried once it is anything but
+    ``LIVE``: route around it and record it in ``providers_down``. A plain
+    ``DOWN`` elsewhere may be a transient and is left to the caller's judgment.
+    """
+    if status.state == QUOTA:
+        return False
+    if status.server in NO_RETRY_SERVERS and status.state != LIVE:
+        return False
+    return True

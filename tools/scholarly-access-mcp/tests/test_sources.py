@@ -80,6 +80,77 @@ def test_json_value_error(monkeypatch):
     assert S._json("http://x") is None
 
 
+def capture_get(monkeypatch, resp):
+    """Patch requests.get to return ``resp`` and record the last call's arguments."""
+    captured = {}
+
+    def fake_get(url, params=None, headers=None, timeout=None):
+        captured.update(url=url, params=params, headers=headers, timeout=timeout)
+        return resp
+
+    monkeypatch.setattr(S.requests, "get", fake_get)
+    return captured
+
+
+def test_json_forwards_headers(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, json_data={}))
+    assert S._json("http://x", headers={"Authorization": "Bearer k"}) == {}
+    assert cap["headers"]["Authorization"] == "Bearer k"
+    assert cap["headers"]["User-Agent"] == S.UA
+
+
+# --------------------------------------------------------------------------- UpstreamError / _fetch / _fetch_json
+def test_upstream_error_envelope():
+    e = S.UpstreamError("boom", status=503, url="http://x")
+    assert e.envelope() == {"error": "boom", "upstream_status": 503, "url": "http://x"}
+
+
+def test_fetch_ok(monkeypatch):
+    r = FakeResp(200)
+    cap = capture_get(monkeypatch, r)
+    assert S._fetch("http://x") is r
+    assert cap["headers"] == {"User-Agent": S.UA}
+    assert cap["timeout"] == S.TIMEOUT  # every request is timeout-bounded
+
+
+def test_fetch_merges_headers(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200))
+    S._fetch("http://x", headers={"X-A": "1"})
+    assert cap["headers"] == {"User-Agent": S.UA, "X-A": "1"}
+
+
+def test_fetch_non_200_keeps_status(monkeypatch):
+    set_get(monkeypatch, FakeResp(404))
+    with pytest.raises(S.UpstreamError) as ei:
+        S._fetch("http://x")
+    assert ei.value.status == 404
+    assert ei.value.url == "http://x"
+    assert str(ei.value) == "upstream returned HTTP 404"
+
+
+def test_fetch_request_exception_never_echoes_exception_text(monkeypatch):
+    # The exception text could carry the request URL/query (an email, a key).
+    set_get(monkeypatch, exc=requests.ConnectTimeout("http://x?api_key=SECRET"))
+    with pytest.raises(S.UpstreamError) as ei:
+        S._fetch("http://x")
+    assert ei.value.status is None
+    assert str(ei.value) == "request failed: ConnectTimeout"
+    assert "SECRET" not in str(ei.value)
+
+
+def test_fetch_json_ok(monkeypatch):
+    set_get(monkeypatch, FakeResp(200, json_data=[1]))
+    assert S._fetch_json("http://x") == [1]
+
+
+def test_fetch_json_non_json_body(monkeypatch):
+    set_get(monkeypatch, FakeResp(200, raise_json=True))
+    with pytest.raises(S.UpstreamError) as ei:
+        S._fetch_json("http://x")
+    assert ei.value.status == 200
+    assert "non-JSON" in str(ei.value)
+
+
 # --------------------------------------------------------------------------- classify_identifier
 @pytest.mark.parametrize(
     "raw,kind,val",
@@ -166,6 +237,49 @@ def test_openalex_search_none(monkeypatch):
     assert S.openalex_search("t") == []
 
 
+# --------------------------------------------------------------------------- openalex: OPENALEX_API_KEY
+KEY = "oa-test-key-never-echoed"
+
+
+def test_openalex_authenticated_flag(monkeypatch):
+    monkeypatch.delenv("OPENALEX_API_KEY", raising=False)
+    assert S.openalex_authenticated() is False
+    assert S._openalex_headers() == {}
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    assert S.openalex_authenticated() is True
+    assert S._openalex_headers() == {"Authorization": f"Bearer {KEY}"}
+
+
+def test_openalex_by_doi_key_present_sent_as_bearer_mailto_kept(monkeypatch):
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    monkeypatch.setenv("UNPAYWALL_EMAIL", "a@b.c")
+    cap = capture_get(monkeypatch, FakeResp(200, json_data={"id": "W1"}))
+    out = S.openalex_by_doi("10.1/x")
+    assert cap["headers"]["Authorization"] == f"Bearer {KEY}"
+    assert cap["params"] == {"mailto": "a@b.c"}  # polite-pool id kept, key not in URL
+    assert "api_key" not in cap["url"]
+    assert KEY not in repr(out)  # never echoed
+
+
+def test_openalex_by_doi_key_absent_not_sent(monkeypatch):
+    monkeypatch.delenv("OPENALEX_API_KEY", raising=False)
+    cap = capture_get(monkeypatch, FakeResp(200, json_data={"id": "W1"}))
+    S.openalex_by_doi("10.1/x")
+    assert "Authorization" not in cap["headers"]
+    assert "api_key" not in cap["params"]
+
+
+def test_openalex_search_key_present_then_absent(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, json_data={"results": []}))
+    monkeypatch.setenv("OPENALEX_API_KEY", KEY)
+    S.openalex_search("t")
+    assert cap["headers"]["Authorization"] == f"Bearer {KEY}"
+    assert cap["params"]["search"] == "t"
+    monkeypatch.delenv("OPENALEX_API_KEY")
+    S.openalex_search("t")
+    assert "Authorization" not in cap["headers"]
+
+
 # --------------------------------------------------------------------------- unpaywall
 def test_unpaywall_no_email(monkeypatch):
     monkeypatch.delenv("UNPAYWALL_EMAIL", raising=False)
@@ -189,6 +303,70 @@ def test_europepmc_ok(monkeypatch):
 def test_europepmc_none(monkeypatch):
     set_get(monkeypatch, FakeResp(500))
     assert S.europepmc_search("q") == []
+
+
+def test_europepmc_fulltext_url():
+    assert S.europepmc_fulltext_url("PMC1182327") == (
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC1182327/fullTextXML"
+    )
+
+
+def test_europepmc_fulltext_xml_ok(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, text="<article/>"))
+    assert S.europepmc_fulltext_xml("PMC1") == "<article/>"
+    assert cap["url"] == S.europepmc_fulltext_url("PMC1")
+
+
+def test_europepmc_fulltext_xml_404_raises_with_status(monkeypatch):
+    set_get(monkeypatch, FakeResp(404))
+    with pytest.raises(S.UpstreamError) as ei:
+        S.europepmc_fulltext_xml("PMC1")
+    assert ei.value.status == 404
+
+
+def test_europepmc_annotations_params(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, json_data=[{"extId": "1"}]))
+    assert S.europepmc_annotations("MED:1") == [{"extId": "1"}]
+    assert cap["url"] == S.EUROPEPMC_ANNOTATIONS
+    assert cap["params"] == {"articleIds": "MED:1", "format": "JSON"}
+    S.europepmc_annotations("PMC:PMC1", "Diseases")
+    assert cap["params"] == {
+        "articleIds": "PMC:PMC1",
+        "format": "JSON",
+        "type": "Diseases",
+    }
+
+
+def test_europepmc_annotations_error(monkeypatch):
+    set_get(monkeypatch, FakeResp(500))
+    with pytest.raises(S.UpstreamError) as ei:
+        S.europepmc_annotations("MED:1")
+    assert ei.value.status == 500
+
+
+# --------------------------------------------------------------------------- opencitations
+def test_opencitations_index_url_and_sort(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, json_data=[{"oci": "1"}]))
+    assert S.opencitations_index("citations", "10.1/x") == [{"oci": "1"}]
+    assert cap["url"] == "https://api.opencitations.net/index/v2/citations/doi:10.1/x"
+    assert cap["params"] == {"sort": "desc(creation)"}
+    S.opencitations_index("references", "10.1/x")
+    assert cap["url"] == "https://api.opencitations.net/index/v2/references/doi:10.1/x"
+
+
+def test_opencitations_index_error_keeps_status(monkeypatch):
+    set_get(monkeypatch, FakeResp(429))
+    with pytest.raises(S.UpstreamError) as ei:
+        S.opencitations_index("citations", "10.1/x")
+    assert ei.value.status == 429
+
+
+def test_opencitations_meta_joins_ids(monkeypatch):
+    cap = capture_get(monkeypatch, FakeResp(200, json_data=[]))
+    assert S.opencitations_meta(["10.1/a", "10.1/b"]) == []
+    assert cap["url"] == (
+        "https://api.opencitations.net/meta/v1/metadata/doi:10.1/a__doi:10.1/b"
+    )
 
 
 # --------------------------------------------------------------------------- arxiv

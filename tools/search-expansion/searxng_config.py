@@ -14,6 +14,36 @@ reader can see they were considered and why they are off — and can re-probe th
 
 A `disabled` engine is still reachable via `engines=<name>` or its `!<shortcut>` bang; this
 block only decides what joins the DEFAULT result mix.
+
+SECOND MEASURED BASIS (2026-09-02, from this cloud VM - NOT the owner's instance)
+--------------------------------------------------------------------------------
+The default-mix FLIPS in `INDEPENDENT_ENGINES` (plan G-3 / Wave 1 item 1a) rest on
+evidence gathered here, not on a live `--apply`:
+
+* `google` OFF. Keyless Google scraping is dead: benbusby/whoogle-search is archived with
+  an EOL notice ("Google has now killed the last User-Agent string that still worked",
+  README, 2026-07-24) and searxng/searxng#6359 ("GSA for iPhone useragent do no longer
+  work") was closed 2026-08-22. Upstream `searx/settings.yml` now ships `google` with
+  `disabled: true`; the hub's own deploy config still force-enables it, which is the
+  override this entry exists to cancel wherever the block is applied.
+* `mwmbl` ON. Keyless. `https://api.mwmbl.org/api/v1/search/?s=` (the URL the upstream
+  engine module builds) answered HTTP 200 with 44 results in 0.41 s. Upstream ships it
+  `disabled: true`, nothing else needed.
+* `marginalia` ON, status `rate-limited` - NOT `works`. Upstream ships it `disabled: true`
+  AND `inactive: true` (the module is not even loaded) with `api_key: None`, so the block
+  must set all three of `disabled`, `inactive`, `api_key`. Upstream `init()` logs
+  "invalid api_key (public)" but still returns True, so the module loads. The endpoint the
+  module calls, `https://api2.marginalia-search.com/search`, answered **HTTP 429 "QPM
+  Limit Exceeded" on the FIRST request** with `API-Key: public` (0.45 s) - the key is
+  shared by every instance that uses it, so its quota is effectively always spent. It is
+  switched on anyway because the approved plan says so and because SearXNG fails it
+  truthfully (`unresponsive_engines: [marginalia, too many requests]`, then a suspension
+  that costs ~0 latency); it is kept OUT of `enabled_specs()` so query routing never
+  spends a call on it. A personal key (free, non-commercial) replaces `public` in the
+  `extra` tuple. Do not self-host Marginalia to dodge the limit.
+
+The block is RENDERED here and its YAML is parsed in the tests; it has NOT been applied to
+the owner's instance from this VM. The owner applies it with `--dry-run`, then `--apply`.
 """
 
 from __future__ import annotations
@@ -25,6 +55,8 @@ from dataclasses import dataclass
 __all__ = [
     "BEGIN_MARKER",
     "END_MARKER",
+    "INDEPENDENT_ENGINES",
+    "MANAGED_ENGINES",
     "REGIONAL_ENGINES",
     "EngineSpec",
     "ConflictError",
@@ -37,10 +69,18 @@ __all__ = [
     "unified_diff",
 ]
 
+#: The markers are the block's identity in the owner's file. They still say "regional"
+#: although the block now also carries the independent-index flips: renaming them would
+#: orphan any previously applied block (`remove_block` would no longer find it).
 BEGIN_MARKER = "# >>> harness:search-expansion regional engines >>>"
 END_MARKER = "# <<< harness:search-expansion regional engines <<<"
 
 _STATUS_WORKS = "works"
+#: Enabled in the block by decision, but measured answering 429 - see the module header.
+_STATUS_RATE_LIMITED = "rate-limited"
+#: Measured/evidenced dead: rendered as `disabled: true` to override any force-enable.
+_STATUS_DEAD = "dead"
+_ON_STATUSES = frozenset({_STATUS_WORKS, _STATUS_RATE_LIMITED})
 
 
 class ConflictError(RuntimeError):
@@ -49,7 +89,15 @@ class ConflictError(RuntimeError):
 
 @dataclass(frozen=True)
 class EngineSpec:
-    """One SearXNG engine, with the verdict measured against the live instance."""
+    """One SearXNG engine, with the verdict measured against the live instance.
+
+    ``status`` is observed behaviour. Three values drive rendering: ``works`` and
+    ``rate-limited`` are switched ON (``disabled: false``), ``dead`` is switched OFF
+    (``disabled: true``); any other value (``blocked``, ``silent-fail``, ``broken``) is
+    documented as an inert comment. ``extra`` holds further ``key: value`` pairs rendered
+    verbatim under the entry - the smallest extension that lets one entry say
+    ``inactive: false`` and ``api_key: public``.
+    """
 
     name: str
     shortcut: str
@@ -57,10 +105,22 @@ class EngineSpec:
     status: str
     detail: str
     timeout: float = 6.0
+    extra: tuple[tuple[str, str], ...] = ()
 
     @property
     def works(self) -> bool:
+        """Measured returning results. The only status query routing may target."""
         return self.status == _STATUS_WORKS
+
+    @property
+    def switched_on(self) -> bool:
+        """Rendered with ``disabled: false`` (measured working, or rate-limited-by-plan)."""
+        return self.status in _ON_STATUSES
+
+    @property
+    def switched_off(self) -> bool:
+        """Rendered with ``disabled: true`` (measured dead)."""
+        return self.status == _STATUS_DEAD
 
 
 #: Measured 2026-07-24. `status` is the observed behaviour, not an aspiration.
@@ -81,39 +141,90 @@ REGIONAL_ENGINES: tuple[EngineSpec, ...] = (
     EngineSpec("qwant", "qw", "FR", "broken", "access denied", 6.0),
 )
 
+#: Default-mix flips measured 2026-09-02 (module header has the receipts). Kept apart from
+#: `REGIONAL_ENGINES` so query routing, which fans out over that table, is unchanged.
+INDEPENDENT_ENGINES: tuple[EngineSpec, ...] = (
+    EngineSpec(
+        "google",
+        "go",
+        "global",
+        _STATUS_DEAD,
+        "keyless scraping dead (Whoogle EOL 2026-07-24, searxng#6359 closed 2026-08-22); "
+        "upstream ships it disabled, checked 2026-09-02",
+    ),
+    EngineSpec(
+        "mwmbl",
+        "mwm",
+        "independent",
+        _STATUS_WORKS,
+        "api.mwmbl.org/api/v1/search probed 2026-09-02: HTTP 200, 44 results, 0.41 s; "
+        "keyless; upstream ships it disabled",
+        6.0,
+    ),
+    EngineSpec(
+        "marginalia",
+        "mar",
+        "independent",
+        _STATUS_RATE_LIMITED,
+        "api2.marginalia-search.com with the shared `public` key: HTTP 429 QPM Limit "
+        "Exceeded at FIRST touch, 2026-09-02; on by plan G-3, fails truthfully - put a "
+        "personal key in `extra` to make it useful",
+        6.0,
+        (("inactive", "false"), ("api_key", "public")),
+    ),
+)
+
+#: Everything the block manages, in render order: regional first, then the flips.
+MANAGED_ENGINES: tuple[EngineSpec, ...] = REGIONAL_ENGINES + INDEPENDENT_ENGINES
+
 
 def enabled_specs(
     specs: tuple[EngineSpec, ...] = REGIONAL_ENGINES,
 ) -> tuple[EngineSpec, ...]:
-    """The engines this block will switch on — measured-working ones only."""
+    """The measured-WORKING engines - the ones query planning may route to.
+
+    Narrower than what the block switches on: a ``rate-limited`` engine is rendered
+    ``disabled: false`` (see :attr:`EngineSpec.switched_on`) but is excluded here, because
+    an explicit ``engines=<name>`` call to an engine that answers 429 is a wasted call.
+    """
     return tuple(s for s in specs if s.works)
 
 
-def render_engines_block(specs: tuple[EngineSpec, ...] = REGIONAL_ENGINES) -> str:
+def render_engines_block(specs: tuple[EngineSpec, ...] = MANAGED_ENGINES) -> str:
     """Render the managed YAML block.
 
     Emits a partial engine list, which `use_default_settings: true` merges by name into the
-    built-in definitions — so only the keys being changed appear. Engines that failed the
-    live probe are emitted as comments: visible, documented, and inert.
+    built-in definitions — so only the keys being changed appear: ``disabled`` (both
+    directions), ``timeout`` for switched-on engines, and any ``extra`` pairs verbatim.
+    Engines that failed the live probe are emitted as comments: visible, documented, inert.
     """
     lines = [
         BEGIN_MARKER,
-        "# Regional engines verified against this instance on 2026-07-24.",
+        "# Regional engines verified against this instance on 2026-07-24;",
+        "# independent-index flips (google off, mwmbl + marginalia on) measured 2026-09-02.",
         "# Managed block - edit via tools/search-expansion/searxng_regional.py.",
         "# NOTE: a disabled engine is STILL reachable via `engines=<name>` or `!<shortcut>`;",
         "# this block only controls what joins the DEFAULT result mix.",
         "engines:",
     ]
     for spec in specs:
-        if not spec.works:
+        if spec.switched_on:
+            lines += [
+                f"  # {spec.region}: {spec.detail} (bang !{spec.shortcut})",
+                f"  - name: {spec.name}",
+                "    disabled: false",
+                f"    timeout: {spec.timeout}",
+            ]
+        elif spec.switched_off:
+            lines += [
+                f"  # {spec.region}: {spec.detail} (bang !{spec.shortcut})",
+                f"  - name: {spec.name}",
+                "    disabled: true",
+            ]
+        else:
             continue
-        lines += [
-            f"  # {spec.region}: {spec.detail} (bang !{spec.shortcut})",
-            f"  - name: {spec.name}",
-            "    disabled: false",
-            f"    timeout: {spec.timeout}",
-        ]
-    broken = [s for s in specs if not s.works]
+        lines += [f"    {key}: {value}" for key, value in spec.extra]
+    broken = [s for s in specs if not (s.switched_on or s.switched_off)]
     if broken:
         lines.append("  # Measured NOT working on 2026-07-24 - left off deliberately.")
         lines.append(

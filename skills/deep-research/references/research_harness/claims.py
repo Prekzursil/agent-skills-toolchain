@@ -11,7 +11,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 CLAIM_KINDS = frozenset({"fact", "inference", "forecast", "opinion"})
-SUPPORT_VERDICTS = frozenset({"supported", "partial", "unsupported", "unchecked"})
+# ``contradicted`` (Lens 12 find 9): the cited sources assert *different* values
+# for the claim. Checked (it went through the verifier) but not supported, and
+# not an audit issue on its own - the report carries a "Disputed" callout
+# (``conflicts.Dispute.callout``) showing both values instead of picking one.
+CONTRADICTED = "contradicted"
+SUPPORT_VERDICTS = frozenset(
+    {"supported", "partial", "unsupported", "unchecked", CONTRADICTED}
+)
 
 LOCATION_TYPES = frozenset(
     {

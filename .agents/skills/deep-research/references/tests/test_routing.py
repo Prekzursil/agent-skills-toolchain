@@ -140,14 +140,21 @@ def test_classifier_vuln_tokens_guarded_against_false_positives():
 def test_vuln_capability_routes_cve_mcp_in_order():
     providers = resolve_providers("vuln")
     keys = [p.key for p in providers]
+    # Exact cve-mcp@0.2.0 tool names (see hacktricks/references/security-mcp-
+    # routing.md): by-id NVD lookup, keyword NVD search, CISA KEV catalog search.
     assert keys == [
-        "cve-mcp.cve_lookup",
-        "cve-mcp.cve_search",
-        "cve-mcp.cve_kev_list",
+        "cve-mcp.nvd_get",
+        "cve-mcp.nvd_search",
+        "cve-mcp.kev_search",
     ]
     assert all(p.server == "cve-mcp" for p in providers)
     # cve-mcp carries an authoritative (A) source-tier prior.
     assert providers[0].source_tier == routing.TIER_A
+
+
+def test_stale_cve_tool_names_are_gone_from_the_table():
+    tools = {p.tool for p in routing.all_provider_specs()}
+    assert not tools & {"cve_lookup", "cve_search", "cve_kev_list"}
 
 
 def test_web_inserts_searxng_keyfree_corroborator_ahead_of_keyed():
@@ -181,3 +188,157 @@ def test_vuln_live_filter_degrades_gracefully():
     # cve-mcp down -> vuln resolves to no providers (caller falls back to web).
     assert resolve_providers("vuln", live_servers={"firecrawl"}) == []
     assert resolve_providers("vuln", live_servers={"cve-mcp"})[0].server == "cve-mcp"
+
+
+# --- Wave 2/3 routes: academic SearXNG science lane, deep_research, council ---
+
+
+def test_all_provider_specs_is_distinct_and_covers_every_capability():
+    specs = routing.all_provider_specs()
+    identities = [(p.server, p.tool, p.params) for p in specs]
+    assert len(identities) == len(set(identities))
+    for providers in routing.ROUTING_TABLE.values():
+        for provider in providers:
+            assert provider in specs
+
+
+def test_provider_params_default_empty_and_key_stays_server_dot_tool():
+    plain = routing.Provider("searxng", "searxng_web_search", routing.TIER_B)
+    assert plain.params == ()
+    assert plain.default_params == {}
+    assert plain.key == "searxng.searxng_web_search"
+    assert plain.label == "searxng.searxng_web_search"
+
+
+def test_academic_gains_searxng_science_route_after_existing_providers():
+    providers = resolve_providers("academic")
+    keys = [p.key for p in providers]
+    assert keys[:2] == ["scholarly-access.paper_resolve", "huggingface.paper_search"]
+    science = providers[2]
+    # ENABLE, not build: pure parameter routing on the existing SearXNG tool.
+    assert science.key == "searxng.searxng_web_search"
+    assert science.default_params == {"categories": "science"}
+    assert science.label == "searxng.searxng_web_search(categories=science)"
+    assert science.source_tier == routing.TIER_B
+
+
+def test_searxng_science_route_is_distinct_from_plain_web_route():
+    web_searxng = next(p for p in resolve_providers("web") if p.server == "searxng")
+    science = resolve_providers("academic")[2]
+    assert web_searxng != science
+    assert web_searxng.default_params == {}
+
+
+def test_deep_research_routes_perplexity_then_exa_firecrawl_tavily_research():
+    keys = [p.key for p in resolve_providers("deep_research")]
+    assert keys == [
+        "perplexity.pplx_deep_research",
+        "exa.agent_create_run",
+        "firecrawl.firecrawl_agent",
+        "tavily.tavily_research",
+    ]
+
+
+def test_council_routes_pplx_council_then_agent_fallbacks():
+    keys = [p.key for p in resolve_providers("council")]
+    assert keys == [
+        "perplexity.pplx_council",
+        "exa.agent_create_run",
+        "firecrawl.firecrawl_agent",
+    ]
+
+
+def test_deprecated_exa_deep_researcher_is_not_routed():
+    tools = {p.tool for p in routing.all_provider_specs()}
+    assert "deep_researcher_start" not in tools
+    assert "deep_researcher_check" not in tools
+
+
+def test_classifier_routes_deep_research_and_council_phrasings():
+    assert (
+        classify_capability(
+            "Deep research: the full landscape of solid-state batteries"
+        )
+        == "deep_research"
+    )
+    assert (
+        classify_capability("Write a comprehensive report on EU AI Act enforcement")
+        == "deep_research"
+    )
+    assert (
+        classify_capability("Get a council of models to weigh in on this design")
+        == "council"
+    )
+    assert classify_capability("Convene a multi-model panel on the trade-offs") == (
+        "council"
+    )
+
+
+def test_domain_rules_still_beat_deep_research_phrasing():
+    assert classify_capability("Deep research on CVE-2024-3094 exploit chain") == "vuln"
+    assert (
+        classify_capability("Comprehensive report on this protein pathway paper")
+        == "bio"
+    )
+
+
+def test_perplexity_down_routes_around_to_the_fallback_chain():
+    live = {"exa", "firecrawl", "tavily", "searxng", "scholarly-access", "huggingface"}
+    providers, via = routing.resolve_with_fallback("deep_research", live)
+    assert via is None  # still on its own chain
+    assert [p.key for p in providers][:2] == [
+        "exa.agent_create_run",
+        "firecrawl.firecrawl_agent",
+    ]
+
+
+def test_capability_fallback_walks_academic_then_web_when_chain_is_dead():
+    live = {"scholarly-access", "searxng"}
+    providers, via = routing.resolve_with_fallback("deep_research", live)
+    assert via == "academic"
+    assert providers[0].key == "scholarly-access.paper_resolve"
+
+    providers, via = routing.resolve_with_fallback("deep_research", {"searxng"})
+    # academic's searxng-science entry is live, so academic still answers.
+    assert via == "academic"
+    assert providers[0].default_params == {"categories": "science"}
+
+    providers, via = routing.resolve_with_fallback("council", {"firecrawl"})
+    assert via is None
+    assert [p.key for p in providers] == ["firecrawl.firecrawl_agent"]
+
+    providers, via = routing.resolve_with_fallback("council", {"tavily"})
+    # council -> synthesis has no live provider -> web has tavily.
+    assert via == "web"
+    assert providers[0].key == "tavily.tavily_search"
+
+    assert routing.resolve_with_fallback("vuln", set()) == ([], None)
+
+
+def test_capability_fallback_respects_top_n():
+    providers, via = routing.resolve_with_fallback(
+        "deep_research", {"searxng", "tavily", "exa"}, top_n=1
+    )
+    assert via is None
+    assert [p.key for p in providers] == ["exa.agent_create_run"]
+
+
+def test_metered_tools_and_async_companions_are_declared():
+    for key in (
+        "perplexity.pplx_deep_research",
+        "perplexity.pplx_council",
+        "exa.agent_create_run",
+        "firecrawl.firecrawl_agent",
+        "tavily.tavily_research",
+    ):
+        provider = next(p for p in routing.all_provider_specs() if p.key == key)
+        assert routing.is_metered(provider), key
+    assert not routing.is_metered(routing.PERPLEXITY_SMART)
+    assert routing.ASYNC_COMPANIONS["perplexity.pplx_deep_research"] == (
+        "pplx_deep_research_start",
+        "pplx_research_status",
+    )
+    assert routing.ASYNC_COMPANIONS["exa.agent_create_run"] == (
+        "agent_wait_for_run",
+        "agent_get_run_output",
+    )

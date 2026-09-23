@@ -1,0 +1,384 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {
+        "listChanged": false
+      },
+      "resources": {
+        "subscribe": false,
+        "listChanged": false
+      },
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "serverInfo": {
+      "name": "local-deep-research",
+      "version": "1.29.1"
+    },
+    "instructions": "AI-powered deep research assistant with iterative analysis using LLMs and web searches"
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "quick_research",
+        "description": "\n    Perform quick research on a topic.\n\n    This tool performs a fast research summary on the given query. It searches\n    the web, analyzes sources, and generates a concise summary with findings.\n\n    IMPORTANT: This is a synchronous operation that typically takes 1-5 minutes\n    to complete depending on the complexity and configuration.\n\n    Args:\n        query: The research question or topic to investigate.\n        search_engine: Search engine to use (e.g., \"wikipedia\", \"arxiv\", \"searxng\").\n                      Use list_search_engines() to see available options.\n        strategy: Research strategy to use (e.g., \"source-based\", \"rapid\", \"iterative\").\n                 Use list_strategies() to see available options.\n        iterations: Number of search iterations (1-10). More iterations = deeper research.\n        questions_per_iteration: Questions to generate per iteration (1-5).\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - summary: The research summary text\n        - findings: List of detailed findings from each search\n        - sources: List of source URLs discovered\n        - iterations: Number of iterations performed\n        - error: Error message (only if status is \"error\")\n        - error_type: Error classification (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "search_engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Search Engine"
+            },
+            "strategy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Strategy"
+            },
+            "iterations": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Iterations"
+            },
+            "questions_per_iteration": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Questions Per Iteration"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "title": "quick_researchArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "quick_researchOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "detailed_research",
+        "description": "\n    Perform detailed research with comprehensive analysis.\n\n    This tool performs a thorough research analysis on the given query, returning\n    structured data with detailed findings, sources, and metadata.\n\n    IMPORTANT: This is a synchronous operation that typically takes 5-15 minutes\n    to complete depending on the complexity and configuration.\n\n    Args:\n        query: The research question or topic to investigate.\n        search_engine: Search engine to use (e.g., \"wikipedia\", \"arxiv\", \"searxng\").\n        strategy: Research strategy to use (e.g., \"source-based\", \"iterative\", \"evidence\").\n        iterations: Number of search iterations (1-10). More iterations = deeper research.\n        questions_per_iteration: Questions to generate per iteration (1-5).\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - query: The original query\n        - research_id: Unique identifier for this research\n        - summary: The research summary text\n        - findings: List of detailed findings\n        - sources: List of source URLs\n        - iterations: Number of iterations performed\n        - metadata: Additional metadata (timestamp, search_tool, strategy)\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "search_engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Search Engine"
+            },
+            "strategy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Strategy"
+            },
+            "iterations": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Iterations"
+            },
+            "questions_per_iteration": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Questions Per Iteration"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "title": "detailed_researchArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "detailed_researchOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "generate_report",
+        "description": "\n    Generate a comprehensive markdown research report.\n\n    This tool generates a full structured research report with sections,\n    citations, and comprehensive analysis. The output is formatted as markdown.\n\n    IMPORTANT: This is a synchronous operation that typically takes 10-30 minutes\n    to complete due to the comprehensive nature of the report.\n\n    Args:\n        query: The research question or topic for the report.\n        search_engine: Search engine to use (e.g., \"wikipedia\", \"arxiv\", \"searxng\").\n        searches_per_section: Number of searches per report section (1-10). Default is 2.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - content: The full report content in markdown format\n        - metadata: Report metadata (timestamp, query)\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "search_engine": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Search Engine"
+            },
+            "searches_per_section": {
+              "default": 2,
+              "title": "Searches Per Section",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "title": "generate_reportArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "generate_reportOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "analyze_documents",
+        "description": "\n    Search and analyze documents in a local collection.\n\n    This tool performs RAG (Retrieval Augmented Generation) search on a\n    local document collection and generates a summary of relevant findings.\n\n    Args:\n        query: The search query for the documents.\n        collection_name: Name of the local document collection to search.\n        max_results: Maximum number of documents to retrieve (1-100). Default is 10.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - summary: Summary of findings from the documents\n        - documents: List of matching documents with content and metadata\n        - collection: Name of the collection searched\n        - document_count: Number of documents found\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "collection_name": {
+              "title": "Collection Name",
+              "type": "string"
+            },
+            "max_results": {
+              "default": 10,
+              "title": "Max Results",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "query",
+            "collection_name"
+          ],
+          "title": "analyze_documentsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "analyze_documentsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "search",
+        "description": "\n    Search using a specific engine and return raw results without LLM processing.\n\n    This tool performs a direct search query against the specified engine and\n    returns raw results (title, link, snippet). No LLM is involved, making it\n    fast and free of LLM costs.\n\n    IMPORTANT: This is a fast operation, typically completing in 5-30 seconds.\n\n    Args:\n        query: The search query string.\n        engine: Search engine to use (e.g., \"arxiv\", \"wikipedia\", \"searxng\", \"brave\").\n                This is required — use list_search_engines() to see available options.\n        max_results: Maximum number of results to return (1-100). Default is 10.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - query: The original query\n        - engine: The engine used\n        - result_count: Number of results returned\n        - results: List of results, each with title, link, and snippet\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {
+            "query": {
+              "title": "Query",
+              "type": "string"
+            },
+            "engine": {
+              "title": "Engine",
+              "type": "string"
+            },
+            "max_results": {
+              "default": 10,
+              "title": "Max Results",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "query",
+            "engine"
+          ],
+          "title": "searchArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "searchOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "list_search_engines",
+        "description": "\n    List available search engines.\n\n    Returns a list of search engines that can be used with the research tools.\n    Each engine has different strengths - some are better for academic research,\n    others for current events, etc.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - engines: List of available search engine configurations\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {},
+          "title": "list_search_enginesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "list_search_enginesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "list_strategies",
+        "description": "\n    List available research strategies.\n\n    Returns a list of research strategies that can be used with the research tools.\n    Each strategy has different characteristics suited for different types of queries.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - strategies: List of available strategies with names and descriptions\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {},
+          "title": "list_strategiesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "list_strategiesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "get_configuration",
+        "description": "\n    Get current server configuration.\n\n    Returns the current configuration settings being used by the MCP server,\n    including LLM provider, default search engine, and other settings.\n\n    Returns:\n        Dictionary containing:\n        - status: \"success\" or \"error\"\n        - config: Current configuration settings\n        - error/error_type: Error info (only if status is \"error\")\n    ",
+        "inputSchema": {
+          "properties": {},
+          "title": "get_configurationArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "additionalProperties": true,
+              "title": "Result",
+              "type": "object"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "get_configurationOutput",
+          "type": "object"
+        }
+      }
+    ]
+  }
+}
