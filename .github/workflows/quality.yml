@@ -53,9 +53,25 @@ on:
   # this change removes the need for. `push:` stays pinned to main, so no branch push gains a run.
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner-type:
+        description: 'Runner type override (dispatch only; repo var QUALITY_RUNNER applies to all events)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - ubuntu-latest
+          - self-hosted
 
 permissions:
   contents: read
+
+env:
+  # Runner selection: Primary source is repo variable QUALITY_RUNNER (set via `gh variable set`).
+  # Dispatch input can override for single-run testing. Defaults to ubuntu-latest if unset.
+  # Set QUALITY_RUNNER=self-hosted to use WSL runner for all events (push/PR/dispatch).
+  RUNNER_TYPE: ${{ github.event.inputs.runner-type || vars.QUALITY_RUNNER || 'ubuntu-latest' }}
 
 # `github.ref` is `refs/pull/<N>/merge` for a pull_request event, so this group key is already
 # unique per PR NUMBER and is entirely independent of the PR's BASE branch -- widening the
@@ -73,7 +89,7 @@ concurrency:
 jobs:
   lint:
     name: gate-lint-format (ruff)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -126,7 +142,7 @@ jobs:
 
   types:
     name: gate-types (basedpyright)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -238,7 +254,7 @@ jobs:
 
   test-node:
     name: gate-tests-coverage (node workspaces)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -282,7 +298,7 @@ jobs:
 
   test-python:
     name: gate-tests-coverage (python packages)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -1601,7 +1617,7 @@ jobs:
   # and read the number before choosing a floor.
   test-platform:
     name: gate-tests-coverage (platform)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1613,7 +1629,7 @@ jobs:
           # was never run under would make its first execution the experiment.
           python-version: "3.12"
       - name: gate-tests-coverage platform (pinned deps)
-        run: pip install pytest==8.3.3 jsonschema==4.25.1
+        run: pip install pytest==8.3.3 jsonschema==4.25.1 cffi
       # Collection is asserted SEPARATELY and first. Three of the four fresh-clone rounds above
       # failed at COLLECTION, not on an assertion, and a bare `pytest` reports that as a generic
       # non-zero exit. Failing here names the cause instead: an import or data dependency is
@@ -1632,7 +1648,7 @@ jobs:
 
   sast:
     name: gate-sast (opengrep)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 4 — static security analysis with the CURATED in-repo ruleset under
@@ -1678,7 +1694,7 @@ jobs:
 
   secrets:
     name: gate-secrets (gitleaks)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     permissions:
       contents: read
       pull-requests: read
@@ -1754,7 +1770,7 @@ jobs:
 
   deps:
     name: gate-deps (osv-scanner)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE

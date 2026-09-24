@@ -109,6 +109,16 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner-type:
+        description: 'Runner type (empty=use repo variable, ubuntu-latest=GitHub, self-hosted=local WSL)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - ubuntu-latest
+          - self-hosted
 
 permissions:
   contents: read
@@ -120,7 +130,7 @@ concurrency:
 jobs:
   hook-audit:
     name: gate-hook-audit
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

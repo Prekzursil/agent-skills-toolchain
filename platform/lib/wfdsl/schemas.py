@@ -74,21 +74,41 @@ def load_all() -> dict[str, dict[str, Any]]:
     return out
 
 
-def _forbid_retrieve(uri: str):  # noqa: ANN202 - referencing callback
+def _retrieve_schema(uri: str) -> Resource:  # noqa: ANN202 - referencing callback
+    """Retrieve a schema from our local offline collection by URI.
+
+    This is called when the referencing library encounters a $ref that needs resolution.
+    We look up the schema in our loaded docs and return it as a Resource.
+    """
+    docs = load_all()
+    if uri in docs:
+        return Resource.from_contents(docs[uri], default_specification=DRAFT202012)
+    # If not found locally, refuse the fetch
     raise NoSuchResource(
-        ref=f"offline registry refused to fetch {uri!r}: every $ref must resolve to a local schema document"
+        ref=f"offline registry cannot resolve {uri!r}: not in local schema set. Known: {sorted(docs)}"
     )
 
 
 @lru_cache(maxsize=1)
 def registry() -> Registry:
-    """A fully offline :class:`referencing.Registry` over the local schema set."""
-    resources: list[tuple[str, Resource]] = []
-    for schema_id, doc in load_all().items():
-        resources.append(
-            (schema_id, Resource.from_contents(doc, default_specification=DRAFT202012))
-        )
-    return Registry(retrieve=_forbid_retrieve).with_resources(resources)
+    """A fully offline :class:`referencing.Registry` over the local schema set.
+
+    Registers each schema by its $id with the referencing module so that $ref
+    with JSON Pointer fragments can be resolved. The referencing module will
+    extract the fragment, load the base schema, and navigate the JSON Pointer.
+
+    Uses a custom retrieve function to handle schema lookups, ensuring that
+    all $refs to registered schemas are resolved from our local collection.
+    """
+    docs = load_all()
+    reg = Registry(retrieve=_retrieve_schema)
+
+    # Pre-register all schemas so they're immediately available
+    for schema_id, doc in docs.items():
+        resource = Resource.from_contents(doc, default_specification=DRAFT202012)
+        reg = reg.with_resource(schema_id, resource)
+
+    return reg
 
 
 @lru_cache(maxsize=None)
