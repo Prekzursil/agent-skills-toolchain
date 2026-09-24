@@ -91,9 +91,15 @@ def registry() -> Registry:
     docs = load_all()
     resources: list[tuple[str, Resource]] = []
     for schema_id, doc in docs.items():
-        resources.append(
-            (schema_id, Resource.from_contents(doc, default_specification=DRAFT202012))
-        )
+        # Create resource with explicit URI to ensure referencing library can resolve external $refs with fragments
+        resource = Resource.from_contents(doc, default_specification=DRAFT202012)
+        # Use at_uri() to explicitly bind the schema URI so fragment resolution works
+        try:
+            resource = resource.at_uri(schema_id)
+        except AttributeError:
+            # Fallback for older referencing library versions that don't have at_uri()
+            pass
+        resources.append((schema_id, resource))
     # Build the registry and ensure fragment resolution works
     reg = Registry(retrieve=_forbid_retrieve).with_resources(resources)
     return reg
