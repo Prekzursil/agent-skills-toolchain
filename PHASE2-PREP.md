@@ -5,15 +5,33 @@
 
 ## Dependabot PRs to Triage
 
-The following PRs require review, rebase, local test, and merge sequencing:
+The following PRs require review, rebase, local test, and merge sequencing (scanned 2026-09-24):
 
-| PR | Type | Branch | Status |
-|----|------|--------|--------|
-| #338-#343 | Batch | Multiple | TODO: Scan for details |
-| #344 | Single | TBD | TODO: Scan for details |
-| #351 | Single | TBD | TODO: Scan for details |
-| #315/#324 | Linked | TBD | TODO: Scan for details |
-| #311 | Single | TBD | TODO: Scan for details |
+### Tier 1: Security-Critical Dependency Updates
+
+| PR | Package | Type | Current | Proposed | Status |
+|----|---------|------|---------|----------|--------|
+| #338 | hono | npm | 4.13.1 | 4.13.8 | Open (hacktricks-mcp-server) |
+| #340 | fast-uri | npm | 3.1.5 | 3.1.8 | Open (hacktricks-mcp-server) |
+| #342 | qs | npm | 6.15.3 | 6.16.0 | Open (hacktricks-mcp-server) |
+| #345 | @types/node | npm | 26.2.0 | 26.6.1 | Open (hacktricks-mcp-server, dev) |
+
+### Tier 2: Cross-Repo Updates (Browser Bridge)
+
+| PR | Package | Type | Current | Proposed | Status |
+|----|---------|------|---------|----------|--------|
+| #339 | qs | npm | 6.15.3 | 6.16.0 | Open (browser-bridge/chrome-bridge-mcp) |
+| #341 | fast-uri | npm | 3.1.5 | 3.1.8 | Open (browser-bridge/chrome-bridge-mcp) |
+| #346 | ws | npm | 8.21.1 | 8.21.3 | Open (browser-bridge/chrome-bridge-mcp, minor-patch) |
+| #347 | zod | npm | 3.25.76 | 4.6.5 | Open (browser-bridge/chrome-bridge-mcp) |
+| #348 | typescript | npm | 5.9.3 | 7.0.2 | Open (browser-bridge/chrome-bridge-mcp, dev) |
+
+### Tier 3: Build & CI Updates
+
+| PR | Package | Type | Current | Proposed | Status |
+|----|---------|------|---------|----------|--------|
+| #343 | uv | toolchain | N/A | update | Open (uv group across 3 directories) |
+| #344 | GitHub Actions | ci | N/A | updates | Open (actions-all group with 3 updates) |
 
 ## Phase 2 Actions
 
