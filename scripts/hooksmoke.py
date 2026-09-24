@@ -56,8 +56,17 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _expand(p: str) -> str:
+    """Expand ~ and environment variables the way the shell will at hook execution time,
+    so a discovery-mode existence check does not fail a valid `python ~/hooks/x.py` or
+    `python $HOME/hooks/x.py` as missing."""
+    return os.path.expanduser(os.path.expandvars(p))
+
 
 EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
 
@@ -351,10 +360,10 @@ def mechanism_cursor(workdir: Path, marker_dir: Path, timeout: int) -> dict:
 # ---------------------------------------------------------------------------------------------
 
 
-def synthetic_event(event: str, cwd: str) -> str:
+def synthetic_event(event: str, cwd: str, session_id: str = "hooksmoke") -> str:
     base = {
-        "session_id": "hooksmoke",
-        "transcript_path": os.path.join(cwd, "hooksmoke-transcript.jsonl"),
+        "session_id": session_id,
+        "transcript_path": os.path.join(cwd, f"{session_id}-transcript.jsonl"),
         "cwd": cwd,
         "hook_event_name": event,
     }
@@ -413,6 +422,12 @@ def live_dry_run(
         }
     rows = []
     cwd = str(Path.cwd())
+    # One fresh session id per invocation, shared by this run's synthetic events. A fixed
+    # id (the old "hooksmoke") let the tracked harness -- which treats a non-empty id as
+    # session-isolatable and persists session-keyed spools/cooldowns -- reuse an earlier
+    # run's state on --execute, so a later measurement could skip stateful behavior while
+    # its hook row still exited 0.
+    session_id = f"hooksmoke-{uuid.uuid4().hex[:12]}"
     for event, matcher, command, declared_timeout in iter_hook_commands(settings):
         # Interpreter and path checks (best effort, string-based; the real test is the run below)
         # shlex.split(posix=False) keeps a quoted interpreter path with spaces (e.g. Windows
@@ -424,7 +439,7 @@ def live_dry_run(
             parts = shlex.split(stripped, posix=False)
         except ValueError:
             parts = stripped.split()
-        first = parts[0].strip("\"'") if parts else ""
+        first = _expand(parts[0].strip("\"'")) if parts else ""
         interp_ok = shutil.which(first) is not None or Path(first).exists()
         # Detect script arguments from the tokenized command so single-quoted ('...'),
         # double-quoted ("...") and bare paths are all recognized across script types
@@ -434,7 +449,7 @@ def live_dry_run(
         scripts = [
             t.strip("\"'") for t in parts if t.strip("\"'").endswith(SCRIPT_EXTS)
         ]
-        path_ok = all(Path(p).exists() for p in scripts) if scripts else None
+        path_ok = all(Path(_expand(p)).exists() for p in scripts) if scripts else None
         if not execute:
             rc = 0 if (interp_ok and path_ok is not False) else 3
             rows.append(
@@ -458,7 +473,7 @@ def live_dry_run(
             proc = subprocess.run(
                 command,
                 shell=True,
-                input=synthetic_event(event, cwd),
+                input=synthetic_event(event, cwd, session_id),
                 capture_output=True,
                 text=True,
                 errors="replace",  # a hook emitting non-UTF-8 bytes must be recorded,
@@ -501,6 +516,7 @@ def live_dry_run(
     return {
         "settings": str(settings_path),
         "executed": execute,
+        "session_id": session_id,
         "hooks_total": len(rows),
         "hooks_exit0": len(ok),
         "hooks_failed": [r for r in rows if r["rc"] != 0],
