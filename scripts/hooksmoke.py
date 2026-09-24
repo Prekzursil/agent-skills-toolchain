@@ -10,6 +10,12 @@ Two independent measurements, both written to results/E5-<tool>-<platform>-<time
                                   what JSON each hook received on stdin. This is the class of failure the 2026
                                   Windows bug reports describe (hook composed for one shell, executed by another;
                                   silent deny; trust-hash after edit). A contract test cannot see it. This can.
+                                  COVERAGE BOUNDARY: only the five events above are exercised -- they are the
+                                  ones a single non-interactive echo turn can trigger. Other wired types
+                                  (PreCompact, PostToolUseFailure, SessionEnd, Notification, Subagent*,
+                                  PermissionRequest, WorktreeCreate) are listed in `events_not_covered` and
+                                  reported UNTESTED, never as passing, so all_fired cannot be misread as full
+                                  wired-event coverage.
 
   2. LIVE-DRY-RUN (--live <settings.json>)  Parses every hook command in the live settings file and invokes each
                                   one directly with a synthetic event on stdin, recording: path exists, interpreter
@@ -47,6 +53,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
+
+# Hook event types this mechanism test does NOT register or trigger. A single
+# non-interactive `claude -p` echo turn cannot deterministically produce a compaction, a
+# failed tool call, a subagent, a permission prompt, a worktree op, a notification, or a
+# clean session-end hook, so the instrument REPORTS these as untested instead of letting
+# all_fired read as "every wired hook event fires". Without this the documented per-event
+# claim could pass while a wired type silently never fired.
+UNCOVERED_EVENTS = [
+    "PreCompact",
+    "PostToolUseFailure",
+    "SessionEnd",
+    "Notification",
+    "SubagentStart",
+    "SubagentStop",
+    "PermissionRequest",
+    "WorktreeCreate",
+]
 
 MARKER_SCRIPT = r"""
 import json, os, sys, datetime
@@ -185,6 +208,12 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         "settings_used": str(workdir / ".claude" / "settings.json"),
         "events": fired,
         "all_fired": all(v["fired"] for v in fired.values()),
+        "events_not_covered": UNCOVERED_EVENTS,
+        "coverage_note": (
+            f"all_fired covers only the {len(EVENTS)} events a single echo session can "
+            f"trigger; {len(UNCOVERED_EVENTS)} wired event types are untested here, not "
+            "confirmed working"
+        ),
     }
 
 
@@ -418,6 +447,9 @@ def main():
                     f"   {ev:18s} fired={v['fired']}"
                     + (f" stdin_bytes={v['stdin_bytes']}" if v["fired"] else "")
                 )
+            uncovered = m.get("events_not_covered") or []
+            if uncovered:
+                print(f"   untested (not triggerable here): {', '.join(uncovered)}")
     if "live_dry_run" in report:
         live = report["live_dry_run"]
         mode = (

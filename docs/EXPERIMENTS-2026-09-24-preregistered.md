@@ -46,7 +46,7 @@ E4. Skill usage over time.
 - Prediction: at least 60 percent of currently exposed skills fire zero times in 30 days (the tool-registry-governance branch found 31 of 36 claude-only skills "reached nothing"; practitioner reports find 65 of 195 ever invoked).
 
 E5. Hooks actually fire, per platform, per tool.
-- Measurement: a smoke harness that starts a real session (`claude -p` with `--allowedTools` scoped; the Codex and cursor-agent equivalents) on the Windows box, triggers each wired hook's event, and asserts the hook's side effect (a marker file written by the hook).
+- Measurement: a smoke harness that starts a real session (`claude -p` with `--allowedTools` scoped; the Codex and cursor-agent equivalents) on the Windows box, triggers the hook events a single non-interactive turn can produce (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop), and asserts each hook's side effect (a marker file written by the hook). Wired event types a scripted echo turn cannot deterministically produce -- PreCompact, PostToolUseFailure, SessionEnd, Notification, Subagent*, PermissionRequest, WorktreeCreate -- are reported UNTESTED (`events_not_covered`), not asserted passing; closing that gap needs sessions that provoke each one.
 - Prediction: at least one of the 41 wired hooks does not fire in at least one tool on Windows (the 2026 bug reports on Cursor's PowerShell-versus-bash execution and Codex's hook trust hashing make this likely). Any hook that fails the smoke test is either fixed or removed within the week, with a decision record.
 
 E6. Duplicates are free to remove.
