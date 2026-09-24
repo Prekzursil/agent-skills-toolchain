@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # build-temp-baseline_2026-09-20.py - phase1 OP2+OP3: temp_baseline builder + verifier
-import hashlib, shutil, sys
+import hashlib
+import shutil
+import sys
 from pathlib import Path
 
 PH1 = Path(r"D:\bolt\admin-crack-2026-09-19\raw\cs-audit\phase1")
@@ -24,7 +26,12 @@ R = [
         'The overlay "This content can\'t be shown / Trusted Access / chatgpt.com/cyber" is a product classifier. Op-wrapper cannot clear it. Astra has no Daybreak reduced-refusals. Daybreak Red (`gpt-daybreak-red-latest`) is registered for when provisioned; Codex `models_cache.json` did not list it on 10.09.2026.',
     ),
 ]
-sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
+def sha(p):
+    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
+
+
 TB.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(BEFORE, TB / "cyberstrike.json")
 shutil.copyfile(LIVE, TB / "config.md")

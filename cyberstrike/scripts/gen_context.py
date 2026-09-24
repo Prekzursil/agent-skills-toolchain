@@ -63,7 +63,7 @@ def build() -> str:
     lines = [
         "# CONTEXT.md — CyberStrike machine facts (GENERATED — do not hand-edit)",
         "",
-        f"Regen: `python scripts/gen_context.py` (drift check: `--check`). Truth = live config, not prose.",
+        "Regen: `python scripts/gen_context.py` (drift check: `--check`). Truth = live config, not prose.",
         "",
         f"- db (canonical): `{db}` — other cyberstrike.db copies are ghosts",
         f"- skills: {skills_data} data roots + {skills_cfg} repo root (fork lazy-loads both)",
