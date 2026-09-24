@@ -55,6 +55,7 @@ import os
 import platform
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -62,6 +63,58 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def _kill_process_tree(proc: subprocess.Popen) -> None:
+    """Kill the whole tree of a shell hook, not just the shell. Under shell=True a timeout
+    otherwise reaps only the shell while its child (e.g. `sleep`) keeps running -- a
+    stateful hook would go on notifying/writing after being reported timed out."""
+    try:
+        if platform.system() == "Windows":
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                capture_output=True,
+                check=False,
+            )
+        else:
+            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except (ProcessLookupError, OSError):
+        pass
+    try:
+        proc.kill()
+    except OSError:
+        pass
+
+
+def _run_hook_captured(command: str, stdin: str, timeout: int):
+    """Run a shell hook in its own process group/session and, on timeout, kill that whole
+    group. Returns (rc, stdout, stderr); raises subprocess.TimeoutExpired (after killing
+    the tree) on timeout so the caller reports it as a timed-out row."""
+    if platform.system() == "Windows":
+        popen_kw = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    else:
+        popen_kw = {"start_new_session": True}  # own session/process group on POSIX
+    proc = subprocess.Popen(
+        command,
+        shell=True,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        errors="replace",
+        **popen_kw,
+    )
+    try:
+        out, err = proc.communicate(input=stdin, timeout=timeout)
+        return proc.returncode, out, err
+    except subprocess.TimeoutExpired:
+        _kill_process_tree(proc)
+        out, err = "", ""
+        try:
+            out, err = proc.communicate(timeout=5)
+        except (subprocess.TimeoutExpired, ValueError, OSError):
+            pass
+        raise subprocess.TimeoutExpired(command, timeout, output=out, stderr=err)
 
 
 def _expand(p: str) -> str:
@@ -294,13 +347,13 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         # or any other OS-level spawn failure. Without this, rc/out/err would
         # be unbound and the return statement below would raise NameError.
         rc, out, err = -3, "", f"claude CLI could not be executed: {e}"
+    finally:
+        # Scrub the isolated config (the copied credential plus the CLI's own state) on
+        # every exit path -- including KeyboardInterrupt during the session, which
+        # subprocess.run re-raises past the except clauses -- so no credential copy is
+        # left behind in the retained throwaway tree.
+        shutil.rmtree(iso_cfg, ignore_errors=True)
     dur = round(time.time() - t0, 1)
-    # Do not leave a copy of the operator's credentials in the throwaway tree.
-    for cred in cred_names:
-        try:
-            (iso_cfg / cred).unlink(missing_ok=True)
-        except OSError:
-            pass
     fired = {}
     for ev in EVENTS:
         f = marker_dir / f"{ev}.marker.json"
@@ -551,17 +604,14 @@ def live_dry_run(
             continue
         t0 = time.time()
         try:
-            proc = subprocess.run(
+            # errors="replace" (inside the helper): a hook emitting non-UTF-8 bytes must be
+            # recorded, not abort the whole --live run while decoding streams. The helper
+            # runs the hook in its own process group so a timeout kills the whole tree.
+            rc, out, err = _run_hook_captured(
                 command,
-                shell=True,
-                input=synthetic_event(event, cwd, session_id),
-                capture_output=True,
-                text=True,
-                errors="replace",  # a hook emitting non-UTF-8 bytes must be recorded,
-                # not abort the whole --live run with UnicodeDecodeError while decoding streams
-                timeout=min(per_hook_timeout, declared_timeout),
+                synthetic_event(event, cwd, session_id),
+                min(per_hook_timeout, declared_timeout),
             )
-            rc, err, out = proc.returncode, proc.stderr, proc.stdout
         except subprocess.TimeoutExpired as e:
             stdout_str = (
                 (e.stdout or b"").decode("utf-8", errors="replace")
