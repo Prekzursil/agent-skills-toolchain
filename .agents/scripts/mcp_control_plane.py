@@ -214,16 +214,16 @@ def validate_registry(config: Mapping[str, Any]) -> None:
                 or not server["command"].strip()
             ):
                 raise RegistryError(f"{name}: stdio server requires command")
-        elif transport == "http":
+        elif transport in ("http", "sse"):
             url = server.get("url")
             if not isinstance(url, str) or not url.startswith(("http://", "https://")):
-                raise RegistryError(f"{name}: http server requires an HTTP(S) URL")
+                raise RegistryError(f"{name}: {transport} server requires an HTTP(S) URL")
             if server.get("command") is not None or server.get("args") is not None:
                 raise RegistryError(
-                    f"{name}: http transport cannot declare command or args"
+                    f"{name}: {transport} transport cannot declare command or args"
                 )
         else:
-            raise RegistryError(f"{name}: transport must be stdio or http")
+            raise RegistryError(f"{name}: transport must be stdio, http, or sse")
 
         singleton_key = server.get("singletonKey", name)
         if not isinstance(singleton_key, str) or not singleton_key.strip():
