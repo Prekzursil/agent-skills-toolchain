@@ -19,8 +19,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 QUALITY = REPO_ROOT / ".github" / "workflows" / "quality.yml"
 AUTOFIX = REPO_ROOT / ".github" / "workflows" / "autofix-models.yml"
 
-# Keep the two gitleaks call sites on one version.  The action gets it via the
-# GITLEAKS_VERSION env; the range-independent scan downloads the same tag.
+# The range-independent scan pins gitleaks by version: GITLEAKS_VERSION selects the
+# tag and the download URL derives from it, so the binary and the tag cannot drift apart.
 GITLEAKS_PINNED = "8.30.1"
 
 
@@ -76,12 +76,17 @@ def test_range_independent_scan_fails_the_job_on_a_finding() -> None:
     )
 
 
-def test_range_independent_scan_uses_the_same_pinned_gitleaks_as_the_action() -> None:
-    """Two scanners on two versions would disagree about the allowlist."""
+def test_range_independent_scan_pins_gitleaks_by_version() -> None:
+    """The scan's binary and its version must not be able to drift apart.
+
+    gate-secrets is now a SINGLE range-independent scan: the truncating, /tmp-fragile
+    ``gitleaks/gitleaks-action`` step was removed (see quality.yml). The one remaining
+    scanner pins its version through ``GITLEAKS_VERSION`` and derives its download URL
+    from that same variable, so there is no second literal to fall out of sync.
+    """
     text = quality_text()
-    assert f'GITLEAKS_VERSION: "{GITLEAKS_PINNED}"' in text
-    assert text.count(f'GITLEAKS_VERSION: "{GITLEAKS_PINNED}"') >= 2, (
-        "the action and the full-history scan must pin the same gitleaks version"
+    assert f'GITLEAKS_VERSION: "{GITLEAKS_PINNED}"' in text, (
+        "the range-independent scan must pin gitleaks to the reviewed version"
     )
     assert (
         "gitleaks/releases/download/v${GITLEAKS_VERSION}/"
