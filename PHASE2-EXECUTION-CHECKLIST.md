@@ -14,10 +14,10 @@ Before starting Phase 2, confirm ALL Phase 1 blockers are cleared:
 - [x] **Self-hosted runner:** ✅ **ONLINE and REGISTERED** — run #1344 confirms `home-wsl` (runner_id=21, labels=["self-hosted","linux"])
 - [x] **QUALITY_RUNNER variable:** ✅ **SET** — dispatch input `runner-type=self-hosted` is overriding and selecting self-hosted runner
 - [ ] **3 consecutive green runs:** All 8 gates passing (lint, types, test-node, test-python, test-platform, sast, secrets, deps)
-  - Run #1344: **IN PROGRESS** (python packages job running, ~1h estimated)
-  - Run #1345: **PENDING** (just queued with runner-type=self-hosted)
-  - Run #1346: _____ (to be triggered after #1344 completes)
-  - Run #1347: _____ (to be triggered after #1345 completes)
+  - Run #1344: ❌ **FAILED** (self-hosted picked up correctly, platform tests: 463 failed/3444 passed, need logs to diagnose root cause)
+  - Run #1345: ⏳ **PENDING** (queued, not yet started)
+  - Run #1346: ⏳ **QUEUED NOW** (dispatched with runner-type=self-hosted for detailed error capture)
+  - Run #1347: _____ (to be triggered after #1346 completes)
 - [ ] **Latest main is green:** Commit ad80d532 (Session summary) — awaiting run #1344 completion
 
 ---
