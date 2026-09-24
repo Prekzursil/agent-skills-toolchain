@@ -177,6 +177,11 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         )
     except FileNotFoundError as e:
         rc, out, err = -2, "", f"claude CLI not found: {e}"
+    except OSError as e:
+        # e.g. the claude path exists but is not executable (PermissionError),
+        # or any other OS-level spawn failure. Without this, rc/out/err would
+        # be unbound and the return statement below would raise NameError.
+        rc, out, err = -3, "", f"claude CLI could not be executed: {e}"
     dur = round(time.time() - t0, 1)
     fired = {}
     for ev in EVENTS:
