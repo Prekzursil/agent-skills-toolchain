@@ -282,7 +282,7 @@ The E5 instrument (`hooksmoke.py`, committed with this report) was run for real 
 
 ### 9.4b Pre-registered experiments
 
-Every claim in this report that matters for a decision has a corresponding experiment with a prediction written before any run, in the companion file `preregistered_experiments.md` (E1 to E10: does the plugin help at all; always-on rules; skill exposure; skill usage over 30 days; hooks firing per platform in real sessions; duplicates are free to remove; MCP surface; model-release rot; decision permanence; lane convergence). Several predictions are uncomfortable on purpose: E1 predicts the plugin as a whole moves the golden-suite score by less than five points; E5 predicts at least one wired hook does not fire on Windows in at least one tool. If those predictions fail, the corresponding recommendations in this report are wrong, and the result file will say so.
+Every claim in this report that matters for a decision has a corresponding experiment with a prediction written before any run, in the companion file `docs/EXPERIMENTS-2026-09-24-preregistered.md` (E1 to E10: does the plugin help at all; always-on rules; skill exposure; skill usage over 30 days; hooks firing per platform in real sessions; duplicates are free to remove; MCP surface; model-release rot; decision permanence; lane convergence). Several predictions are uncomfortable on purpose: E1 predicts the plugin as a whole moves the golden-suite score by less than five points; E5 predicts at least one wired hook does not fire on Windows in at least one tool. If those predictions fail, the corresponding recommendations in this report are wrong, and the result file will say so.
 
 ### 9.5 Sequence
 
