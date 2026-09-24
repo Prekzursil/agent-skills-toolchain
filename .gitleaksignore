@@ -136,7 +136,7 @@ c3cde97bd6d807800a1f6201c126f55915f6c247:library/skills/tooluniverse-organic-che
 # ---------------------------------------------------------------------------------------
 # 2026-09-24 -- cyberstrike engagement memory: AWS key credential from historical audit.
 #
-# cyberstrike/memory/2026-09-03.md:35 contains a reference to AWS key AKIA2XMMYNW7DGDNLO2W
+# cyberstrike/memory/2026-09-03.md:35 contains a reference to AWS key ending `LO2W`
 # found in a historical Jira data mirror during a security audit on 2026-09-03. The file
 # documents that the key was marked "deactivated" at discovery time.
 #
@@ -149,3 +149,43 @@ c3cde97bd6d807800a1f6201c126f55915f6c247:library/skills/tooluniverse-organic-che
 # gitleaks will produce a new fingerprint and the gate will correctly fail until that is
 # also reviewed.
 a817ab7ec731e98ec8a45b8a3198fae06b379700:cyberstrike/memory/2026-09-03.md:aws-access-token:35
+
+# ---------------------------------------------------------------------------------------
+# 2026-09-24 -- NINE self-inflicted findings: agent handoff docs that PASTED the key while
+# writing up the waiver for it, plus the archive copy of the memory file.
+#
+# NOT a false positive. The same real AWS key ending `LO2W` as the a817ab7ec block above --
+# the one whose IAM status is still UNVERIFIED (see PHASE1-OWNER-ACTIONS.md). These ten
+# fingerprints waive only IMMUTABLE HISTORY; they do not retire the owner action.
+#
+# ROOT CAUSE, and it is the trap this very file warns about TWICE (see the e34d15a4 block:
+# "when documenting a false positive, never paste the string that triggers it"). Three
+# agent-authored documents reproduced the key verbatim while instructing a human to rotate
+# it:
+#   * PHASE1-OWNER-ACTIONS.md      (79f6b93f) -- 4 hits, an owner runbook for rotating it
+#   * GITHUB-ACTIONS-BILLING-BLOCK.md (d8dc086b) -- 4 hits, a gate-status writeup
+#   * .gitleaksignore itself       (c756f1a4) -- 1 hit, at line 139, in the a817ab7ec
+#     waiver comment directly above. Documenting the finding manufactured a new one, which
+#     is precisely the e34d15a4 shape repeating at the same offset in the same file.
+# The tenth is cyberstrike/memory-archive/2026-09-03.md (26362dc6): the memory file was
+# copied to an archive path, and a new path at a new commit is a new fingerprint even
+# though the a817ab7ec waiver already covered the original.
+#
+# FIXED AT HEAD: all nine live occurrences now refer to the key by its last four characters
+# only. HEAD carries no AKIA-shaped literal in any of these files (verified by regex sweep).
+# History is immutable and CI scans `--full-history HEAD`, so the blobs still report and
+# these fingerprints are what retire them -- nothing wider.
+#
+# THE DURABLE FIX is a habit, not a pattern: a rotation runbook identifies a credential by
+# location and last-4, never by value. An agent writing the next one should assume the
+# scanner reads its prose.
+79f6b93f543278a84db5ac87de08ae059ffb2152:PHASE1-OWNER-ACTIONS.md:aws-access-token:8
+79f6b93f543278a84db5ac87de08ae059ffb2152:PHASE1-OWNER-ACTIONS.md:aws-access-token:16
+79f6b93f543278a84db5ac87de08ae059ffb2152:PHASE1-OWNER-ACTIONS.md:aws-access-token:23
+79f6b93f543278a84db5ac87de08ae059ffb2152:PHASE1-OWNER-ACTIONS.md:aws-access-token:30
+c756f1a49625aa292a0dd1328f02c8f4f5d7867d:.gitleaksignore:aws-access-token:139
+d8dc086bb3ce95da5f601b8504a3cf692346333b:GITHUB-ACTIONS-BILLING-BLOCK.md:aws-access-token:23
+d8dc086bb3ce95da5f601b8504a3cf692346333b:GITHUB-ACTIONS-BILLING-BLOCK.md:aws-access-token:43
+d8dc086bb3ce95da5f601b8504a3cf692346333b:GITHUB-ACTIONS-BILLING-BLOCK.md:aws-access-token:54
+d8dc086bb3ce95da5f601b8504a3cf692346333b:GITHUB-ACTIONS-BILLING-BLOCK.md:aws-access-token:59
+26362dc6926475c4d033643431c5425db24679df:cyberstrike/memory-archive/2026-09-03.md:aws-access-token:35

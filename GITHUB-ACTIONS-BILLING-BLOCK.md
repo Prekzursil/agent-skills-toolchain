@@ -20,7 +20,7 @@ This confirms the **GitHub Actions billing limit remains exhausted** — the pla
 
 2. **Secrets gate fails at HEAD** (real AWS key in repo)
    - **FAIL DETECTED:** gitleaks found 1 leak at `cyberstrike/memory/2026-09-03.md` line 35
-   - AWS key: `AKIA2XMMYNW7DGDNLO2W` (marked "deactivated" but unverified)
+   - AWS key ending `LO2W` (marked "deactivated" but unverified)
    - Introduced by commit a817ab7ec (PR #349, Sept 22)
    - Fingerprint: `a817ab7ec731e98ec8a45b8a3198fae06b379700:cyberstrike/memory/2026-09-03.md:aws-access-token:35`
 
@@ -40,7 +40,7 @@ This confirms the **GitHub Actions billing limit remains exhausted** — the pla
 | Type checking | ✅ PASS | basedpyright (Sept 2 CI run #33604920925) |
 | Test coverage (Python) | ✅ PASS | pytest suite (Sept 2 CI run #33604920925) |
 | Test coverage (Node) | ✅ PASS | npm workspaces (Sept 2 CI run #33604920925) |
-| Secrets scanning | ❌ **FAILS** | AWS key AKIA2XMMYNW7DGDNLO2W found at line 35; gitleaks rc=1 |
+| Secrets scanning | ❌ **FAILS** | AWS key ending `LO2W` found at line 35; gitleaks rc=1 |
 | Dependency security | ✅ PASS | osv-scanner 2.5.1: "No issues found" (d999c94c3 fixed all 17 vulns) |
 | SAST (opengrep) | ✅ PASS | Sept 2 CI run #33604920925 |
 | Platform audit | ✅ PASS | Sept 2 CI run #33604920925 |
@@ -51,12 +51,12 @@ This confirms the **GitHub Actions billing limit remains exhausted** — the pla
 
 ### Priority 1: Fix the secrets gate (blocking all CI)
 
-1. **Verify AWS key status** in AWS IAM — is AKIA2XMMYNW7DGDNLO2W actually inactive/deleted?
+1. **Verify AWS key status** in AWS IAM — is the AWS key ending LO2W actually inactive/deleted?
    - If NOT inactive: **Rotate the key immediately** in AWS
 
 2. **Redact the key** from the repo:
    - Edit `cyberstrike/memory/2026-09-03.md` line 35
-   - Replace `AKIA2XMMYNW7DGDNLO2W` with a redacted marker (e.g., `[REDACTED]`)
+   - Replace the AWS key ending `LO2W` with a redacted marker (e.g., `[REDACTED]`)
 
 3. **Add historical waiver** to `.gitleaksignore`:
    - Add fingerprint: `a817ab7ec731e98ec8a45b8a3198fae06b379700:cyberstrike/memory/2026-09-03.md:aws-access-token:35`
