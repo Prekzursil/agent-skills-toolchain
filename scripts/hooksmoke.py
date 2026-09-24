@@ -467,9 +467,12 @@ def main():
         }[args.tool]
         report["mechanism"] = fn(workdir, marker_dir, args.timeout)
         report["mechanism"]["workdir"] = str(workdir)
-        if not report["mechanism"].get("skipped") and not report["mechanism"].get(
-            "all_fired"
-        ):
+        m = report["mechanism"]
+        if not m.get("skipped") and (not m.get("all_fired") or m.get("rc") != 0):
+            # A session that fired every marker hook but exited nonzero (e.g. its final
+            # response or API operation failed after Stop ran) is a failed measurement, not
+            # a clean E5 pass -- gate on rc as well as all_fired so automation cannot accept
+            # it as success.
             exit_code = 1
 
     if args.live:
