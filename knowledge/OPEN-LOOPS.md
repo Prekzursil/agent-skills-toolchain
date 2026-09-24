@@ -18,6 +18,8 @@ Last updated 2026-09-24 (plaintext policy; always-push D-05; L-01/02/03/11/12 cl
 | L-02 | **Undocumented employment history** beyond Dinu Plast and momentstudio | Owner stated salaried/internship work exists; none of it is written down anywhere. Intake interview is the only source | O | 2026-10-15 | **CLOSED 2026-09-24** | Owner confirmed **none** — Dinu Plast and momentstudio.ro are the complete work history. Closed as CONFIRMED EXHAUSTIVE, not as unknown: the Experience section is complete, not merely undocumented |
 | L-03 | **English CEFR level** — advanced, but C1 vs C2 unconfirmed | Languages section on every document | O | 2026-10-15 | **CLOSED 2026-09-24** | Owner: **C2**, no certificate cited. Render as the level alone |
 
+| L-20 | **13 CV facts still unsupplied** — #2 ChemRxiv DOI, #3 Zenodo DOI, #4 GRACE URLs+licence, **#5 Master's programme name + true months**, **#6 Bachelor's grad month, grade, thesis title + supervisor**, #11/#12 momentstudio.ro dates + may it be named, #13 Reframe URL+LICENSE, #14 ZHMModSDK upstream + merged PR, #16/#17 tracelines + llm-anthology (what they are), #18 which repo has the 8,000 test functions, #20 a durable personal email, #23 other languages actually used | No document is SENDABLE until these clear. #5/#6 are the highest value: the education block on every academic document, and a doctoral application is expected to list the thesis. #16/#17 currently render on NO view at all. Full detail and what each blocks: `cv/TODO-CONFIRM.md`; answers so far: `cv/OWNER-ANSWERS-2026-09-24.md` | O | 2026-10-15 | OPEN | |
+
 ## Reputational — must land before supervisor contact (doctorate is committed)
 
 | ID | Item | Why | Owner | Review by | Status | Evidence when closed |
