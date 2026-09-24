@@ -85,6 +85,41 @@ jobs:
               const { data } = await github.rest.issues.create({ owner, repo, title, body });
               core.info(`Opened #${data.number}`);
             }
+      - name: close the tracking issue on a clean run
+        # Only rc==0 (a real clean check). rc==2 is a blind run and must not touch the issue:
+        # it does not know whether the refs are clean, so it must not masquerade as resolved.
+        if: ${{ !cancelled() && steps.check.outputs.rc == '0' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const title = 'Stale refs: branches with no PR and no archive tag';
+            const { owner, repo } = context.repo;
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find((issue) => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `All previously stale refs are resolved: each now has a PR or an \`archive/\`/\`rescue/\` tag, or was deleted. Closing.\nRun: ${run}\n`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              core.info(`Closed #${existing.number}`);
+            } else {
+              core.info('No open tracking issue to close');
+            }
       - name: gate - fail on stale refs (1) or a check that could not run (2)
         if: ${{ !cancelled() && steps.check.outputs.rc != '0' }}
         env:
