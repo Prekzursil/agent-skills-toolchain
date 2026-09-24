@@ -24,7 +24,7 @@ Important context the transcript did not know: the user's real environment is Cl
 
 ## 2. Transcript fact-check
 
-Thirty concrete claims were extracted from the transcript and checked by two independent web-backed agents with opposite postures (primary-sources-first; assume-wrong-until-proven). They disagreed on three (C1, C5, C24); a third agent reconciled those from primary sources. Final tally: 6 TRUE, 11 MOSTLY TRUE, 11 EMBELLISHED, 2 FALSE. Full ledger with all sources: evidence file `fact_ledger.json`.
+Thirty concrete claims were extracted from the transcript and checked by two independent web-backed agents with opposite postures (primary-sources-first; assume-wrong-until-proven). They disagreed on three (C1, C5, C24); a third agent reconciled those from primary sources. Final tally: 6 TRUE, 11 MOSTLY TRUE, 11 EMBELLISHED, 2 FALSE. Full ledger with sources available in the session transcript.
 
 | id | Claim (short) | Verdict | What is actually the case | Primary source |
 |---|---|---|---|---|
@@ -316,7 +316,7 @@ The owner asked where the line is drawn, and how anyone knows nothing else is un
 
 ## 11. Blind re-derivation: what two agents found without seeing this report
 
-Method: two agents received the upload, read-only access to the repository and all its refs, the GitHub API, the web, and the owner's question in the owner's words. They were told not to look for prior analysis. One started from the repository, the other from the literature. Their full outputs are in the evidence file `blind_rederivation.json`; nothing in them was edited.
+Method: two agents received the upload, read-only access to the repository and all its refs, the GitHub API, the web, and the owner's question in the owner's words. They were told not to look for prior analysis. One started from the repository, the other from the literature. Their full outputs are in the session transcript; nothing was edited.
 
 Where they agree with this report, unprompted: the transcript is real in its nouns and wrong for this owner at the level that matters (a category error between an API-application stack and a vendor coding harness); LangGraph 1.0's date and DeepSeek Harness's category are wrong in the transcript; the "went back to LangGraph" line traces to one Medium editorial; the "10x" claim conflates Meta-Harness with a February 2026 blog benchmark on edit tools; the delivered code fails its own gates (both agents independently reproduced the silent ruff no-op and the `getattr(__builtins__, 'ev'+'al')` bypass); the corroboration by the second and third models is an anchored-judge chain; the repository already ran a larger version of this research in July 2026; main is red; and the root cause is convergence failure, not missing knowledge.
 
