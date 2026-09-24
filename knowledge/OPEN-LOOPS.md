@@ -8,7 +8,7 @@ This file is the anti-abandonment mechanism from
 Owner column: **O** = owner-only (I cannot do it), **C** = Claude can do it, **B** = both.
 Review-by exists so a decision expires into "re-examine" rather than becoming permanent truth.
 
-Last updated 2026-09-24.
+Last updated 2026-09-24 (private-estate plaintext policy; L-11 closed).
 
 ## Blocking — something cannot ship until these resolve
 
@@ -24,7 +24,7 @@ Last updated 2026-09-24.
 |---|---|---|---|---|---|---|
 | L-04 | **Personal-Finance-Management rename** — rename package and classes off `com.preethi.thrifty`, update manifest/gradle/imports, remove the "all rights reserved" line, README states it began from an uncredited template and diverged (~90% original) | Owner's account is that he used an unnamed uncredited template, not a knowing fork. The current package name implies another author, which is false. Renaming makes the repo more honest, not less. Does not erase git history — the defensible position is "diverged and renamed", never "no association existed" | C | 2026-10-10 | OPEN | |
 | L-05 | **ORCID corrections** — education entry currently credits the BSc to University of Bucharest; truth is Titu Maiorescu BSc + UB master's. Also normalise name to `Andrei-Mihai Visalon` and attach the ChemRxiv preprint and Zenodo deposit | Public record contradicts the CV. A supervisor cross-checking finds the mismatch. ~30 min of work | O | 2026-10-10 | OPEN | |
-| L-06 | **Two GitHub credentials exposed in a session transcript** (one fine-grained, one classic) | Rotate once current work completes. Owner handles credential lifecycle; Claude will never rotate | O | 2026-10-01 | OPEN | |
+| L-06 | **Three GitHub credentials exposed in a session transcript** (one fine-grained + one classic on 2026-09-23; a third fine-grained pasted 2026-09-24) | Rotate once current work completes. A transcript is not the vault: the private-estate plaintext policy permits credentials in the private repo, which is not the same as a credential sitting in a conversation log. Owner handles credential lifecycle; Claude will never rotate | O | 2026-10-01 | OPEN | |
 
 ## Gated — work exists but cannot be linked yet
 
@@ -39,11 +39,11 @@ Last updated 2026-09-24.
 | ID | Item | Why | Owner | Review by | Status | Evidence when closed |
 |---|---|---|---|---|---|---|
 | L-10 | **MCP project-key case collision** — cwd `C:\Users\prekzursil` (lowercase p) does not match the project key `C:/Users/Prekzursil` holding the 120-entry disable list, so at the real cwd nothing is disabled and all 88 servers launch | Root cause of both the ~30 server failures and the startup context cost. Fix is ADDITIVE (copy the list onto the lowercase key), never destructive. Must be done with the session closed; editing `.claude.json` while Claude runs clobbers it | C | 2026-10-01 | OPEN | |
-| L-11 | **estate-deny-guard defect** — `classify_command` splits the entire command string and tests every whitespace fragment as a candidate path, so prose inside a heredoc trips the secret-file rule on git-write commands | Blocked three legitimate operations this session. Fix: scope the scan to actual git pathspec arguments, and match credential VALUE shapes rather than an English word | C | 2026-10-15 | OPEN | |
+| L-11 | **estate-deny-guard use-vs-mention defect** — every rule matched the literal command text, so writing a file whose *content* documented a forbidden command tripped the rule. Present in `estate-deny-guard.py` AND `no-force-push/tripwire.py` | Blocked five legitimate writes 2026-09-23/24, including the guard's own test file | C | 2026-10-15 | **CLOSED 2026-09-24** | Fixed in both guards: heredocs bound for a file sink are stripped, heredocs piped to an interpreter are still scanned, `-m` bodies stripped. `scripts/test_estate_deny_guard.py` ALL-PASS (11 cases) incl. `executed-heredoc-still-scanned` and `fix_did_not_blind_the_rule_to_real_paths` controls |
 | L-12 | **harness-sync skill** and **push-guard** designed but not built | harness-sync bootstraps a second machine from the repo; push-guard surfaces unpushed commits and stale draft PRs. push-guard is the mechanical fix for the owner's recurring abandoned-work problem | C | 2026-10-31 | OPEN | |
 | L-13 | **Self-hosted Actions runner** on offload-w2025 | Repo is now private, so Actions minutes are metered. A self-hosted runner on the idle VM costs zero minutes and has no cap | C | 2026-10-31 | OPEN | |
 | L-14 | **VM↔home drive letters** not mounted; home drops off the tailnet intermittently | rclone data path works, so this is presentation only. Belongs in harness-sync, not a hand-fix | C | 2026-10-31 | OPEN | |
-| L-15 | **basic-memory vault has no versioned backup** — 713 notes, 2.2 MB, not in any git repo | Repo is now private, so committing them is finally safe. 3 notes contain credential-shaped values and need review first | B | 2026-10-05 | OPEN | |
+| L-15 | **basic-memory vault has no versioned backup** | Permission question is SETTLED — see `knowledge/policy/2026-09-24-private-estate-plaintext.md`: plaintext credentials may go in the private vault, so no review or redaction is needed first. The remaining blocker is **correctness, not permission**: the VM vault holds 717 notes, home holds 1,126, so the backup must be taken **from home**. Committing the VM's copy would plant a 409-note-poorer snapshot that a later restore would treat as authoritative | B | 2026-10-05 | OPEN (unblocked, must run on home) | 4 VM-only notes already committed at `knowledge/vault-export/2026-09-24/` |
 
 ## Academic calendar — dated, non-recoverable
 
@@ -60,4 +60,5 @@ Last updated 2026-09-24.
 |---|---|---|---|---|
 | D-01 | `skillListingBudgetFraction` kept at 0.04 for parity with home rather than the 0.01 a research lane recommended | 2026-09-23 | 2026-10-31 | The 0.01 recommendation is itself an unverified dismissal. Settle by measurement: run sessions at 0.01 with the router live and check skill discovery still works, then set the same value on BOTH machines |
 | D-02 | SemEval-2027 skipped | 2026-09-24 | 2027-01-31 | Correct today because the publication list is optional and only a tie-break. Re-examine only if a supervisor wants it as joint work |
+| D-04 | **Private-estate plaintext policy** — credentials may live uncensored in the private vault and be read/printed in local sessions; the boundary is egress, not existence. SSOT: `knowledge/policy/2026-09-24-private-estate-plaintext.md` | 2026-09-24 | **no expiry** | Revisit ONLY if the repo's visibility changes or the estate stops being single-owner — either event invalidates the premise. The repo-public lock in `estate-deny-guard` is what makes this safe and must never be weakened |
 | D-03 | pbinfo placed in Honors rather than near the headline | 2026-09-24 | on first drafting | Costs the structural neutralisation of AI-authorship suspicion. If the disclosure approach proves weak in practice, revisit |

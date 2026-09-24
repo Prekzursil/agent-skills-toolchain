@@ -1,0 +1,853 @@
+{
+  "cleanupPeriodDays": 365,
+  "skillListingBudgetFraction": 0.04,
+  "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "BASH_MAX_OUTPUT_LENGTH": "150000",
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "1800000",
+    "MCP_TIMEOUT": "120000",
+    "MCP_TOOL_TIMEOUT": "600000",
+    "MAX_MCP_OUTPUT_TOKENS": "50000",
+    "MCP_CLIENT_SESSION_TIMEOUT_SECONDS": "600",
+    "ECC_CONTEXT_MONITOR_COST_WARNINGS": "0",
+    "ECC_GATEGUARD": "off",
+    "ENABLE_TOOL_SEARCH": "auto:5",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "90",
+    "CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN": "1",
+    "CLAUDE_CODE_DISABLE_MOUSE": "1",
+    "CLAUDE_CODE_GIT_BASH_PATH": "C:\\Program Files\\Git\\bin\\bash.exe",
+    "CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH": "5"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "NotebookEdit",
+      "WebSearch",
+      "WebFetch",
+      "TodoWrite",
+      "Task",
+      "Skill",
+      "Monitor",
+      "TaskStop",
+      "SendUserFile",
+      "Artifact",
+      "ToolSearch",
+      "mcp__basic-memory",
+      "mcp__context7",
+      "mcp__deepwiki",
+      "mcp__repomix",
+      "mcp__plugin_serena_serena",
+      "mcp__github_cli",
+      "mcp__search-hub",
+      "mcp__tavily",
+      "mcp__perplexity",
+      "mcp__firecrawl",
+      "mcp__huggingface",
+      "mcp__paper-search",
+      "mcp__scholarly-access",
+      "mcp__playwright",
+      "mcp__crossref",
+      "mcp__arxiv",
+      "mcp__openalex",
+      "mcp__pubmed",
+      "mcp__annas-archive",
+      "mcp__sci-hub",
+      "mcp__web-search-prime",
+      "mcp__web-reader",
+      "mcp__zread",
+      "WebFetch(domain:code.claude.com)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "Bash(*)",
+      "PowerShell",
+      "PowerShell(*)"
+    ],
+    "deny": [
+      "Read(**/CrossDevice/**)",
+      "mcp__claude-code-mcp__*",
+      "mcp__McpHub__claude-code-mcp__*"
+    ],
+    "ask": [],
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "C:",
+      "D:",
+      "V:",
+      "W:",
+      "L:",
+      "M:",
+      "C:\\",
+      "C:\\Users\\prekzursil",
+      "C:\\suite",
+      "C:\\suite\\payload"
+    ]
+  },
+  "model": "claude-opus-5",
+  "fallbackModel": [
+    "claude-sonnet-5"
+  ],
+  "modelPicker": {
+    "options": [
+      {
+        "model": "claude-opus-5",
+        "label": "Opus 5",
+        "description": "Still available. Removed from the built-in picker."
+      },
+      {
+        "model": "claude-opus-4-8",
+        "label": "Opus 4.8",
+        "description": "Still available. Removed from the built-in picker."
+      }
+    ]
+  },
+  "deniedMcpServers": [
+    {
+      "serverName": "claude-code-mcp"
+    },
+    {
+      "serverName": "markitdown"
+    },
+    {
+      "serverName": "rdkit"
+    },
+    {
+      "serverName": "serena"
+    },
+    {
+      "serverName": "gitlab"
+    },
+    {
+      "serverName": "meta-tool"
+    }
+  ],
+  "hooks": {
+    "StopFailure": [
+      {
+        "matcher": "rate_limit|billing_error|authentication_failed",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/scripts/zai_key_failover.py\" --on-failure",
+            "timeout": 60,
+            "statusMessage": "Z.ai key auto-rotate on exhausted/auth failure"
+          }
+        ]
+      },
+      {
+        "matcher": "rate_limit|overloaded|billing_error|server_error|authentication_failed",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/stopfailure-notify/notify.py\"",
+            "timeout": 15,
+            "statusMessage": "StopFailure: logging API error + notifying"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SessionStart",
+            "timeout": 5,
+            "statusMessage": "Shared harness: SessionStart"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/_dispatch/dispatch.py\" sessionstart",
+            "timeout": 35,
+            "statusMessage": "Local hooks: SessionStart dispatch"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/local-tui-reminder/check.py\"",
+            "timeout": 5,
+            "statusMessage": "local-TUI reminder"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event UserPromptSubmit",
+            "timeout": 8,
+            "statusMessage": "Shared harness: UserPromptSubmit"
+          },
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/semantic-router/route.py\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/selection-events/emitter.py\"",
+            "timeout": 5,
+            "statusMessage": "Selection events: correlate user intent"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Agent|Task|WebFetch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PreToolUse",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PreToolUse"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/no-force-push/hook.py\"",
+            "timeout": 8,
+            "statusMessage": "no-force-push: protect remote history"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/scripts/estate-deny-guard.py\" --runtime claude",
+            "timeout": 8,
+            "statusMessage": "estate-deny: NEVER-ROTATE / private-repo / secrets / force-push"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/test-tamper-guard/guard.py\"",
+            "timeout": 20,
+            "statusMessage": "TDD guard: protect test integrity"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/cmd-rewrite/inject-nopager.py\"",
+            "timeout": 5,
+            "statusMessage": "Command rewrite: inject no-pager"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash|PowerShell|mcp__cheatengine__.*|mcp__frida-mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/ulysses/enforce.py\"",
+            "timeout": 10,
+            "statusMessage": "Ulysses invariant enforcement"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__ida-pro-mcp__.*|mcp__ghidra-mcp__.*|mcp__binary-ninja-mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/re-autolaunch/autolaunch.py\" pretool",
+            "timeout": 12,
+            "statusMessage": "RE tool auto-launch"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__ida-pro-mcp__.*|mcp__ghidra-mcp__.*|mcp__binary-ninja-mcp__.*|mcp__frida-mcp__.*|mcp__cheatengine__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/tms/stale_anchor.py\"",
+            "timeout": 8,
+            "statusMessage": "TMS stale-anchor guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/file-scope/check.py\"",
+            "timeout": 10,
+            "statusMessage": "File-scope ownership guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/loop-recovery/handler.py\" --mode pretooluse",
+            "timeout": 5,
+            "statusMessage": "Loop-recovery guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Edit|MultiEdit|Grep|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/deny-credential-reads/deny.py\"",
+            "timeout": 8,
+            "statusMessage": "Credential-read guard"
+          }
+        ]
+      },
+      {
+        "matcher": "Agent|Task|Write|mcp__basic-memory__write_note|mcp__basic-memory__edit_note|Workflow|mcp__codex__codex|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/_dispatch/dispatch.py\" pretooluse",
+            "timeout": 20,
+            "statusMessage": "Local hooks: PreToolUse dispatch"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__codex__codex",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/codex-monitor-autolaunch/check.py\"",
+            "timeout": 8,
+            "statusMessage": "codex-monitor auto-launch"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__claude-code-mcp__.*|mcp__McpHub__claude-code-mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/claude-code-mcp-guard/guard.py\"",
+            "timeout": 8,
+            "statusMessage": "claude-code-mcp-guard: deny nested claude-code-mcp from subagents (G-3b)"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PermissionRequest",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PermissionRequest"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PermissionDenied",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PermissionDenied"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostToolUse",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PostToolUse"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|mcp__playwright__.*|mcp__claude-in-chrome__.*|mcp__chrome-devtools__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/cmd-rewrite/compress-output.py\"",
+            "timeout": 10,
+            "statusMessage": "Command output compression"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/per-edit-check/check.py\"",
+            "timeout": 12,
+            "statusMessage": "Per-edit validation"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/_dispatch/dispatch.py\" posttooluse",
+            "timeout": 25,
+            "statusMessage": "Local hooks: PostToolUse dispatch"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostToolUseFailure",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PostToolUseFailure"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/selection-events/emitter.py\"",
+            "timeout": 8,
+            "statusMessage": "Selection events: record failed selection"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PreCompact",
+            "timeout": 5,
+            "statusMessage": "Shared harness: PreCompact"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostCompact",
+            "timeout": 3,
+            "statusMessage": "Shared harness: PostCompact"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event ConfigChange",
+            "timeout": 3,
+            "statusMessage": "Shared harness: ConfigChange"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SubagentStart",
+            "timeout": 3,
+            "statusMessage": "Shared harness: SubagentStart"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SubagentStop",
+            "timeout": 3,
+            "statusMessage": "Shared harness: SubagentStop"
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TaskCreated",
+            "timeout": 3,
+            "statusMessage": "Shared harness: TaskCreated"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TaskCompleted",
+            "timeout": 5,
+            "statusMessage": "Shared harness: TaskCompleted"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TeammateIdle",
+            "timeout": 3,
+            "statusMessage": "Shared harness: TeammateIdle"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event Stop",
+            "timeout": 5,
+            "statusMessage": "Shared harness: Stop"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/_dispatch/dispatch.py\" stop",
+            "timeout": 35,
+            "statusMessage": "Local hooks: Stop dispatch"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/profile-capture/capture.py\"",
+            "timeout": 10,
+            "statusMessage": "profile-capture: queue self-disclosures for review"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Users/Prekzursil/.claude/hooks/create-worktree.ps1\"",
+            "timeout": 60,
+            "statusMessage": "Creating git worktree"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Users/Prekzursil/.claude/hooks/remove-worktree.ps1\"",
+            "timeout": 30,
+            "statusMessage": "Removing git worktree"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/session-end/end.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/Prekzursil/.claude/statusline-command.sh\"",
+    "padding": 0,
+    "refreshInterval": 30
+  },
+  "enabledPlugins": {
+    "ai-plugins@claude-plugins-official": false,
+    "aikido@claude-plugins-official": false,
+    "astronomer-data-agents@claude-plugins-official": false,
+    "aws-serverless@claude-plugins-official": false,
+    "context7@claude-plugins-official": false,
+    "data@claude-plugins-official": false,
+    "deploy-on-aws@claude-plugins-official": false,
+    "microsoft-docs@claude-plugins-official": false,
+    "netlify-skills@claude-plugins-official": false,
+    "nightvision@claude-plugins-official": false,
+    "postiz@claude-plugins-official": false,
+    "railway@claude-plugins-official": false,
+    "wordpress.com@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "supabase@claude-plugins-official": false,
+    "explanatory-output-style@claude-plugins-official": false,
+    "learning-output-style@claude-plugins-official": false,
+    "gopls-lsp@claude-plugins-official": false,
+    "csharp-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "jdtls-lsp@claude-plugins-official": false,
+    "php-lsp@claude-plugins-official": false,
+    "clangd-lsp@claude-plugins-official": false,
+    "firebase@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false,
+    "kotlin-lsp@claude-plugins-official": false,
+    "lua-lsp@claude-plugins-official": false,
+    "ruby-lsp@claude-plugins-official": false,
+    "sourcegraph@claude-plugins-official": false,
+    "atomic-agents@claude-plugins-official": false,
+    "mintlify@claude-plugins-official": false,
+    "math-olympiad@claude-plugins-official": false,
+    "codex@openai-codex": true,
+    "agent-sdk-dev@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": false,
+    "claude-code-setup@claude-plugins-official": false,
+    "claude-md-management@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": false,
+    "coderabbit@claude-plugins-official": false,
+    "commit-commands@claude-plugins-official": false,
+    "data-engineering@claude-plugins-official": false,
+    "fastly-agent-toolkit@claude-plugins-official": false,
+    "feature-dev@claude-plugins-official": false,
+    "figma@claude-plugins-official": false,
+    "firecrawl@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "github@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": false,
+    "hookify@claude-plugins-official": true,
+    "huggingface-skills@claude-plugins-official": false,
+    "linear@claude-plugins-official": false,
+    "mcp-server-dev@claude-plugins-official": false,
+    "notion@claude-plugins-official": false,
+    "pinecone@claude-plugins-official": false,
+    "playground@claude-plugins-official": false,
+    "playwright@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "qodo-skills@claude-plugins-official": false,
+    "ralph-loop@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": false,
+    "semgrep@claude-plugins-official": false,
+    "sentry@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "claude-reflect@claude-reflect-marketplace": true,
+    "brightdata-plugin@claude-plugins-official": false,
+    "circleback@claude-plugins-official": false,
+    "cloudflare@claude-plugins-official": false,
+    "code-modernization@claude-plugins-official": false,
+    "cwc-makers@claude-plugins-official": false,
+    "document-skills@anthropic-agent-skills": false,
+    "ui5-typescript-conversion@claude-plugins-official": false,
+    "sentry-cli@claude-plugins-official": false,
+    "sonarqube@claude-plugins-official": false,
+    "pydantic-ai@claude-plugins-official": false,
+    "greptile@claude-plugins-official": false,
+    "codspeed@claude-plugins-official": false,
+    "metaswarm@metaswarm-marketplace": true,
+    "agentforce-adlc@claude-plugins-official": false,
+    "buildkite@claude-plugins-official": false,
+    "data-agent-kit-starter-pack@claude-plugins-official": false,
+    "exa@claude-plugins-official": false,
+    "fiftyone@claude-plugins-official": false,
+    "hyperframes@claude-plugins-official": false,
+    "knowledge-catalog@claude-plugins-official": false,
+    "mcp-apps@claude-plugins-official": false,
+    "mapbox@claude-plugins-official": false,
+    "mcp-tunnels@claude-plugins-official": false,
+    "mercadopago@claude-plugins-official": false,
+    "nvidia-skills@claude-plugins-official": false,
+    "outputai@claude-plugins-official": false,
+    "serena@claude-plugins-official": false,
+    "mattpocock-skills@mattpocock-skills": false,
+    "agentbridge@agentbridge": false,
+    "modern-web-guidance@googlechrome": true,
+    "glm-plan-usage@zai-coding-plugins": true,
+    "glm-plan-bug@zai-coding-plugins": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "metaswarm-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/dsifry/metaswarm-marketplace.git"
+      }
+    },
+    "claude-reflect-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "bayramannakov/claude-reflect"
+      }
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/skills.git"
+      }
+    },
+    "mattpocock-skills": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\Prekzursil\\source\\repos\\mattpocock-skills"
+      }
+    },
+    "agentbridge": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\node_modules\\@raysonmeng\\agentbridge"
+      }
+    },
+    "googlechrome": {
+      "source": {
+        "source": "github",
+        "repo": "GoogleChrome/modern-web-guidance"
+      }
+    },
+    "zai-coding-plugins": {
+      "source": {
+        "source": "directory",
+        "path": "D:\\npm-cache\\_npx\\2f024689b4d0d3b0\\node_modules\\@z_ai\\coding-helper\\zai-coding-plugins"
+      }
+    }
+  },
+  "outputStyle": "Honest",
+  "sandbox": {
+    "enabled": false,
+    "failIfUnavailable": false,
+    "allowUnsandboxedCommands": true
+  },
+  "effortLevel": "xhigh",
+  "modelSettings": {
+    "claude-fable-5": {
+      "effortLevel": "high"
+    },
+    "claude-opus-5": {
+      "effortLevel": "high"
+    },
+    "glm-5.3": {
+      "effortLevel": "xhigh"
+    }
+  },
+  "autoCompactWindow": 1000000,
+  "askUserQuestionTimeout": "never",
+  "dialogExpiry": "never",
+  "remote": {
+    "defaultEnvironmentId": "env_01PrqbyiEuVXDZihPjyE2kmN"
+  },
+  "autoUpdatesChannel": "latest",
+  "tui": "default",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "editorMode": "normal",
+  "verbose": true,
+  "autoCompactEnabled": true,
+  "switchModelsOnFlag": true,
+  "terminalProgressBarEnabled": true,
+  "teammateMode": "auto",
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "useAutoModeDuringPlan": false
+}

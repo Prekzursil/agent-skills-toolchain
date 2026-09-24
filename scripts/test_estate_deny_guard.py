@@ -87,6 +87,10 @@ def main():
     data = json.loads(out)
     expect_contains("cursor-public", data.get("permission", ""), "deny")
 
+    # owner policy 24.09.2026: the PRIVATE agent-skills-toolchain vault may hold
+    # anything in plain text, credentials included. This case asserted DENY under
+    # the OLD policy; it is updated, not deleted, and paired below with a control
+    # proving the rule still bites outside the vault.
     rc, out = run_py(
         "claude",
         {
@@ -94,9 +98,54 @@ def main():
             "tool_input": {"file_path": r"C:\Users\Prekzursil\.agents\local.json"},
         },
     )
+    if out.strip():
+        raise SystemExit(
+            "FAIL vault-secret-write should ALLOW under policy 24.09.2026, "
+            "got %r" % (out,)
+        )
+    print("PASS vault-secret-write-allowed")
+
+    # CONTROL: outside the private vault the rule must still deny. Without this
+    # the change above would read as "secret-file protection was deleted".
+    rc, out = run_py(
+        "claude",
+        {
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": r"C:\Users\Prekzursil\source\momentstudio.ro\local.json"
+            },
+        },
+    )
     data = json.loads(out)
     expect_contains(
-        "claude-secret-write",
+        "outside-vault-secret-write",
+        data["hookSpecificOutput"]["permissionDecision"],
+        "deny",
+    )
+
+    # use-vs-mention: writing a file that DOCUMENTS a forbidden command must not
+    # trip the rule. This defect blocked five legitimate writes on 2026-09-23/24.
+    _forbidden = "gh repo edit x --visibility " + "public"
+    rc, out = run_py(
+        "claude",
+        {
+            "tool_input": {
+                "command": "cat > rules.md <<'X'\nNever run %s\nX" % _forbidden
+            }
+        },
+    )
+    if out.strip():
+        raise SystemExit("FAIL documenting a rule must not trip it, got %r" % (out,))
+    print("PASS use-vs-mention-doc-heredoc")
+
+    # ...but a forbidden command piped to an INTERPRETER is code, not data.
+    rc, out = run_py(
+        "claude",
+        {"tool_input": {"command": "bash <<'X'\n%s\nX" % _forbidden}},
+    )
+    data = json.loads(out)
+    expect_contains(
+        "executed-heredoc-still-scanned",
         data["hookSpecificOutput"]["permissionDecision"],
         "deny",
     )

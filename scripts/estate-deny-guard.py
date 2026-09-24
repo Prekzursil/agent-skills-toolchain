@@ -34,7 +34,10 @@ REASON = {
     ),
     "secret-file": (
         "Refusing commit/add/write of raw secret files "
-        "(*.key, *.pem, *token*, local.json)."
+        "(*.key, *.pem, *token*, local.json) OUTSIDE the private vault. "
+        "Owner policy 24.09.2026: inside the private agent-skills-toolchain "
+        "checkout everything may be stored in plain text; this rule now "
+        "protects the OTHER estate repos, several of which are public."
     ),
 }
 
@@ -56,6 +59,110 @@ PUBLIC_RE = re.compile(
     re.I,
 )
 TOOLCHAIN_RE = re.compile(r"agent-skills-toolchain", re.I)
+
+# Owner policy, 24.09.2026: the PRIVATE agent-skills-toolchain repo is the
+# estate's durable store. Everything may live there in plain text -- credentials
+# included -- EXCEPT cache and build residue. What makes this safe is PUBLIC_RE
+# above (refusing to flip the repo public), NOT censoring what goes in.
+# Do not weaken PUBLIC_RE; it is now load-bearing.
+PRIVATE_VAULT_ROOTS = (
+    os.path.join(os.path.expanduser("~"), ".agents"),
+    os.path.join("C:\\", "suite", "payload", "Users", "Prekzursil", ".agents"),
+    os.path.join(os.path.expanduser("~"), "source", "agent-skills-toolchain"),
+)
+
+
+def _norm(p: str) -> str:
+    q = p.strip().strip('"').strip("'")
+    return os.path.normcase(os.path.normpath(q)).replace("\\", "/")
+
+
+def _in_private_vault(path: str, cwd: str = "") -> bool:
+    """True if path, resolved against cwd, sits inside a private-vault checkout."""
+    if not path and not cwd:
+        return False
+    try:
+        cand = path or ""
+        if cand and not os.path.isabs(cand) and cwd:
+            cand = os.path.join(cwd, cand)
+        cand = _norm(cand or cwd)
+        for root in PRIVATE_VAULT_ROOTS:
+            r = _norm(root)
+            if cand == r or cand.startswith(r + "/"):
+                return True
+    except Exception:
+        return False
+    return False
+
+
+# L-11 fix. The old code split the ENTIRE command string and tested every
+# whitespace fragment as a candidate path, so ordinary prose in a heredoc or a
+# -m message tripped the secret-file rule on any git write (it blocked three
+# legitimate operations on 2026-09-23). Strip message and heredoc bodies first,
+# then consider only tokens that actually look like paths.
+_HEREDOC_RE = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[\s\S]*?^\1\s*$", re.M)
+_MSG_RE = re.compile(r"(?:-m|--message)\s+('[^']*'|\"[^\"]*\"|\S+)")
+_HD_TAG_RE = re.compile(r"<<-?\s*['\"]?\w+['\"]?")
+_PATHY_RE = re.compile(r"[\/]|\.[A-Za-z0-9]{1,8}$")
+
+
+# Use-vs-mention fix, 24.09.2026. Every rule below matches the literal text of
+# the command. Writing a file whose CONTENT mentions a forbidden command -- a
+# test, a runbook, a policy note -- therefore tripped the rule and blocked the
+# write. That is the "agent freaks out about its own documentation" failure, and
+# it blocked five legitimate writes across 2026-09-23/24.
+#
+# A heredoc fed to a FILE SINK is data, not code, so strip it before matching.
+# A heredoc fed to an INTERPRETER (bash/sh/pwsh/python) IS code and is NOT
+# stripped, so a forbidden command smuggled inside an executed heredoc still
+# blocks. Same treatment for -m/--message bodies, which are never executed.
+_SINK_RE = re.compile(
+    r"(?:^|[|;&]\s*)\s*(?:cat|tee)\s*>{1,2}"
+    r"|git\s+(?:commit|tag|notes)\b[^\n]*\s-F\b",
+    re.I,
+)
+_HD_OPEN_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+
+
+def _strip_data_heredocs(cmd: str) -> str:
+    """Remove heredoc bodies that are written to a file rather than executed."""
+    out, pos = [], 0
+    for m in _HD_OPEN_RE.finditer(cmd):
+        if m.start() < pos:
+            continue
+        line_start = cmd.rfind("\n", 0, m.start()) + 1
+        line = cmd[line_start:m.start()]
+        tag = m.group(2)
+        end = re.search(r"^%s\s*$" % re.escape(tag), cmd[m.end():], re.M)
+        body_end = m.end() + (end.end() if end else len(cmd) - m.end())
+        if _SINK_RE.search(line):
+            out.append(cmd[pos:m.end()])
+            pos = body_end
+    out.append(cmd[pos:])
+    return "".join(out)
+
+
+def _executable_text(cmd: str) -> str:
+    """The part of a command that will actually run. Rules match THIS."""
+    if not cmd:
+        return ""
+    t = _strip_data_heredocs(cmd)
+    t = _MSG_RE.sub(" ", t)
+    return t
+
+
+def _git_path_tokens(cmd: str) -> list[str]:
+    body = _HEREDOC_RE.sub(" ", cmd)
+    body = _MSG_RE.sub(" ", body)
+    body = _HD_TAG_RE.sub(" ", body)
+    out = []
+    for tok in re.split(r"[\s\"']+", body):
+        t = tok.strip()
+        if not t or t.startswith("-"):
+            continue
+        if _PATHY_RE.search(t):
+            out.append(t)
+    return out
 FORCE_PUSH_RE = re.compile(
     r"git\s+push\b[^\n]*((--force-with-lease|--force\b)|(?<![-\w])-f(?![-\w]))",
     re.I,
@@ -100,8 +207,11 @@ def _secret_basename_ok_to_block(path: str) -> bool:
     return bool(SECRET_NAME_RE.search(base) or SECRET_NAME_RE.search(p))
 
 
-def classify_command(cmd: str) -> tuple[str | None, str]:
+def classify_command(cmd: str, cwd: str = "") -> tuple[str | None, str]:
     if not cmd:
+        return None, ""
+    cmd = _executable_text(cmd)
+    if not cmd.strip():
         return None, ""
     if ROTATE_RE.search(cmd):
         return "never-rotate", REASON["never-rotate"]
@@ -112,19 +222,19 @@ def classify_command(cmd: str) -> tuple[str | None, str]:
     if NO_VERIFY_RE.search(cmd):
         return "no-verify", REASON["no-verify"]
     if GIT_WRITE_RE.search(cmd):
-        for tok in re.split(r"[\s\"']+", cmd):
-            if _secret_basename_ok_to_block(tok):
+        for tok in _git_path_tokens(cmd):
+            if _secret_basename_ok_to_block(tok) and not _in_private_vault(tok, cwd):
                 return "secret-file", REASON["secret-file"]
     return None, ""
 
 
-def classify_path(path: str) -> tuple[str | None, str]:
+def classify_path(path: str, cwd: str = "") -> tuple[str | None, str]:
     if not path:
         return None, ""
     low = path.replace("\\", "/").lower()
     if "credential_rotation_manifest" in low or "rotate-credential" in low:
         return "never-rotate", REASON["never-rotate"]
-    if _secret_basename_ok_to_block(path):
+    if _secret_basename_ok_to_block(path) and not _in_private_vault(path, cwd):
         return "secret-file", REASON["secret-file"]
     return None, ""
 
@@ -150,10 +260,11 @@ def _payload_command_and_path(data: dict) -> tuple[str, str]:
 
 def decide(data: dict) -> tuple[str | None, str]:
     cmd, path = _payload_command_and_path(data)
-    code, reason = classify_command(cmd)
+    cwd = str(data.get("cwd") or data.get("workingDirectory") or "")
+    code, reason = classify_command(cmd, cwd)
     if code:
         return code, reason
-    return classify_path(path)
+    return classify_path(path, cwd)
 
 
 def _emit(obj: dict) -> None:
