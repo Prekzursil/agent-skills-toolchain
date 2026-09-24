@@ -1,6 +1,6 @@
 # Pre-registered experiments for agent-skills-toolchain
 
-Written 2026-09-24. Each entry states the claim, the exact measurement, and the prediction; a prediction that fails is a finding, not a failure. Results go in `results/` next to this file, one JSON per run, and never overwrite a previous run.
+Written 2026-09-24. Each entry states the claim, the exact measurement, and the prediction; a prediction that fails is a finding, not a failure. Results go in `docs/results/` next to this file, one JSON per run, and never overwrite a previous run.
 
 **Provenance caveat.** This file and the first E5 result artifacts are committed together, so there is no immutable pre-run record for E5: the E5 rows under "Results so far" are retrospective — the Linux runs validate the instrument, not the prediction — and are not independently pre-registered. The pre-registration guarantee holds only for the experiments still unrun when this file was committed — E1–E4, E6–E10, and the Windows arm of E5 (marked "not yet run" below) — whose predictions here genuinely precede their results. To preserve that guarantee for future work, commit each new experiment's prediction before its result artifact.
 
@@ -23,7 +23,7 @@ Ten to twenty tasks the owner actually runs, each with a mechanical pass/fail ch
 | G11 | Answer "what command runs the Python lint gate here?" | reply contains the exact string `ruff check .` and the pinned version string from AGENTS.md | none |
 | G12 | Recover a deliberately broken MCP server entry | `claude mcp get <name>` output contains `Connected` | the broken config |
 
-Each case runs 3 times per arm (the `claude plugin eval` default), pinned model, `--max-cost-usd` set. Suite score = mean with-plugin score; Δ = with minus without. Results are small JSON files under `results/` on the one existing branch; no new branch, no new folder tree.
+Each case runs 3 times per arm (the `claude plugin eval` default), pinned model, `--max-cost-usd` set. Suite score = mean with-plugin score; Δ = with minus without. Results are small JSON files under `docs/results/` on the one existing branch; no new branch, no new folder tree.
 
 ## Instrument 0b: main is green
 
@@ -97,8 +97,8 @@ E16. Retired components still run (proposed by blind agent B, from PR #311's mea
 
 ## Results so far (appended, never edited)
 
-- 2026-09-24T02:24Z, E5 mechanism, Linux, Claude Code 2.1.281, `hooksmoke.py --tool claude`: 5 of 5 event hooks fired (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) in one real `claude -p` session, 5.7 s, each hook received stdin JSON (353 to 729 bytes). Prediction E5 concerns the Windows arm and is NOT tested by this run; this run establishes that the instrument itself works and that the failure class, when it appears on Windows, is platform- or tool-specific rather than a property of the hook shape. File: results/E5-claude-linux-20260924T022422Z.json.
-- 2026-09-24T02:24Z, E5 live dry-run, Linux, against the tracked snapshot agent-self/config/settings.json: 0 of 41 hook commands can start off the Windows box (every command embeds `C:/Users/Prekzursil/...`). Consequence: the tracked configuration cannot be exercised in a real session by any Linux CI, so the repo's CI could never have detected a hook that stopped firing. File: results/E5-live-linux-20260924T022422Z.json.
+- 2026-09-24T02:24Z, E5 mechanism, Linux, Claude Code 2.1.281, `hooksmoke.py --tool claude`: 5 of 5 event hooks fired (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) in one real `claude -p` session, 5.7 s, each hook received stdin JSON (353 to 729 bytes). Prediction E5 concerns the Windows arm and is NOT tested by this run; this run establishes that the instrument itself works and that the failure class, when it appears on Windows, is platform- or tool-specific rather than a property of the hook shape. File: docs/results/E5-claude-linux-20260924T022422Z.json.
+- 2026-09-24T02:24Z, E5 live dry-run, Linux, against the tracked snapshot agent-self/config/settings.json: 0 of 41 hook commands can start off the Windows box (every command embeds `C:/Users/Prekzursil/...`). Consequence: the tracked configuration cannot be exercised in a real session by any Linux CI, so the repo's CI could never have detected a hook that stopped firing. File: docs/results/E5-live-linux-20260924T022422Z.json.
 - Windows arm of E5 (the prediction that matters): not yet run; requires the owner's workstation. Command: `python hooksmoke.py --tool claude` then `python hooksmoke.py --live "$env:USERPROFILE\.claude\settings.json"`, then the same throwaway project under cursor-agent and Codex.
 
 ## Rules of the game

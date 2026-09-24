@@ -116,13 +116,20 @@ def utc_stamp():
 def write_result(results_dir: Path, tool: str, data: dict) -> Path:
     results_dir.mkdir(parents=True, exist_ok=True)
     base = results_dir / f"E5-{tool}-{platform.system().lower()}-{utc_stamp()}.json"
+    payload = json.dumps(data, indent=2)
     out = base
-    suffix_letter = ord("a")
-    while out.exists():  # never overwrite
-        out = base.with_stem(base.stem + "-" + chr(suffix_letter))
-        suffix_letter += 1
-    out.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    return out
+    suffix = ord("a")
+    # Exclusive creation ("x") reserves the name atomically, so two runs for the same tool
+    # and platform in the same UTC second cannot both pick this filename and overwrite one
+    # another -- an exists() check then write_text races and can silently discard a result.
+    while True:
+        try:
+            with open(out, "x", encoding="utf-8") as fh:
+                fh.write(payload)
+            return out
+        except FileExistsError:
+            out = base.with_stem(f"{base.stem}-{chr(suffix)}")
+            suffix += 1
 
 
 # ---------------------------------------------------------------------------------------------
@@ -455,8 +462,9 @@ def main():
     ap.add_argument(
         "--results",
         type=Path,
-        default=Path("results"),
-        help="results directory (default ./results)",
+        default=Path("docs/results"),
+        help="results directory (default docs/results, the committed E5 archive the "
+        "protocol and runbook reference)",
     )
     ap.add_argument(
         "--timeout",
@@ -471,9 +479,18 @@ def main():
         help="per-hook timeout seconds for the live dry run",
     )
     ap.add_argument(
+        "--execute",
+        action="store_true",
+        help="with --live: actually RUN each configured hook once. This is STATEFUL -- the "
+        "hooks can notify, write ledgers, or mutate memory -- so it is off by default and "
+        "must be requested explicitly.",
+    )
+    ap.add_argument(
         "--no-exec",
         action="store_true",
-        help="with --live: only check interpreters and script paths, run nothing",
+        help="deprecated: dry-run (check interpreters and script paths, run nothing) is now "
+        "the default. Kept as an explicit no-op; if given with --execute it wins, so nothing "
+        "runs.",
     )
     args = ap.parse_args()
     if not args.tool and not args.live:
@@ -508,7 +525,7 @@ def main():
 
     if args.live:
         report["live_dry_run"] = live_dry_run(
-            args.live, args.hook_timeout, execute=not args.no_exec
+            args.live, args.hook_timeout, execute=args.execute and not args.no_exec
         )
         lv = report["live_dry_run"]
         if lv.get("error") or lv["hooks_failed"]:
