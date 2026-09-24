@@ -53,9 +53,23 @@ on:
   # this change removes the need for. `push:` stays pinned to main, so no branch push gains a run.
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner-type:
+        description: 'Runner type: ubuntu-latest or self-hosted'
+        required: false
+        default: 'ubuntu-latest'
+        type: choice
+        options:
+          - ubuntu-latest
+          - self-hosted
 
 permissions:
   contents: read
+
+env:
+  # Runner selection: use self-hosted [linux] if explicitly requested via workflow_dispatch,
+  # otherwise default to ubuntu-latest. This supports WSL self-hosted setup for billing relief.
+  RUNNER_TYPE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && 'self-hosted' || 'ubuntu-latest' }}
 
 # `github.ref` is `refs/pull/<N>/merge` for a pull_request event, so this group key is already
 # unique per PR NUMBER and is entirely independent of the PR's BASE branch -- widening the
@@ -73,7 +87,7 @@ concurrency:
 jobs:
   lint:
     name: gate-lint-format (ruff)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -126,7 +140,7 @@ jobs:
 
   types:
     name: gate-types (basedpyright)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -238,7 +252,7 @@ jobs:
 
   test-node:
     name: gate-tests-coverage (node workspaces)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -282,7 +296,7 @@ jobs:
 
   test-python:
     name: gate-tests-coverage (python packages)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -1601,7 +1615,7 @@ jobs:
   # and read the number before choosing a floor.
   test-platform:
     name: gate-tests-coverage (platform)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1632,7 +1646,7 @@ jobs:
 
   sast:
     name: gate-sast (opengrep)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 4 — static security analysis with the CURATED in-repo ruleset under
@@ -1678,7 +1692,7 @@ jobs:
 
   secrets:
     name: gate-secrets (gitleaks)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     permissions:
       contents: read
       pull-requests: read
@@ -1754,7 +1768,7 @@ jobs:
 
   deps:
     name: gate-deps (osv-scanner)
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.runner-type == 'self-hosted') && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE
