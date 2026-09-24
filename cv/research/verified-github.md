@@ -317,7 +317,7 @@ with no independent reviewer behind them; they should not be headline numbers.
 | Repo | Finding |
 |---|---|
 | momentstudio | 63,363 remote branches (63,116 `cursor/*`); 91 tags, 89 `rescue/*` |
-| agent-skills-toolchain | **111 tags, all `archive/` or `rescue/`**; CI failing; 403 MB |
+| agent-skills-toolchain | **111 tags, all `archive/` or `rescue/`**; CI failing; 237 MB (measured) |
 | pbinfo-scrape | **548 MB** on disk (crawled third-party educational HTML committed) |
 | SWFOC-Mod-Menu | **473 MB** (committed reverse-engineering corpus) |
 | Reframe | 76 MB; no LICENSE (NOTICE only) |
@@ -338,7 +338,7 @@ verification during a background check takes longer than it needs to.
 `agent-skills-toolchain` skill count: **378 `SKILL.md` under `skills/` + 53 under
 `skills-claude-only/`**. The README's "370+ skills" claim is VERIFIED and in fact conservative.
 But the repo is public while its description opens "Private platform repo", CI is red, and it is
-403 MB with committed browser-profile binaries — describe in prose, do not link.
+237 MB (measured) with committed browser-profile binaries — describe in prose, do not link.
 
 ---
 
@@ -347,7 +347,7 @@ But the repo is public while its description opens "Private platform repo", CI i
 **Link today (A):** Reframe (flagship engineering), momentstudio.ro (the live product — prune
 branches first), llm-anthology, tracelines, env-inspector, ZHMModSDK PR #241.
 
-**Describe in prose, do not link:** agent-skills-toolchain (red CI, 403 MB),
+**Describe in prose, do not link:** agent-skills-toolchain (red CI, 237 MB (measured)),
 quality-zero-platform (no license, backup tags), SWFOC-Mod-Menu (473 MB, "game-hacking" framing),
 event-link (hosted under the classmate's account).
 

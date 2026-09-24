@@ -70,6 +70,46 @@ Harness injects `OWNER-OPS v3 GENERAL` on broad keywords / estate cwd (never blo
   on the word "TODO" inside the filename `cv/TODO-CONFIRM.md`. 16 controls, the
   load-bearing one being *clean → silent*.
 
+## 1d. The four registers (SSOT) — 24.09.2026
+
+Four stores, four different lifetimes. Conflating them is why things get lost:
+
+| Store | Holds | Lifetime | Tool |
+|---|---|---|---|
+| `knowledge/TASKBOX.md` | work IN FLIGHT | hours–days | `scripts/taskbox.py` |
+| `knowledge/OPEN-LOOPS.md` | open ITEMS with owners + review-by | until someone does it | hand-edited |
+| `knowledge/DIRECTIVES.md` | standing INSTRUCTIONS from the owner | never closes — must stay APPLIED | `scripts/directives.py` |
+| `knowledge/INVENTORY.md` | every skill/command/agent/MCP + lifecycle state | permanent | `scripts/estate-inventory.py` |
+
+- **A directive is not done when you obey it once.** "Always push" finishes when a
+  mechanism makes it true by default AND something proves that mechanism still works.
+  So a directive records WHERE it is enforced and the EVIDENCE, not a tick.
+- **Judge every directive explicitly**: BENEFICIAL / CONDITIONAL (state the boundary) /
+  COSTLY (state the cost) / NEEDS-SCOPE (state the ambiguity). Recording a cost is not
+  refusing — it is refusing to pretend a trade-off is free, which is what makes a later
+  reversal honest rather than a contradiction.
+- **Nothing vanishes silently.** If a skill/command/MCP disappears, `estate-inventory`
+  flags it UNEXPLAINED until someone records RETIRED / MERGED-INTO / RENAMED-TO / LOST.
+  Measured 2026-09-24: 13 skills had vanished with ZERO git record — `~/.agents/skills/`
+  is a DEPLOYED tree, so git is not the SSOT for it.
+- `gap-check` reads all four at Stop, so none of this depends on remembering to look.
+  It stays silent when they are clean.
+
+## 1e. Know where you are and what else is running — 24.09.2026
+
+`python scripts/estate-context.py` before anything destructive or wide-reaching.
+
+- **Host ROLE matters more than hostname.** `offload-w2025` is the DISPOSABLE VM —
+  nothing on it is safe until pushed. `desktop-a60s9gp` is home, the durable side, and
+  holds the fuller basic-memory vault (1,126 notes vs the VM's 717), so a "restore" from
+  the VM would DESTROY notes.
+- **Never kill or edit underneath concurrent work.** `--busy` exits 1 while workflow
+  agents are live. This nearly bit on 2026-09-24: an edit to `cv/profile.yaml` was about
+  to land while eight verify agents were reading it — not a crash, but a mismatch report
+  that was not real. Silent damage, not loud failure.
+- **A cross-machine claim verified from ONE side is unverified for the other.**
+  `Get-NetTCPConnection` on home cannot see that the tailnet is down.
+
 ## 2. Keep the whole goal in view (anti-tunnel-vision)
 
 - Every N turns, re-read the original goal; if the current action no longer serves it, surface

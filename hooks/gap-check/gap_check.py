@@ -170,6 +170,73 @@ def check_register(findings):
         findings.append("%d open loop(s) with no review-by date: %s" % (len(no_date), ", ".join(no_date[:6])))
 
 
+# --- the three SSOT stores (owner directives D-4, D-5, D-6, D-9) -------------
+# Read the JSON directly rather than shelling out to three scripts: a Stop hook
+# blocks the turn, so three subprocess spawns would cost more than the entire
+# budget. Each store is small and already machine-readable.
+TASKBOX = os.path.join(os.path.expanduser("~"), ".agents", "knowledge", "TASKBOX.json")
+DIRECTIVES = os.path.join(os.path.expanduser("~"), ".agents", "knowledge", "DIRECTIVES.json")
+INVENTORY = os.path.join(os.path.expanduser("~"), ".agents", "knowledge", "INVENTORY.json")
+STALE_TASK_DAYS = 3
+
+
+def _load(path):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return None
+
+
+def check_stores(findings):
+    """Surface what the three registers know. Silent when they are clean."""
+    # TASKBOX: in-flight work that has gone stale, or is blocked on nothing named
+    db = _load(TASKBOX)
+    if db:
+        stale, unnamed = [], []
+        for t in db.get("tasks", []):
+            if t.get("state") not in ("TODO", "DOING", "BLOCKED"):
+                continue
+            due = _parse_date(t.get("opened", ""))
+            if due and (_today() - due).days > STALE_TASK_DAYS:
+                stale.append("%s (%dd)" % (t.get("id"), (_today() - due).days))
+            if t.get("state") == "BLOCKED" and not t.get("blocker"):
+                unnamed.append(t.get("id"))
+        if stale:
+            findings.append("%d task(s) open past %d days -- promote to an OPEN-LOOPS row "
+                            "with an owner, or close: %s"
+                            % (len(stale), STALE_TASK_DAYS, ", ".join(stale[:6])))
+        if unnamed:
+            findings.append("%d task(s) BLOCKED with no blocker named: %s"
+                            % (len(unnamed), ", ".join(unnamed[:6])))
+
+    # DIRECTIVES: the "said it, never acted on it" failure
+    db = _load(DIRECTIVES)
+    if db:
+        unapplied = [d.get("id") for d in db.get("directives", [])
+                     if d.get("state") != "STALE" and not d.get("applied")]
+        unverified = [d.get("id") for d in db.get("directives", [])
+                      if d.get("state") != "STALE" and d.get("applied")
+                      and not d.get("verified")]
+        if unapplied:
+            findings.append("%d owner directive(s) enforced NOWHERE: %s -- this is the "
+                            "'said it, never acted on it' failure"
+                            % (len(unapplied), ", ".join(unapplied[:6])))
+        if unverified:
+            findings.append("%d directive(s) applied but never verified: %s"
+                            % (len(unverified), ", ".join(unverified[:6])))
+
+    # INVENTORY: something vanished and nobody said why
+    db = _load(INVENTORY)
+    if db:
+        ux = [k for k, r in (db.get("items") or {}).items()
+              if r.get("state") == "UNEXPLAINED"]
+        if ux:
+            findings.append("%d estate item(s) vanished with NO recorded reason: %s -- "
+                            "run `python scripts/estate-inventory.py explain <name> "
+                            "<state> \"<why>\"`" % (len(ux), ", ".join(ux[:6])))
+
+
 def check_unpushed(findings, deadline):
     """Unpushed commits should be IMPOSSIBLE now. A hit means autopush broke."""
     if time.time() > deadline:
@@ -214,6 +281,7 @@ def main() -> int:
         except Exception:
             pass
         check_register(findings)
+        check_stores(findings)
         check_unpushed(findings, deadline)
     except Exception:
         return 0  # fail open, always

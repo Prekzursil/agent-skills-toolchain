@@ -369,7 +369,7 @@ plain-text link **only where section 5.3 clears the link**.
 >
 > `[CHECK: on request]` — he can start a session and show the tool surface. This is the most
 > demonstrable claim in the whole tooling lane (`verified-tooling.md` §2.3).
-> **Do not link `agent-skills-toolchain`**: CI red on main, 403 MB, committed browser-profile
+> **Do not link `agent-skills-toolchain`**: CI red on main, 237 MB (measured), committed browser-profile
 > binaries, and a public repo whose own description opens "Private platform repo"
 > (VERIFIED, `verified-github.md` §8; `verified-tooling.md` §4.1).
 > Use "about 500" for the tool count, never an exact figure — the number comes from the servers'
@@ -888,7 +888,7 @@ first (VERIFIED, `verified-github.md` §6). Fix the top of the profile before se
 | **Personal-Finance-Management** | Unattributed upstream plus "all rights reserved" | **Never link. Fix the README or remove the repo** |
 | **pbinfo-scrape** | 548 MB of scraped third-party educational HTML, committed and public | Never link |
 | **WebCoder** | No README on `main` or on **any** of 38 remote branches (each checked individually); red CI; second-most-recently-pushed repo on the profile | Never link until a README lands and the migration branch is merged |
-| **agent-skills-toolchain** | Red CI on main; 403 MB; 111 tags all `archive/` or `rescue/`; committed browser-profile binaries; "Private platform repo" as the description of a public repo | Describe in prose only |
+| **agent-skills-toolchain** | Red CI on main; 237 MB (measured); 111 tags all `archive/` or `rescue/`; committed browser-profile binaries; "Private platform repo" as the description of a public repo | Describe in prose only |
 | **Airline-Reservations-System** | Description says "C++ App + GUI"; the GitHub language badge says **Python** (43 %) | Fix with `.gitattributes` (`linguist-vendored` on the quality-gate scripts) plus a matching description, or omit the link |
 | **momentstudio** (repo, not the site) | 63,363 remote branches (63,116 `cursor/*`); 91 tags, 89 `rescue/*` | Link the **live site**; link the repo only after pruning |
 | **grace-iberlef-2026** | Front page is "bionlp — ToolUniverse Workspace", a different project; no licence; the technical report carries no author line, affiliation or team name | Add a GRACE README, a licence and an author line — or move GRACE to its own repo |

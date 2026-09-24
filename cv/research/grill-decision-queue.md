@@ -217,7 +217,7 @@ Named plainly, because every question below is a consequence of one of them.
 
 ## G-14 of 18 · What is the rule for linking a repository?
 
-**Ask:** "Right now a reviewer who sorts your profile by recent activity lands on a red CI badge, a repo with no README, a 403 MB clone with committed browser-profile binaries, and a Branches tab with 63,000 agent branches. What is the rule: do we fix repositories until they are linkable, or do we describe the work in prose and link nothing until they are?"
+**Ask:** "Right now a reviewer who sorts your profile by recent activity lands on a red CI badge, a repo with no README, a 237 MB (measured) clone with committed browser-profile binaries, and a Branches tab with 63,000 agent branches. What is the rule: do we fix repositories until they are linkable, or do we describe the work in prose and link nothing until they are?"
 
 **Recommended answer: a hard gate, and prose until it is met.** A repository may be linked only when it has (1) a README that answers problem / approach / how to run / how it was evaluated, (2) a licence, (3) a CI badge that is green, (4) the AI-assistance section from G-8. Until then the work is described in prose with no URL. Pin 3–5 repos that pass; never link the bare profile.
 
@@ -225,7 +225,7 @@ Named plainly, because every question below is a consequence of one of them.
 
 **What changes downstream.** Turns into a concrete task list under G-15: purge and prune (momentstudio branches, toolchain browser profiles), licence the unlicensed originals — half the originals carry no licence, so nothing is legally reusable — fix the `Airline-Reservations-System` language badge with a `.gitattributes` `linguist-vendored` rule so the badge stops saying Python on a C++ project, and correct the Thrifty README from G-10. Also kills the word **open-source** applied to the unlicensed monorepo: "open-source" with no LICENSE is a factual error a developer spots instantly.
 
-**Evidence:** register risk fields for `agent-skills-toolchain` (403 MB, committed browser profiles, red badge, "Private platform repo" label on a public repo), `WebCoder` (no README, red badge, second-most-recently pushed), `momentstudio.ro` (63,363 branches / 89 rescue tags), `Airline-Reservations-System` (Python badge on a C++ project), `Reframe` (no LICENSE, only NOTICE; installer named `media-studio-1.4.0-win-x64.exe`).
+**Evidence:** register risk fields for `agent-skills-toolchain` (237 MB (measured), committed browser profiles, red badge, "Private platform repo" label on a public repo), `WebCoder` (no README, red badge, second-most-recently pushed), `momentstudio.ro` (63,363 branches / 89 rescue tags), `Airline-Reservations-System` (Python badge on a C++ project), `Reframe` (no LICENSE, only NOTICE; installer named `media-studio-1.4.0-win-x64.exe`).
 
 ---
 

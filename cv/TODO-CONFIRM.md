@@ -72,19 +72,21 @@ then tick it here).
 
 ## Tier 2 — blocks or damages the engineering documents
 
-- [ ] **10. DINUPLAST — which 2023 CV is correct?**
-  The two contradict each other and neither is authoritative:
-  - *version A*: "Web Developer, May 2021 – Jul 2022, built a website and customized a ledger
-    software"
-  - *version B*: "Freelancer Informatica, May 2021 – Jun 2023, contracted for site development
-    and building the management software network"
-
-  Needed: **job title**, **end date** (Jul 2022 vs Jun 2023), **location** (registry says
-  Ramnicu Valcea; one CV says Bucuresti), and **employment vs freelance contract** (changes the
-  Romanian and Europass wording).
-  *Blocks:* **the render fails closed.** `endDate` is the literal string `TODO-CONFIRM` on
-  purpose, so no document can ship a guessed date.
-  → `work[DINUPLAST SRL]`
+- [x] **RESOLVED 2026-09-24 (owner: ended mid-2023, ~June). endDate is now "2023-06".** ~~10. DINUPLAST — the exact END MONTH, and nothing else.**
+  The old three-way contradiction (title vs end date vs location) is **CLOSED**: the owner gave
+  his own account and it supersedes both 2023 CVs — unregistered contract work, Ramnicu Valcea,
+  on and off over about two years, covering a website, a multi-computer network with a database
+  proxy keeping the machines in sync, workstation configuration, watchdogs, electronic-receipt
+  automation, and an accounting-ready data pipeline (decision **G-19**). Do **not** re-open
+  version A vs version B, and do not seek a REGES record — the work was unregistered, so none
+  exists.
+  What is still missing is only the **end month**. The owner gave a *duration*, not an end date.
+  About two years from May 2021 rules version A's Jul-2022 end out and places the end somewhere
+  in **2023**, but that is **INFERRED** and must not be typed into `endDate`.
+  *Blocks:* **the render still fails closed on the date.** `endDate` remains the literal string
+  `TODO-CONFIRM` on purpose, so no document can ship a guessed date; the duration renders as
+  prose ("about two years, on and off") in the first highlight instead.
+  → `work[DINUPLAST SRL].endDate`, `work[DINUPLAST SRL].x_dates_note`
 
 - [ ] **11. momentstudio.ro — engagement start and end dates.**
   Both are empty. *Blocks:* every dated view; an experience entry with no dates reads as evasive.
@@ -135,7 +137,7 @@ then tick it here).
   **"ships 8,000 test functions"** — never as "8,000 passing tests", which is on the kill list.
   → `x_metrics[test-functions]`
 
-- [ ] **19. Agent platform — is the repository going to be cleaned up (≈403 MB, committed
+- [ ] **19. Agent platform — is the repository going to be cleaned up (≈237 MB (measured), committed
   browser profiles, red CI badge), or does it stay prose-only permanently?**
   *Blocks:* the decision of whether the platform work ever becomes linkable. As it stands the
   strongest engineering narrative on the profile has no artefact a reviewer can open.
@@ -163,26 +165,21 @@ then tick it here).
   Only Python, C++, TypeScript and SQL are currently listed, each traced to a specific project.
   → `skills[Languages].x_todo`
 
-- [ ] **24. The DINUPLAST one-line description — confirm it is accurate.**
-  Current wording is the *intersection* of the two conflicting CVs: "Contracted software work
-  for a Romanian plastics manufacturer, covering site development and customisation of the
-  company's ledger and management software." It carries no numbers by design.
-
 ---
 
 ## Tier 4 — re-check before each submission
 
-- [ ] **25. pbinfo numbers move.** The profile states 4,244 solved of 14,228 submissions against
+- [ ] **24. pbinfo numbers move.** The profile states 4,244 solved of 14,228 submissions against
   4,191 for second place, and 88 authored problems, **as of September 2026**. Re-read the live
   page before any submission and update both the figures and the "as of" date together.
   → `awards[0]`, `x_metrics[pbinfo-*]`
 
-- [ ] **26. Name spelling on every external surface.**
+- [ ] **25. Name spelling on every external surface.**
   "**Andrei-Mihai Visalon**" — hyphenated, no diacritics — on ORCID, Zenodo, the preprint byline,
   LinkedIn, GitHub and every PDF. A mismatch between surfaces costs credibility and breaks
   author-identity matching.
 
-- [ ] **27. Re-read the kill list before shipping any document.**
+- [ ] **26. Re-read the kill list before shipping any document.**
   18 forbidden claims in `x_forbidden`. The highest-severity three: **"finished 4th overall at
   GRACE"** (traces to a fabricated document — this one ends a candidacy), **"peer-reviewed
   publication"** (there is none; preprints only), and the **608-unit Databricks fan-out**

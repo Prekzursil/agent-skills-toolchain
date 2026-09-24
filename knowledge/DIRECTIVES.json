@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "next_id": 10,
+  "directives": [
+    {
+      "id": "D-1",
+      "text": "make it a must that commits are always pushed, its better that they live there instead of being lost since the cursor branch had insane amount of progress and werent pushed and now are lost",
+      "judge": "BENEFICIAL",
+      "why": "Unpushed work is lost work, with a concrete casualty. A commit that fails to push is silent, so only a mechanism fixes it.",
+      "applied": "scripts/git-hooks/post-commit-autopush (3 repos), AGENTS-RUNTIME.md S9, rules/estate-locks.md, skills/grill",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "commits 06969b1f, 1c449554, 73c834ef each pushed themselves; exactly 1 log line per commit; test_autopush.sh 9/9"
+    },
+    {
+      "id": "D-2",
+      "text": "the repo is private and the rule is that credentials can live there uncensored in plain text, make sure that is settled forever everywhere",
+      "judge": "CONDITIONAL",
+      "why": "Correct for a private single-owner vault. The safety does not come from censoring content, it comes from the repo-public lock -- so that lock becomes load-bearing.",
+      "applied": "estate-deny-guard.py (secret-file scoped outside the vault), settings.json (4 Read denies dropped), AGENTS-RUNTIME.md, AGENTS.md x2, rules/estate-locks.md, knowledge/policy/2026-09-24-private-estate-plaintext.md",
+      "boundary": "EGRESS, not existence. A public remote or third party is still refused. Git history is retroactive: anything committed while private is exposed if visibility ever flips, and this repo WAS public on 2026-09-23.",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "test_estate_deny_guard.py 13/13 ALL-PASS incl. controls proving the rule still bites OUTSIDE the vault and the repo-public lock still fires"
+    },
+    {
+      "id": "D-3",
+      "text": "questions are asked all at once, giving multiple variants, from best to worst to most viable along with your detailed recomandation and detailed explination for each of them with upsides and downsides",
+      "judge": "BENEFICIAL",
+      "why": "Reverses a rule the skill called hard-won, and the evidence supports the reversal: one-at-a-time stalled at G-3 leaving 13 questions unasked; a batched round closed 4 loops in one turn.",
+      "applied": "skills/grill/SKILL.md ASK section, workflows/grill.yaml invariants, AGENTS-RUNTIME.md S1c",
+      "boundary": "Batch WITHIN a dependency tier only. Where an answer changes the next question's options, sequence. When unsure, treat as dependent.",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "grill.yaml invariants rewritten; 4-question batches used live this session resolving L-01/L-02/L-03 and the grill merge"
+    },
+    {
+      "id": "D-4",
+      "text": "dont leave gaps at all, they are always addressed not left or abandoned",
+      "judge": "BENEFICIAL",
+      "why": "The failure is real and demonstrated: G-4 and G-7..G-17 evaporated into conversation depth this session.",
+      "applied": "hooks/gap-check/gap_check.py (Stop), knowledge/OPEN-LOOPS.md, knowledge/TASKBOX.md, skills/grill CONVERGE",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "gap-check 16/16 controls; live register silent; two REAL false positives found and fixed before shipping (L-10 prose, non-ISO dates)"
+    },
+    {
+      "id": "D-5",
+      "text": "there should be a clear ssot where everything is flagged so no such things are possible so we dont know if they were gone upgraded or just disappared or other causes",
+      "judge": "BENEFICIAL",
+      "why": "Proven necessary: 13 skills vanished with ZERO git record (deployed-only tree) and I reported them as 'genuinely gone' when the honest answer was 'absent, cause unknown'.",
+      "applied": "scripts/estate-inventory.py + knowledge/INVENTORY.md (595 items baselined, 21 historical disappearances recorded)",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "4 controls: clean-silent, seeded disappearance caught, explain clears it, state persists"
+    },
+    {
+      "id": "D-6",
+      "text": "there must be a clear task box so stuff doesnt get lost in memory or compaction or in the depths of conversation",
+      "judge": "BENEFICIAL",
+      "why": "TodoWrite dies with the session; the ledger records what happened not what is pending; the register is for durable loops. The in-flight layer was genuinely missing.",
+      "applied": "scripts/taskbox.py + knowledge/TASKBOX.md",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "controls pass: empty-silent, BLOCKED-without-blocker fires, naming the blocker clears it, done clears it"
+    },
+    {
+      "id": "D-7",
+      "text": "moreover there needs to be context awarness, and where session lives, maybe its on another computer or in cloud",
+      "judge": "NEEDS-SCOPE",
+      "why": "Real gap, but 'context awareness' spans several things: which host, which session, what else is running, and what other machines hold. Needs decomposing before building, or it becomes a vague dashboard nobody reads.",
+      "applied": "scripts/estate-context.py - reports host ROLE (VM=disposable vs home=durable), tailnet peers with online/offline + last-seen, cwd",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "live run names this host as 'VM, DISPOSABLE' and correctly shows desktop-a60s9gp offline 3h"
+    },
+    {
+      "id": "D-8",
+      "text": "awarness regarding subagents concurrent stuff not to kill",
+      "judge": "BENEFICIAL",
+      "why": "Concrete and already nearly bit me: I almost edited cv/profile.yaml while 8 verify agents were reading the copy a workflow agent had written. Killing or racing concurrent work is silent damage.",
+      "applied": "scripts/estate-context.py --busy (exit 1 if workflow agents live) + do_not_touch warning",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "live run reports 0 live workflow agents, 1 active session, 1 background shell; --brief gives a one-line hook form"
+    },
+    {
+      "id": "D-9",
+      "text": "i want discipline that knows whats benefic and whats worse, and knows how to make the good decision and so basically think proactively",
+      "judge": "BENEFICIAL",
+      "why": "This register IS the mechanism: every directive carries an explicit, arguable judgement rather than silent compliance. Recording COSTLY or NEEDS-SCOPE is not refusal, it is refusing to pretend a trade-off is free.",
+      "applied": "scripts/directives.py + knowledge/DIRECTIVES.md",
+      "boundary": "",
+      "cost": "",
+      "date": "2026-09-24",
+      "state": "ACTIVE",
+      "verified": "this register caught D-7 and D-8 as 'enforced NOWHERE' the moment they were said - the buried-directive failure detected at capture time"
+    }
+  ]
+}
