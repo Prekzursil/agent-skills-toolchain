@@ -306,7 +306,11 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         f = marker_dir / f"{ev}.marker.json"
         if f.exists():
             lines = []
-            for ln in f.read_text(encoding="utf-8").splitlines():
+            # errors="replace": a subprocess killed mid-write can leave a truncated
+            # multi-byte UTF-8 sequence; decode leniently so one corrupt marker does not
+            # raise UnicodeDecodeError and lose the whole mechanism measurement (the
+            # partial JSON line is then skipped by the JSONDecodeError guard below).
+            for ln in f.read_text(encoding="utf-8", errors="replace").splitlines():
                 if not ln.strip():
                     continue
                 try:
