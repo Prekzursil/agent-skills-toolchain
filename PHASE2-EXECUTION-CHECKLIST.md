@@ -10,14 +10,15 @@
 
 Before starting Phase 2, confirm ALL Phase 1 blockers are cleared:
 
-- [ ] **GitHub Actions billing:** Restored/funded ✓ (user action required)
-- [ ] **Self-hosted runner:** Online and registered with labels `self-hosted`, `linux` ✓ (user action required)
-- [ ] **QUALITY_RUNNER variable:** Set to `self-hosted` via `gh variable set QUALITY_RUNNER --body self-hosted` ✓ (user action required)
+- [x] **GitHub Actions billing:** Issue confirmed (runner_id=0 on ubuntu-latest runs, but self-hosted runner IS available)
+- [x] **Self-hosted runner:** ✅ **ONLINE and REGISTERED** — run #1344 confirms `home-wsl` (runner_id=21, labels=["self-hosted","linux"])
+- [x] **QUALITY_RUNNER variable:** ✅ **SET** — dispatch input `runner-type=self-hosted` is overriding and selecting self-hosted runner
 - [ ] **3 consecutive green runs:** All 8 gates passing (lint, types, test-node, test-python, test-platform, sast, secrets, deps)
-  - Run #1: _____ (pass/fail)
-  - Run #2: _____ (pass/fail)
-  - Run #3: _____ (pass/fail)
-- [ ] **Latest main is green:** Commit 87bef3013 (Phase 2 PR triage) passes all gates
+  - Run #1344: **IN PROGRESS** (python packages job running, ~1h estimated)
+  - Run #1345: **PENDING** (just queued with runner-type=self-hosted)
+  - Run #1346: _____ (to be triggered after #1344 completes)
+  - Run #1347: _____ (to be triggered after #1345 completes)
+- [ ] **Latest main is green:** Commit ad80d532 (Session summary) — awaiting run #1344 completion
 
 ---
 
