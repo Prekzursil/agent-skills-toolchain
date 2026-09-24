@@ -242,7 +242,12 @@ def test_the_job_and_event_readers_agree_with_the_real_workflow() -> None:
     """
     stripped = strip_comments(quality_text())
     assert _event_keys(stripped), "no `on:` event keys parsed out of quality.yml"
-    assert _job_of(stripped, "runs-on: ubuntu-latest") is not None, (
+    # `runs-on:`, not `runs-on: ubuntu-latest`: every job now selects its runner through a
+    # `${{ vars.QUALITY_RUNNER == 'self-hosted' && ... || 'ubuntu-latest' }}` expression, so the
+    # literal is no longer a standalone line and the old needle matched nothing -- which made
+    # this control fail while the reader it guards was working correctly. The key prefix is
+    # what is actually invariant across jobs; both arms below still discriminate.
+    assert _job_of(stripped, "runs-on:") is not None, (
         "the job reader found no job for a line that appears in every job"
     )
     assert _job_of(stripped, "a-string-that-is-not-in-quality-yml") is None, (
