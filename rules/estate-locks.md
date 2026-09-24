@@ -28,3 +28,14 @@ These are enforced by PreToolUse deny-hooks and git pre-commit/pre-push, not by 
 Follow `C:\Users\Prekzursil\.agents\memory-contract.md`. Hybrid `search_notes`;
 observations + `[[wikilinks]]`; `superseded_by` on replace. Semantic search stays ON;
 embeddings stay off the request loop. Do not paste AGENTS.md here.
+
+- **ALWAYS PUSH (24.09.2026).** Every commit is pushed immediately by the
+  `post-commit` auto-push hook. A commit that is not pushed is a commit that can be
+  lost — which is what happened to the `cursor/*` branches. The hook fails open (a
+  push failure never fails the commit) and never uses `--force` or `--no-verify`.
+  Install/verify: `pwsh -File scripts/install-autopush.ps1`. Audit: `pwsh -File
+  scripts/push-guard.ps1`. Controls: `sh scripts/test_autopush.sh` (9 cases).
+- **Corollary: do NOT delete remote branches to tidy up.** A remote branch may be the
+  only surviving copy of work that was never merged. Verify `ahead_by` per branch
+  before proposing any prune, and treat "it looks like agent residue" as a hypothesis,
+  not a finding.

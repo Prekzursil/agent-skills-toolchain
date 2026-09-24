@@ -173,6 +173,41 @@ Force-add deliberately (`git add -f`) until that is decided.
 
 ---
 
+## Always push
+
+A commit that is not pushed is a commit that can be lost. The `cursor/*` branches
+are the proof: real progress that was never pushed and is now gone.
+
+This is enforced mechanically, not by remembering:
+
+```
+pwsh -File scripts/install-autopush.ps1            # install (idempotent)
+pwsh -File scripts/install-autopush.ps1 -WhatIf    # dry run
+sh   scripts/test_autopush.sh                      # 9 controls
+```
+
+`scripts/git-hooks/post-commit-autopush` pushes every commit the moment it is made.
+
+| Property | Why |
+|---|---|
+| **Fails open** | A push failure never fails the commit. A blocked commit is strictly worse than an unpushed one — the work would not exist at all. |
+| **Loud on failure** | Writes to stderr and `~/.agents/logs/autopush.log`. A repo that quietly stopped pushing is visible, not assumed fine. |
+| **Never `--force`, never `--no-verify`** | Those stay refused by `estate-deny-guard`; the hook must not route around it. |
+| **Skips mid-rebase / detached HEAD** | Pushing then publishes a half-finished tree. Note `MERGE_HEAD` is NOT a usable marker — git deletes it as part of the concluding commit, so it is already gone when `post-commit` runs. |
+| **Chains, never clobbers** | An existing `post-commit` is preserved as `post-commit.pre-autopush` and run first. |
+| **Idempotent** | Detects itself via the `AUTOPUSH-HOOK-MARKER` line in the hook body. |
+
+Opt out for one command: `GIT_AUTOPUSH_OFF=1 git commit ...` — and say why.
+
+### Corollary: do not delete remote branches to tidy up
+
+A remote branch may hold the only copy of work nobody merged. Before proposing any
+prune, measure `ahead_by` per branch (`gh api repos/{owner}/{repo}/compare/{base}...{head}`)
+and report the actual ratio. "It looks like agent residue" is a hypothesis, not a
+finding — and on this estate that hypothesis has already been wrong once.
+
+---
+
 ## Related
 
 - `knowledge/OPEN-LOOPS.md` — the live register; nothing closes without evidence

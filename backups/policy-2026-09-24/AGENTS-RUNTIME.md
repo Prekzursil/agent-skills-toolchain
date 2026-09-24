@@ -135,6 +135,21 @@ Harness injects `OWNER-OPS v3 GENERAL` on broad keywords / estate cwd (never blo
 - In **shipped application code**, still prefer environment indirection over a
   hardcoded literal — that is a maintainability rule about code that leaves the
   estate, not a refusal to handle credentials here.
+- **ALWAYS PUSH (24.09.2026, owner instruction).** A commit that is not pushed is a
+  commit that can be LOST. Owner's words: "make it a must that commits are always
+  pushed, its better that they live there instead of being lost since the cursor
+  branch had insane amount of progress and werent pushed and now are lost".
+  Enforced mechanically by a `post-commit` hook
+  (`scripts/git-hooks/post-commit-autopush`, installed by `scripts/install-autopush.ps1`)
+  that pushes every commit immediately. It FAILS OPEN — a push failure never fails
+  the commit, because a blocked commit is strictly worse than an unpushed one — and
+  it never uses force or `--no-verify`, so the refusals below still stand. It skips
+  mid-rebase and detached-HEAD states. Never end a turn with work committed but not
+  pushed; `scripts/push-guard.ps1` surfaces anything stranded. Single-command opt-out:
+  `GIT_AUTOPUSH_OFF=1` — and say why.
+- **Corollary: do NOT delete remote branches to tidy up.** A remote branch may be the
+  only surviving copy of work nobody merged. Measure `ahead_by` per branch before
+  proposing a prune; "it looks like agent residue" is a hypothesis, not a finding.
 - Never `--no-verify` on commits without explicit user instruction.
 - Never `git push --force` to main/master without explicit user approval.
 - Validate all user inputs at system boundaries; sanitize before HTML output.

@@ -169,6 +169,31 @@ def main():
     data = json.loads(text)
     expect_contains("shell-deny-force", data.get("permission", ""), "deny")
 
+    # use-vs-mention, case 2: a quoted argument to a SEARCH tool is a pattern,
+    # not code. `grep 'git push --force' f` searches for the text; it does not
+    # run it. Matching it blocked six legitimate commands on 2026-09-23/24.
+    _danger = "git push --" + "force"
+    rc, out = run_py(
+        "claude",
+        {"tool_input": {"command": "grep -n '%s' AGENTS.md" % _danger}},
+    )
+    if out.strip():
+        raise SystemExit("FAIL a grep PATTERN must not trip the rule, got %r" % (out,))
+    print("PASS search-pattern-allowed")
+
+    # ...but the narrowness must hold: an interpreter is NOT a search tool, so a
+    # forbidden command quoted there still executes and must still block.
+    rc, out = run_py(
+        "claude",
+        {"tool_input": {"command": 'bash -c "%s origin main"' % _danger}},
+    )
+    data = json.loads(out)
+    expect_contains(
+        "interpreter-quote-still-blocked",
+        data["hookSpecificOutput"]["permissionDecision"],
+        "deny",
+    )
+
     print("ALL-PASS")
 
 

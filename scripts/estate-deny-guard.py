@@ -142,12 +142,31 @@ def _strip_data_heredocs(cmd: str) -> str:
     return "".join(out)
 
 
+# Use-vs-mention, case 2 (24.09.2026). A QUOTED ARGUMENT to a read-only search
+# command is a pattern, not code: `grep -n 'git push --force' file` searches for
+# the text, it does not run it. Matching it blocked six legitimate commands.
+#
+# Deliberately NARROW. Only quoted arguments of known search tools are stripped.
+# `bash -c "..."` and `pwsh -Command "..."` are NOT search tools, so a forbidden
+# command quoted there still executes and still blocks.
+_SEARCH_RE = re.compile(
+    r"\b(?:grep|egrep|fgrep|rg|ripgrep|ag|ack|findstr|Select-String|sls)\b"
+    r"((?:\s+-{1,2}[\w-]+)*)\s+('[^']*'|\"[^\"]*\")",
+    re.IGNORECASE,
+)
+
+
+def _strip_search_patterns(cmd: str) -> str:
+    return _SEARCH_RE.sub(lambda m: m.group(0)[: m.start(2) - m.start(0)] + " ", cmd)
+
+
 def _executable_text(cmd: str) -> str:
     """The part of a command that will actually run. Rules match THIS."""
     if not cmd:
         return ""
     t = _strip_data_heredocs(cmd)
     t = _MSG_RE.sub(" ", t)
+    t = _strip_search_patterns(t)
     return t
 
 
