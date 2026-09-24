@@ -14,6 +14,7 @@ Usage:
   python scripts/gen_migration.py --dump            # print clause JSON (build aid)
   python scripts/gen_migration.py                   # generate MIGRATION-TABLE.md
 """
+
 import hashlib
 import json
 import re
@@ -60,13 +61,15 @@ def parse_clauses(path: Path):
     def flush():
         nonlocal cur
         if cur and norm(" ".join(cur[0])):
-            clauses.append({
-                "file": path.name,
-                "line": cur[1],
-                "heading": cur[3],
-                "kind": cur[2],
-                "text": norm(" ".join(cur[0])),
-            })
+            clauses.append(
+                {
+                    "file": path.name,
+                    "line": cur[1],
+                    "heading": cur[3],
+                    "kind": cur[2],
+                    "text": norm(" ".join(cur[0])),
+                }
+            )
         cur = None
 
     for n, raw in enumerate(path.read_text(encoding="utf-8").split("\n"), 1):
@@ -114,8 +117,12 @@ def dedupe(clauses):
         if k in by_key:
             by_key[k]["sources"].append(f"{c['file']}:{c['line']}")
         else:
-            by_key[k] = {"text": c["text"], "sources": [f"{c['file']}:{c['line']}"],
-                         "kind": c["kind"], "heading": c["heading"]}
+            by_key[k] = {
+                "text": c["text"],
+                "sources": [f"{c['file']}:{c['line']}"],
+                "kind": c["kind"],
+                "heading": c["heading"],
+            }
     return by_key
 
 
@@ -146,12 +153,21 @@ def main():
         "`DROPPED (reason)`.",
         "",
     ]
-    order = {"AGENTS.new": 0, "CONTEXT.new": 1, "HOME-ELEVATION": 2,
-             "cyberstrike.json": 3, "DROPPED": 4}
-    rows = sorted(by_key.items(),
-                  key=lambda kv: (order.get(mapping.get(kv[0], {}).get("dest", "zz").split()[0], 9),
-                                  mapping.get(kv[0], {}).get("dest", ""),
-                                  kv[1]["sources"][0]))
+    order = {
+        "AGENTS.new": 0,
+        "CONTEXT.new": 1,
+        "HOME-ELEVATION": 2,
+        "cyberstrike.json": 3,
+        "DROPPED": 4,
+    }
+    rows = sorted(
+        by_key.items(),
+        key=lambda kv: (
+            order.get(mapping.get(kv[0], {}).get("dest", "zz").split()[0], 9),
+            mapping.get(kv[0], {}).get("dest", ""),
+            kv[1]["sources"][0],
+        ),
+    )
     cur_dest = None
     for k, c in rows:
         dest = mapping[k]["dest"] if k in mapping else "!!UNMAPPED!!"
@@ -168,8 +184,10 @@ def main():
         lines.append(f"| `{k}` | {txt} ({src}) | {dest} | {note} |")
     lines.append("")
     OUT_PATH.write_text("\n".join(lines), encoding="utf-8", newline="\n")
-    print(f"clauses={len(clauses)} unique={len(by_key)} unmapped={len(unmapped)} "
-          f"stale={len(stale)} dropped={n_drop}")
+    print(
+        f"clauses={len(clauses)} unique={len(by_key)} unmapped={len(unmapped)} "
+        f"stale={len(stale)} dropped={n_drop}"
+    )
     if unmapped or stale:
         for k in unmapped[:10]:
             print("UNMAPPED", k, by_key[k]["sources"], by_key[k]["text"][:100])

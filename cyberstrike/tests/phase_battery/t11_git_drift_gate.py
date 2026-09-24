@@ -19,6 +19,7 @@ SCRATCH clone (never the live repo): one file modified after staging must
 register as drift (MM/" M"), proving the detector fires. Without this leg a
 "CLEAN" reading could be a porcelain-parsing artifact.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,7 +30,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from battery_common import (  # noqa: E402
-    REPO, SUCCESS, FAILED, VerdictRecorder, git,
+    REPO,
+    SUCCESS,
+    FAILED,
+    VerdictRecorder,
+    git,
 )
 
 
@@ -59,17 +64,32 @@ def control() -> bool:
     with tempfile.TemporaryDirectory(prefix="t11-ctl-") as td:
         clone = Path(td) / "repo"
         r = subprocess.run(
-            ["git", "clone", "-q", "--no-hardlinks",
-             str(REPO).replace("\\", "/"), str(clone).replace("\\", "/")],
-            capture_output=True, text=True, timeout=120,
-            encoding="utf-8", errors="replace")
+            [
+                "git",
+                "clone",
+                "-q",
+                "--no-hardlinks",
+                str(REPO).replace("\\", "/"),
+                str(clone).replace("\\", "/"),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            encoding="utf-8",
+            errors="replace",
+        )
         if r.returncode != 0:
             return False
         f = clone / "CONTEXT.md"
         f.write_text("planted drift\n", encoding="utf-8")
-        q = subprocess.run(["git", "-C", str(clone), "status", "--porcelain"],
-                           capture_output=True, text=True, timeout=60,
-                           encoding="utf-8", errors="replace")
+        q = subprocess.run(
+            ["git", "-C", str(clone), "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            encoding="utf-8",
+            errors="replace",
+        )
         out = (q.stdout or "").splitlines()
         # planted edit on a tracked file must surface as " M" (or "MM")
         return any(ln.startswith((" M", "MM")) for ln in out)
@@ -95,30 +115,40 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     rec.hit("T-11", "detector_control", scratch_clone_planted_drift=ctrl_ok)
 
     fail = bool(fails) or (strict_untracked and bool(warns)) or not ctrl_ok
-    rec.record("T-11", SUCCESS if not fail else FAILED,
-               details={
-                   "head": (head.stdout or "").strip(),
-                   "staged_only_entries": [ln for ln in lines
-                                           if ln[:2] in ("A ", "M ", "R ")],
-                   "tracked_drift": fails,
-                   "untracked_warns": warns,
-                   "strict_untracked": strict_untracked,
-                   "note": "staged-only is the sanctioned hand-off (owner "
-                           "commits); unstaged live edits are the drift this "
-                           "gate exists to catch",
-               },
-               anchors=[REPO / ".gitignore"],
-               reason=None if not fail else
-               ("tracked drift" if fails else
-                "untracked under --strict-untracked" if warns else
-                "drift detector control failed to fire"))
+    rec.record(
+        "T-11",
+        SUCCESS if not fail else FAILED,
+        details={
+            "head": (head.stdout or "").strip(),
+            "staged_only_entries": [ln for ln in lines if ln[:2] in ("A ", "M ", "R ")],
+            "tracked_drift": fails,
+            "untracked_warns": warns,
+            "strict_untracked": strict_untracked,
+            "note": "staged-only is the sanctioned hand-off (owner "
+            "commits); unstaged live edits are the drift this "
+            "gate exists to catch",
+        },
+        anchors=[REPO / ".gitignore"],
+        reason=None
+        if not fail
+        else (
+            "tracked drift"
+            if fails
+            else "untracked under --strict-untracked"
+            if warns
+            else "drift detector control failed to fire"
+        ),
+    )
     return SUCCESS if not fail else FAILED
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--strict-untracked", action="store_true",
-                    help="fail on untracked non-ignored files too")
+    ap.add_argument(
+        "--strict-untracked",
+        action="store_true",
+        help="fail on untracked non-ignored files too",
+    )
     args = ap.parse_args()
     with VerdictRecorder(meta={"test": "T-11"}) as rec:
         status = run(rec, {"strict_untracked": args.strict_untracked})

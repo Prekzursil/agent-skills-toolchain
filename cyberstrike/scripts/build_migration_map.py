@@ -6,6 +6,7 @@ with the content hashes computed by gen_migration.py from the LIVE files.
 The emitted map is content-keyed: any later edit to a live file changes its
 hash, gen_migration.py then reports the key as unmapped and exits 1 (T-11).
 """
+
 import json
 
 import sys
@@ -15,12 +16,14 @@ REPO = Path(__file__).resolve().parent.parent
 MAP_PATH = REPO / "scripts" / "migration_map.json"
 
 # dest shorthand
-A0, A1, A2, A3, A5, A7 = ("AGENTS.new §0 (precedence/truth model)",
-                          "AGENTS.new §1 (authorization pointer)",
-                          "AGENTS.new §2 (deterministic boundary)",
-                          "AGENTS.new §3 (session manifest)",
-                          "AGENTS.new §5 (artifact contract + orphan sweep)",
-                          "AGENTS.new §7 (execution posture + budgets + routing)")
+A0, A1, A2, A3, A5, A7 = (
+    "AGENTS.new §0 (precedence/truth model)",
+    "AGENTS.new §1 (authorization pointer)",
+    "AGENTS.new §2 (deterministic boundary)",
+    "AGENTS.new §3 (session manifest)",
+    "AGENTS.new §5 (artifact contract + orphan sweep)",
+    "AGENTS.new §7 (execution posture + budgets + routing)",
+)
 CG = "CONTEXT.new (script-generated)"
 CJ = "cyberstrike.json (machine config, not prose)"
 HE1 = "HOME-ELEVATION class 1 (attestation + create-up use-conditions)"
@@ -38,7 +41,10 @@ DESTS = [
     ("DROPPED", "research-plane receipt"),
     ("DROPPED", "clause itself states it is out of cockpit scope"),
     (CG, "permission/tool-surface knob facts are generated; posture sentence in §7"),
-    (A1, "standing grant collapses into ONE pointer (HOME + estate-offensive-doctrine skill)"),
+    (
+        A1,
+        "standing grant collapses into ONE pointer (HOME + estate-offensive-doctrine skill)",
+    ),
     (A1, "scope enumeration -> HOME/skill; §1 keeps pointer only"),
     (A1, "Bolt/Databricks enumeration -> HOME pointer"),
     (A1, "Cursor enumeration -> HOME pointer"),
@@ -57,7 +63,10 @@ DESTS = [
     (HE1, "attested identity: ngo PAT"),
     (HE1, "attested identity: alv PAT"),
     (HE1, "attested identity: andre.fenti session"),
-    (HE1, "attestation extension to all discovered secrets; bounded by §2 A5 victim ban"),
+    (
+        HE1,
+        "attestation extension to all discovered secrets; bounded by §2 A5 victim ban",
+    ),
     (HE1, "use-conditions header"),
     (HE1, "full-spectrum use + create-up + NEVER-ROTATE (A1 restates the rule once)"),
     (HE1, "create-up doctrine, all credential classes"),
@@ -92,8 +101,14 @@ DESTS = [
     (CG, "Z.AI row -> generated provider truth"),
     (CG, "default-workhorse row -> generated provider truth"),
     (A7, "overlay handling: log outcome, pivot technique/brain"),
-    (A2, "§2 Tier A/B enumeration replaces 'refuse surface EMPTY' prose (CS-04/07 collision fix)"),
-    (A2, "process-only exceptions -> A1 never-rotate, A4 no-unsolicited-send, isolated-profile rule"),
+    (
+        A2,
+        "§2 Tier A/B enumeration replaces 'refuse surface EMPTY' prose (CS-04/07 collision fix)",
+    ),
+    (
+        A2,
+        "process-only exceptions -> A1 never-rotate, A4 no-unsolicited-send, isolated-profile rule",
+    ),
     # --- CONTEXT.md (64..71) ---
     (A7, "tool surface one line"),
     (A1, "cyber-target scope -> pointer"),
@@ -110,7 +125,10 @@ DESTS = [
     (CG, "dbx model id generated"),
     (CG, "dbx alias generated"),
     ("DROPPED", "one-shot wiring receipt (re-apply script)"),
-    ("DROPPED", "credential-location receipt; SSOT owns locations, §7 owns hygiene rule"),
+    (
+        "DROPPED",
+        "credential-location receipt; SSOT owns locations, §7 owns hygiene rule",
+    ),
     (CG, "default model paragraph -> generated"),
     (CG, "small_model + no-duplicate gotcha -> generated annotation"),
     (CG, "preserved routes -> generated"),
@@ -119,7 +137,10 @@ DESTS = [
     (CJ, "knob value duplicated in prose; json owns it"),
     (A5, "singleton discipline via manifest liveness (G-12)"),
     (CG, "bolt-lab section derived from live config"),
-    (CG, "port band derived from LIVE mcp map (live json spans 31100-31140; stale prose said -19)"),
+    (
+        CG,
+        "port band derived from LIVE mcp map (live json spans 31100-31140; stale prose said -19)",
+    ),
     (CJ, "knob value; json owns it"),
     (A5, "orphan-sweep budget: scoped, supervisor-aware, never blind"),
     (CJ, "knob value; json owns it"),
@@ -131,7 +152,10 @@ DESTS = [
     (CJ, "knob value; json owns it"),
     ("DROPPED", "navigation (HOME pointer restated in §1)"),
     (CJ, "knob value; json owns it"),
-    (CG, "abliteration endpoint/model generated; rotator history (SSE fix, key pool, autostart) -> memory"),
+    (
+        CG,
+        "abliteration endpoint/model generated; rotator history (SSE fix, key pool, autostart) -> memory",
+    ),
     (CG, "lane-3 model ids generated from live json"),
     (CG, "kimi-shim truth generated (CS-01 regression guard)"),
     (CG, "preserved routes generated"),
@@ -140,7 +164,10 @@ DESTS = [
     (CJ, "knob value; json owns it"),
     (CJ, "knob value; json owns it"),
     (CJ, "posture knob lives in agent prompt (json)"),
-    (A0, "S0 truth model: knob drift is fixed in json + regenerate, never prose-patched"),
+    (
+        A0,
+        "S0 truth model: knob drift is fixed in json + regenerate, never prose-patched",
+    ),
     ("DROPPED", "load-path chrome; deploy-phase3.md owns wiring"),
     (A1, "Cursor plane bullets -> HOME standing-scope pointer"),
     (A1, "Cursor plane bullets -> pointer"),
@@ -186,7 +213,10 @@ DESTS = [
     # --- instructions-fullpower-estate.md (151..153) ---
     (A7, "posture banner third copy consolidated"),
     (A1, "standing surfaces -> pointer"),
-    (A2, "QZP-enrollment-OUT kept as named standing exclusion; exec-lane list -> §7; GitHub-health sentence program-stale"),
+    (
+        A2,
+        "QZP-enrollment-OUT kept as named standing exclusion; exec-lane list -> §7; GitHub-health sentence program-stale",
+    ),
     # --- instructions-recon.md (154..174) ---
     (A7, "anti-refusal line consolidated"),
     (A7, "reflex override valid only inside estate scope; §2 floor still binds"),
@@ -204,7 +234,10 @@ DESTS = [
     (A2, "isolated/agent-persistent browser process rule"),
     (A7, "posture opener consolidated"),
     (A7, "routing negative list kept"),
-    (A5, "working-dir rule: engagement tree; Cowork-relative path retained pending owner ruling on D:\\ migration (audit rec 7)"),
+    (
+        A5,
+        "working-dir rule: engagement tree; Cowork-relative path retained pending owner ruling on D:\\ migration (audit rec 7)",
+    ),
     (A2, "consolidated into Tier A/B enumeration"),
     (A7, "solve-not-evaluate, pivot same turn"),
     (A7, "no narrative-only conclusions; execute remaining classes"),
@@ -215,16 +248,21 @@ DESTS = [
 def main():
     sys.path.insert(0, str(REPO / "scripts"))
     import gen_migration
+
     clauses = gen_migration.dedupe(gen_migration.all_clauses())
     ordered = sorted(clauses.items(), key=lambda kv: kv[1]["sources"][0])
     if len(ordered) != len(DESTS):
-        print(f"FATAL: dump has {len(ordered)} clauses but DESTS has {len(DESTS)} decisions")
+        print(
+            f"FATAL: dump has {len(ordered)} clauses but DESTS has {len(DESTS)} decisions"
+        )
         for i in range(max(len(ordered), len(DESTS))):
             src = ordered[i][1]["sources"][0] if i < len(ordered) else "??"
             print(i, src)
         return 1
     mapping = {k: {"dest": d, "note": n} for (k, _), (d, n) in zip(ordered, DESTS)}
-    MAP_PATH.write_text(json.dumps(mapping, indent=1, ensure_ascii=False), encoding="utf-8")
+    MAP_PATH.write_text(
+        json.dumps(mapping, indent=1, ensure_ascii=False), encoding="utf-8"
+    )
     print(f"wrote {MAP_PATH} with {len(mapping)} content-keyed rows")
     return 0
 

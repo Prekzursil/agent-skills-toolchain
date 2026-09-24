@@ -9,6 +9,7 @@ small shared helpers (git-show, bounded greps, subprocess) the tests use.
 RAM discipline: helpers are scoped by design (single git-show, single file
 read, bounded regex) - no recursive scans live here.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,20 +24,29 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 from verdict_recorder import (  # noqa: E402  (path bootstrap above)
-    SUCCESS, FAILED, INTERRUPTED, PENDING_OWNER,
-    VerdictRecorder, sha8,
+    SUCCESS,
+    FAILED,
+    INTERRUPTED,
+    PENDING_OWNER,
+    VerdictRecorder,
+    sha8,
 )
 
 # Commit ids (grill roadmap / GRILL-DECISIONS_2026-09-20.md)
-BASELINE_REV = "2c0f3c6"   # Phase-1 baseline: pre-change snapshot
-PHASE1_REV = "b7ab510"     # Phase-1 truth fixes (current HEAD at battery build)
+BASELINE_REV = "2c0f3c6"  # Phase-1 baseline: pre-change snapshot
+PHASE1_REV = "b7ab510"  # Phase-1 truth fixes (current HEAD at battery build)
 
 
 def git(args: list[str], timeout: int = 60) -> subprocess.CompletedProcess:
     """Run git in REPO. Windows-shell rule: forward slashes inside git revs."""
-    return subprocess.run(["git", "-C", str(REPO), *args],
-                          capture_output=True, text=True, timeout=timeout,
-                          encoding="utf-8", errors="replace")
+    return subprocess.run(
+        ["git", "-C", str(REPO), *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        encoding="utf-8",
+        errors="replace",
+    )
 
 
 def git_show(rev: str, path: str, timeout: int = 60) -> str:
@@ -56,12 +66,18 @@ def count(pattern: str, text: str, flags=re.I) -> int:
     return len(re.findall(pattern, text, flags))
 
 
-def py_run(script: Path, args: list[str], timeout: int = 300
-           ) -> subprocess.CompletedProcess:
+def py_run(
+    script: Path, args: list[str], timeout: int = 300
+) -> subprocess.CompletedProcess:
     """Run a repo python helper with the same interpreter."""
-    return subprocess.run([sys.executable, str(script), *args],
-                          capture_output=True, text=True, timeout=timeout,
-                          encoding="utf-8", errors="replace")
+    return subprocess.run(
+        [sys.executable, str(script), *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        encoding="utf-8",
+        errors="replace",
+    )
 
 
 def json_from_completed(r: subprocess.CompletedProcess):
@@ -73,8 +89,20 @@ def json_from_completed(r: subprocess.CompletedProcess):
 
 
 __all__ = [
-    "REPO", "SCRIPTS", "BASELINE_REV", "PHASE1_REV",
-    "SUCCESS", "FAILED", "INTERRUPTED", "PENDING_OWNER",
-    "VerdictRecorder", "sha8",
-    "git", "git_show", "read_text", "count", "py_run", "json_from_completed",
+    "REPO",
+    "SCRIPTS",
+    "BASELINE_REV",
+    "PHASE1_REV",
+    "SUCCESS",
+    "FAILED",
+    "INTERRUPTED",
+    "PENDING_OWNER",
+    "VerdictRecorder",
+    "sha8",
+    "git",
+    "git_show",
+    "read_text",
+    "count",
+    "py_run",
+    "json_from_completed",
 ]

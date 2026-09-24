@@ -14,6 +14,7 @@ Shards:  <data>/manifest/sessions/<sessionID>.ndjson  (append-only)
 State:   <data>/manifest/_poll_state.json             (last-seen time_updated per id)
 Exit: 0 = pass complete (rows written or not); 2 = store unreadable.
 """
+
 import argparse
 import datetime
 import json
@@ -25,7 +26,10 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 DATA_DIR = os.environ.get("CYBERSTRIKE_DATA") or os.path.join(
     os.environ.get("USERPROFILE") or os.environ.get("HOME") or ".",
-    ".local", "share", "cyberstrike")
+    ".local",
+    "share",
+    "cyberstrike",
+)
 DB = os.path.join(DATA_DIR, "cyberstrike.db")
 MANIFEST_DIR = os.path.join(DATA_DIR, "manifest", "sessions")
 STATE = os.path.join(DATA_DIR, "manifest", "_poll_state.json")
@@ -61,8 +65,10 @@ def pass_once():
             return 2
         title_col = "title" if "title" in cols else "NULL as title"
         directory_col = "directory" if "directory" in cols else "NULL as directory"
-        q = (f"SELECT id, time_created, time_updated, {title_col}, {directory_col} "
-             "FROM session ORDER BY time_updated")
+        q = (
+            f"SELECT id, time_created, time_updated, {title_col}, {directory_col} "
+            "FROM session ORDER BY time_updated"
+        )
         for sid, tc, tu, title, directory in con.execute(q):
             key = sid if isinstance(sid, str) else str(sid)
             tu_s = tu if isinstance(tu, str) else str(tu or "")
@@ -78,8 +84,11 @@ def pass_once():
                 "time_updated": tu_s,
                 "source": "manifest_poll",
             }
-            with open(os.path.join(MANIFEST_DIR, sanitize(key) + ".ndjson"), "a",
-                      encoding="utf-8") as f:
+            with open(
+                os.path.join(MANIFEST_DIR, sanitize(key) + ".ndjson"),
+                "a",
+                encoding="utf-8",
+            ) as f:
                 f.write(json.dumps(row, ensure_ascii=False) + "\n")
             state[key] = tu_s
             written += 1
@@ -99,6 +108,7 @@ def main():
     a = ap.parse_args()
     if a.interval and not a.once:
         import time
+
         while True:
             pass_once()
             time.sleep(a.interval)

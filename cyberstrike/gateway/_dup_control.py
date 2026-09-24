@@ -1,6 +1,7 @@
 """Negative control (rule 3b): inject a duplicate alias into a TEMP ssot copy,
 run gen_routes against it, expect the lint to FAIL non-zero. Never touches the
 real SSOT or the real generated artifact."""
+
 import json
 import shutil
 import sys
@@ -15,7 +16,9 @@ tmp = Path(tempfile.mkdtemp(prefix="gw-dup-control-"))
 ssot_copy = tmp / "mcp-ssot.json"
 shutil.copy(real_ssot, ssot_copy)
 d = json.loads(ssot_copy.read_text(encoding="utf-8"))
-d["fronts"]["osint"]["aliases"] = d["fronts"]["osint"].get("aliases", ["osint"]) + ["cve"]
+d["fronts"]["osint"]["aliases"] = d["fronts"]["osint"].get("aliases", ["osint"]) + [
+    "cve"
+]
 ssot_copy.write_text(json.dumps(d), encoding="utf-8")
 
 gen_routes.SSOT = ssot_copy

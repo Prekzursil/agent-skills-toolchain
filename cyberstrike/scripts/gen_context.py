@@ -10,6 +10,7 @@ Emits CONTEXT.new.md <= ~1.0 KB (model-facing byte budget: AGENTS.new + CONTEXT.
 <= 7500 B total per G-5). --check regenerates in memory and diffs the on-disk file
 (exit 1 on drift). Never hand-edit the output.
 """
+
 import json
 import sys
 from pathlib import Path
@@ -39,14 +40,26 @@ def build() -> str:
     band = [p for p in ports(urls) if 30000 <= p < 40000]
     lo, hi = (min(band), max(band)) if band else (0, 0)
     others = sorted({p for p in ports(urls) if p not in band})
-    shims = [m for m in (cfg.get("provider", {}).get("nvidia", {}).get("models", {})).values()
-             if isinstance(m, dict) and str(m.get("id", "")) == "moonshotai/kimi-k3"]
-    local = sorted({urlparse(v["options"]["baseURL"]).netloc
-                    for v in cfg.get("provider", {}).values()
-                    if isinstance(v, dict) and v.get("options", {}).get("baseURL", "").startswith("http://127.0.0.1")})
+    shims = [
+        m
+        for m in (cfg.get("provider", {}).get("nvidia", {}).get("models", {})).values()
+        if isinstance(m, dict) and str(m.get("id", "")) == "moonshotai/kimi-k3"
+    ]
+    local = sorted(
+        {
+            urlparse(v["options"]["baseURL"]).netloc
+            for v in cfg.get("provider", {}).values()
+            if isinstance(v, dict)
+            and v.get("options", {}).get("baseURL", "").startswith("http://127.0.0.1")
+        }
+    )
     db = DATA / "cyberstrike.db"
-    skills_data = len(list((DATA / "skill").iterdir())) if (DATA / "skill").is_dir() else 0
-    skills_cfg = len(list((REPO / "skill").iterdir())) if (REPO / "skill").is_dir() else 0
+    skills_data = (
+        len(list((DATA / "skill").iterdir())) if (DATA / "skill").is_dir() else 0
+    )
+    skills_cfg = (
+        len(list((REPO / "skill").iterdir())) if (REPO / "skill").is_dir() else 0
+    )
     lines = [
         "# CONTEXT.md — CyberStrike machine facts (GENERATED — do not hand-edit)",
         "",
@@ -71,6 +84,7 @@ def gateway_routes_check() -> int:
     the SSOT (D: drive) or the generated artifact is absent — gen_context must not
     newly break on a D:-less box; fail-CLOSED on actual drift."""
     import importlib.util
+
     gr = REPO / "gateway" / "gen_routes.py"
     if not gr.exists() or not Path(r"D:\opt\cyberstrike-mcp\mcp-ssot.json").exists():
         print("NOT-CHECKED:gateway-routes ssot or generator absent (D: unmounted?)")
@@ -91,7 +105,9 @@ def main():
         rc = 0
         disk = OUT.read_text(encoding="utf-8") if OUT.exists() else ""
         if disk != text:
-            print("FAILED:context-drift CONTEXT.new.md differs from live-config regeneration")
+            print(
+                "FAILED:context-drift CONTEXT.new.md differs from live-config regeneration"
+            )
             rc = 1
         else:
             print("SUCCESS:context-check CONTEXT.new.md == live config")

@@ -13,6 +13,7 @@ Exit codes: 0 = clean, 1 = findings emitted, 2 = detector could not run
 (missing/unparseable inputs). Never prints credential values: only structural
 fields (disabled_providers list, provider ids, model registry keys/ids).
 """
+
 import argparse
 import json
 import re
@@ -110,22 +111,33 @@ def check_docs(docs_text, cfg, known, disabled):
         cond_parts.append("openai in disabled_providers")
     res = resolve_model(cfg, active) if active else None
     if res and res[0] != "openai":
-        cond_parts.append("active model '" + str(active) + "' resolves to provider '" + res[0] + "'")
+        cond_parts.append(
+            "active model '" + str(active) + "' resolves to provider '" + res[0] + "'"
+        )
     condition = " OR ".join(cond_parts) or "no drift condition present"
 
     for lineno, raw in enumerate(docs_text.splitlines(), 1):
         line = raw.strip()
-        if RE_FAMILY.search(line) and (RE_ROLE_ROW.search(line) or RE_ROLE_ASSERT.search(line)):
+        if RE_FAMILY.search(line) and (
+            RE_ROLE_ROW.search(line) or RE_ROLE_ASSERT.search(line)
+        ):
             if not RE_HONESTY_A.search(line):
                 if openai_disabled or (res and res[0] != "openai"):
-                    named = sorted(set(m.group(0).lower() for m in RE_FAMILY.finditer(line)))
-                    findings.append({
-                        "code": "A1", "line": lineno,
-                        "message": "prose presents OpenAI/Astra/Daybreak as a cockpit "
-                                   "brain/cyber-path without honesty marker (shim/external/"
-                                   "not-a-cockpit); drift condition: " + condition
-                                   + "; family tokens: " + ", ".join(named),
-                    })
+                    named = sorted(
+                        set(m.group(0).lower() for m in RE_FAMILY.finditer(line))
+                    )
+                    findings.append(
+                        {
+                            "code": "A1",
+                            "line": lineno,
+                            "message": "prose presents OpenAI/Astra/Daybreak as a cockpit "
+                            "brain/cyber-path without honesty marker (shim/external/"
+                            "not-a-cockpit); drift condition: "
+                            + condition
+                            + "; family tokens: "
+                            + ", ".join(named),
+                        }
+                    )
         for segment in RE_SEGMENT.split(line):
             if not RE_REG_CLAIM.search(segment):
                 continue
@@ -138,12 +150,16 @@ def check_docs(docs_text, cfg, known, disabled):
                 if "{" in claim or "}" in claim or "shim" in claim.lower():
                     continue  # credential refs / alias labels, not model ids
                 if not claim_matches(claim, known):
-                    findings.append({
-                        "code": "B1", "line": lineno,
-                        "message": "phantom registered-model claim: '" + claim
-                                   + "' claimed registered in prose but absent from "
-                                   "cyberstrike.json registry",
-                    })
+                    findings.append(
+                        {
+                            "code": "B1",
+                            "line": lineno,
+                            "message": "phantom registered-model claim: '"
+                            + claim
+                            + "' claimed registered in prose but absent from "
+                            "cyberstrike.json registry",
+                        }
+                    )
     return findings
 
 
@@ -169,19 +185,42 @@ def main():
     active = cfg.get("model")
     res = resolve_model(cfg, active) if active else None
     if res and res[0] in disabled:
-        findings.append({
-            "code": "C1", "line": 0,
-            "message": "active model '" + str(active) + "' resolves to disabled provider '" + res[0] + "'",
-        })
+        findings.append(
+            {
+                "code": "C1",
+                "line": 0,
+                "message": "active model '"
+                + str(active)
+                + "' resolves to disabled provider '"
+                + res[0]
+                + "'",
+            }
+        )
     if args.json:
-        print(json.dumps({
-            "config": str(cfg_path), "docs": str(docs_path),
-            "findings": findings, "count": len(findings),
-            "openai_disabled": "openai" in disabled,
-        }, indent=1))
+        print(
+            json.dumps(
+                {
+                    "config": str(cfg_path),
+                    "docs": str(docs_path),
+                    "findings": findings,
+                    "count": len(findings),
+                    "openai_disabled": "openai" in disabled,
+                },
+                indent=1,
+            )
+        )
     else:
         for f in findings:
-            print("FINDING " + f["code"] + " " + docs_path.name + ":" + str(f["line"]) + " " + f["message"])
+            print(
+                "FINDING "
+                + f["code"]
+                + " "
+                + docs_path.name
+                + ":"
+                + str(f["line"])
+                + " "
+                + f["message"]
+            )
         print("phase1_provider_truth: " + str(len(findings)) + " finding(s)")
     return 1 if findings else 0
 

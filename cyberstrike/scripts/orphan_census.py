@@ -39,6 +39,7 @@ count (killing a process, patching, reporting "N zombie calls"):
   3. json parse failures are counted and surfaced (parse_failures) — a spike
      there means schema drift, not zero orphans (adverse-inference rule).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -57,7 +58,9 @@ LIVE_WINDOW_DEFAULT_MIN = 30
 
 def ts(ms):
     try:
-        return datetime.datetime.fromtimestamp(ms / 1000).isoformat(sep=" ", timespec="seconds")
+        return datetime.datetime.fromtimestamp(ms / 1000).isoformat(
+            sep=" ", timespec="seconds"
+        )
     except Exception:
         return str(ms)
 
@@ -143,7 +146,9 @@ def census(db_path: str, limit: int, statuses, live_window_min: int) -> dict:
             oldest_raw = None
             for c, (tool, st, t) in stuck.items():
                 entry["stuck_by_status"][st] = entry["stuck_by_status"].get(st, 0) + 1
-                entry["stuck_by_tool"][tool or "unknown"] = entry["stuck_by_tool"].get(tool or "unknown", 0) + 1
+                entry["stuck_by_tool"][tool or "unknown"] = (
+                    entry["stuck_by_tool"].get(tool or "unknown", 0) + 1
+                )
                 if oldest_raw is None or t < oldest_raw:
                     oldest_raw = t
             if oldest_raw is not None:
@@ -223,13 +228,41 @@ def self_test() -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
-    ap.add_argument("--db", default=DEFAULT_DB, help=f"sqlite path (default env CYBERSTRIKE_DB or {DEFAULT_DB})")
-    ap.add_argument("--limit", type=int, default=50, help="recent sessions to scan (default 50, 0 = all)")
-    ap.add_argument("--statuses", default=",".join(DEFAULT_STATUSES), help="comma list of non-terminal statuses")
-    ap.add_argument("--live-window-min", type=int, default=LIVE_WINDOW_DEFAULT_MIN, help="recency window flagged needs_corroboration")
-    ap.add_argument("--json", dest="json_out", help="write full census JSON to this path")
-    ap.add_argument("--orphans-only", action="store_true", help="print only sessions with stuck calls")
-    ap.add_argument("--self-test", action="store_true", help="run the parser fixture and exit (no db)")
+    ap.add_argument(
+        "--db",
+        default=DEFAULT_DB,
+        help=f"sqlite path (default env CYBERSTRIKE_DB or {DEFAULT_DB})",
+    )
+    ap.add_argument(
+        "--limit",
+        type=int,
+        default=50,
+        help="recent sessions to scan (default 50, 0 = all)",
+    )
+    ap.add_argument(
+        "--statuses",
+        default=",".join(DEFAULT_STATUSES),
+        help="comma list of non-terminal statuses",
+    )
+    ap.add_argument(
+        "--live-window-min",
+        type=int,
+        default=LIVE_WINDOW_DEFAULT_MIN,
+        help="recency window flagged needs_corroboration",
+    )
+    ap.add_argument(
+        "--json", dest="json_out", help="write full census JSON to this path"
+    )
+    ap.add_argument(
+        "--orphans-only",
+        action="store_true",
+        help="print only sessions with stuck calls",
+    )
+    ap.add_argument(
+        "--self-test",
+        action="store_true",
+        help="run the parser fixture and exit (no db)",
+    )
     args = ap.parse_args()
 
     if args.self_test:
@@ -254,16 +287,26 @@ def main() -> int:
     rows = result["census"]
     if args.orphans_only:
         rows = [r for r in rows if r["stuck"] > 0]
-    print(f"scanned={result['scanned']} orphan_sessions={result['orphan_sessions']} stuck_calls={result['stuck_calls_total']} parse_failures={result['parse_failures']}")
+    print(
+        f"scanned={result['scanned']} orphan_sessions={result['orphan_sessions']} stuck_calls={result['stuck_calls_total']} parse_failures={result['parse_failures']}"
+    )
     for r in rows:
-        if r["stuck"] == 0 and args.orphans_only is False and result["orphan_sessions"] > 0:
+        if (
+            r["stuck"] == 0
+            and args.orphans_only is False
+            and result["orphan_sessions"] > 0
+        ):
             continue  # compact table: show orphans plus a counter
         if r["stuck"] == 0:
             continue
         flag = " [LIVE?]" if r["needs_corroboration"] else ""
-        print(f"  {r['id']} updated={r['updated']} stuck={r['stuck']} by_status={r['stuck_by_status']} by_tool={r['stuck_by_tool']}{flag}")
+        print(
+            f"  {r['id']} updated={r['updated']} stuck={r['stuck']} by_status={r['stuck_by_status']} by_tool={r['stuck_by_tool']}{flag}"
+        )
     if result["parse_failures"] > 0:
-        print(f"WARNING: {result['parse_failures']} part rows failed json parse — schema drift check needed")
+        print(
+            f"WARNING: {result['parse_failures']} part rows failed json parse — schema drift check needed"
+        )
     return 2 if result["orphan_sessions"] > 0 else 0
 
 
