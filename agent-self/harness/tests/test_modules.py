@@ -43,6 +43,7 @@ from harness.models import HookResult
 
 
 def event(tmp_path: Path, name: str, **overrides):
+    provider = overrides.pop("provider", "codex")
     raw = {
         "session_id": "session-1",
         "turn_id": "turn-1",
@@ -50,7 +51,7 @@ def event(tmp_path: Path, name: str, **overrides):
         "hook_event_name": name,
     }
     raw.update(overrides)
-    return normalize_event(raw, provider="codex", event_name=name)
+    return normalize_event(raw, provider=provider, event_name=name)
 
 
 def test_fixed_module_order_is_security_then_continuity_then_quality():
@@ -3192,7 +3193,7 @@ def _transcript(tmp_path: Path, body: str) -> Path:
     return target
 
 
-def test_sensitive_artifact_reports_a_credential_bearing_transcript(tmp_path):
+def test_sensitive_artifact_reports_a_credential_bearing_transcript(iso, tmp_path):
     target = _transcript(tmp_path, f'{{"role":"user","text":"my key is {FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
         event(tmp_path, "Stop", transcript_path=str(target))
@@ -3252,7 +3253,7 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     assert not result.additional_context
 
 
-def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
+def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(iso, tmp_path):
     # The negative control for the test above: without the re-entrancy flag SubagentStop must
     # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
     # while destroying the detection it exists for -- silent in both states measures nothing.
@@ -3264,7 +3265,7 @@ def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
     assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
 
 
-def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
+def test_sensitive_artifact_notice_never_demands_a_forbidden_action(iso, tmp_path):
     # The other half of the 2026-08-08 deadlock. The injected text used to end "Review the local
     # file and rotate any live credential." AGENTS.md Sec.9 forbids an agent rotating any
     # credential, so the only satisfying action was the one action the reader must refuse --
@@ -3280,7 +3281,9 @@ def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
     assert "no agent action clears this notice" in joined
 
 
-def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):
+def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(
+    iso, tmp_path
+):
     # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
     missing = tmp_path / "does-not-exist.jsonl"
     result = SensitiveArtifactModule().run(
@@ -3311,3 +3314,80 @@ def test_sensitive_artifact_never_raises_on_a_malformed_event(tmp_path):
         event(tmp_path, "Stop", transcript_path="\x00bad")
     )
     assert result.action in {"allow", "inject"}
+
+
+def test_sensitive_artifact_stop_notice_is_once_per_transcript(iso, tmp_path):
+    # Grok Stop inject is re-fed as "Stop hook feedback, continuing" WITHOUT
+    # stop_hook_active. Without a path_id cooldown the same transcript nags
+    # every turn (measured 2026-09-02: sha256:7decdf79faac loop).
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    second = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    assert first.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(first.additional_context)
+    assert second.action == "allow"
+    assert not second.additional_context
+
+
+def test_sensitive_artifact_unidentified_session_still_cools_down(iso, tmp_path):
+    # _session_flag fail-opens on session_id=unknown; the path_id marker must
+    # still suppress the Grok loop.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    second = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    assert first.action == "inject"
+    assert second.action == "allow"
+    assert not second.additional_context
+
+
+def test_sensitive_artifact_distinct_transcript_still_reports(iso, tmp_path):
+    first_path = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    other = tmp_path / "other.jsonl"
+    other.write_text(f'{{"text":"{FAKE_KEY}"}}\n', encoding="utf-8")
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(first_path), provider="grok")
+    )
+    other_hit = module.run(
+        event(tmp_path, "Stop", transcript_path=str(other), provider="grok")
+    )
+    assert first.action == "inject"
+    assert other_hit.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(other_hit.additional_context)
+
+
+def test_sensitive_artifact_codex_stop_still_repeats_without_reentrancy_flag(
+    iso, tmp_path
+):
+    # The durable cooldown is a Grok host workaround. Claude/Codex already have
+    # stop_hook_active; a second *real* Stop on the same transcript must still
+    # report, or we would silently change their Stop contract.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    second = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert first.action == "inject"
+    assert second.action == "inject"
+    assert "POTENTIAL-CREDENTIAL" in " ".join(second.additional_context)
