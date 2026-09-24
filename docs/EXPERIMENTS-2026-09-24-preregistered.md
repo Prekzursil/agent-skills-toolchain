@@ -69,6 +69,30 @@ E10. Lane convergence.
 - Measurement: number of unmerged branches with no PR and no archive tag, sampled weekly; number of parallel lineages of the same lane.
 - Prediction: after the policy "PR or archive tag within 48 hours; one lineage per lane" plus the retirement of the P2 stack, the count falls from 149 to under 20 within 30 days and stays there. If it climbs back, the policy has no mechanism and needs a CI gate (a workflow that fails on stale unmerged refs).
 
+E11. PostToolUse output visibility (proposed by blind agent B).
+- Measurement: a PostToolUse hook that prints a marker string and exits 0; one Read tool call; inspect the transcript and `claude --debug`. Then the JSON `additionalContext` variant, and the exit-2 variant.
+- Prediction: the plain-text variant appears only in the debug log and never in the model's context; the JSON and exit-2 variants do. Consequence: every hook in the estate that "informs" via plain stdout has been informing nobody.
+
+E12. Dead check in the fail-open dispatcher (proposed by blind agent B).
+- Measurement: insert `raise RuntimeError` (then `time.sleep(60)`) at the top of one manifest-listed check in hooks/_dispatch, deploy, run one session.
+- Prediction: exit 0, no transcript signal, at most a stderr attestation in debug output; the event ledger shows the event as handled. A dead check is indistinguishable from a passing one.
+
+E13. Live versus repo hook tree (proposed by blind agent B).
+- Measurement: `diff -r ~/.claude/hooks <repo>/hooks` (excluding _fleet-backups) plus a JSON diff of the hooks arrays in ~/.claude/settings.json and hooks/hooks.json.
+- Prediction: at least one live-only directory or script absent from git; at least ten hook commands present in one manifest and not the other.
+
+E14. Review is a formality (proposed by blind agent A).
+- Measurement: for the 291 merged PRs, median minutes from creation to merge and share with at least one non-author review.
+- Prediction: median under 30 minutes; well under 10 percent with a non-author review.
+
+E15. Platform behaviour versus configuration (proposed by blind agent B).
+- Measurement: freeze hooks, skills and CLAUDE.md; replay a fixed 20-prompt set monthly across Claude Code releases (and once on a pinned older version), logging compliance and skill activation.
+- Prediction: compliance or activation varies by at least 15 points across versions with byte-identical configuration.
+
+E16. Retired components still run (proposed by blind agent B, from PR #311's measurement).
+- Measurement: PowerShell process table: any `bridge-server` or `agentbridge` process; count of parentless `cursor-agent` or `node` trees; available RAM.
+- Prediction: at least one AgentBridge process present despite retirement; at least three parentless agent trees; available RAM under 15 percent of 31.6 GB.
+
 ## Results so far (appended, never edited)
 
 - 2026-09-24T02:24Z, E5 mechanism, Linux, Claude Code 2.1.281, `hooksmoke.py --tool claude`: 5 of 5 event hooks fired (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) in one real `claude -p` session, 5.7 s, each hook received stdin JSON (353 to 729 bytes). Prediction E5 concerns the Windows arm and is NOT tested by this run; this run establishes that the instrument itself works and that the failure class, when it appears on Windows, is platform- or tool-specific rather than a property of the hook shape. File: results/E5-claude-linux-20260924T022422Z.json.
