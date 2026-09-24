@@ -12,7 +12,9 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 
-VALID_TARGETS = frozenset({"claude", "codex", "zcode", "hermes", "gemini", "cursor", "grok"})
+VALID_TARGETS = frozenset(
+    {"claude", "codex", "zcode", "hermes", "gemini", "cursor", "grok"}
+)
 VALID_APPROVAL_MODES = frozenset({"native", "allow", "deny"})
 VALID_HEALTH_PROBES = frozenset({"mcp-tools-list", "http", "command", "none"})
 MAX_STARTUP_TIMEOUT_MS = 30_000
@@ -217,7 +219,9 @@ def validate_registry(config: Mapping[str, Any]) -> None:
         elif transport in ("http", "sse"):
             url = server.get("url")
             if not isinstance(url, str) or not url.startswith(("http://", "https://")):
-                raise RegistryError(f"{name}: {transport} server requires an HTTP(S) URL")
+                raise RegistryError(
+                    f"{name}: {transport} server requires an HTTP(S) URL"
+                )
             if server.get("command") is not None or server.get("args") is not None:
                 raise RegistryError(
                     f"{name}: {transport} transport cannot declare command or args"

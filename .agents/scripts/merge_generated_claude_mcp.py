@@ -189,10 +189,10 @@ def main() -> int:
 
         dump_json(live_path, live_config)
 
-
     # Sticky park guard (2026-09-24): refuse to leave parked heavies in live mcpServers
     parked = [
-        name for name, server in servers.items()
+        name
+        for name, server in servers.items()
         if "parked-stdio-use-mcphub" in (server.get("tags") or [])
         or (
             server.get("enabled") is False
