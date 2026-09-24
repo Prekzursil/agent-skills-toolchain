@@ -148,7 +148,12 @@ def load_allowlist(path: str | None) -> dict[str, date]:
             stamp = rest.split("\t")[0].strip()  # text after a 2nd tab is a note
             if not name.strip() or not DATE_RE.fullmatch(stamp):
                 raise CheckError(f"{path}:{num}: want branch<TAB>YYYY-MM-DD: {line!r}")
-            allow[name.strip()] = date.fromisoformat(stamp)
+            key = name.strip()
+            if key in allow:
+                # Last-line-wins would let a duplicate silently extend a branch's deferral
+                # past its approved date; a duplicate is an editing mistake, so fail on it.
+                raise CheckError(f"{path}:{num}: duplicate allowlist entry for {key!r}")
+            allow[key] = date.fromisoformat(stamp)
     return allow
 
 

@@ -23,10 +23,10 @@ Two independent measurements, both written to docs/results/E5-<tool>-<platform>-
                                   a synthetic event on stdin, recording exit code, duration, stderr head -- catching
                                   dead paths, wrong interpreter, crashes on the current Python, and hooks that hang.
 
-Usage (owner's Windows box, PowerShell):
-    python hooksmoke.py --tool claude                                                # mechanism test: spawns one real, hook-isolated session
-    python hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json"            # discovery only (default): checks interpreters + script paths, runs nothing
-    python hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json" --execute  # STATEFUL: also runs each real hook once
+Usage (owner's Windows box, PowerShell; run from the repo root):
+    python scripts/hooksmoke.py --tool claude                                                # mechanism test: spawns one real, hook-isolated session
+    python scripts/hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json"            # discovery only (default): checks interpreters + script paths, runs nothing
+    python scripts/hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json" --execute  # STATEFUL: also runs each real hook once
 Usage (Linux/macOS): same, with the appropriate settings path.
 
 Codex and Cursor: the MECHANISM test needs their hook registration formats (Codex: .codex/hooks.json; Cursor:
@@ -484,6 +484,18 @@ def live_dry_run(
                 if not isinstance(h, dict):
                     return _error(
                         f"settings hooks[{event!r}] contains a non-object hook entry"
+                    )
+                cmd = h.get("command")
+                if (
+                    h.get("type") == "command"
+                    and cmd is not None
+                    and not isinstance(cmd, str)
+                ):
+                    # A non-string command (e.g. 1) is truthy, so it would pass the
+                    # command-hook filter and then crash on command.strip(); report it as a
+                    # broken live configuration instead of losing the structured result.
+                    return _error(
+                        f"settings hooks[{event!r}] command hook 'command' must be a string, got {type(cmd).__name__}"
                     )
     rows = []
     cwd = str(Path.cwd())

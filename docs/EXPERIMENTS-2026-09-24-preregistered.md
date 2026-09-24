@@ -99,7 +99,7 @@ E16. Retired components still run (proposed by blind agent B, from PR #311's mea
 
 - 2026-09-24T02:24Z, E5 mechanism, Linux, Claude Code 2.1.281, `hooksmoke.py --tool claude`: 5 of 5 event hooks fired (SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, Stop) in one real `claude -p` session, 5.7 s, each hook received stdin JSON (353 to 729 bytes). Prediction E5 concerns the Windows arm and is NOT tested by this run; this run establishes that the instrument itself works and that the failure class, when it appears on Windows, is platform- or tool-specific rather than a property of the hook shape. File: docs/results/E5-claude-linux-20260924T022422Z.json.
 - 2026-09-24T02:24Z, E5 live dry-run, Linux, against the tracked snapshot agent-self/config/settings.json: 0 of 41 hook commands can start off the Windows box (every command embeds `C:/Users/Prekzursil/...`). Consequence: the tracked configuration cannot be exercised in a real session by any Linux CI, so the repo's CI could never have detected a hook that stopped firing. File: docs/results/E5-live-linux-20260924T022422Z.json.
-- Windows arm of E5 (the prediction that matters): not yet run; requires the owner's workstation. Command: `python hooksmoke.py --tool claude` then `python hooksmoke.py --live "$env:USERPROFILE\.claude\settings.json"`, then the same throwaway project under cursor-agent and Codex.
+- Windows arm of E5 (the prediction that matters): not yet run; requires the owner's workstation. Command (from the repo root): `python scripts/hooksmoke.py --tool claude` then `python scripts/hooksmoke.py --live "$env:USERPROFILE\.claude\settings.json"`, then the same throwaway project under cursor-agent and Codex.
 
 ## Rules of the game
 

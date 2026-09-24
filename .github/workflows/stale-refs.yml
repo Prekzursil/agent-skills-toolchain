@@ -64,20 +64,23 @@ jobs:
           script: |
             const fs = require('fs');
             const title = 'Stale refs: branches with no PR and no archive tag';
+            // Durable, immutable marker identifies the automation-owned issue, so a
+            // pre-existing human issue that happens to share the title is never hijacked.
+            const MARKER = '<!-- stale-refs-tracker:v1 -->';
             const { owner, repo } = context.repo;
             const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
             let table = fs.readFileSync('stale-refs.md', 'utf8');
             if (table.length > 60000) {
               table = `${table.slice(0, 60000)}\n\n_Truncated: the full table is in the run artifact._\n`;
             }
-            const body = `${table}\nRun: ${run}\n`;
+            const body = `${MARKER}\n${table}\nRun: ${run}\n`;
             const open = await github.paginate(github.rest.issues.listForRepo, {
               owner,
               repo,
               state: 'open',
               per_page: 100,
             });
-            const existing = open.find((issue) => !issue.pull_request && issue.title === title);
+            const existing = open.find((issue) => !issue.pull_request && (issue.body || '').includes(MARKER));
             if (existing) {
               await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
               core.info(`Commented on #${existing.number}`);
@@ -94,7 +97,9 @@ jobs:
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
-            const title = 'Stale refs: branches with no PR and no archive tag';
+            // Select the automation-owned issue by its durable marker, not the title, so a
+            // human issue sharing the title is never closed by this job.
+            const MARKER = '<!-- stale-refs-tracker:v1 -->';
             const { owner, repo } = context.repo;
             const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
             const open = await github.paginate(github.rest.issues.listForRepo, {
@@ -103,7 +108,7 @@ jobs:
               state: 'open',
               per_page: 100,
             });
-            const existing = open.find((issue) => !issue.pull_request && issue.title === title);
+            const existing = open.find((issue) => !issue.pull_request && (issue.body || '').includes(MARKER));
             if (existing) {
               await github.rest.issues.createComment({
                 owner,

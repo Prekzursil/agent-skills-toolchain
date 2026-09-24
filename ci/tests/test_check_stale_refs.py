@@ -291,6 +291,15 @@ def test_wall_clock_deadline_bounds_total_runtime(gh, capsys, monkeypatch) -> No
     assert code == 2 and "wall-clock budget" in err
 
 
+def test_duplicate_allowlist_entry_is_a_blind_check(gh, capsys, tmp_path) -> None:
+    seed(gh, {"wip/orphan": ("o1", ago(240))})
+    dup = tmp_path / "allow.txt"
+    # A duplicate would silently let the later date extend the deferral; it must fail.
+    dup.write_text("wip/orphan\t2027-01-01\nwip/orphan\t2099-01-01\n", encoding="utf-8")
+    assert csr.main(["--repo", REPO, "--token", TOKEN, "--allowlist", str(dup)]) == 2
+    assert "duplicate allowlist entry for 'wip/orphan'" in capsys.readouterr().err
+
+
 def test_dry_run_never_fails_but_a_blind_check_does(gh, capsys, tmp_path) -> None:
     seed(gh, {"wip/orphan": ("o1", ago(240))})
     code, out = run(capsys, "--dry-run")
