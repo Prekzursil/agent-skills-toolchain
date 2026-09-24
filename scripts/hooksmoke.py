@@ -61,6 +61,25 @@ from pathlib import Path
 
 EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
 
+# Extensions treated as a hook's script operand in the discovery (no-exec) path check, so a
+# missing shell/Node/Ruby/etc. hook file is caught, not just Python/PowerShell. Discovery is
+# best-effort and string-based; a command with no operand in this set stays "unvalidated"
+# (path_ok=None) rather than being reported as a passing path check.
+SCRIPT_EXTS = (
+    ".py",
+    ".ps1",
+    ".sh",
+    ".bash",
+    ".js",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".rb",
+    ".pl",
+    ".php",
+    ".lua",
+)
+
 # The full catalog of Claude Code hook event types this instrument knows about. It is
 # kept as a SUPERSET of everything wired in agent-self/config/settings.json (19 types as
 # of this snapshot) plus the standard event types that snapshot does not wire (SessionEnd,
@@ -408,11 +427,12 @@ def live_dry_run(
         first = parts[0].strip("\"'") if parts else ""
         interp_ok = shutil.which(first) is not None or Path(first).exists()
         # Detect script arguments from the tokenized command so single-quoted ('...'),
-        # double-quoted ("...") and bare paths are all recognized; command.split('"')
-        # alone missed a valid POSIX hook like `python '/missing/hook.py'` and let it
+        # double-quoted ("...") and bare paths are all recognized across script types
+        # (.sh/.js/.rb/... not just .py/.ps1); command.split('"') alone missed a valid
+        # POSIX hook like `python '/missing/hook.py'` or `bash ./missing.sh` and let it
         # pass discovery with path_ok=None even though the script is absent.
         scripts = [
-            t.strip("\"'") for t in parts if t.strip("\"'").endswith((".py", ".ps1"))
+            t.strip("\"'") for t in parts if t.strip("\"'").endswith(SCRIPT_EXTS)
         ]
         path_ok = all(Path(p).exists() for p in scripts) if scripts else None
         if not execute:

@@ -156,6 +156,21 @@ def test_supersedes_must_name_an_existing_file(tmp_path: Path, run: Run) -> None
     assert run()[0] == 0
 
 
+def test_supersedes_rejects_paths_outside_repo(tmp_path: Path, run: Run) -> None:
+    # A supersedes value that escapes the repo root must be rejected even if the target
+    # exists on disk, so a replacement decision cannot satisfy the gate by naming a file
+    # outside the repository (path traversal).
+    escape = "../../../../../../etc/passwd"
+    write(tmp_path, rec(VALID + f"supersedes: {escape}\n"))
+    assert run() == (
+        1,
+        [
+            f"docs/decisions/{NAME}: supersedes '{escape}': "
+            "must be a repo-relative path inside the repository"
+        ],
+    )
+
+
 def test_cli_exit_codes(tmp_path: Path) -> None:
     def cli(today: str) -> subprocess.CompletedProcess[str]:
         argv = [sys.executable, str(GATE), "--root", str(tmp_path), "--today", today]

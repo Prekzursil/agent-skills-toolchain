@@ -106,8 +106,20 @@ def check(path: Path, root: Path, today: dt.date) -> tuple[str, list[str]]:
     if status and status not in STATUSES:
         problems.append(f"status {status!r} is not one of {', '.join(STATUSES)}")
     target = values.get("supersedes")
-    if target and not (root / target).is_file():
-        problems.append(f"supersedes {target!r}: no such repo-relative file")
+    if target:
+        # Require a repo-relative file that stays inside the repository. Without the
+        # containment check, `supersedes: ../../etc/passwd` (or any absolute path) would
+        # satisfy the gate whenever that file happens to exist, letting a replacement
+        # decision pass without naming a real in-repo decision record.
+        root_resolved = root.resolve()
+        candidate = (root / target).resolve()
+        inside = candidate == root_resolved or root_resolved in candidate.parents
+        if not inside:
+            problems.append(
+                f"supersedes {target!r}: must be a repo-relative path inside the repository"
+            )
+        elif not candidate.is_file():
+            problems.append(f"supersedes {target!r}: no such repo-relative file")
     if dates.get("retested", today) > today:
         problems.append(f"retested is dated after today ({today})")
     review_by = dates.get("review_by", today)
