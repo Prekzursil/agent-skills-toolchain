@@ -383,10 +383,22 @@ def synthetic_event(event: str, cwd: str, session_id: str = "hooksmoke") -> str:
 
 
 def iter_hook_commands(settings: dict):
+    # Defensive against malformed-but-JSON-valid settings: an event value that is not a
+    # list of mapping groups (e.g. {"Stop": {"hooks": []}}) would otherwise reach g.get()
+    # on a non-mapping and raise AttributeError, aborting the run before write_result.
     for event, groups in (settings.get("hooks") or {}).items():
-        for g in groups or []:
-            for h in g.get("hooks") or []:
-                if h.get("type") == "command" and h.get("command"):
+        if not isinstance(groups, list):
+            continue
+        for g in groups:
+            if not isinstance(g, dict):
+                continue
+            hooks = g.get("hooks")
+            for h in hooks if isinstance(hooks, list) else []:
+                if (
+                    isinstance(h, dict)
+                    and h.get("type") == "command"
+                    and h.get("command")
+                ):
                     # A non-numeric timeout in a real settings file (e.g. "auto") must not
                     # crash the whole run and discard the already-collected measurement;
                     # fall back to the default instead.
