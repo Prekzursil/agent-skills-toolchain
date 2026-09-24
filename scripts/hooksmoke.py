@@ -359,11 +359,18 @@ def iter_hook_commands(settings: dict):
         for g in groups or []:
             for h in g.get("hooks") or []:
                 if h.get("type") == "command" and h.get("command"):
+                    # A non-numeric timeout in a real settings file (e.g. "auto") must not
+                    # crash the whole run and discard the already-collected measurement;
+                    # fall back to the default instead.
+                    try:
+                        declared_timeout = int(h.get("timeout", 60) or 60)
+                    except (TypeError, ValueError):
+                        declared_timeout = 60
                     yield (
                         event,
                         g.get("matcher", ""),
                         h["command"],
-                        int(h.get("timeout", 60) or 60),
+                        declared_timeout,
                     )
 
 
@@ -580,7 +587,19 @@ def main():
         if lv.get("error") or lv["hooks_failed"]:
             exit_code = 1
 
-    out = write_result(args.results, args.tool or "live", report)
+    try:
+        out = write_result(args.results, args.tool or "live", report)
+    except OSError as e:
+        # Never lose the collected measurement to a write failure (permission denied,
+        # disk full, ...): emit the full report to stdout so it can be recovered, and
+        # exit non-zero. write_result already retries name collisions internally, so
+        # anything reaching here is a real I/O failure, not a same-second name clash.
+        print(
+            f"[write] could not write results to {args.results}: {type(e).__name__}: {e}",
+            file=sys.stderr,
+        )
+        print(json.dumps(report, indent=2))
+        sys.exit(1)
     # Human summary
     if "mechanism" in report:
         m = report["mechanism"]
@@ -602,14 +621,15 @@ def main():
         live = report["live_dry_run"]
         if live.get("error"):
             print(f"[live-dry-run] FAILED: {live['error']}")
-        mode = (
-            "started and exited 0"
-            if live["executed"]
-            else "have a resolvable interpreter and existing script path (not executed)"
-        )
-        print(
-            f"[live-dry-run] {live['hooks_exit0']}/{live['hooks_total']} hooks {mode}"
-        )
+        else:
+            mode = (
+                "started and exited 0"
+                if live["executed"]
+                else "have a resolvable interpreter and existing script path (not executed)"
+            )
+            print(
+                f"[live-dry-run] {live['hooks_exit0']}/{live['hooks_total']} hooks {mode}"
+            )
         for r in live["hooks_failed"]:
             print(
                 f"   FAIL rc={r['rc']} {r['event']}: {r['command'][:90]} :: {r['stderr_head'][:120]!r}"
