@@ -31,20 +31,14 @@ name: skill-dual-write
 # is RED, then delete the branch. Until that is run, treat the merge-commit
 # semantics as untested and the pull-request gate as advisory on that one axis.
 
+# NO `push:` OR `workflow_dispatch:` HERE, and `test_workflow_does_not_advertise_null_range_events`
+# pins that. The D-001 step below diffs `--base origin/main --head HEAD`; on either of those
+# events run against main that range is EMPTY, so the gate passes without comparing anything --
+# the no-op-gate shape this repo has already shipped once. Adding one is the owner-action
+# settling experiment named in ci/tests/test_docs_gate_ci_wiring.py, not a drive-by edit.
 on:
   pull_request:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      runner-type:
-        description: 'Runner type (empty=use repo variable, ubuntu-latest=GitHub, self-hosted=local WSL)'
-        required: false
-        default: ''
-        type: choice
-        options:
-          - ''
-          - ubuntu-latest
-          - self-hosted
 
 permissions:
   contents: read
@@ -56,7 +50,9 @@ concurrency:
 jobs:
   skill-dual-write:
     name: gate-skill-dual-write
-    runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # Fork PRs stay on ubuntu-latest: never run candidate-controlled code on the
+    # owner's self-hosted runner (same guard as the other pull_request workflows).
+    runs-on: ${{ vars.QUALITY_RUNNER == 'self-hosted' && github.event.pull_request.head.repo.fork != true && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

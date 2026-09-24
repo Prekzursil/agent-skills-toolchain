@@ -5,7 +5,7 @@
 ## ACTION 1: Verify or Rotate AWS Key (URGENT)
 
 **Location:** `cyberstrike/memory/2026-09-03.md` line 35  
-**Key:** `AKIA2XMMYNW7DGDNLO2W` (marked "deactivated" in the file)  
+**Key:** the AWS key ending `LO2W` (marked "deactivated" in the file)  
 **Detected by:** gitleaks 8.30.1 in CI  
 
 ### Steps:
@@ -13,21 +13,21 @@
 1. **Check AWS IAM:**
    - Log in to AWS console
    - Navigate to IAM → Users → Security Credentials
-   - Find and verify the status of key `AKIA2XMMYNW7DGDNLO2W`
+   - Find and verify the status of the AWS key ending `LO2W`
    - If active: **Deactivate or delete it immediately**
    - If already inactive/deleted: confirm this
 
 2. **Redact the key from the repo:**
    ```bash
    # Edit cyberstrike/memory/2026-09-03.md line 35
-   # Replace AKIA2XMMYNW7DGDNLO2W with [REDACTED]
+   # Replace the AWS key ending LO2W with [REDACTED]
    ```
 
 3. **Add waiver to `.gitleaksignore`:**
    ```
    # Add this block (following existing convention):
    
-   # AWS key AKIA2XMMYNW7DGDNLO2W in cyberstrike/memory/2026-09-03.md
+   # AWS key ending `LO2W` in cyberstrike/memory/2026-09-03.md
    # Introduced: a817ab7ec (PR #349, Sept 22, 2026)
    # Status: [key deactivated|key rotated] – verified [DATE]
    # Reason: historical credential, no longer in use; waiver allows CI to scan history

@@ -1,0 +1,136 @@
+name: stale-refs
+
+# Audit Phase 4b (docs/RUNBOOK-2026-09-24-settle-and-harden.md): a weekly gate that lists
+# remote branches (other than main/master) whose tip commit is older than 48 hours, with no
+# open PR from the branch and no archive/ or rescue/ tag on the tip, and fails. The fix is a
+# tag or a PR, never silence; ci/stale-refs-allow.txt only DEFERS a branch to a dated deadline.
+#
+# Schedule and manual dispatch only, never push or pull_request: the verdict is about the
+# remote's ref population, not about any change, so it must not redden an unrelated PR.
+#
+# ci/check_stale_refs.py exits 0 clean, 1 stale branches found, 2 could not check. The check
+# step only RECORDS that code, so the report is always uploaded; exit 1 opens or updates the
+# tracking issue, and the last step fails the run on 1 or 2. A blind run (2) files no issue:
+# it must not masquerade as either a clean week or a stale one.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stale-refs
+  cancel-in-progress: false
+
+jobs:
+  stale-refs:
+    runs-on: ${{ vars.QUALITY_RUNNER == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    permissions:
+      contents: read # branches, tags, commits
+      pull-requests: read # open PRs
+      issues: write # the tracking issue
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: list stale refs
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          rc=0
+          python ci/check_stale_refs.py --repo "$GITHUB_REPOSITORY" \
+            --allowlist ci/stale-refs-allow.txt --out stale-refs.md || rc=$?
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          if [ -f stale-refs.md ]; then cat stale-refs.md >> "$GITHUB_STEP_SUMMARY"; fi
+      - name: upload report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stale-refs
+          path: stale-refs.md
+          if-no-files-found: warn
+      - name: open or update the tracking issue
+        if: ${{ !cancelled() && steps.check.outputs.rc == '1' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+            const title = 'Stale refs: branches with no PR and no archive tag';
+            // Durable, immutable marker identifies the automation-owned issue, so a
+            // pre-existing human issue that happens to share the title is never hijacked.
+            const MARKER = '<!-- stale-refs-tracker:v1 -->';
+            const { owner, repo } = context.repo;
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            let table = fs.readFileSync('stale-refs.md', 'utf8');
+            if (table.length > 60000) {
+              table = `${table.slice(0, 60000)}\n\n_Truncated: the full table is in the run artifact._\n`;
+            }
+            const body = `${MARKER}\n${table}\nRun: ${run}\n`;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find((issue) => !issue.pull_request && (issue.body || '').includes(MARKER));
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+              core.info(`Commented on #${existing.number}`);
+            } else {
+              const { data } = await github.rest.issues.create({ owner, repo, title, body });
+              core.info(`Opened #${data.number}`);
+            }
+      - name: close the tracking issue on a clean run
+        # Only a TRULY clean check: rc==0 AND no deferred branches. rc==2 is a blind run and
+        # must not touch the issue. deferred>0 means a would-be-stale branch is only
+        # allowlist-deferred (not resolved -- still no PR or archive/rescue tag), so the issue
+        # stays open rather than being closed as resolved.
+        if: ${{ !cancelled() && steps.check.outputs.rc == '0' && steps.check.outputs.deferred == '0' }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // Select the automation-owned issue by its durable marker, not the title, so a
+            // human issue sharing the title is never closed by this job.
+            const MARKER = '<!-- stale-refs-tracker:v1 -->';
+            const { owner, repo } = context.repo;
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const open = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+            });
+            const existing = open.find((issue) => !issue.pull_request && (issue.body || '').includes(MARKER));
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: `All previously stale refs are resolved: each now has a PR or an \`archive/\`/\`rescue/\` tag, or was deleted. Closing.\nRun: ${run}\n`,
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                state: 'closed',
+                state_reason: 'completed',
+              });
+              core.info(`Closed #${existing.number}`);
+            } else {
+              core.info('No open tracking issue to close');
+            }
+      - name: gate - fail on stale refs (1) or a check that could not run (2)
+        if: ${{ !cancelled() && steps.check.outputs.rc != '0' }}
+        env:
+          RC: ${{ steps.check.outputs.rc }}
+        run: |
+          echo "::error::ci/check_stale_refs.py exited $RC (1 = stale branches, 2 = could not check)"
+          exit 1

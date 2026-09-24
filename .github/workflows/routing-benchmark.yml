@@ -23,7 +23,11 @@ concurrency:
 jobs:
   routing-benchmark:
     name: routing-benchmark (shadow)
-    runs-on: ubuntu-latest
+    # Runner selector shared with quality.yml / skill-dual-write.yml / no-runtime-junk.yml.
+    # Hardcoded ubuntu-latest left this gate unable to allocate a runner while the Actions
+    # budget is exhausted (runner_id 0, conclusion failure, zero steps run) -- an infra state,
+    # not a verdict. Defaults to ubuntu-latest when QUALITY_RUNNER is unset, so it is additive.
+    runs-on: ${{ vars.QUALITY_RUNNER == 'self-hosted' && github.event.pull_request.head.repo.fork != true && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     timeout-minutes: 45
     services:
       ollama:

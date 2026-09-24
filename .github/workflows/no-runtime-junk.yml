@@ -22,7 +22,12 @@ concurrency:
 jobs:
   no-runtime-junk:
     name: gate-no-runtime-junk
-    runs-on: ubuntu-latest
+    # Same runner selector quality.yml and skill-dual-write.yml already use. Hardcoded
+    # `ubuntu-latest` left this gate unable to allocate a runner at all while the Actions
+    # budget is exhausted (runner_id N/A, conclusion failure) -- a red check reporting an
+    # infrastructure state, not a verdict on the tree. Defaults back to ubuntu-latest
+    # whenever QUALITY_RUNNER is unset, so this is additive.
+    runs-on: ${{ vars.QUALITY_RUNNER == 'self-hosted' && github.event.pull_request.head.repo.fork != true && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
