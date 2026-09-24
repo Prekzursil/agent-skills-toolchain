@@ -171,6 +171,21 @@ def test_supersedes_rejects_paths_outside_repo(tmp_path: Path, run: Run) -> None
     )
 
 
+def test_supersedes_must_name_a_decision_record(tmp_path: Path, run: Run) -> None:
+    # A real in-repo file that is not a decision record (e.g. the root README) must be
+    # rejected, so a replacement cannot claim a transition without naming a predecessor
+    # record under docs/decisions/.
+    (tmp_path / "README.md").write_text("# repo\n", encoding="utf-8")
+    write(tmp_path, rec(VALID + "supersedes: README.md\n"))
+    assert run() == (
+        1,
+        [
+            f"docs/decisions/{NAME}: supersedes 'README.md': "
+            "must name a decision record under docs/decisions/ (a non-template .md file)"
+        ],
+    )
+
+
 def test_cli_exit_codes(tmp_path: Path) -> None:
     def cli(today: str) -> subprocess.CompletedProcess[str]:
         argv = [sys.executable, str(GATE), "--root", str(tmp_path), "--today", today]

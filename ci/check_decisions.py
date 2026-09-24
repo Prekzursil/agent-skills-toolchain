@@ -107,16 +107,27 @@ def check(path: Path, root: Path, today: dt.date) -> tuple[str, list[str]]:
         problems.append(f"status {status!r} is not one of {', '.join(STATUSES)}")
     target = values.get("supersedes")
     if target:
-        # Require a repo-relative file that stays inside the repository. Without the
-        # containment check, `supersedes: ../../etc/passwd` (or any absolute path) would
-        # satisfy the gate whenever that file happens to exist, letting a replacement
-        # decision pass without naming a real in-repo decision record.
+        # supersedes must name the decision record it replaces: a non-template .md under
+        # docs/decisions/, inside the repo. The containment leg blocks path traversal
+        # (`../../etc/passwd`) and absolute paths; the directory/extension leg blocks any
+        # other in-repo file (`README.md`, a source file) that would let a replacement
+        # claim a transition without naming a real predecessor record.
         root_resolved = root.resolve()
+        decisions_dir = (root / DECISIONS).resolve()
         candidate = (root / target).resolve()
-        inside = candidate == root_resolved or root_resolved in candidate.parents
-        if not inside:
+        inside_repo = candidate == root_resolved or root_resolved in candidate.parents
+        under_decisions = decisions_dir in candidate.parents
+        is_record = (
+            under_decisions and candidate.suffix == ".md" and candidate.name not in SKIP
+        )
+        if not inside_repo:
             problems.append(
                 f"supersedes {target!r}: must be a repo-relative path inside the repository"
+            )
+        elif not is_record:
+            problems.append(
+                f"supersedes {target!r}: must name a decision record under "
+                f"{DECISIONS.as_posix()}/ (a non-template .md file)"
             )
         elif not candidate.is_file():
             problems.append(f"supersedes {target!r}: no such repo-relative file")
