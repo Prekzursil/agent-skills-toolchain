@@ -349,7 +349,16 @@ def live_dry_run(
     cwd = str(Path.cwd())
     for event, matcher, command, declared_timeout in iter_hook_commands(settings):
         # Interpreter and path checks (best effort, string-based; the real test is the run below)
-        first = command.strip().split()[0].strip('"') if command.strip() else ""
+        # shlex.split(posix=False) keeps a quoted interpreter path with spaces (e.g. Windows
+        # "C:\Program Files\Python\python.exe") as one token and preserves backslashes; a naive
+        # .split() would break it at the space and report a valid interpreter as missing. Fall
+        # back to a naive split only if the command has unbalanced quotes (shlex raises).
+        stripped = command.strip()
+        try:
+            parts = shlex.split(stripped, posix=False)
+        except ValueError:
+            parts = stripped.split()
+        first = parts[0].strip("\"'") if parts else ""
         interp_ok = shutil.which(first) is not None or Path(first).exists()
         quoted = [
             p for p in command.split('"') if p.endswith(".py") or p.endswith(".ps1")
