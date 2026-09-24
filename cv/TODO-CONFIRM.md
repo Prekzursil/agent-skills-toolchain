@@ -39,7 +39,7 @@ then tick it here).
   reworded to "released" or the link dropped.
   → `projects[GRACE].url`, `projects[GRACE].x_todo`
 
-- [ ] **5. Master's programme — exact name / specialisation, and true start and end months.**
+- [x] **5. RESOLVED 2026-09-24 from the SmartUMS portal.** Faculty of Mathematics and Informatics; programme **Ingineria software (Software Engineering)**, taught in Romanian; Year 1 of 2 (2025-2026); tuition-based seat; admission grade 8.76; Year 1 = 60 ECTS. Dates 2025-09 -> 2027-07 confirmed by the owner. ~~Master's programme — exact name~~
   `2025-09 → 2027-07` are academic-year defaults and are marked INFERRED, not verified.
   *Blocks:* the education block of every academic document.
   → `education[University of Bucharest]`
