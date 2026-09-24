@@ -134,7 +134,15 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
     """Register marker hooks in a throwaway project and run one real `claude -p` session."""
     marker_py = workdir / "hooksmoke_marker.py"
     marker_py.write_text(MARKER_SCRIPT, encoding="utf-8")
-    py = shlex.quote(sys.executable)
+    # shlex.quote() wraps the path in POSIX single quotes, which cmd.exe and PowerShell take
+    # literally -- so every marker hook would fail on Windows, this instrument's documented
+    # target. Double quotes work in both shells (and match how marker_py/marker_dir are quoted
+    # below); shlex.quote stays on POSIX for its stronger metacharacter handling.
+    py = (
+        f'"{sys.executable}"'
+        if platform.system() == "Windows"
+        else shlex.quote(sys.executable)
+    )
 
     # Same shape as the live estate: python "<absolute path>" <args>
     def cmd(event):
