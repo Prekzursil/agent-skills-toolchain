@@ -330,7 +330,21 @@ def iter_hook_commands(settings: dict):
 def live_dry_run(
     settings_path: Path, per_hook_timeout: int, execute: bool = True
 ) -> dict:
-    settings = json.loads(settings_path.read_text(encoding="utf-8"))
+    try:
+        settings = json.loads(Path(settings_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        # A missing, unreadable, or malformed settings file must be recorded as a failed
+        # live check, not raised: a combined mechanism/live invocation would otherwise
+        # discard the mechanism measurement already collected and write no result artifact.
+        return {
+            "settings": str(settings_path),
+            "executed": execute,
+            "error": f"could not load settings: {type(e).__name__}: {e}",
+            "hooks_total": 0,
+            "hooks_exit0": 0,
+            "hooks_failed": [],
+            "rows": [],
+        }
     rows = []
     cwd = str(Path.cwd())
     for event, matcher, command, declared_timeout in iter_hook_commands(settings):
@@ -487,7 +501,8 @@ def main():
         report["live_dry_run"] = live_dry_run(
             args.live, args.hook_timeout, execute=not args.no_exec
         )
-        if report["live_dry_run"]["hooks_failed"]:
+        lv = report["live_dry_run"]
+        if lv.get("error") or lv["hooks_failed"]:
             exit_code = 1
 
     out = write_result(args.results, args.tool or "live", report)
@@ -510,6 +525,8 @@ def main():
                 print(f"   untested (not triggerable here): {', '.join(uncovered)}")
     if "live_dry_run" in report:
         live = report["live_dry_run"]
+        if live.get("error"):
+            print(f"[live-dry-run] FAILED: {live['error']}")
         mode = (
             "started and exited 0"
             if live["executed"]

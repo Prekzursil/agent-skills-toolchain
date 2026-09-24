@@ -107,6 +107,9 @@ def gh(monkeypatch: pytest.MonkeyPatch) -> FakeGitHub:
     fake = FakeGitHub()
     monkeypatch.setattr(csr.urllib.request, "urlopen", fake.urlopen)
     monkeypatch.delenv("GITHUB_API_URL", raising=False)
+    # Under Actions GITHUB_OUTPUT names a real file main() would append to; isolate the suite
+    # from it so a test only sees the deferred output when it sets GITHUB_OUTPUT itself.
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     return fake
 
 
@@ -162,6 +165,34 @@ def test_expired_allowlist_line_is_reported(gh, capsys, tmp_path) -> None:
     assert code == 1
     assert f"| `wip/lapsed` (allowlist expired {lapsed}) |" in out
     assert "wip/deferred" not in out
+
+
+def test_deferred_branch_is_counted_and_keeps_issue_open(
+    gh, capsys, tmp_path, monkeypatch
+) -> None:
+    """A would-be-stale branch that is only allowlist-deferred is counted as deferred.
+
+    stale-refs.yml closes its tracking issue only when deferred==0, so a deferred (unresolved:
+    still no PR, no archive/rescue tag) branch must report deferred>=1 while still exiting 0 --
+    deferral is not a gate failure, but it is not resolution either.
+    """
+    active = NOW.date() + timedelta(days=30)
+    allow = tmp_path / "allow.txt"
+    allow.write_text(f"wip/deferred\t{active}\n", encoding="utf-8")
+    seed(gh, {"wip/deferred": ("d1", ago(240))})  # old, no PR, no tag -> would be stale
+    gh_out = tmp_path / "ghout.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(gh_out))
+    code, out = run(capsys, "--allowlist", str(allow))
+    assert code == 0 and "wip/deferred" not in out  # deferred, not gated as stale
+    assert "deferred=1" in gh_out.read_text(encoding="utf-8")
+
+
+def test_clean_run_reports_zero_deferred(gh, capsys, tmp_path, monkeypatch) -> None:
+    seed(gh, {"feat/fresh": ("f1", ago(2))})
+    gh_out = tmp_path / "ghout.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(gh_out))
+    code, _ = run(capsys)
+    assert code == 0 and "deferred=0" in gh_out.read_text(encoding="utf-8")
 
 
 def test_annotated_archive_tag_is_peeled_to_the_tip(gh: FakeGitHub, capsys) -> None:

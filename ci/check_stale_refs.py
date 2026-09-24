@@ -168,12 +168,10 @@ def find_stale(api, repo, token, max_age_hours, allow, now):
             if ref["ref"].startswith(f"refs/tags/{prefix}/"):
                 obj = ref["object"]
                 (annotated.append if obj["type"] == "tag" else tagged.add)(obj["sha"])
-    stale = []
+    stale, deferred = [], []
     for branch in branches:
         name, tip = branch["name"], branch["commit"]["sha"]
         if name in ("main", "master") or name in with_pr or tip in tagged:
-            continue
-        if (until := allow.get(name)) and now.date() <= until:
             continue
         stamp = _get(f"{root}/git/commits/{tip}", token)[0]["committer"]["date"]
         when = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(
@@ -186,9 +184,18 @@ def find_stale(api, repo, token, max_age_hours, allow, now):
             while obj["type"] == "tag":  # an annotated tag may name another tag
                 obj = _get(f"{root}/git/tags/{obj['sha']}", token)[0]["object"]
             tagged.add(obj["sha"])
-        if tip not in tagged:
-            stale.append((name, when, until))
-    return sorted(stale, key=lambda row: (row[1], row[0])), len(branches)
+        if tip in tagged:
+            continue
+        # Old, no PR, no archive/rescue tag: this branch WOULD be stale. The allowlist only
+        # DEFERS it to a date -- it is not resolved -- so it is counted as deferred (which
+        # keeps the tracking issue open) rather than folded into a clean run. The deferral is
+        # honoured last, after staleness is established, so the count means "unresolved but
+        # deferred", not merely "listed in the allowlist".
+        if (until := allow.get(name)) and now.date() <= until:
+            deferred.append(name)
+            continue
+        stale.append((name, when, until))
+    return sorted(stale, key=lambda row: (row[1], row[0])), len(branches), deferred
 
 
 def _code(name: str) -> str:  # a code span: a branch name cannot ping or break rows
@@ -234,7 +241,9 @@ def main(argv: list[str] | None = None) -> int:
     _reset_retry_budget()
     try:
         allow = load_allowlist(args.allowlist)
-        rows, total = find_stale(api, args.repo, token, args.max_age_hours, allow, now)
+        rows, total, deferred = find_stale(
+            api, args.repo, token, args.max_age_hours, allow, now
+        )
         report = render(args.repo, rows, total, args.max_age_hours, now)
         if (
             args.out
@@ -245,6 +254,16 @@ def main(argv: list[str] | None = None) -> int:
     except Exception as err:  # 1 means "stale found", so a crash must not exit 1
         print(f"error: {type(err).__name__}: {err}", file=sys.stderr)
         return 2
+    # Surface the deferred count so stale-refs.yml closes its tracking issue only on a truly
+    # clean run: an allowlisted (deferred, unresolved) branch keeps the issue open. No-op when
+    # not running under Actions (GITHUB_OUTPUT unset).
+    gh_out = os.environ.get("GITHUB_OUTPUT")
+    if gh_out:
+        try:
+            with open(gh_out, "a", encoding="utf-8") as fh:
+                fh.write(f"deferred={len(deferred)}\n")
+        except OSError as err:
+            print(f"warning: could not write GITHUB_OUTPUT: {err}", file=sys.stderr)
     sys.stdout.write(report)
     return 1 if rows and not args.dry_run else 0
 

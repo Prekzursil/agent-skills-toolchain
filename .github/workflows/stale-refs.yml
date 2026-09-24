@@ -86,9 +86,11 @@ jobs:
               core.info(`Opened #${data.number}`);
             }
       - name: close the tracking issue on a clean run
-        # Only rc==0 (a real clean check). rc==2 is a blind run and must not touch the issue:
-        # it does not know whether the refs are clean, so it must not masquerade as resolved.
-        if: ${{ !cancelled() && steps.check.outputs.rc == '0' }}
+        # Only a TRULY clean check: rc==0 AND no deferred branches. rc==2 is a blind run and
+        # must not touch the issue. deferred>0 means a would-be-stale branch is only
+        # allowlist-deferred (not resolved -- still no PR or archive/rescue tag), so the issue
+        # stays open rather than being closed as resolved.
+        if: ${{ !cancelled() && steps.check.outputs.rc == '0' && steps.check.outputs.deferred == '0' }}
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |

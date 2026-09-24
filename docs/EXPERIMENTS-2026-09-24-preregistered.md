@@ -1,6 +1,8 @@
 # Pre-registered experiments for agent-skills-toolchain
 
-Written 2026-09-24, before any experiment has been run. Each entry states the claim, the exact measurement, and the prediction. A prediction that fails is a finding, not a failure. Results go in `results/` next to this file, one JSON per run, and never overwrite a previous run.
+Written 2026-09-24. Each entry states the claim, the exact measurement, and the prediction; a prediction that fails is a finding, not a failure. Results go in `results/` next to this file, one JSON per run, and never overwrite a previous run.
+
+**Provenance caveat.** This file and the first E5 result artifacts are committed together, so there is no immutable pre-run record for E5: the E5 rows under "Results so far" are retrospective — the Linux runs validate the instrument, not the prediction — and are not independently pre-registered. The pre-registration guarantee holds only for the experiments still unrun when this file was committed — E1–E4, E6–E10, and the Windows arm of E5 (marked "not yet run" below) — whose predictions here genuinely precede their results. To preserve that guarantee for future work, commit each new experiment's prediction before its result artifact.
 
 ## Instrument 0: the golden task suite (prerequisite for everything below)
 
