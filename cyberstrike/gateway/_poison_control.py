@@ -2,6 +2,7 @@
 TEMP baselines copy, mount a gateway instance on 31151 against it, and prove the
 poison path FIRES (503 + audit line). Real artifacts untouched. Also measures RSS
 while alive (acceptance gate gw RSS < 100 MB)."""
+
 import asyncio
 import json
 import socket
@@ -15,7 +16,9 @@ from gen_routes import BASELINES_OUT, OUT as ROUTES_OUT  # noqa: E402
 
 tmp = Path(tempfile.mkdtemp(prefix="gw-poison-control-"))
 bl = json.loads(BASELINES_OUT.read_text(encoding="utf-8"))
-assert bl.get("cve", {}).get("alive") and bl["cve"].get("desc_sha8"), "cve baseline missing"
+assert bl.get("cve", {}).get("alive") and bl["cve"].get("desc_sha8"), (
+    "cve baseline missing"
+)
 bl["cve"]["desc_sha8"] = "deadbeef"  # the mutation
 tmp_bl = tmp / "baselines.json"
 tmp_bl.write_text(json.dumps(bl), encoding="utf-8")
@@ -36,21 +39,28 @@ async def main() -> int:
         # WorkingSet via ctypes for the CURRENT process (the gateway runs in-proc)
         import ctypes
         import ctypes.wintypes as wt
+
         class PMC(ctypes.Structure):
             # full PROCESS_MEMORY_COUNTERS layout — a truncated struct fails the
             # call silently and reports 0.0 MB (measured)
-            _fields_ = [("cb", wt.DWORD), ("PageFaultCount", wt.DWORD),
-                        ("PeakWorkingSetSize", ctypes.c_size_t),
-                        ("WorkingSetSize", ctypes.c_size_t),
-                        ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
-                        ("QuotaPagedPoolUsage", ctypes.c_size_t),
-                        ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
-                        ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
-                        ("PagefileUsage", ctypes.c_size_t),
-                        ("PeakPagefileUsage", ctypes.c_size_t)]
-        pmc = PMC(); pmc.cb = ctypes.sizeof(PMC)
+            _fields_ = [
+                ("cb", wt.DWORD),
+                ("PageFaultCount", wt.DWORD),
+                ("PeakWorkingSetSize", ctypes.c_size_t),
+                ("WorkingSetSize", ctypes.c_size_t),
+                ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                ("PagefileUsage", ctypes.c_size_t),
+                ("PeakPagefileUsage", ctypes.c_size_t),
+            ]
+
+        pmc = PMC()
+        pmc.cb = ctypes.sizeof(PMC)
         ctypes.windll.psapi.GetProcessMemoryInfo(
-            ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb)
+            ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb
+        )
         rss_mb = round(pmc.WorkingSetSize / (1024 * 1024), 1)
         print(f"RSS (in-proc gateway incl. driver): {rss_mb} MB")
     except Exception as e:
@@ -60,12 +70,24 @@ async def main() -> int:
     def client_probe() -> str:
         # blocking client MUST run off-loop or the server task never gets scheduled
         s = socket.create_connection(("127.0.0.1", 31151), timeout=15)
-        body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
-                           "params": {"protocolVersion": "2025-03-26", "capabilities": {},
-                                      "clientInfo": {"name": "poison-control", "version": "1"}}}).encode()
-        req = (b"POST /mcp/cve HTTP/1.1\r\nHost: gw\r\nContent-Type: application/json\r\n"
-               b"Accept: application/json\r\nConnection: close\r\n"
-               + f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
+        body = json.dumps(
+            {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "poison-control", "version": "1"},
+                },
+            }
+        ).encode()
+        req = (
+            b"POST /mcp/cve HTTP/1.1\r\nHost: gw\r\nContent-Type: application/json\r\n"
+            b"Accept: application/json\r\nConnection: close\r\n"
+            + f"Content-Length: {len(body)}\r\n\r\n".encode()
+            + body
+        )
         s.sendall(req)
         resp = s.recv(65536).decode("utf-8", "replace")
         s.close()
@@ -80,8 +102,13 @@ async def main() -> int:
     # audit tail must contain the poison FAILED line for cve
     tail = gw.audit.path.read_text(encoding="utf-8").strip().splitlines()[-1]
     row = json.loads(tail)
-    print("audit tail:", row.get("server"), row.get("status"),
-          row.get("flags"), (row.get("reason") or "")[:60])
+    print(
+        "audit tail:",
+        row.get("server"),
+        row.get("status"),
+        row.get("flags"),
+        (row.get("reason") or "")[:60],
+    )
     audit_ok = row.get("server") == "cve" and "poison" in (row.get("flags") or [])
     ok = (cve_mount.get("status") == "poisoned") and fired and audit_ok
     print("CONTROL:", "FIRED-AS-EXPECTED" if ok else "DID-NOT-FIRE (detector broken)")

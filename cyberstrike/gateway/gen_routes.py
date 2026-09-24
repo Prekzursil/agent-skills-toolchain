@@ -18,6 +18,7 @@ Discipline:
     wired into scripts/gen_context.py --check (the estate drift gate).
   - no key VALUES ever: remote-auth rows record env-var NAMES + scheme only (A1).
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -32,8 +33,10 @@ GEN_DIR = Path(r"D:\opt\cyberstrike-mcp\generated")
 OUT = GEN_DIR / "gateway-routes.json"
 BASELINES_OUT = GEN_DIR / "gateway-desc-baselines.json"
 
-GATEWAY = {"listen": "127.0.0.1:31150", "fallback_ports": [31151, 31152, 31153, 31154,
-           31155, 31156, 31157, 31158, 31159]}
+GATEWAY = {
+    "listen": "127.0.0.1:31150",
+    "fallback_ports": [31151, 31152, 31153, 31154, 31155, 31156, 31157, 31158, 31159],
+}
 
 
 def sha8_bytes(b: bytes) -> str:
@@ -69,8 +72,13 @@ def build_routes(ssot: dict) -> dict:
     for name, row in ssot.get("general_http_servers", {}).items():
         keys = []
         if row.get("auth") and row.get("env"):
-            keys.append({"scheme": row["auth"], "env": row["env"],
-                         "ssot": ".agents/local.json:env_keys (name only, never a value)"})
+            keys.append(
+                {
+                    "scheme": row["auth"],
+                    "env": row["env"],
+                    "ssot": ".agents/local.json:env_keys (name only, never a value)",
+                }
+            )
         tool_plane[name] = {
             "kind": "remote-auth",
             "url": row["url"],
@@ -78,9 +86,14 @@ def build_routes(ssot: dict) -> dict:
             "band": "general",
             "keys": keys,
             "desc_sha8_baseline": None,
-            "note": (row.get("note") or
-                     ("keyless remote (auth stub structure-only in skeleton — M3 deferred)"
-                      if not keys else "auth via env_keys SSOT (M3 resolver deferred)")),
+            "note": (
+                row.get("note")
+                or (
+                    "keyless remote (auth stub structure-only in skeleton — M3 deferred)"
+                    if not keys
+                    else "auth via env_keys SSOT (M3 resolver deferred)"
+                )
+            ),
         }
 
     for name in ssot.get("catalogs", {}).get("general_stdio_lazy", []):
@@ -113,7 +126,7 @@ def build_routes(ssot: dict) -> dict:
             "resolved_model_attribution": "deferred (M2 skeleton writes resolved_model: null)",
         },
         "collision_resolution": "front row wins over same-name stdio-lazy catalog entry "
-                                "(angr, frida, mitmproxy, ghidra-mcp, ida-pro-mcp class)",
+        "(angr, frida, mitmproxy, ghidra-mcp, ida-pro-mcp class)",
     }
 
 
@@ -125,8 +138,11 @@ def lint_duplicate_aliases(routes: dict) -> list[str]:
         # primary name) — that is NOT a collision; distinct ROWS owning one alias is.
         for alias in {name, *row.get("aliases", [])}:
             owner.setdefault(alias, []).append(name)
-    return [f"alias {a!r} -> rows {sorted(rows)}"
-            for a, rows in owner.items() if len(rows) > 1]
+    return [
+        f"alias {a!r} -> rows {sorted(rows)}"
+        for a, rows in owner.items()
+        if len(rows) > 1
+    ]
 
 
 def check(routes: dict) -> int:
@@ -135,19 +151,37 @@ def check(routes: dict) -> int:
         print(f"FAILED:gateway-routes missing {OUT} — run gateway/gen_routes.py first")
         return 1
     disk = json.loads(OUT.read_text(encoding="utf-8"))
-    drift_fields = [k for k in ("version", "generated_from", "gateway", "tool_plane",
-                                "model_plane_pointer", "collision_resolution")
-                    if disk.get(k) != routes.get(k)]
+    drift_fields = [
+        k
+        for k in (
+            "version",
+            "generated_from",
+            "gateway",
+            "tool_plane",
+            "model_plane_pointer",
+            "collision_resolution",
+        )
+        if disk.get(k) != routes.get(k)
+    ]
     if drift_fields:
         print(f"FAILED:gateway-routes-drift fields differ: {drift_fields}")
         return 1
-    print(f"SUCCESS:gateway-routes-check {OUT.name} == ssot regeneration "
-          f"({len(routes['tool_plane'])} rows)")
+    print(
+        f"SUCCESS:gateway-routes-check {OUT.name} == ssot regeneration "
+        f"({len(routes['tool_plane'])} rows)"
+    )
     return 0
 
 
-def _sock_exchange(sock, method: str, path: str, host: str, body: bytes,
-                   headers: dict, timeout_s: float):
+def _sock_exchange(
+    sock,
+    method: str,
+    path: str,
+    host: str,
+    body: bytes,
+    headers: dict,
+    timeout_s: float,
+):
     """One framed HTTP/1.1 exchange on an open socket. Returns (status, headers, body)."""
     lines = [f"{method} {path} HTTP/1.1", f"Host: {host}"]
     for k, v in headers.items():
@@ -176,7 +210,7 @@ def _sock_exchange(sock, method: str, path: str, host: str, body: bytes,
             if not chunk:
                 break
             body_out += chunk
-        body_out = body_out[:int(cl)]
+        body_out = body_out[: int(cl)]
     elif rheaders.get("transfer-encoding", "").lower() == "chunked":
         # append until 0-size chunk (bounded)
         while b"0\r\n\r\n" not in body_out[-16:] and len(body_out) < (8 << 20):
@@ -221,41 +255,68 @@ def probe_baselines(routes: dict, timeout_s: float = 15.0) -> dict:
         u = urlsplit(row["url"])
         sock = None
         try:
-            sock = socket.create_connection((u.hostname, u.port or 80),
-                                            timeout=timeout_s)
-            init = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
-                               "params": {"protocolVersion": "2025-03-26",
-                                          "capabilities": {},
-                                          "clientInfo": {"name": "gw-gen-routes",
-                                                         "version": "1"}}}).encode()
-            st, rh, _b = _sock_exchange(sock, "POST", u.path or "/mcp", u.netloc, init,
-                                        {"Content-Type": "application/json",
-                                         "Accept": "application/json, text/event-stream",
-                                         "Connection": "keep-alive"}, timeout_s)
+            sock = socket.create_connection(
+                (u.hostname, u.port or 80), timeout=timeout_s
+            )
+            init = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2025-03-26",
+                        "capabilities": {},
+                        "clientInfo": {"name": "gw-gen-routes", "version": "1"},
+                    },
+                }
+            ).encode()
+            st, rh, _b = _sock_exchange(
+                sock,
+                "POST",
+                u.path or "/mcp",
+                u.netloc,
+                init,
+                {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Connection": "keep-alive",
+                },
+                timeout_s,
+            )
             if st != 200:
                 rec.update(alive=False, error=f"initialize HTTP {st}")
                 out[name] = rec
                 continue
             sid = rh.get("mcp-session-id")
-            req2 = json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}).encode()
-            h2 = {"Content-Type": "application/json",
-                  "Accept": "application/json, text/event-stream",
-                  "Connection": "close"}
+            req2 = json.dumps(
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+            ).encode()
+            h2 = {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "Connection": "close",
+            }
             if sid:
                 h2["Mcp-Session-Id"] = sid
-            st2, _rh2, raw = _sock_exchange(sock, "POST", u.path or "/mcp", u.netloc,
-                                            req2, h2, timeout_s)
+            st2, _rh2, raw = _sock_exchange(
+                sock, "POST", u.path or "/mcp", u.netloc, req2, h2, timeout_s
+            )
             text = raw.decode("utf-8", "replace").strip()
             if text.startswith("{"):
                 payload = json.loads(text)
             else:
-                data = next((ln[5:] for ln in text.splitlines()
-                             if ln.startswith("data:")), None)
+                data = next(
+                    (ln[5:] for ln in text.splitlines() if ln.startswith("data:")), None
+                )
                 payload = json.loads(data) if data else {}
             tools = (payload or {}).get("result", {}).get("tools", [])
-            canon = json.dumps([{"name": t.get("name"),
-                                 "description": t.get("description", "")}
-                                for t in tools], sort_keys=True).encode()
+            canon = json.dumps(
+                [
+                    {"name": t.get("name"), "description": t.get("description", "")}
+                    for t in tools
+                ],
+                sort_keys=True,
+            ).encode()
             rec.update(alive=True, tools_count=len(tools), desc_sha8=sha8_bytes(canon))
         except Exception as e:  # dead/unreachable front is a FINDING, not a crash
             rec.update(alive=False, error=f"{type(e).__name__}: {str(e)[:120]}")
@@ -289,7 +350,9 @@ def main(argv: list[str]) -> int:
         GEN_DIR.mkdir(parents=True, exist_ok=True)
         BASELINES_OUT.write_text(json.dumps(baselines, indent=1), encoding="utf-8")
         alive = sum(1 for r in baselines.values() if r.get("alive"))
-        print(f"SUCCESS:gen-routes-probe {alive}/{len(baselines)} fronts alive -> {BASELINES_OUT}")
+        print(
+            f"SUCCESS:gen-routes-probe {alive}/{len(baselines)} fronts alive -> {BASELINES_OUT}"
+        )
 
     GEN_DIR.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(routes, indent=1), encoding="utf-8")

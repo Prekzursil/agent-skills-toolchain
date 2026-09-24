@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Phase-3 deploy: rewire cyberstrike.json instructions[] + add plugin key (deploy-phase3.md steps 2-3)."""
+
 import json
 import sys
 from pathlib import Path
@@ -15,13 +16,21 @@ cfg["instructions"] = ["{file:~/.config/cyberstrike/CONTEXT.md}"]
 cfg["plugin"] = ["~/.config/cyberstrike/plugin/manifest-writer.ts"]
 
 tmp = CFG.with_name("cyberstrike.json.tmp-rewire")
-tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+tmp.write_text(
+    json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n"
+)
 
 # fail-closed round-trip validation before replacing the live file
 rt = json.loads(tmp.read_text(encoding="utf-8"))
-assert rt["instructions"] == ["{file:~/.config/cyberstrike/CONTEXT.md}"], "instructions mismatch"
-assert rt["plugin"] == ["~/.config/cyberstrike/plugin/manifest-writer.ts"], "plugin mismatch"
-assert rt.get("agent", {}).get("cyberstrike", {}).get("model") == "zai/glm-5.3", "agent block clobbered"
+assert rt["instructions"] == ["{file:~/.config/cyberstrike/CONTEXT.md}"], (
+    "instructions mismatch"
+)
+assert rt["plugin"] == ["~/.config/cyberstrike/plugin/manifest-writer.ts"], (
+    "plugin mismatch"
+)
+assert rt.get("agent", {}).get("cyberstrike", {}).get("model") == "zai/glm-5.3", (
+    "agent block clobbered"
+)
 assert len(rt.get("mcp", {})) == 34, "mcp block clobbered (expected 34 servers)"
 tmp.replace(CFG)
 

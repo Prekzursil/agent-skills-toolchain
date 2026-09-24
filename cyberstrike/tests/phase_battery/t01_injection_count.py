@@ -26,6 +26,7 @@ Two halves:
 
 Never starts, stops, or touches the TUI (PID 19684 stays untouched).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -35,8 +36,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from battery_common import (  # noqa: E402
-    REPO, BASELINE_REV, SUCCESS, FAILED, PENDING_OWNER,
-    VerdictRecorder, git_show, read_text,
+    REPO,
+    BASELINE_REV,
+    SUCCESS,
+    FAILED,
+    PENDING_OWNER,
+    VerdictRecorder,
+    git_show,
+    read_text,
 )
 
 
@@ -65,8 +72,7 @@ def load_sites_for_config(config_text: str) -> dict:
     """
     cfg = json.loads(config_text)
     instructions = cfg.get("instructions", [])
-    explicit = [i for i in instructions
-                if "AGENTS.md" in i.replace("\\", "/")]
+    explicit = [i for i in instructions if "AGENTS.md" in i.replace("\\", "/")]
     native = 1
     return {
         "native_load": native,
@@ -85,7 +91,7 @@ def control(rec: VerdictRecorder) -> str:
         rec.hit("T-1.control", "load_sites", state=name, **sites)
     both = {
         "method": "git-show reconstruction of instructions[] + proven native "
-                  "loader (Global.Path.config)",
+        "loader (Global.Path.config)",
         "baseline_load_sites": base["total_load_sites"],
         "live_load_sites": live["total_load_sites"],
         "control_fires_in_broken_state": base["total_load_sites"] == 2,
@@ -93,21 +99,25 @@ def control(rec: VerdictRecorder) -> str:
     }
     ok = both["control_fires_in_broken_state"] and both["live_is_single_load"]
     status = SUCCESS if ok else FAILED
-    rec.record("T-1.control", status,
-               details={"baseline_rev": BASELINE_REV,
-                        "note": "static both-states control; runtime half of "
-                                "T-1 is owner-executed at next TUI start"},
-               both_states=both,
-               anchors=[REPO / "cyberstrike.json"],
-               reason=None if ok else "control did not show 2x/1x split")
+    rec.record(
+        "T-1.control",
+        status,
+        details={
+            "baseline_rev": BASELINE_REV,
+            "note": "static both-states control; runtime half of "
+            "T-1 is owner-executed at next TUI start",
+        },
+        both_states=both,
+        anchors=[REPO / "cyberstrike.json"],
+        reason=None if ok else "control did not show 2x/1x split",
+    )
     return status
 
 
 def runtime(rec: VerdictRecorder, dump_path: Path) -> str:
     """Owner-executed half: count markers in an assembled-prompt dump."""
     if not dump_path.is_file():
-        rec.record("T-1", FAILED, reason="prompt dump not found",
-                   anchors=[dump_path])
+        rec.record("T-1", FAILED, reason="prompt dump not found", anchors=[dump_path])
         return FAILED
     dump = read_text(dump_path)
     agents_text = read_text(REPO / "AGENTS.md")
@@ -116,19 +126,25 @@ def runtime(rec: VerdictRecorder, dump_path: Path) -> str:
     p_count = dump.count(primary)
     s_count = dump.count(markers["secondary"])
     context_count = sum(
-        1 for ln in dump.splitlines()
-        if ln.strip().startswith("# CONTEXT.md"))
-    for k, v in (("primary_marker_hits", p_count),
-                 ("secondary_marker_hits", s_count),
-                 ("context_md_heading_hits", context_count)):
+        1 for ln in dump.splitlines() if ln.strip().startswith("# CONTEXT.md")
+    )
+    for k, v in (
+        ("primary_marker_hits", p_count),
+        ("secondary_marker_hits", s_count),
+        ("context_md_heading_hits", context_count),
+    ):
         rec.hit("T-1", "marker_count", marker=k, count=v)
     ok = p_count == 1 and s_count >= 1 and context_count <= 1
-    rec.record("T-1", SUCCESS if ok else FAILED,
-               details={"markers": markers,
-                        "expected": {"primary": 1, "secondary_min": 1,
-                                     "context_max": 1}},
-               anchors=[dump_path, REPO / "AGENTS.md"],
-               reason=None if ok else "marker count != 1 (double-load back?)")
+    rec.record(
+        "T-1",
+        SUCCESS if ok else FAILED,
+        details={
+            "markers": markers,
+            "expected": {"primary": 1, "secondary_min": 1, "context_max": 1},
+        },
+        anchors=[dump_path, REPO / "AGENTS.md"],
+        reason=None if ok else "marker count != 1 (double-load back?)",
+    )
     return SUCCESS if ok else FAILED
 
 
@@ -140,19 +156,28 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     if dump:
         rt = runtime(rec, Path(dump))
         return rt if control_status == SUCCESS else FAILED
-    rec.record("T-1", PENDING_OWNER,
-               reason="runtime half awaits next TUI start (owner-executed)",
-               details={"protocol": "tests/README.md §T-1; dump the assembled "
-                                    "prompt of a fresh session, then re-run "
-                                    "with --prompt-dump <file>"},
-               anchors=[REPO / "AGENTS.md"])
+    rec.record(
+        "T-1",
+        PENDING_OWNER,
+        reason="runtime half awaits next TUI start (owner-executed)",
+        details={
+            "protocol": "tests/README.md §T-1; dump the assembled "
+            "prompt of a fresh session, then re-run "
+            "with --prompt-dump <file>"
+        },
+        anchors=[REPO / "AGENTS.md"],
+    )
     return control_status
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--prompt-dump", type=Path, default=None,
-                    help="assembled system-prompt dump from a fresh TUI session")
+    ap.add_argument(
+        "--prompt-dump",
+        type=Path,
+        default=None,
+        help="assembled system-prompt dump from a fresh TUI session",
+    )
     args = ap.parse_args()
     with VerdictRecorder(meta={"test": "T-1"}) as rec:
         status = run(rec, {"prompt_dump": args.prompt_dump})

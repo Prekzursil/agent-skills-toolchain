@@ -18,6 +18,7 @@ targets for the new pair:
 Baseline (old 5-file live instruction set) is measured every run so the
 regression delta is on the receipt, not on memory.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,7 +28,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from battery_common import (  # noqa: E402
-    REPO, SUCCESS, FAILED, VerdictRecorder, read_text, count,
+    REPO,
+    SUCCESS,
+    FAILED,
+    VerdictRecorder,
+    read_text,
+    count,
 )
 
 
@@ -38,9 +44,12 @@ def pair(mode: str) -> list[Path]:
         return drafts
     if mode == "live":
         return live
-    return drafts if (REPO / "AGENTS.new.md").exists() and \
-        read_text(REPO / "AGENTS.new.md") != read_text(REPO / "AGENTS.md") \
+    return (
+        drafts
+        if (REPO / "AGENTS.new.md").exists()
+        and read_text(REPO / "AGENTS.new.md") != read_text(REPO / "AGENTS.md")
         else live
+    )
 
 
 def nonpointer_count(pattern: str, files: list[Path]) -> int:
@@ -75,9 +84,16 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     research_surface = count(r"research[- ]surface", text)
     org925_nonpointer = nonpointer_count(r"org[ -]925|team 10939257", files)
 
-    baseline_files = [REPO / n for n in (
-        "AGENTS.md", "config.md", "CONTEXT.md",
-        "instructions-recon.md", "instructions-fullpower-estate.md")]
+    baseline_files = [
+        REPO / n
+        for n in (
+            "AGENTS.md",
+            "config.md",
+            "CONTEXT.md",
+            "instructions-recon.md",
+            "instructions-fullpower-estate.md",
+        )
+    ]
     btext = "\n".join(read_text(f) for f in baseline_files if f.exists())
     baseline = {
         "never_rotate": count(r"never[- ]rotate", btext),
@@ -90,40 +106,50 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
         "research_surface_le_1": research_surface <= 1,
         "org925_nonpointer_eq_0": org925_nonpointer == 0,
     }
-    rec.hit("T-13", "metrics", target=mode,
-            files=[f.name for f in files],
-            never_rotate=never_rotate, research_surface=research_surface,
-            org925_nonpointer=org925_nonpointer,
-            baseline=baseline, checks=checks)
+    rec.hit(
+        "T-13",
+        "metrics",
+        target=mode,
+        files=[f.name for f in files],
+        never_rotate=never_rotate,
+        research_surface=research_surface,
+        org925_nonpointer=org925_nonpointer,
+        baseline=baseline,
+        checks=checks,
+    )
 
     ok = all(checks.values())
-    rec.record("T-13", SUCCESS if ok else FAILED,
-               details={
-                   "target_mode": mode,
-                   "metrics": {
-                       "never_rotate": never_rotate,
-                       "research_surface": research_surface,
-                       "org925_nonpointer": org925_nonpointer,
-                   },
-                   "thresholds": {
-                       "never_rotate": "== 1 (deploy-phase3.md)",
-                       "research_surface": "<= 1 (spec ==1; drafts measure 0 "
-                                           "= delegated to HOME pointer - "
-                                           "disclosed deviation)",
-                       "org925_nonpointer": "== 0 (pointer line exempt)",
-                   },
-                   "baseline_old_payload": baseline,
-               },
-               anchors=files,
-               reason=None if ok else "redundancy regression: " + str(
-                   {k: v for k, v in checks.items() if not v}))
+    rec.record(
+        "T-13",
+        SUCCESS if ok else FAILED,
+        details={
+            "target_mode": mode,
+            "metrics": {
+                "never_rotate": never_rotate,
+                "research_surface": research_surface,
+                "org925_nonpointer": org925_nonpointer,
+            },
+            "thresholds": {
+                "never_rotate": "== 1 (deploy-phase3.md)",
+                "research_surface": "<= 1 (spec ==1; drafts measure 0 "
+                "= delegated to HOME pointer - "
+                "disclosed deviation)",
+                "org925_nonpointer": "== 0 (pointer line exempt)",
+            },
+            "baseline_old_payload": baseline,
+        },
+        anchors=files,
+        reason=None
+        if ok
+        else "redundancy regression: "
+        + str({k: v for k, v in checks.items() if not v}),
+    )
     return SUCCESS if ok else FAILED
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--target", choices=("auto", "drafts", "live"),
-                    default="auto")
+    ap.add_argument("--target", choices=("auto", "drafts", "live"), default="auto")
     args = ap.parse_args()
     with VerdictRecorder(meta={"test": "T-13"}) as rec:
         status = run(rec, {"target": args.target})

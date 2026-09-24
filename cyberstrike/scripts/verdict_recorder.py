@@ -26,6 +26,7 @@ Output location (override with CS_BATTERY_OUT):
 No network. Never prints or stores credential values; callers pass anchors
 and structured fields only.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -47,9 +48,7 @@ PENDING_OWNER = "PENDING-OWNER"
 
 VALID_STATUSES = (SUCCESS, FAILED, INTERRUPTED, PENDING_OWNER)  # tuple: immutable
 
-DEFAULT_OUT_ROOT = Path(
-    r"D:\bolt\admin-crack-2026-09-19\raw\cs-audit\phase2-5\battery"
-)
+DEFAULT_OUT_ROOT = Path(r"D:\bolt\admin-crack-2026-09-19\raw\cs-audit\phase2-5\battery")
 
 
 def utcnow() -> str:
@@ -72,8 +71,12 @@ def sha8(p: Path) -> str:
 class VerdictRecorder:
     """Append-only per-run verdict + hit recorder."""
 
-    def __init__(self, out_dir: str | os.PathLike | None = None,
-                 run_id: str | None = None, meta: dict | None = None):
+    def __init__(
+        self,
+        out_dir: str | os.PathLike | None = None,
+        run_id: str | None = None,
+        meta: dict | None = None,
+    ):
         if out_dir is None:
             out_dir = os.environ.get("CS_BATTERY_OUT") or None
         if run_id is None:
@@ -119,9 +122,16 @@ class VerdictRecorder:
         return rows, all_present
 
     # -- core API -----------------------------------------------------------
-    def record(self, test_id: str, status: str, details: dict | None = None,
-               *, both_states: dict | None = None, anchors=None,
-               reason: str | None = None) -> dict:
+    def record(
+        self,
+        test_id: str,
+        status: str,
+        details: dict | None = None,
+        *,
+        both_states: dict | None = None,
+        anchors=None,
+        reason: str | None = None,
+    ) -> dict:
         """Append one verdict line. Returns the entry written."""
         self._validate_status(status)
         anchor_rows, all_present = self._resolve_anchors(anchors)
@@ -154,8 +164,7 @@ class VerdictRecorder:
 
     def hit(self, test_id: str, kind: str, **fields) -> dict:
         """Append one finding line to the separate hit-log."""
-        row = {"ts": utcnow(), "run_id": self.run_id,
-               "test_id": test_id, "kind": kind}
+        row = {"ts": utcnow(), "run_id": self.run_id, "test_id": test_id, "kind": kind}
         row.update(fields)
         with open(self.hits_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -170,14 +179,16 @@ class VerdictRecorder:
             "counts": dict(self._counts),
             "total_verdicts": len(self._entries),
             "test_ids": sorted(self._attempts),
-            "verdicts_sha256": (sha256_file(self.verdicts_path)
-                                if self.verdicts_path.exists() else None),
-            "hits_sha256": (sha256_file(self.hits_path)
-                            if self.hits_path.exists() else None),
+            "verdicts_sha256": (
+                sha256_file(self.verdicts_path) if self.verdicts_path.exists() else None
+            ),
+            "hits_sha256": (
+                sha256_file(self.hits_path) if self.hits_path.exists() else None
+            ),
             "meta": self.meta,
             "provenance": "disk-verified: seal re-hashes the JSONL files it "
-                          "summarizes; statuses restricted to the immutable "
-                          "vocabulary at write time",
+            "summarizes; statuses restricted to the immutable "
+            "vocabulary at write time",
         }
 
     def close(self) -> dict:
@@ -191,8 +202,12 @@ class VerdictRecorder:
 
     def __exit__(self, exc_type, exc, tb):
         if exc_type is not None:
-            self.record("battery.harness", INTERRUPTED,
-                        reason="exception", details={"error": str(exc)[:500]})
+            self.record(
+                "battery.harness",
+                INTERRUPTED,
+                reason="exception",
+                details={"error": str(exc)[:500]},
+            )
         self.close()
         return False
 
@@ -202,22 +217,29 @@ if __name__ == "__main__":
     # vocabulary gate fires on a bad status, (b) missing anchor downgrades
     # SUCCESS, (c) seal hashes both files.
     import tempfile
+
     self_path = Path(__file__).resolve()
     with tempfile.TemporaryDirectory() as td:
         with VerdictRecorder(out_dir=td, run_id="selftest") as rec:
-            rec.record("X-1", SUCCESS, details={"n": 1},
-                       anchors=[self_path])
+            rec.record("X-1", SUCCESS, details={"n": 1}, anchors=[self_path])
             try:
                 rec.record("X-2", "PASSED")
                 raise SystemExit("SELFTEST-FAILED vocabulary gate did not fire")
             except ValueError:
                 pass
-            rec.record("X-3", SUCCESS, details={"claim": "no artifact"},
-                       anchors=[Path(td) / "does-not-exist.txt"])
+            rec.record(
+                "X-3",
+                SUCCESS,
+                details={"claim": "no artifact"},
+                anchors=[Path(td) / "does-not-exist.txt"],
+            )
             rec.hit("X-1", "sample_hit", note="hit-log is separate")
             s = rec.close()
-        ok = (s["counts"][SUCCESS] == 1
-              and s["counts"][FAILED] == 1  # X-3 downgraded anchor_missing
-              and s["verdicts_sha256"] and s["hits_sha256"])
+        ok = (
+            s["counts"][SUCCESS] == 1
+            and s["counts"][FAILED] == 1  # X-3 downgraded anchor_missing
+            and s["verdicts_sha256"]
+            and s["hits_sha256"]
+        )
         print("SELFTEST-" + ("PASS" if ok else "FAIL"), json.dumps(s["counts"]))
         sys.exit(0 if ok else 1)

@@ -38,6 +38,7 @@ attribution is null.
 
 Run:  C:/Python314/python.exe gateway/skeleton.py [--idle-exit-s 1800]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -56,15 +57,29 @@ sys.path.insert(0, str(REPO / "gateway"))
 from gen_routes import BASELINES_OUT, OUT as ROUTES_OUT  # noqa: E402
 
 AUDIT_DIR = Path(r"D:\opt\cyberstrike-mcp\audit")
-HOP_BY_HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authorization",
-              "te", "trailers", "transfer-encoding", "upgrade", "host", "content-length"}
+HOP_BY_HOP = {
+    "connection",
+    "keep-alive",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailers",
+    "transfer-encoding",
+    "upgrade",
+    "host",
+    "content-length",
+}
 MAX_BODY = 16 * 1024 * 1024
 GATEWAY_NAME = "gateway"  # reserved meta route name
 READ_DEADLINE_S = 30
 
 
 def utcnow_ms() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .replace("+00:00", "Z")
+    )
 
 
 def sha8_bytes(b: bytes) -> str:
@@ -84,21 +99,55 @@ class Audit:
         with open(self.path, "a", encoding="utf-8") as f:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
-    def mount(self, server: str, status: str, desc_sha8: str | None, drift: bool,
-              note: str = "") -> None:
-        self.line(kind="mount", server=server, status=status,
-                  desc_sha8=desc_sha8, drift=drift, note=note)
+    def mount(
+        self,
+        server: str,
+        status: str,
+        desc_sha8: str | None,
+        drift: bool,
+        note: str = "",
+    ) -> None:
+        self.line(
+            kind="mount",
+            server=server,
+            status=status,
+            desc_sha8=desc_sha8,
+            drift=drift,
+            note=note,
+        )
 
-    def call(self, *, server: str, tool: str | None, call_id, route: dict,
-             status: str, ms: int, flags: list[str], req_sha8: str,
-             resp_sha8: str | None = None, resp_bytes: int | None = None,
-             reason: str | None = None, supersedes=None) -> None:
+    def call(
+        self,
+        *,
+        server: str,
+        tool: str | None,
+        call_id,
+        route: dict,
+        status: str,
+        ms: int,
+        flags: list[str],
+        req_sha8: str,
+        resp_sha8: str | None = None,
+        resp_bytes: int | None = None,
+        reason: str | None = None,
+        supersedes=None,
+    ) -> None:
         assert status in ("SUCCESS", "FAILED", "INTERRUPTED"), status  # S6 immutable
-        row = dict(kind="call", server=server, tool=tool, call_id=call_id,
-                   route=route, status=status, ms=ms, flags=flags,
-                   req_sha8=req_sha8, resp_sha8=resp_sha8, resp_bytes=resp_bytes,
-                   resolved_model=None,  # structure only — model plane deferred
-                   client="skeleton")
+        row = dict(
+            kind="call",
+            server=server,
+            tool=tool,
+            call_id=call_id,
+            route=route,
+            status=status,
+            ms=ms,
+            flags=flags,
+            req_sha8=req_sha8,
+            resp_sha8=resp_sha8,
+            resp_bytes=resp_bytes,
+            resolved_model=None,  # structure only — model plane deferred
+            client="skeleton",
+        )
         if reason:
             row["reason"] = reason
         if supersedes:
@@ -109,9 +158,16 @@ class Audit:
 # ---------------------------------------------------------------------------
 # minimal framed HTTP client (the part urllib got wrong: sessions + framing)
 # ---------------------------------------------------------------------------
-async def http_exchange(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
-                        method: str, path: str, host: str, body: bytes,
-                        headers: dict[str, str], deadline_s: float = READ_DEADLINE_S):
+async def http_exchange(
+    reader: asyncio.StreamReader,
+    writer: asyncio.StreamWriter,
+    method: str,
+    path: str,
+    host: str,
+    body: bytes,
+    headers: dict[str, str],
+    deadline_s: float = READ_DEADLINE_S,
+):
     """Send one request on an OPEN connection; read ONE framed response.
 
     Returns (status:int, resp_headers:dict, resp_body:bytes) — the connection stays
@@ -147,12 +203,16 @@ async def http_exchange(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             if size == 0:
                 await reader.readline()
                 break
-            resp_body += await asyncio.wait_for(reader.readexactly(size), timeout=deadline_s)
+            resp_body += await asyncio.wait_for(
+                reader.readexactly(size), timeout=deadline_s
+            )
             await reader.readline()
             if len(resp_body) > MAX_BODY:
                 break
     elif (cl := rheaders.get("content-length")) is not None:
-        resp_body = await asyncio.wait_for(reader.readexactly(int(cl)), timeout=deadline_s)
+        resp_body = await asyncio.wait_for(
+            reader.readexactly(int(cl)), timeout=deadline_s
+        )
     else:  # read-until-close (Connection: close fronts)
         while len(resp_body) < MAX_BODY:
             chunk = await asyncio.wait_for(reader.read(65536), timeout=deadline_s)
@@ -208,37 +268,63 @@ class Gateway:
         u = urlsplit(url)
         try:
             reader, writer = await asyncio.wait_for(
-                asyncio.open_connection(u.hostname, u.port or 80), timeout=timeout_s)
+                asyncio.open_connection(u.hostname, u.port or 80), timeout=timeout_s
+            )
         except Exception as e:
             return False, None, None, f"{type(e).__name__}: {e}"[:120]
         try:
-            init = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
-                               "params": {"protocolVersion": "2025-03-26",
-                                          "capabilities": {},
-                                          "clientInfo": {"name": "cs-gw-skeleton",
-                                                         "version": "1"}}}).encode()
+            init = json.dumps(
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2025-03-26",
+                        "capabilities": {},
+                        "clientInfo": {"name": "cs-gw-skeleton", "version": "1"},
+                    },
+                }
+            ).encode()
             st, rh, _b = await http_exchange(
-                reader, writer, "POST", u.path or "/mcp", u.netloc, init,
-                {"Content-Type": "application/json",
-                 "Accept": "application/json, text/event-stream",
-                 "Connection": "keep-alive"}, timeout_s)
+                reader,
+                writer,
+                "POST",
+                u.path or "/mcp",
+                u.netloc,
+                init,
+                {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Connection": "keep-alive",
+                },
+                timeout_s,
+            )
             if st != 200:
                 return False, None, None, f"initialize HTTP {st}"
             sid = rh.get("mcp-session-id")
-            req2 = json.dumps({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}).encode()
-            h2 = {"Content-Type": "application/json",
-                  "Accept": "application/json, text/event-stream",
-                  "Connection": "close"}
+            req2 = json.dumps(
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list"}
+            ).encode()
+            h2 = {
+                "Content-Type": "application/json",
+                "Accept": "application/json, text/event-stream",
+                "Connection": "close",
+            }
             if sid:
                 h2["Mcp-Session-Id"] = sid
             st2, _rh2, body2 = await http_exchange(
-                reader, writer, "POST", u.path or "/mcp", u.netloc, req2, h2, timeout_s)
+                reader, writer, "POST", u.path or "/mcp", u.netloc, req2, h2, timeout_s
+            )
             if st2 != 200:
                 return True, None, None, f"tools/list HTTP {st2} (alive, desc unknown)"
             tools = (parse_sse_or_json(body2).get("result") or {}).get("tools", [])
-            canon = json.dumps([{"name": t.get("name"),
-                                 "description": t.get("description", "")}
-                                for t in tools], sort_keys=True).encode()
+            canon = json.dumps(
+                [
+                    {"name": t.get("name"), "description": t.get("description", "")}
+                    for t in tools
+                ],
+                sort_keys=True,
+            ).encode()
             return True, sha8_bytes(canon), len(tools), None
         except Exception as e:
             return True, None, None, f"{type(e).__name__}: {e}"[:120]  # TCP ok => alive
@@ -251,30 +337,54 @@ class Gateway:
     async def do_mount(self) -> None:
         for name, row in self.routes.items():
             if row["kind"] != "front":
-                self.mount[name] = {"status": "not-front", "desc_sha8": None, "drift": False}
+                self.mount[name] = {
+                    "status": "not-front",
+                    "desc_sha8": None,
+                    "drift": False,
+                }
                 continue
             alive, desc, tools, err = await self.probe_front(row["url"])
             base = self.baselines.get(name) or {}
-            drift = bool(alive and desc and base.get("desc_sha8") and base["desc_sha8"] != desc)
+            drift = bool(
+                alive and desc and base.get("desc_sha8") and base["desc_sha8"] != desc
+            )
             status = "poisoned" if drift else ("mounted" if alive else "dead")
-            self.mount[name] = {"status": status, "desc_sha8": desc,
-                                "drift": drift, "tools": tools or 0,
-                                "baseline": base.get("desc_sha8")}
+            self.mount[name] = {
+                "status": status,
+                "desc_sha8": desc,
+                "drift": drift,
+                "tools": tools or 0,
+                "baseline": base.get("desc_sha8"),
+            }
             self.audit.mount(name, status, desc, drift, note=err or f"{tools} tools")
 
     # -- meta plane -----------------------------------------------------------
     def catalog(self) -> list[dict]:
-        return [{"name": n, "kind": r["kind"], "url": r.get("url"), "port": r.get("port"),
-                 "aliases": r["aliases"], "band": r["band"],
-                 "keys": [k.get("env") for k in r["keys"]], "note": r["note"],
-                 "mount_status": self.mount.get(n, {}).get("status")}
-                for n, r in self.routes.items()]
+        return [
+            {
+                "name": n,
+                "kind": r["kind"],
+                "url": r.get("url"),
+                "port": r.get("port"),
+                "aliases": r["aliases"],
+                "band": r["band"],
+                "keys": [k.get("env") for k in r["keys"]],
+                "note": r["note"],
+                "mount_status": self.mount.get(n, {}).get("status"),
+            }
+            for n, r in self.routes.items()
+        ]
 
     def dead_list(self) -> list[dict]:
-        return [{"server": n, "status": m["status"],
-                 **({"baseline": m["baseline"]} if m.get("baseline") else {})}
-                for n, m in sorted(self.mount.items())
-                if m["status"] in ("dead", "poisoned")]
+        return [
+            {
+                "server": n,
+                "status": m["status"],
+                **({"baseline": m["baseline"]} if m.get("baseline") else {}),
+            }
+            for n, m in sorted(self.mount.items())
+            if m["status"] in ("dead", "poisoned")
+        ]
 
     async def handle_meta(self, body: bytes) -> bytes:
         try:
@@ -283,84 +393,183 @@ class Gateway:
             return http_response(400, "Bad Request", b'{"error":"invalid json"}')
         method, req_id = req.get("method"), req.get("id")
         if method == "initialize":
-            return jsonrpc_result(req_id, {
-                "protocolVersion": "2025-03-26", "capabilities": {"tools": {}},
-                "serverInfo": {"name": "cs-gateway-skeleton", "version": "1"}})
+            return jsonrpc_result(
+                req_id,
+                {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {"tools": {}},
+                    "serverInfo": {"name": "cs-gateway-skeleton", "version": "1"},
+                },
+            )
         if method == "tools/list":
-            return jsonrpc_result(req_id, {"tools": [
-                {"name": "gateway.catalog",
-                 "description": "Full route table: name, kind, resolved url/port, band, "
-                                "aliases, mount status (honest labels, G-9)",
-                 "inputSchema": {"type": "object", "properties": {}}},
-                {"name": "gateway.dead_list",
-                 "description": "Servers dead or poisoned at mount time — check BEFORE "
-                                "calling instead of learning by timeout",
-                 "inputSchema": {"type": "object", "properties": {}}}]})
+            return jsonrpc_result(
+                req_id,
+                {
+                    "tools": [
+                        {
+                            "name": "gateway.catalog",
+                            "description": "Full route table: name, kind, resolved url/port, band, "
+                            "aliases, mount status (honest labels, G-9)",
+                            "inputSchema": {"type": "object", "properties": {}},
+                        },
+                        {
+                            "name": "gateway.dead_list",
+                            "description": "Servers dead or poisoned at mount time — check BEFORE "
+                            "calling instead of learning by timeout",
+                            "inputSchema": {"type": "object", "properties": {}},
+                        },
+                    ]
+                },
+            )
         if method == "tools/call":
             tool = (req.get("params") or {}).get("name")
             if tool == "gateway.catalog":
-                return jsonrpc_result(req_id, {"content": [
-                    {"type": "text", "text": json.dumps(self.catalog(), indent=1)}]})
+                return jsonrpc_result(
+                    req_id,
+                    {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(self.catalog(), indent=1),
+                            }
+                        ]
+                    },
+                )
             if tool == "gateway.dead_list":
-                return jsonrpc_result(req_id, {"content": [
-                    {"type": "text", "text": json.dumps(self.dead_list(), indent=1)}]})
-            return jsonrpc_result(req_id, {"isError": True, "content": [
-                {"type": "text", "text": f"unknown tool {tool}"}]})
-        return jsonrpc_result(req_id, {}) if req_id is not None else \
-            http_response(202, "Accepted", b"", "application/json")
+                return jsonrpc_result(
+                    req_id,
+                    {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": json.dumps(self.dead_list(), indent=1),
+                            }
+                        ]
+                    },
+                )
+            return jsonrpc_result(
+                req_id,
+                {
+                    "isError": True,
+                    "content": [{"type": "text", "text": f"unknown tool {tool}"}],
+                },
+            )
+        return (
+            jsonrpc_result(req_id, {})
+            if req_id is not None
+            else http_response(202, "Accepted", b"", "application/json")
+        )
 
     # -- proxy ------------------------------------------------------------------
-    async def proxy(self, name: str, body: bytes, client_headers: dict[str, str],
-                    cwriter: asyncio.StreamWriter) -> None:
+    async def proxy(
+        self,
+        name: str,
+        body: bytes,
+        client_headers: dict[str, str],
+        cwriter: asyncio.StreamWriter,
+    ) -> None:
         t0 = time.monotonic()
         row = self.routes.get(name)
-        route = {"kind": row["kind"], "port": row.get("port")} if row else {"kind": "unrouted"}
+        route = (
+            {"kind": row["kind"], "port": row.get("port")}
+            if row
+            else {"kind": "unrouted"}
+        )
         flags: list[str] = []
         try:
             rpc = json.loads(body) if body else {}
         except json.JSONDecodeError:
             rpc = {}
-        tool = (rpc.get("params") or {}).get("name") if rpc.get("method") == "tools/call" else None
+        tool = (
+            (rpc.get("params") or {}).get("name")
+            if rpc.get("method") == "tools/call"
+            else None
+        )
         call_id = rpc.get("id")
         req_sha8 = sha8_bytes(body)
 
-        def finish(status_code: int, reason: str, payload: bytes,
-                   audit_status: str, audit_reason: str, audit_flags: list[str],
-                   resp_sha8: str | None = None) -> None:
-            cwriter.write(http_response(status_code, "OK" if status_code < 400 else "Error",
-                                        payload))
-            self.audit.call(server=name, tool=tool, call_id=call_id, route=route,
-                            status=audit_status, ms=int((time.monotonic() - t0) * 1000),
-                            flags=audit_flags, req_sha8=req_sha8,
-                            resp_sha8=resp_sha8, resp_bytes=len(payload),
-                            reason=audit_reason)
+        def finish(
+            status_code: int,
+            reason: str,
+            payload: bytes,
+            audit_status: str,
+            audit_reason: str,
+            audit_flags: list[str],
+            resp_sha8: str | None = None,
+        ) -> None:
+            cwriter.write(
+                http_response(
+                    status_code, "OK" if status_code < 400 else "Error", payload
+                )
+            )
+            self.audit.call(
+                server=name,
+                tool=tool,
+                call_id=call_id,
+                route=route,
+                status=audit_status,
+                ms=int((time.monotonic() - t0) * 1000),
+                flags=audit_flags,
+                req_sha8=req_sha8,
+                resp_sha8=resp_sha8,
+                resp_bytes=len(payload),
+                reason=audit_reason,
+            )
 
         if row is None:
-            finish(404, "unknown route", json.dumps(
-                {"error": f"unknown server {name!r} — not in routing table"}).encode(),
-                "FAILED", "404 unknown route", ["unrouted"])
+            finish(
+                404,
+                "unknown route",
+                json.dumps(
+                    {"error": f"unknown server {name!r} — not in routing table"}
+                ).encode(),
+                "FAILED",
+                "404 unknown route",
+                ["unrouted"],
+            )
             return
         if row["kind"] != "front":
-            finish(501, "lane deferred", json.dumps(
-                {"error": f"{row['kind']} lane is structure-only in the skeleton "
-                          f"(M3/M4 deferred); route exists, proxy not implemented"}).encode(),
-                "FAILED", f"501 {row['kind']} lane deferred", ["not-in-skeleton"])
+            finish(
+                501,
+                "lane deferred",
+                json.dumps(
+                    {
+                        "error": f"{row['kind']} lane is structure-only in the skeleton "
+                        f"(M3/M4 deferred); route exists, proxy not implemented"
+                    }
+                ).encode(),
+                "FAILED",
+                f"501 {row['kind']} lane deferred",
+                ["not-in-skeleton"],
+            )
             return
         m = self.mount.get(name) or {}
         if m.get("status") == "poisoned":
-            finish(503, "desc drift", json.dumps(
-                {"error": "tool-description drift (poison flag)",
-                 "baseline": m.get("baseline"), "observed": m.get("desc_sha8"),
-                 "remedy": "gateway.rebaseline --owner (explicit, audited)"}).encode(),
-                "FAILED", "503 desc drift", ["poison"])
+            finish(
+                503,
+                "desc drift",
+                json.dumps(
+                    {
+                        "error": "tool-description drift (poison flag)",
+                        "baseline": m.get("baseline"),
+                        "observed": m.get("desc_sha8"),
+                        "remedy": "gateway.rebaseline --owner (explicit, audited)",
+                    }
+                ).encode(),
+                "FAILED",
+                "503 desc drift",
+                ["poison"],
+            )
             return
         if m.get("status") == "dead":
             flags.append("dead-at-mount")  # informational; still proxied (listing is
             # single-signal-allowed; killing/repair belongs to the watchdog, §4.5)
 
         u = urlsplit(row["url"])
-        sid = next((v for k, v in client_headers.items()
-                    if k.lower() == "mcp-session-id"), None)
+        sid = next(
+            (v for k, v in client_headers.items() if k.lower() == "mcp-session-id"),
+            None,
+        )
         pooled = self.front_pool.get(sid) if sid else None
         reader, writer = None, None
         try:
@@ -369,16 +578,20 @@ class Gateway:
                 self.front_pool.pop(sid, None)  # take ownership for this exchange
             else:
                 reader, writer = await asyncio.wait_for(
-                    asyncio.open_connection(u.hostname, u.port or 80), timeout=10)
-            fwd: dict[str, str] = {"Content-Type": client_headers.get("content-type",
-                                                "application/json"),
-                                   "Accept": client_headers.get(
-                                       "accept", "application/json, text/event-stream"),
-                                   "Connection": "keep-alive"}
+                    asyncio.open_connection(u.hostname, u.port or 80), timeout=10
+                )
+            fwd: dict[str, str] = {
+                "Content-Type": client_headers.get("content-type", "application/json"),
+                "Accept": client_headers.get(
+                    "accept", "application/json, text/event-stream"
+                ),
+                "Connection": "keep-alive",
+            }
             if sid:
                 fwd["Mcp-Session-Id"] = sid
             st, rh, resp_body = await http_exchange(
-                reader, writer, "POST", u.path or "/mcp", u.netloc, body, fwd)
+                reader, writer, "POST", u.path or "/mcp", u.netloc, body, fwd
+            )
             # pool the front conn under the front-issued session id (affinity)
             new_sid = rh.get("mcp-session-id") or sid
             if new_sid and rh.get("connection", "keep-alive") != "close":
@@ -387,38 +600,74 @@ class Gateway:
                 writer.close()
             keep = {k: v for k, v in rh.items() if k not in HOP_BY_HOP}
             ok = 200 <= st < 400
-            cwriter.write(http_response(st, "OK" if ok else "Error", resp_body,
-                                        ctype=keep.get("content-type", "application/json"),
-                                        extra={k.title(): v for k, v in keep.items()
-                                               if k != "content-type"}))
-            self.audit.call(server=name, tool=tool, call_id=call_id, route=route,
-                            status="SUCCESS" if ok else "FAILED",
-                            ms=int((time.monotonic() - t0) * 1000), flags=flags,
-                            req_sha8=req_sha8, resp_sha8=sha8_bytes(resp_body),
-                            resp_bytes=len(resp_body),
-                            reason=None if ok else f"front status {st}")
+            cwriter.write(
+                http_response(
+                    st,
+                    "OK" if ok else "Error",
+                    resp_body,
+                    ctype=keep.get("content-type", "application/json"),
+                    extra={
+                        k.title(): v for k, v in keep.items() if k != "content-type"
+                    },
+                )
+            )
+            self.audit.call(
+                server=name,
+                tool=tool,
+                call_id=call_id,
+                route=route,
+                status="SUCCESS" if ok else "FAILED",
+                ms=int((time.monotonic() - t0) * 1000),
+                flags=flags,
+                req_sha8=req_sha8,
+                resp_sha8=sha8_bytes(resp_body),
+                resp_bytes=len(resp_body),
+                reason=None if ok else f"front status {st}",
+            )
         except asyncio.TimeoutError:
             self._drop(reader, writer, sid)
             try:
-                cwriter.write(http_response(504, "Gateway Timeout",
-                                            b'{"error":"front timeout"}'))
+                cwriter.write(
+                    http_response(504, "Gateway Timeout", b'{"error":"front timeout"}')
+                )
             except RuntimeError:
                 pass
-            self.audit.call(server=name, tool=tool, call_id=call_id, route=route,
-                            status="INTERRUPTED", ms=int((time.monotonic() - t0) * 1000),
-                            flags=flags + ["timeout"], req_sha8=req_sha8,
-                            reason="front did not answer within deadline")
+            self.audit.call(
+                server=name,
+                tool=tool,
+                call_id=call_id,
+                route=route,
+                status="INTERRUPTED",
+                ms=int((time.monotonic() - t0) * 1000),
+                flags=flags + ["timeout"],
+                req_sha8=req_sha8,
+                reason="front did not answer within deadline",
+            )
         except (ConnectionResetError, RuntimeError, OSError) as e:
             self._drop(reader, writer, sid)
             try:
-                cwriter.write(http_response(502, "Bad Gateway", json.dumps(
-                    {"error": f"front exchange failed: {type(e).__name__}"}).encode()))
+                cwriter.write(
+                    http_response(
+                        502,
+                        "Bad Gateway",
+                        json.dumps(
+                            {"error": f"front exchange failed: {type(e).__name__}"}
+                        ).encode(),
+                    )
+                )
             except RuntimeError:
                 pass
-            self.audit.call(server=name, tool=tool, call_id=call_id, route=route,
-                            status="FAILED", ms=int((time.monotonic() - t0) * 1000),
-                            flags=flags + ["front-error"], req_sha8=req_sha8,
-                            reason=f"{type(e).__name__}: {e}"[:120])
+            self.audit.call(
+                server=name,
+                tool=tool,
+                call_id=call_id,
+                route=route,
+                status="FAILED",
+                ms=int((time.monotonic() - t0) * 1000),
+                flags=flags + ["front-error"],
+                req_sha8=req_sha8,
+                reason=f"{type(e).__name__}: {e}"[:120],
+            )
 
     def _drop(self, reader, writer, sid) -> None:
         if sid:
@@ -430,8 +679,9 @@ class Gateway:
                 pass
 
     # -- connection handling -----------------------------------------------------
-    async def on_client(self, creader: asyncio.StreamReader,
-                        cwriter: asyncio.StreamWriter) -> None:
+    async def on_client(
+        self, creader: asyncio.StreamReader, cwriter: asyncio.StreamWriter
+    ) -> None:
         self.conns.add(cwriter)
         try:
             while True:
@@ -442,30 +692,35 @@ class Gateway:
                 method, path, headers, body = req
                 if method == "GET" and path in ("/health", "/catalog", "/dead"):
                     if path == "/health":
-                        payload = {"status": "ok", "pid": os.getpid(),
-                                   "uptime_s": int(time.monotonic() - self.started),
-                                   "routes": len(self.routes),
-                                   "live_conns": len(self.conns),
-                                   "front_sessions": len(self.front_pool),
-                                   "dead": len(self.dead_list())}
+                        payload = {
+                            "status": "ok",
+                            "pid": os.getpid(),
+                            "uptime_s": int(time.monotonic() - self.started),
+                            "routes": len(self.routes),
+                            "live_conns": len(self.conns),
+                            "front_sessions": len(self.front_pool),
+                            "dead": len(self.dead_list()),
+                        }
                     elif path == "/catalog":
                         payload = self.catalog()
                     else:
                         payload = self.dead_list()
-                    cwriter.write(http_response(200, "OK",
-                                                json.dumps(payload, indent=1).encode()))
+                    cwriter.write(
+                        http_response(200, "OK", json.dumps(payload, indent=1).encode())
+                    )
                     await cwriter.drain()
                     break  # Connection: close semantics
                 if method == "POST" and path.startswith("/mcp/"):
-                    name = path[len("/mcp/"):].strip("/")
+                    name = path[len("/mcp/") :].strip("/")
                     if name == GATEWAY_NAME:
                         cwriter.write(await self.handle_meta(body))
                         await cwriter.drain()
                     else:
                         await self.proxy(name, body, headers, cwriter)
                     break
-                cwriter.write(http_response(404, "Not Found",
-                                            b'{"error":"unknown path"}'))
+                cwriter.write(
+                    http_response(404, "Not Found", b'{"error":"unknown path"}')
+                )
                 await cwriter.drain()
                 break
         finally:
@@ -478,14 +733,19 @@ class Gateway:
     async def idle_watchdog(self, server: asyncio.AbstractServer) -> None:
         while True:
             await asyncio.sleep(10)
-            if not self.conns and time.monotonic() - self.last_activity > self.idle_exit_s:
+            if (
+                not self.conns
+                and time.monotonic() - self.last_activity > self.idle_exit_s
+            ):
                 server.close()
                 return
 
     async def run(self) -> int:
         if not ROUTES_OUT.exists():
-            print(f"FAILED:gw-skeleton routing table missing {ROUTES_OUT} — "
-                  f"run gateway/gen_routes.py first")
+            print(
+                f"FAILED:gw-skeleton routing table missing {ROUTES_OUT} — "
+                f"run gateway/gen_routes.py first"
+            )
             return 1
         host, port_s = self.listen.split(":")
         ports = [int(port_s)] + list(self.fallbacks)
@@ -499,8 +759,10 @@ class Gateway:
             except OSError:
                 continue
         if server is None:
-            print(f"FAILED:gw-skeleton no free port in {ports} (another owner or "
-                  f"foreign listener on the whole band)")
+            print(
+                f"FAILED:gw-skeleton no free port in {ports} (another owner or "
+                f"foreign listener on the whole band)"
+            )
             return 1
         await self.do_mount()
         # idle clock starts AFTER mount (mount itself can take ~a minute on this
@@ -508,8 +770,10 @@ class Gateway:
         self.last_activity = time.monotonic()
         dead = len(self.dead_list())
         alive = sum(1 for m in self.mount.values() if m.get("status") == "mounted")
-        print(f"SUCCESS:gw-skeleton mount on {host}:{bound} — {len(self.routes)} routes, "
-              f"mounted {alive}, dead/poisoned {dead}, audit {self.audit.path}")
+        print(
+            f"SUCCESS:gw-skeleton mount on {host}:{bound} — {len(self.routes)} routes, "
+            f"mounted {alive}, dead/poisoned {dead}, audit {self.audit.path}"
+        )
         watchdog = asyncio.create_task(self.idle_watchdog(server))
         try:
             async with server:
@@ -523,7 +787,9 @@ class Gateway:
                     w.close()
                 except Exception:
                     pass
-        print(f"SUCCESS:gw-skeleton idle-exit after {self.idle_exit_s}s with no clients")
+        print(
+            f"SUCCESS:gw-skeleton idle-exit after {self.idle_exit_s}s with no clients"
+        )
         return 0
 
 
@@ -554,29 +820,46 @@ async def read_http_request(reader: asyncio.StreamReader):
     return method.upper(), path, headers, body
 
 
-def http_response(status: int, reason: str, payload: bytes,
-                  ctype: str = "application/json",
-                  extra: dict[str, str] | None = None) -> bytes:
-    hdrs = [f"HTTP/1.1 {status} {reason}",
-            f"Content-Type: {ctype}",
-            f"Content-Length: {len(payload)}",
-            "Connection: close"]
+def http_response(
+    status: int,
+    reason: str,
+    payload: bytes,
+    ctype: str = "application/json",
+    extra: dict[str, str] | None = None,
+) -> bytes:
+    hdrs = [
+        f"HTTP/1.1 {status} {reason}",
+        f"Content-Type: {ctype}",
+        f"Content-Length: {len(payload)}",
+        "Connection: close",
+    ]
     for k, v in (extra or {}).items():
         hdrs.append(f"{k}: {v}")
     return ("\r\n".join(hdrs) + "\r\n\r\n").encode("latin1") + payload
 
 
 def jsonrpc_result(req_id, result) -> bytes:
-    return http_response(200, "OK", json.dumps(
-        {"jsonrpc": "2.0", "id": req_id, "result": result}).encode())
+    return http_response(
+        200,
+        "OK",
+        json.dumps({"jsonrpc": "2.0", "id": req_id, "result": result}).encode(),
+    )
 
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="CS MCP gateway skeleton (M2-core)")
-    ap.add_argument("--idle-exit-s", type=int, default=1800,
-                    help="self-exit when no clients and no activity for N s (default 1800)")
-    ap.add_argument("--routes", type=Path, default=ROUTES_OUT,
-                    help="routing table (generated/gateway-routes.json)")
+    ap.add_argument(
+        "--idle-exit-s",
+        type=int,
+        default=1800,
+        help="self-exit when no clients and no activity for N s (default 1800)",
+    )
+    ap.add_argument(
+        "--routes",
+        type=Path,
+        default=ROUTES_OUT,
+        help="routing table (generated/gateway-routes.json)",
+    )
     args = ap.parse_args(argv)
     routes = json.loads(args.routes.read_text(encoding="utf-8"))
     return asyncio.run(Gateway(routes, args.idle_exit_s).run())

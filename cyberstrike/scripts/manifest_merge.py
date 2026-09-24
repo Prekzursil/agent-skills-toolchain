@@ -20,6 +20,7 @@ Usage:
   python scripts/manifest_merge.py --status <id>   # death-check one session
 Exit codes: 0 ok; 1 = FAILED (no shards found / bad session id).
 """
+
 import argparse
 import json
 import sqlite3
@@ -68,6 +69,7 @@ def merge(stale_min: int):
         if last and last.get("ts"):
             try:
                 from datetime import datetime
+
                 age_min = (now - datetime.fromisoformat(last["ts"]).timestamp()) / 60
             except ValueError:
                 pass
@@ -85,9 +87,13 @@ def merge(stale_min: int):
         }
     FLAT.parent.mkdir(parents=True, exist_ok=True)
     tmp = FLAT.with_suffix(".ndjson.tmp")
-    tmp.write_text("".join(json.dumps(v, ensure_ascii=False) + "\n"
-                           for v in sorted(out.values(), key=lambda v: v["last_seen"] or "")),
-                   encoding="utf-8")
+    tmp.write_text(
+        "".join(
+            json.dumps(v, ensure_ascii=False) + "\n"
+            for v in sorted(out.values(), key=lambda v: v["last_seen"] or "")
+        ),
+        encoding="utf-8",
+    )
     tmp.replace(FLAT)
     return 0, out
 
@@ -100,7 +106,8 @@ def db_signal(session_id: str):
         con = sqlite3.connect(f"file:{DB}?mode=ro", uri=True, timeout=2)
         try:
             row = con.execute(
-                "SELECT updated_at FROM session WHERE id = ?", (session_id,)).fetchone()
+                "SELECT updated_at FROM session WHERE id = ?", (session_id,)
+            ).fetchone()
         finally:
             con.close()
         if row is None:
@@ -129,12 +136,19 @@ def main():
         # A present-but-old db row needs the caller to compare its timestamp (S2b
         # or human); a present db row alone is NOT a death signal — under-claim.
         dead = bool(row["s1_heartbeat_stale"] and s2a == "absent-from-db")
-        print(json.dumps({
-            **row, "s2a_db_signal": s2a,
-            "s2b_process_check": "operator/TUI-side (not computable here)",
-            "dead_two_signal": dead,
-            "verdict_note": "dead requires S1 AND (S2a or S2b); idle is a heartbeat, not a corpse",
-        }, indent=1, ensure_ascii=False))
+        print(
+            json.dumps(
+                {
+                    **row,
+                    "s2a_db_signal": s2a,
+                    "s2b_process_check": "operator/TUI-side (not computable here)",
+                    "dead_two_signal": dead,
+                    "verdict_note": "dead requires S1 AND (S2a or S2b); idle is a heartbeat, not a corpse",
+                },
+                indent=1,
+                ensure_ascii=False,
+            )
+        )
         return 0
     print(f"SUCCESS:manifest-merge sessions={len(merged)} -> {FLAT}")
     if args.json:

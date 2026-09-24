@@ -22,6 +22,7 @@ Once shards exist the test verifies, read-only:
   3. `manifest_merge.py --status <newest-id>` runs and reports
      dead_two_signal=false for a live session (two-signal death check wired).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,8 +32,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from battery_common import (  # noqa: E402
-    REPO, SCRIPTS, SUCCESS, FAILED, PENDING_OWNER,
-    VerdictRecorder, py_run, json_from_completed,
+    REPO,
+    SCRIPTS,
+    SUCCESS,
+    FAILED,
+    PENDING_OWNER,
+    VerdictRecorder,
+    py_run,
+    json_from_completed,
 )
 
 DATA = Path.home() / ".local" / "share" / "cyberstrike"
@@ -43,24 +50,25 @@ MERGE = SCRIPTS / "manifest_merge.py"
 
 def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     if not MERGE.is_file():
-        rec.record("T-6", FAILED, reason="manifest_merge.py missing",
-                   anchors=[MERGE])
+        rec.record("T-6", FAILED, reason="manifest_merge.py missing", anchors=[MERGE])
         return FAILED
 
-    if not (SHARD_DIR.exists() and any(SHARD_DIR.glob("*.ndjson"))
-            and FLAT.exists()):
-        rec.record("T-6", PENDING_OWNER,
-                   reason="NOT-RUNNABLE-needs-manifest",
-                   details={
-                       "shard_dir": str(SHARD_DIR),
-                       "flat": str(FLAT),
-                       "writer": "plugin/manifest-writer.ts (Phase-3 DRAFT, "
-                                 "wired by deploy-phase3.md step 3 after "
-                                 "owner GO - G-8=B)",
-                       "recheck": "re-run this test after the Phase-3 switch "
-                                  "and one session start",
-                   },
-                   anchors=[REPO / "plugin" / "manifest-writer.ts", MERGE])
+    if not (SHARD_DIR.exists() and any(SHARD_DIR.glob("*.ndjson")) and FLAT.exists()):
+        rec.record(
+            "T-6",
+            PENDING_OWNER,
+            reason="NOT-RUNNABLE-needs-manifest",
+            details={
+                "shard_dir": str(SHARD_DIR),
+                "flat": str(FLAT),
+                "writer": "plugin/manifest-writer.ts (Phase-3 DRAFT, "
+                "wired by deploy-phase3.md step 3 after "
+                "owner GO - G-8=B)",
+                "recheck": "re-run this test after the Phase-3 switch "
+                "and one session start",
+            },
+            anchors=[REPO / "plugin" / "manifest-writer.ts", MERGE],
+        )
         return PENDING_OWNER
 
     # --- manifest exists: verify id-resolution + append-only + merge --------
@@ -68,29 +76,42 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     for shard in sorted(SHARD_DIR.glob("*.ndjson")):
         last_ts = None
         for ln, line in enumerate(
-                shard.read_text(encoding="utf-8", errors="replace").splitlines(),
-                start=1):
+            shard.read_text(encoding="utf-8", errors="replace").splitlines(), start=1
+        ):
             line = line.strip()
             if not line:
                 continue
             try:
                 row = json.loads(line)
             except json.JSONDecodeError:
-                shape_errors.append({"shard": shard.name, "line": ln,
-                                     "issue": "unparseable (rewritten?)"})
+                shape_errors.append(
+                    {
+                        "shard": shard.name,
+                        "line": ln,
+                        "issue": "unparseable (rewritten?)",
+                    }
+                )
                 continue
             if row.get("sessionID") != shard.stem:
-                shape_errors.append({"shard": shard.name, "line": ln,
-                                     "issue": "id mismatch inside shard"})
+                shape_errors.append(
+                    {
+                        "shard": shard.name,
+                        "line": ln,
+                        "issue": "id mismatch inside shard",
+                    }
+                )
             ts = row.get("ts")
             if last_ts and ts and ts < last_ts:
-                shape_errors.append({"shard": shard.name, "line": ln,
-                                     "issue": "ts went backwards "
-                                             "(rewritten shard?)"})
+                shape_errors.append(
+                    {
+                        "shard": shard.name,
+                        "line": ln,
+                        "issue": "ts went backwards (rewritten shard?)",
+                    }
+                )
             last_ts = ts
         shard_ids.add(shard.stem)
-        rec.hit("T-6", "shard", shard=shard.name,
-                bytes=shard.stat().st_size)
+        rec.hit("T-6", "shard", shard=shard.name, bytes=shard.stat().st_size)
 
     flat_ids = set()
     for line in FLAT.read_text(encoding="utf-8", errors="replace").splitlines():
@@ -112,19 +133,21 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     for e in shape_errors:
         rec.hit("T-6", "shape_error", **e)
 
-    ok = (not shape_errors and not unmerged and r.returncode == 0)
-    rec.record("T-6", SUCCESS if ok else FAILED,
-               details={
-                   "shard_count": len(shard_ids),
-                   "flat_row_count": len(flat_ids),
-                   "unmerged_ids": unmerged,
-                   "shape_errors": shape_errors[:20],
-                   "merge_rc": r.returncode,
-                   "merge_summary": (merge_parsed or {}).get("summary",
-                                                            merge_parsed),
-               },
-               anchors=[FLAT, MERGE],
-               reason=None if ok else "manifest shape/id-resolution defect")
+    ok = not shape_errors and not unmerged and r.returncode == 0
+    rec.record(
+        "T-6",
+        SUCCESS if ok else FAILED,
+        details={
+            "shard_count": len(shard_ids),
+            "flat_row_count": len(flat_ids),
+            "unmerged_ids": unmerged,
+            "shape_errors": shape_errors[:20],
+            "merge_rc": r.returncode,
+            "merge_summary": (merge_parsed or {}).get("summary", merge_parsed),
+        },
+        anchors=[FLAT, MERGE],
+        reason=None if ok else "manifest shape/id-resolution defect",
+    )
     return SUCCESS if ok else FAILED
 
 

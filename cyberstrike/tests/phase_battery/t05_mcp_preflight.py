@@ -20,6 +20,7 @@ What this test gates (deterministic, localhost-only):
      servers being down is a preflight RESULT, the test failing means the
      preflight could not produce one.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -31,13 +32,17 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from battery_common import (  # noqa: E402
-    REPO, SUCCESS, FAILED, VerdictRecorder, read_text,
+    REPO,
+    SUCCESS,
+    FAILED,
+    VerdictRecorder,
+    read_text,
 )
 
 BAND = (31100, 31140)
-ALLOWED_EXCEPTIONS = {9876, 18765}   # 18765 = basic-memory (wired 2026-09-22)
-CONTROL_PORT = 31198          # must be closed - proves the probe can fire
-EXPECTED_SERVER_COUNT = 35    # CONTEXT.new.md truth row
+ALLOWED_EXCEPTIONS = {9876, 18765}  # 18765 = basic-memory (wired 2026-09-22)
+CONTROL_PORT = 31198  # must be closed - proves the probe can fire
+EXPECTED_SERVER_COUNT = 35  # CONTEXT.new.md truth row
 
 
 def tcp_alive(port: int, host: str = "127.0.0.1", timeout: float = 0.25) -> bool:
@@ -56,8 +61,12 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     try:
         cfg = json.loads(read_text(REPO / "cyberstrike.json"))
     except Exception as e:
-        rec.record("T-5", FAILED, reason=f"cyberstrike.json unparseable: {e}",
-                   anchors=[REPO / "cyberstrike.json"])
+        rec.record(
+            "T-5",
+            FAILED,
+            reason=f"cyberstrike.json unparseable: {e}",
+            anchors=[REPO / "cyberstrike.json"],
+        )
         return FAILED
 
     mcp = cfg.get("mcp", {})
@@ -70,11 +79,15 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
         in_band = BAND[0] <= port <= BAND[1] or port in ALLOWED_EXCEPTIONS
         loopback = host in ("127.0.0.1", "localhost", "::1")
         if not (ent.get("type") == "remote" and loopback and in_band):
-            findings.append({"server": name, "issue": "outside-band-or-nonlocal",
-                             "url": f"{p.scheme}://{host}:{port}"})
+            findings.append(
+                {
+                    "server": name,
+                    "issue": "outside-band-or-nonlocal",
+                    "url": f"{p.scheme}://{host}:{port}",
+                }
+            )
         alive = tcp_alive(port) if loopback else False
-        rec.hit("T-5", "probe", server=name, port=port, alive=alive,
-                in_band=in_band)
+        rec.hit("T-5", "probe", server=name, port=port, alive=alive, in_band=in_band)
         if not alive:
             findings.append({"server": name, "issue": "dead-at-t0", "port": port})
 
@@ -82,36 +95,51 @@ def run(rec: VerdictRecorder, opts: dict | None = None) -> str:
     bolt = cfg.get("bolt", {}).get("bolt-lab", {})
     if bolt.get("url"):
         bp = urlparse(bolt["url"]).port or 80
-        rec.hit("T-5", "probe", server="bolt-lab(bolt-section)", port=bp,
-                alive=tcp_alive(bp), in_band=False,
-                note="bolt: section, informational")
+        rec.hit(
+            "T-5",
+            "probe",
+            server="bolt-lab(bolt-section)",
+            port=bp,
+            alive=tcp_alive(bp),
+            in_band=False,
+            note="bolt: section, informational",
+        )
 
     control_fired = not tcp_alive(CONTROL_PORT)
     count_ok = len(mcp) == EXPECTED_SERVER_COUNT
-    rec.hit("T-5", "detector_control", port=CONTROL_PORT,
-            expected="closed", observed="closed" if control_fired else "OPEN",
-            fires=control_fired)
+    rec.hit(
+        "T-5",
+        "detector_control",
+        port=CONTROL_PORT,
+        expected="closed",
+        observed="closed" if control_fired else "OPEN",
+        fires=control_fired,
+    )
     if not count_ok:
-        rec.hit("T-5", "count_mismatch", configured=len(mcp),
-                expected=EXPECTED_SERVER_COUNT)
+        rec.hit(
+            "T-5", "count_mismatch", configured=len(mcp), expected=EXPECTED_SERVER_COUNT
+        )
 
     # Scope note: config-shape findings FAIL the gate; dead servers are hits.
     shape_failures = [f for f in findings if f["issue"] != "dead-at-t0"]
     gate_ok = control_fired and count_ok and not shape_failures
-    rec.record("T-5", SUCCESS if gate_ok else FAILED,
-               details={
-                   "servers_configured": len(mcp),
-                   "dead_at_t0": [f["server"] for f in findings
-                                  if f["issue"] == "dead-at-t0"],
-                   "shape_failures": shape_failures,
-                   "detector_control_port": CONTROL_PORT,
-                   "note": "dead-at-t0 is a preflight finding (hit-log), not "
-                           "a gate failure; gate = detector fires + config "
-                           "shape + truth-row count",
-               },
-               anchors=[REPO / "cyberstrike.json", REPO / "CONTEXT.new.md"],
-               reason=None if gate_ok else "preflight could not produce a "
-                                           "trustworthy dead-list")
+    rec.record(
+        "T-5",
+        SUCCESS if gate_ok else FAILED,
+        details={
+            "servers_configured": len(mcp),
+            "dead_at_t0": [f["server"] for f in findings if f["issue"] == "dead-at-t0"],
+            "shape_failures": shape_failures,
+            "detector_control_port": CONTROL_PORT,
+            "note": "dead-at-t0 is a preflight finding (hit-log), not "
+            "a gate failure; gate = detector fires + config "
+            "shape + truth-row count",
+        },
+        anchors=[REPO / "cyberstrike.json", REPO / "CONTEXT.new.md"],
+        reason=None
+        if gate_ok
+        else "preflight could not produce a trustworthy dead-list",
+    )
     return SUCCESS if gate_ok else FAILED
 
 
