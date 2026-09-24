@@ -72,7 +72,7 @@ def write_result(results_dir: Path, tool: str, data: dict) -> Path:
     results_dir.mkdir(parents=True, exist_ok=True)
     base = results_dir / f"E5-{tool}-{platform.system().lower()}-{utc_stamp()}.json"
     out = base
-    suffix_letter = ord('a')
+    suffix_letter = ord("a")
     while out.exists():  # never overwrite
         out = base.with_stem(base.stem + "-" + chr(suffix_letter))
         suffix_letter += 1
@@ -137,8 +137,16 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         )
         rc, out, err = proc.returncode, proc.stdout, proc.stderr
     except subprocess.TimeoutExpired as e:
-        stdout_str = (e.stdout or b"").decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
-        stderr_str = (e.stderr or b"").decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
+        stdout_str = (
+            (e.stdout or b"").decode("utf-8", errors="replace")
+            if isinstance(e.stdout, bytes)
+            else (e.stdout or "")
+        )
+        stderr_str = (
+            (e.stderr or b"").decode("utf-8", errors="replace")
+            if isinstance(e.stderr, bytes)
+            else (e.stderr or "")
+        )
         rc, out, err = (
             -1,
             stdout_str,
@@ -287,8 +295,16 @@ def live_dry_run(
             )
             rc, err, out = proc.returncode, proc.stderr, proc.stdout
         except subprocess.TimeoutExpired as e:
-            stdout_str = (e.stdout or b"").decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
-            stderr_str = (e.stderr or b"").decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
+            stdout_str = (
+                (e.stdout or b"").decode("utf-8", errors="replace")
+                if isinstance(e.stdout, bytes)
+                else (e.stdout or "")
+            )
+            stderr_str = (
+                (e.stderr or b"").decode("utf-8", errors="replace")
+                if isinstance(e.stderr, bytes)
+                else (e.stderr or "")
+            )
             rc, err, out = -1, "TIMEOUT " + stderr_str, stdout_str
         rows.append(
             {
