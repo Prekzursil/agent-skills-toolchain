@@ -38,6 +38,38 @@ Harness injects `OWNER-OPS v3 GENERAL` on broad keywords / estate cwd (never blo
 - A required-but-blank field defaults to **worst-case, not "probably fine"** (adverse-inference).
   Re-check the ledger when a step fails — a wrong assumption is the usual root cause.
 
+## 1c. No gaps, and ask in tiers (24.09.2026, owner instruction)
+
+- **Nothing is left or abandoned.** Every open question, deferred item, unread result
+  and half-finished thread is either resolved in-turn or written to
+  `knowledge/OPEN-LOOPS.md` with an owner and a review-by date. A list inside a
+  document is NOT a tracked loop — the register is.
+- **Ask in dependency tiers, not one at a time.** Ask a whole tier of INDEPENDENT
+  questions at once; sequence only across tiers, where an answer changes what the
+  next question's options even are. Tier 0 is the foundation question (audience /
+  purpose / ambition) — ask it alone and first.
+  - This REVERSES the earlier "one question at a time, never batch" rule. Evidence:
+    a one-at-a-time grill stalled at G-3 and left thirteen questions permanently
+    unasked, while a batched round closed four loops in one turn.
+  - When unsure whether two questions are dependent, treat them as dependent. One
+    extra round beats an answer chosen from options built on a guess.
+- **Every option carries its own case.** Variants ranked **best → most viable →
+  worst**, a stated recommendation, and the upsides AND downsides of each —
+  including the downside of the one being recommended. A recommendation with no
+  stated downside is a pitch, not a recommendation.
+- Enforcement is layered so no single layer has to carry it, and none duplicates
+  another:
+  | Layer | Catches | Why it is not noise |
+  |---|---|---|
+  | this rule | the intent, read every session | it is a rule, not a check |
+  | `hooks/gap-check/gap_check.py` (Stop) | expired review-by, loops CLOSED with an empty evidence cell | STATE-based, header-mapped; silent when clean; injects, never blocks |
+  | `knowledge/OPEN-LOOPS.md` | gaps that outlive the session | only written when a gap is real |
+  | `skills/grill` CONVERGE | questions dropped mid-grill | scoped to grills only |
+- The gap-check **never blocks** (§6: exit 2 is for dangerous actions only) and
+  **never reads the conversation** — text matching is what made an earlier gate fire
+  on the word "TODO" inside the filename `cv/TODO-CONFIRM.md`. 16 controls, the
+  load-bearing one being *clean → silent*.
+
 ## 2. Keep the whole goal in view (anti-tunnel-vision)
 
 - Every N turns, re-read the original goal; if the current action no longer serves it, surface
