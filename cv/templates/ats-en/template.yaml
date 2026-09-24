@@ -1,0 +1,201 @@
+# =====================================================================================
+# templates/ats-en/template.yaml — the ENGLISH ATS RESUME.
+#
+# Audience: English-language applicant-tracking systems and the recruiter keyword
+# search that sits on top of them. Engineering identity leads (decision G-2: the
+# academic documents lead with the researcher; this one does not).
+#
+# THIS FILE HOLDS NO FACTS. Every sentence the PDF prints comes from
+# ../../profile.yaml. What lives here is the render contract, the document-level
+# transforms, and what the finished PDF must satisfy.
+#
+# Build:  ../../.venv/Scripts/python ../render_template.py --template ats-en
+# =====================================================================================
+id: ats-en
+extends_view: ats-en          # the editorial view in profile.yaml to reconcile against
+audience: >-
+  English-language applicant-tracking systems and recruiter keyword search.
+  Single column, real text, A4, no photo, no personal data.
+
+# -------------------------------------------------------------------------------------
+# RENDER CONTRACT — build.py render vocabulary (see tools/build.py VIEW_DEFAULTS).
+# -------------------------------------------------------------------------------------
+render:
+  renderer: rendercv
+  theme: engineeringresumes        # colourless, icon-less, single column
+  locale: en
+  page: A4
+  parsed: true                     # -> strips photo/DOB/nationality/address (x_privacy)
+  page_budget: [1, 2]              # two pages, and page 1 must stand alone (check D6)
+  todo_policy: annotate            # an unresolved gap stays VISIBLE; see D9 / DRAFT
+  slug: Andrei-Mihai_Visalon_ATS_EN
+  include_ubb: false               # decision pending -> Babes-Bolyai is excluded
+  headline: >-
+    Software engineer — Python, FastAPI, Angular, C++; ML evaluation and agent
+    infrastructure.
+
+  # Section ORDER is the document's argument: what a recruiter reads first.
+  sections: [summary, experience, projects, skills, education, languages, awards]
+  section_titles:
+    summary: Summary
+    experience: Experience
+    projects: Projects
+    skills: Skills
+    education: Education
+    languages: Languages
+    awards: Honors                 # "Honors", not "Honors & Awards" (G-3)
+
+  select:
+    projects:
+      # Two entries in profile.yaml are TODO-CONFIRM stubs with no verified
+      # description. Printing "TODO-CONFIRM — no verified description" under a
+      # project NAME on an employer-facing resume advertises a gap without
+      # describing anything. They are excluded here and stay in profile.yaml and
+      # TODO-CONFIRM.md until the owner writes a description.
+      exclude: [tracelines, llm-anthology]
+
+  order:
+    # Declared explicitly so this document's reading order is stable even if the
+    # order inside profile.yaml changes.
+    projects:
+      - Reframe
+      - Agent platform (personal monorepo)
+      - ZHMModSDK
+      - GRACE @ IberLEF 2026 (Track 1)
+      - Personal-Finance-Management
+
+  # ---- ATS hardening ----------------------------------------------------------------
+  # Single column, no sidebar, no table, no icon glyph, no image. A hyphen bullet
+  # instead of U+25CF because a symbol glyph is one more thing a parser can drop
+  # or turn into mojibake. Left alignment, never justified: Typst hyphenates
+  # justified text, and a soft hyphen inside a keyword breaks exact ATS matching.
+  design:
+    theme: engineeringresumes
+    page:
+      size: a4
+      top_margin: 1.5cm
+      bottom_margin: 1.5cm
+      left_margin: 1.6cm
+      right_margin: 1.6cm
+      show_footer: false
+      show_top_note: false
+    typography:
+      alignment: left
+      font_family: XCharter        # verified: renders the full Romanian comma-below set
+      font_size:
+        body: 10pt
+        name: 22pt
+        headline: 10pt
+        connections: 10pt
+        section_titles: 1.15em
+      small_caps:
+        section_titles: false
+        name: false
+      bold:
+        section_titles: true
+    header:
+      alignment: center
+      connections:
+        show_icons: false                      # no icon font -> no private-use glyphs
+        separator: "|"
+        display_urls_instead_of_usernames: true
+        phone_number_format: international
+    links:
+      underline: false
+      show_external_link_icon: false
+    section_titles:
+      type: with_full_line
+      space_above: 0.4cm
+      space_below: 0.22cm
+    sections:
+      space_between_regular_entries: 0.32cm
+      space_between_text_based_entries: 0.14cm
+    entries:
+      highlights:
+        bullet: "-"
+        space_between_items: 0.08cm
+
+# -------------------------------------------------------------------------------------
+# DOCUMENT-LEVEL TRANSFORMS — edits that belong to this document, not to the facts.
+# -------------------------------------------------------------------------------------
+transform:
+  on_drift: warn
+  strip_networks:
+    - network: ORCID
+      reason: >-
+        profile.yaml basics.profiles[ORCID].x_state_warning: the record currently
+        has ZERO registered works and a WRONG education entry (it credits the
+        bachelor's to the University of Bucharest; the BSc is Titu Maiorescu).
+        A reviewer who clicks it today sees an empty, factually wrong record, so
+        it is not printed on any document until both are fixed
+        (TODO-CONFIRM.md item 2). Nothing is deleted from profile.yaml.
+
+# -------------------------------------------------------------------------------------
+# DOCUMENT-LEVEL PATCHES to the emitted RenderCV intermediate. A patch may only
+# restate what the entry already says or REMOVE precision the profile never had;
+# render_template.py refuses one that introduces a figure (see patch_intermediate).
+# -------------------------------------------------------------------------------------
+intermediate:
+  entries:
+    - section: Education
+      match:
+        institution: Titu Maiorescu University
+      set:
+        date: "2022 - 2025"
+      unset: [start_date, end_date]
+      reason: >-
+        profile.yaml records only the YEARS 2022 and 2025 for the BSc. RenderCV
+        expands a bare year into a month and prints "Jan 2022 - Jan 2025",
+        asserting a start and an end month that nobody verified. The years are
+        printed exactly as the profile knows them.
+
+# -------------------------------------------------------------------------------------
+# WHAT THE FINISHED PDF MUST SATISFY — templates/docgate.py.
+# -------------------------------------------------------------------------------------
+checks:
+  required_sections:
+    - Summary
+    - Experience
+    - Projects
+    - Skills
+    - Education
+    - Languages
+    - Honors
+
+  # D6 — page 1 stands alone: a recruiter who reads only the first page still gets
+  # the identity, a way to make contact, the positioning line and the paid work.
+  page1_must_contain:
+    - Andrei-Mihai Visalon
+    - andrei-mihai.visalon@s.unibuc.ro
+    - Bucharest
+    - Summary
+    - Experience
+    - momentstudio.ro
+    - DINUPLAST SRL
+    - Projects
+    - Reframe
+
+  trace_threshold: 0.70      # D4a: share of a bullet's content words found in the profile
+  master_threshold: 0.55     # D4b: share found in the x_master evidence bank
+
+  bullets_exempt:
+    # Generated by build.py from an untypeable date range, not authored content.
+    - "Dates:"
+
+  # D3 — the ONLY digits allowed to render without an x_metrics entry. Each one is
+  # an identifier printed in the header, not a claim about achievement.
+  numbers_allow:
+    - text: "40"
+      reason: country code of the owner's phone number, printed in the header
+    - text: "0740"
+      reason: national prefix + first group of the owner's phone number (header)
+    - text: "740"
+      reason: first group of the owner's phone number (header)
+    - text: "935"
+      reason: second group of the owner's phone number (header)
+    - text: "228"
+      reason: third group of the owner's phone number (header)
+    - text: "03141"
+      reason: digits inside the LinkedIn vanity URL printed in the header
+    - text: "170"
+      reason: digits inside the LinkedIn vanity URL printed in the header

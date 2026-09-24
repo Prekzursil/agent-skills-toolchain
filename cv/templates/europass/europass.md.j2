@@ -1,0 +1,175 @@
+{#- ---------------------------------------------------------------------------
+     europass.md.j2 — Europass-model rendering for EU applications, public-sector
+     competitions and universities that require the Europass layout.
+
+     THE POINT OF THIS FILE: Europass invites personal data. Photo, date of birth,
+     nationality, gender and address are fields the form offers, and an applicant
+     who fills them hands over protected characteristics that no reviewer needs to
+     assess the application. They are emitted here as EMPTY LABELS — present, so
+     nobody thinks the form was answered wrongly, and blank, so nothing is
+     disclosed. The kill-list gate enforces that: a label followed by a value is
+     an ERROR and the file is not written.
+---------------------------------------------------------------------------- -#}
+# Europass CV — {{ name }}
+Generated {{ today }} from profile.yaml. Page size A4. No photo.
+
+## Personal information
+
+Surname / First name
+: {{ name }}
+
+Address
+:
+
+Telephone
+: {{ phone }}
+
+E-mail
+: {{ email }}
+
+Nationality
+:
+
+Date of birth
+:
+
+Gender
+:
+
+> The four fields above are intentionally blank. Europass offers them; nothing in
+> an application requires them, and they carry protected characteristics. If a
+> specific public competition demands them by law, they go on THAT form, filled in
+> by hand — never in this file and never in a CV that can be forwarded onwards.
+
+{% if github or linkedin_url %}
+Professional links
+:{% if github %} {{ github }}{% endif %}{% if linkedin_url %} · {{ linkedin_url }}{% endif %}
+
+{% endif %}
+{% if orcid_blocked %}
+> ORCID is deliberately NOT listed. The record currently has zero registered works
+> and an education entry that credits the bachelor's degree to the wrong
+> university. Fix the record first; an empty, wrong ORCID is worse than none.
+{% endif %}
+
+## Desired employment / occupational field
+
+{{ headline_engineering }}
+
+## Work experience
+
+{% for w in work %}
+Dates
+: {% if w.startDate and 'TODO' not in (w.startDate|string|upper) %}{{ w.startDate }}{% else %}{% if todo_policy == 'annotate' %}[{{ TODO }}]{% endif %}{% endif %} – {% if w.endDate and 'TODO' not in (w.endDate|string|upper) %}{{ w.endDate }}{% else %}{% if todo_policy == 'annotate' %}[{{ TODO }}]{% endif %}{% endif %}
+
+Occupation or position held
+: {{ w.position }}
+
+Main activities and responsibilities
+:{% for h in w.highlights %} {{ h|squash }}{% endfor %}
+
+Name and address of employer
+: {{ w.name }}{% if w.location %}, {{ w.location }}{% endif %}
+
+Type of business or sector
+: Software development
+
+---
+
+{% endfor %}
+
+## Education and training
+
+{% for e in education %}
+{% if 'Babes-Bolyai' not in e.institution %}
+Dates
+: {{ e.startDate }} – {{ e.endDate }}
+
+Title of qualification awarded
+: {{ e.studyType }}{% if e.area %}, {{ e.area }}{% endif %}
+
+Name and type of organisation providing education
+: {{ e.institution }}{% if e.location %}, {{ e.location }}{% endif %}
+
+---
+
+{% endif %}
+{% endfor %}
+
+## Personal skills and competences
+
+### Mother tongue
+
+{% for lg in languages %}
+{% if lg.language == 'Romanian' %}
+{{ lg.language }}
+
+{% endif %}
+{% endfor %}
+
+### Other languages
+
+The Europass self-assessment grid has six cells per language (Listening, Reading,
+Spoken interaction, Spoken production, Writing, and the overall level). They are
+left blank below on purpose: the exact CEFR level is not confirmed, and a guessed
+C2 on a document that reaches a committee is a fabricated credential.
+
+| Language | Understanding | Speaking | Writing | Overall |
+|---|---|---|---|---|
+{% for lg in languages %}
+{% if lg.language != 'Romanian' %}
+| {{ lg.language }} | | | | {{ lg.fluency }} |
+{% endif %}
+{% endfor %}
+
+{% if todo_policy == 'annotate' %}
+[{{ TODO }}] Exact CEFR level for English (C1 or C2), and whether a certificate
+exists to cite. Until then the overall cell reads "Advanced" and the grid stays empty.
+{% endif %}
+
+### Technical skills and competences
+
+{% for sk in skills %}
+- **{{ sk.name }}** — {{ sk.keywords|join(', ') }}
+{% endfor %}
+
+### Digital competence
+
+Software engineering across desktop, web and research tooling; CI/CD and release
+engineering; machine-learning evaluation; agent and developer-tooling infrastructure.
+
+## Additional information
+
+### Research output
+
+{% for p in publications %}
+{% if p.x_type == 'preprint' %}
+- Preprint, {{ p.publisher }}{% if todo_policy == 'annotate' %} — [{{ TODO }}: exact title, DOI and posting date]{% endif %}. Status: preprint — it has not been through journal peer review.
+{% else %}
+- {{ p.name }}.
+{% endif %}
+{% endfor %}
+{% for d in data_software %}
+- Data and software: {{ d.description|squash }}{% if todo_policy == 'annotate' %} [{{ TODO }}: {{ d.repository }} DOI and public URL]{% endif %}
+{% endfor %}
+
+### Honours and awards
+
+{{ pbinfo }}
+
+### Selected projects
+
+{% for p in projects %}
+{% if p.highlights %}
+- **{{ p.name }}** — {% for h in p.highlights %}{{ h|squash }} {% endfor %}
+
+{% endif %}
+{% endfor %}
+
+## Annexes
+
+{% if todo_policy == 'annotate' %}
+[{{ TODO }}] Diploma copies, transcript, language certificate and the letter of
+agreement from a doctoral supervisor are the documents a public competition or a
+doctoral file normally annexes. None are attached to this emission.
+{% endif %}

@@ -1,0 +1,150 @@
+# =====================================================================================
+# academic.sections.yaml — the SECTION CONTRACT for the academic CV.
+#
+# This file is the template. emit.py reads it and builds a RenderCV document from
+# profile.yaml; nothing here invents content, every section names a block that must
+# already exist in profile.yaml. Edit this file to change the CV's shape; edit
+# profile.yaml to change its facts. Never the other way round.
+#
+# Per section:
+#   title      — the heading as printed (A4, running footer, unbounded length)
+#   source     — which profile.yaml block supplies the items
+#   entry      — RenderCV entry type: education | normal | publication | one_line | bullet
+#   filter     — optional item filter (see emit.py: _match)
+#   omit_if_empty — true: the section disappears rather than printing a hollow heading
+#   note       — why the section is shaped this way (read by a human, never rendered)
+#
+# The academic view carries NO summary block (a research CV argues from the record,
+# not from a self-description) and NO page cap.
+# =====================================================================================
+
+meta:
+  view: academic
+  page: A4
+  summary_block: false            # deliberate: no summary on the academic CV
+  page_budget: null               # unbounded — an academic CV is as long as the record
+  lead: RESEARCHER                # G-2
+  headline: >-
+    Researcher in NLP evaluation and reproducible machine-learning systems —
+    master's student, Faculty of Mathematics and Informatics, University of Bucharest
+  headline_provenance: INFERRED   # a positioning statement, not a claim of fact
+
+sections:
+
+  - title: Education
+    source: education
+    entry: education
+    omit_if_empty: false
+    filter:
+      # x_views[].include_ubb is false on every view until the owner rules on it
+      # (profile education[].x_listing_decision: PENDING). Delete this filter to
+      # list it; the "not completed, no degree awarded" wording is already in the
+      # data and is mandatory if it ever renders.
+      exclude_matching: ["babes-bolyai"]
+    note: >-
+      Education leads an academic CV. Babes-Bolyai is excluded by default
+      (x_views[].include_ubb=false); if the owner rules it in, the
+      "not completed, no degree awarded" wording is mandatory and already lives in
+      profile.yaml education[].studyType.
+
+  - title: Research experience
+    source: projects
+    entry: normal
+    filter:
+      include: ["GRACE @ IberLEF 2026 (Track 1)", "Agent platform (personal monorepo)"]
+    omit_if_empty: true
+    note: >-
+      Research experience, not "research engineering": for a doctoral reader the
+      benchmark design and the reliability instrumentation ARE the research record.
+      The GRACE metric sentence renders in full or not at all (x_style lock).
+
+  - title: Professional experience
+    source: work
+    entry: experience
+    omit_if_empty: true
+    optional: true                # controlled by emit.py --experience/--no-experience
+    note: >-
+      DEVIATION FROM THE BRIEF, declared: the brief's section list omits experience.
+      G-5 rules momentstudio.ro paid client work into EXPERIENCE, and an unbounded
+      academic CV pays no page cost to carry it. Turn it off with --no-experience if
+      the owner prefers the brief's list exactly. DINUPLAST renders with NO dates —
+      its end date is contradictory across the owner's two 2023 CVs and is a
+      TODO-CONFIRM, never a guess.
+
+  - title: Publications
+    source: publications
+    entry: publication
+    omit_if_empty: false
+    note: >-
+      Honest status labels are enforced, not decorative. The ChemRxiv item always
+      carries the word "preprint"; the second manuscript is "in preparation" and
+      never "submitted", "under review" or "forthcoming". There is NO peer-reviewed
+      publication and this section must never imply one.
+
+  - title: Presentations
+    source: x_presentations
+    entry: bullet
+    omit_if_empty: true
+    note: >-
+      No verified presentation exists today, so the section OMITS itself rather than
+      printing an empty heading. Add items under a top-level `x_presentations:` list
+      in profile.yaml (each `{bullet: "..."}`) and it appears automatically.
+
+  - title: Data and software
+    source: x_data_and_software
+    entry: normal
+    omit_if_empty: true
+    note: >-
+      The Zenodo deposit files HERE and never under Publications. Listing a data
+      deposit as a publication is exactly the inflation a doctoral committee looks
+      for (x_style lock, profile x_filing_rule).
+
+  - title: Selected software projects
+    source: projects
+    entry: normal
+    filter:
+      include: ["Reframe", "ZHMModSDK", "Personal-Finance-Management"]
+    omit_if_empty: true
+    note: >-
+      ZHMModSDK earns its own line: it is the ONLY genuine third-party open-source
+      credit on the profile and must never be folded into a generic bullet.
+      Personal-Finance-Management renders with its honest derivation wording (G-10)
+      and its URL stays gated until the three remediation items are done.
+      tracelines and llm-anthology are excluded everywhere: they are TODO-CONFIRM
+      with no verified description, and profile.yaml says they render on NO view.
+
+  - title: Skills
+    source: skills
+    entry: one_line
+    omit_if_empty: true
+
+  - title: Languages
+    source: languages
+    entry: one_line
+    omit_if_empty: true
+    note: >-
+      English renders as "Advanced" with NO CEFR code until the exact level is
+      confirmed. An unevidenced C2 on a document that reaches a doctoral committee
+      is a fabricated credential.
+
+  - title: Honors
+    source: awards
+    entry: bullet
+    omit_if_empty: true
+    note: >-
+      G-3: pbinfo belongs HERE, never in the headline. Its line must name pbinfo.ro
+      as Romania's national HIGH-SCHOOL competitive-programming judge, carry the full
+      numbers, and carry "as of September 2026" because the ranking can move.
+
+  - title: References
+    source: x_references
+    entry: normal
+    omit_if_empty: false
+    fallback_text: "Available on request."
+    note: >-
+      No referee is verified, so this prints the conventional single line. That line
+      is a statement of willingness, not a claim of fact, so it is not fabrication.
+      Add a top-level `x_references:` list in profile.yaml (each
+      `{name, position, institution, email}`) and named referees replace it.
+      A doctoral application normally wants named referees — this is a real gap,
+      tracked as a TODO-CONFIRM, not a solved problem.

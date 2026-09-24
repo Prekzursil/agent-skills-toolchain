@@ -1,0 +1,240 @@
+# =====================================================================================
+# ONE-PAGE RESEARCH PROFILE - template (cv-studio EXTENSION, not a replacement)
+#
+# Deliverable #1. Audience: a prospective doctoral supervisor at the University of
+# Bucharest Doctoral School of Informatics who has never heard of Andrei-Mihai Visalon.
+#
+# THIS IS NOT A CV AND MUST NEVER BE SENT AS ONE. One page. Researcher identity LEADS
+# (decision G-2). It answers four questions, in this order:
+#   1. What questions does he work on?
+#   2. What has he actually done?
+#   3. What can he bring to a group?
+#   4. What does he want to do next?
+# pbinfo is a small Honors line at the BOTTOM, named as a high-school judge (G-3).
+#
+# CONTRACT
+#   * Facts come from ../../profile.yaml. This file contributes NARRATIVE FRAMING only.
+#   * Every narrative line carries `trace:` - a key that must EXIST in profile.yaml's
+#     x_master. render.py FAILS CLOSED on a dangling trace. Nothing here may assert a
+#     fact profile.yaml does not hold.
+#   * The one exception is `trace: TODO-CONFIRM`, which means "profile.yaml holds NO
+#     source for this". Such a line MUST contain the literal string TODO-CONFIRM and
+#     MUST contain no digits. render.py enforces both.
+#   * The whole narrative is linted by tools/zerofab.py before anything renders.
+# =====================================================================================
+
+meta:
+  id: research-profile-onepage
+  title: One-page research profile
+  deliverable: 1
+  audience: >-
+    A prospective doctoral supervisor at the University of Bucharest Doctoral School of
+    Informatics, reading cold. Assume no prior knowledge of the candidate.
+  not_a_cv: >-
+    This document is a research profile. It is not a CV and must never be submitted as
+    one. The engineering resume (view ats-en) is the CV.
+  decisions: [G-1, G-2, G-3, G-6, G-18]
+
+# ---- View spec (build.py render vocabulary; merged over VIEW_DEFAULTS) ---------------
+view:
+  renderer: rendercv
+  theme: engineeringresumes      # most minimal / colourless
+  locale: en
+  page: A4
+  parsed: true                   # single column, no photo / DOB / address
+  page_budget: [1, 1]            # ONE page. A 2-page render is a FAILURE, not a warning.
+  todo_policy: annotate
+  headline: >-
+    NLP evaluation and reproducible research systems - master's student,
+    Faculty of Mathematics and Informatics, University of Bucharest
+  # Data-driven blocks this view renders. Narrative sections are interleaved by `layout`.
+  sections: [education, awards, languages]
+  section_titles:
+    education: Education
+    awards: Honors
+    languages: Languages
+  select:
+    education:
+      exclude_matching: ["babes-bolyai"]   # include_ubb: false - listing decision pending
+  # A one-page budget is a HARD constraint, so the density knobs are part of the
+  # template, not an afterthought. Measured on this box: with RenderCV 2.8 defaults
+  # (0.7in margins, 10pt body, 0.7cm header gaps) this content renders on 2 pages.
+  design:
+    page:
+      top_margin: "1.1cm"
+      bottom_margin: "1.1cm"
+      left_margin: "1.3cm"
+      right_margin: "1.3cm"
+      show_footer: false
+    header:
+      connections:
+        phone_number_format: international   # +40 ... - the reader may be abroad
+      space_below_name: "0.2cm"
+      space_below_headline: "0.25cm"
+      space_below_connections: "0.25cm"
+    section_titles:
+      space_above: "0.28cm"
+      space_below: "0.12cm"
+    typography:
+      alignment: justified-with-no-hyphenation
+      line_spacing: "0.5em"
+      font_size:
+        body: "9.4pt"
+        name: "19pt"
+        headline: "9.4pt"
+        connections: "8.8pt"
+
+# ---- Contact-surface suppression ----------------------------------------------------
+# profile.yaml's own basics.profiles[ORCID].x_state_warning says: do NOT link ORCID from
+# any document until the empty works list and the wrong bachelor's entry are fixed. A
+# supervisor WILL click it. Suppressed here until TODO-CONFIRM.md item 2 is closed.
+suppress_networks:
+  - network: ORCID
+    reason: >-
+      ORCID 0009-0001-8776-8498 currently has ZERO registered works and credits the
+      bachelor's to the wrong university. A reviewer who clicks it today sees an empty,
+      factually wrong record. Re-enable the moment both are fixed - an ORCID iD is
+      expected on a research profile and its absence is itself a small cost.
+    unblock: "TODO-CONFIRM.md item 2"
+
+# ---- Document layout: narrative sections interleaved with data blocks ---------------
+layout:
+  - narrative: questions
+  - narrative: work_to_date
+  - narrative: what_i_bring
+  - narrative: next
+  - block: education
+  - block: awards
+  - block: languages
+
+# =====================================================================================
+# NARRATIVE - every line traced.
+# =====================================================================================
+narrative:
+
+  questions:
+    title: Research questions
+    provenance: INFERRED      # a statement of interest, not a claim of fact
+    lines:
+      - text: >-
+          How much of a reported benchmark gain is a real effect and how much is selection?
+          I work on evaluation protocols that keep the two apart - several seeds per model,
+          a protocol fixed before the runs, and no model selection on the development set.
+        trace: "project:GRACE @ IberLEF 2026 (Track 1)"
+      - text: >-
+          What has to be published alongside a result before a stranger can reproduce it?
+          I treat the artefact - code, data, and a checksummed manifest over every file -
+          as part of the claim rather than an appendix to it.
+        trace: "data:Zenodo deposit"
+      - text: >-
+          How do you measure a system whose failures are silent? I instrument my own
+          research tooling for the gap between a run that started and a run that returned
+          something usable, and I report the gap rather than the headline.
+        trace: "project:Agent platform"
+
+  work_to_date:
+    title: What I have done
+    provenance: VERIFIED
+    lines:
+      - text: >-
+          GRACE at IberLEF 2026, Track 1. Built and released a 27-run controlled benchmark -
+          nine Spanish and multilingual clinical encoders across three seeds, executed as a
+          single parallel serverless-GPU sweep - plus a softmax-averaging ensemble, with the
+          full technical report public. The ensemble reached 0.743 dev strict macro-F1
+          against 0.705 for the best backbone averaged over three seeds (best individual run
+          0.737), chosen without dev-set model selection.
+        trace: "project:GRACE @ IberLEF 2026 (Track 1)"
+      - text: >-
+          Pharmacovigilance signal analysis on the FDA Adverse Event Reporting System,
+          examining phenibut. TODO-CONFIRM - this record holds no verified description of the
+          cohort definition, the de-duplication and drug-role rules, the disproportionality
+          measures reported, or whether this work is the subject of the preprint below or of
+          the manuscript in preparation. Supply it or delete this line before sending.
+        trace: TODO-CONFIRM
+      - text: >-
+          A preprint on ChemRxiv - a preprint, not a journal article - and a second manuscript
+          in preparation. TODO-CONFIRM - exact title, DOI and posting date.
+        trace: "publication:ChemRxiv preprint"
+      - text: >-
+          A Zenodo deposit archiving the research artefacts, carrying a SHA-256 manifest over
+          all 630 files so a third party can verify the archive byte for byte. Filed as data
+          and software, not as a publication. TODO-CONFIRM - the deposit DOI.
+        trace: "data:Zenodo deposit"
+
+  what_i_bring:
+    title: What I would bring to a group
+    provenance: VERIFIED
+    lines:
+      - text: >-
+          Research code that holds up. Reframe is a shipped cross-platform desktop application
+          - nine releases with signed installers - that enforces 100% line-and-branch coverage
+          as a blocking CI gate, with mutation testing deliberately left non-blocking so the
+          gate measures what it can measure reliably.
+        trace: "project:Reframe"
+      - text: >-
+          Infrastructure for running experiments at scale, built and operated single-handed:
+          18 MCP servers, a 72-module lifecycle hook set, roughly 140 authored skills within a
+          415-skill curated tree, and three name-preserving multiplexers collapsing about 500
+          tools behind three registrations - 1,016 commits, 351 pull requests and more than
+          32,500 CI runs between March and September 2026.
+        trace: "project:Agent platform"
+      - text: >-
+          Honest instrumentation of that infrastructure: across a representative five-day
+          window, 42 workflow runs launched 689 agents and 72% returned a usable result. The
+          shortfall is measured on purpose, and the measurement is reproducible in one command.
+        trace: "project:Agent platform"
+      - text: >-
+          The ability to work inside somebody else's codebase: a C++ contribution of 518 lines
+          across 7 files to ZHMModSDK, a third-party SDK with 282 stars, reviewed and merged
+          upstream by its maintainer.
+        trace: "project:ZHMModSDK"
+
+  next:
+    title: What I want to do next
+    provenance: INFERRED
+    lines:
+      - text: >-
+          Doctoral study at the Doctoral School of Informatics, University of Bucharest,
+          entering at the July 2027 concurs. I am looking for a supervisor now so that the
+          topic is agreed rather than assembled at the deadline.
+        trace: "project:GRACE @ IberLEF 2026 (Track 1)"
+      - text: >-
+          The direction I would like to develop: turn the evaluation protocol behind the GRACE
+          benchmark into a general method for separating a genuine modelling gain from a
+          selection effect in clinical and biomedical language processing, with every run, seed
+          and artefact released under a checksummed manifest so that the separation itself is
+          reproducible.
+        trace: "data:Zenodo deposit"
+      - text: >-
+          TODO-CONFIRM - the dissertation topic is to be agreed with a supervisor, not declared
+          to one. Two candidate directions, and how each aligns, are set out in the outreach
+          note that accompanies this profile.
+        trace: TODO-CONFIRM
+
+# ---- Wording locks enforced by render.py --------------------------------------------
+wording_locks:
+  require_present:
+    - "preprint"                     # every ChemRxiv mention carries it
+    - "SHA-256"                      # the manifest is the point of the deposit
+    - "0.743 dev strict macro-F1"    # the ONLY sanctioned GRACE wording, in full
+    - "0.705"
+    - "0.737"
+    - "without dev-set model selection"
+    - "high-school"                  # pbinfo must be named for what it is (G-3)
+    - "as of September 2026"         # the pbinfo ranking can move
+  require_absent:
+    - "peer-reviewed publication"
+    - "under review"
+    - "4th overall"
+    - "v1.4.2"
+    - "all gates green"
+    - "widely used"
+    - "1,590"
+    - "6,432"
+    - "8,000 passing"
+    - "400+ skills"
+    - "40+ MCP"
+    - "1000-agent"
+    - "1,582"
+    - "12,272"
+    - "26-repo"

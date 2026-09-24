@@ -1,0 +1,81 @@
+# =====================================================================================
+# academic.view.yaml — a DROP-IN replacement for the `academic` entry in
+# profile.yaml's `x_views` list, for people who render through tools/build.py
+# rather than through templates/emit.py.
+#
+# HOW TO APPLY: replace the `- id: academic` block in profile.yaml with the block
+# below, then:
+#     .venv/Scripts/python.exe tools/build.py --view academic
+#
+# This file is NOT applied automatically. profile.yaml is the data lane's file and
+# is not edited from here.
+#
+# -------------------------------------------------------------------------------------
+# WHAT THIS PATCH FIXES in the current `academic` view (all observed on this box,
+# 2026-09-24, by rendering it and reading the PDF):
+#
+#   1. The academic CV inherited the ENGINEERING headline from basics.label
+#      ("Software engineer and researcher — ..."). G-2 says the academic documents
+#      LEAD with the researcher identity. The view declared no `headline`, so it
+#      silently took the engineering one. Fixed below.
+#   2. The section title "Teaching and outreach (problem authoring on pbinfo)"
+#      matched no data block, so build.py warned and SKIPPED it — the CV printed
+#      no outreach section at all. There is no `x_teaching` block in profile.yaml
+#      to fill one, so the honest fix is to drop the heading rather than to keep a
+#      heading that silently prints nothing. The 88 authored problems still render,
+#      inside the pbinfo honors line where they are verified.
+#   3. No References section. An academic CV is expected to have one.
+#   4. tracelines and llm-anthology rendered as "TODO-CONFIRM — no verified
+#      description", contradicting profile.yaml's own instruction that they
+#      "render on NO view". Excluded below.
+#
+# -------------------------------------------------------------------------------------
+# WHAT build.py STILL CANNOT DO, honestly stated — this is why templates/emit.py
+# exists alongside it, not instead of it:
+#
+#   * TWO project sections. build.py's title_to_block maps every heading containing
+#     "project"/"software"/"research engineering" to the single `projects` block and
+#     MERGES a second one with a warning. So "Research experience" (GRACE, agent
+#     platform) and "Selected software projects" (Reframe, ZHMModSDK,
+#     Personal-Finance-Management) cannot be separate sections here. They can in
+#     emit.py, which filters per section.
+#   * A heading containing the word "experience" maps to the WORK block, so
+#     "Research experience" would print employers, not research.
+#   * A running footer with page numbers. build.py emits no design.templates.footer;
+#     templates/academic/academic.design.yaml does.
+#   * Honest per-item publication status labels ("— preprint", "— manuscript in
+#     preparation") rendered into the title. build.py prints the venue only.
+#
+# Both paths share profile.yaml, so the FACTS are identical either way.
+# =====================================================================================
+
+- id: academic
+  priority: 4
+  audience: Academic committees, scholarship panels, conference and grant applications.
+  lead: RESEARCHER                # G-2
+  headline: >-
+    Researcher in NLP evaluation and reproducible machine-learning systems —
+    master's student, Faculty of Mathematics and Informatics, University of Bucharest
+  section_order:
+    - Education
+    - Research output
+    - Data and software
+    - Research engineering
+    - Honors
+    - Skills
+    - Languages
+    - References
+  include_ubb: false
+  page_size: A4
+  photo: false
+  todo_policy: annotate           # switch to `omit` for a copy that goes to a reader
+  select:
+    projects:
+      exclude: ["tracelines", "llm-anthology"]
+  notes: >-
+    Longer than the research profile; no page cap. The 88 authored problems are
+    teaching-adjacent evidence and are carried inside the pbinfo honors line, which
+    is where they are verified — not under a "Teaching" heading that has no data
+    behind it. For the fuller academic CV (split research vs software sections,
+    running footer with page numbers, per-item publication status labels) render
+    with: .venv/Scripts/python.exe templates/emit.py --view academic

@@ -1,0 +1,127 @@
+{#- ---------------------------------------------------------------------------
+     europass.yaml.j2 — the same Europass emission as structured data, for import
+     into the Europass editor or into a public competition's own tooling.
+
+     Field names follow the Europass CV model. The personal-data fields are
+     PRESENT and EMPTY on purpose (see europass.md.j2 for why). An empty string is
+     used rather than omitting the key, so a downstream importer sees "answered,
+     blank" rather than "missing".
+---------------------------------------------------------------------------- -#}
+# Europass CV — structured emission
+# Generated {{ today }} from profile.yaml. Page size A4. No photo.
+europass_cv:
+  personal_information:
+    first_name: "Andrei-Mihai"
+    surname: "Visalon"
+    display_name: "{{ name }}"
+    address: ""                 # deliberately empty — city and country only, below
+    city: "{{ city }}"
+    country: "{{ country }}"
+    telephone: "{{ phone }}"
+    email: "{{ email }}"
+    nationality: ""             # deliberately empty
+    date_of_birth: ""           # deliberately empty
+    gender: ""                  # deliberately empty
+    photo: null                 # no photo on any view
+    websites:
+{% if github %}
+      - label: GitHub
+        url: "{{ github }}"
+{% endif %}
+{% if linkedin_url %}
+      - label: LinkedIn
+        url: "{{ linkedin_url }}"
+{% endif %}
+{% if orcid_blocked %}
+    orcid_omitted_reason: >-
+      ORCID {{ orcid }} exists but currently has zero registered works and an
+      education entry crediting the bachelor's degree to the wrong university.
+      It is omitted until the record is corrected.
+{% endif %}
+
+  desired_occupation: "{{ headline_engineering }}"
+
+  work_experience:
+{% for w in work %}
+    - position: "{{ w.position }}"
+      employer: "{{ w.name }}"
+      location: "{{ w.location }}"
+      sector: "Software development"
+      start_date: "{% if w.startDate and 'TODO' not in (w.startDate|string|upper) %}{{ w.startDate }}{% endif %}"
+      end_date: "{% if w.endDate and 'TODO' not in (w.endDate|string|upper) %}{{ w.endDate }}{% endif %}"
+      activities:
+{% for h in w.highlights %}
+        - "{{ h|squash }}"
+{% endfor %}
+{% if todo_policy == 'annotate' and w.x_todo %}
+      unresolved:
+{% for t in w.x_todo %}
+        - "{{ TODO }}: {{ t|squash }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+  education_and_training:
+{% for e in education %}
+{% if 'Babes-Bolyai' not in e.institution %}
+    - qualification: "{{ e.studyType }}"
+      field: "{{ e.area }}"
+      organisation: "{{ e.institution }}"
+      location: "{{ e.location }}"
+      start_date: "{{ e.startDate }}"
+      end_date: "{{ e.endDate }}"
+{% endif %}
+{% endfor %}
+
+  languages:
+    mother_tongue: "Romanian"
+    other_languages:
+{% for lg in languages %}
+{% if lg.language != 'Romanian' %}
+      - language: "{{ lg.language }}"
+        # The six CEFR cells stay empty until the exact level is confirmed.
+        listening: ""
+        reading: ""
+        spoken_interaction: ""
+        spoken_production: ""
+        writing: ""
+        overall: "{{ lg.fluency }}"
+{% endif %}
+{% endfor %}
+
+  skills:
+{% for sk in skills %}
+    - group: "{{ sk.name }}"
+      items: [{% for kw in sk.keywords %}"{{ kw }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% endfor %}
+
+  honours:
+    - "{{ pbinfo }}"
+
+  research_output:
+{% for p in publications %}
+    - title: "{% if 'TODO' in (p.name|string|upper) %}(title to confirm){% else %}{{ p.name }}{% endif %}"
+      venue: "{{ p.publisher }}"
+      status: "{% if p.x_type == 'preprint' %}preprint{% else %}manuscript in preparation{% endif %}"
+      peer_reviewed: false
+{% endfor %}
+
+  data_and_software:
+{% for d in data_software %}
+    - name: "{{ d.name }}"
+      repository: "{{ d.repository }}"
+      description: "{{ d.description|squash }}"
+      doi: ""
+      note: "Filed under data and software, never under publications."
+{% endfor %}
+
+  projects:
+{% for p in projects %}
+{% if p.highlights %}
+    - name: "{{ p.name }}"
+      highlights:
+{% for h in p.highlights %}
+        - "{{ h|squash }}"
+{% endfor %}
+{% endif %}
+{% endfor %}

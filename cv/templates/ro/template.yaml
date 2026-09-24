@@ -1,0 +1,446 @@
+# =====================================================================================
+# templates/ro/template.yaml — the ROMANIAN RENDERING of the ATS resume.
+#
+# Audience: eJobs, BestJobs, Hipo and Romanian public-sector competitions.
+# Same facts, same order, same figures as templates/ats-en — rendered in Romanian.
+#
+# THIS FILE HOLDS NO FACTS. `transform.translate` is a table of 1:1 restatements of
+# strings that already exist in ../../profile.yaml. render_template.py refuses any
+# pair whose DIGITS differ from its source, and refuses any pair that adds or drops
+# a TODO-CONFIRM marker, so a translation can never become a new claim.
+#
+# Two notation decisions, made deliberately and enforced by that digit check:
+#   * Figures keep the SOURCE notation — "1,016", "0.743" — not the Romanian
+#     "1.016" / "0,743". A Romanian thousands separator reads as a decimal point to
+#     every downstream parser (an ATS, tools/zerofab.py, a recruiter's spreadsheet),
+#     and the figure must stay identical to the verified one in x_metrics.
+#   * Proper nouns are NOT translated: company, project and platform names are
+#     identities. Institution names ARE, because a Romanian university has a
+#     Romanian name and that is the name a Romanian reader verifies.
+#
+# The NAME stays "Andrei-Mihai Visalon" — hyphenated, no diacritics — everywhere.
+# Romanian words use COMMA-BELOW diacritics (U+0219 ș / U+021B ț), never the
+# cedilla look-alikes (U+015F / U+0163); check D8 fails the document over it.
+#
+# Build:  ../../.venv/Scripts/python ../render_template.py --template ro
+# =====================================================================================
+id: ro
+extends_view: ro
+audience: >-
+  eJobs, BestJobs, Hipo and Romanian public-sector competitions. Romanian
+  rendering of the ATS resume: single column, real text, A4, no photo, no
+  personal data.
+
+render:
+  renderer: rendercv
+  theme: engineeringresumes
+  locale: ro                       # -> Romanian months, "prezent" (build.py LOCALE_PACKS)
+  page: A4
+  parsed: true
+  page_budget: [1, 2]              # the Romanian text is ~10% longer; it must still fit
+  todo_policy: annotate
+  slug: Andrei-Mihai_Visalon_CV_RO
+  include_ubb: false
+  headline: >-
+    Inginer software — Python, FastAPI, Angular, C++; evaluare ML și
+    infrastructură pentru agenți.
+
+  sections: [summary, experience, projects, skills, education, languages, awards]
+  section_titles:
+    summary: Profil
+    experience: Experiență
+    projects: Proiecte
+    skills: Competențe
+    education: Educație
+    languages: Limbi străine
+    awards: Distincții
+
+  select:
+    projects:
+      exclude: [tracelines, llm-anthology]
+  order:
+    projects:
+      - Reframe
+      - Agent platform (personal monorepo)
+      - ZHMModSDK
+      - GRACE @ IberLEF 2026 (Track 1)
+      - Personal-Finance-Management
+
+  design:
+    theme: engineeringresumes
+    page:
+      size: a4
+      top_margin: 1.5cm
+      bottom_margin: 1.5cm
+      left_margin: 1.6cm
+      right_margin: 1.6cm
+      show_footer: false
+      show_top_note: false
+    typography:
+      alignment: left
+      font_family: XCharter        # verified on this box: full Romanian comma-below set
+      font_size:
+        body: 10pt
+        name: 22pt
+        headline: 10pt
+        connections: 10pt
+        section_titles: 1.15em
+      small_caps:
+        section_titles: false
+        name: false
+      bold:
+        section_titles: true
+    header:
+      alignment: center
+      connections:
+        show_icons: false
+        separator: "|"
+        display_urls_instead_of_usernames: true
+        phone_number_format: international
+    links:
+      underline: false
+      show_external_link_icon: false
+    section_titles:
+      type: with_full_line
+      space_above: 0.4cm
+      space_below: 0.22cm
+    sections:
+      # Slightly tighter than the English document: Romanian runs ~10% longer and
+      # the page budget is the same two pages.
+      space_between_regular_entries: 0.28cm
+      space_between_text_based_entries: 0.12cm
+    entries:
+      highlights:
+        bullet: "-"
+        space_between_items: 0.06cm
+
+# -------------------------------------------------------------------------------------
+transform:
+  on_drift: warn                   # a source string that moved renders untranslated,
+                                   # loudly — never silently, and never invented
+  strip_networks:
+    - network: ORCID
+      reason: >-
+        profile.yaml basics.profiles[ORCID].x_state_warning: zero registered works
+        and a wrong education entry today. Not printed on any document until both
+        are fixed (TODO-CONFIRM.md item 2).
+
+  date_notes:
+    # build.py refuses to guess an untypeable date and writes an English
+    # "Dates: …" line instead. In a Romanian document that line is Romanian.
+    - block: work
+      key: "DINUPLAST SRL|Software developer (contract) — TODO-CONFIRM exact title"
+      drop_dates: true
+      note: "Perioada: 2021-05 – TODO-CONFIRM (datele exacte, de confirmat)"
+
+  translate:
+    # ---- basics -------------------------------------------------------------------
+    - from: Bucharest
+      to: București
+    - from: >-
+        Software engineer and master's student in Bucharest working on NLP
+        evaluation, agent infrastructure and reproducible research tooling. Ships
+        desktop and web software end to end, builds controlled benchmarks and
+        publishes the code and data behind them, and has contributed merged C++ to
+        a third-party SDK.
+      to: >-
+        Inginer software și student la master în București, cu activitate în
+        evaluare NLP, infrastructură pentru agenți și instrumente de cercetare
+        reproductibilă. Livrează integral aplicații desktop și web, construiește
+        benchmark-uri controlate și publică codul și datele din spatele lor, iar o
+        contribuție C++ i-a fost integrată într-un SDK terț.
+
+    # ---- experience ---------------------------------------------------------------
+    - from: Freelance software developer (client project)
+      to: Dezvoltator software independent (proiect pentru client)
+    - from: Bucharest, Romania (remote)
+      to: București, România (la distanță)
+    - from: >-
+        Built a bilingual (RO/EN) e-commerce storefront and its admin suite to
+        client requirements, on a FastAPI backend with an Angular front end; the
+        site is live.
+      to: >-
+        A construit un magazin online bilingv (RO/EN) și suita de administrare
+        aferentă, conform cerințelor clientului, pe un backend FastAPI cu interfață
+        Angular; site-ul este în producție.
+    - from: Software developer (contract) — TODO-CONFIRM exact title
+      to: Dezvoltator software (contract) — TODO-CONFIRM titlul exact
+    - from: Romania
+      to: România
+    - from: >-
+        Contracted software work for a Romanian plastics manufacturer, covering
+        site development and customisation of the company's ledger and management
+        software.
+      to: >-
+        Lucrări software contractate pentru un producător român de mase plastice,
+        acoperind dezvoltarea site-ului și personalizarea software-ului de gestiune
+        și evidență al companiei.
+
+    # ---- projects -----------------------------------------------------------------
+    - from: Cross-platform desktop application, shipped with signed installers.
+      to: Aplicație desktop multiplatformă, livrată cu instalatoare semnate.
+    - from: >-
+        Ships as a cross-platform desktop application with signed installers across
+        nine releases, the latest being v1.4.0.
+      to: >-
+        Se livrează ca aplicație desktop multiplatformă, cu instalatoare semnate,
+        de-a lungul a nouă versiuni publicate, cea mai recentă fiind v1.4.0.
+    - from: >-
+        Enforces 100% line-and-branch coverage as a BLOCKING CI gate, with mutation
+        testing kept deliberately non-blocking so the gate measures coverage, not
+        noise.
+      to: >-
+        Impune acoperire 100% pe linii și pe ramuri ca poartă CI BLOCANTĂ, testarea
+        prin mutații fiind păstrată deliberat neblocantă, astfel încât poarta să
+        măsoare acoperirea, nu zgomotul.
+    - from: >-
+        Self-built agent tooling platform: MCP servers, lifecycle hooks, a skill
+        tree and tool multiplexers, developed and operated as a single monorepo.
+      to: >-
+        Platformă proprie de instrumente pentru agenți: servere MCP, hook-uri de
+        ciclu de viață, un arbore de skill-uri și multiplexoare de unelte,
+        dezvoltată și operată ca un singur monorepo.
+    - from: >-
+        Wrote 18 MCP servers and a 72-module lifecycle hook set, and curates a
+        415-skill tree of which roughly 140 skills are self-authored.
+      to: >-
+        A scris 18 servere MCP și un set de hook-uri de ciclu de viață cu 72 de
+        module și întreține un arbore de 415 skill-uri, dintre care aproximativ 140
+        sunt scrise de el.
+    - from: >-
+        Operates three name-preserving multiplexers that collapse about 500 tools
+        behind three registrations, keeping the per-session tool budget workable.
+      to: >-
+        Operează trei multiplexoare care păstrează numele uneltelor și comprimă
+        aproximativ 500 de unelte în spatele a trei înregistrări, menținând
+        bugetul de unelte pe sesiune gestionabil.
+    - from: >-
+        Sustained 1,016 commits, 351 pull requests and more than 32,500 CI runs on
+        the monorepo between March and September 2026.
+      to: >-
+        A susținut 1,016 commit-uri, 351 de pull request-uri și peste 32,500 de
+        rulări CI pe monorepo, între martie și septembrie 2026.
+    - from: >-
+        Instruments the platform's own reliability: across a representative
+        five-day window, 42 workflow runs launched 689 agents, of which 72%
+        returned a usable result — a gap measured deliberately, because a launched
+        agent is not a finished one.
+      to: >-
+        Măsoară fiabilitatea propriei platforme: într-o fereastră reprezentativă de
+        cinci zile, 42 de rulări de workflow au lansat 689 de agenți, dintre care
+        72% au returnat un rezultat utilizabil — o diferență măsurată deliberat,
+        pentru că un agent lansat nu este unul finalizat.
+    - from: Third-party C++ SDK (282 stars); merged upstream contribution.
+      to: SDK C++ terț (282 de stele); contribuție integrată în upstream.
+    - from: >-
+        Contributed 518 lines across 7 files in C++ to ZHMModSDK, a 282-star SDK;
+        the change was reviewed and merged by the maintainer.
+      to: >-
+        A contribuit 518 linii în 7 fișiere de C++ la ZHMModSDK, un SDK cu 282 de
+        stele; modificarea a fost analizată și integrată de mentenator.
+    - from: >-
+        Controlled benchmark and ensemble for a shared task on Spanish/multilingual
+        clinical text, with a public technical report.
+      to: >-
+        Benchmark controlat și ansamblu pentru o sarcină comună pe text clinic
+        spaniol/multilingv, cu raport tehnic public.
+    - from: >-
+        Built and released a 27-run controlled benchmark — nine Spanish and
+        multilingual clinical encoders across three seeds, executed as one parallel
+        serverless-GPU sweep — plus a softmax-averaging ensemble, with the full
+        technical report public.
+      to: >-
+        A construit și publicat un benchmark controlat cu 27 de rulări — nouă
+        encodere clinice spaniole și multilingve, pe trei seed-uri, executate ca o
+        singură baleiere paralelă pe GPU serverless — plus un ansamblu prin mediere
+        softmax, cu raportul tehnic integral public.
+    - from: >-
+        The ensemble reached 0.743 dev strict macro-F1 against 0.705 for the best
+        backbone averaged over three seeds (best individual run 0.737), chosen
+        without dev-set model selection.
+      to: >-
+        Ansamblul a atins 0.743 macro-F1 strict pe dev, față de 0.705 pentru cel
+        mai bun model de bază mediat pe trei seed-uri (cea mai bună rulare
+        individuală 0.737), ales fără selecție de model pe setul dev.
+    - from: >-
+        Personal-finance application. Began from an uncredited third-party template
+        and diverged substantially; roughly 90% of the current code is original
+        work.
+      to: >-
+        Aplicație de finanțe personale. A pornit de la un șablon terț necreditat și
+        a divergat substanțial; aproximativ 90% din codul actual este muncă
+        originală.
+    - from: >-
+        Personal-finance application that began from an uncredited template and has
+        since diverged; the current implementation is substantially original work.
+      to: >-
+        Aplicație de finanțe personale care a pornit de la un șablon necreditat și
+        a divergat de atunci; implementarea actuală este în mare parte muncă
+        originală.
+
+    # ---- education ----------------------------------------------------------------
+    - from: University of Bucharest, Faculty of Mathematics and Informatics
+      to: Universitatea din București, Facultatea de Matematică și Informatică
+    - from: Informatics
+      to: Informatică
+    - from: Master's (in progress)
+      to: Master (în curs)
+    - from: Bucharest, Romania
+      to: București, România
+    - from: Titu Maiorescu University
+      to: Universitatea Titu Maiorescu
+    - from: Computer Science
+      to: Informatică
+    - from: BSc
+      to: Licență
+
+    # ---- skills -------------------------------------------------------------------
+    # Tool and technology names are NOT translated: an ATS and a Romanian recruiter
+    # both search for "FastAPI", "Python", "MCP". Only the group labels and the
+    # descriptive phrases are.
+    - from: Languages
+      to: Limbaje de programare
+    - from: Web and backend
+      to: Web și backend
+    - from: internationalisation (RO/EN)
+      to: internaționalizare (RO/EN)
+    - from: Machine learning and NLP
+      to: Învățare automată și NLP
+    - from: transformer encoder fine-tuning
+      to: fine-tuning de encodere transformer
+    - from: clinical and biomedical NLP
+      to: NLP clinic și biomedical
+    - from: multi-seed controlled benchmarking
+      to: benchmarking controlat pe mai multe seed-uri
+    - from: model ensembling
+      to: ansambluri de modele
+    - from: serverless GPU training sweeps
+      to: baleieri de antrenare pe GPU serverless
+    - from: Engineering practice
+      to: Practici de inginerie software
+    - from: test-driven development
+      to: dezvoltare ghidată de teste (TDD)
+    - from: branch-coverage CI gates
+      to: porți CI pe acoperire de ramuri
+    - from: mutation testing
+      to: testare prin mutații
+    - from: CI/CD pipelines
+      to: pipeline-uri CI/CD
+    - from: release engineering and code signing
+      to: release engineering și semnare de cod
+    - from: Agent and tooling infrastructure
+      to: Infrastructură pentru agenți și unelte
+    - from: Model Context Protocol (MCP) servers
+      to: servere Model Context Protocol (MCP)
+    - from: agent lifecycle hooks
+      to: hook-uri de ciclu de viață pentru agenți
+    - from: tool multiplexing
+      to: multiplexare de unelte
+    - from: multi-agent orchestration
+      to: orchestrare multi-agent
+    - from: reproducible research tooling
+      to: instrumente pentru cercetare reproductibilă
+    - from: Algorithms
+      to: Algoritmi
+    - from: algorithms and data structures
+      to: algoritmi și structuri de date
+    - from: competitive programming
+      to: programare competitivă
+    - from: problem authoring
+      to: autorat de probleme
+
+    # ---- honors -------------------------------------------------------------------
+    # pbinfo is named for what it is, with the full figures and the as-of date (G-3).
+    - from: >-
+        Ranked first all-time by problems solved at full score on pbinfo.ro,
+        Romania's national high-school competitive-programming judge — 4,244
+        problems solved of 14,228 submissions, against 4,191 for the second-placed
+        user (as of September 2026); author or co-author of 88 published problems
+        on the platform.
+      to: >-
+        Locul întâi all-time după numărul de probleme rezolvate cu punctaj maxim
+        pbinfo.ro, judecătorul național de programare competitivă pentru elevii de
+        liceu din România — 4,244 de probleme rezolvate din 14,228 de submisii,
+        față de 4,191 pentru utilizatorul de pe locul al doilea (la septembrie
+        2026); autor sau coautor a 88 de probleme publicate pe platformă.
+
+    # ---- languages ----------------------------------------------------------------
+    - from: Romanian
+      to: Română
+    - from: Native
+      to: Nativ
+    - from: English
+      to: Engleză
+    - from: Advanced — TODO-CONFIRM exact CEFR level (C1 or C2)
+      to: Avansat — TODO-CONFIRM nivelul CEFR exact (C1 sau C2)
+
+# -------------------------------------------------------------------------------------
+# DOCUMENT-LEVEL PATCHES to the emitted RenderCV intermediate.
+# -------------------------------------------------------------------------------------
+intermediate:
+  locale:
+    phrases:
+      # build.py's Romanian pack leaves RenderCV's English phrase in place, which
+      # prints "Licenta in Informatica" in a Romanian CV.
+      degree_with_area: "DEGREE, specializarea AREA"
+  entries:
+    - section: Educație
+      match:
+        institution: Universitatea Titu Maiorescu
+      set:
+        date: "2022 - 2025"
+      unset: [start_date, end_date]
+      reason: >-
+        profile.yaml records only the YEARS 2022 and 2025 for the bachelor's.
+        RenderCV expands a bare year into a month and prints "ian 2022 - ian
+        2025", asserting months nobody verified.
+
+# -------------------------------------------------------------------------------------
+checks:
+  required_sections:
+    - Profil
+    - Experiență
+    - Proiecte
+    - Competențe
+    - Educație
+    - Limbi străine
+    - Distincții
+
+  page1_must_contain:
+    - Andrei-Mihai Visalon
+    - andrei-mihai.visalon@s.unibuc.ro
+    - București
+    - Profil
+    - Experiență
+    - momentstudio.ro
+    - DINUPLAST SRL
+    - Proiecte
+    - Reframe
+
+  trace_threshold: 0.70
+  master_threshold: 0.55
+
+  bullets_exempt:
+    - "Perioada:"                  # the Romanian date note, generated by the template
+    - "Dates:"                     # the English fallback, if a date note is ever missed
+
+  # D10 — the Romanian text must not blow the layout: ~10% expansion is expected,
+  # and the cap is 20% of the English document's text length, at the same 2 pages.
+  reference_pdf: out/templates/ats-en/Andrei-Mihai_Visalon_ATS_EN.pdf
+  max_expansion: 1.20
+
+  numbers_allow:
+    - text: "40"
+      reason: country code of the owner's phone number, printed in the header
+    - text: "0740"
+      reason: national prefix + first group of the owner's phone number (header)
+    - text: "740"
+      reason: first group of the owner's phone number (header)
+    - text: "935"
+      reason: second group of the owner's phone number (header)
+    - text: "228"
+      reason: third group of the owner's phone number (header)
+    - text: "03141"
+      reason: digits inside the LinkedIn vanity URL printed in the header
+    - text: "170"
+      reason: digits inside the LinkedIn vanity URL printed in the header
