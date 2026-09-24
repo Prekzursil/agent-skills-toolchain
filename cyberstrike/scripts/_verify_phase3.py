@@ -46,9 +46,12 @@ for marker in ["ses_f9c9ab90", "FINAL-REPORT_2026-09-03", "Daybreak Red"]:
 nr_hyph = payload.count("NEVER-ROTATE")
 nr_semantic = payload.lower().count("never rotate") + nr_hyph
 verdict("T13.NEVER-ROTATE-canonical==1", nr_semantic == 1, f"hyphenated_token={nr_hyph}, 'never rotate'+hyph={nr_semantic} (A1 floor row is the single statement; new contract spells it 'NEVER rotate/modify/revoke')")
-surf_payload = payload.count("MQTT matrix"); surf_home = home_text.count("MQTT matrix")
+surf_payload = payload.count("MQTT matrix")
+surf_home = home_text.count("MQTT matrix")
 verdict("T13.research-surface-list-not-duplicated-in-payload", surf_payload == 0 and surf_home == 1, f"payload hits={surf_payload}, HOME hits={surf_home} (enumeration elevated to HOME exactly once)")
-o925_raw = payload.count("925"); o925_enum = payload.count("CreateUserApiKey") + payload.count("enterprises/AuthKit"); o925_home = home_text.count("org 925") + home_text.count("925")
+o925_raw = payload.count("925")
+o925_enum = payload.count("CreateUserApiKey") + payload.count("enterprises/AuthKit")
+o925_home = home_text.count("org 925") + home_text.count("925")
 verdict("T13.org925-enumeration-moved-to-HOME", o925_enum == 0, f"payload enum-signature hits={o925_enum}; raw '925' in payload={o925_raw} (1 = the S1 POINTER mention, by design in the pointer section); HOME mentions={o925_home}")
 
 # --- drift gates ---

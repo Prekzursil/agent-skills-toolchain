@@ -48,7 +48,8 @@ async def main() -> int:
                         ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
                         ("PagefileUsage", ctypes.c_size_t),
                         ("PeakPagefileUsage", ctypes.c_size_t)]
-        pmc = PMC(); pmc.cb = ctypes.sizeof(PMC)
+        pmc = PMC()
+        pmc.cb = ctypes.sizeof(PMC)
         ctypes.windll.psapi.GetProcessMemoryInfo(
             ctypes.windll.kernel32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb)
         rss_mb = round(pmc.WorkingSetSize / (1024 * 1024), 1)
