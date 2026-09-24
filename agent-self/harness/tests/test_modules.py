@@ -3281,7 +3281,9 @@ def test_sensitive_artifact_notice_never_demands_a_forbidden_action(iso, tmp_pat
     assert "no agent action clears this notice" in joined
 
 
-def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(iso, tmp_path):
+def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(
+    iso, tmp_path
+):
     # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
     missing = tmp_path / "does-not-exist.jsonl"
     result = SensitiveArtifactModule().run(

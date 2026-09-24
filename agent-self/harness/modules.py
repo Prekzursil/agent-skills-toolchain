@@ -1334,7 +1334,6 @@ class SensitiveArtifactModule:
         except OSError:
             pass
 
-
     @classmethod
     def _candidate(cls, event: HookEvent) -> tuple[str, str, bool] | None:
         if event.event == "Stop":
