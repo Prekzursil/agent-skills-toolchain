@@ -129,7 +129,7 @@ def find_stale(api, repo, token, max_age_hours, allow, now):
         if (until := allow.get(name)) and now.date() <= until:
             continue
         stamp = _get(f"{root}/git/commits/{tip}", token)[0]["committer"]["date"]
-        when = datetime.fromisoformat(stamp).astimezone(timezone.utc)  # 3.11 reads Z
+        when = datetime.fromisoformat(stamp.replace("Z", "+00:00")).astimezone(timezone.utc)
         if now - when <= timedelta(hours=max_age_hours):
             continue
         while annotated:  # peel lazily: only once some branch is otherwise stale

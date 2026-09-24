@@ -37,6 +37,7 @@ import argparse
 import json
 import os
 import platform
+import shlex
 import shutil
 import subprocess
 import sys
@@ -69,9 +70,12 @@ def utc_stamp():
 
 def write_result(results_dir: Path, tool: str, data: dict) -> Path:
     results_dir.mkdir(parents=True, exist_ok=True)
-    out = results_dir / f"E5-{tool}-{platform.system().lower()}-{utc_stamp()}.json"
-    if out.exists():  # never overwrite
-        out = out.with_name(out.stem + "-b" + out.suffix)
+    base = results_dir / f"E5-{tool}-{platform.system().lower()}-{utc_stamp()}.json"
+    out = base
+    suffix_letter = ord('a')
+    while out.exists():  # never overwrite
+        out = base.with_stem(base.stem + "-" + chr(suffix_letter))
+        suffix_letter += 1
     out.write_text(json.dumps(data, indent=2), encoding="utf-8")
     return out
 
@@ -85,7 +89,7 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
     """Register marker hooks in a throwaway project and run one real `claude -p` session."""
     marker_py = workdir / "hooksmoke_marker.py"
     marker_py.write_text(MARKER_SCRIPT, encoding="utf-8")
-    py = sys.executable
+    py = shlex.quote(sys.executable)
 
     # Same shape as the live estate: python "<absolute path>" <args>
     def cmd(event):
@@ -133,10 +137,12 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         )
         rc, out, err = proc.returncode, proc.stdout, proc.stderr
     except subprocess.TimeoutExpired as e:
+        stdout_str = (e.stdout or b"").decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+        stderr_str = (e.stderr or b"").decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
         rc, out, err = (
             -1,
-            (e.stdout or ""),
-            f"TIMEOUT after {timeout}s: " + (e.stderr or ""),
+            stdout_str,
+            f"TIMEOUT after {timeout}s: " + stderr_str,
         )
     except FileNotFoundError as e:
         rc, out, err = -2, "", f"claude CLI not found: {e}"
@@ -150,12 +156,15 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
                 for ln in f.read_text(encoding="utf-8").splitlines()
                 if ln.strip()
             ]
-            fired[ev] = {
-                "fired": True,
-                "count": len(lines),
-                "stdin_bytes": lines[0]["stdin_bytes"],
-                "stdin_head": lines[0]["stdin_head"][:200],
-            }
+            if lines:
+                fired[ev] = {
+                    "fired": True,
+                    "count": len(lines),
+                    "stdin_bytes": lines[0]["stdin_bytes"],
+                    "stdin_head": lines[0]["stdin_head"][:200],
+                }
+            else:
+                fired[ev] = {"fired": False, "reason": "marker file empty"}
         else:
             fired[ev] = {"fired": False}
     return {
@@ -278,7 +287,9 @@ def live_dry_run(
             )
             rc, err, out = proc.returncode, proc.stderr, proc.stdout
         except subprocess.TimeoutExpired as e:
-            rc, err, out = -1, "TIMEOUT " + (e.stderr or ""), (e.stdout or "")
+            stdout_str = (e.stdout or b"").decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+            stderr_str = (e.stderr or b"").decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
+            rc, err, out = -1, "TIMEOUT " + stderr_str, stdout_str
         rows.append(
             {
                 "event": event,
