@@ -44,7 +44,7 @@ function matchingLines(source, pattern) {
 }
 
 function runLint(...paths) {
-  return spawnSync(process.execPath, [LINTER, ...paths], { encoding: 'utf8' })
+  return spawnSync('node', [LINTER, ...paths], { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] })
 }
 
 // ---------------------------------------------------------------------------
