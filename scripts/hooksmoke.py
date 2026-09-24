@@ -38,7 +38,9 @@ The LIVE-DRY-RUN works for any tool's settings as long as the file has the Claud
 WARNING: --live is discovery-only by default (per AGENTS.md: helper scripts default to read-only discovery). It
 only checks that each command's interpreter resolves and each script path exists, running nothing. Add --execute
 to actually invoke each real hook once with a synthetic event; hooks that notify, write ledgers or touch memory
-will then do so. (--no-exec is the deprecated former name for the now-default discovery mode.)
+will then do so. (--no-exec is the deprecated former name for the now-default discovery mode.) Executed-hook
+stdout/stderr can contain secrets and the default results dir is the committed archive, so it is stored only as
+a length+hash; pass --capture-output (with a non-committed --results dir) to keep the raw head instead.
 
 Exit code: 0 if every registered marker fired and every live hook started and exited 0; non-zero otherwise
 (1 = a marker missed or a hook failed; 2 = the selected mechanism tool is unimplemented and --allow-skipped
@@ -47,6 +49,7 @@ Requires: Python 3.9+, the tool's CLI on PATH, valid credentials. One session co
 """
 
 import argparse
+import hashlib
 import json
 import os
 import platform
@@ -66,6 +69,19 @@ def _expand(p: str) -> str:
     so a discovery-mode existence check does not fail a valid `python ~/hooks/x.py` or
     `python $HOME/hooks/x.py` as missing."""
     return os.path.expanduser(os.path.expandvars(p))
+
+
+def _redact(text: str, capture: bool, limit: int) -> str:
+    """Executed hooks can emit credentials or other secrets on stdout/stderr, and the
+    default results dir (docs/results) is the committed archive. So by default the archive
+    stores only a length + hash of executed-hook output, never the bytes; --capture-output
+    opts into the raw head for interactive debugging against a non-committed --results dir."""
+    if capture:
+        return text[:limit]
+    if not text:
+        return ""
+    digest = hashlib.sha256(text.encode("utf-8", "replace")).hexdigest()[:12]
+    return f"<redacted {len(text)} bytes sha256:{digest}>"
 
 
 EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
@@ -415,7 +431,10 @@ def iter_hook_commands(settings: dict):
 
 
 def live_dry_run(
-    settings_path: Path, per_hook_timeout: int, execute: bool = True
+    settings_path: Path,
+    per_hook_timeout: int,
+    execute: bool = True,
+    capture_output: bool = False,
 ) -> dict:
     def _error(msg: str) -> dict:
         # A load/shape problem must be recorded as a failed live check, not raised: a
@@ -445,6 +464,27 @@ def live_dry_run(
         return _error(
             f"settings 'hooks' must be a JSON object, got {type(settings['hooks']).__name__}"
         )
+    # A malformed hook-group shape (e.g. {"hooks":{"Stop":{"hooks":[]}}}) is a broken live
+    # configuration, not a clean smoke check: report it as a failed live check rather than
+    # silently skipping it (which would write a 0/0 result and exit 0).
+    for event, groups in (settings.get("hooks") or {}).items():
+        if not isinstance(groups, list):
+            return _error(
+                f"settings hooks[{event!r}] must be a list of hook groups, got {type(groups).__name__}"
+            )
+        for g in groups:
+            if not isinstance(g, dict):
+                return _error(f"settings hooks[{event!r}] contains a non-object group")
+            hlist = g.get("hooks")
+            if hlist is not None and not isinstance(hlist, list):
+                return _error(
+                    f"settings hooks[{event!r}] group 'hooks' must be a list, got {type(hlist).__name__}"
+                )
+            for h in hlist or []:
+                if not isinstance(h, dict):
+                    return _error(
+                        f"settings hooks[{event!r}] contains a non-object hook entry"
+                    )
     rows = []
     cwd = str(Path.cwd())
     # One fresh session id per invocation, shared by this run's synthetic events. A fixed
@@ -533,8 +573,8 @@ def live_dry_run(
                 "script_paths_exist": path_ok,
                 "rc": rc,
                 "duration_s": round(time.time() - t0, 2),
-                "stdout_head": out[:200],
-                "stderr_head": err[:300],
+                "stdout_head": _redact(out, capture_output, 200),
+                "stderr_head": _redact(err, capture_output, 300),
             }
         )
     ok = [r for r in rows if r["rc"] == 0]
@@ -597,6 +637,14 @@ def main():
         "default so scheduled automation cannot bank a skipped tool as a passing E5 measurement.",
     )
     ap.add_argument(
+        "--capture-output",
+        action="store_true",
+        help="with --live --execute: store the raw head of each hook's stdout/stderr in the "
+        "result. Off by default because executed hooks can emit secrets and the default "
+        "results dir is the committed archive; without it, only a length+hash is stored. Use "
+        "only with a non-committed --results dir.",
+    )
+    ap.add_argument(
         "--no-exec",
         action="store_true",
         help="deprecated: dry-run (check interpreters and script paths, run nothing) is now "
@@ -642,7 +690,10 @@ def main():
 
     if args.live:
         report["live_dry_run"] = live_dry_run(
-            args.live, args.hook_timeout, execute=args.execute and not args.no_exec
+            args.live,
+            args.hook_timeout,
+            execute=args.execute and not args.no_exec,
+            capture_output=args.capture_output,
         )
         lv = report["live_dry_run"]
         if lv.get("error") or lv["hooks_failed"]:

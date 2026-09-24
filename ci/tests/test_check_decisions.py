@@ -199,6 +199,26 @@ def test_supersedes_cannot_be_self_referential(tmp_path: Path, run: Run) -> None
     )
 
 
+def test_accepted_successor_requires_superseded_predecessor(
+    tmp_path: Path, run: Run
+) -> None:
+    # An accepted record superseding a predecessor that is still 'accepted' leaves two
+    # active decisions; the predecessor must be flipped to 'superseded' first.
+    old = "docs/decisions/2026-09-01-old.md"
+    write(tmp_path, rec(VALID), Path(old).name)  # predecessor still accepted
+    write(tmp_path, rec(VALID + f"supersedes: {old}\n"))  # accepted successor
+    code, out = run()
+    assert code == 1
+    assert any(
+        f"supersedes '{old}': an accepted record's predecessor must have status "
+        "'superseded'" in line
+        for line in out
+    ), out
+    # Flipping the predecessor to superseded clears it.
+    write(tmp_path, rec(VALID.replace("accepted", "superseded")), Path(old).name)
+    assert run()[0] == 0
+
+
 def test_cli_exit_codes(tmp_path: Path) -> None:
     def cli(today: str) -> subprocess.CompletedProcess[str]:
         argv = [sys.executable, str(GATE), "--root", str(tmp_path), "--today", today]

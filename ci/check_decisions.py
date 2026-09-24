@@ -133,6 +133,19 @@ def check(path: Path, root: Path, today: dt.date) -> tuple[str, list[str]]:
             problems.append(f"supersedes {target!r}: a record cannot supersede itself")
         elif not candidate.is_file():
             problems.append(f"supersedes {target!r}: no such repo-relative file")
+        elif status == "accepted":
+            # An accepted replacement must leave no conflicting active predecessor: the
+            # record it supersedes must itself be marked 'superseded' (docs/decisions/
+            # README.md), else two active decisions coexist while the lineage reads valid.
+            pred_fields, _ = frontmatter(
+                candidate.read_text(encoding="utf-8-sig", errors="replace")
+            )
+            pred_status = pred_fields.get("status")
+            if pred_status != "superseded":
+                problems.append(
+                    f"supersedes {target!r}: an accepted record's predecessor must have "
+                    f"status 'superseded', got {pred_status or 'none'!r}"
+                )
     if dates.get("retested", today) > today:
         problems.append(f"retested is dated after today ({today})")
     review_by = dates.get("review_by", today)
