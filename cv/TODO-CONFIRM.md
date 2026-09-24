@@ -44,10 +44,7 @@ then tick it here).
   *Blocks:* the education block of every academic document.
   → `education[University of Bucharest]`
 
-- [~] **6. Bachelor's — PARTLY RESOLVED 2026-09-24 from the Adeverinta de Absolvire Nr. 10744/26.06.2025.** Graduation June 2025, media generala 8.28 (years 8.46/8.26/8.12), media licenta 7.30, 180 ECTS, Faculty of Informatics, programme Informatica, full-time. **STILL OPEN: thesis TITLE and SUPERVISOR** — the certificate does not name them.
-  *Blocks:* the academic CV, which is expected to list the thesis; a doctoral application
-  normally states the final grade.
-  → `education[Titu Maiorescu University]`
+- [x] **6. RESOLVED 2026-09-24 — fully, from the thesis PDF itself.** Graduation June 2025; media generala 8.28 (years 8.46/8.26/8.12); media licenta 7.30; 180 ECTS; Faculty of Informatics; programme Informatica; full-time. **Thesis: "Aplicatie de Management Financiar"**, supervisor **Conf. univ. dr. Marinela Nidelea**, session June/July 2025, 54pp, signed 2025-06-12. Repository: `github.com/Prekzursil/Personal-Finance-Management`. Filed at `~/Documents/personal-records/02-education/2025-licenta-titu-maiorescu/`.
 
 - [ ] **7. Babes-Bolyai (2021–2022, incomplete, no degree) — list it or not?**
   Currently `include_ubb: false` on **every** view pending this decision. If listed, the
@@ -112,7 +109,7 @@ then tick it here).
   assertion; linked, it is checkable in seconds.
   → `projects[ZHMModSDK]`
 
-- [ ] **15. Personal-Finance-Management — complete the three remediation items, then supply the
+- [~] **15. Personal-Finance-Management — REPO URL NOW KNOWN: `github.com/Prekzursil/Personal-Finance-Management`.** **And it is not a side project — it IS the licenta thesis**, supervised and defended. That is a stronger, verifiable claim; state it as the thesis. The three remediation items (package rename off com.preethi.thrifty, drop the 'all rights reserved' line, honest README) still gate publishing the link.  — complete the three remediation items, then supply the
   repo URL.**
   1. Rename package and classes off `com.preethi.thrifty`.
   2. Remove the "all rights reserved" line.
@@ -164,6 +161,18 @@ then tick it here).
 - [ ] **23. Other programming languages (C, Java, …) — confirm real use before listing.**
   Only Python, C++, TypeScript and SQL are currently listed, each traced to a specific project.
   → `skills[Languages].x_todo`
+
+- [ ] **24. AI#CONNECT programme — what did you actually do, and when?**
+  Pre-filled from `utm.ro/proiect-aiconnect`: official name *"Stagii de practica in Centrul
+  Academic de Inteligenta Artificiala in Cloud si la parteneri"* (AI#CONNECT), grant
+  **SMIS 312737**, call `PEO/71/PEO_P7/OP4/ESO4.5/PEO_A49`, Programul Educatie si Ocupare.
+  *Still needed:* what YOU built or did, dates/duration, whether a certificate or credited
+  `practica` was issued, and whether a partner company was involved.
+  *Placement:* "Programmes and placements", NOT the research section — the public page
+  describes socio-emotional skills training and vocational testing alongside the AI cloud
+  centre, so listing it as research would overstate it without the specifics above.
+  *Blocks:* nothing today. With the specifics it becomes a real bullet; without them the
+  honest version is one sentence naming the programme and grant code.
 
 ---
 
