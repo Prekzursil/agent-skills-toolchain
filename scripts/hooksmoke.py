@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """hooksmoke.py - experiment E5: do hooks actually fire, in a real session, on this platform, in this tool?
 
-Two independent measurements, both written to results/E5-<tool>-<platform>-<timestamp>.json (never overwritten):
+Two independent measurements, both written to docs/results/E5-<tool>-<platform>-<timestamp>.json (never overwritten):
 
   1. MECHANISM  (--tool claude)   Registers one marker hook per event type (SessionStart, UserPromptSubmit,
                                   PreToolUse, PostToolUse, Stop) in a throwaway project, using the SAME
@@ -17,25 +17,32 @@ Two independent measurements, both written to results/E5-<tool>-<platform>-<time
                                   reported UNTESTED, never as passing, so all_fired cannot be misread as full
                                   wired-event coverage.
 
-  2. LIVE-DRY-RUN (--live <settings.json>)  Parses every hook command in the live settings file and invokes each
-                                  one directly with a synthetic event on stdin, recording: path exists, interpreter
-                                  resolves, exit code, duration, stderr head. Catches dead paths, wrong interpreter,
-                                  crashes on the current Python, and hooks that hang.
+  2. LIVE-DRY-RUN (--live <settings.json>)  Parses every hook command in the live settings file. By default
+                                  (discovery only) it records only whether each command's interpreter resolves and
+                                  each script path exists. With --execute it also invokes each command directly with
+                                  a synthetic event on stdin, recording exit code, duration, stderr head -- catching
+                                  dead paths, wrong interpreter, crashes on the current Python, and hooks that hang.
 
 Usage (owner's Windows box, PowerShell):
-    python hooksmoke.py --tool claude
-    python hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json"
+    python hooksmoke.py --tool claude                                                # mechanism test: spawns one real, hook-isolated session
+    python hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json"            # discovery only (default): checks interpreters + script paths, runs nothing
+    python hooksmoke.py --live "$env:USERPROFILE\\.claude\\settings.json" --execute  # STATEFUL: also runs each real hook once
 Usage (Linux/macOS): same, with the appropriate settings path.
 
 Codex and Cursor: the MECHANISM test needs their hook registration formats (Codex: .codex/hooks.json; Cursor:
 hooks.json in the project). They are NOT implemented here on purpose rather than guessed; see TODO markers.
+Selecting a not-yet-implemented tool exits non-zero (unsupported) unless --allow-skipped is passed, so scheduled
+automation cannot bank a skipped tool as a passing E5 measurement.
 The LIVE-DRY-RUN works for any tool's settings as long as the file has the Claude Code hooks shape.
 
-WARNING: --live EXECUTES your real hooks once each with a synthetic event. Hooks that notify, write ledgers or
-touch memory will do so once. Run --live --no-exec first: it only checks that each command's interpreter resolves
-and each quoted script path exists, without running anything.
+WARNING: --live is discovery-only by default (per AGENTS.md: helper scripts default to read-only discovery). It
+only checks that each command's interpreter resolves and each script path exists, running nothing. Add --execute
+to actually invoke each real hook once with a synthetic event; hooks that notify, write ledgers or touch memory
+will then do so. (--no-exec is the deprecated former name for the now-default discovery mode.)
 
-Exit code: 0 if every registered marker fired and every live hook started and exited 0; 1 otherwise.
+Exit code: 0 if every registered marker fired and every live hook started and exited 0; non-zero otherwise
+(1 = a marker missed or a hook failed; 2 = the selected mechanism tool is unimplemented and --allow-skipped
+was not given).
 Requires: Python 3.9+, the tool's CLI on PATH, valid credentials. One session costs a few cents.
 """
 
@@ -180,6 +187,24 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
     (workdir / ".claude" / "settings.json").write_text(
         json.dumps({"hooks": hooks}, indent=2), encoding="utf-8"
     )
+    # Isolate this session from the operator's user-scoped configuration. Changing only cwd
+    # does NOT isolate it: Claude Code merges hooks from the real ~/.claude/settings.json with
+    # the marker hooks in this throwaway project, so the mechanism test could silently run the
+    # operator's stateful hooks (notifications, ledgers, memory writes) with no --live/--execute
+    # and no warning. Point CLAUDE_CONFIG_DIR at a private dir carrying ONLY the credential
+    # file, so auth survives but user hooks and settings do not. (macOS keychain auth is
+    # unaffected by CLAUDE_CONFIG_DIR; the copied credential is scrubbed after the run.)
+    iso_cfg = workdir / "isolated-config"
+    iso_cfg.mkdir(exist_ok=True)
+    src_cfg = Path(os.environ.get("CLAUDE_CONFIG_DIR") or (Path.home() / ".claude"))
+    cred_names = (".credentials.json",)
+    for cred in cred_names:
+        s = src_cfg / cred
+        if s.is_file():
+            shutil.copy2(s, iso_cfg / cred)
+    env = dict(os.environ)
+    env["CLAUDE_CONFIG_DIR"] = str(iso_cfg)
+
     prompt = "Run exactly this shell command and then reply DONE: echo hooksmoke-bash"
     argv = [
         "claude",
@@ -195,6 +220,7 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         proc = subprocess.run(
             argv,
             cwd=str(workdir),
+            env=env,
             capture_output=True,
             text=True,
             errors="replace",  # never abort on non-UTF-8 bytes in the CLI's streams
@@ -225,6 +251,12 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         # be unbound and the return statement below would raise NameError.
         rc, out, err = -3, "", f"claude CLI could not be executed: {e}"
     dur = round(time.time() - t0, 1)
+    # Do not leave a copy of the operator's credentials in the throwaway tree.
+    for cred in cred_names:
+        try:
+            (iso_cfg / cred).unlink(missing_ok=True)
+        except OSError:
+            pass
     fired = {}
     for ev in EVENTS:
         f = marker_dir / f"{ev}.marker.json"
@@ -259,6 +291,7 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         "stdout_tail": out[-800:],
         "stderr_tail": err[-800:],
         "settings_used": str(workdir / ".claude" / "settings.json"),
+        "config_dir_isolated": str(iso_cfg),
         "events": fired,
         "all_fired": all(v["fired"] for v in fired.values()),
         "events_not_covered": UNCOVERED_EVENTS,
@@ -367,10 +400,14 @@ def live_dry_run(
             parts = stripped.split()
         first = parts[0].strip("\"'") if parts else ""
         interp_ok = shutil.which(first) is not None or Path(first).exists()
-        quoted = [
-            p for p in command.split('"') if p.endswith(".py") or p.endswith(".ps1")
+        # Detect script arguments from the tokenized command so single-quoted ('...'),
+        # double-quoted ("...") and bare paths are all recognized; command.split('"')
+        # alone missed a valid POSIX hook like `python '/missing/hook.py'` and let it
+        # pass discovery with path_ok=None even though the script is absent.
+        scripts = [
+            t.strip("\"'") for t in parts if t.strip("\"'").endswith((".py", ".ps1"))
         ]
-        path_ok = all(Path(p).exists() for p in quoted) if quoted else None
+        path_ok = all(Path(p).exists() for p in scripts) if scripts else None
         if not execute:
             rc = 0 if (interp_ok and path_ok is not False) else 3
             rows.append(
@@ -486,6 +523,12 @@ def main():
         "must be requested explicitly.",
     )
     ap.add_argument(
+        "--allow-skipped",
+        action="store_true",
+        help="exit 0 even when the selected mechanism tool is unimplemented (skipped). Off by "
+        "default so scheduled automation cannot bank a skipped tool as a passing E5 measurement.",
+    )
+    ap.add_argument(
         "--no-exec",
         action="store_true",
         help="deprecated: dry-run (check interpreters and script paths, run nothing) is now "
@@ -516,7 +559,13 @@ def main():
         report["mechanism"] = fn(workdir, marker_dir, args.timeout)
         report["mechanism"]["workdir"] = str(workdir)
         m = report["mechanism"]
-        if not m.get("skipped") and (not m.get("all_fired") or m.get("rc") != 0):
+        if m.get("skipped"):
+            # A skipped mechanism (an unimplemented tool) measured nothing; treat it as
+            # unsupported (exit 2) rather than success so scheduled automation cannot bank
+            # it as a passing E5 run. --allow-skipped opts back into exit 0 for interactive use.
+            if not args.allow_skipped:
+                exit_code = 2
+        elif not m.get("all_fired") or m.get("rc") != 0:
             # A session that fired every marker hook but exited nonzero (e.g. its final
             # response or API operation failed after Stop ran) is a failed measurement, not
             # a clean E5 pass -- gate on rc as well as all_fired so automation cannot accept
