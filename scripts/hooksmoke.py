@@ -405,21 +405,34 @@ def iter_hook_commands(settings: dict):
 def live_dry_run(
     settings_path: Path, per_hook_timeout: int, execute: bool = True
 ) -> dict:
-    try:
-        settings = json.loads(Path(settings_path).read_text(encoding="utf-8"))
-    except (OSError, ValueError) as e:
-        # A missing, unreadable, or malformed settings file must be recorded as a failed
-        # live check, not raised: a combined mechanism/live invocation would otherwise
-        # discard the mechanism measurement already collected and write no result artifact.
+    def _error(msg: str) -> dict:
+        # A load/shape problem must be recorded as a failed live check, not raised: a
+        # combined mechanism/live invocation would otherwise discard the mechanism
+        # measurement already collected and write no result artifact.
         return {
             "settings": str(settings_path),
             "executed": execute,
-            "error": f"could not load settings: {type(e).__name__}: {e}",
+            "error": msg,
             "hooks_total": 0,
             "hooks_exit0": 0,
             "hooks_failed": [],
             "rows": [],
         }
+
+    try:
+        settings = json.loads(Path(settings_path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        return _error(f"could not load settings: {type(e).__name__}: {e}")
+    # Syntactically valid JSON that is not the expected shape (e.g. `[]`) would otherwise
+    # raise AttributeError on .get()/.items() and escape main() before write_result.
+    if not isinstance(settings, dict):
+        return _error(
+            f"settings root must be a JSON object, got {type(settings).__name__}"
+        )
+    if settings.get("hooks") is not None and not isinstance(settings["hooks"], dict):
+        return _error(
+            f"settings 'hooks' must be a JSON object, got {type(settings['hooks']).__name__}"
+        )
     rows = []
     cwd = str(Path.cwd())
     # One fresh session id per invocation, shared by this run's synthetic events. A fixed

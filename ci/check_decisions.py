@@ -129,6 +129,8 @@ def check(path: Path, root: Path, today: dt.date) -> tuple[str, list[str]]:
                 f"supersedes {target!r}: must name a decision record under "
                 f"{DECISIONS.as_posix()}/ (a non-template .md file)"
             )
+        elif candidate == path.resolve():
+            problems.append(f"supersedes {target!r}: a record cannot supersede itself")
         elif not candidate.is_file():
             problems.append(f"supersedes {target!r}: no such repo-relative file")
     if dates.get("retested", today) > today:

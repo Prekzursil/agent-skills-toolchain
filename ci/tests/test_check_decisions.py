@@ -186,6 +186,19 @@ def test_supersedes_must_name_a_decision_record(tmp_path: Path, run: Run) -> Non
     )
 
 
+def test_supersedes_cannot_be_self_referential(tmp_path: Path, run: Run) -> None:
+    # A record naming its own path as supersedes leaves the real predecessor unchanged
+    # and must be rejected, even though the path is a valid on-disk decision record.
+    write(tmp_path, rec(VALID + f"supersedes: docs/decisions/{NAME}\n"))
+    assert run() == (
+        1,
+        [
+            f"docs/decisions/{NAME}: supersedes 'docs/decisions/{NAME}': "
+            "a record cannot supersede itself"
+        ],
+    )
+
+
 def test_cli_exit_codes(tmp_path: Path) -> None:
     def cli(today: str) -> subprocess.CompletedProcess[str]:
         argv = [sys.executable, str(GATE), "--root", str(tmp_path), "--today", today]
