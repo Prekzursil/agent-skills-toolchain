@@ -187,11 +187,17 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
     for ev in EVENTS:
         f = marker_dir / f"{ev}.marker.json"
         if f.exists():
-            lines = [
-                json.loads(ln)
-                for ln in f.read_text(encoding="utf-8").splitlines()
-                if ln.strip()
-            ]
+            lines = []
+            for ln in f.read_text(encoding="utf-8").splitlines():
+                if not ln.strip():
+                    continue
+                try:
+                    lines.append(json.loads(ln))
+                except json.JSONDecodeError:
+                    # A subprocess killed mid-write (e.g. on timeout) can leave a
+                    # partial, invalid JSON line; skip it rather than crash the
+                    # whole report on one corrupted marker entry.
+                    continue
             if lines:
                 fired[ev] = {
                     "fired": True,
@@ -340,6 +346,12 @@ def live_dry_run(
                 else (e.stderr or "")
             )
             rc, err, out = -1, "TIMEOUT " + stderr_str, stdout_str
+        except (OSError, ValueError) as e:
+            # Running arbitrary hook commands can raise OSError (e.g. a
+            # non-executable interpreter) or ValueError (a malformed argv);
+            # without this rc/err/out would be unbound and the row append below
+            # would raise NameError, aborting the whole dry run.
+            rc, err, out = -3, f"hook could not be executed: {e}", ""
         rows.append(
             {
                 "event": event,
