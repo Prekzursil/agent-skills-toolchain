@@ -93,22 +93,13 @@ def _retrieve_schema(uri: str) -> Resource:  # noqa: ANN202 - referencing callba
 def registry() -> Registry:
     """A fully offline :class:`referencing.Registry` over the local schema set.
 
-    Registers each schema by its $id with the referencing module so that $ref
-    with JSON Pointer fragments can be resolved. The referencing module will
-    extract the fragment, load the base schema, and navigate the JSON Pointer.
-
-    Uses a custom retrieve function to handle schema lookups, ensuring that
-    all $refs to registered schemas are resolved from our local collection.
+    Uses a custom retrieve function that directly looks up schemas by their $id URI
+    in the local docs dictionary. When the referencing library encounters a $ref,
+    it calls this function to resolve the base schema. For references with JSON
+    Pointer fragments (e.g., #/$defs/tool_token), the library extracts the fragment,
+    calls retrieve to get the base schema, then navigates the pointer.
     """
-    docs = load_all()
-    reg = Registry(retrieve=_retrieve_schema)
-
-    # Pre-register all schemas so they're immediately available
-    for schema_id, doc in docs.items():
-        resource = Resource.from_contents(doc, default_specification=DRAFT202012)
-        reg = reg.with_resource(schema_id, resource)
-
-    return reg
+    return Registry(retrieve=_retrieve_schema)
 
 
 @lru_cache(maxsize=None)
