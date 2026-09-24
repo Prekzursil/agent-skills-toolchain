@@ -82,13 +82,21 @@ def _forbid_retrieve(uri: str):  # noqa: ANN202 - referencing callback
 
 @lru_cache(maxsize=1)
 def registry() -> Registry:
-    """A fully offline :class:`referencing.Registry` over the local schema set."""
+    """A fully offline :class:`referencing.Registry` over the local schema set.
+
+    Registers each schema by its $id with the referencing module so that $ref
+    with JSON Pointer fragments can be resolved. The referencing module will
+    extract the fragment, load the base schema, and navigate the JSON Pointer.
+    """
+    docs = load_all()
     resources: list[tuple[str, Resource]] = []
-    for schema_id, doc in load_all().items():
+    for schema_id, doc in docs.items():
         resources.append(
             (schema_id, Resource.from_contents(doc, default_specification=DRAFT202012))
         )
-    return Registry(retrieve=_forbid_retrieve).with_resources(resources)
+    # Build the registry and ensure fragment resolution works
+    reg = Registry(retrieve=_forbid_retrieve).with_resources(resources)
+    return reg
 
 
 @lru_cache(maxsize=None)
