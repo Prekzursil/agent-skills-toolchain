@@ -54,22 +54,44 @@ from pathlib import Path
 
 EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop"]
 
-# Hook event types this mechanism test does NOT register or trigger. A single
-# non-interactive `claude -p` echo turn cannot deterministically produce a compaction, a
-# failed tool call, a subagent, a permission prompt, a worktree op, a notification, or a
-# clean session-end hook, so the instrument REPORTS these as untested instead of letting
-# all_fired read as "every wired hook event fires". Without this the documented per-event
-# claim could pass while a wired type silently never fired.
-UNCOVERED_EVENTS = [
-    "PreCompact",
-    "PostToolUseFailure",
+# The full catalog of Claude Code hook event types this instrument knows about. It is
+# kept as a SUPERSET of everything wired in agent-self/config/settings.json (19 types as
+# of this snapshot) plus the standard event types that snapshot does not wire (SessionEnd,
+# Notification), so the derived "untested" set below can never silently omit a wired route.
+# If a new event type is wired in a live config, add it here too; the live-dry-run path
+# still reports it by reading that config directly.
+KNOWN_EVENTS = [
+    "SessionStart",
     "SessionEnd",
+    "UserPromptSubmit",
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "Stop",
+    "StopFailure",
     "Notification",
+    "PreCompact",
+    "PostCompact",
+    "PermissionRequest",
+    "PermissionDenied",
     "SubagentStart",
     "SubagentStop",
-    "PermissionRequest",
+    "ConfigChange",
+    "TaskCreated",
+    "TaskCompleted",
+    "TeammateIdle",
     "WorktreeCreate",
+    "WorktreeRemove",
 ]
+
+# Hook event types this mechanism test does NOT register or trigger, derived from the
+# catalog above rather than hand-maintained: everything known minus the five a single echo
+# turn exercises. A non-interactive `claude -p` echo turn cannot deterministically produce
+# a compaction, a failed tool call, a subagent, a permission prompt, a worktree op, a
+# notification, a task/teammate event, or a clean session-end hook, so the instrument
+# REPORTS every such type as untested instead of letting all_fired read as "every wired
+# hook event fires". Deriving the list guarantees no wired-but-untested route is dropped.
+UNCOVERED_EVENTS = [e for e in KNOWN_EVENTS if e not in EVENTS]
 
 MARKER_SCRIPT = r"""
 import json, os, sys, datetime
@@ -222,8 +244,9 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
         "events_not_covered": UNCOVERED_EVENTS,
         "coverage_note": (
             f"all_fired covers only the {len(EVENTS)} events a single echo session can "
-            f"trigger; {len(UNCOVERED_EVENTS)} wired event types are untested here, not "
-            "confirmed working"
+            f"trigger; the other {len(UNCOVERED_EVENTS)} of {len(KNOWN_EVENTS)} known hook "
+            "event types (a superset of everything the live settings wire) are untested "
+            "here, not confirmed working"
         ),
     }
 
