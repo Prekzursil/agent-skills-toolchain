@@ -178,7 +178,12 @@ def mechanism_claude(workdir: Path, marker_dir: Path, timeout: int) -> dict:
     t0 = time.time()
     try:
         proc = subprocess.run(
-            argv, cwd=str(workdir), capture_output=True, text=True, timeout=timeout
+            argv,
+            cwd=str(workdir),
+            capture_output=True,
+            text=True,
+            errors="replace",  # never abort on non-UTF-8 bytes in the CLI's streams
+            timeout=timeout,
         )
         rc, out, err = proc.returncode, proc.stdout, proc.stderr
     except subprocess.TimeoutExpired as e:
@@ -354,6 +359,8 @@ def live_dry_run(
                 input=synthetic_event(event, cwd),
                 capture_output=True,
                 text=True,
+                errors="replace",  # a hook emitting non-UTF-8 bytes must be recorded,
+                # not abort the whole --live run with UnicodeDecodeError while decoding streams
                 timeout=min(per_hook_timeout, declared_timeout),
             )
             rc, err, out = proc.returncode, proc.stderr, proc.stdout

@@ -212,6 +212,54 @@ def test_retry_budget_bounds_total_sleep(gh, capsys, monkeypatch) -> None:
     assert "retry budget" in err
 
 
+def test_report_write_failure_is_a_blind_check(gh, capsys, tmp_path) -> None:
+    """A report that cannot be written is exit 2, not 1.
+
+    stale-refs.yml treats exit 1 as "stale branches found" and then reads stale-refs.md and
+    files a tracking issue. If --out cannot be written (full or read-only workspace) the run
+    must report the blind-check status 2 instead, so the workflow does not act on a report
+    that was never produced. Here --out points under a directory that does not exist.
+    """
+    seed(
+        gh, {"wip/orphan": ("o1", ago(240))}
+    )  # one stale branch -> would otherwise be 1
+    missing = tmp_path / "no_such_dir" / "stale-refs.md"
+    code = csr.main(["--repo", REPO, "--token", TOKEN, "--out", str(missing)])
+    err = capsys.readouterr().err
+    assert code == 2 and not missing.exists()
+    assert "error:" in err
+
+
+def test_wall_clock_deadline_bounds_total_runtime(gh, capsys, monkeypatch) -> None:
+    """Request time (not just sleep) must not outlive the job.
+
+    RETRY_BUDGET caps cumulative sleep, but each urlopen can take its 30s socket timeout and
+    one _get runs per stale branch, so accumulated request time can exceed the 30-min job
+    before the report is written. A monotonic-clock deadline in _get stops network work early
+    and returns exit 2. The fake clock jumps past DEADLINE_S after the first request.
+    """
+    monkeypatch.setattr(csr.time, "sleep", lambda s: None)
+    values = [
+        0.0,
+        0.0,
+        csr.DEADLINE_S + 1.0,
+    ]  # reset, top-of-loop, then past the deadline
+    monkeypatch.setattr(
+        csr.time,
+        "monotonic",
+        lambda: values.pop(0) if values else csr.DEADLINE_S + 100.0,
+    )
+    gh.add(
+        f"{ROOT}/branches?per_page=100",
+        {"message": "You have exceeded a secondary rate limit"},
+        status=403,
+        Retry_After="60",
+    )
+    code = csr.main(["--repo", REPO, "--token", TOKEN])
+    err = capsys.readouterr().err
+    assert code == 2 and "wall-clock budget" in err
+
+
 def test_dry_run_never_fails_but_a_blind_check_does(gh, capsys, tmp_path) -> None:
     seed(gh, {"wip/orphan": ("o1", ago(240))})
     code, out = run(capsys, "--dry-run")
