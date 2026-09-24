@@ -26,6 +26,16 @@ REPO_RE = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 ATTEMPTS = 5
 MAX_WAIT = 900.0  # seconds; a longer rate-limit wait fails instead of outliving the job
+RETRY_BUDGET = 1200.0  # total retry sleep allowed across ALL _get calls in one run.
+# stale-refs.yml is timeout-minutes: 30. Without a cumulative cap, a single _get can sleep
+# ATTEMPTS-1 waits at MAX_WAIT (4 * 900 = 3600s) under repeated Retry-After: 900, and the
+# job is KILLED before writing stale-refs.md or the step output -- exit code AND report both
+# lost. Summing the waits (not wall-clock, so a stubbed sleep still counts) makes the run
+# raise CheckError (exit 2, a real "could not check" verdict) well inside the job budget.
+
+_retry_spent = (
+    0.0  # seconds slept on retries so far this run; reset by _reset_retry_budget
+)
 TABLE_HEAD = "| branch | last commit (UTC) | age | ahead of main |\n|---|---|---|---|"
 FIX_HINT = (
     "\nFix: open a PR from the branch, or tag its tip: `git tag archive/<yyyy-mm>/"
@@ -47,6 +57,12 @@ def _backoff(err: urllib.error.HTTPError, attempt: int, why: str) -> float | Non
     if err.code == 429 or (limited and "rate limit" in why.lower()):
         return 60.0  # GitHub's advice when no header says how long to wait
     return 2.0**attempt if err.code >= 500 else None  # bare 403: a permission error
+
+
+def _reset_retry_budget() -> None:
+    """Start a fresh cumulative retry budget for one run (main() calls this)."""
+    global _retry_spent
+    _retry_spent = 0.0
 
 
 def _message(err: urllib.error.HTTPError) -> str:
@@ -72,6 +88,13 @@ def _get(url: str, token: str | None) -> tuple[object, object]:
             wait, why = 2.0**attempt, str(err)
         if wait is None or wait > MAX_WAIT or attempt == ATTEMPTS - 1:
             raise CheckError(f"GET {url}: {why.strip()}")
+        global _retry_spent
+        if _retry_spent + wait > RETRY_BUDGET:
+            raise CheckError(
+                f"GET {url}: retry budget {RETRY_BUDGET:.0f}s exhausted "
+                f"(spent {_retry_spent:.0f}s, next wait {wait:.0f}s): {why.strip()}"
+            )
+        _retry_spent += wait
         print(f"retrying in {wait:.0f}s ({why.strip()}): {url}", file=sys.stderr)
         time.sleep(wait)
     raise CheckError(f"GET {url}: retries exhausted")
@@ -184,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
         print("warning: no token; unauthenticated calls are capped", file=sys.stderr)
     api = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
     now = datetime.now(timezone.utc)
+    _reset_retry_budget()
     try:
         allow = load_allowlist(args.allowlist)
         rows, total = find_stale(api, args.repo, token, args.max_age_hours, allow, now)

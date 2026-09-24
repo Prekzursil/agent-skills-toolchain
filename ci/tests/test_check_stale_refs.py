@@ -189,6 +189,29 @@ def test_pagination_is_followed_and_rate_limit_waited_out(gh, capsys, monkeypatc
     assert "**1** of 2 branches" in out
 
 
+def test_retry_budget_bounds_total_sleep(gh, capsys, monkeypatch) -> None:
+    """Repeated Retry-After: 900 must fail inside the job budget, not sleep past it.
+
+    stale-refs.yml is timeout-minutes: 30. Without a cumulative cap, ATTEMPTS-1 waits at
+    MAX_WAIT (4 * 900 = 3600s) in one _get outlive the job and it is KILLED before writing
+    its report. One queued 403 with Retry-After: 900 is served on every call here.
+    """
+    sleeps: list[float] = []
+    monkeypatch.setattr(csr.time, "sleep", sleeps.append)
+    gh.add(
+        f"{ROOT}/branches?per_page=100",
+        {"message": "You have exceeded a secondary rate limit"},
+        status=403,
+        Retry_After="900",
+    )
+    code = csr.main(["--repo", REPO, "--token", TOKEN])
+    err = capsys.readouterr().err
+    assert code == 2  # "could not check" -- a real verdict, not a killed job
+    assert sum(sleeps) <= csr.RETRY_BUDGET  # never sleeps past the budget
+    assert sleeps == [900.0]  # one wait fits (900 <= 1200); the next (1800) is refused
+    assert "retry budget" in err
+
+
 def test_dry_run_never_fails_but_a_blind_check_does(gh, capsys, tmp_path) -> None:
     seed(gh, {"wip/orphan": ("o1", ago(240))})
     code, out = run(capsys, "--dry-run")
