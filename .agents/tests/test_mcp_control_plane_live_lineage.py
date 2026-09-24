@@ -34,7 +34,11 @@ def registry(servers: dict[str, dict[str, Any]]) -> dict[str, Any]:
         required = set(server.get("requiredEnv", []))
         server.setdefault(
             "credentialNames",
-            sorted(item for item in required if "TOKEN" in item or "KEY" in item or "SECRET" in item),
+            sorted(
+                item
+                for item in required
+                if "TOKEN" in item or "KEY" in item or "SECRET" in item
+            ),
         )
         server.setdefault("tags", ["test"])
     return {
@@ -344,7 +348,9 @@ def test_live_registry_has_shared_basic_memory_and_no_retired_sidecar() -> None:
 
 def test_rotation_manifest_file_is_absent_never_rotate() -> None:
     path = SCRIPTS_ROOT / "credential_rotation_manifest.json"
-    assert not path.exists(), "owner 2026-08-28: never rotate; manifest must stay deleted"
+    assert not path.exists(), (
+        "owner 2026-08-28: never rotate; manifest must stay deleted"
+    )
 
 
 def test_validate_control_plane_missing_rotation_manifest_is_never_rotate() -> None:
@@ -392,13 +398,7 @@ def test_codex_merge_removes_retired_promptbridge_sidecar(
     )
     config_path = tmp_path / "agents.json"
     config_path.write_text(
-        json.dumps(
-            registry(
-                {
-                    "active": stdio_server("codex")
-                }
-            )
-        ),
+        json.dumps(registry({"active": stdio_server("codex")})),
         encoding="utf-8",
     )
 
@@ -482,9 +482,7 @@ def cursor_registry_fixture() -> dict[str, Any]:
     }
     for name in sorted(CURSOR_CORE_APPROVED - {"agent-mail"}):
         if name in {"context7", "firecrawl"}:
-            env_name = (
-                "CONTEXT7_API_KEY" if name == "context7" else "FIRECRAWL_API_KEY"
-            )
+            env_name = "CONTEXT7_API_KEY" if name == "context7" else "FIRECRAWL_API_KEY"
             servers[name] = {
                 "enabled": True,
                 "targets": ["claude"],
@@ -497,9 +495,7 @@ def cursor_registry_fixture() -> dict[str, Any]:
                 "tags": ["test", "remote", "http", "remote-required"],
             }
         else:
-            servers[name] = stdio_server(
-                "claude", command="uvx", args=[f"{name}-mcp"]
-            )
+            servers[name] = stdio_server("claude", command="uvx", args=[f"{name}-mcp"])
     return registry(servers)
 
 
@@ -547,9 +543,13 @@ def test_cursor_attach_all_safe_projects_every_safe_definition() -> None:
 
 def test_cursor_never_mounts_excluded_names_even_if_generated_regresses() -> None:
     cursor = load_script("merge_generated_cursor_mcp")
-    regressed = {name: {"command": "npx", "args": [name]} for name in CURSOR_NEVER_MOUNT}
+    regressed = {
+        name: {"command": "npx", "args": [name]} for name in CURSOR_NEVER_MOUNT
+    }
     regressed["context7"] = {"command": "npx", "args": ["@upstash/context7-mcp"]}
-    stale_live = {name: {"command": "npx", "args": [name]} for name in CURSOR_NEVER_MOUNT}
+    stale_live = {
+        name: {"command": "npx", "args": [name]} for name in CURSOR_NEVER_MOUNT
+    }
 
     default_merge = cursor.merge_cursor_mcp_servers(stale_live, regressed)
     attach_all = cursor.merge_cursor_mcp_servers(
@@ -576,7 +576,10 @@ def test_cursor_attach_all_preserves_safe_manual_live_entries() -> None:
     default_merge = cursor.merge_cursor_mcp_servers(live, generated)
 
     assert set(attach_all) == {"hand-rolled", "stale-disabled", "context7"}
-    assert attach_all["hand-rolled"] == {"command": "node", "args": ["local-server.mjs"]}
+    assert attach_all["hand-rolled"] == {
+        "command": "node",
+        "args": ["local-server.mjs"],
+    }
     assert "disabled" not in attach_all["stale-disabled"]
     assert set(default_merge) == {"context7"}
 
@@ -584,7 +587,11 @@ def test_cursor_attach_all_preserves_safe_manual_live_entries() -> None:
 def test_cursor_merge_never_emits_disabled_and_is_stable_in_both_modes() -> None:
     cursor = load_script("merge_generated_cursor_mcp")
     live = {
-        "context7": {"command": "npx", "args": ["@upstash/context7-mcp"], "disabled": True},
+        "context7": {
+            "command": "npx",
+            "args": ["@upstash/context7-mcp"],
+            "disabled": True,
+        },
         "docker": {"command": "uvx", "args": ["docker-mcp"], "disabled": True},
     }
     generated = {
@@ -1004,19 +1011,27 @@ def test_linkedin_renders_for_claude_and_cursor_with_env_references_only(
     assert claude_entry["command"] == "C:\\Python314\\python.exe"
     assert claude_entry["args"] == [LINKEDIN_SERVER_ARG]
     assert claude_entry["env"]["LINKEDIN_ACCESS_TOKEN"] == "${LINKEDIN_ACCESS_TOKEN}"
-    assert cursor_entry["env"]["LINKEDIN_ACCESS_TOKEN"] == "${env:LINKEDIN_ACCESS_TOKEN}"
-    assert cursor_entry["env"]["LINKEDIN_CLIENT_SECRET"] == "${env:LINKEDIN_CLIENT_SECRET}"
+    assert (
+        cursor_entry["env"]["LINKEDIN_ACCESS_TOKEN"] == "${env:LINKEDIN_ACCESS_TOKEN}"
+    )
+    assert (
+        cursor_entry["env"]["LINKEDIN_CLIENT_SECRET"] == "${env:LINKEDIN_CLIENT_SECRET}"
+    )
     assert "literal-linkedin-secret" not in json.dumps([claude_entry, cursor_entry])
     assert "disabled" not in cursor_entry
 
 
-def test_cursor_selection_excludes_plugin_denied_disabled_and_untargeted_servers() -> None:
+def test_cursor_selection_excludes_plugin_denied_disabled_and_untargeted_servers() -> (
+    None
+):
     cursor = load_script("merge_generated_cursor_mcp")
     config = registry(
         {
             "markitdown": stdio_server("claude", command="markitdown-mcp.exe"),
             "meta-tool": stdio_server("claude", command="node"),
-            "parked-but-safe": stdio_server("claude", command="uvx", args=["docker-mcp"]),
+            "parked-but-safe": stdio_server(
+                "claude", command="uvx", args=["docker-mcp"]
+            ),
             "switched-off": stdio_server("claude", enabled=False),
             "codex-only": stdio_server("codex"),
             "tavily": {
@@ -1070,4 +1085,3 @@ def test_cursor_windows_command_wrapping_survives_attachment(
     assert completed.returncode == 0, completed.stdout + completed.stderr
     written = json.loads(live.read_text(encoding="utf-8"))["mcpServers"]
     assert written["playwright"] == expected
-
