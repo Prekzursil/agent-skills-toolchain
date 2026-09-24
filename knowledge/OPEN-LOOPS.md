@@ -8,15 +8,15 @@ This file is the anti-abandonment mechanism from
 Owner column: **O** = owner-only (I cannot do it), **C** = Claude can do it, **B** = both.
 Review-by exists so a decision expires into "re-examine" rather than becoming permanent truth.
 
-Last updated 2026-09-24 (plaintext policy; L-11 + L-12 closed; L-14 fix written).
+Last updated 2026-09-24 (plaintext policy; always-push D-05; L-01/02/03/11/12 closed; L-14 fix written).
 
 ## Blocking — something cannot ship until these resolve
 
 | ID | Item | Why it blocks | Owner | Review by | Status | Evidence when closed |
 |---|---|---|---|---|---|---|
-| L-01 | **Dinu Plast engagement facts** — the two 2023 CVs contradict each other: end date Jul 2022 vs Jun 2023, title Web Developer vs Freelancer Informatica, location Ramnicu Valcea vs Bucuresti (company registry says Ramnicu Valcea, CUI 16367462) | The Experience section cannot be written. A document beats a recollection: pull the REGES-Online extract | O | 2026-10-15 | OPEN | |
-| L-02 | **Undocumented employment history** beyond Dinu Plast and momentstudio | Owner stated salaried/internship work exists; none of it is written down anywhere. Intake interview is the only source | O | 2026-10-15 | OPEN | |
-| L-03 | **English CEFR level** — advanced, but C1 vs C2 unconfirmed | Languages section on every document | O | 2026-10-15 | OPEN | |
+| L-01 | **Dinu Plast engagement facts** — the two 2023 CVs contradict each other: end date Jul 2022 vs Jun 2023, title Web Developer vs Freelancer Informatica, location Ramnicu Valcea vs Bucuresti (company registry says Ramnicu Valcea, CUI 16367462) | The Experience section cannot be written. A document beats a recollection: pull the REGES-Online extract | O | 2026-10-15 | **CLOSED 2026-09-24** | Owner resolved it directly: UNREGISTERED contract work, so no REGES record exists and none should be sought. Ramnicu Valcea, ~2y on and off, ended mid-2023 (~Jun 2023). Scope recorded verbatim in `cv/OWNER-ANSWERS-2026-09-24.md`. Supersedes BOTH 2023 CVs |
+| L-02 | **Undocumented employment history** beyond Dinu Plast and momentstudio | Owner stated salaried/internship work exists; none of it is written down anywhere. Intake interview is the only source | O | 2026-10-15 | **CLOSED 2026-09-24** | Owner confirmed **none** — Dinu Plast and momentstudio.ro are the complete work history. Closed as CONFIRMED EXHAUSTIVE, not as unknown: the Experience section is complete, not merely undocumented |
+| L-03 | **English CEFR level** — advanced, but C1 vs C2 unconfirmed | Languages section on every document | O | 2026-10-15 | **CLOSED 2026-09-24** | Owner: **C2**, no certificate cited. Render as the level alone |
 
 ## Reputational — must land before supervisor contact (doctorate is committed)
 
