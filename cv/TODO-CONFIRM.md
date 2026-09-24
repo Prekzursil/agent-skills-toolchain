@@ -44,7 +44,7 @@ then tick it here).
   *Blocks:* the education block of every academic document.
   → `education[University of Bucharest]`
 
-- [ ] **6. Bachelor's — graduation month, final grade (media), thesis title and supervisor.**
+- [~] **6. Bachelor's — PARTLY RESOLVED 2026-09-24 from the Adeverinta de Absolvire Nr. 10744/26.06.2025.** Graduation June 2025, media generala 8.28 (years 8.46/8.26/8.12), media licenta 7.30, 180 ECTS, Faculty of Informatics, programme Informatica, full-time. **STILL OPEN: thesis TITLE and SUPERVISOR** — the certificate does not name them.
   *Blocks:* the academic CV, which is expected to list the thesis; a doctoral application
   normally states the final grade.
   → `education[Titu Maiorescu University]`
