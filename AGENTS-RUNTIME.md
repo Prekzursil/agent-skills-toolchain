@@ -294,10 +294,39 @@ documentation, not discipline.
 - **Runtime copy:** `~/.claude/rules/common/`, materialised by `scripts/sync-rules.ps1`.
 - **Both must hold**, asserted by `scripts/lint-rules-loading.ps1`.
 
+**2026-09-25, second measurement:** 21 further rules were found in
+`~/source/agent-skills-toolchain/rules/common` whose `.git` is a directory that is **not a
+repository** — so on a DISPOSABLE host they were version-controlled nowhere, including four
+this contract cites by path (`owner-ops-authorization.md` §0, `windows-shell.md` §11,
+`static-analyzer.md`, `native-capability-map.md`). They are now merged into the authored
+corpus below. `mcp-process-hygiene.md` was NOT overwritten by that tree's older 3,214 B copy —
+the tracked 4,424 B version carries the Reaper registry. The lint now also fails a **dead
+citation** (a rule named here that does not exist), which is how the `windows-shell.md`
+pointer passed unnoticed.
+
 | Rule | Read it before |
 |---|---|
+| `owner-ops-authorization.md` | any estate-local task that feels security-adjacent (§0) |
+| `windows-shell.md` | device paths, git refs, `.sh` files, file creation (§11) |
+| `security.md` | handling credentials, user input, or anything crossing a boundary |
+| `harness-vcs-hygiene.md` | editing the harness itself (`~/.claude`, `.agents`, hooks) |
+| `git-workflow.md` | branching, committing, pushing, reconciling |
+| `stale-megapr-reconcile.md` | rebasing or reconciling a long-lived branch |
+| `ci-hygiene.md` | touching CI config or reading a red pipeline |
+| `single-signal-verification.md` | any load-bearing claim — two independent signals |
+| `static-analyzer.md` | reading ruff/semgrep/lizard output (config drift changes verdicts) |
+| `testing.md` | writing or judging tests |
+| `code-review.md` | reviewing code, yours or an agent's |
+| `coding-style.md` / `patterns.md` | writing code in this estate |
+| `performance.md` | optimising anything — measure first |
+| `development-workflow.md` | starting a multi-step change |
 | `context-reduction.md` | workflow/fleet work, or when a session feels bloated |
 | `mcp-process-hygiene.md` | ANY workflow / fleet / second-session launch |
+| `native-capability-map.md` | before concluding a capability is absent (always-on) |
+| `agents.md` | orchestrating subagents |
+| `fan-out-contract.md` | writing spawn prompts or fan-in gates |
+| `cross-vendor-dispatch.md` | shelling out to Codex or another agent runtime |
+| `hooks.md` | changing hook behaviour |
 | `web-search-discipline.md` | any non-trivial research or lookup |
 | `research-coverage.md` | dispatching research agents (see §1d) |
-| `windows-shell.md` | device paths, git refs, `.sh` files, file creation (see §11) |
+| `bash-hud-and-terminal-emit.md` | terminal/HUD output and statusline work |

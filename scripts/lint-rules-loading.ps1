@@ -43,6 +43,26 @@ foreach ($r in $rules) {
     "  {0} {1,-32} cited={2,-5} deployed={3}" -f $status, $r.Name, $cited, $deployed
 }
 
+# A rule CITED by section 12 that does not exist in the corpus is a dead pointer: the
+# contract sends the reader to a file that is not there. Found 2026-09-25 - section 12
+# cited windows-shell.md while the file lived only in an unversioned tree, and this lint
+# passed, because it only ever walked the corpus and never the citations.
+$sec12 = [regex]::Match($contractText, '(?ms)^##\s*12\..*?(?=^##\s*\d|\z)').Value
+if ($sec12) {
+    # USE-vs-MENTION: only TABLE ROWS cite a rule. Section 12's prose also names files
+    # (e.g. "`CLAUDE.md` @-imports only ...") and a naive scan of the whole section
+    # reports those as dead rules - which is exactly what it did on first run.
+    $rows  = ($sec12 -split "`n") | Where-Object { $_.TrimStart().StartsWith('|') }
+    $cited = [regex]::Matches(($rows -join "`n"), '`([A-Za-z0-9._-]+\.md)`') |
+             ForEach-Object { $_.Groups[1].Value } | Sort-Object -Unique
+    foreach ($c in $cited) {
+        if (-not (Test-Path (Join-Path $src $c))) {
+            "  FAIL dead citation in section 12 (no such rule in the corpus): $c"
+            $fail++
+        }
+    }
+}
+
 # A rule deployed at runtime but absent from the authored corpus is drift in the other
 # direction - it loads but nobody can version or review it.
 if (Test-Path $Runtime) {
