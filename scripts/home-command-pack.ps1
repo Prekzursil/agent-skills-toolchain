@@ -42,7 +42,10 @@ $mcp = $allProc | Where-Object { $_.Name -match '^(node|python|pythonw|uv|uvx|np
 $mcp | ForEach-Object {
     $cur = $_; $hops = 0; $owner = 'UNKNOWN'
     while ($cur -and $hops -lt 12) {
-        if ($cur.Name -match '^(claude|codex|cursor|Code|windsurf)\.exe$') { $owner = "$($cur.Name):$($cur.ProcessId)"; break }
+        if ($cur.Name -match '^(claude|codex|cursor|Code|windsurf)\.exe$') { $owner = "SESSION:$($cur.Name):$($cur.ProcessId)"; break }
+        # 2026-09-25 fix: without this branch, HOME's task/service-launched daemons all fell
+        # through to UNKNOWN (91 of 109) - an instrument gap, not a finding about HOME.
+        if ($cur.Name -match '^(services|svchost|taskeng|taskhostw|wininit)\.exe$') { $owner = 'DAEMON(service/task)'; break }
         $pp = [int]$cur.ParentProcessId
         if (-not $byPid.ContainsKey($pp)) { $owner = 'DEAD-PARENT'; break }
         $cur = $byPid[$pp]; $hops++
@@ -113,9 +116,13 @@ foreach($f in '.mcp.json','.mcp-funnel.json','.mcp-presets.json','.mcp.disabled.
 Section "BLOCK E — RESTART-LOOP SIGNATURE IN SUPERVISOR LOGS"
 $logDir = "$HOME\.agents\logs"
 if(Test-Path $logDir){
-  Get-ChildItem $logDir -Filter '*supervisor*.log','*watchdog*.log' -ErrorAction SilentlyContinue | ForEach-Object {
+  # 2026-09-25 fix: -Filter takes ONE string; an array threw and Block E never ran on HOME.
+  Get-ChildItem -Path "$logDir\*" -Include '*supervisor*.log','*watchdog*.log','*guard*.log','*keeper*.log' -ErrorAction SilentlyContinue | ForEach-Object {
     $c = Get-Content $_.FullName -ErrorAction SilentlyContinue
-    $starts = ($c | Select-String -Pattern 'start|launch|relaunch|restart' -SimpleMatch).Count
+    # 2026-09-25 fix: -SimpleMatch treats the alternation as a LITERAL string and matched
+    # nothing, reporting restart-ish=0 on a log with 162 relaunches - a silent zero, the
+    # exact failure mode this pack exists to prevent. Regex mode, no -SimpleMatch.
+    $starts = ($c | Select-String -Pattern 'starting|relaunch|restart|launching').Count
     "   {0,-42} lines={1,-6} restart-ish={2}" -f $_.Name, $c.Count, $starts
   }
 } else { "   no $logDir" }
