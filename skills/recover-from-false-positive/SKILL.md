@@ -19,6 +19,9 @@ workflow retries, and the PostModelSwitch / `updatedToolOutput` hooks. The Opera
 A/B/C of `scrub_refusals.py` below remain correct as written. That reference also maps
 the FEW→SOTA tiered decomposition (cheap tiers first) and the cross-surface
 death-signal routing shared with the `/jailbreak` and `/red-blue-purple` skills.
+`references/gray-lane-2026-09.md` is the 2026-09-25 gray-lane addendum (official
+paths ruled a dead end): interception proxies, refusal-fallback design rules, and
+bypass research — Anthropic surface only.
 
 ## Primary recovery — do this first (de-saturate; never switch models)
 

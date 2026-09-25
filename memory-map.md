@@ -64,3 +64,4 @@ Never SessionStart-rglob the vault. Never load `recall-index.json` into SessionS
 Never `uvx` stdio BM; never Cloud/Mem0/Graphiti.
 
 A-OTHER: TBD (parent hook)
+- burp-mcp: service D:\opt\burp (launcher+README-MCP.md), task BurpMcpHeadless, heal in D:\opt\cyberstrike-mcp\watchdog-mcp-estate.ps1 s5, SSOT fronts.burp, skill ~/.zcode/skills/burp-mcp — endpoint http://127.0.0.1:9876 (SSE at root)

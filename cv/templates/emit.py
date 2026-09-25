@@ -307,10 +307,10 @@ def _scrub_todo(text: str, todo_policy: str) -> str:
     """Strip an inline TODO-CONFIRM tail from a LABEL field under --todo omit.
 
     profile.yaml carries the marker inside some labels, e.g.
-    "Software developer (contract) - TODO-CONFIRM exact title". In annotate mode
-    that is exactly what the owner should see. In omit mode the document goes to
-    a reader, and the honest rendering is the part BOTH of the owner's 2023 CVs
-    agree on - the marker is dropped, nothing is invented in its place.
+    "Advanced - TODO-CONFIRM exact CEFR level (C1 or C2)". In annotate mode that
+    is exactly what the owner should see. In omit mode the document goes to a
+    reader, and the honest rendering is the part that IS established ("Advanced")
+    - the marker is dropped, nothing is invented in its place.
     """
     if todo_policy != "omit" or not is_todo(text):
         return text

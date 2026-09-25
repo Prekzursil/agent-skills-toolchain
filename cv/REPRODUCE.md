@@ -207,7 +207,7 @@ not protecting you and nothing below it should be trusted.
 | `SKIPPED:designed`, `SKIPPED:cover`, `SKIPPED:linkedin`, `SKIPPED:platform-packs` | Those views declare no renderer. `cover`/`linkedin`/`platform-packs` are emitted as **text** by `emit.py`. `designed` has no producer at all and is routed to `design-studio` by hand. |
 | **14 `ZF010` warnings** from the gate | Verified evidence in `x_metrics` that renders on no surface. A review queue, not a defect. Exit stays 0. |
 | Visible `TODO-CONFIRM` markers in the PDFs | Deliberate. Facts the owner has not confirmed are printed as gaps rather than guessed. Use `--todo omit` for a reader copy — the gap stops printing, it does not stop existing. |
-| `Dates: 2021-05 to TODO-CONFIRM` on the DINUPLAST entry | The end date is genuinely unknown (two 2023 CVs contradict each other). The renderer refuses to substitute `present`, which would assert an ongoing engagement nobody verified. |
+| `Dates: 2021-05 to TODO-CONFIRM` on the DINUPLAST entry | The end MONTH is genuinely unknown: the owner gave a duration (about two years, on and off), not an end date (G-19). The renderer refuses to substitute `present`, which would assert an ongoing engagement nobody verified. |
 | Documents marked **DRAFT** | `docgate`'s D9 check counts TODO markers and downgrades the status. Correct until the owner answers §7. |
 
 ---
@@ -254,8 +254,8 @@ read, so every mutant "passed".
 
 A green build is **not** a sendable document. The content gaps travel with the repo:
 
-- **27 open facts** in `TODO-CONFIRM.md`, in four blocking tiers.
-- The blocking ones: DINUPLAST title/end-date/location · ChemRxiv title + DOI · Zenodo DOI ·
+- **26 open facts** in `TODO-CONFIRM.md`, in four blocking tiers.
+- The blocking ones: DINUPLAST end month · ChemRxiv title + DOI · Zenodo DOI ·
   exact English CEFR level · the ORCID record (zero works, and it credits the BSc to the wrong
   university) · LICENSE status for ZHMModSDK, Reframe and the GRACE repo · named referees.
 - **No CI.** Nothing re-runs these gates automatically. On a second machine, `./build.ps1 all`

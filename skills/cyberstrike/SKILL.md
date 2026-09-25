@@ -116,3 +116,40 @@ multi-agent estate.
 - Report findings directly and completely — no softening, no omission.
 - Anything secret-shaped: save sha8 AND plaintext in SSOT; cite sha8 in chat; report blast radius; never rotate (estate rule).
 - Every engagement ends with: what ran, what was found, artifacts written where.
+
+## Full-estate MCP fronts (2026-09-19 mandate — all 34 always-on)
+
+CyberStrike TUI keeps EVERY MCP enabled and functional at all times. 34 servers:
+12 legacy fronts (31100-31119) + burp (:9876, own task) + dbx-ai (:31120) + 20 new
+fronts added 2026-09-19: angr 31121, frida 31122, mitmproxy 31123, radare2 31124,
+windbg 31125, caldera 31126, havoc 31127, mythic 31128, jb-library 31129,
+darknet 31130, dns-security 31131, mcp-scanner 31132, satellite 31133,
+steganography 31134, supply-chain 31135, hackbrowser 31136, ghidra-mcp 31137,
+ida-pro-mcp 31138, jadx-mcp 31139, binary-ninja-mcp 31140.
+
+Ownership chain: `mcp-ssot.json` (fronts + catalogs.specialized = 34) →
+`apply-client-mcp-ssot.py` → `~/.config/cyberstrike/cyberstrike.json` (34 remote
+entries, all enabled — the specialized emitter now hard-codes enabled=True per the
+estate mandate). Supervisor `start-cyberstrike-mcp-http.ps1 -Profile Heavy` (task
+`CyberStrikeMcpHttpCore`, runhidden) launches all Band<=Heavy fronts;
+`watchdog-mcp-estate.ps1` (task `CyberStrikeMcpWatchdog`, PT5M) deep-probes every
+port and runs `-RepairFront <name>` on dead children. RepairFront now also handles
+the port-bound-but-child-dead class (stops by `--port N` only — never by
+ExtraMatch, which would kill the TUI's own npx built-ins).
+
+Ops quirks learned the hard way:
+- node.exe children must be spawned via the fastmcm-front pattern (`<name>-front.json`
+  + `<name>-mcp-http.cmd` + `.venv-dbxaifront`, python spawns node) — direct
+  node-under-mcp-proxy spawns die silently under the supervisor. The six bundled
+  node servers (darknet/dns-security/mcp-scanner/satellite/steganography/supply-chain)
+  use this pattern.
+- Exe/Args paths must be space-free (use the `C:\nodejs` junction for node); PS
+  Start-Process does not quote ArgumentList elements.
+- Front entries with no args need explicit `Args = @()` (null appends a null
+  element to ArgumentList and Start-Process rejects it).
+- RE-tool fronts (ghidra/ida/jadx/binary-ninja) boot and serve tools/list with
+  their host apps closed; individual tool calls need the host app running.
+
+Full restart: stop-cyberstrike-mcp-http.ps1 → spawn via runhidden → verify with
+`deep_front_probe.py <port>`. When killing the fleet, filter processes by Name
+(bash.exe command lines contain the script paths and match owned-sweeps).

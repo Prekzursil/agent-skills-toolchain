@@ -43,10 +43,10 @@ pages with 0.
 
 **1. A gap is printed as a gap; a guess is never printed at all.**
 
-- A `TODO-CONFIRM` date renders as no date. DINUPLAST's end date contradicts
-  itself across the owner's two 2023 CVs, so the entry prints `May 2021 –
-  [TODO-CONFIRM]`, never `May 2021 – present`. "Present" is a claim that an
-  engagement is still running, and nothing supports it.
+- A `TODO-CONFIRM` date renders as no date. The owner gave DINUPLAST a duration
+  (about two years, on and off) and not an end month, so the entry prints
+  `May 2021 – [TODO-CONFIRM]`, never `May 2021 – present`. "Present" is a claim
+  that an engagement is still running, and nothing supports it.
 - A bare year stays a bare year. RenderCV reads a quoted `"2022"` as a full date
   and prints `Jan 2022` — a month nobody verified — so `emit.py` passes bare years
   as integers. Verified against RenderCV 2.8 on this machine.

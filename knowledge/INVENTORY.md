@@ -41,13 +41,12 @@ Retired or superseded:
 | `schrodinger` | RETIRED | absent from both .mcp.json and .claude.json; removed from the fleet mcp | before 2026-09-24 |
 | `tiktok` | RETIRED | absent from both .mcp.json and .claude.json; removed from the fleet mcp | before 2026-09-24 |
 
-## skill (412 active)
+## skill (413 active)
 
 Retired or superseded:
 
 | Item | State | Reason | Since |
 |---|---|---|---|
-| `_probe-vanish` | RETIRED | test probe, removed on purpose | 2026-09-24 |
 | `agent-lanes-codex-consult` | LOST | no deletion commit; likely superseded by the codex mcp-server integration, but UNPROVEN skill | before 2026-09-24 |
 | `chatgpt5-web-curate` | MERGED-INTO:chatgpt5-web | commit 365cd9e7 'consolidate chatgpt5-web 3->1' skill | before 2026-09-24 |
 | `chatgpt5-web-discuss` | MERGED-INTO:chatgpt5-web | commit 365cd9e7 'consolidate chatgpt5-web 3->1' skill | before 2026-09-24 |
