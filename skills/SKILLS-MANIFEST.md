@@ -127,6 +127,7 @@
 | execution-grounded-bon | unclassified | Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Claude+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion... |
 | faculty-course-design-evidence | unclassified | Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment. |
 | fal-ai-media | unclassified | Unified media generation via fal.ai MCP — image, video, and audio. Covers text-to-image (Nano Banana), text/image-to-video (Seedance, Kling, Veo 3), text-to-speech (CSM-1B), and video-to-audio (ThinkSound). Use when the user wants to... |
+| fable-safe-prompt | vendored | Rewrite allowed prompts to reduce false-positive safety triggers without bypassing policy or changing intent. Vendored from davidondrej/skills via sickn33/agentic-awesome-skills |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
 | figma-implement-design | built-in | Translate Figma nodes into production-ready code with 1:1 visual fidelity using the Figma MCP workflow |
 | finishing-a-development-branch | marketplace:superpowers | Use when implementation is complete, all tests pass, and you need to decide how to integrate the work |
@@ -239,6 +240,7 @@
 | reboot-safe-ops-continuation | custom | Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture |
 | recall-workflow-agent | unclassified | Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run - reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or... |
 | receiving-code-review | marketplace:superpowers | Use when receiving code review feedback, before implementing suggestions |
+| recover-from-false-positive | vendored | Recover Claude Code session logs after an Anthropic API output-classifier false positive - surgical JSONL refusal scrub with parentUuid re-stitch, live-window de-saturation, and CLAUDE.md framing guards. Vendored from 88plug/recover-from-false-positive |
 | recursive-decision-ledger | unclassified | Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail. |
 | refactor-equivalence | unclassified | Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an... |
 | reframe | unclassified | Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert, reframe, or crop a landscape video to vertical, follow a moving subject in... |
