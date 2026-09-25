@@ -132,3 +132,48 @@ findings all surviving 2-lens adversarial verification). Patches P1-P9 are writt
 | A-15 | **`codex` MCP entrypoint is absent** — `~/CLAUDE.md` documents `codex mcp-server` as the Layer-1 cross-vendor rail. The rail is BROKEN, not idle. Do not delete the entry; fix the binary | C | 2026-10-02 |
 | A-16 | **`~/.local/opt/re-harness` does not exist on the VM** (0 files). The RE stack was labelled `backend-on-demand` from the owner's memory note, not from local evidence. They stay KEEP (burden of proof is on deletion) but the label is remembered, not measured. Must resolve before any RE prune | C | 2026-10-09 |
 | A-17 | **9 MCP entries are HOME's config in the VM's file** — `D:/ReverseTools/`, `D:/mcp-servers/`, `C:/Users/**Prekzursil**/source/repos` (capital P; the VM is lowercase), plus 2 `docker run` on a host with no Docker. Same copied-without-reconciliation root cause as the rest of the audit. **Predicts the mirror-image problem on home — untested** | C | 2026-10-09 |
+
+### A-13 B2 — CLOSED 2026-09-26 00:06 (home)
+
+Deployed over SSH from the VM under the owner's explicit authorisation, verified independently
+over rclone rather than from the deploy script's own report:
+
+| | before | after |
+|---|---|---|
+| `~/.claude/rules/common/*.md` | 22 | **25** |
+| `~/.claude/AGENTS-RUNTIME.md` | 10,981 B | **22,122 B** |
+| `## 12.` present | False | **True** |
+| "five registers" | False | **True** |
+| `lint-rules-loading.ps1` | — | **PASS (exit 0)**, all 25 cited+deployed+**loadable** |
+
+Backup before overwrite: `~/.claude/AGENTS-RUNTIME.md.bak-20260926-000556`.
+Untouched as required: `agents.json` (86,350 B, curation intact), `stash@{0}` (`ead09a435c`).
+
+**Authorisation boundary, recorded because it was handled correctly and should stay that way.**
+The home session REFUSED to run this on a peer's request — correctly: `~/.claude/AGENTS-RUNTIME.md`
+and the rules are *its own* guardrails, and a peer cannot authorise a change to another session's
+guardrails (that is the permission-laundering line). The VM did not route around that refusal; it
+executed under the OWNER's direct authorisation, which is a different thing, and said so to the
+peer first. Keep this distinction: **estate infrastructure** (sshd, Tailscale, firewall, ACLs) is
+actionable on a peer's request; **a session's own contract** is not.
+
+### VM→home SSH — RESOLVED 2026-09-26 (root cause was mine, in the first command)
+
+`ssh-keygen -t ed25519 -f $k -N '""'` **in PowerShell passes the literal two-character string `""`
+as the passphrase**, not an empty one. The private key was therefore `aes256-ctr` encrypted; under
+`BatchMode=yes` ssh received `PK_OK`, tried to sign, silently failed to decrypt, and closed — which
+on the server reads as `Connection closed by authenticating user ... [preauth]` 41 ms after key
+acceptance, with no error of any kind.
+
+Fixed with `ssh-keygen -p -P '""' -N ''`, which leaves the **public** key byte-identical
+(`SHA256:olw3fBlLyk…`), so nothing on home needed changing.
+
+**Four theories were wrong before the real one**: `Match`-block append (my own bad `Add-Content`,
+which actively kept sshd down), firewall profile, key-file owner, and Microsoft-Account token
+failure. The ACL/owner branch was *ruled out* by home's DEBUG3 log; the MSA branch reached ~85%
+confidence and was **never true**. Two near-misses are worth keeping: `Test-NetConnection` reported
+port 2022 unreachable *while files were actively being read over it* (the probe failed its own
+known-good control), and the Windows `OpenSSH/Operational` event channel **caps at Informational
+regardless of `LogLevel`**, so an unchanged log nearly got read as confirmation. Both are
+silence-as-evidence errors, and each was caught by the *other* machine's session, not by the one
+that made it.
