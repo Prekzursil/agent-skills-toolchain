@@ -1,3 +1,16 @@
+# SCOPE (P2, 2026-09-25 audit) — READ THIS BEFORE EXPECTING THIS SCRIPT TO FREE RAM.
+#   This reaps ORPHANS ONLY and is BY CONSTRUCTION blind to live per-session duplication.
+#   $hostRootNames contains cmd/pwsh/powershell, and the real chain is
+#     claude.exe -> cmd.exe -> node npx-cli.js -> node <server>
+#   so essentially EVERY npx wrapper resolves to "live-root" and is permanently exempt.
+#   Measured on the VM 2026-09-25: 333 MCP-class processes holding 20.51 GB, of which ~97%
+#   are owned by 4 live claude.exe sessions and only ~10 are dead-parent. This script
+#   correctly finds ~2. That is not a bug in the policy — the policy is right and must NOT
+#   be loosened (a reaper already killed a live TUI; see docs/incidents/2026-08-29-*).
+#   It is the WRONG TOOL for that problem. For duplication use scripts/mcp_reap_duplicates.py.
+#   The real fix is process SHAPE (direct-interpreter / shared HTTP daemon, not cmd+npx) —
+#   see rules/common/mcp-process-hygiene.md. Reaping is not a substitute for it.
+#
 # Reap orphaned MCP-server processes whose root agent session is dead.
 # SAFE policy — a process is killed ONLY if ALL of the following hold:
 #   1. its ancestry chain never reaches a live agent/TUI/terminal root

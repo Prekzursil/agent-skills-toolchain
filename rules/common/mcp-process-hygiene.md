@@ -9,6 +9,25 @@ verified: 2026-09-25 (VM OFFLOAD-W2025); ports G-99 from home ~/AGENTS.md (2026-
 
 Every agent session instantiates the full global MCP registry (~80 servers → 60–100 processes, 10–25 GB commit). The box freezes on **COMMIT** (RAM + pagefile), not OOM. This is the rule the harness references but never had a file for — here it is.
 
+## Reaper registry (P3, 2026-09-25) — authoritative ONE PER CLASS
+
+There are two distinct problem classes and they need different tools. Four implementations
+existed with three incompatible safety policies; this is the declared set.
+
+| Class | Authoritative tool | Detects |
+|---|---|---|
+| **Orphans** (root session dead) | `scripts/reap_orphan_mcp.ps1` | ancestry chain reaching no live root |
+| **Duplication** (live, per-session pile-up) | `scripts/mcp_reap_duplicates.py` | process-pileup, independent of parentage |
+
+- `scripts/orphan_sweep.ps1` — **SUPERSEDED-BY** `reap_orphan_mcp.ps1` (same class, weaker policy).
+- `scripts/agentic-perfection/cursor-orphan-reaper.ps1` — **SUPERSEDED-BY** `reap_orphan_mcp.ps1`
+  (tool-specific case of the general orphan class; a retired copy already sits in `backups/`).
+
+**Reaping is NOT the cure.** Measured 2026-09-25: the VM held 333 MCP processes / 20.51 GB with
+only ~10 dead-parent, because ~97% belong to 4 live sessions — an orphan reaper is structurally
+incapable of helping. HOME, with the same registry but a shared-daemon shape (0 npx, 22 HTTP
+hubs), held 109 processes and 0 session-owned. **The cure is process SHAPE, not a bigger reaper.**
+
 ## Pre-flight (HARD — before ANY workflow / fleet / second session)
 - Run `scripts/mcp_ram_audit.ps1`. **If MCP-class procs > 150 OR free RAM < 4 GB → run `scripts/reap_orphan_mcp.ps1` FIRST.**
 - The reaper is SAFE: ancestry-chain kill only (dead-root ancestry), whitelists persistent daemons (mcp-hub / basic-memory / agent-mail / socat / auth2api / actions-runner / cc-gateway / zai-anon), conhost is never a victim, `-WhatIfOnly` dry-run available (hardened after the 2026-09-22 silent-kill audit).
