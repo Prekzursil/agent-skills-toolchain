@@ -10,7 +10,11 @@ function Test-SecretName([string]$path) {
     if ($low -like '*tokeniz*') { return $false }
     if ($low -eq 'local.json') { return $true }
     if ($low -match '\.(pem|key|p12|pfx)$') { return $true }
-    if ($low -like '*token*') { return $true }
+    if ($low -like '*token*') {
+        # Documentation ABOUT tokens (oauth flows, keyvault refs) is not a secret file.
+        if ($low -match '\.(md|markdown|mdx|rst|adoc|html?)$') { return $false }
+        return $true
+    }
     return $false
 }
 
