@@ -52,4 +52,37 @@ hubs), held 109 processes and 0 session-owned. **The cure is process SHAPE, not 
 - **354 MCP-class processes** (> 150), **`MCPOrphanReaper` task MISSING**, and the hub layer is **down**: `McpHub` SSE `:24680` and CyberStrike HTTP hubs `:31110–:31116` all refused. Backends are then unavailable (not context-inflating), but bring the hubs up via their start scripts when needed.
 - **`.mcp-disabled-defaults.json` lists `cloud-hub`/`social-hub` as parked/dead while both run live** — reconcile at USER scope (never per-tree copies), never destroy enabled/disabled state.
 
+## DOCTRINE LOCK — what "match HOME" does and does not mean (owner decision, 2026-09-25)
+
+**Match HOME on process SHAPE. Do NOT match HOME on the server LIST.**
+
+Measured the day this was written, from home's real `.claude.json` pulled over the tailgate —
+not inferred from process counts:
+
+| | HOME | VM |
+|---|---|---|
+| mcpServers | 28 | 88 |
+| http / npx / direct | 22 / **0** / 6 | 20 / 23 / 45 |
+| servers HOME has that the VM lacks | **0** | — |
+
+Home is a **strict SUBSET**, it was 38 commits behind, and it was BEHIND on the discipline
+layer (no §12, no five registers, 22 deployed rules vs 25). So "home has 0 npx" was never a
+better *wiring* — home simply does not run any of those 23 servers. There is nothing to copy.
+Home is a valid reference for **how many processes per server** and an INVALID reference for
+**what should exist**. Applied literally, "match HOME" would DELETE working capability.
+
+- The VM's **RE stack** (ghidra / ida / jadx / apktool / frida / angr / hexstrike) and
+  **research stack** (arxiv / crossref / openalex / pubmed / scholarly) are deliberate VM
+  specialisation and must survive a host move intact.
+- **Reachability is a SNAPSHOT, not a verdict.** The RE stack is *backend-on-demand* by design
+  (`~/.local/opt/re-harness/` starts those backends), so it reads "dead" while being perfectly
+  good. Classify every unreachable entry by WHY before deleting any:
+  `package-gone` → delete · `backend-on-demand` → KEEP + document the start procedure ·
+  `retired/superseded` → delete · `unknown` → QUARANTINE, never delete on a snapshot.
+- The hub-multiplex tier is **home-only and live there; absent here by design** — that is
+  doctrine, not a defect.
+- Instruments: `scripts/mcp_triage.py` (registered vs reachable vs at-home) and
+  `scripts/mcp_probe.py` (rung ladder — distinguishes *package-gone* from *backend-on-demand*,
+  because rung 1 answers "does the entrypoint exist" independently of whether it starts).
+
 Evidence: home ~/AGENTS.md G-99 (2026-09-20, measured 397 orphaned MCP procs / 115.8 GB thrash) + the verified 2026-09-25 audit. Sibling: `rules/common/context-reduction.md`.
