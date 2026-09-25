@@ -3,8 +3,10 @@ title: Web-search discipline — full-arsenal reach, not single-engine
 scope: common
 loads: on-demand (referenced from AGENTS-RUNTIME §12); read before any non-trivial research/lookup
 verified: 2026-09-25 (tool availability on this estate)
+paths:
+  - "**/.claude/**"
+  - "**/.agents/**"
 ---
-
 # Web-search discipline — full-arsenal reach
 
 **A single `web_search` is the floor, not the tool.** For any non-trivial question, fan out across the estate's search arsenal for coverage, then fuse + grade. One engine's index has blind spots; the point is reach and corroboration.

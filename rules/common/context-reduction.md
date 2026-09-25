@@ -3,8 +3,11 @@ title: Context / token-reduction discipline
 scope: common
 loads: on-demand (referenced from AGENTS-RUNTIME §12); read before workflow/fleet work, when a session feels bloated, or when tuning the harness
 verified: 2026-09-25 against code.claude.com/docs (context-window, costs, model-config) + platform.claude.com (prompt-caching, context-editing)
+paths:
+  - "**/.claude/**"
+  - "**/.agents/**"
+  - "**/*.jsonl"
 ---
-
 # Context / token-reduction discipline
 
 **Doctrine: the real levers are NATIVE and mostly already on. Codify habits + fix a few gaps. Adopt NOTHING heavy/external.** A big skill/MCP surface hurts BOTH cost AND quality (tool-mispick, lost-in-the-middle, latency, earlier autocompaction) — so this is a quality lever, not just a bill. Justify effort on *dilution + earlier autocompaction*, since prompt caching already mutes raw cost.

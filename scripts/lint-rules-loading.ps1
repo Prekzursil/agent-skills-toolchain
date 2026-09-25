@@ -38,9 +38,17 @@ $fail = 0
 foreach ($r in $rules) {
     $cited    = $contractText -match [regex]::Escape($r.Name)
     $deployed = Test-Path (Join-Path $Runtime $r.Name)
-    $status   = if ($cited -and $deployed) { 'OK  ' } else { 'FAIL' }
-    if (-not ($cited -and $deployed)) { $fail++ }
-    "  {0} {1,-32} cited={2,-5} deployed={3}" -f $status, $r.Name, $cited, $deployed
+    # LOADABLE is the third condition, and the one this lint originally missed.
+    # The loader keys off a `paths:` list in the frontmatter. A rule sitting in the right
+    # directory with the wrong frontmatter shape is DEPLOYED but INERT - which is how
+    # "the discipline rules now load" was claimed on 2026-09-25 while four of them
+    # (all authored that day) had no `paths:` key at all and never loaded once.
+    $head     = (Get-Content $r.FullName -TotalCount 14 -ErrorAction SilentlyContinue) -join "`n"
+    $loadable = $head -match '(?m)^paths:'
+    $ok       = $cited -and $deployed -and $loadable
+    $status   = if ($ok) { 'OK  ' } else { 'FAIL' }
+    if (-not $ok) { $fail++ }
+    "  {0} {1,-32} cited={2,-5} deployed={3,-5} loadable={4}" -f $status, $r.Name, $cited, $deployed, $loadable
 }
 
 # A rule CITED by section 12 that does not exist in the corpus is a dead pointer: the

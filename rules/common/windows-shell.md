@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*"
+---
+
 # Windows-Shell Footguns (non-negotiables)
 
 Cross-tool rule. Claude Code loads it automatically once `rules/common/` is installed
