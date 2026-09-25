@@ -1,0 +1,33 @@
+---
+title: MCP process & orphan hygiene (G-99)
+scope: common
+loads: on-demand (referenced from AGENTS-RUNTIME §12); read before ANY workflow/fleet/second-session launch
+verified: 2026-09-25 (VM OFFLOAD-W2025); ports G-99 from home ~/AGENTS.md (2026-09-20)
+---
+
+# MCP process & orphan hygiene (G-99)
+
+Every agent session instantiates the full global MCP registry (~80 servers → 60–100 processes, 10–25 GB commit). The box freezes on **COMMIT** (RAM + pagefile), not OOM. This is the rule the harness references but never had a file for — here it is.
+
+## Pre-flight (HARD — before ANY workflow / fleet / second session)
+- Run `scripts/mcp_ram_audit.ps1`. **If MCP-class procs > 150 OR free RAM < 4 GB → run `scripts/reap_orphan_mcp.ps1` FIRST.**
+- The reaper is SAFE: ancestry-chain kill only (dead-root ancestry), whitelists persistent daemons (mcp-hub / basic-memory / agent-mail / socat / auth2api / actions-runner / cc-gateway / zai-anon), conhost is never a victim, `-WhatIfOnly` dry-run available (hardened after the 2026-09-22 silent-kill audit).
+- **NEVER reap mid-fleet** — it will kill the live subagent/workflow processes of the run you are in.
+
+## RAM gates
+- **NO multi-agent fleets / Workflows while free RAM < 8 GB** (extends G-26/G-99 to Workflows).
+- **NEVER fix RAM or context by DISABLING MCP servers in configs — curation is load-bearing; reap ORPHANS instead.** Tool Search already de-fangs the *token* cost of idle connectors; what remains is processes + RAM + each server's instruction prose.
+
+## Automation
+- The **`MCPOrphanReaper`** scheduled task reaps every 30 min. If missing, re-register (elevated):
+  `Register-ScheduledTask -TaskName MCPOrphanReaper -Trigger (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Minutes 30)) -Action (New-ScheduledTaskAction -Execute pwsh.exe -Argument '-NoProfile -File C:\Users\Prekzursil\.agents\scripts\reap_orphan_mcp.ps1') -RunLevel Highest -Force`
+
+## Tool-Search killers (context blow-up, NOT RAM)
+- **A custom `ANTHROPIC_BASE_URL` disables Tool Search** → the whole deferred surface (~3000 tools here) loads UPFRONT. Gateway / GLM-plane / cc-529 / key-failover sessions are the risk. The SessionStart guard (`hooks/scripts/context-guard.ps1`) warns.
+- **`ENABLE_TOOL_SEARCH=auto:N` is context-window-relative** (`auto:5` = 5% of the window). On a 1M model that is ~50 K tokens, so a mid-size surface can silently load back upfront. Prefer explicit `ENABLE_TOOL_SEARCH=true`.
+
+## Known drift / health (VM, measured 2026-09-25)
+- **354 MCP-class processes** (> 150), **`MCPOrphanReaper` task MISSING**, and the hub layer is **down**: `McpHub` SSE `:24680` and CyberStrike HTTP hubs `:31110–:31116` all refused. Backends are then unavailable (not context-inflating), but bring the hubs up via their start scripts when needed.
+- **`.mcp-disabled-defaults.json` lists `cloud-hub`/`social-hub` as parked/dead while both run live** — reconcile at USER scope (never per-tree copies), never destroy enabled/disabled state.
+
+Evidence: home ~/AGENTS.md G-99 (2026-09-20, measured 397 orphaned MCP procs / 115.8 GB thrash) + the verified 2026-09-25 audit. Sibling: `rules/common/context-reduction.md`.
