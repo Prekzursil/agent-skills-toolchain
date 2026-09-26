@@ -1,0 +1,12 @@
+---
+title: CV programme decisions G-1 G-2 G-18 2026-09-24
+type: note
+permalink: main/projects/cv-programme-decisions-g-1-g-2-g-18-2026-09-24
+---
+
+- [decision] G-1 ANSWERED: the doctorate is a real commitment ("PhD clearly on the table, very much"). Commit to the supervisor path (two candidates contacted by ~December 2026, working relationship by February 2027). Owner will choose the supervisor himself.
+- [decision] G-18 OVERTURNED to SKIP. The queue recommended a conditional SemEval-2027 entry as the only reachable peer-reviewed item before July 2027. Owner rejected it: not interested in low-value publications, wants ambitious research only. The EVIDENCE SUPPORTS HIM: the lista lucrarilor is explicitly optional ("daca exista") and functions only as tie-break criterion (ii) between candidates with identical oral marks. The binding gate is the supervisor's written agreement. 80-200 hours returned to substantive work.
+- [decision] G-2 ANSWERED: owner chose "Master's student and researcher" as the leading identity, NOT the recommended agent-infrastructure engineer. Accepted with a flagged caveat: researcher-first is correct for the ACADEMIC document (now the first deliverable, needed for December supervisor outreach) but undersells for a Romanian junior JOB application, where one preprint plus one dataset deposit is unremarkable at master's level. Resolution: per-audience leads. Academic CV leads research; engineering resume leads engineering. This is tailoring, not inconsistency.
+- [fact] Build order consequence: the one-page research profile becomes deliverable #1, ahead of the ATS engineering resume.
+- [fact] Claude Design artifact "Resume design system" (published 2026-09-23) decoded: four round-one directions differing on type/color/density/hierarchy, A4 794x1123 with a paged shell planned for Letter, body 10-11pt. TWO conflicts with the research: every direction carries a prominent photo, and direction 1a is a tinted sidebar column (the verified parser-breaking pattern). Resolution: those four are round one for the DESIGNED human-read variant only; the parsed/submitted document needs a separate single-column photo-less template.
+- relates_to [[Harness reconcile offload-w2025 2026-09-23]]

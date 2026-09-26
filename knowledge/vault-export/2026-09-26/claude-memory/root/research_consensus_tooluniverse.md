@@ -1,0 +1,31 @@
+---
+name: research-consensus-tooluniverse
+description: The Consensus.app + ToolUniverse paper-harvesting workflow, skill, workspace,
+  and API keys for the user's neuropharmacology research
+metadata:
+  node_type: memory
+  type: project
+  originSessionId: 126d6934-5336-4c7d-a24b-5952329a3890
+permalink: main/claude-memory/root/research-consensus-tooluniverse
+---
+
+User's literature-research workflow (neuro/psychopharmacology + harm-reduction; "Focus on biochemistry").
+
+**Workspace** = `C:\Users\Prekzursil\Downloads\proof_empty` (repurposed as the MAIN research working space, 2026-06-06). Layout: `searches/<NN>_<topic>/` (each: `*_search.md` plain text, `papers.json`, `meta.json`, `papers/` PDFs+`references.md`, `graphs/`), `_library/` (deduped OA PDFs), `_bibliography/` (master_bibliography.{json,csv} + funnel), `INSTRUCTIONS/` (paste-ready AI-SCOPE/USER-SCOPE/EVIDENCE-GRADING/PAPER-RETRIEVAL-KEYS), `00_INDEX.md`, `00_BEST-METHOD.md`, `_workspace/` (the scripts).
+
+**Best method (proven):** Consensus searches are server-rendered — fetch the URL, parse `<script id="__NEXT_DATA__">` → `props.pageProps.thread.interactions[]`: `analysis`=source markdown, paper objects have `title/year/first_author/hash_paper_id` (NO DOI). Browser-free + deterministic. Then ToolUniverse resolves DOI (Crossref→OpenAlex, accept on title-sim+year+**author-surname**) → Unpaywall OA → tiered %PDF download. Consensus Meter = render-time (percentages only via Playwright `browser_evaluate`, not the payload; questions are in the markdown tags). Scripts: `extract_consensus.py`, `clean_markdown.py`, `resolve_and_download.py` (+ keyed `_v2`). Parameterized: `$CONSENSUS_WS`, `$UNPAYWALL_EMAIL`.
+
+**ToolUniverse** = `D:\ToolUniverse` (editable install, v1.2.2), venv `D:\ToolUniverse\.venv`. API: `tu=ToolUniverse(); tu.load_tools(); tu.run({"name":...,"arguments":...})` (NOT `use_cache=` — that arg drifted out). 2212 tools. Real tools: `Crossref_search_works`, `openalex_search_works`, `Unpaywall_get_full_text_url{doi,email}`, `EuropePMC_get_fulltext`. SemanticScholar 403/429 keyless. Config: `~/.tooluniverse/.env` (keys, gitignored) + `profile.yaml`. Keys read by env-var NAME. Sibling skills: `ddi-admet-research`, `mechanistic-ddi-pipeline`, `cheminformatics-rdkit`.
+
+**Skill** = `consensus-tooluniverse-research` in `agent-skills-toolchain` (manifest entry added; SKILL.md + scripts/ + references/{AI-SCOPE,USER-SCOPE,EVIDENCE-GRADING,BEST-METHOD,PAPER-RETRIEVAL-KEYS}). 3-lens adversarial-reviewed + revised (fixed: PII email scrub→env; hardcoded paths/URLs→args/env; T1 grading inverted clinical hierarchy→split human/animal/in-vitro in EVIDENCE-GRADING.md; iCite≠scite for stance; DOI author-acceptance; Consensus analysis = UNVERIFIED secondary).
+
+**API keys (in `~/.tooluniverse/.env`, gitignored, 2026-06-06):** UNPAYWALL_EMAIL, CORE_API_KEY, ELSEVIER_API_KEY, DOAJ_ID/DOAJ_API_KEY, ZENODO_TOKEN. **Elsevier API CONFIRMED returns entitled full-text PDFs** (`api.elsevier.com/content/article/doi/<DOI>` header `X-ELS-APIKey`, Accept application/pdf → real PDF for 10.1016 journals). CORE = `api.core.ac.uk/v3/search/works` Bearer key (thin for recent psych papers). v2 keyed recovery tiers: CORE→Elsevier→Zenodo→DOAJ→Unpaywall-retry. Pending optional: SPRINGER_API_KEY, SEMANTIC_SCHOLAR_API_KEY, NCBI_API_KEY. **User explicitly declined rotation (2026-06-06) — do NOT suggest rotating again.** Keys stored machine-wide (all-users Windows env) + `~/.tooluniverse/.env`. User's keys stay PRIVATE (never committed/echoed); skill reads names so others supply own.
+
+**⛔ HARD LINE — Sci-Hub/LibGen/SciDownl/scihub.py/Sci-Hub-MCP declined (copyright piracy).** Re-requested 2026-06-06 ("install at the very end the sci hub mcp") → **declined again, firm even on direct request.** Legit stack (CORE+Elsevier+Zenodo+DOAJ+Unpaywall) is the ceiling; piracy not installed/configured/documented. OA-only + rights-holder-sanctioned access only.
+
+**⛔ Bot-wall boundary (Exa/Tavily mop-up finding, 2026-06-06):** the "is_oa=true but no PDF" set fails on *fetch* (publisher Cloudflare bot-wall), not OA-status. Exa/Tavily search (allowlist `include_domains`: pmc/europepmc/core/doaj/arxiv/biorxiv/medrxiv/psyarxiv/osf) FINDS valid mirrors fine (found 64 for 156 blocked) — but **most PMC web copies are read-only, NOT in the redistributable PMC OA subset** (`oa.fcgi?id=PMCxxxx` → `idIsNotOpenAccess`), and the in-subset ones returned **stale FTP paths** (old `oa_pdf`/`oa_package` hrefs 404/550). Defeating the PMC web bot-wall = detection-evasion = same line as Sci-Hub → **don't**. Net mop-up yield = 1/64 (a medRxiv preprint). Lesson: the keyed-API set IS the legit ceiling; search is for a human read-list, not a bulk fetcher.
+
+**Funnel (FINAL 2026-06-06):** 506 unique → 496 DOI → 345 OA → **237 PDFs** (236 keyed-API + 1 Exa/Tavily mop-up = the full legitimately-fetchable set). By source: Unpaywall-v1 125, **Elsevier-entitled 91 (dominant keyed win)**, CORE 13, SemanticScholar-keyless 5, Springer-OA 1, Unpaywall-retry 1, mop-up-medRxiv 1. Remaining: 155 OA-but-bot-walled (⛔, OA URLs logged — see `_bibliography/_MOPUP-REPORT.md`), 104 paywalled (🔒 cite-only), 10 no-DOI. Scripts: `resolve_and_download.py`(v1) + `_v2`(CORE/Elsevier/Zenodo/DOAJ) + `resolve_v3_extra_sources`(SS-keyless/Springer/NCBI-PMC) + `finalize.py`. **Elsevier API = `api.elsevier.com/content/article/doi/<DOI>` X-ELS-APIKey + Accept application/pdf.**
+**Keys (13, in `~/.tooluniverse/.env` + machine-wide all-users env, NO rotation):** UNPAYWALL_EMAIL, CORE/ELSEVIER/DOAJ_ID+KEY/ZENODO, SPRINGER_API_KEY(+META), SEMANTIC_SCHOLAR_API_KEY (⚠️403 invalid→used KEYLESS), NCBI_API_KEY, FDA_API_KEY, UMLS_API_KEY. **SS provided key 403s; keyless SS endpoint works (200, openAccessPdf).** Springer OA API = Springer/Nature journals only. CSV locks if open in Excel (wrote `_FINAL.csv`). Keys pasted in chat (user declined rotation).
+
+The 5 searches: CBT/anxiety, global drug-overdose guidelines, fasoracetam/phenibut, binge behavior, fluoromethamphetamine neurotoxicity. Links in `00_INDEX.md`.
