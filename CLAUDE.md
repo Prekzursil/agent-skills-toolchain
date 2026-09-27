@@ -4,6 +4,24 @@
 @AGENTS-RUNTIME.md
 @C:/Users/Prekzursil/AGENTS.md
 
+# Compact instructions
+
+When compacting (auto-compaction near the limit, or a manual `/compact`), the summary MUST
+preserve - concrete enough to resume without re-deriving - these three lists, and drop
+restated background before ever dropping from them:
+
+- **Decisions made:** each settled choice + its one-line rationale, and options already
+  rejected (so they are not retried). Do not re-open a resolved question.
+- **Diffs / files changed:** exact paths created / edited / staged / committed this session,
+  one line each on what changed; keep commit SHAs and branch names verbatim.
+- **OPEN-LOOPS register:** every unresolved item with its owner and review-by (the live
+  state of `~/.agents/knowledge/OPEN-LOOPS.md`), plus in-flight TASKBOX work and any standing
+  DIRECTIVE not yet enforced. A loop cut from the summary is a loop abandoned
+  (AGENTS-RUNTIME 1c).
+
+Also keep verbatim: commands still to run, error text under investigation, and credential or
+variable NAMES (never values).
+
 ## Persistent Memory (basic-memory MCP)
 
 **SSOT:** `C:\Users\Prekzursil\.agents\memory-contract.md` — read it; do not duplicate.
