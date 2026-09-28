@@ -600,7 +600,9 @@ CURSOR_STDIO_BRIDGE = {
     ],
 }
 
-BASIC_MEMORY_URL = "http://127.0.0.1:18765/mcp"  # moved with the HTTP transport fix 2026-09
+BASIC_MEMORY_URL = (
+    "http://127.0.0.1:18765/mcp"  # moved with the HTTP transport fix 2026-09
+)
 BRIDGE_SCRIPT = r"C:\Users\Prekzursil\.agents\scripts\bm_cursor_http_session.py"
 
 
