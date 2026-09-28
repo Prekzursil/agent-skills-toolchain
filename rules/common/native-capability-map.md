@@ -1,3 +1,8 @@
+---
+paths:
+  - "**/*"
+---
+
 # Native Capability Map (always-on)
 
 Every session — main loop, workflow subagent, nested context — starts with the native

@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/.claude/**"
+  - "**/.agents/**"
+---
+
 # Harness version-control hygiene (non-negotiable)
 
 Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). Harness work that
