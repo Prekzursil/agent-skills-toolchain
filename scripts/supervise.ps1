@@ -100,6 +100,15 @@ param(
     [string]$PidFile,
     # Guard against pid reuse: the live pid must ALSO match this process-name regex.
     [string]$ProcessNameMatch,
+    # Pidfile-contract fallback (2026-09-28): for daemons that write no pidfile. With this
+    # switch AND no -PidFile configured, liveness = a process whose Name matches
+    # -FallbackMatch AND whose CommandLine contains the distinctive substring auto-derived
+    # from -StartArgs (the --port value when present). Only a needle match is ever adopted
+    # or stopped; a weak needle (<4 chars) or no usable StartArgs disables the fallback
+    # loudly and the unit reads DEAD, exactly as before.
+    [switch]$ProcessNameFallback,
+    # Process-name regex for the fallback scan. Defaults to -ProcessNameMatch when omitted.
+    [string]$FallbackMatch,
 
     # --- READINESS: is it serving? -----------------------------------------------------
     # Contract (exit code): 0=READY 1=SELF-FAULT(restartable) 2=DEPENDENCY 3=WARMUP
@@ -292,23 +301,99 @@ function Test-SupBudgetExceeded {
 # ======================================================================================
 # (a) liveness and readiness
 # ======================================================================================
+function Get-SupFallbackNeedle {
+    # The distinctive substring that separates OUR daemon from an unrelated same-name
+    # process - pidfile-less units have nothing else to go on. Derived from -StartArgs:
+    # (1) the value of a flag named exactly -p/-port/--port (the canonical case: a
+    # '--port 18765' listener), (2) else the LAST flag->value pair (per-instance paths
+    # such as a heartbeat file), (3) else the last bare argument. '' = no usable needle;
+    # the fallback then refuses to fire rather than bare-name-match (that is how
+    # unrelated same-name processes get adopted and killed).
+    if (-not ($StartArgs -and @($StartArgs).Count)) { return '' }
+    $pairs = @()
+    $n = @($StartArgs).Count
+    for ($i = 0; $i -lt $n; $i++) {
+        $a = [string]$StartArgs[$i]
+        if ($a -match '^(--?[^\s=]+)$' -and ($i + 1) -lt $n) {
+            $nxt = [string]$StartArgs[$i + 1]
+            if ($nxt -notmatch '^-') { $pairs += [pscustomobject]@{ Flag = $Matches[1]; Value = $nxt } }
+        }
+    }
+    if ($pairs.Count) {
+        $pp = @($pairs | Where-Object { $_.Flag -match '^(-p|--?port)$' })
+        if ($pp.Count) { return [string]$pp[0].Value }
+        return [string]$pairs[-1].Value
+    }
+    $bare = @(@($StartArgs) | Where-Object { ([string]$_) -notmatch '^-+$' })
+    if ($bare.Count) { return [string]$bare[-1] }
+    return ''
+}
+
 function Get-SupLivePid {
     # Returns the pid if the unit is LIVE, else $null. Pid-reuse-guarded.
-    if (-not $PidFile) { return $null }
-    if (-not (Test-Path -LiteralPath $PidFile)) { return $null }
-    $txt = ''
-    try { $txt = (Get-Content -LiteralPath $PidFile -Raw -ErrorAction Stop).Trim() } catch { return $null }
-    $thePid = 0
-    if (-not [int]::TryParse($txt, [ref]$thePid) -or $thePid -le 0) { return $null }
-    $p = Get-Process -Id $thePid -ErrorAction SilentlyContinue
-    if (-not $p) { return $null }
-    if ($ProcessNameMatch -and ($p.ProcessName -notmatch $ProcessNameMatch)) {
-        # pid reuse: the slot is occupied by something else entirely. NOT our unit, and
-        # emphatically not something to kill.
-        Write-SupEvent 'WARN' "pid $thePid is '$($p.ProcessName)', not matching /$ProcessNameMatch/ - treating unit as DEAD and NOT touching that process"
+    #
+    # Canonical path: the pidfile. While -PidFile is configured its verdict is UNAMBIGUOUS:
+    # a missing/stale pidfile means DEAD (that signal drives the restart), and a live pid
+    # whose name does not match -ProcessNameMatch is pid reuse - NOT ours, NOT to be touched.
+    #
+    # Fallback path (opt-in, pidfile-contract fix 2026-09-28): daemons that write no pidfile
+    # used to be invisible here, so a healthy daemon was judged DEAD every tick and
+    # restarted into duplicates. With -ProcessNameFallback AND no -PidFile configured,
+    # liveness = a process whose Name matches -FallbackMatch (default -ProcessNameMatch)
+    # whose CommandLine contains the needle derived from -StartArgs. Name alone is NEVER
+    # enough: only a needle match may be adopted, stopped, or counted as liveness.
+    if ($PidFile) {
+        if (-not (Test-Path -LiteralPath $PidFile)) { return $null }
+        $txt = ''
+        try { $txt = (Get-Content -LiteralPath $PidFile -Raw -ErrorAction Stop).Trim() } catch { return $null }
+        $thePid = 0
+        if (-not [int]::TryParse($txt, [ref]$thePid) -or $thePid -le 0) { return $null }
+        $p = Get-Process -Id $thePid -ErrorAction SilentlyContinue
+        if (-not $p) { return $null }
+        if ($ProcessNameMatch -and ($p.ProcessName -notmatch $ProcessNameMatch)) {
+            # pid reuse: the slot is occupied by something else entirely. NOT our unit, and
+            # emphatically not something to kill.
+            Write-SupEvent 'WARN' "pid $thePid is '$($p.ProcessName)', not matching /$ProcessNameMatch/ - treating unit as DEAD and NOT touching that process"
+            return $null
+        }
+        return $thePid
+    }
+    if (-not $ProcessNameFallback) { return $null }
+    $fbName = if ($FallbackMatch) { $FallbackMatch } else { $ProcessNameMatch }
+    if (-not $fbName) {
+        Write-SupEvent 'WARN' 'ProcessNameFallback requested but neither -FallbackMatch nor -ProcessNameMatch is set - fallback disabled, unit reads DEAD'
         return $null
     }
-    $thePid
+    $needle = Get-SupFallbackNeedle
+    if (-not $needle) {
+        Write-SupEvent 'WARN' 'ProcessNameFallback requested but no needle derivable from -StartArgs - fallback disabled, unit reads DEAD'
+        return $null
+    }
+    if ($needle.Length -lt 4) {
+        Write-SupEvent 'WARN' "ProcessNameFallback needle '$needle' is too weak (<4 chars) - refusing a bare name scan that could adopt an unrelated same-name process"
+        return $null
+    }
+    $found = 0
+    try {
+        foreach ($ci in @(Get-CimInstance -ClassName Win32_Process -ErrorAction SilentlyContinue)) {
+            if ([int]$ci.ProcessId -eq $PID) { continue }   # never find ourselves
+            $nm = [IO.Path]::GetFileNameWithoutExtension([string]$ci.Name)
+            if ($nm -notmatch $fbName) { continue }
+            $cl = [string]$ci.CommandLine
+            if (-not $cl) { continue }
+            if ($cl.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) { continue }
+            $found = [int]$ci.ProcessId
+            break
+        }
+    } catch {
+        Write-SupEvent 'WARN' "ProcessNameFallback scan failed ($($_.Exception.Message)) - unit reads DEAD this tick"
+        return $null
+    }
+    if ($found -gt 0) {
+        Write-SupEvent 'INFO' "FOUND-BY-FALLBACK pid=$found (name /$fbName/ + needle '$needle')"
+        return $found
+    }
+    return $null
 }
 
 function Invoke-SupReadiness {

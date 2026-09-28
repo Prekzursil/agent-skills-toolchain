@@ -79,7 +79,8 @@ function New-UnitParams {
     param(
         [string]$N, [switch]$Mute, [int]$ExitAfterSec = 0, [string]$ForceExit,
         [string]$Protected = '^(claude|node|python)$',
-        [int]$Warmup = 3, [int]$Strikes = 3, [int]$MaxR = 5, [int]$Base = 50, [int]$Cap = 200
+        [int]$Warmup = 3, [int]$Strikes = 3, [int]$MaxR = 5, [int]$Base = 50, [int]$Cap = 200,
+        [switch]$NoPidFile, [switch]$Fallback
     )
     $pidF = Join-Path $WorkDir "$N.pid"
     $hbF = Join-Path $WorkDir "$N.hb"
@@ -92,10 +93,10 @@ function New-UnitParams {
     if ($ExitAfterSec -gt 0) { $sa += @('-ExitAfterSec', [string]$ExitAfterSec) }
     $ra = @('-NoProfile', '-File', $PB, '-HeartbeatFile', $hbF)
     if ($ForceExit) { $ra += @('-ForceExit', $ForceExit) }
-    @{
+    $h = @{
         Name = $N; Once = $true
         StateRoot = $StateDir; EvidenceRoot = $EvDir
-        PidFile = $pidF; ProcessNameMatch = '^pwsh$'; ProtectedNameMatch = $Protected
+        ProcessNameMatch = '^pwsh$'; ProtectedNameMatch = $Protected
         StartCommand = 'pwsh'; StartArgs = $sa
         ReadinessCommand = 'pwsh'; ReadinessArgs = $ra
         LogFile = $logF; LogTailLines = 50
@@ -104,6 +105,9 @@ function New-UnitParams {
         BackoffBaseMs = $Base; BackoffCapMs = $Cap
         _pidFile = $pidF   # harness-only; stripped before dispatch
     }
+    if (-not $NoPidFile) { $h.PidFile = $pidF }   # omitted => canonical liveness has nothing to read
+    if ($Fallback) { $h.ProcessNameFallback = $true }
+    $h
 }
 function Get-Dispatch { param([hashtable]$P) $c = @{}; foreach ($k in $P.Keys) { if (-not $k.StartsWith('_')) { $c[$k] = $P[$k] } }; $c }
 
@@ -354,6 +358,94 @@ $q2 = (@(Get-Backoffs 't-bo-s2') | ForEach-Object { $_.J }) -join ','
 $qu = (@(Get-Backoffs 't-bo-u1') | ForEach-Object { $_.J }) -join ','
 Add-Result 'C8.4' 'seeded jitter reproduces; unseeded does not repeat it' 'seed7 == seed7 AND unseeded != seed7' `
     "seed7a=[$q1] seed7b=[$q2] unseeded=[$qu]" ($q1 -ne '' -and $q1 -eq $q2 -and $qu -ne $q1)
+
+# ======================================================================================
+Write-Host "`nC9  PROCESSNAME-FALLBACK - pidfile-less liveness by name+needle (2026-09-28)"
+# ======================================================================================
+# The pidfile-contract mismatch: a daemon that writes no pidfile is INVISIBLE to the
+# canonical liveness path, so a healthy unit reads DEAD every tick and gets restarted into
+# duplicates. Fallback mode fixes it with a name+needle scan whose needle is derived from
+# -StartArgs; here that is the LAST flag->value pair, the per-unit heartbeat path, which
+# only OUR unit's command line carries - a same-name process without it must never match.
+
+# C9.1  pin the defect first: no pidfile, no fallback -> an ALIVE unit is judged DEAD
+$ub = New-UnitParams -N 't-fbnone' -ExitAfterSec 6 -NoPidFile
+[void](Invoke-Sup (Get-Dispatch $ub))
+Start-Sleep -Seconds 2
+$b1 = Invoke-Sup (Get-Dispatch $ub)      # unit is alive (6s lifetime) but invisible
+$script:Spawned += (Read-UnitPid $ub._pidFile)
+Add-Result 'C9.1' 'WITHOUT fallback a pidfile-less ALIVE unit is misjudged DEAD and restarted (the defect)' `
+    'verdict=DEAD action=restarted churn=2 although the unit pid is alive' `
+    "verdict=$($b1.Verdict) action=$($b1.Action) churn=$($b1.Churn)" `
+    ($b1.Verdict -eq 'DEAD' -and $b1.Action -eq 'restarted' -and $b1.Churn -eq 2)
+
+# C9.2  WITH -ProcessNameFallback the pidfile-less unit is found by name+needle and left alone
+$uf = New-UnitParams -N 't-fb' -Fallback -NoPidFile
+[void](Invoke-Sup (Get-Dispatch $uf))
+Start-Sleep -Seconds 2
+$fpid = Read-UnitPid $uf._pidFile
+$script:Spawned += $fpid
+$f2 = Invoke-Sup (Get-Dispatch $uf)
+$fbLog = Get-Txt (Join-Path $StateDir 't-fb.events.log')
+Add-Result 'C9.2' 'WITH fallback the pidfile-less unit is FOUND-BY-FALLBACK and HEALTHY, no restart' `
+    "verdict=HEALTHY action=none churn=1 and the log names FOUND-BY-FALLBACK pid=$fpid" `
+    "verdict=$($f2.Verdict) action=$($f2.Action) churn=$($f2.Churn) alive=$(Test-Alive $fpid)" `
+    ($f2.Verdict -eq 'HEALTHY' -and $f2.Action -eq 'none' -and $f2.Churn -eq 1 -and `
+        ($fbLog -match "FOUND-BY-FALLBACK pid=$fpid\b") -and (Test-Alive $fpid))
+try { Stop-Process -Id $fpid -Force -ErrorAction SilentlyContinue } catch { }
+
+# C9.3  needle specificity: a same-name foreign process WITHOUT our needle is never adopted
+$foreignPidF = Join-Path $WorkDir 't-fb-foreign.pid'
+$foreignHbF = Join-Path $WorkDir 't-fb-foreign.hb'
+$fp = Start-Process pwsh -ArgumentList @('-NoProfile', '-File', $TP, '-PidFile', $foreignPidF, '-HeartbeatFile', $foreignHbF, '-Mute') -WindowStyle Hidden -PassThru
+$script:Spawned += $fp.Id
+Start-Sleep -Milliseconds 800
+$ug = New-UnitParams -N 't-fb2' -Fallback -NoPidFile
+[void](Invoke-Sup (Get-Dispatch $ug))
+Start-Sleep -Seconds 2
+$gpid = Read-UnitPid $ug._pidFile
+$script:Spawned += $gpid
+Stop-Process -Id $gpid -Force            # the unit dies; the foreign same-name pwsh stays alive
+Start-Sleep -Milliseconds 800
+$g2 = Invoke-Sup (Get-Dispatch $ug)
+Start-Sleep -Seconds 2
+$gpid2 = Read-UnitPid $ug._pidFile
+$script:Spawned += $gpid2
+Add-Result 'C9.3' 'a same-name process WITHOUT the needle is NOT adopted (unit reads DEAD and restarts)' `
+    'verdict=DEAD action=restarted; foreign pid untouched and alive; new pid differs from foreign pid' `
+    "verdict=$($g2.Verdict) action=$($g2.Action) foreign=$($fp.Id) foreignAlive=$(Test-Alive $fp.Id) new=$gpid2 alive=$(Test-Alive $gpid2)" `
+    ($g2.Verdict -eq 'DEAD' -and $g2.Action -eq 'restarted' -and (Test-Alive $fp.Id) -and `
+        $gpid2 -ne $fp.Id -and $gpid2 -ne $gpid -and (Test-Alive $gpid2))
+
+# C9.4  the kill guard still owns a fallback-found pid: protected name => stop REFUSED
+$up = New-UnitParams -N 't-fbguard' -Fallback -NoPidFile -Protected '^pwsh$' -ForceExit '1' -Warmup 0 -Strikes 1 -MaxR 9
+[void](Invoke-Sup (Get-Dispatch $up))
+Start-Sleep -Seconds 2
+$ppid = Read-UnitPid $up._pidFile
+$script:Spawned += $ppid
+$p2 = Invoke-Sup (Get-Dispatch $up)
+$pgLog = Get-Txt (Join-Path $StateDir 't-fbguard.events.log')
+Add-Result 'C9.4' 'stop-refusal still refuses a fallback-FOUND protected same-name process' `
+    'action=stop-refused with FOUND-BY-FALLBACK logged, pid still alive, churn unchanged' `
+    "action=$($p2.Action) verdict=$($p2.Verdict) churn=$($p2.Churn) alive=$(Test-Alive $ppid)" `
+    ($p2.Action -eq 'stop-refused' -and $p2.Churn -eq 1 -and ($pgLog -match 'FOUND-BY-FALLBACK') -and `
+        ($pgLog -match 'REFUSING to stop') -and (Test-Alive $ppid))
+try { Stop-Process -Id $ppid -Force -ErrorAction SilentlyContinue } catch { }
+
+# C9.5  precedence: while -PidFile IS configured the canonical path wins and the fallback stays
+# inert - a configured-but-live pidfile must never be second-guessed by a name scan
+$ur = New-UnitParams -N 't-fbpid' -Fallback      # PidFile present AND fallback requested
+[void](Invoke-Sup (Get-Dispatch $ur))
+Start-Sleep -Seconds 2
+$rpid = Read-UnitPid $ur._pidFile
+$script:Spawned += $rpid
+$r2 = Invoke-Sup (Get-Dispatch $ur)
+$rpLog = Get-Txt (Join-Path $StateDir 't-fbpid.events.log')
+Add-Result 'C9.5' 'a configured pidfile outranks the fallback (canonical path, fallback inert)' `
+    'verdict=HEALTHY churn=1 and NO FOUND-BY-FALLBACK line while the pidfile is configured' `
+    "verdict=$($r2.Verdict) action=$($r2.Action) churn=$($r2.Churn)" `
+    ($r2.Verdict -eq 'HEALTHY' -and $r2.Action -eq 'none' -and $r2.Churn -eq 1 -and -not ($rpLog -match 'FOUND-BY-FALLBACK'))
+try { Stop-Process -Id $rpid -Force -ErrorAction SilentlyContinue } catch { }
 
 # ======================================================================================
 foreach ($q in $script:Spawned) { try { Stop-Process -Id $q -Force -ErrorAction SilentlyContinue } catch { } }
