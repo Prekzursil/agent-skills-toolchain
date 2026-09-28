@@ -1669,8 +1669,19 @@ jobs:
           # the box this was verified from, and pinning the gate to an interpreter the suite
           # was never run under would make its first execution the experiment.
           python-version: "3.12"
-      - name: gate-tests-coverage platform (pinned deps)
-        run: pip install pytest==8.3.3 jsonschema==4.25.1 cffi
+      - name: gate-tests-coverage platform (isolated venv, pinned deps)
+        run: |
+          # Isolated venv, NOT the shared runner interpreter. A self-hosted runner's
+          # site-packages persist across jobs; a stale/half-installed `referencing` there made
+          # every schema $ref in platform/ resolve as Unresolvable
+          # (https://schema.ast-integrate.local/work-unit/1.0.0 and its $defs) and 463 tests
+          # failed, while a clean install of these EXACT pins resolved them (verified on py3.12).
+          # `--no-cache-dir` also bypasses a poisoned wheel cache, and `referencing` is pinned so
+          # the offline registry retrieve callback in platform/lib/wfdsl/schemas.py is
+          # deterministic. The three steps below all run through this venv's interpreter.
+          python -m venv "$RUNNER_TEMP/platform-venv"
+          "$RUNNER_TEMP/platform-venv/bin/pip" install --no-cache-dir --disable-pip-version-check \
+            pytest==8.3.3 jsonschema==4.25.1 referencing==0.37.0 cffi
       # Collection is asserted SEPARATELY and first. Three of the four fresh-clone rounds above
       # failed at COLLECTION, not on an assertion, and a bare `pytest` reports that as a generic
       # non-zero exit. Failing here names the cause instead: an import or data dependency is
@@ -1683,9 +1694,11 @@ jobs:
       # a normal run passes so the floor is not a nuisance gate, and a collection ERROR counts as
       # zero rather than as a healthy small suite.
       - name: gate-tests-coverage platform (collection floor)
-        run: python tools/measure-guard/suitefloor.py --suite platform
+        run: |
+          "$RUNNER_TEMP/platform-venv/bin/python" tools/measure-guard/suitefloor.py --suite platform
       - name: gate-tests-coverage platform (suite)
-        run: python -m pytest platform -q -p no:cacheprovider
+        run: |
+          "$RUNNER_TEMP/platform-venv/bin/python" -m pytest platform -q -p no:cacheprovider
 
   sast:
     name: gate-sast (opengrep)
@@ -1722,14 +1735,18 @@ jobs:
       # charter check in .quality/charter_check.sh maps them to the same declared slug.
       - name: gate-sast opengrep install (infrastructure failure, not a finding)
         run: |
+          # $RUNNER_TEMP, not /usr/local/bin: a self-hosted runner's job user need not own
+          # /usr/local/bin, and `curl -o /usr/local/bin/opengrep` there dies with
+          # `curl (23) Failure writing output to destination` -- the install half failing, not a
+          # finding. $RUNNER_TEMP is always writable by the job on GitHub and self-hosted alike.
           curl -fsSL --retry 5 --retry-all-errors --retry-delay 3 \
-            -o /usr/local/bin/opengrep \
+            -o "$RUNNER_TEMP/opengrep" \
             https://github.com/opengrep/opengrep/releases/download/v1.23.0/opengrep_manylinux_x86
-          chmod +x /usr/local/bin/opengrep
-          test -s /usr/local/bin/opengrep
+          chmod +x "$RUNNER_TEMP/opengrep"
+          test -s "$RUNNER_TEMP/opengrep"
       - name: gate-sast opengrep scan (curated in-repo ruleset)
         run: |
-          opengrep scan --config .quality/opengrep --error \
+          "$RUNNER_TEMP/opengrep" scan --config .quality/opengrep --error \
             --exclude node_modules --exclude .venv --exclude vendor \
             --exclude dist --exclude out --exclude build .
 
@@ -1746,46 +1763,33 @@ jobs:
       # Gate 5 — secret scan over full history, honoring the committed .gitleaks.toml
       # allowlist (owner-intentional private-env store + reasoned doc/fixture placeholders).
       # New real secrets outside those explicit paths still fail the gate.
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          # Pin gitleaks to a version that HONORS the committed .gitleaks.toml plural
-          # [[allowlists]] path waivers. The action's default (8.24.3) does NOT apply
-          # plural allowlist path waivers (see the .gitleaks.toml history note), so the
-          # synthetic FAKE secret fixtures under the allowlisted test paths (incl.
-          # agent-self/harness/tests/) false-flag the gate. 8.30.1 is verified to report
-          # 0 leaks over this tree with the same committed config.
-          GITLEAKS_VERSION: "8.30.1"
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
-          # gitleaks-action needs GITHUB_TOKEN to enumerate PR commits on pull_request
-          # events (push works without it); without it the gate hard-fails on every PR.
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # The step above CANNOT be the gate's verdict on a pull_request, because the action
-      # picks its own revision range and that range is TRUNCATED. At the pinned v3.0.0,
-      # src/gitleaks.js:160-167 (and the executed bundle dist/index.js) issue exactly ONE
-      # `GET /repos/{owner}/{repo}/pulls/{pull_number}/commits` with no `per_page`/`page`
-      # and never call `octokit.paginate` (measured: 0 call sites in src/ and dist/). It
-      # then takes `headRef = commits.data[commits.data.length - 1].sha` — i.e. the last
-      # SHA of page 1. GitHub's default page size for that endpoint is 30 (measured live:
-      # gitleaks-action PR 64 returns 30 items plus a `Link: …; rel="next"`), so on a PR
-      # with more than 30 commits gitleaks is handed `base^..<commit-30>` and NEVER SEES
-      # commits 31+. A secret introduced in commit 31 leaves this job green.
-      # There is no configuration fix: the action's only range knob is `BASE_REF`, and
-      # src/gitleaks.js:174-178 applies it to `baseRef` ONLY — the truncated head end
-      # cannot be overridden. `fetch-depth: 0` above makes the objects local but does not
-      # repair the range the action chose.
-      # So the VERDICT comes from this range-independent scan instead: the same pinned
-      # binary and the same committed .gitleaks.toml, over the FULL local history, which
-      # is what the "Gate 5" comment above has always claimed. On a pull_request the
-      # checkout is the merge revision, so every PR commit is an ancestor of HEAD and is
-      # covered regardless of commit count. Re-measured on main @ dab44ba with the same
-      # pinned 8.30.1 binary: 422 commits scanned, ~97 MB, "no leaks found", exit 0, 23s —
-      # so this step does not turn an already-green history red.
       #
-      # A release tarball fetched by `curl` is not covered by the "all actions are
-      # SHA-pinned" rule at the top of this file, so it carries its own digest. The
-      # expected sha256 was taken from the release's own checksums.txt AND independently
-      # recomputed from the downloaded artifact (both = 551f6fc8…). Bumping
-      # GITLEAKS_VERSION therefore REQUIRES bumping GITLEAKS_SHA256 in the same edit.
+      # The verdict is a SINGLE range-independent scan: the pinned gitleaks binary over the
+      # FULL local history with the committed .gitleaks.toml. A `gitleaks/gitleaks-action`
+      # step used to run first but was NEVER the verdict, and is now removed. Two independent
+      # reasons:
+      #   1. Truncated range. At the pinned v3.0.0 the action issues exactly ONE unpaginated
+      #      `GET /repos/{owner}/{repo}/pulls/{pull_number}/commits` and takes the last SHA of
+      #      page 1 as its head endpoint (src/gitleaks.js:160-178; same in the executed
+      #      dist/index.js; `octokit.paginate` has 0 call sites). GitHub's default page size is
+      #      30, so on a PR with >30 commits it stops at commit 30 and a secret added in commit
+      #      31 is never assessed while the job exits 0. Its only range knob (BASE_REF) moves
+      #      the base end only, so no configuration of the action fixes it.
+      #   2. Install-half fragility. The action's bundled installer downloads gitleaks to a
+      #      HARDCODED /tmp path; on a self-hosted runner whose job user cannot write there it
+      #      fails the whole job before scanning (`/tmp/gitleaks.tmp already exists` /
+      #      `Cannot mkdir: Permission denied`) -- an infrastructure failure indistinguishable
+      #      at job level from a real finding. The scan below owns its download under
+      #      $RUNNER_TEMP, so it does not share that fate.
+      # On a pull_request the checkout is the merge revision, so every PR commit is an ancestor
+      # of HEAD and is covered regardless of commit count. Re-measured on main @ dab44ba with
+      # the pinned 8.30.1 binary: 422 commits, ~97 MB, "no leaks found", exit 0, 23s.
+      #
+      # A release tarball fetched by `curl` is not covered by the "all actions are SHA-pinned"
+      # rule at the top of this file, so it carries its own digest. The expected sha256 was
+      # taken from the release's own checksums.txt AND independently recomputed from the
+      # downloaded artifact (both = 551f6fc8…). Bumping GITLEAKS_VERSION therefore REQUIRES
+      # bumping GITLEAKS_SHA256 in the same edit.
       - name: gate-secrets full-history scan (range-independent)
         env:
           GITLEAKS_VERSION: "8.30.1"
