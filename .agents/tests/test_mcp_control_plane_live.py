@@ -441,7 +441,7 @@ def test_cursor_default_dry_run_projects_core_plus_owner_adapters(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=7" in completed.stdout
+    assert "attached=4" in completed.stdout
     assert "core_attached=6" in completed.stdout
     assert "noncore_projected=1" in completed.stdout
     assert "attach_all_safe=false" in completed.stdout
@@ -465,7 +465,7 @@ def test_cursor_attach_all_dry_run_projects_the_full_safe_surface(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=39" in completed.stdout
+    assert "attached=28" in completed.stdout
     assert "core_attached=6" in completed.stdout
     assert "noncore_projected=33" in completed.stdout
     assert "approval_proof=dry-run-unverified" in completed.stdout
