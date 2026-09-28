@@ -46,18 +46,22 @@ then tick it here).
 
 - [x] **6. RESOLVED 2026-09-24 — fully, from the thesis PDF itself.** Graduation June 2025; media generala 8.28 (years 8.46/8.26/8.12); media licenta 7.30; 180 ECTS; Faculty of Informatics; programme Informatica; full-time. **Thesis: "Aplicatie de Management Financiar"**, supervisor **Conf. univ. dr. Marinela Nidelea**, session June/July 2025, 54pp, signed 2025-06-12. Repository: `github.com/Prekzursil/Personal-Finance-Management`. Filed at `~/Documents/personal-records/02-education/2025-licenta-titu-maiorescu/`.
 
-- [ ] **7. Babes-Bolyai (2021–2022, incomplete, no degree) — list it or not?**
-  Currently `include_ubb: false` on **every** view pending this decision. If listed, the
-  "not completed, no degree awarded" wording is mandatory everywhere; an unqualified line reads
-  as a second degree. Listing it explains the gap year honestly; omitting it is also defensible.
-  *Blocks:* nothing technically, but the answer changes every dated document, so it is cheaper
-  to settle before rendering.
+- [x] **7. RESOLVED 2026-09-24 — OMIT entirely, including the academic CV.** ~~Babes-Bolyai (2021–2022, incomplete, no degree) — list it or not?~~
+  `x_listing_decision: OMIT` is now recorded in `profile.yaml`. `include_ubb: false` on every
+  view is unchanged, but it is now a **decision** rather than a default — that distinction is
+  the whole point of the edit, since a default that happens to match is not a settled question.
+  The owner accepted the stated trade-off: 2021-2022 is left unaccounted for and doctoral
+  timelines get scrutinised; if a reviewer asks, he answers in person. Not to be re-litigated.
+  The entry stays in the file so a reversal stays cheap.
   → `education[Universitatea Babes-Bolyai].x_listing_decision`
 
-- [ ] **8. English — exact CEFR level (C1 or C2), and any certificate to cite.**
-  Currently rendered as "Advanced" with no CEFR code. *Blocks:* the Europass language grid,
-  which requires a level; and an unevidenced "C2" is precisely the kind of claim this system
-  exists to prevent.
+- [x] **8. RESOLVED 2026-09-24 — C2, no certificate cited.** ~~English — exact CEFR level (C1 or C2), and any certificate to cite.~~
+  `fluency: "C2"` with `x_provenance: OWNER-STATED` is now in `profile.yaml`, unblocking the
+  Europass language grid. The level renders **alone** and never as a certified, examined or
+  accredited claim; where a surface demands an awarding body, the honest answer is
+  "self-assessed against the CEFR scale", not a named exam. Note the original guard here read
+  "never claim C2 unevidenced" — that guard was about *inventing* a level, and an owner
+  statement is evidence of a different tier, not an absence of one.
   → `languages[English]`
 
 - [ ] **9. (Process, not data) Supervisor choice and the written agreement.**
@@ -77,12 +81,16 @@ then tick it here).
   automation, and an accounting-ready data pipeline (decision **G-19**). Do **not** re-open
   version A vs version B, and do not seek a REGES record — the work was unregistered, so none
   exists.
-  What is still missing is only the **end month**. The owner gave a *duration*, not an end date.
-  About two years from May 2021 rules version A's Jul-2022 end out and places the end somewhere
-  in **2023**, but that is **INFERRED** and must not be typed into `endDate`.
-  *Blocks:* **the render still fails closed on the date.** `endDate` remains the literal string
-  `TODO-CONFIRM` on purpose, so no document can ship a guessed date; the duration renders as
-  prose ("about two years, on and off") in the first highlight instead.
+  **This paragraph was stale and is corrected 2026-09-26.** It still described the state BEFORE
+  the owner gave the end month, and so contradicted this item's own header. Current truth:
+  `profile.yaml` carries `startDate: "2021-05"` / `endDate: "2023-06"`, and the render no longer
+  fails closed on the date. Provenance is **OWNER-STATED, not documented** — the work was
+  unregistered, so no REGES record exists and none should be sought.
+  Kept for history, since knowing why a field was once deliberately blank matters: previously the
+  end month was INFERRED only (about two years from May 2021 ruled out version A's Jul-2022 end
+  and placed it somewhere in 2023), so `endDate` deliberately held the literal string
+  `TODO-CONFIRM` to stop any document shipping a guessed date, and the duration rendered as prose
+  ("about two years, on and off") in the first highlight instead.
   → `work[DINUPLAST SRL].endDate`, `work[DINUPLAST SRL].x_dates_note`
 
 - [ ] **11. momentstudio.ro — engagement start and end dates.**

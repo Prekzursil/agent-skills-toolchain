@@ -24,6 +24,7 @@ would put a false claim in front of an employer or a doctoral committee:
 
 from __future__ import annotations
 
+import copy
 import re
 import sys
 from pathlib import Path
@@ -117,15 +118,53 @@ def test_bare_year_stays_a_year():
     assert emit._date("2022-09") == "2022-09"
 
 
-def test_contradictory_end_date_does_not_become_present(profile, spec, design):
-    doc = _doc(profile, spec, design)
+def _dinuplast(doc):
     exp = doc["cv"]["sections"].get("Professional experience", [])
-    dinuplast = [e for e in exp if "DINUPLAST" in str(e.get("company", ""))]
-    assert dinuplast, "DINUPLAST should render on the academic CV"
-    entry = dinuplast[0]
-    assert entry.get("end_date") != "present"
-    assert "TODO" in str(entry.get("date", "")), \
-        "an unresolved end date must render as a TODO span, not as an open engagement"
+    hits = [e for e in exp if "DINUPLAST" in str(e.get("company", ""))]
+    assert hits, "DINUPLAST should render on the academic CV"
+    return hits[0]
+
+
+def test_resolved_end_date_renders_a_closed_range(profile, spec, design):
+    """The owner supplied the end month on 2026-09-24 (OWNER-ANSWERS), closing the gap.
+
+    The previous version of this test asserted the OPPOSITE -- that the date must
+    still contain "TODO" -- so it went red the moment the gap it rode on was closed.
+    A test that only passes while a defect is unfixed punishes fixing the defect;
+    the state assertion belongs here and the behaviour assertion belongs in the
+    test below, where no profile edit can invalidate it.
+    """
+    entry = _dinuplast(_doc(profile, spec, design))
+    assert entry.get("end_date") != "present", \
+        "a closed engagement must never render as open"
+    assert "TODO" not in str(entry.get("date", "")), \
+        "the end date is resolved; it must no longer render as a TODO span"
+    assert str(entry.get("start_date", "")).startswith("2021-05")
+    assert str(entry.get("end_date", "")).startswith("2023-06")
+
+
+def test_unresolved_end_date_never_becomes_present(profile, spec, design):
+    """Data-INDEPENDENT guard on the renderer, per the contract in this module's docstring.
+
+    Mutates a COPY (the profile fixture is module-scoped, so mutating it in place
+    would leak into every later test) and asserts that an unresolved endDate is
+    never silently promoted to an open engagement -- which would put a false claim
+    in front of a reader.
+    """
+    mutated = copy.deepcopy(profile)
+    target = next(
+        (w for w in mutated.get("work", []) if "DINUPLAST" in str(w.get("name", ""))),
+        None,
+    )
+    assert target is not None, \
+        "fixture must contain a work entry named DINUPLAST to mutate"
+    target["endDate"] = "TODO-CONFIRM"
+
+    entry = _dinuplast(_doc(mutated, spec, design))
+    assert entry.get("end_date") != "present", \
+        "an unresolved end date must never silently become an open engagement"
+    assert "2023" not in str(entry.get("end_date", "")), \
+        "an unresolved end date must not retain the previously resolved value"
 
 
 # --------------------------------------------------------------------------- #
