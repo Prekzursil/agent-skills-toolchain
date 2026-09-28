@@ -8,19 +8,18 @@ a LOOP -- move it to `OPEN-LOOPS.md` with an owner and a review-by date.
 
 `gap-check` reads this at Stop, so nothing here depends on remembering to look.
 
-Last updated 2026-09-24 22:33:47.
+Last updated 2026-09-28 14:01:53.
 
-## Open (2)
+## Open (0)
 
-| ID | State | Task | Next action | Owner | Age |
-|---|---|---|---|---|---|
-| T-3 | TODO | Two unexamined projects now in Documents/projects/ | lcb-horezu-management-2026-2030 (165 files) and vpcam-water-reports (5) - I know only their filenames | B | 0d |
-| T-4 | TODO | Quality gate is RED on main - blocks every PR | PRs #355/#356/#357 exist to fix it; until then all merges need --admin | B | 0d |
+_Nothing in flight._
 
-## Closed (2, most recent first)
+## Closed (4, most recent first)
 
 | ID | State | Task | Outcome | Closed |
 |---|---|---|---|---|
+| T-3 | DROPPED | Two unexamined projects now in Documents/projects/ | graduated to OPEN-LOOPS L-26 (owner B, review-by 2026-10-05) | 2026-09-28 14:01:53 |
+| T-4 | DROPPED | Quality gate is RED on main - blocks every PR | graduated to OPEN-LOOPS L-27 (owner C, review-by 2026-10-05) | 2026-09-28 14:01:53 |
 | T-2 | DONE | Ship ~/Documents/personal-records (106 files) to home | Superseded: watchers retired per owner instruction (RAM). personal-records is organised on the VM; home transfer is now manual via push script when home is up. | 2026-09-24 22:33:47 |
 | T-1 | DONE | Ship the 5.3MB VM offload folder to home's Downloads | Transferred and verified 2026-09-24 21:5x: rclone check --one-way passed, destination file count matches source | 2026-09-24 22:01:58 |
 
