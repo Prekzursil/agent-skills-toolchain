@@ -30,46 +30,62 @@ def live_registry() -> dict[str, Any]:
     return json.loads((ROOT / "agents.json").read_text(encoding="utf-8"))
 
 
-def test_context7_and_firecrawl_are_remote_http_not_per_session_npx() -> None:
-    servers = live_registry()["mcp"]["servers"]
-    expected = {
-        "context7": (
-            "https://mcp.context7.com/mcp",
-            "CONTEXT7_API_KEY",
-        ),
-        "firecrawl": (
-            "https://mcp.firecrawl.dev/v2/mcp",
-            "FIRECRAWL_API_KEY",
-        ),
-    }
-    for name, (url, env_name) in expected.items():
-        server = servers[name]
-        assert server["transport"] == "http"
-        assert server["url"] == url
-        assert server["headers"] == {"Authorization": f"Bearer ${{{env_name}}}"}
-        assert env_name in server["requiredEnv"]
-        assert server["x_codex"]["bearer_token_env_var"] == env_name
-        assert "command" not in server
-        assert "args" not in server
-        assert "stdio" not in server["tags"]
-        assert "http" in server["tags"]
-        assert "remote" in server["tags"]
-        assert "remote-required" in server["tags"]
+def test_context7_is_remote_https_credentialed_http_not_per_session_npx() -> None:
+    server = live_registry()["mcp"]["servers"]["context7"]
+    assert server["transport"] == "http"
+    assert server["url"] == "https://mcp.context7.com/mcp"
+    assert server["headers"] == {"Authorization": "Bearer ${CONTEXT7_API_KEY}"}
+    assert "CONTEXT7_API_KEY" in server["requiredEnv"]
+    assert server["x_codex"]["bearer_token_env_var"] == "CONTEXT7_API_KEY"
+    assert "command" not in server
+    assert "args" not in server
+    assert "stdio" not in server["tags"]
+    assert "http" in server["tags"]
+    assert "remote" in server["tags"]
+    assert "remote-required" in server["tags"]
 
 
-def test_cursor_renderer_preserves_remote_http_and_secret_reference() -> None:
+def test_firecrawl_is_local_loopback_http_credentialless_not_per_session_npx() -> None:
+    # 2026-09-24: firecrawl was repointed to a local self-host gateway
+    # (mcp-proxy :31114 -> firecrawl docker stack :3002, no credits), so it is a
+    # loopback HTTP endpoint that carries no credential. It is still a resident
+    # HTTP server, never a per-session npx process tree, and -- because it holds
+    # no secret and never leaves the loopback interface -- it is exempt from the
+    # remote-TLS requirement that credential-bearing servers (e.g. context7) keep.
+    server = live_registry()["mcp"]["servers"]["firecrawl"]
+    assert server["transport"] == "http"
+    assert server["url"] == "http://127.0.0.1:31114/mcp"
+    assert server["url"].startswith("http://127.0.0.1")
+    assert server.get("credentialNames", []) == []
+    assert "headers" not in server
+    assert "requiredEnv" not in server
+    assert "command" not in server
+    assert "args" not in server
+    assert "stdio" not in server["tags"]
+    assert "http" in server["tags"]
+
+
+def test_cursor_renderer_preserves_context7_remote_http_and_secret_reference() -> None:
     cursor = load_script("merge_generated_cursor_mcp")
     servers = live_registry()["mcp"]["servers"]
-    for name, env_name in (
-        ("context7", "CONTEXT7_API_KEY"),
-        ("firecrawl", "FIRECRAWL_API_KEY"),
-    ):
-        entry = cursor.build_cursor_server(name, servers[name])
-        assert entry is not None
-        assert entry["url"].startswith("https://")
-        assert entry["headers"]["Authorization"] == f"Bearer ${{env:{env_name}}}"
-        assert "command" not in entry
-        assert "args" not in entry
+    entry = cursor.build_cursor_server("context7", servers["context7"])
+    assert entry is not None
+    assert entry["url"].startswith("https://")
+    assert entry["headers"]["Authorization"] == "Bearer ${env:CONTEXT7_API_KEY}"
+    assert "command" not in entry
+    assert "args" not in entry
+
+
+def test_cursor_renderer_projects_firecrawl_local_http_without_credential() -> None:
+    cursor = load_script("merge_generated_cursor_mcp")
+    servers = live_registry()["mcp"]["servers"]
+    entry = cursor.build_cursor_server("firecrawl", servers["firecrawl"])
+    assert entry is not None
+    assert entry["url"] == "http://127.0.0.1:31114/mcp"
+    # credential-less local gateway: the renderer injects no Authorization header
+    assert "headers" not in entry
+    assert "command" not in entry
+    assert "args" not in entry
 
 
 def test_core_local_process_budget_is_two_browser_servers_plus_bm_proxy() -> None:
@@ -126,7 +142,11 @@ def test_http_transport_rejects_leftover_stdio_fields(name: str) -> None:
         control.validate_registry(config)
 
 
-@pytest.mark.parametrize("name", ["context7", "firecrawl"])
+# firecrawl dropped from this parametrize on 2026-09-24: it is now a
+# credential-less loopback gateway (credentialNames == []), so the
+# credential-bearing-http-requires-TLS rule does not apply to it. context7 remains
+# the remote, credential-bearing http server the rule must keep guarding.
+@pytest.mark.parametrize("name", ["context7"])
 def test_credential_bearing_http_server_requires_tls(name: str) -> None:
     control = load_script("mcp_control_plane")
     config = deepcopy(live_registry())

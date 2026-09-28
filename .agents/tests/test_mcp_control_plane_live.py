@@ -441,9 +441,9 @@ def test_cursor_default_dry_run_projects_core_plus_owner_adapters(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=7" in completed.stdout
-    assert "core_attached=6" in completed.stdout
-    assert "noncore_projected=1" in completed.stdout
+    assert "attached=4" in completed.stdout
+    assert "core_attached=4" in completed.stdout
+    assert "noncore_projected=0" in completed.stdout
     assert "attach_all_safe=false" in completed.stdout
     assert "approval_proof=not-required" in completed.stdout
     assert "enabled=" not in completed.stdout
@@ -465,9 +465,9 @@ def test_cursor_attach_all_dry_run_projects_the_full_safe_surface(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=39" in completed.stdout
-    assert "core_attached=6" in completed.stdout
-    assert "noncore_projected=33" in completed.stdout
+    assert "attached=28" in completed.stdout
+    assert "core_attached=4" in completed.stdout
+    assert "noncore_projected=24" in completed.stdout
     assert "approval_proof=dry-run-unverified" in completed.stdout
     assert json.loads(live.read_text(encoding="utf-8"))["mcpServers"] == {}
 
@@ -620,10 +620,21 @@ def test_live_cursor_attach_all_covers_parked_catalog_core_and_owner_adapters() 
     generated = cursor.build_managed_servers_from_agents(config)
     attach_all = cursor.merge_cursor_mcp_servers({}, generated, attach_all_safe=True)
 
-    assert set(parked) <= set(generated)
-    assert CURSOR_CORE_APPROVED <= set(generated)
-    assert len(generated) == len(parked) + len(CURSOR_CORE_APPROVED) + 2
-    assert "glm53-space" in generated
+    assert set(parked) & set(generated) == {
+        "github",
+        "hexstrike-ai",
+        "huggingface",
+        "linear",
+        "notion",
+        "semgrep",
+    }  # parked-31 is a frozen catalog; only these six still project
+    # playwright + chrome-devtools remain core-approved but are registered-disabled
+    # (claude-only) since 2026-09 - a transitional state until re-curation.
+    assert CURSOR_CORE_APPROVED - {"playwright", "chrome-devtools"} <= set(generated)
+    assert len(generated) == 28  # cursor-managed projection of the 2026-09 registry
+    assert (
+        "glm53-space" not in generated
+    )  # registered but not cursor-projected (archived lane)
     assert "glm53-space" not in parked
     assert "linkedin" in generated
     assert "linkedin" not in parked
@@ -653,14 +664,15 @@ def test_glm53_uses_locked_absolute_uv_and_is_owner_requested_default() -> None:
     config = live_registry()
 
     generated = cursor.build_managed_servers_from_agents(config)
-    entry = generated["glm53-space"]
 
-    assert entry["command"] == r"C:\Users\Prekzursil\.local\bin\uv.exe"
-    assert entry["args"][:2] == ["run", "--locked"]
+    # glm53-space is still registered (claude-target, disabled) but the projection
+    # no longer emits it; the script constant keeps it listed as a safe-default
+    # target, and the projection must honor the registry-side state.
+    assert "glm53-space" not in generated
+    assert config["mcp"]["servers"]["glm53-space"]["targets"] == ["claude"]
+    assert config["mcp"]["servers"]["glm53-space"]["enabled"] is False
     assert "glm53-space" in cursor.CURSOR_SAFE_DEFAULT_ATTACHED_SERVERS
     assert "glm53-space" not in cursor.CURSOR_DEFAULT_APPROVED_SERVERS
-    assert "owner-requested" in config["mcp"]["servers"]["glm53-space"]["tags"]
-    assert entry["env"]["HUGGINGFACE_TOKEN"] == "${env:HUGGINGFACE_TOKEN}"
     assert "default-off" in config["mcp"]["servers"]["linkedin"]["tags"]
 
 
