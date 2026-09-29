@@ -404,6 +404,11 @@ def _publication_entries(rows: list[dict[str, Any]], name: str,
             label = "preprint"
         elif "preparation" in kind or "preparation" in title.lower():
             label = "manuscript in preparation"
+        elif "proceedings" in kind or "workshop" in kind or "conference" in kind:
+            # A paper actually published in proceedings. Deliberately NOT called
+            # peer-reviewed: x_forbidden bans that claim at highest severity, and
+            # shared-task system papers are not refereed the way a journal article is.
+            label = "workshop proceedings paper"
         else:
             label = f"{TODO}: publication status"
         if is_todo(title):

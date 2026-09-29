@@ -324,3 +324,25 @@ def test_profile_name_must_be_canonical(profile):
     broken["basics"] = dict(profile["basics"], name="Andrei Mihai Visalon")
     with pytest.raises(ValueError, match="canonical"):
         emit.build_context(broken, "annotate")
+
+
+def test_published_proceedings_paper_gets_an_honest_status_label():
+    """A paper actually published in proceedings is neither a preprint nor in
+    preparation. Before this branch existed it fell through to the TODO label,
+    which made omit-mode leak a marker into the academic CV."""
+    rows = [{"name": "Team bionlp at GRACE 2026: A Multi-Model Geometric Ensemble",
+             "x_type": "workshop shared-task system paper"}]
+    title = emit._publication_entries(rows, "Andrei-Mihai Visalon", "omit")[0]["title"]
+    assert "TODO-CONFIRM" not in title
+    assert "workshop proceedings paper" in title
+    # x_forbidden bans the peer-reviewed claim at highest severity
+    assert "peer-review" not in title.lower()
+
+
+def test_unknown_publication_type_still_flags_todo():
+    """The control for the test above: the TODO path must still FIRE for a type
+    the pipeline genuinely cannot classify. A branch that silences both states
+    would measure nothing."""
+    rows = [{"name": "Some Paper", "x_type": "mystery-format"}]
+    title = emit._publication_entries(rows, "Andrei-Mihai Visalon", "annotate")[0]["title"]
+    assert "TODO-CONFIRM" in title
