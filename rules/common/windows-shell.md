@@ -107,3 +107,18 @@ surprises you or you need the numbers.
     no username is ever sent. `Failed publickey for <user>` is the real credential
     rejection. Note `DefaultShell` is global: every SSH client then inherits MSYS path
     conversion (#1).
+
+## Incident-discipline class (2026-09-29, both ledger-proven same night)
+
+19. **Never mass-kill by substring match.** A cleanup needle ('biomni') piped from
+    `Where-Object { CommandLine -match }` to `Stop-Process` killed NINE live processes
+    incl. brokers started minutes earlier (2026-09-29, ledger #340; same class as the
+    2026-07-14 reaper 'hub' collision). → ENUMERATE first (`Get-CimInstance ... | Select
+    ProcessId, CommandLine`), read each line, then kill individually by exact PID. A
+    kill command whose filter is a substring of a RUNNING component is a bug.
+20. **Never rewrite a config you only partially loaded.** A merge script loaded
+    `.claude.json`, then wrote back `{'mcpServers': ...}` alone — silently dropping 91
+    top-level keys (projects/history). Caught by post-write verify, restored from backup
+    (2026-09-29, ledger #341). → load the FULL dict, mutate the key in place, dump the
+    FULL dict, then re-open and assert the untouched keys survived. Partial `json.dump`
+    of a loaded-subset is data destruction with a success exit code.

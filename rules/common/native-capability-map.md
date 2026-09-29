@@ -40,14 +40,14 @@ WHICH TOOLS you have. Do not infer tool absence from scope restrictions.
 
 ## Search / deep research (SOTA routing)
 Any search or research task routes through the `deep-research` skill's routing table —
-never raw WebFetch when a live provider fits. Live rails (allowlisted for headless
-subagents): **web** firecrawl → perplexity → exa (search-hub) → tavily → web-search-prime;
-**academic** scholarly-access → crossref → openalex → pubmed → arxiv (+sci-hub/annas
-labeled fallbacks); **repo/code** zread → deepwiki → context7; **extraction** firecrawl
-scrape → web-reader. Workflow prompts must state which providers are live/down at launch
-(preflight) and require the routing order above. Dead rails as of 2026-09-22: searxng
-(key-free corroborator — re-wire when SEARXNG_URL is fixed), huggingface papers (auth 401),
-McpHub aggregation (404 — the hub surface is unreachable until the service is restored).
+never raw WebFetch when a live provider fits. **LIVE SET (verified 2026-09-29, post-consolidation):
+web = web-search-prime (z.ai) / web-reader (z.ai) / native WebSearch-WebFetch / firecrawl (:31114, recovered) /
+firecrawl self-host :3002 (raw API) / exa (plugin enabled, mount unverified). Long tail lives behind
+McpHub (74 registered servers incl. tavily, search-hub, scholarly-access, the RE lane) — reachable via
+mcp__McpHub__execute when the hub daemon is healthy.** Dead rails as of 2026-09-29: tavily + search-hub
+MCP (McpHub rail, disabled ×35/×41), searxng MCP (container up, front unverified), huggingface papers
+(auth 401). Workflow prompts must state which providers are live/down at launch (preflight) and require
+the routing order above. Registry + preflight output are SSOT; this table is intent, not inventory.
 Gap classes accepted knowingly: Google-Scholar scraping (no maintained MCP), OpenAI/Gemini
 native deep-research lanes (codex covers code only).
 
