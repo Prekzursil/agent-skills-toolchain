@@ -1,0 +1,186 @@
+# ~/.claude MINIMAL BASELINE MANIFEST
+# Authored 2026-09-25 (gem-hunt hygiene lane). Consumed by scripts/backup-claude-baseline.ps1.
+#
+# WHY THIS EXISTS
+#   ~/.claude is 14.218 GB and is NOT a git repo (verified: `git -C ~/.claude rev-parse
+#   --is-inside-work-tree` -> "fatal: not a git repository"). Committing 14 GB is not the answer.
+#   Measured, only 461 files / 9.18 MB of it is authored-and-irreplaceable: 0.063% of the tree.
+#   THAT is what this manifest names, so it can live in ~/.agents, which IS version-controlled
+#   (origin https://github.com/Prekzursil/agent-skills-toolchain.git).
+#
+# SYNTAX
+#   Lines are, in order of precedence:
+#     !<glob>   HARD DENY - never copied, even if an include matches. Evaluated first.
+#     <glob>    INCLUDE - copied when no deny matches.
+#   Globs are matched against the path RELATIVE to ~/.claude, using forward slashes.
+#   '**' matches across directory separators. Blank lines and '#' comments are ignored.
+#
+# ---------------------------------------------------------------------------------------------
+# HARD DENY - credentials and secrets. NEVER copy these into a repo with a remote.
+# ---------------------------------------------------------------------------------------------
+# ~/.claude/.credentials.json is 30,292 B of live OAuth material. The estate policy permits
+# reading credentials locally, but the boundary is EGRESS, and ~/.agents has a GitHub remote.
+# ~/.agents/.gitignore already ignores '*credential*' and '*token*.json', so git would refuse
+# it anyway - this deny is the belt to that braces, not a substitute for it.
+#
+# CORRECTED 2026-09-25: the first version of this block used '!**/*credential*', a SUBSTRING
+# match on the path. That silently dropped four authored source files -
+#   hooks/deny-credential-reads/{deny.py,test_deny.py,test_denylist_coverage.py,test_guard_scope.py}
+# - i.e. the source of the hook that GUARDS credential reads, because its DIRECTORY name
+# contains the word. A baseline that quietly omits the credential guard is worse than no
+# baseline. The denies below are anchored to the FILE NAME, and the script's CRED gate
+# additionally exempts source/doc extensions. Regression-tested in
+# scripts/backup-claude-baseline.ps1 -SelfTest (case 6).
+!.credentials.json
+!**/credentials.json
+!**/credentials
+!**/*-credentials.json
+!**/*.token
+!**/*auth*.json
+!**/*token*.json
+!**/*secret*.json
+!**/*.pem
+!**/*.key
+!**/*.pfx
+!**/*.p12
+!**/.env
+!**/.env.*
+!**/.netrc
+!**/id_rsa
+!**/id_ed25519
+
+# ---------------------------------------------------------------------------------------------
+# HARD DENY - hand-rolled backup files. 71 of them, 1.77 MB.
+# ---------------------------------------------------------------------------------------------
+# These are NOT deleted (the lane forbids it) and they ARE inventoried in
+# knowledge/gemhunt-impl-2026-09-25/hygiene-bak-inventory.txt. They are not copied because
+# ~/.agents/.gitignore ignores '*.bak-*' and '*.bak-20[0-9][0-9]...' - copying them would
+# produce files git silently drops, i.e. a backup that looks done and is not.
+# Once the live file is under git, dated snapshots are redundant: that is the whole point.
+!**/*.bak
+!**/*.bak-*
+!**/*.backup
+!**/*.old
+!**/*.orig
+!**/*.save
+!**/*.tmp.*
+!**/*.pre-*
+!**/*.corrupt-*
+
+# ---------------------------------------------------------------------------------------------
+# HARD DENY - regenerable cache, build output and machine-local state.
+# ---------------------------------------------------------------------------------------------
+!**/__pycache__/**
+!**/.pytest_cache/**
+!**/.ruff_cache/**
+!**/.mypy_cache/**
+!**/.sonar/**
+!**/node_modules/**
+!**/.venv/**
+!**/venv/**
+!**/.git/**
+!**/*.pyc
+!**/*.pyo
+!**/*.log
+!**/*.lock
+!**/*.sqlite
+!**/*.sqlite3
+!**/*.db
+!**/*.tar.gz
+!**/*.zip
+!**/*.7z
+!**/*.exe
+!**/*.dll
+!**/*.pdb
+!**/*.whl
+
+# Per-hook runtime state directories. ADDED 2026-09-25 AFTER the IGNORE gate in
+# backup-claude-baseline.ps1 caught these on the first real run: 'state/' is ignored by
+# ~/.agents/.gitignore, so hooks/recall-gate/state/{recall-gate-20260808.jsonl,
+# recall-gate-20260925.jsonl,tree_index.json} would have been copied and then silently
+# dropped by git. They are regenerable hook state, not authored source - deny them.
+# This line exists because a gate failed loudly instead of a backup passing quietly.
+!**/state/**
+!**/.state/**
+
+# ---------------------------------------------------------------------------------------------
+# HARD DENY - session history and per-machine caches. Large, and not authored config.
+# ---------------------------------------------------------------------------------------------
+# history.jsonl is 2.46 MB of typed-prompt history; stats-cache / mcp-needs-auth-cache /
+# .last-* are per-machine runtime state that regenerates. The refusal-scrub and desat
+# *.tar.gz archives at the root (18.6 MB) are covered by the *.tar.gz deny above.
+!history.jsonl
+!stats-cache.json
+!mcp-needs-auth-cache.json
+!.last-update-result.json
+!.last-cleanup
+!.fp-observed-signatures.log
+
+# ---------------------------------------------------------------------------------------------
+# INCLUDE - the authored-and-irreplaceable set.
+# ---------------------------------------------------------------------------------------------
+
+# Root config. settings.json is the harness contract (27,825 B live; 6 dated .bak snapshots
+# exist BECAUSE there is no git history - that is the anti-pattern this replaces).
+settings.json
+settings.local.json
+keybindings.json
+.mcp-disabled-defaults.json
+plugin.json
+
+# Root instruction files that are loaded every session.
+CLAUDE.md
+AGENTS-RUNTIME.md
+BACKGROUND-DIGEST.md
+
+# Statusline (authored shell, referenced from settings.json).
+statusline-command.sh
+statusline.sh
+
+# hooks/ - THE BIGGEST GAP. 898 files in ~/.claude/hooks, only 10 have any counterpart in
+# ~/.agents/hooks. 313 files / 6.25 MB are authored source. This is where hooks/recall-gate
+# lives (gate.py 14,527 B, tree_index.py 9,924 B, test_recall_gate.py 10,305 B) - BUILT,
+# TESTED, both-states-proven, and version-controlled NOWHERE until this manifest.
+hooks/**
+
+# agents/ - 29 files in ~/.claude/agents and ~/.agents/agents DOES NOT EXIST. Zero coverage.
+agents/**
+
+# commands/ - 75 files vs 6 with a counterpart.
+commands/**
+
+# workflows/ - 6 files vs 3 tracked.
+workflows/**
+
+# output-styles/ and teams/ - small, authored, uncovered.
+output-styles/**
+teams/**
+
+# rules/ - ALREADY covered: ~/.agents/rules has 27 tracked files and sync-rules.ps1 deploys
+# ~/.agents/rules/common -> ~/.claude/rules/common. Included anyway as a cheap drift detector:
+# if the copy differs from ~/.agents/rules, the deploy is stale. Per lane rule 1, the AUTHORED
+# copy at ~/.agents/rules stays the SSOT - never hand-edit the copy this produces.
+rules/**
+
+# ---------------------------------------------------------------------------------------------
+# DELIBERATELY NOT INCLUDED, with reasons
+# ---------------------------------------------------------------------------------------------
+# plugins/                    11,212.6 MB - 3rd-party marketplace clones, re-fetchable from
+#                             public remotes. 77% of the tree. Described by
+#                             installed_plugins.json + known_marketplaces.json, which ARE small
+#                             enough to version - but they are machine-state, not authored work,
+#                             and lane rule 2/3 forbids touching plugin curation at all.
+# projects/                   2,751.3 MB - session transcripts. Irreplaceable HISTORY but not
+#                             authored CONFIG, and far too large. Belongs in a separate
+#                             retention decision, not this baseline.
+# fp-recovery-backup-*/       513.9 MB - output of the recover-from-false-positive skill.
+#                             Already a backup; backing up a backup is not a baseline.
+# skills/                     26.9 MB / 3,273 files - ~/.agents/skills already has 3,253 files
+#                             with 3,174 tracked. ~/.claude/skills is the DEPLOYED copy
+#                             (verified: LinkType empty, so a real copy, not a junction).
+#                             Copying it would duplicate 3,174 tracked files and blur the
+#                             authored/deployed boundary that lane rule 1 protects.
+# file-history/ 13.5 MB, projects/, paste-cache/, shell-snapshots/, session-env/,
+# selection-events/, checkpoints/, event-ledger/, cache/, memory-spool/, tasks/, downloads/,
+# state/, chrome/, sessions/, calibrated-silence/, backups/, prompt-interception-sota-*/
+#                             - runtime state, regenerable or machine-local.

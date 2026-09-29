@@ -1,0 +1,42 @@
+{
+  "_doc": "RE-backend auto-launch config read by autolaunch.py. Maps each RE MCP bridge (mcp__<key>__*) to the backend port(s) its calls forward to, and how to cold-start it on-demand via the re-harness (re_launch.py). The PreToolUse hook fires ONLY when one of these MCP tools is invoked (never at session start), probes the backend port(s), and if DOWN cold-starts ONLY that one backend. RAM-conscious: on-demand, single-backend, idempotent (re_launch probes-if-up first), prefers an already-running GUI/headless instance (never duplicates), and refuses to launch when free RAM is below min_free_ram_mb (the user just hit an OOM). The live GUI IDA on :13337 is a 'prefer' port: if it is up the hook no-ops and the headless server is never started.",
+
+  "re_launch": "C:/Users/Prekzursil/.local/opt/re-harness/re_launch.py",
+  "launcher_python": null,
+  "tcp_timeout": 1.2,
+  "brief_wait_seconds": 6.0,
+  "brief_poll_interval": 0.5,
+  "up_recheck_seconds": 30,
+  "launch_throttle_seconds": 90,
+  "min_free_ram_mb": 2048,
+  "deny_while_starting": true,
+  "deny_when_unlaunchable": true,
+
+  "backends": {
+    "ida-pro-mcp": {
+      "tool": "ida",
+      "launchable": true,
+      "ports": [13337, 8745],
+      "prefer_ports": [13337],
+      "headless_port": 8745,
+      "binary": "D:/ReverseTools/Android/apk-15.4.1/_extracted/lib/x86_64/libnative-lib.so",
+      "why": "IDA Pro decompiler. GUI plugin on :13337 is PREFERRED (interactive) and never duplicated; headless idalib_server on :8745 is cold-started only when both are down."
+    },
+    "ghidra-mcp": {
+      "tool": "ghidra",
+      "launchable": true,
+      "ports": [8089],
+      "headless_port": 8089,
+      "binary": "D:/ReverseTools/Android/apk-15.4.1/_extracted/lib/x86_64/libnative-lib.so",
+      "why": "GhidraMCP headless server on :8089 (true no-GUI; the ghidra-mcp stdio bridge already targets this port)."
+    },
+    "binary-ninja-mcp": {
+      "tool": "bn",
+      "launchable": true,
+      "auto_launch": false,
+      "ports": [9009],
+      "manual_hint": "Binary Ninja has no headless mode on a Personal license (headless = Commercial/Ultimate/Headless only), so it is NOT auto-launched by this hook. Bring it up with ONE command -- `re-ensure bn` (or `python re_launch.py bn`) -- which opens the BN GUI with the target binary; the installed MCP Max plugin then auto-starts :9009 on file-open (no clicking). Then retry. To enable full IDA/Ghidra-style auto-launch on tool call, set backends.json bn.auto_launch=true (accepts a heavy GUI window + RAM -- the user has an OOM history, hence off by default).",
+      "why": "Binary Ninja MCP server (in-GUI fosdickio 'MCP Max' plugin on :9009). Personal license = GUI-only (no headless lib). launchable=true so `re-ensure bn`/re_launch can open the GUI (the plugin auto-starts :9009 on file-open, zero clicks), but auto_launch=false so the PreToolUse hook never auto-pops the heavy GUI on a stray tool call."
+    }
+  }
+}

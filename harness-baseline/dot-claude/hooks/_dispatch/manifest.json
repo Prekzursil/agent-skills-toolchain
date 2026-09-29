@@ -1,0 +1,306 @@
+{
+  "version": 1,
+  "description": "Per-event dispatcher manifest. Each event lists the SESSION-NEW checks consolidated behind one hook invocation. dispatch.py reads stdin once, runs each check whose `matcher` (regex on tool_name; absent = always) matches, IN-PROCESS in its own thread with a per-check timeout, fail-open, and aggregates every check's additionalContext into ONE hookSpecificOutput for the event. Adding a future check = one line here (seeds the later Discipline-Forge). The PRE-EXISTING B1/legacy hooks are intentionally NOT listed here and stay as their own settings.json entries.",
+  "hooks_root": "C:/Users/Prekzursil/.claude/hooks",
+  "events": {
+    "SessionStart": {
+      "settings_matcher": "*",
+      "settings_timeout": 35,
+      "rebalance_note": "2026-08-27 wave A-c (CONSOLIDATED-GEM-DECISIONS TIER-0 #2): wire-check and git-hygiene DEMOTED here from Stop, whose 35s ceiling was oversubscribed (9 checks, timeouts summing 144s) and starved the tail gates (journey-coverage, dark-surface). Both are advisory/inject-only and git-hygiene self-throttles to one scan/15min, so once-per-session is the right cadence. settings_timeout raised 20->35 IN LOCKSTEP with the live settings.json SessionStart dispatch entry (same edit) so the moved checks' 25s/30s budgets stay reachable -- a budget above the enforced ceiling is inert (see git-hygiene timeout_rationale).",
+      "checks": [
+        {
+          "name": "bg-registry/reconcile",
+          "script": "bg-registry/reconcile.py",
+          "args": [],
+          "timeout": 10,
+          "isolate": "_common",
+          "side_effect": "reader+sidecar",
+          "emits": true
+        },
+        {
+          "name": "memory-spool/replay",
+          "script": "memory-spool/replay.py",
+          "args": [
+            "--spawn"
+          ],
+          "timeout": 6,
+          "isolate": "_common",
+          "side_effect": "spawn+replay",
+          "emits": false
+        },
+        {
+          "name": "memory-spool/flush_check",
+          "script": "memory-spool/flush_check.py",
+          "args": [
+            "sessionstart"
+          ],
+          "timeout": 8,
+          "isolate": "_common",
+          "side_effect": "sidecar+gc",
+          "emits": true
+        },
+        {
+          "name": "heartbeat",
+          "script": "heartbeat/heartbeat.py",
+          "args": [
+            "sessionstart"
+          ],
+          "timeout": 8,
+          "isolate": null,
+          "side_effect": "state",
+          "emits": true
+        },
+        {
+          "name": "open-loops/resurface",
+          "script": "open-loops/resurface.py",
+          "args": [],
+          "timeout": 8,
+          "isolate": "_common",
+          "side_effect": "store-gc",
+          "emits": true
+        },
+        {
+          "name": "background-digest/reader",
+          "script": "background-digest/reader.py",
+          "args": [],
+          "timeout": 8,
+          "isolate": null,
+          "side_effect": "digest-archive+truncate",
+          "emits": true
+        },
+        {
+          "name": "wire-check",
+          "script": "wire-check/check.py",
+          "args": [],
+          "timeout": 25,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true,
+          "slow": true,
+          "comment": "Moved from Stop 2026-08-27 (wave A-c) -- see SessionStart.rebalance_note. Advisory/inject-only; 25s budget reachable under the raised 35s SessionStart ceiling."
+        },
+        {
+          "name": "git-hygiene",
+          "script": "git-hygiene/check.py",
+          "args": [],
+          "timeout": 30,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true,
+          "slow": true,
+          "comment": "Moved from Stop 2026-08-27 (wave A-c) -- see SessionStart.rebalance_note. Surfaces live-authored harness artifacts (skills/hooks/rules under ~/.claude,~/.agents) not yet in agent-skills-toolchain, plus your repos holding unversioned work. Self-throttles to one full scan per 15 min (GIT_HYGIENE_THROTTLE_SEC). Advisory/inject, never blocks. Opt-out: GIT_HYGIENE=off or hooks/git-hygiene/.disabled.",
+          "timeout_rationale": "30 leaves 5s of collection headroom under the (raised) 35s SessionStart ceiling -- same headroom pattern the Stop event used. History: was 90 on Stop, which was UNREACHABLE (Stop ceiling 35s; dispatch.py collects with an absolute deadline of start+timeout, so a 90s budget held run() past the cancellation point and the vendor killed the whole dispatcher command, losing all 9 Stop checks' output -- proved by _b12_joinorder.py). Measured range 11.8-32.7s (R4-GITHYGIENE-RANGE.json): runs above 30s lose THIS check's output only, an acceptable trade for an advisory/inject-only check."
+        }
+      ]
+    },
+    "Stop": {
+      "settings_matcher": null,
+      "settings_timeout": 35,
+      "checks": [
+        {
+          "name": "bg-registry/done_marker",
+          "script": "bg-registry/done_marker.py",
+          "args": [],
+          "timeout": 8,
+          "isolate": "_common",
+          "side_effect": "registry-append",
+          "emits": false
+        },
+        {
+          "name": "heartbeat",
+          "script": "heartbeat/heartbeat.py",
+          "args": [
+            "stop"
+          ],
+          "timeout": 8,
+          "isolate": null,
+          "side_effect": "state",
+          "emits": true
+        },
+        {
+          "name": "honest-signal",
+          "script": "honest-signal/check.py",
+          "args": [],
+          "timeout": 10,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true
+        },
+        {
+          "name": "stub-ledger/report",
+          "script": "stub-ledger/report.py",
+          "args": [],
+          "timeout": 25,
+          "isolate": "stubscan",
+          "side_effect": "none",
+          "emits": true
+        },
+        {
+          "name": "forge/todo-surfacer",
+          "script": "todo-surfacer/hook.py",
+          "args": [],
+          "timeout": 18,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true
+        },
+        {
+          "name": "journey-coverage",
+          "script": "journey-coverage/check.py",
+          "args": [],
+          "timeout": 10,
+          "isolate": null,
+          "side_effect": "none",
+          "emits": true
+        },
+        {
+          "name": "dark-surface",
+          "script": "dark-surface/check.py",
+          "args": [],
+          "timeout": 10,
+          "isolate": null,
+          "side_effect": "shadow-sink",
+          "emits": true,
+          "comment": "A6 wire-dormant-gates. dark-surface/check.py:13-14 already documents 'this is the mode the session-new _dispatch/manifest.json runs it under', but the entry was never actually added -- the GREEN-not-LIVE defect the gate itself exists to catch. stub-ledger/report.py:258 returns 0 on a completion-claim Stop turn to 'defer to dark-surface', so while this was unwired NEITHER gate fired on exactly the turns that matter. Shadow/observe-only by default (DARK_SURFACE_MODE=shadow), inject-only, never blocks, fail-open. side_effect is 'shadow-sink' not 'none' because it appends to ~/.agents/state/harness/shadow/shadow-<day>.jsonl (check.py:115-145); the neighbouring side_effect='none' checks write nothing. Opt-out: DARK_SURFACE=off or hooks/dark-surface/.disabled."
+        }
+      ]
+    },
+    "PostToolUse": {
+      "settings_matcher": ".*",
+      "settings_timeout": 15,
+      "checks": [
+        {
+          "name": "memory-spool/flush_check",
+          "script": "memory-spool/flush_check.py",
+          "args": [
+            "posttool"
+          ],
+          "timeout": 5,
+          "matcher": "mcp__basic-memory__write_note|mcp__basic-memory__edit_note",
+          "isolate": "_common",
+          "side_effect": "spool-clear/mark",
+          "emits": true
+        },
+        {
+          "name": "tool-result-sentinel",
+          "script": "tool-result-sentinel/sentinel.py",
+          "args": [],
+          "timeout": 8,
+          "matcher": ".*",
+          "isolate": null,
+          "side_effect": "warn-state",
+          "emits": true
+        },
+        {
+          "name": "claim-guard/ledger-write",
+          "script": "claim-guard/ledger-write.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "Bash",
+          "isolate": null,
+          "side_effect": "ledger-append",
+          "emits": false,
+          "comment": "D011 producer-restore. The Bash-exit ledger this hook appends (%TEMP%/claude-claim-ledger/<sid>.ndjson, ledger-write.py:15,195-197) is NOT an orphan surface: journey-coverage/check.py:36-41 reads exactly that root and is ALREADY wired under events.Stop.checks, so while this producer was absent the live consumer ran every Stop turn against an empty ledger and could never see a journey as covered. Contract mirrors test_wiring.py:140 (args [], matcher Bash, timeout 5, emits false) -- record-only, injects nothing (ledger-write.py:10), fail-open (:199-200), opt-out CLAIM_GUARD_MODE=off (:165-166). Restoring the WRITER only is deliberate: claim-check.py can exit 2 under CLAIM_GUARD_MODE=block (claim-check.py:22-24,36-37) and must therefore stay OUT of the inject-only dispatcher."
+        },
+        {
+          "name": "stub-ledger/record",
+          "script": "stub-ledger/record.py",
+          "args": [],
+          "timeout": 6,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": "stubscan",
+          "side_effect": "ledger-append",
+          "emits": false
+        },
+        {
+          "name": "edit-validate/record",
+          "script": "edit-validate/record.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": null,
+          "side_effect": "edits-append",
+          "emits": false,
+          "comment": "The missing PRODUCER for the Stop gate wired above. dark-surface/check.py:190-202 reads <temp>/edit-validate/<session_id>.edits and returns [] on any missing file, so :217-230 found nothing to scan on every turn -- the Stop entry was live but permanently inert. record.py:19-40 is its sole producer and was registered in no surface; stub-ledger/report.py returns 0 on a completion-claim Stop turn to 'defer to dark-surface', so while this was unwired NEITHER half fired on exactly the turns that matter. This is the same GREEN-not-LIVE defect the dark-surface entry was itself added to catch, one layer down. Route pinned by test_wiring.EXPECTED_DISPATCH_ROUTES (args [], matcher Edit|Write|MultiEdit, timeout 5, emits false); presence + route asserted by test_manifest_presence.py. isolate is null because record.py imports no _common/stubscan sibling. side_effect is 'edits-append' not 'none': it appends one line per edit to <temp>/edit-validate/<sid>.edits (record.py:35-40). It NEVER emits and never wakes Claude -- that loop-proofing is the whole point of the design (record.py:5-8)."
+        }
+      ]
+    },
+    "PreToolUse": {
+      "settings_matcher": "Task|Edit|Write|MultiEdit|mcp__basic-memory__.*|Workflow|mcp__codex__codex|Bash|PowerShell",
+      "settings_timeout": 15,
+      "checks": [
+        {
+          "name": "mcp-liveness/pretool",
+          "script": "mcp-liveness/liveness.py",
+          "args": [
+            "pretool"
+          ],
+          "matcher": "mcp__basic-memory__.*",
+          "timeout": 12,
+          "emits": true
+        },
+        {
+          "name": "edit-checkpoints",
+          "script": "edit-checkpoints/checkpoint.py",
+          "args": [],
+          "timeout": 15,
+          "matcher": "Edit|Write|MultiEdit",
+          "isolate": null,
+          "side_effect": "snapshot+index-append",
+          "emits": false,
+          "comment": "The PRODUCER for /rollback. commands/rollback.md:3-7 promises a checkpoint is taken automatically before edits and :21-24 reads ~/.claude/checkpoints/<session_id>/index.ndjson, but checkpoint.py was registered in NO surface -- not here, not hooks.json -- so a fresh session had no index to roll back to. Dispatcher-compatible: checkpoint.py:17 is silent and inject-free, main() returns 0 on every path and fail-opens on any exception, so it adds no blocking or emitting behaviour. Route pinned by test_wiring.py EXPECTED_DISPATCH_ROUTES['PreToolUse']['edit-checkpoints'] = ([], 'Edit|Write|MultiEdit', 15, False). settings_matcher gained Edit|MultiEdit so the outer wire actually reaches this route (agent-self/config/settings.json already routes all three). Opt-out: EDIT_CHECKPOINTS=off or hooks/edit-checkpoints/.disabled."
+        },
+        {
+          "name": "bg-registry/register",
+          "script": "bg-registry/register.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "Task",
+          "isolate": "_common",
+          "side_effect": "registry-append",
+          "emits": false
+        },
+        {
+          "name": "memory-spool/spool",
+          "script": "memory-spool/spool.py",
+          "args": [],
+          "timeout": 5,
+          "matcher": "mcp__basic-memory__write_note|mcp__basic-memory__edit_note",
+          "isolate": "_common",
+          "side_effect": "spool-write",
+          "emits": false
+        },
+        {
+          "name": "dup-guard",
+          "script": "dup-guard/guard.py",
+          "args": [],
+          "timeout": 8,
+          "matcher": "Write",
+          "isolate": null,
+          "side_effect": "warn-state",
+          "emits": true
+        },
+        {
+          "name": "monitor-autolaunch",
+          "script": "monitor-autolaunch/check.py",
+          "args": [],
+          "timeout": 6,
+          "matcher": "Task|Workflow|mcp__codex__codex",
+          "isolate": null,
+          "side_effect": "launch",
+          "emits": true
+        },
+        {
+          "name": "codex-monitor-autolaunch",
+          "script": "codex-monitor-autolaunch/check.py",
+          "args": [],
+          "timeout": 6,
+          "matcher": "Bash|PowerShell",
+          "isolate": null,
+          "side_effect": "launch",
+          "emits": true
+        }
+      ]
+    }
+  }
+}
