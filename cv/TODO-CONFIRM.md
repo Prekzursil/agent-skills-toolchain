@@ -14,7 +14,7 @@ then tick it here).
 
 ## Tier 1 — blocks the research profile (do these first)
 
-- [ ] **1. ORCID record is empty and wrong.**
+- [ ] **1. ORCID record — PARTLY WRONG, not empty (corrected 2026-09-29).** Measured against the ORCID public API: BOTH works are registered and correct. The defect is the EDUCATION entry, which credits the BSc to the University of Bucharest; the diploma on file is Titu Maiorescu (profile.yaml education[1] is right, ORCID is wrong). Owner to fix the ORCID record.
   `0009-0001-8776-8498` has **zero registered works** and an education entry that credits the
   bachelor's to the **University of Bucharest**. The BSc is **Titu Maiorescu University**; UB is
   the master's. Fix the education entry, then register the ChemRxiv preprint and the Zenodo
@@ -22,17 +22,17 @@ then tick it here).
   sees an empty, factually wrong record — worse than no link.
   → `basics.profiles[ORCID].x_state_warning`
 
-- [ ] **2. ChemRxiv preprint — exact title, DOI, posting date, full author list in order.**
+- [x] **2. RESOLVED 2026-09-29 — ChemRxiv preprint.** Title, DOI 10.26434/chemrxiv.15009306/v1, posted 2026-09-22, SOLE author, CC BY 4.0. Crossref API for every field except the licence, which is absent from the deposit and was read off the ChemRxiv page.
   *Blocks:* the research profile's only research-output line, and the ORCID registration above.
   The record currently carries the literal placeholder `"TODO-CONFIRM: exact preprint title"`.
   → `publications[0]`
 
-- [ ] **3. Zenodo deposit — DOI, public URL, deposit title, license.**
+- [x] **3. RESOLVED 2026-09-29 — Zenodo deposit.** Concept DOI 10.5281/zenodo.22819600 (resolves to v3, 10.5281/zenodo.22836832, 2026-09-18), CC BY 4.0, dataset, sole creator. Zenodo + DataCite APIs. NOTE: the preprint still cites the original deposit 10.5281/zenodo.22819601 (2026-09-17); moving it to the concept DOI is open work.
   *Blocks:* the "Data and software" block, which is the strongest reproducibility signal
   available (a SHA-256 manifest over all 630 files). Without the DOI it cannot be cited.
   → `x_data_and_software[0]`
 
-- [ ] **4. GRACE — public URL of the technical report, the code repository URL, and whether
+- [ ] **4. PARTLY RESOLVED 2026-09-29 — GRACE.** Code repository: github.com/Prekzursil/grace-iberlef-2026 (public). The technical report is PUBLISHED: CEUR-WS Vol-4273, ceur-ws.org/Vol-4273/GRACE2026_paper6.pdf, CC BY 4.0, no DOI exists (CEUR mints none; absent from Crossref and DataCite). STILL OPEN: whether the owner wants the repository linked from the CV.
   that repository has a LICENSE file.**
   *Blocks:* the word **open-sourced** in the GRACE bullet. Per the kill list, "open-source" may
   not be applied to a repository with no LICENSE file, so without this answer the bullet must be
@@ -105,7 +105,7 @@ then tick it here).
   has no verifiable link.
   → `work[momentstudio.ro].x_link_gate`
 
-- [ ] **13. Reframe — public URL (repository or releases page), whether it has a LICENSE file,
+- [ ] **13. PARTLY RESOLVED 2026-09-29 — Reframe.** URL github.com/Prekzursil/Reframe (public, 4 stars, 10 releases). It has NO LICENSE file — confirmed against both the GitHub licence field and a listing of the repository root — so it must never be called open-source (x_style lock). STILL OPEN: the one-line statement for a non-technical reader.
   and one sentence saying what it does for a non-technical reader.**
   *Blocks:* a reviewer cannot verify the nine signed releases or the 100% coverage gate without
   a link, and the coverage claim is one of the strongest engineering signals here.
@@ -127,13 +127,13 @@ then tick it here).
   no claim of 100% originality, no naming of any other author.
   → `projects[Personal-Finance-Management].x_required_remediation`
 
-- [ ] **16. tracelines — what is it, in one sentence? Status (shipped / prototype / abandoned)?
+- [x] **16. RESOLVED 2026-09-29 — tracelines.** Description taken verbatim from the repository's own public description; AGPL-3.0, tagged v0.2.0 (July 2026), 10 commits. It is the smallest entry on the profile and is scoped out of the two tight templates.
   Public URL and LICENSE?**
   *Blocks:* **it renders on no view at all** until answered. There is currently no verified
   description of it anywhere. No download or adoption figure may ever be cited for it.
   → `projects[tracelines]`
 
-- [ ] **17. llm-anthology — same three questions as above.**
+- [x] **17. CLOSED 2026-09-29 — llm-anthology.** Owner decided not to mention it at all; removed from profile.yaml. No description needed.
   *Blocks:* same — renders nowhere until answered.
   → `projects[llm-anthology]`
 
