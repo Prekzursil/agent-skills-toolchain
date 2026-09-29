@@ -1,0 +1,122 @@
+workdir: C:\Users\PREKZU~1\AppData\Local\Temp\supervise-selftest-20260928-174645
+
+C1  LIVENESS - restarts a deliberately-killed process (must FIRE)
+  [PASS] C1.1   first tick starts the unit
+           got: verdict=DEAD action=restarted churn=1 pid=41340 alive=True
+  [PASS] C1.2   a HEALTHY unit is left alone (control for C1.3)
+           got: verdict=HEALTHY action=none churn=1 samePid=True
+  [PASS] C1.3   a KILLED unit is restarted with a NEW pid
+           got: verdict=DEAD action=restarted churn=2 old=41340 new=2624 alive=True
+
+C2  READINESS - refuses to restart an ALIVE-but-mute process (must NOT fire)
+  [PASS] C2.1   mute-but-alive => DEGRADED-DEPENDENCY and NO restart
+           got: verdict=DEGRADED-DEPENDENCY action=no-restart churn=1 samePid=True alive=True
+  [PASS] C2.2   the refusal is by POLICY, not by the kill guard
+           got: ownPid=53240 livePid=53240
+  [PASS] C2.3   the refusal is NOT silent - it notifies
+           got: notifyLines=1 match=True
+  [PASS] C2.4   UNKNOWN readiness (probe exit 42) never restarts
+           got: verdict=DEGRADED-UNKNOWN action=no-restart churn=1 alive=True
+  [PASS] C2.5   a not-ready unit INSIDE the warmup grace is WARMING, not restarted
+           got: verdict=WARMING action=no-restart churn=1 samePid=True alive=True
+
+C3  SELF-FAULT - restarts ONLY on sustained positive evidence (both states)
+  [PASS] C3.1   SELF-FAULT below the strike threshold does NOT restart
+           got: t2=SELF-FAULT-PENDING/no-restart t3=SELF-FAULT-PENDING/no-restart churn=1
+  [PASS] C3.2   SELF-FAULT at the threshold DOES restart
+           got: verdict=WEDGED action=restarted churn=2 old=41724 new=21088
+
+C4  EVIDENCE captured BEFORE the kill
+  [PASS] C4.1   cmdline+RSS of the KILLED pid are on disk (only possible pre-kill)
+           got: dir=144723-WEDGED pid=41724 pidMatch=True cmdlineCaptured=True rss=98418688 targetDeadNow=True allFiles=True
+
+C5  KILL GUARD - refuses a protected process, allows a non-protected one
+  [PASS] C5.1   protected process name => stop REFUSED, process survives
+           got: verdict=WEDGED action=stop-refused churn=1 alive=True
+  [PASS] C5.2   non-protected name => stop ALLOWED, unit restarted
+           got: verdict=WEDGED action=restarted churn=2 old=15824 new=36332
+
+C6  LATCH - budget exhausted => stop restarting, ESCALATE, and KEEP NOTIFYING
+  [PASS] C6.1   restarts INSIDE the budget are permitted (control)
+           got: t1=restarted t2=restarted churn=2
+  [PASS] C6.2   the restart that would BUST the budget latches instead of thrashing
+           got: action=latched exit=3 latched=True churn=2 reason=restart budget exhausted: 2 restarts in 900s (max 2)
+  [PASS] C6.3   the latch ESCALATES to a DIFFERENT remediation
+           got: marker=2026-09-28T17:47:49.0475168+03:00 ESCALATED t-latch restart budget exhausted: 2 restarts in 900s (max 2)
+  [PASS] C6.4   the latch NOTIFIES (not a silent stop)
+           got: notifyLines=1 hasLATCH=True hasReason=True
+  [PASS] C6.5   the latch captures evidence too
+           got: latchEvidenceDirs=1
+  [PASS] C6.6   a LATCHED unit keeps talking (the exact rclone-serve failure mode)
+           got: action=latched-refused notifyLines 1 -> 2 hasLATCHED=True
+
+C7  DURABILITY - the latch survives a FRESH supervisor process
+  [PASS] C7.1   a brand-new process still sees the latch
+           got: exit=3 line=supervise/t-latch: live=False pid= verdict=DEAD action=latched-refused churnTotal=2 restartsInWindow=2/2 latched=True (since 2026-09-28T14:47:47Z: restart budget exhausted: 2 restarts in 900s (max 2)) lastTick=2026-09-28T14:47:52Z
+  [PASS] C7.2   -ClearLatch is the only way out, and it works
+           got: clearExit=0 statusExit=0 latchedFalse=True
+  [PASS] C7.3   churn is operator-visible as a bare integer
+           got: churnFile=2
+
+C8  BACKOFF - exponential, capped, full-jitter (observed, not asserted)
+  [PASS] C8.1   the ceiling doubles then CAPS
+           got: ceilings = 100,200,400,400,400
+  [PASS] C8.2   every delay lies in [0, ceiling] - the full-jitter band
+           got: samples=5 outOfBand=0 J=53,113,323,374,125
+  [PASS] C8.3   jitter is really applied (not always the ceiling)
+           got: strictlyBelow=5/5
+  [PASS] C8.4   seeded jitter reproduces; unseeded does not repeat it
+           got: seed7a=[38,77,153] seed7b=[38,77,153] unseeded=[9,188,197]
+
+C9  PROCESSNAME-FALLBACK - pidfile-less liveness by name+needle (2026-09-28)
+  [PASS] C9.1   WITHOUT fallback a pidfile-less ALIVE unit is misjudged DEAD and restarted (the defect)
+           got: verdict=DEAD action=restarted churn=2
+  [PASS] C9.2   WITH fallback the pidfile-less unit is FOUND-BY-FALLBACK and HEALTHY, no restart
+           got: verdict=HEALTHY action=none churn=1 alive=True
+  [PASS] C9.3   a same-name process WITHOUT the needle is NOT adopted (unit reads DEAD and restarts)
+           got: verdict=DEAD action=restarted foreign=32420 foreignAlive=True new=59728 alive=True
+  [PASS] C9.4   stop-refusal still refuses a fallback-FOUND protected same-name process
+           got: action=stop-refused verdict=WEDGED churn=1 alive=True
+  [PASS] C9.5   a configured pidfile outranks the fallback (canonical path, fallback inert)
+           got: verdict=HEALTHY action=none churn=1
+
+================ RESULTS ================
+
+Id   Pass What
+--   ---- ----
+C1.1 True first tick starts the unit
+C1.2 True a HEALTHY unit is left alone (control for C1.3)
+C1.3 True a KILLED unit is restarted with a NEW pid
+C2.1 True mute-but-alive => DEGRADED-DEPENDENCY and NO restart
+C2.2 True the refusal is by POLICY, not by the kill guard
+C2.3 True the refusal is NOT silent - it notifies
+C2.4 True UNKNOWN readiness (probe exit 42) never restarts
+C2.5 True a not-ready unit INSIDE the warmup grace is WARMING, not restarted
+C3.1 True SELF-FAULT below the strike threshold does NOT restart
+C3.2 True SELF-FAULT at the threshold DOES restart
+C4.1 True cmdline+RSS of the KILLED pid are on disk (only possible pre-kill)
+C5.1 True protected process name => stop REFUSED, process survives
+C5.2 True non-protected name => stop ALLOWED, unit restarted
+C6.1 True restarts INSIDE the budget are permitted (control)
+C6.2 True the restart that would BUST the budget latches instead of thrashing
+C6.3 True the latch ESCALATES to a DIFFERENT remediation
+C6.4 True the latch NOTIFIES (not a silent stop)
+C6.5 True the latch captures evidence too
+C6.6 True a LATCHED unit keeps talking (the exact rclone-serve failure mode)
+C7.1 True a brand-new process still sees the latch
+C7.2 True -ClearLatch is the only way out, and it works
+C7.3 True churn is operator-visible as a bare integer
+C8.1 True the ceiling doubles then CAPS
+C8.2 True every delay lies in [0, ceiling] - the full-jitter band
+C8.3 True jitter is really applied (not always the ceiling)
+C8.4 True seeded jitter reproduces; unseeded does not repeat it
+C9.1 True WITHOUT fallback a pidfile-less ALIVE unit is misjudged DEAD and restarted (the defect)
+C9.2 True WITH fallback the pidfile-less unit is FOUND-BY-FALLBACK and HEALTHY, no restart
+C9.3 True a same-name process WITHOUT the needle is NOT adopted (unit reads DEAD and restarts)
+C9.4 True stop-refusal still refuses a fallback-FOUND protected same-name process
+C9.5 True a configured pidfile outranks the fallback (canonical path, fallback inert)
+
+
+controls: 31  passed: 31  failed: 0
+workdir kept for inspection: C:\Users\PREKZU~1\AppData\Local\Temp\supervise-selftest-20260928-174645
+SUCCESS:supervise-selftest 31/31

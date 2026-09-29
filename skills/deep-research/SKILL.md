@@ -2,6 +2,8 @@
 name: deep-research
 description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports. Use when the user wants thorough, evidence-backed research.
 ---
+> **LIVE ENGINE SET (2026-09-29, post-consolidation):** web-search-prime (z.ai) · web-reader (z.ai) · native WebSearch/WebFetch · firecrawl (:31114, recovered) · firecrawl self-host :3002 · exa (enabled, mount unverified). Parked: tavily + search-hub (McpHub rail), searxng MCP. Registry + preflight are SSOT — run the preflight before dispatch.
+
 
 # Deep Research
 
