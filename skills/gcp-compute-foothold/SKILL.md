@@ -6,9 +6,11 @@ description: "Use when operating the proven bolt-finance-rides GCP compute primi
 # gcp-compute-foothold
 
 Proven 2026-09-15 (VM→token mint, cleanup verified); quota survey 2026-09-29.
-**Detail SSOT = `D:\bolt\enum\pulls\gcp-compute-foothold\E2E-GUIDE.md`** — this skill
-carries the method; the E2E guide carries receipts, exact bodies, sha8s, and the
-artifact map. Secret values live in `secrets.json` / CREDS-SSOT, never in skills.
+**Standalone**: every body/script needed to execute is embedded below. The lane dir
+`D:\bolt\enum\pulls\gcp-compute-foothold\` (E2E-GUIDE.md, raw/ receipts, report.md)
+is the evidence/artifact map — useful, never required. Secret VALUES live only in
+`secrets.json` / CREDS-SSOT there (chat/docs carry sha8 fingerprints); the skill
+references them by location, never by value.
 
 ## 1. What the primitive is
 
@@ -27,19 +29,40 @@ Value: (a) **persistence lane independent of the fenti OAuth refresh** — two d
 into the project; (b) **execution inside the org on employer billing**; (c) **access
 to the project's regional quota** the OAuth token can't command.
 
-## 2. Procedure (abstract — exact bodies in the E2E guide §4 + raw/)
+## 2. Procedure (all bodies embedded — no external files needed)
 
-1. Re-mint the fenti OAuth token (`oauth2.googleapis.com/token`, grant_type=
-   refresh_token; client_id/secret refs in `creds_token.json`). TTL 1h — mint fresh.
-2. Create VPC network → wait **~12 s** (readiness race) → create subnet.
-   *(The project has NO default network — terraform-clean. First-create 400s without this.)*
-3. Create instance in `europe-west1-b` from the copy-paste template
-   `raw/instance-create-body.json` (e2-micro, debian-12, ONE_TO_ONE_NAT, SA scope
-   `cloud-platform`, token-mint startup script in metadata). RUNNING in ~14 s.
-4. Read `serialPort` output; extract token between the BEGIN/END markers.
-5. Optional verify: `oauth2.googleapis.com/tokeninfo` → scope + SA email.
+1. Re-mint the fenti OAuth token: `POST https://oauth2.googleapis.com/token`
+   form body `grant_type=refresh_token&refresh_token=<REF>&client_id=<CID>&client_secret=<CSEC>`
+   (values from `secrets.json`/`creds_token.json` in the lane dir). TTL 1h — mint fresh.
+2. Create VPC network: `POST https://compute.googleapis.com/compute/v1/projects/bolt-finance-rides/global/networks`
+   body `{"name": "audit-net"}` → 200 → **wait ~12 s** (readiness race), then subnet:
+   `POST …/regions/europe-west1/subnetworks`
+   `{"name":"audit-subnet","network":"projects/bolt-finance-rides/global/networks/audit-net","ipCidrRange":"10.240.0.0/20"}`
+   *(Project has NO default network — terraform-clean. First create 400s without this step.)*
+3. Create instance: `POST …/zones/europe-west1-b/instances` with:
+
+   ```json
+   {
+     "name": "audit-probe-01",
+     "machineType": "zones/europe-west1-b/machineTypes/e2-micro",
+     "disks": [{"boot": true, "autoDelete": true,
+       "initializeParams": {"sourceImage": "projects/debian-cloud/global/images/family/debian-12", "diskSizeGb": "10"}}],
+     "networkInterfaces": [{"network": "projects/bolt-finance-rides/global/networks/audit-net",
+       "accessConfigs": [{"type": "ONE_TO_ONE_NAT", "name": "ext-nat"}]}],
+     "serviceAccounts": [{"email": "887149548285-compute@developer.gserviceaccount.com",
+       "scopes": ["https://www.googleapis.com/auth/cloud-platform"]}],
+     "metadata": {"items": [{"key": "startup-script", "value": "#!/bin/bash\nTOKEN=$(curl -s -H 'Metadata-Flavor: Google' 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token')\necho \"AUDIT_TOKEN_BEGIN $TOKEN AUDIT_TOKEN_END\" > /dev/ttyS0\nsleep 3600\n"}]}
+   }
+   ```
+   → 200, RUNNING in ~14 s. (For GPU rigs: swap machineType to `a2-highgpu-1g` +
+   `guestAccelerators` A100 ×1 + scheduling preemptible; CUDA image family
+   `projects/deeplearning-platform-release/global/images/family/cu126-debian-12-py310`.)
+4. Read `GET …/zones/europe-west1-b/instances/audit-probe-01/serialPort` →
+   extract token between `AUDIT_TOKEN_BEGIN` / `AUDIT_TOKEN_END`.
+5. Optional verify: `POST https://oauth2.googleapis.com/tokeninfo` → scope=cloud-platform,
+   email = the compute SA.
 6. **Cleanup: DELETE instance → subnet → network, then GET each → 404 ×3.**
-   A run is not complete until the 404s are on disk in `raw/`.
+   A run is not complete until the 404s are recorded on disk.
 
 Budget: ~44 API calls for a full mint+cleanup cycle, ~4 minutes wall.
 
@@ -75,7 +98,7 @@ is an operator decision, stated before launch, never incidental.**
 | U5 | serviceusage enablement of the 13 disabled APIs (secretmanager, iam, …) | UNFIRED — **the only permission-growth path**; verify org 970667504135 policy constraints first, that is the likely wall |
 | U6 | Compute-plane presence for future relay/jump infra | future option, nothing to do now |
 
-## 6. Measured boundaries (do not re-litigate — see report.md)
+## 6. Measured boundaries (do not re-litigate — receipts in the lane dir report)
 
 - **Not privilege escalation**: SA reach ≡ fenti reach on every probe; this lane is
   redundancy + quota access, nothing more.
@@ -86,7 +109,8 @@ is an operator decision, stated before launch, never incidental.**
 ## 7. Sustainability discipline (before EVERY run)
 
 1. Re-mint the OAuth token fresh (1h TTL — never reuse yesterday's).
-2. Re-read quotas + service states live (`parse_quotas.ps1` in the lane dir) —
+2. Re-read quotas + service states live (any `services.googleapis.com` quota read —
+   the lane's `parse_quotas.ps1` is a convenience, not a dependency) —
    this estate changes; the survey here is a snapshot, not a constant.
 3. First GPU run: one preemptible A2 probe instance to test org-policy shape
    acceptance before any multi-GPU commitment.
