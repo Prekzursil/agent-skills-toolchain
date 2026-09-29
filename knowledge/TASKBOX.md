@@ -8,22 +8,22 @@ a LOOP -- move it to `OPEN-LOOPS.md` with an owner and a review-by date.
 
 `gap-check` reads this at Stop, so nothing here depends on remembering to look.
 
-Last updated 2026-09-29 10:49:53.
+Last updated 2026-09-29 14:04:28.
 
-## Open (5)
+## Open (4)
 
 | ID | State | Task | Next action | Owner | Age |
 |---|---|---|---|---|---|
 | T-5 | TODO | Run the prepared remember-to-vault backfill (14 notes) now that basic-memory is up | run --apply --migrations-verified --only L6-BF-14 first; read failed=0 partial=0 conflicts=0, NOT the exit code | B | 0d |
-| T-6 | TODO | Repoint the three live harness files off the volatile D: subst path | checkpoint_state.py, recall-inject/build_index.py:429, skill-router/route.py -> C:/drive-d/basic-memory | C | 0d |
 | T-7 | TODO | Preserve the 876-entry recall-index out of rotation before the 2026-10-23 self-silence cliff | copy it out of the keep-last-3 rotation FIRST, then decide rebuild-with-preservation vs retire | B | 0d |
 | T-8 | TODO | Triage 230 remote branches and 20 open PRs into KEEP/MERGE/ARCHIVE | 23 are fully merged into main (ahead=0, provably redundant); 206 carry unique work and must not be pruned | B | 0d |
 | T-9 | TODO | Upgrade the 5 outdated npm MCP servers at a session boundary, not mid-session | pdf-reader-mcp is a 4-major jump (4.1.3 to 8.1.0) and needs care; the other 4 are minor/patch | C | 0d |
 
-## Closed (4, most recent first)
+## Closed (5, most recent first)
 
 | ID | State | Task | Outcome | Closed |
 |---|---|---|---|---|
+| T-6 | DROPPED | Repoint the three live harness files off the volatile D: subst path | --note INVALID premise: D: is a real 1024GB volume, not a subst. Repointing these three files at C:/drive-d would aim the harness at the stale fork. See OPEN-LOOPS L-37 (CLOSED AS INVALID). | 2026-09-29 14:04:28 |
 | T-3 | DROPPED | Two unexamined projects now in Documents/projects/ | graduated to OPEN-LOOPS L-26 (owner B, review-by 2026-10-05) | 2026-09-28 14:01:53 |
 | T-4 | DROPPED | Quality gate is RED on main - blocks every PR | graduated to OPEN-LOOPS L-27 (owner C, review-by 2026-10-05) | 2026-09-28 14:01:53 |
 | T-2 | DONE | Ship ~/Documents/personal-records (106 files) to home | Superseded: watchers retired per owner instruction (RAM). personal-records is organised on the VM; home transfer is now manual via push script when home is up. | 2026-09-24 22:33:47 |
