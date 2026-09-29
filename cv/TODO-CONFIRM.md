@@ -105,7 +105,7 @@ then tick it here).
   has no verifiable link.
   → `work[momentstudio.ro].x_link_gate`
 
-- [ ] **13. PARTLY RESOLVED 2026-09-29 — Reframe.** URL github.com/Prekzursil/Reframe (public, 4 stars, 10 releases). It has NO LICENSE file — confirmed against both the GitHub licence field and a listing of the repository root — so it must never be called open-source (x_style lock). STILL OPEN: the one-line statement for a non-technical reader.
+- [ ] **13. PARTLY RESOLVED 2026-09-29 — Reframe.** URL github.com/Prekzursil/Reframe (public, 4 stars, 10 releases). It has NO LICENSE file — confirmed against both the GitHub licence field and a listing of the repository root — so it must never be called open-source (x_style lock). STILL OPEN: the one-line statement for a non-technical reader. DECISION FOR THE OWNER: whether to ADD A LICENCE to Reframe. Until one exists the profile's strongest shipped artefact cannot be called open-source, which costs it the framing it deserves; adding one is a single file and would settle it.
   and one sentence saying what it does for a non-technical reader.**
   *Blocks:* a reviewer cannot verify the nine signed releases or the 100% coverage gate without
   a link, and the coverage claim is one of the strongest engineering signals here.
