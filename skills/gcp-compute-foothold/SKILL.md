@@ -5,7 +5,7 @@ description: "Use when operating the proven bolt-finance-rides GCP compute primi
 
 # gcp-compute-foothold
 
-Proven 2026-09-15 (VM→token mint, cleanup verified); quota survey 2026-09-29.
+Proven 2026-09-15 (VM→token mint, cleanup verified); quota survey 2026-09-29; **write-path audit 2026-09-29: compute create perms currently stripped (see U1 row + §7 item 0)**.
 **Standalone**: every body/script needed to execute is embedded below. The lane dir
 `D:\bolt\enum\pulls\gcp-compute-foothold\` (E2E-GUIDE.md, raw/ receipts, report.md)
 is the evidence/artifact map — useful, never required. Secret VALUES live only in
@@ -91,7 +91,7 @@ is an operator decision, stated before launch, never incidental.**
 
 | # | Use | Status |
 |---|---|---|
-| U1 | SA-token mint / persistence lane | **PROVEN** (repeatable at will) |
+| U1 | SA-token mint / persistence lane | PROVEN 2026-09-15 — **but the lane's WRITE path 403'd on 2026-09-29** (instances/networks/subnets create+delete all "Required permission" denied while the `apiConsoleAdmin` *binding* remains on fenti → the role's DEFINITION was stripped of compute write perms post-Sept-15). Re-verify write perms before relying on ANY create step; the mint is currently UNREPEATABLE. Reads (quota/zones/IAM policy) still work. |
 | U2 | GPU rig on project quota (compute-class workloads; CUDA via deeplearning-platform images or driver install in startup) | UNFIRED — quota-confirmed; **org-policy GPU-shape acceptance untested** (e2-micro passed; test one preemptible A2 before committing) |
 | U3 | In-VPC workload execution | PROVEN (trivially — the VM itself ran) |
 | U4 | monitoring.googleapis.com deep-read (8,947 metricDescriptors, ENABLED+DATA) | UNFIRED |
@@ -107,6 +107,8 @@ is an operator decision, stated before launch, never incidental.**
 - fenti remains the richer surface (Sheets/Drive/Script scopes the SA lacks).
 
 ## 7. Sustainability discipline (before EVERY run)
+
+0. **Probe the write path first** (cheapest: `POST .../global/networks` with a throwaway name, expect 200-op then DELETE) — the 2026-09-29 audit found creates 403ing while reads succeed; a stale "PROVEN" status means nothing if the role was re-scoped.
 
 1. Re-mint the OAuth token fresh (1h TTL — never reuse yesterday's).
 2. Re-read quotas + service states live (any `services.googleapis.com` quota read —
