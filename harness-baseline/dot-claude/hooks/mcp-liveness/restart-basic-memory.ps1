@@ -23,6 +23,12 @@ $ErrorActionPreference = 'SilentlyContinue'
 $Port    = 18765
 $Task    = 'BasicMemory-HTTP-MCP'
 $Launcher = 'C:\Users\Prekzursil\.basic-memory\bm-http-server.ps1'
+# DIRECT-launch tier: zero external dependencies (no Scheduled Task, no out-of-tree script).
+# Pinned from the daemon's OWN recorded invocation; matches the memory-contract URL
+# http://127.0.0.1:18765/mcp. This is the tier that works on a host where NEITHER the task
+# NOR $Launcher exists -- measured 2026-09-29 on offload-w2025, where the chain dead-ended.
+$Exe      = 'C:\Users\prekzursil\.local\bin\basic-memory.exe'
+$ExeArgs  = @('mcp','--transport','streamable-http','--host','127.0.0.1','--port',"$Port",'--path','/mcp')
 $LogDir  = 'C:\Users\Prekzursil\.basic-memory\logs'
 if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Force -Path $LogDir | Out-Null }
 $Log = Join-Path $LogDir 'liveness-restart.log'
@@ -87,7 +93,11 @@ try {
     }
 
     if ($DryRun) {
-        Log "would Stop-ScheduledTask + Start-ScheduledTask '$Task' (fallback: launch $Launcher detached)"
+        $plan = if (Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue) { "Stop/Start-ScheduledTask '$Task'" }
+                elseif (Test-Path $Launcher) { "launch $Launcher detached" }
+                elseif (Test-Path $Exe)      { "DIRECT launch $Exe $($ExeArgs -join ' ')" }
+                else                         { "NOTHING AVAILABLE (no task, no launcher, no exe)" }
+        Log "would: $plan"
         Log "end (dry-run, nothing changed)"
         return
     }
@@ -120,8 +130,18 @@ try {
             Start-Process -FilePath 'powershell' `
                 -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$Launcher) `
                 -WindowStyle Hidden
+        } elseif (Test-Path $Exe) {
+            # ZERO-DEPENDENCY tier. Neither the Scheduled Task nor $Launcher exists on this
+            # host, which is exactly where this chain used to dead-end at "cannot restart"
+            # (measured 2026-09-29: task MISSING, launcher ABSENT, liveness-restart.log never
+            # written). Launch the daemon directly -- nothing to register, nothing out-of-tree.
+            Log "no task, no launcher - DIRECT launch: $Exe $($ExeArgs -join ' ')"
+            Start-Process -FilePath $Exe -ArgumentList $ExeArgs -WindowStyle Hidden
+            # Stamp the anti-thrash marker the STARTUP GRACE guard above reads, so a second
+            # session start DEFERS instead of killing a server that is still binding.
+            Set-Content -Path $Marker -Value (Get-Date -Format o) -Encoding utf8
         } else {
-            Log "ERROR: no scheduled task AND no launcher script ($Launcher) - cannot restart"
+            Log "ERROR: no scheduled task, no launcher ($Launcher), no exe ($Exe) - cannot restart"
         }
     }
 
