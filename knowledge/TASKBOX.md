@@ -8,14 +8,15 @@ a LOOP -- move it to `OPEN-LOOPS.md` with an owner and a review-by date.
 
 `gap-check` reads this at Stop, so nothing here depends on remembering to look.
 
-Last updated 2026-09-29 14:16:22.
+Last updated 2026-09-29 16:11:50.
 
-## Open (4)
+## Open (5)
 
 | ID | State | Task | Next action | Owner | Age |
 |---|---|---|---|---|---|
 | T-10 | TODO | Reconcile the 3 PR conflict clusters (A: #310/#314/#318 agents.json+control-plane test; B: #362/#325 osv-scanner.toml+hacktricks lock; C: stacked p2-wave #326/#327/#330/#332/#333 generated probe artifacts) | Cluster A first: check byte-identity of the overlap per fan-out-contract C3 - they may simply stack | C | 0d |
 | T-11 | TODO | Decide @sylphx/pdf-reader-mcp 4.1.3 -> 8.1.0 (4-major jump) | Its own server instructions name LKG 3.0.14 and say no TypeScript PDF runtime ships in the Rust package; read the 5.x/6.x/7.x/8.x breaking notes before jumping, and keep 4.1.3 pinned until a read_pdf/search_pdf smoke test passes on the new major | O | 0d |
+| T-12 | TODO | Seven-lens e2e workflow wf_c110c6c9-8df is IN FLIGHT (15 agents: settings-stub, reframe-licence, cv-gaps, supervisor-landscape, research-gaps, design-remainder, harness-gems, each + an adversarial refuter, then a tiered decision synthesis) | Artifacts land in scratchpad/e2e/*.md and DECISIONS.md. If the session dies, resume with Workflow({scriptPath: '...workflows/scripts/cv-estate-e2e-wf_c110c6c9-8df.js', resumeFromRunId: 'wf_c110c6c9-8df'}) - completed agents replay from cache. Read journal.jsonl in the transcript dir BEFORE assuming a lens returned nothing. | C | 0d |
 | T-5 | TODO | Run the prepared remember-to-vault backfill (14 notes) now that basic-memory is up | run --apply --migrations-verified --only L6-BF-14 first; read failed=0 partial=0 conflicts=0, NOT the exit code | B | 0d |
 | T-7 | TODO | Preserve the 876-entry recall-index out of rotation before the 2026-10-23 self-silence cliff | copy it out of the keep-last-3 rotation FIRST, then decide rebuild-with-preservation vs retire | B | 0d |
 
