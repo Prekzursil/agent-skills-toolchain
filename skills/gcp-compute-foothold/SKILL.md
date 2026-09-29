@@ -68,6 +68,15 @@ Budget: ~44 API calls for a full mint+cleanup cycle, ~4 minutes wall.
 
 ## 3. Known gotchas (solved once — reuse, don't re-derive)
 
+- **Re-mint automation**: `stage_refresh.py` in the lane dir pulls the refresh token
+  (sha8 `49a7d34b`) + secret from `CREDS-SSOT_2026-09-06.json` plaintext and the
+  client_id from the `id_token` JWT `azp` claim in `creds_token.json`, then mints
+  `.fenti_token_live`. Verified working 2026-09-29 (mint sha8 `509d8d07`, 12 scopes).
+- **`testIamPermissions` is a FALSE-NEGATIVE instrument on this lane** (2026-09-29:
+  it denied `getIamPolicy` while the same token's real `getIamPolicy` call returned
+  10 bindings). Never trust its empty list — probe with a REAL call of the shape you
+  need (read: cheap GET; write: throwaway `networks.create` + immediate DELETE).
+
 - **No default network** → build custom VPC+subnet first; retry once after ~12 s if
   "network not ready".
 - **machineTypes.list / acceleratorTypes.list are 403** for the held role
