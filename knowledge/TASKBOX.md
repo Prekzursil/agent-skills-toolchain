@@ -8,21 +8,23 @@ a LOOP -- move it to `OPEN-LOOPS.md` with an owner and a review-by date.
 
 `gap-check` reads this at Stop, so nothing here depends on remembering to look.
 
-Last updated 2026-09-29 14:04:28.
+Last updated 2026-09-29 14:16:22.
 
 ## Open (4)
 
 | ID | State | Task | Next action | Owner | Age |
 |---|---|---|---|---|---|
+| T-10 | TODO | Reconcile the 3 PR conflict clusters (A: #310/#314/#318 agents.json+control-plane test; B: #362/#325 osv-scanner.toml+hacktricks lock; C: stacked p2-wave #326/#327/#330/#332/#333 generated probe artifacts) | Cluster A first: check byte-identity of the overlap per fan-out-contract C3 - they may simply stack | C | 0d |
+| T-11 | TODO | Decide @sylphx/pdf-reader-mcp 4.1.3 -> 8.1.0 (4-major jump) | Its own server instructions name LKG 3.0.14 and say no TypeScript PDF runtime ships in the Rust package; read the 5.x/6.x/7.x/8.x breaking notes before jumping, and keep 4.1.3 pinned until a read_pdf/search_pdf smoke test passes on the new major | O | 0d |
 | T-5 | TODO | Run the prepared remember-to-vault backfill (14 notes) now that basic-memory is up | run --apply --migrations-verified --only L6-BF-14 first; read failed=0 partial=0 conflicts=0, NOT the exit code | B | 0d |
 | T-7 | TODO | Preserve the 876-entry recall-index out of rotation before the 2026-10-23 self-silence cliff | copy it out of the keep-last-3 rotation FIRST, then decide rebuild-with-preservation vs retire | B | 0d |
-| T-8 | TODO | Triage 230 remote branches and 20 open PRs into KEEP/MERGE/ARCHIVE | 23 are fully merged into main (ahead=0, provably redundant); 206 carry unique work and must not be pruned | B | 0d |
-| T-9 | TODO | Upgrade the 5 outdated npm MCP servers at a session boundary, not mid-session | pdf-reader-mcp is a 4-major jump (4.1.3 to 8.1.0) and needs care; the other 4 are minor/patch | C | 0d |
 
-## Closed (5, most recent first)
+## Closed (7, most recent first)
 
 | ID | State | Task | Outcome | Closed |
 |---|---|---|---|---|
+| T-9 | DONE | Upgrade the 5 outdated npm MCP servers at a session boundary, not mid-session | --note 4 of 5 upgraded and postcondition-verified by re-reading npm: @digitalocean/mcp 1.0.70->1.1.1, @openai/codex 0.157.0->0.159.0 (codex --version smoke-tested), @playwright/mcp 0.0.82->0.0.83, chrome-devtools-mcp 1.9.0->1.10.1. Stale 14MB npm temp dir from an EPERM cleanup removed. @sylphx/pdf-reader-mcp deliberately NOT upgraded -> T-11. | 2026-09-29 14:16:22 |
+| T-8 | DONE | Triage 230 remote branches and 20 open PRs into KEEP/MERGE/ARCHIVE | --note Triage measured: 23 branches pruned (server-verified), 28 PRs measured against their REAL bases - 17 conflict-free, 11 conflicted in 3 clusters. Report: knowledge/analyses/2026-09-29-pr-conflict-surface.md. Merge itself blocked on L-52 (token cannot read check runs). | 2026-09-29 14:16:02 |
 | T-6 | DROPPED | Repoint the three live harness files off the volatile D: subst path | --note INVALID premise: D: is a real 1024GB volume, not a subst. Repointing these three files at C:/drive-d would aim the harness at the stale fork. See OPEN-LOOPS L-37 (CLOSED AS INVALID). | 2026-09-29 14:04:28 |
 | T-3 | DROPPED | Two unexamined projects now in Documents/projects/ | graduated to OPEN-LOOPS L-26 (owner B, review-by 2026-10-05) | 2026-09-28 14:01:53 |
 | T-4 | DROPPED | Quality gate is RED on main - blocks every PR | graduated to OPEN-LOOPS L-27 (owner C, review-by 2026-10-05) | 2026-09-28 14:01:53 |
