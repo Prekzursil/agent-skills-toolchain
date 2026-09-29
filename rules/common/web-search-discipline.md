@@ -9,6 +9,8 @@ paths:
 ---
 # Web-search discipline — full-arsenal reach
 
+> **LIVE ENGINE STATUS (verified 2026-09-29 09:4x, post-consolidation):** live = `web-search-prime` (z.ai) · `web-reader` (z.ai) · native `WebSearch`/`WebFetch` · `firecrawl` (:31114 band front, fastmcp v3.24.0, recovered after api restart) · firecrawl self-host :3002 (raw API v1, healthy) · `exa` (plugin enabled 2026-09-29, mount unverified until next session). Parked/unreachable tonight: tavily + search-hub (McpHub rail), searxng MCP (container up, front unverified). **Registry + preflight output are SSOT; this table is intent, not inventory — run the preflight before trusting any lane.**
+
 **A single `web_search` is the floor, not the tool.** For any non-trivial question, fan out across the estate's search arsenal for coverage, then fuse + grade. One engine's index has blind spots; the point is reach and corroboration.
 
 ## Route by intent (use the RIGHT index, then widen)
