@@ -184,6 +184,10 @@ then tick it here).
 
 ---
 
+- [x] **27. RESOLVED 2026-09-29 — OMIT: the teacher-training module (DPPD Level I, 2025) and ECDL (2019).** Owner: "not eligible for or worth mentioning in the CV".
+  Both certificates surfaced in the 2026-09-28 personal-records audit and are filed there as records only
+  (`02-education/2025-modul-psihopedagogic/`, `02-education/2019-ecdl/`). Do not propose them again. Closes OPEN-LOOPS L-30.
+
 ## Tier 4 — re-check before each submission
 
 - [ ] **24. pbinfo numbers move.** The profile states 4,244 solved of 14,228 submissions against
