@@ -377,7 +377,9 @@ def format_alert(down: list, reharness_down: list, restarted: bool) -> str:
                     "relying on recall, and re-save anything important. "
                     if restarted
                     else "Auto-restart could NOT be launched - start it manually: "
-                    "Start-ScheduledTask -TaskName BasicMemory-HTTP-MCP. "
+                    "powershell -NoProfile -ExecutionPolicy Bypass -File "
+                    "~/.claude/hooks/mcp-liveness/restart-basic-memory.ps1 "
+                    "(direct-launch tier; no scheduled task is used or needed). "
                 )
             )
         else:

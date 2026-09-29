@@ -93,17 +93,19 @@ try {
     }
 
     if ($DryRun) {
-        $plan = if (Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue) { "Stop/Start-ScheduledTask '$Task'" }
+        $plan = if (Test-Path $Exe)          { "DIRECT launch $Exe $($ExeArgs -join ' ')" }
                 elseif (Test-Path $Launcher) { "launch $Launcher detached" }
-                elseif (Test-Path $Exe)      { "DIRECT launch $Exe $($ExeArgs -join ' ')" }
-                else                         { "NOTHING AVAILABLE (no task, no launcher, no exe)" }
+                elseif (Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue) { "Stop/Start-ScheduledTask '$Task'" }
+                else                         { "NOTHING AVAILABLE (no exe, no launcher, no task)" }
         Log "would: $plan"
         Log "end (dry-run, nothing changed)"
         return
     }
 
     $taskOk = $false
-    $t = Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue
+    # TIER GATE (zero-scheduled-task doctrine, owner 2026-09-29): never PREFER a registered task
+    # over the self-contained direct launch. Only consider the task tier when $Exe is unavailable.
+    $t = if (Test-Path $Exe) { $null } else { Get-ScheduledTask -TaskName $Task -ErrorAction SilentlyContinue }
     if ($t) {
         # Force-recover, not a plain Stop+Start: a blocked launcher (WaitForExit on a server that never
         # bound) pins the task 'Running', so Start-ScheduledTask fails with 0x800710E0 ('operator refused')
@@ -125,23 +127,25 @@ try {
     }
 
     if (-not $taskOk) {
-        if (Test-Path $Launcher) {
-            Log "scheduled task absent - launching $Launcher detached"
-            Start-Process -FilePath 'powershell' `
-                -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$Launcher) `
-                -WindowStyle Hidden
-        } elseif (Test-Path $Exe) {
-            # ZERO-DEPENDENCY tier. Neither the Scheduled Task nor $Launcher exists on this
-            # host, which is exactly where this chain used to dead-end at "cannot restart"
-            # (measured 2026-09-29: task MISSING, launcher ABSENT, liveness-restart.log never
-            # written). Launch the daemon directly -- nothing to register, nothing out-of-tree.
-            Log "no task, no launcher - DIRECT launch: $Exe $($ExeArgs -join ' ')"
+        if (Test-Path $Exe) {
+            # ZERO-DEPENDENCY tier -- PREFERRED. Owner doctrine 2026-09-29: zero scheduled tasks,
+            # and depend on nothing that is not in the repo or a real filesystem path. So the
+            # self-contained direct launch runs BEFORE the out-of-tree $Launcher script and before
+            # any registered task (see the TIER GATE above). Measured 2026-09-29 on offload-w2025:
+            # task MISSING, launcher ABSENT, liveness-restart.log never written -- this tier is
+            # what removed that dead end.
+            Log "DIRECT launch (preferred tier): $Exe $($ExeArgs -join ' ')"
             Start-Process -FilePath $Exe -ArgumentList $ExeArgs -WindowStyle Hidden
             # Stamp the anti-thrash marker the STARTUP GRACE guard above reads, so a second
             # session start DEFERS instead of killing a server that is still binding.
             Set-Content -Path $Marker -Value (Get-Date -Format o) -Encoding utf8
+        } elseif (Test-Path $Launcher) {
+            Log "no direct exe - falling back to launcher: $Launcher (detached)"
+            Start-Process -FilePath 'powershell' `
+                -ArgumentList @('-NoProfile','-ExecutionPolicy','Bypass','-File',$Launcher) `
+                -WindowStyle Hidden
         } else {
-            Log "ERROR: no scheduled task, no launcher ($Launcher), no exe ($Exe) - cannot restart"
+            Log "ERROR: no exe ($Exe), no launcher ($Launcher), no scheduled task - cannot restart"
         }
     }
 
