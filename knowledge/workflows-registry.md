@@ -1,12 +1,12 @@
 # Workflows registry (generated — regen: scripts/build-workflow-registry.py)
 
-Generated: 2026-09-30T19:17:11+00:00
+Generated: 2026-09-30T19:25:37+00:00
 
 ## Counts by class
 
 - live-claude: **11**
 - repo-canonical: **9**
-- session-embedded: **518**
+- session-embedded: **519**
 - shared-agents: **3**
 
 ## Durable workflows
@@ -18,7 +18,7 @@ Generated: 2026-09-30T19:17:11+00:00
 | live-claude | harness-self-improve-sweep-important.js | harness-self-improve-sweep | fable | 2026-08-15 |
 | live-claude | multiai-orchestration-research.js | multiai-orchestration-research | claude-fable-5,fable | 2026-08-16 |
 | live-claude | paper-hardening.js | paper-hardening | fable,opus | 2026-09-16 |
-| live-claude | reconcile-all-branches-prs-imporant.js | reconcile-all-branches-prs | fable | 2026-08-15 |
+| live-claude | reconcile-all-branches-prs-important.js | reconcile-all-branches-prs | fable | 2026-08-15 |
 | live-claude | trainer-gui-mega-plan.js | trainer-gui-mega-plan | - | 2026-08-16 |
 | live-claude | uiux-tooling-consolidation-2026-07-12.js | uiux-tooling-consolidation-2026-07-12 | fable,opus | 2026-08-15 |
 | live-claude | workspace-gem-hunt-2026-07-12.js | workspace-gem-hunt-2026-07-12 | fable,opus | 2026-08-15 |
@@ -32,7 +32,7 @@ Generated: 2026-09-30T19:17:11+00:00
 | repo-canonical | harness-self-improve-sweep-important.js | harness-self-improve-sweep | fable | 2026-09-19 |
 | repo-canonical | monitor-harness-ultracode-2026-07-18-final-great | monitor-harness-ultracode-2026-07-18 | - | 2026-09-19 |
 | repo-canonical | multiai-orchestration-research.js | multiai-orchestration-research | claude-fable-5,fable | 2026-09-19 |
-| repo-canonical | reconcile-all-branches-prs-imporant.js | reconcile-all-branches-prs | fable | 2026-09-19 |
+| repo-canonical | reconcile-all-branches-prs-important.js | reconcile-all-branches-prs | fable | 2026-09-19 |
 | repo-canonical | trainer-gui-mega-plan.js | trainer-gui-mega-plan | - | 2026-09-19 |
 | repo-canonical | uiux-tooling-consolidation-2026-07-12.js | uiux-tooling-consolidation-2026-07-12 | fable,opus | 2026-09-19 |
 | repo-canonical | workspace-gem-hunt-2026-07-12.js | workspace-gem-hunt-2026-07-12 | fable,opus | 2026-09-19 |
@@ -43,12 +43,12 @@ Generated: 2026-09-30T19:17:11+00:00
 - `bc-stage-compendium-enrichment`: C:\Users\Prekzursil\.claude\workflows\bc-stage-compendium-enrichment.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\bc-stage-compendium-enrichment.js
 - `harness-self-improve-sweep`: C:\Users\Prekzursil\.claude\workflows\harness-self-improve-sweep-important.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\harness-self-improve-sweep-important.js
 - `multiai-orchestration-research`: C:\Users\Prekzursil\.claude\workflows\multiai-orchestration-research.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\multiai-orchestration-research.js
-- `reconcile-all-branches-prs`: C:\Users\Prekzursil\.claude\workflows\reconcile-all-branches-prs-imporant.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\reconcile-all-branches-prs-imporant.js
+- `reconcile-all-branches-prs`: C:\Users\Prekzursil\.claude\workflows\reconcile-all-branches-prs-important.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\reconcile-all-branches-prs-important.js
 - `trainer-gui-mega-plan`: C:\Users\Prekzursil\.claude\workflows\trainer-gui-mega-plan.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\trainer-gui-mega-plan.js
 - `uiux-tooling-consolidation-2026-07-12`: C:\Users\Prekzursil\.claude\workflows\uiux-tooling-consolidation-2026-07-12.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\uiux-tooling-consolidation-2026-07-12.js
 - `workspace-gem-hunt-2026-07-12`: C:\Users\Prekzursil\.claude\workflows\workspace-gem-hunt-2026-07-12.js <-> C:\Users\Prekzursil\source\agent-skills-toolchain\agent-self\config\workflows\workspace-gem-hunt-2026-07-12.js
 
-## Session-embedded distinct names: 514
+## Session-embedded distinct names: 515
 
 - bc-mega-build-a1-4-feature-vector.js (x2)
 - comprehensive-mcp-harness-audit.js (x2)
