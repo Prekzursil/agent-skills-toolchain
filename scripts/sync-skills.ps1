@@ -165,3 +165,26 @@ if ($Prune) {
     }
     if (-not $orphans) { Write-Host "No orphans to prune." }
 }
+
+# Derived-index freshness (rules/common/derived-index-freshness.md): a deployed skill
+# the semantic router cannot see is deployed nowhere. Gate -> one rebuild attempt ->
+# loud fail-open warning (same posture as the router itself).
+if (-not $WhatIf) {
+    Write-Host ""
+    Write-Host "[semantic-router index freshness]"
+    $gate = & pwsh -NoProfile -File (Join-Path $PSScriptRoot "check-index-freshness.ps1") 2>&1
+    Write-Host ($gate | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "gate failed - attempting one index rebuild..."
+        & python "$env:USERPROFILE\.claude\hooks\semantic-router\build_index.py" --quiet 2>&1 |
+            Select-Object -Last 2 | Write-Host
+        $gate2 = & pwsh -NoProfile -File (Join-Path $PSScriptRoot "check-index-freshness.ps1") 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "WARN:semantic-index-stale gate still failing after rebuild: $($gate2 | Out-String)"
+            Write-Host "       (ollama up? nomic-embed-text pulled? source paths drifted?)"
+            Write-Host "       deploy succeeded; semantic routing is degraded until the gate passes."
+        } else {
+            Write-Host ($gate2 | Out-String).Trim()
+        }
+    }
+}

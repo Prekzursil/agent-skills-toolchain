@@ -40,7 +40,11 @@ META_JSON = (
 SKILLS_GLOB = str(HOME / ".agents" / "skills" / "*" / "SKILL.md")
 AGENTS_GLOB = str(HOME / ".claude" / "agents" / "*.md")
 COMMANDS_GLOB = str(HOME / ".claude" / "commands" / "**" / "*.md")
-MCP_JSON = HOME / ".mcp.json"
+MCP_JSON = next(
+    (p for p in (HOME / ".mcp.json", HOME / ".claude.json") if p.exists()),
+    HOME / ".mcp.json",
+)  # fleet moved ~/.mcp.json -> ~/.claude.json (root mcpServers) 2026-09;
+# keep the old path first so a restored canonical file wins again.
 
 BODY_CAP = 1200  # chars of skill body (empirically best: a 1200-char body + 2x-weighted
 # description beat a 5000-char body on mean expected-rank 13.4 vs 25.6 and
