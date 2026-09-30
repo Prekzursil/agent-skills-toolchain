@@ -181,3 +181,40 @@ Residual audit items that are **not** fixed are owner decisions or upstream data
 ---
 
 *End of dossier. Compiled from the round digest, `out/research/CONSOLIDATED.md`, and `out/audit/{stack-wiring,home-configs,canonical-vs-reality,toolchain-repo,EXTRA-findings}.md`. The compiler ran no live checks; every claim above carries its source.*
+
+---
+
+## 8. Honesty ledger update (2026-09-30)
+
+Follow-up closure pass over the audit findings. Evidence tags: **(R)** = command output recorded by the round's own lanes and quoted from §4 above (not re-executed in this pass); **(V)** = re-verified live on 2026-09-30 by the follow-up lane, exact command stated.
+
+### 8a. Fixed by the run itself
+
+| Finding | Fixed-by (command evidence) | Still-open |
+|---|---|---|
+| Env gutted (audit: home-configs) | (R) `restore_env.ps1` → restored=314 kept-live=196; PowerShell spot-checks MCPHUB_TOKEN, GITHUB_MCP_PAT, TAVILY len=57 (§4 Environment row) | Machine/HKLM scope deliberately not restored — owner decision (§7b) |
+| Repo git hollowed (audit: toolchain-repo F1–F11) | (R) `cc-validate` → SUCCESS items=103 open=58 closed=45 acyclic=True; `.agents` tests 0 → 156 passed / 3 skipped / 6 xfailed; 20+ trees restored from origin/main (§4 Repo row). (V) re-verified 2026-09-30: source repo HEAD `6793d8e2` == `origin/main`; consolidation history reachable via `origin/live-capture/2026-09-02` | workspace-supervisor salvage and 17-DECISION-LOG disposition remain owner decisions (§7b) |
+| Non-loopback bindings (audit: stack-wiring) | (R) `netstat`: 127.0.0.1 on 3001/3002/3003/8501/18888/31100, no 0.0.0.0; stray :8888 killed (§4 Loopback row). (V) re-verified 2026-09-30: `netstat -ano` shows all six estate ports LISTENING on 127.0.0.1 only, zero matches on 0.0.0.0 | `ExposeDockerAPIOnTCP2375=True` observed, deliberately unchanged (§7a #9) |
+| SSOT totals wrong (audit: stack-wiring) | (R) `verify_stack.py` → 17 → **29 available, FAILURES: none**; hexstrike `nmap_scan` ok:true via `harness_invoke` (§4 Gateway row). Not re-run in this pass | ghidra-mcp (:8089) / searxng (:8890) need their owning apps started (§7a #6) |
+| Canonical registry ghosts (audit: canonical-vs-reality) | (R) post-fix script: `ghost commands remaining: []`; 12 ghosts removed, basic-memory→18765, tooluniverse→1.5.0; 47 entries (§4 Canonical row). Not re-run in this pass | — |
+| Skills index stale (audit: canonical-vs-reality) | (R) `gen_skills_index.ps1` → 416 entries (§4 Canonical row). (V) re-verified 2026-09-30: `find ~/.agents/skills -maxdepth 2 -name SKILL.md \| wc -l` → **416** | 178 skills exceed the 300-byte description cap — owner content program (§7b) |
+| Golden pointer broken (audit: toolchain-repo) | (R) golden pointer restored in live AGENTS.md (§4 Repo row). (V) re-verified 2026-09-30: `C:\Users\prekzursil\AGENTS.md:22-27` carries the pointer; `source\agent-skills-toolchain\golden\AGENTS.md` + `golden\SHA256.txt` both present | — |
+| **grill.yaml incident (§4 disclosure)** | **(V) closed by this follow-up, not by the round:** consolidated workflow recovered from git at commit `81d7e0ea0` (`origin/live-capture/2026-09-02`, "grill: merge three skills into one; add the no-gaps enforcement layer", 2026-09-24), restored to `~/.agents/workflows/grill.yaml` (1834 bytes, sha256 3a2a1bcc…, YAML-OK: skills=[grill], superseded trio, 10 invariants). The round's own restore had only the one verified field (`skills: [grill]`) | Tracked repo copy `.agents/workflows/grill.yaml` stays at origin/main's pre-consolidation content — deliberate, matches the remote; see `out/followup/grill-restore.md` |
+
+### 8b. Still open — owner decisions (§7b, unchanged by the run and by this pass)
+
+| Finding / decision | Fixed-by | Still-open |
+|---|---|---|
+| McpHub restart-vs-retire (OPEN-LOOPS L-32, due 2026-10-04) | — (owner decision) | Entry stays enabled-and-down; blocker gone (MCPHUB_TOKEN restored), restart branch can now authenticate |
+| Cursor provider adapter | — (owner decision) | enforce/failClosed flip gated on latency evidence; not built per its own gate |
+| PAT rotation | — (owner decision; NEVER-ROTATE lock wins) | Standing 2026-08-27 lock (`golden/AGENTS.md:251`) blocks rotation; not applied |
+| 17-DECISION-LOG.md disposition | — (owner decision) | 150 unbacked WF-NNNN stanzas + empty DL-0158..0174; provenance banner added; deletion/quarantine needs owner ruling |
+| workspace-supervisor salvage | — (owner decision) | 6,435 lines on `wip/harness-workspace-supervisor-20260826` + 792 on `fix/deny-credential-gaps` locally reachable again; merge needs owner review/PR |
+| Missing LINKEDIN_* / TAVILY_API_KEY_2 credentials | — (owner decision) | Absent from both env backups; linkedin parked; DDG fallback remains for channel 2 |
+| Machine-scope (HKLM) env restore | — (owner decision) | User-scope-only was the smaller-blast-radius choice; say so if HKLM is wanted |
+| Vault content program (178 skills >300-byte cap) | — (owner decision) | Only the 4 mechanically-malformed frontmatters fixed; normalization manifest lags (3 xfailed with reasons) |
+| harness-restore-20260806 spec source dir | — (owner decision) | Gone from this machine, not locally recoverable; status-doc anchors stay dangling |
+| Supervision-policy redesign | — (owner decision) | toolAllowlist/approvalMode gating, http-twin ceilings, mcp-supervisor.json sessionId; ~30 hub-moved disabled entries untouched per owner's 2026-09-29 correction |
+| Bench re-run scope (§6/§7a #1) | — (owner decision) | Full-scale post-fix re-run (~4.5 h serial), GLM full-20, and/or RedLineBench adoption; stale 17/20 headline must not be quoted until then |
+
+**Count note:** §7b as written carries 11 bullets; the round ask's "ten owner decisions" maps to §7b minus the bench re-run bullet (counted under §7a residual risk #1). The nine §7a residual risks (stale bench headline, unprovable OpenAI tier, CPU-marginal mechanical tier, zai-keys rotate plaintext, Docker engine down, app-owned backends, frozen Kùzu, D3 receipt mismatches, TCP2375 exposure) likewise all remain open, accepted-with-eyes-open or awaiting owner/ops action.
