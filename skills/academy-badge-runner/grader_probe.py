@@ -34,7 +34,7 @@ BASE = [
     "iap.googleapis.com",
     "logging.googleapis.com",
     "bigquery.googleapis.com",
-    "oslogin.googleapis.com",
+        # oslogin: audit-on by default, not configurable at project level
 ]
 ALL_TYPES = ["ADMIN_READ", "DATA_READ", "DATA_WRITE"]
 
@@ -196,6 +196,71 @@ def ts_diff(a, b):
     return abs((tb - ta).total_seconds())
 
 
+# ---- v3: pattern hints (§5c) + report generation --------------------------
+# §5c pattern library — regex on extracted filters → the REAL action that satisfies them
+HINTS = [
+    (
+        r"CheckPolicy",
+        "enable-oslogin=TRUE on the VM + REAL gcloud compute ssh hop to it (SA oslogin profile)",
+    ),
+    (
+        r"AuthorizeUser",
+        "real IAP-tunneled SSH to that VM: gcloud compute ssh --tunnel-through-iap / start-iap-tunnel",
+    ),
+    (
+        r"vpc_flows",
+        "real traffic to that VM:port (confirm subnet logConfig flow logging is ON)",
+    ),
+    (r"firewalls\.delete", "actually delete the named firewall rule"),
+    (
+        r"bigquery|jobs\.list|jobs\.getQueryResults",
+        "run the manual's canonical query verbatim (aliases/literals exact) — BQ job-history text match",
+    ),
+    (
+        r"setMetadata|setCommonInstanceMetadata",
+        "run the manual's command from the locus it implies (on-VM step → run ON the VM)",
+    ),
+]
+
+
+def hint_for(f):
+    import re
+
+    for pat, hint in HINTS:
+        if re.search(pat, f, re.I):
+            return hint
+    return "no known pattern — decode manually, append to GRADER-INTERNALS.md §5c"
+
+
+def norm_filter(f):
+    """Collapse poller duplicates: strip sliding timestamp floors."""
+    import re
+
+    return re.sub(r'timestamp\s*[><]=?\s*"[^"]+"', "timestamp <FLOOR>", f)
+
+
+def report(src, exclude=None):
+    """Per-lab decoded spec (markdown) from live project or snapshot JSON path."""
+    if src.endswith(".json"):
+        rows = json.load(open(src, encoding="utf-8"))
+    else:
+        rows = list(extract_filters(src, exclude).values())
+    groups = {}
+    for r in rows:
+        groups.setdefault(norm_filter(r["filter"]), []).append(r["ts"])
+    latest = max((t for g in groups.values() for t in g), default="?")[:19]
+    print(
+        f"# Decoded grader predicates — {src}\ncaptured through: {latest} · {len(groups)} distinct predicates\n"
+    )
+    for g in sorted(groups, key=lambda k: groups[k][0]):
+        n = len(groups[g])
+        print(
+            f"## [{groups[g][0][:19]}] ({n} sighting{'s' if n > 1 else ''}{' — poller re-check' if n > 2 else ''})"
+        )
+        print(f"```{g}```")
+        print(f"**satisfying action:** {hint_for(g)}\n")
+
+
 if __name__ == "__main__":
     cmd, project = sys.argv[1], sys.argv[2]
     if cmd == "arm":
@@ -206,6 +271,8 @@ if __name__ == "__main__":
         verify(project, sys.argv[3] if len(sys.argv) > 3 else None)
     elif cmd == "profile":
         profile(project, int(sys.argv[3]) if len(sys.argv) > 3 else 60)
+    elif cmd == "report":
+        report(project, sys.argv[3] if len(sys.argv) > 3 else None)
     elif cmd == "watch":
         exclude = sys.argv[3] if len(sys.argv) > 3 else None
         seen = {}

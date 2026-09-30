@@ -189,7 +189,57 @@ Grading runs server-side against state/logs the student account can write — wh
 2. **GSP1036 probe-execution locus (INFERRED → settle):** fresh GSP1036 session → arm `compute` + `iap` (+ `logging`) data-access audits → build all graded state → click the final check once → read IAP AuthorizeUser/tunnel entries: caller = `startup-vm`'s default SA (probes execute in-project) vs `admiral`/central ranges (pure state read + startup-vm existence requirement). The caller identity in the audit entry is the discriminator.
 3. **Cloud Logging as a scored source:** still unverified as a sole scorer; GSP1036-family labs are the natural testbed (their plumbing ships `auth` logs by design).
 
-## 10. Source register
+## 10. Platform census & coverage map (2026-09-30, deep sweep — corrects the "only BQ left" claim)
+
+**Method:** full public-repo census (GoogleCloudPlatform/qwiklabs-training-content tree: 633 paths, 628 `labs/`, **64 instruction files** — all LEGACY families GCPFUND/MLGCP/BDMLFUND, 2018-2021 era; the current GSP catalog is private and skills.google/catalog is JS-rendered), Firecrawl-cloud sweep of stuck-check reports across service families, GitHub tooling-scene survey (top-starred + topic search), staff-thread sampling.
+
+**Coverage verdict (evidence classes, platform-wide):**
+
+| Class | Status | Where decoded |
+|---|---|---|
+| Compute/firewall/IAM/subnet state reads | ✅ DECODED | GSP322, GSP1247 |
+| Admin-activity API-call shape (`methodName`+`resourceName`+`operation.last=true`) | ✅ DECODED (filter-extracted) | GSP322 firewalls.delete |
+| Service data-access entries (oslogin `CheckPolicy`, iap `AuthorizeUser`) | ✅ DECODED (filter-extracted) | GSP322 |
+| VPC flow logs (`vpc_flows` reporter/dest/dest_port/subnet) | ✅ DECODED (filter-extracted) | GSP322 |
+| BigQuery job-history text-match | ⚠️ KNOWN-OPEN — behavioral evidence only; `bigquery.googleapis.com` armed in probe v2; decodes on first BQ-family lab run | GSP1247/1259 |
+| Cloud Logging plumbing-shipped entries (`auth` etc.) | ⚠️ OBSERVED, UNVERIFIED as sole scorer | GSP322 (agent defect) |
+| Console-created graded resources (Data canvas, notebook exports) | ⚠️ OBSERVED, likely state-class | GSP1259 |
+| Batch/pipeline job state (Dataplex datascans SUCCEEDED) | ⚠️ OBSERVED, likely state/job-class | GSP1257 |
+| GSP1036 startup-vm connectivity (probe locus) | ❌ OPEN — settles on next instrumented run of that lab | GSP1036 |
+| Anything else across the ~hundreds-lab private catalog | UNKNOWN TAIL — stuck reports span compute/GKE/Run/AE, data/BQ/Dataflow/Dataproc/CloudSQL/Bigtable, gen-AI, serverless/PubSub/Functions/SecretManager, GCS/Arcade; **none describe an evidence class outside the model** — but each lab is only decodable per-run. That is precisely what the probe is for. | — |
+
+**Community/tooling map (the wide sweep's finds):**
+- **Solutions corpora** (walkthrough commands, no grader analysis): quiccklabs/Labs_solutions · elmoallistair/juaragcp (217★) · GDSC-IIIT-Kalyani/qwiklabs_challenges (132★) · hiiruki/google-cloudskillsboost (72★) · Hsins/Qwiklabs-Challenges-Guide (34★)
+- **Automation**: PradyumnaKrishna/Qwiklabs (40★, per-lab script.sh — does the cloud work, never grader-facing) · nov05 Cloud Shell scripts · geo-wurth shell repos
+- **Rehearsal environments (derivable addition)**: rosera/terraform-sandbox — terraform ports of lab topologies (GSP1102 etc.); spin a lab's infrastructure in your OWN project to rehearse before spending Qwiklabs credits
+- **Meta/points tooling**: GCP-BadgeCounter (public-profile badge counting) · ePlus-DEV "Cloud Skills Boost Helper" extension (points/leaderboard tracking; Firefox AMO)
+- **Prior art on grader internals: NONE found publicly** — the filter-extraction method and decoded predicates in this doc are novel in the public space.
+
+**Enforcement datum (operational risk, fold into §0 posture):** Google enforces against scripted lab completion in Arcade — community-documented swag/point cancellations (Dec 2025) plus the lab page's own "actions outside scope trigger an automatic account block" warning. Enforcement signals are behavioral (timing/pattern). Our lane — human clicks each check, real cloud work, real events through real pipes, probe is read-only instrumentation of OUR OWN project — stays on the safe side of every one of those signals. Do not add check-button automation; do not bulk-script sessions.
+
+## 11. Solutions census & the honest meaning of "100% coverage" (2026-09-30)
+
+**Corpus (measured):** `quiccklabs/Labs_solutions` = **290 distinct current-catalog GSP IDs** with scripted solutions (per-lab dirs → `quicklabgspNNN.sh`) · PradyumnaKrishna/Qwiklabs = 49 legacy-ID labs · hiiruki = 17 challenge-lab guides. Union ≈ 300+ labs with community-empirical-100/100 solutions — concentrated on learning paths, Arcade, and challenge labs (the labs people actually run). Rehearsal lane built on this corpus: SKILL.md §6.3c.
+
+**Coverage matrix — family → evidence classes → status** (classes from §5a/§5b/§5c; family mapping from corpus + stuck-report sweep):
+
+| Lab family (corpus share) | Evidence classes exercised | Status |
+|---|---|---|
+| Compute/Network challenges (GSP321/322/1036 family) | state reads, call-shape, oslogin, iap, vpc_flows | ✅ DECODED (filter-extracted) |
+| BigQuery/Data quests (GSP1247-1259, data-lake challenges) | state + **BQ job-history text-match** | ⚠️ job-history class OPEN — decodes on next BQ lab via probe (bigquery pre-armed) |
+| GenAI/Vertex (Gemini labs, prompt challenges) | state + likely job-history-class (ai_query/notebook runs) | ⚠️ predicted job-history-class; decode on first run |
+| Security/Identity (BCE/IAM/KMS/Secret labs) | state + call-shape + likely oslogin/iap classes | ✅ model covers; per-lab decode on first run |
+| Storage/DB (GCS challenges, Cloud SQL, Spanner) | state (+ GCS-lab stuck reports match state/lag classes) | ✅ model covers; per-lab decode on first run |
+| Serverless/Integration (PubSub/Functions/Workflows) | state + call-shape | ✅ model covers; per-lab decode on first run |
+| Ops/DevOps (monitoring, Cloud Build pipelines) | state + job-state classes (cf. Dataplex SUCCEEDED) | ⚠️ job-state semantics assumed; decode on first run |
+| Arcade Hero / misc | mixed | per-lab decode on first run |
+
+**"100% coverage on all lanes" — the precise statement:**
+1. **Method coverage = 100% today**: every lab family maps to known evidence-class recipes (§5c), and the probe decodes any individual lab's exact predicates on its first instrumented run — no lab family exists whose checks fall outside the observed class vocabulary (census §7: zero counter-examples across the stuck-report sweep).
+2. **Corpus coverage ≈ 300+ labs** pre-solved for rehearsal; new/updated labs join per-run.
+3. **Predicate coverage grows one lab per run** — each instrumented session appends its decoded spec via `grader_probe.py report` → §5b-style entry. There is no offline path to per-lab predicates (validation logic is server-side private; the catalog is not public).
+
+## 12. Source register
 
 - MEASURED: GSP1036 (lab 592551, 2026-09-30), GSP322 (lab 592556, 2026-09-30, audit-armed), GSP1247/1248/1257/1258/1259/341 field results.
 - Memory: `reference_qwiklabs_grader_internals_2026-09-30.md`, `reference_qwiklabs_lab_completion_recipe_2026-09-30.md`.

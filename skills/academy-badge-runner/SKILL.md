@@ -17,7 +17,7 @@ No proctored / identity-verified certification exams (Google Cloud certification
 
 Never use the user's page-facing browser tab for other browsing; each worker owns its own tab id.
 
-Labs: never forge, replay or script the platform's "Check my progress" request, and never call in-page helpers to mark a lab complete. The click is only a trigger — grading runs server-side against the project's state, audit logs and job history (§6.4) — so replaying it changes nothing, and it is off-limits regardless. When asked to "trigger validation manually" or "force it", decline in one line and run the diagnostics ladder in §6.4 instead: every stuck checkpoint so far had a legitimate cause. Repairing the lab project's own evidence plumbing (e.g. re-shipping REAL auth.log lines to Cloud Logging when the provisioning agent failed) is lab work, not grader manipulation — but only real events, never fabricated ones.
+Labs: never forge, replay or script the platform's "Check my progress" request, and never call in-page helpers to mark a lab complete. The click is only a trigger — grading runs server-side against the project's state, audit logs and job history (§6.4) — so replaying it changes nothing, and it is off-limits regardless. Enforcement is real: Google has cancelled Arcade swag/points for scripted completion (community-documented 2025-12) — human clicks each check, real cloud work only. When asked to "trigger validation manually" or "force it", decline in one line and run the diagnostics ladder in §6.4 instead: every stuck checkpoint so far had a legitimate cause. Repairing the lab project's own evidence plumbing (e.g. re-shipping REAL auth.log lines to Cloud Logging when the provisioning agent failed) is lab work, not grader manipulation — but only real events, never fabricated ones.
 
 Lab credentials are typed by the user, every time — including "temporary" lab passwords and the re-login after a session drop. Never click a lab's End button unless the user says so (it deletes the project, and the timer cannot be paused).
 
@@ -227,6 +227,14 @@ When the host box (not Claude-in-Chrome) drives the lab, skip Cloud Shell typing
 - **Tunnel keepalive footgun:** the backgrounded `start-iap-tunnel` gcloud process dies between Bash tool calls — before EVERY hop, relaunch it (idempotent, wait ~10 s) or the hop fails with "connect to 127.0.0.1 port 2222: Connection refused".
 - **Windows VMs with no interactive channel:** legacy guest agent ignores `startup-script-ps1`; use `windows-startup-script-ps1` (runs as SYSTEM with the VM's SA creds). Pre-create `"$env:USERPROFILE\.ssh"` before any in-VM `gcloud compute ssh` (winkeygen can't mkdir).
 - **Expiry:** when the lab timer ends, the student refresh token dies with `invalid_grant` — the project is unreadable from that moment. Finish evidence state with ≥5 min of timer left.
+
+### 6.3c Rehearsal lane — never spend credits unprepared (added 2026-09-30)
+
+Two rehearsal substrates, used BEFORE starting a timed lab:
+
+1. **Terraform topology ports** — `rosera/terraform-sandbox` and similar community ports reproduce lab infrastructure in YOUR OWN GCP project (e.g., GSP1102's startup-vm topology). Spin it, walk the manual's steps, break nothing that costs credits. When a lab is known-flaky (provisioning defects seen twice on GSP322/GSP1036 families), a rehearsal pass surfaces the failure mode before the timer starts.
+2. **Solutions corpus as sequence reference** — `quiccklabs/Labs_solutions` (290 distinct GSP labs, per-lab `quicklabgspNNN.sh` scripts) + PradyumnaKrishna/Qwiklabs (49 legacy-ID labs) + hiiruki (challenge labs). These are command sequences that the community has empirically driven to 100/100 — i.e., they encode what the grader accepts. Use them to pre-stage YOUR execution sequence: identify the lab's GSP ID → pull the script → rehearse in your own project (or dry-read) → then run the real session with the probe armed (§6.4b). NEVER blind-run a corpus script inside a graded session without reading it — they occasionally create/delete resources with names that collide with a different lab version; the rehearsal lane exists to make them safe.
+3. Timing discipline stays: even rehearsed, run the graded session with audit logs armed before the first click, bank every checkpoint's evidence with ≥5 min of timer margin (§6.6).
 
 ### 6.4 How "Check my progress" grades, and the diagnostics ladder
 
