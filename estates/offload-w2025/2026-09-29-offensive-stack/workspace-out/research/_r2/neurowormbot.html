@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Checking your browser · miniTelegram</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#f6f8fb;color:#1f2933;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+main{width:100%;max-width:34rem;background:#fff;border-radius:16px;padding:32px 28px;box-shadow:0 8px 32px rgba(15,23,42,.08)}
+h1{font-size:1.35rem;margin:0 0 .5rem}p{margin:.4rem 0}
+.bar{height:6px;border-radius:3px;background:#e4e9f2;overflow:hidden;margin:18px 0}
+.bar i{display:block;height:100%;width:35%;background:#2f80ed;animation:slide 1.1s infinite ease-in-out}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+#bg-status{color:#52606d;font-size:.95rem}button{font:inherit;padding:8px 16px;border-radius:8px;border:1px solid #cbd2d9;background:#fff;cursor:pointer}
+@media (prefers-color-scheme:dark){body{background:#0f172a;color:#e2e8f0}main{background:#1e293b;box-shadow:none}.bar{background:#334155}#bg-status{color:#94a3b8}button{background:#0f172a;color:#e2e8f0;border-color:#475569}}
+</style>
+</head>
+<body data-nonce="v1.1790707028.14.ca451bce2fe9d32e8694b09c.d753e170d54608b28b1461ec5929715374e96ea7dd6d09efdec1fbaa4e0bb43b" data-bits="14" data-endpoint="/api/bot-gate" data-context="v1.n.b5af45a0170fd57f532ce0e9c7a5a7035e8af96965f99cfebd9d81393652c337">
+<main>
+<h1>Checking your browser</h1>
+<p>This takes a moment and protects the site from automated copying.</p>
+<div class="bar"><i></i></div>
+<p id="bg-status" role="status" aria-live="polite">Please wait…</p>
+<noscript><p>Enable JavaScript to continue.</p></noscript>
+</main>
+<script>
+(function(){
+var d=document.body.dataset,nonce=d.nonce,bits=+d.bits,endpoint=d.endpoint,st=document.getElementById("bg-status");
+var FAIL="The check did not pass. Reload the page to try again.",COOKIE_FAIL="The browser could not keep the check result. Allow cookies for this site and try again. If this repeats, open the page in your regular browser.",RETRY="Try again",CONTINUE_TEXT="One more step. Press Continue to open the page.",CONTINUE_BUTTON="Continue",PROBE=true;
+var LOOP_KEY="bg-reload-v1",attempts=0,storage=true;
+try{var saved=JSON.parse(sessionStorage.getItem(LOOP_KEY)||"null");if(saved&&Date.now()-saved.at<120000)attempts=+saved.count||0;sessionStorage.setItem(LOOP_KEY,JSON.stringify({at:Date.now(),count:attempts}))}catch(e){storage=false}
+function fail(message){document.querySelector(".bar").hidden=true;st.textContent=message||FAIL;var b=document.createElement("button");b.type="button";b.textContent=RETRY;b.onclick=function(){try{sessionStorage.removeItem(LOOP_KEY)}catch(e){}location.reload()};st.appendChild(document.createTextNode(" "));st.appendChild(b);}
+function evidence(){var value=null;try{if(typeof navigator.webdriver==="boolean")value=navigator.webdriver}catch(e){}return {webdriver:value}}
+async function fetchJson(url,options){var c=new AbortController(),timer=setTimeout(function(){c.abort()},15000);try{var r=await fetch(url,Object.assign({credentials:"same-origin",cache:"no-store",signal:c.signal},options));if(!r.ok)throw new Error("check");return await r.json()}finally{clearTimeout(timer)}}
+async function send(solution,continuation){var body={nonce:nonce,solution:solution};if(PROBE)body.client=evidence();if(d.context)body.clientContext=d.context;if(continuation)body.continuation=continuation;return fetchJson(endpoint,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}
+async function finish(result){if(typeof result.verifyToken!=="string"){fail();return}var checked=await fetchJson(endpoint+"/verify",{headers:{"x-bot-gate-receipt":result.verifyToken}});if(checked.ok!==true){fail(COOKIE_FAIL);return}if(storage){try{sessionStorage.setItem(LOOP_KEY,JSON.stringify({at:Date.now(),count:attempts+1}));location.reload();return}catch(e){storage=false}}document.querySelector(".bar").hidden=true;st.textContent=CONTINUE_TEXT;var b=document.createElement("button");b.type="button";b.textContent=CONTINUE_BUTTON;b.onclick=function(){location.reload()};st.appendChild(document.createElement("br"));st.appendChild(b);b.focus()}
+function continueStep(solution,token){document.querySelector(".bar").hidden=true;st.textContent=CONTINUE_TEXT;var b=document.createElement("button");b.type="button";b.textContent=CONTINUE_BUTTON;b.onclick=async function(){b.disabled=true;try{var result=await send(solution,token);if(result.ok===true){await finish(result)}else{fail()}}catch(e){fail()}};st.appendChild(document.createElement("br"));st.appendChild(b);b.focus()}
+function lz(a){var n=0;for(var i=0;i<a.length;i++){var b=a[i];if(b===0){n+=8;continue}while((b&128)===0){n++;b=(b<<1)&255}break}return n}
+if(!(window.crypto&&crypto.subtle&&window.TextEncoder&&window.fetch&&window.AbortController)){fail();return}
+if(attempts>=2){fail();return}
+var enc=new TextEncoder();
+(async function(){
+try{
+var n=0,deadline=Date.now()+30000;
+for(;;){if(Date.now()>deadline)throw new Error("timeout");var h=new Uint8Array(await crypto.subtle.digest("SHA-256",enc.encode(nonce+":"+n)));if(lz(h)>=bits)break;n++;if(n%1500===0)await new Promise(function(r){setTimeout(r,0)})}
+var result=await send(String(n));
+if(result.ok===true){await finish(result)}else if(typeof result.continueToken==="string"){continueStep(String(n),result.continueToken)}else{fail()}
+}catch(e){fail()}
+})();
+})();
+</script>
+</body>
+</html>
