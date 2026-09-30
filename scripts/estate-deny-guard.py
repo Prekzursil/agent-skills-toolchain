@@ -182,13 +182,17 @@ def _git_path_tokens(cmd: str) -> list[str]:
         if _PATHY_RE.search(t):
             out.append(t)
     return out
+# [^;|&\n]* — the span must stop at shell separators: a `-n`/`-f` belonging to a
+# SIBLING command in the same line (e.g. `git commit ...; sed -n ...`) is not a
+# git flag. False-positive class fixed 2026-09-30 (a `sed -n` after `;` blocked
+# two legitimate commits by matching the `git commit -n` shorthand pattern).
 FORCE_PUSH_RE = re.compile(
-    r"git\s+push\b[^\n]*((--force-with-lease|--force\b)|(?<![-\w])-f(?![-\w]))",
+    r"git\s+push\b[^;|&\n]*((--force-with-lease|--force\b)|(?<![-\w])-f(?![-\w]))",
     re.I,
 )
 NO_VERIFY_RE = re.compile(
-    r"git\s+(commit|push|merge)\b[^\n]*--no-verify\b"
-    r"|git\s+commit\b[^\n]*\s-n(?![a-zA-Z])",
+    r"git\s+(commit|push|merge)\b[^;|&\n]*--no-verify\b"
+    r"|git\s+commit\b[^;|&\n]*\s-n(?![a-zA-Z])",
     re.I,
 )
 SECRET_NAME_RE = re.compile(
