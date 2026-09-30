@@ -1,3 +1,9 @@
+---
+title: Estate locks (G-96 Grok pointer mirror of HOME AGENTS.md)
+loads: explicit-only (Grok extra_rule_dirs loads this file by directory; it is NOT path-matched by the Claude/Codex rule loaders)
+paths:
+  - "**/grok/**"
+---
 # Estate locks for Grok extra_rule_dirs (G-96 pointer)
 
 Canonical contract: `C:\Users\Prekzursil\AGENTS.md` — read it. This file exists so Grok's
