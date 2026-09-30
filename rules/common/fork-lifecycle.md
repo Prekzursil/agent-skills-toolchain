@@ -1,3 +1,7 @@
+---
+paths:
+  - "**/*"
+---
 # Fork Lifecycle (owner directive 2026-09-30 — standing rule, never closes)
 
 > Directive source: owner instruction 2026-09-30 — "for fork repos, we can modify and
