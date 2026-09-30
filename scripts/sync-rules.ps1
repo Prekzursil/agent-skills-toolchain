@@ -64,6 +64,15 @@ foreach ($f in $files) {
         Write-Host "[whatif] $($f.Name)"
     } else {
         try {
+            # DA-1 repair (2026-09-30): a runtime copy that DIFFERS from the repo
+            # source held runtime-only edits a plain -Force copy would destroy.
+            # Guard: stash the outgoing runtime bytes to a dated .bak before overwrite.
+            if ((Test-Path -LiteralPath $target) -and
+                (-not (Test-Path -LiteralPath $f.FullName) -or
+                 (Get-FileHash -LiteralPath $target).Hash -ne (Get-FileHash -LiteralPath $f.FullName).Hash)) {
+                $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+                Copy-Item -LiteralPath $target -Destination "$target.bak-$stamp"
+            }
             Copy-Item -Force -LiteralPath $f.FullName -Destination $target
             $copied++
         } catch {
