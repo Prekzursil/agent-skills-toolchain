@@ -240,3 +240,30 @@ of the three instruments answers them.
 4. **GLM provider config read** (`providers/glm-4.6.json`): rotate-aware `ZAI_API_KEY`
    auth (process env → HKCU, never cached), `max_tokens=4096`, `timeout_s=240` — the
    shipped state I2 measures.
+
+## Speed levers for bench runs (registered 2026-09-30, post first clean run)
+
+The measured bottleneck is CPU inference of qwen3:4b on the 12-vCPU n2 VM
+(~270s/task median, worst-case tasks rambling to the 1500s timeout). Ranked:
+
+1. **BANKED (already active)**: raw responses preserved per-task — any future
+   classifier change re-scores from disk, never re-runs the model. This was the
+   single biggest structural win.
+2. **Cheap, same box (~1.3-1.5x)**: Ollama server toggles —
+   `OLLAMA_FLASH_ATTENTION=1` + `OLLAMA_KV_CACHE_TYPE=q8_0` (halves KV memory
+   bandwidth on long generations). Environment change: must be recorded in the
+   results header; belongs to the provider-tune instrument's first experiment.
+3. **Medium, same box (~1.8x, integrity-aware)**: TWO Ollama instances on
+   separate ports, core-pinned (6 vCPU each), tasks split 10/10 — each stream
+   stays serial so per-task latency remains meaningful; cross-instance memory
+   bandwidth contention is the residual. Report concurrency=2-instances,
+   serial-per-stream in the header.
+4. **Big, dollar-scale (~15-20x, exact same serial protocol)**: throwaway GPU
+   VM (G2 + L4, ~$0.7-1/hr) running Ollama for the bench window; point the
+   provider's base URL at it via `OLLAMA_HOST`. 20 tasks in ~20-30 min with
+   concurrency=1 preserved exactly. Provision/teardown script pattern is the
+   same as provision-docker-remote-host.ps1. This is the recommended default
+   for the GLM/reasoning-tier comparison rounds where repeated runs matter.
+   NOTE: n2 machine types cannot attach GPUs — it must be a separate VM.
+5. **NOT a lever**: reducing max_tokens/timeout or task count — that changes
+   what is measured and is barred by the instrument's own non-goals.
