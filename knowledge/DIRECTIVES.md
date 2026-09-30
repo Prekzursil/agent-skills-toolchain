@@ -117,3 +117,10 @@ Last updated 2026-09-30.
 - **Enforced at:** scripts/directives.py + knowledge/DIRECTIVES.md
 - **Evidence:** this register caught D-7 and D-8 as 'enforced NOWHERE' the moment they were said - the buried-directive failure detected at capture time
 
+
+## D-VM-DURABILITY (owner directive 2026-09-30, G-3 answer)
+
+**Text:** offload-w2025 holds ONGOING WORK. It must be permanently durable: all VM work lives in git repos that push to remotes (or is otherwise backed up + synced), the VM is never interrupted/restarted casually, and if it goes down its progress must not be lost.
+- **Status:** BENEFICIAL (mechanism not yet built — this directive records the requirement).
+- **Enforced at:** NOWHERE yet — that is the gap. Planned: per-repo autopush on the VM (same post-commit-autopush pattern as home), periodic estate sync task, and a durability audit lane in L-57/L6.
+- **Evidence:** owner's G-3 answer 2026-09-30 ("the vm is also important as it holds ongoing work... never interrupted/restarted... if it goes down its progress and stuff should not be lost"); VM = GCP instance, disposable-by-hardware but NOT disposable-by-work (memory: project_offload_vm_gcp).
