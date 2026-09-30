@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DarkSearch Engine — Anonymous .onion Search</title>
+  <meta name="description" content="Search the dark web anonymously. Find .onion sites, directories, and services.">
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <style>
+    .results-wrap { margin-bottom: 40px; }
+    .results-info {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px; padding: 12px 16px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; color: var(--text2);
+    }
+    .results-info strong { color: var(--green); font-family: 'JetBrains Mono', monospace; }
+    .results-info .query { color: var(--text); }
+    .clear-btn {
+      margin-left: auto; font-size: 12px; color: var(--text3);
+      cursor: pointer; text-decoration: none; background: none; border: none;
+      font-family: 'Inter', sans-serif; padding: 0;
+    }
+    .clear-btn:hover { color: var(--red); }
+  </style>
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">DS</div>
+      <div>
+        <div class="logo-text">Dark<span>Search</span> Engine</div>
+        <div class="logo-sub">engin5cbd7izh2dlmugwrvvegtltxefgiefs6fo7esurguckwblpjsad.onion</div>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="/advertise-paid.html"><span>📢</span> <span>Advertise</span></a>
+      <a href="/advertise.html" class="btn-addlink"><span>➕</span> <span>Add Link</span></a>
+      <a href="/banner-exchange.html"><span>🔄</span> <span>Banner Exchange</span></a>
+      <a href="/scam-list.html"><span>⚠️</span> <span>Scam List</span></a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="hero">
+    <div class="hero-badge">Anonymous Search Engine</div>
+    <h1>Search the <span class="accent">Dark Web</span><br>Anonymously</h1>
+    <p>Discover .onion sites, hidden services, and dark web directories. No tracking. No logs.</p>
+
+    <div class="search-wrap">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Search .onion sites, services, markets..." autocomplete="off" autocorrect="off" spellcheck="false">
+        <button onclick="doSearch()">Search</button>
+      </div>
+    </div>
+
+    <div class="cats" id="catBar">
+      <div class="cat-pill active" data-cat="all" onclick="selectCat(this)">All Sites</div>
+    </div>
+  </div>
+
+  <div class="ad-banner-slot"></div>
+
+  <!-- Banners Section -->
+  <div class="banners-section" id="bannersSection" style="display:none">
+    <div class="banners-header">
+      <span class="banners-label">Sponsored</span>
+      <span class="banners-divider"></span>
+    </div>
+    <div class="banners-grid" id="bannersGrid"></div>
+  </div>
+
+  
+  <div class="embed-ads-section">
+    <div class="embed-ads-header"><span class="embed-ads-label">Advertisement</span></div>
+    <div class="embed-ads-grid">
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+      <div class="embed-ad-box"><iframe src="http://admaxnqwpk2gq5lylucwbakgm56w33kowhcydfo2m4jl2zwlf55fhbid.onion/ad/e955837b347563e5db5ae812" width="468" height="60" frameborder="0" scrolling="no" style="border:none;display:block;margin:0 auto"></iframe></div>
+    </div>
+  </div>
+
+  <div class="ad-banner-slot"></div>
+
+  <div class="section">
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item"><span class="dot"></span> <span>Loading stats...</span></div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="results-wrap" id="resultsWrap" style="display:none">
+      <div class="results-info" id="resultsInfo"></div>
+      <div class="cards-grid" id="resultsGrid"></div>
+    </div>
+
+    <!-- Recent/Browse Section -->
+    <div id="recentWrap">
+      <div class="section-header">
+        <span class="section-title">Recently Added</span>
+        <span class="section-count" id="recentCount"></span>
+      </div>
+      <div id="recentGrid">
+        <div class="loader"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+
+    <div class="ad-banner-slot"></div>
+  </div>
+
+  <!-- Banner Exchange Partners -->
+  <div class="banners-section" id="partnersSection" style="display:none">
+    <div class="banners-header">
+      <span class="banners-label">Partner Sites</span>
+      <span class="banners-divider"></span>
+    </div>
+    <div class="banners-grid" id="partnersGrid"></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="ad-banner-slot"></div>
+  <div class="footer-inner">
+    <div class="footer-logo">Dark<span>Search</span> Engine</div>
+    <div class="footer-links">
+      <a href="/advertise.html">Add Link</a>
+      <a href="/scam-list.html">Scam List</a>
+    </div>
+    <div class="footer-copy">engin5cbd7izh2dlmugwrvvegtltxefgiefs6fo7esurguckwblpjsad.onion — No logs. No tracking. Anonymous.<span id="adminDot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#fff;margin-left:8px;cursor:default;opacity:0.5;vertical-align:middle" title=""></span></div>
+  </div>
+</footer>
+<script>
+(function(){
+  let clicks = 0, t;
+  document.getElementById('adminDot').addEventListener('click', function() {
+    clicks++;
+    if (clicks === 3) { window.location.href = '/admin/login.html'; clicks = 0; return; }
+    clearTimeout(t);
+    t = setTimeout(() => { clicks = 0; }, 1500);
+  });
+})();
+</script>
+
+<script src="/js/app.js"></script>
+<script>
+let currentCat = 'all';
+let searchTimer = null;
+
+fetch('/api/categories').then(r => r.json()).then(d => {
+  if (!d.success) return;
+  const bar = document.getElementById('catBar');
+  d.categories.forEach(c => {
+    const pill = document.createElement('div');
+    pill.className = 'cat-pill';
+    pill.dataset.cat = c.slug;
+    pill.onclick = () => selectCat(pill);
+    pill.textContent = `${c.icon || ''} ${c.label}`.trim();
+    bar.appendChild(pill);
+  });
+});
+
+function selectCat(el) {
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  currentCat = el.dataset.cat;
+  if (document.getElementById('searchInput').value.trim()) doSearch();
+  else { hideResults(); loadRecent(); }
+}
+
+document.getElementById('searchInput').addEventListener('keyup', e => {
+  if (e.key === 'Enter') { doSearch(); return; }
+  clearTimeout(searchTimer);
+  if (document.getElementById('searchInput').value.trim()) {
+    searchTimer = setTimeout(doSearch, 400);
+  } else {
+    hideResults();
+    loadRecent();
+  }
+});
+
+function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q && currentCat === 'all') { hideResults(); loadRecent(); return; }
+  document.getElementById('recentWrap').style.display = 'none';
+  document.getElementById('resultsWrap').style.display = 'block';
+  document.getElementById('resultsGrid').innerHTML = '<div class="loader"><span></span><span></span><span></span></div>';
+
+  const params = new URLSearchParams({ q, category: currentCat });
+  fetch('/api/search?' + params)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) return;
+      const info = document.getElementById('resultsInfo');
+      info.innerHTML = `<strong>${data.total}</strong> result${data.total !== 1 ? 's' : ''} ${q ? `for <span class="query">"${escHtml(q)}"</span>` : ''} ${currentCat !== 'all' ? `in <span class="query">${currentCat}</span>` : ''}<button class="clear-btn" onclick="clearSearch()">✕ Clear</button>`;
+      renderCards(data.results, 'resultsGrid');
+    });
+}
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  hideResults();
+  loadRecent();
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  document.querySelector('[data-cat="all"]').classList.add('active');
+  currentCat = 'all';
+}
+
+function hideResults() {
+  document.getElementById('resultsWrap').style.display = 'none';
+  document.getElementById('recentWrap').style.display = 'block';
+}
+
+function loadStats() {
+  fetch('/api/recent').then(r => r.json()).then(data => {
+    document.getElementById('statsBar').innerHTML = `
+      <div class="stat-item"><span class="dot"></span> <strong>${data.total}</strong> Sites Indexed</div>
+      <div class="stat-item"><span class="dot" style="background:var(--cyan)"></span> Anonymous Browsing</div>
+      <div class="stat-item"><span class="dot" style="background:var(--purple)"></span> No Logs Policy</div>
+      <div class="stat-item"><span class="dot" style="background:var(--orange)"></span> Community Verified</div>
+    `;
+  });
+}
+
+function loadRecent() {
+  document.getElementById('recentGrid').innerHTML = '<div class="loader"><span></span><span></span><span></span></div>';
+  const q = currentCat !== 'all' ? `/api/search?category=${currentCat}` : '/api/recent';
+  fetch(q).then(r => r.json()).then(data => {
+    const sites = data.sites || data.results || [];
+    document.getElementById('recentCount').textContent = currentCat !== 'all' ? `${sites.length} sites` : `Showing latest`;
+    renderCards(sites, 'recentGrid');
+  });
+}
+
+function renderCards(items, containerId) {
+  const grid = document.getElementById(containerId);
+  if (!items.length) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div class="empty-title">No sites found</div><div class="empty-sub">Try different keywords or browse a category</div></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(s => siteCard(s)).join('');
+}
+
+function loadBanners() {
+  Promise.all([
+    fetch('/api/banners').then(r => r.json()),
+    fetch('/api/paid-ads/active').then(r => r.json()),
+    fetch('/api/sponsored-config').then(r => r.json())
+  ]).then(([bData, pData, cData]) => {
+    const banners   = bData.banners   || [];
+    const paidAds   = pData.ads       || [];
+    const section   = document.getElementById('bannersSection');
+    const grid      = document.getElementById('bannersGrid');
+    section.style.display = 'block';
+
+    const bannerCards = banners.map(b => {
+      const inner = `<img src="${escHtml(b.image_path)}" alt="${escHtml(b.title||'Banner')}" loading="lazy" onerror="this.closest('.banner-card').style.display='none'">
+        <div class="banner-overlay"><span class="banner-title">${escHtml(b.title||'')}</span></div>`;
+      return b.link_url
+        ? `<a href="${escHtml(b.link_url)}" class="banner-card" target="_blank" rel="noopener noreferrer">${inner}</a>`
+        : `<div class="banner-card">${inner}</div>`;
+    });
+
+    const adCards = paidAds.map(a => {
+      const inner = `<img src="${escHtml(a.banner_path)}" alt="${escHtml(a.website_name||'Ad')}" loading="lazy" onerror="this.closest('.banner-card').style.display='none'">
+        <div class="banner-overlay"><span class="banner-title">${escHtml(a.website_name||'')}</span></div>`;
+      const href = `/api/paid-ads/click/${escHtml(a.order_id)}`;
+      return `<a href="${href}" class="banner-card" target="_blank" rel="noopener noreferrer">${inner}</a>`;
+    });
+
+    // Empty paid-ad slots double as a call to action instead of sitting blank
+    // or hiding the section entirely — same card size/shape as a real ad.
+    // The target slot count is admin-configurable (Admin Panel > Sponsored
+    // Slots), so once real bookings fill it up, admin can raise it and more
+    // empty slots appear here automatically.
+    const minSlots = cData.min_slots ?? 6;
+    const filled = bannerCards.length + adCards.length;
+    const placeholderCards = Array.from({ length: Math.max(0, minSlots - filled) }, () =>
+      `<a href="/advertise-paid.html" class="banner-card banner-card-placeholder">
+        <div class="banner-placeholder-inner">+ Click here to advertise</div>
+      </a>`
+    );
+
+    grid.innerHTML = [...bannerCards, ...adCards, ...placeholderCards].join('');
+  });
+}
+
+// Approved banner-exchange partners get their own section near the bottom
+// of the page, separate from the paid/admin banners up top.
+function loadPartners() {
+  fetch('/api/exchange/partners').then(r => r.json()).then(data => {
+    const partners = data.partners || [];
+    const section  = document.getElementById('partnersSection');
+    const grid     = document.getElementById('partnersGrid');
+    if (!partners.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    grid.innerHTML = partners.map(e => {
+      const inner = `<img src="${escHtml(e.banner_path)}" alt="${escHtml(e.website_name||'Partner')}" loading="lazy" onerror="this.closest('.banner-card').style.display='none'">
+        <div class="banner-overlay"><span class="banner-title">${escHtml(e.website_name||'')}</span></div>`;
+      return `<a href="${escHtml(e.url)}" class="banner-card" target="_blank" rel="noopener noreferrer">${inner}</a>`;
+    }).join('');
+  });
+}
+
+loadStats();
+loadRecent();
+loadBanners();
+loadPartners();
+</script>
+
+</body>
+</html>
