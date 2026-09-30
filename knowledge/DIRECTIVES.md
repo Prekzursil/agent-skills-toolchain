@@ -14,9 +14,9 @@ Judgements: **BENEFICIAL** adopt · **CONDITIONAL** good within a stated boundar
 **COSTLY** real downside, recorded so the trade is visible · **NEEDS-SCOPE**
 ambiguous as stated, ambiguity recorded rather than guessed.
 
-Last updated 2026-09-24.
+Last updated 2026-09-30.
 
-## Active (9)
+## Active (11)
 
 ### D-1 — BENEFICIAL (VERIFIED)
 
@@ -26,6 +26,22 @@ Last updated 2026-09-24.
 - **Why this judgement:** Unpushed work is lost work, with a concrete casualty. A commit that fails to push is silent, so only a mechanism fixes it.
 - **Enforced at:** scripts/git-hooks/post-commit-autopush (3 repos), AGENTS-RUNTIME.md S9, rules/estate-locks.md, skills/grill
 - **Evidence:** commits 06969b1f, 1c449554, 73c834ef each pushed themselves; exactly 1 log line per commit; test_autopush.sh 9/9
+
+### D-10 — BENEFICIAL (**UNVERIFIED**)
+
+> for fork repos, we can modify and integrate them or repurpose, and not delete the fork, since we will modify agent toolchain (if it's the case), and occasionally update the fork from the original repo, and if we have that integrated we reconcile whether it's our version which could be the original old from the fork or a modified version of ours can be reconciled or even worth integrating the upstream because it might break our modifications / be a downgrade, and ours could better already but sometimes could be better but worth stealing some of the ideas of the original repo ideas that we haven't covered - basically best of all worlds policy without regressions and the best discipline around this directive, prevent accidents, loss of data, regressions or missed opportunities
+
+- **Said:** 2026-09-30
+- **Why this judgement:** Codifies fork handling into a never-delete lifecycle with four-verdict upstream reconciliation; prevents both data loss (unique local work in throwaway clones) and regressions (blind upstream merges), and forces periodic idea-harvest so upstream value is never silently missed. The only cost: mirrors + FORK-NOTES.md bookkeeping, which is cheap insurance against one-disk-away loss.
+- **Enforced at:** rules/common/fork-lifecycle.md (authored source, 2026-09-30) - full rule: WORK/INTEGRATE/MIRROR/SYNC/RECONCILE + hard NEVERs; consolidation planning in social-estate-audit now treats insta-mcp + whatsapp-mcp as living forks, not delete candidates
+
+### D-11 — BENEFICIAL (**UNVERIFIED**)
+
+> dont keep the forks locally as well, just github, if we dont use them and we have our own version
+
+- **Said:** 2026-09-30
+- **Why this judgement:** Prevents dead fork clones accumulating on disk once their unique work is mirrored and nothing runs from them; GitHub mirror becomes SSOT, re-clone on demand. Cost: one extra clone step when a dormant fork is needed again - cheap against unbounded local clutter.
+- **Enforced at:** rules/common/fork-lifecycle.md 4b LOCALITY clause (2026-09-30): local clone exists only while active-dependency/unpushed-work/in-flight-sync; retire after mirror+no-live-dependency; never retire with sole-copy data (secrets move to vault first). Current: insta-mcp STAYS (IG program runtime); whatsapp-mcp retire-candidate after export.
 
 ### D-2 — CONDITIONAL (VERIFIED)
 
