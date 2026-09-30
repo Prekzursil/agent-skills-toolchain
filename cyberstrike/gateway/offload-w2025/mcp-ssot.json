@@ -1,0 +1,505 @@
+{
+  "version": 6,
+  "generated": "2026-09-29",
+  "design": "ONE long-lived process (the gateway). No supervisor, no watchdog, no front-fleet, no per-front ports. Backends are dispatch descriptors: kind=module (imported in-process) or kind=binary (spawned per invocation, reaped on return). Availability is computed lazily from what is actually importable/on PATH - never a static flag that can drift.",
+  "gateway": {
+    "name": "cyberstrike-gateway",
+    "port": 31100,
+    "path": "/mcp",
+    "transport": "streamable_http",
+    "server": "gateway-server.py",
+    "autostart": "schtasks task CyberStrikeGateway (ONSTART, single process - the only lifecycle mechanism in the kit)"
+  },
+  "backends": [
+    {
+      "name": "cloud-audit",
+      "category": "legacy",
+      "kind": "module",
+      "module": "fronts.cloud_audit",
+      "note": "38-tool cloud audit - fronts/cloud_audit.py NEVER LANDED; install was also removed (bun/stdio form dead). Row is probe-honest: unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "github-security",
+      "category": "legacy",
+      "kind": "module",
+      "module": "fronts.github_security",
+      "note": "claimed 39-tool backend - fronts/github_security.py absent; npx github-security-mcp form exists in agents.json (parked). Unavailable until code lands in fronts/."
+    },
+    {
+      "name": "cve-mcp",
+      "category": "legacy",
+      "kind": "module",
+      "module": "fronts.cve_mcp",
+      "note": "claimed 41-tool backend - fronts/cve_mcp.py absent; npx cve-mcp form exists in agents.json (parked). Unavailable until code lands in fronts/."
+    },
+    {
+      "name": "osint",
+      "category": "legacy",
+      "kind": "module",
+      "module": "fronts.osint",
+      "note": "claimed 37-tool backend - fronts/osint.py absent; npx osint-mcp-server form exists in agents.json (parked). Unavailable until code lands in fronts/."
+    },
+    {
+      "name": "metasploit",
+      "category": "legacy",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 55553
+      },
+      "note": "needs an msfrpcd the operator starts; gateway calls it per request, never owns it"
+    },
+    {
+      "name": "nuclei",
+      "category": "legacy",
+      "kind": "binary",
+      "binary": "nuclei.exe",
+      "note": "audit-fix 2026-09-29: resolved binary is C:/Users/prekzursil/.local/bin/nuclei.exe (v3.11.1) via PATH; the D:/opt/bin copy loses PATH order. Prior note said D:/opt/bin."
+    },
+    {
+      "name": "nmap",
+      "category": "legacy",
+      "kind": "binary",
+      "binary": "nmap.exe"
+    },
+    {
+      "name": "hacktricks",
+      "category": "knowledge",
+      "kind": "mcp-stdio",
+      "entry": "dist/index.js",
+      "command": [
+        "node",
+        "C:\\Users\\prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\hacktricks-mcp-server\\dist\\index.js"
+      ],
+      "note": "estate-vendored @prekzursil/hacktricks-mcp-server; corpus pinned at official repo commit 3463019 (D:/opt/corpora/hacktricks)",
+      "env": {
+        "HACKTRICKS_CORPUS": "D:\\opt\\corpora\\hacktricks"
+      }
+    },
+    {
+      "name": "firecrawl",
+      "category": "legacy",
+      "kind": "module",
+      "env": "FIRECRAWL_API_KEY",
+      "note": "audit-fix 2026-09-29: FIRECRAWL_API_KEY restored to User env from .agents/secrets/env-backups/2026-09-29 (cloud lane). Self-host revival is docker-pending at D:/opt/firecrawl-selfhost on external port 31115.",
+      "module": "fronts.firecrawl"
+    },
+    {
+      "name": "sliver",
+      "category": "legacy",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 31337
+      },
+      "note": "C2 - estate-lab targets only"
+    },
+    {
+      "name": "burp",
+      "category": "own-task",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 9876
+      },
+      "note": "Burp owns its own process; gateway is a client"
+    },
+    {
+      "name": "dbx-ai",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.dbx_ai",
+      "note": "fronts/dbx_ai.py absent AND tools/mcp/dbx-ai install removed from the toolchain tree. Unavailable until either is restored."
+    },
+    {
+      "name": "angr",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.angr",
+      "note": "fronts/angr.py absent; a working angr-mcp.exe exists at C:/Users/prekzursil/.local/opt/angr (.venv) for direct stdio use. Unavailable in-process until fronts/angr.py lands."
+    },
+    {
+      "name": "frida",
+      "category": "specialized",
+      "kind": "binary",
+      "binary": "frida.exe"
+    },
+    {
+      "name": "mitmproxy",
+      "category": "specialized",
+      "kind": "binary",
+      "binary": "mitmdump.exe"
+    },
+    {
+      "name": "radare2",
+      "category": "specialized",
+      "kind": "binary",
+      "binary": "radare2.exe"
+    },
+    {
+      "name": "windbg",
+      "category": "specialized",
+      "kind": "binary",
+      "binary": "kd.exe"
+    },
+    {
+      "name": "caldera",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 8890
+      },
+      "note": "UNVERIFIED PORT: caldera default HTTP is 8880/8888 but hexstrike owns 8888 here; re-pointed 8888->8890 placeholder \u2014 verify against a real caldera deploy before trusting availability"
+    },
+    {
+      "name": "havoc",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 40056
+      }
+    },
+    {
+      "name": "mythic",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 7443
+      }
+    },
+    {
+      "name": "jb-library",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.jb_library",
+      "note": "fronts/jb_library.py absent. Unavailable until the backend package lands in fronts/ (EXEC-ALLOWED on estate/pre-authorized targets)."
+    },
+    {
+      "name": "darknet",
+      "category": "darkweb",
+      "kind": "mcp-stdio",
+      "entry": "npx darknet-mcp-server",
+      "command": [
+        "npx",
+        "-y",
+        "darknet-mcp-server"
+      ],
+      "env": {
+        "TOR_SOCKS_HOST": "127.0.0.1",
+        "TOR_SOCKS_PORT": "9050"
+      },
+      "note": "66 darkweb/threat-intel tools (ThreatFox, HIBP, ransomware trackers, onion search, exploit search, stealer logs; free tiers keyless). Rides estate Tor at D:/opt/tor (SocksPort 9050+9150, logon task TorProxy). Found by deepweb-coverage lane 2026-09-29; replaces legacy fronts.darknet placeholder."
+    },
+    {
+      "name": "dns-security",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.dns_security",
+      "note": "fronts/dns_security.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "mcp-scanner",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.mcp_scanner",
+      "note": "fronts/mcp_scanner.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "satellite",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.satellite",
+      "note": "fronts/satellite.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "steganography",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.steganography",
+      "note": "fronts/steganography.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "supply-chain",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.supply_chain",
+      "note": "fronts/supply_chain.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "hackbrowser",
+      "category": "specialized",
+      "kind": "module",
+      "module": "fronts.hackbrowser",
+      "note": "fronts/hackbrowser.py absent. Unavailable until the backend package lands in fronts/."
+    },
+    {
+      "name": "ghidra",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 8192
+      },
+      "note": "bridge needs Ghidra running"
+    },
+    {
+      "name": "ida",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 13337
+      },
+      "note": "bridge needs IDA running"
+    },
+    {
+      "name": "jadx",
+      "category": "specialized",
+      "kind": "rpc",
+      "rpc": {
+        "host": "127.0.0.1",
+        "port": 8650
+      },
+      "note": "bridge needs JADX running"
+    },
+    {
+      "name": "binary-ninja",
+      "category": "re-static",
+      "kind": "mcp-stdio",
+      "entry": "npx binary-ninja-mcp",
+      "command": [
+        "npx",
+        "-y",
+        "binary-ninja-mcp"
+      ],
+      "note": "npx-resolved; tool calls need Binary Ninja running. bridge needs Binary Ninja running"
+    },
+    {
+      "name": "decepticon-recon",
+      "category": "decepticon",
+      "kind": "mcp-http",
+      "note": "Decepticon MCP front (nmap/curl/dig/whois) - started by D:/opt/decepticon/start-decepticon.ps1. audit-fix 2026-09-29: FastMCP servers pinned to host 127.0.0.1 (were 0.0.0.0) and dispatched via kind=mcp-http one-shot MCP client.",
+      "url": "http://127.0.0.1:3001/mcp"
+    },
+    {
+      "name": "decepticon-initial-access",
+      "category": "decepticon",
+      "kind": "mcp-http",
+      "note": "Decepticon MCP front (hydra/searchsploit) - started by D:/opt/decepticon/start-decepticon.ps1. audit-fix 2026-09-29: FastMCP servers pinned to host 127.0.0.1 (were 0.0.0.0) and dispatched via kind=mcp-http one-shot MCP client.",
+      "url": "http://127.0.0.1:3002/mcp"
+    },
+    {
+      "name": "decepticon-terminal",
+      "category": "decepticon",
+      "kind": "mcp-http",
+      "note": "Decepticon MCP front (sessioned command execution, dual-mode kali/local) - started by D:/opt/decepticon/start-decepticon.ps1. audit-fix 2026-09-29: FastMCP servers pinned to host 127.0.0.1 (were 0.0.0.0) and dispatched via kind=mcp-http one-shot MCP client.",
+      "url": "http://127.0.0.1:3003/mcp"
+    },
+    {
+      "name": "hexstrike",
+      "category": "mcp-integration",
+      "kind": "mcp-stdio",
+      "note": "HexStrike AI local API - 150+ offensive tools. audit-fix 2026-09-29: moved from the never-invocable kind=rpc row to a managed mcp-stdio worker on repo/hexstrike_mcp.py (native FastMCP stdio; the framed launcher bridge is not needed and deadlocks line-delimited clients). Server binds 127.0.0.1 only on the estate port 18888 (HEXSTRIKE_PORT env; hexstrike_server.py patched to honor HEXSTRIKE_HOST instead of hardcoded 0.0.0.0). Install root D:/opt/hexstrike-ai (pinned ref 8333779 + local loopback patch).",
+      "entry": "repo/hexstrike_mcp.py",
+      "command": [
+        "D:\\opt\\hexstrike-ai\\.venv\\Scripts\\python.exe",
+        "D:\\opt\\hexstrike-ai\\repo\\hexstrike_mcp.py",
+        "--server",
+        "http://127.0.0.1:18888"
+      ]
+    },
+    {
+      "name": "tavily",
+      "category": "search",
+      "kind": "module",
+      "module": "fronts.tavily",
+      "note": "audit-fix 2026-09-29: TAVILY_API_KEY restored to User env from .agents/secrets/env-backups/2026-09-29. TAVILY_API_KEY_2 has no value anywhere (backups included) - keyless DDG fallback remains for the second channel."
+    },
+    {
+      "name": "exa",
+      "category": "search",
+      "kind": "module",
+      "module": "fronts.exa",
+      "note": "cloud API (EXA_API_KEY / EXA_API_KEY_2, both present); no self-hosted upstream exists; keyless DDG fallback for search"
+    },
+    {
+      "name": "zai-keys",
+      "category": "llm-keys",
+      "kind": "module",
+      "module": "fronts.zai_keys",
+      "note": "Dual Z.AI coding-plan keys (sha8 2cbe00c7 / 2b98b9a3). Call-time rotation on exhaustion; tools: status/active/rotate/probe/invoke. Improved over home's hook-driven zai_key_failover.py - no daemon, no scheduled probe; same state file for interop."
+    },
+    {
+      "name": "model-router",
+      "category": "llm",
+      "kind": "module",
+      "module": "fronts.model_router",
+      "note": "Cost-aware cascade, tools: route/status. route{task_kind,payload}: mechanical (scan parsing/summary) -> local Ollama qwen3:4b via http://127.0.0.1:11434/v1 (free; CPU-only ~4-10 tok/s, qwen3 thinking burns budget so defaults max_tokens=3072/timeout=600s, /no_think nudge + reasoning stripped, keep_alive 30m honored by /v1); reasoning (exploit planning/chain analysis) -> GLM via zai-keys front (rotating; endpoint serves glm-5.3-flash, a thinking model - budget 2048 default) with OpenAI fallback ONLY via env OPENAI_API_KEY (present in HKCU since 2026-09-29 env-restore but REJECTED by OpenAI 401 invalid_api_key - fallback wiring verified against a local OpenAI-compat endpoint; supply a valid key to light it up)."
+    },
+    {
+      "name": "cheatengine",
+      "category": "re-dynamic",
+      "kind": "mcp-stdio",
+      "entry": "mcp_cheatengine.py",
+      "command": [
+        "D:\\opt\\mcp\\cheatengine\\.venv\\Scripts\\python.exe",
+        "D:\\opt\\mcp\\cheatengine\\MCP_Server\\mcp_cheatengine.py"
+      ],
+      "note": "rebuilt on D: 2026-09-29 (payload venv was anchored to home's user-level Python312); tool calls need Cheat Engine running"
+    },
+    {
+      "name": "deepsource",
+      "category": "code-quality",
+      "kind": "mcp-stdio",
+      "entry": "deepsource-mcp-wrapper.mjs",
+      "command": [
+        "node",
+        "C:\\Users\\prekzursil\\.local\\opt\\deepsource-mcp-server\\deepsource-mcp-wrapper.mjs"
+      ],
+      "note": "audit-fix 2026-09-29: DEEPSOURCE_API_KEY restored to User env from .agents/secrets/env-backups/2026-09-29 (was missing after the reprovision). Wrapper v1.8.3 spawns via node; lights up when the gateway env carries the key."
+    },
+    {
+      "name": "ida-pro",
+      "category": "re-static",
+      "kind": "mcp-stdio",
+      "entry": "npx ida-pro-mcp",
+      "command": [
+        "npx",
+        "-y",
+        "ida-pro-mcp"
+      ],
+      "note": "payload copy had no dist; npx-resolved; tool calls need IDA running"
+    },
+    {
+      "name": "chrome-devtools",
+      "category": "browser",
+      "kind": "mcp-stdio",
+      "entry": "npx chrome-devtools-mcp",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp"
+      ],
+      "note": "npx-resolved browser debugging front"
+    },
+    {
+      "name": "js-reverse",
+      "category": "browser",
+      "kind": "mcp-stdio",
+      "entry": "npx js-reverse-mcp",
+      "command": [
+        "npx",
+        "-y",
+        "js-reverse-mcp"
+      ],
+      "note": "24-tool JS reverse-engineering MCP over headed persistent-login Chrome (breakpoints, call-frame eval, XHR breakpoints, Set-Cookie tracing, WS grouping; Patchright stealth fork). npm 4.0.5, node>=20.19 + system Chrome. Found by browser-offense lane 2026-09-29; dive live-verified on this VM."
+    },
+    {
+      "name": "cloakbrowser",
+      "category": "browser",
+      "kind": "mcp-stdio",
+      "entry": "npx cloakbrowser-mcp@latest",
+      "command": [
+        "npx",
+        "-y",
+        "cloakbrowser-mcp@latest"
+      ],
+      "note": "27-tool Playwright-MCP-compatible bridge over CloakBrowser stealth Chromium (humanized input, GeoIP proxy match, managed CDP); binary cached at ~/.cloakbrowser (free tier = 1 concurrent session). npm 1.14.1. Found by browser-offense lane 2026-09-29; dive live-verified navigate on this VM."
+    },
+    {
+      "name": "mitmproxy-mcp",
+      "category": "browser",
+      "kind": "mcp-stdio",
+      "entry": "C:/Users/prekzursil/.local/bin/mitmproxy-mcp.exe",
+      "command": [
+        "C:\\Users\\prekzursil\\.local\\bin\\mitmproxy-mcp.exe"
+      ],
+      "note": "Agent-facing MCP over mitmproxy: session variables (CSRF capture->replay), interception rules, curl-cffi chrome120 stealth replay, OpenAPI reconstruction, auth-pattern detection. uv-tool installed v0.7.2 from git main (PyPI 0.6.1 lags 2 security releases) on py3.12. Found by browser-offense lane 2026-09-29."
+    },
+    {
+      "name": "stealth-browser",
+      "category": "browser",
+      "kind": "mcp-stdio",
+      "entry": "src/server.py",
+      "command": [
+        "D:\\opt\\mcp\\stealth-browser-mcp\\venv312\\Scripts\\python.exe",
+        "D:\\opt\\mcp\\stealth-browser-mcp\\src\\server.py"
+      ],
+      "note": "98-tool nodriver stealth browser MCP with AI-written dynamic network hooks (8 sections). venv312 (py<=3.13 required: pydantic 2.11.7 pins break on 3.14) at D:/opt/mcp/stealth-browser-mcp. Found by browser-offense lane 2026-09-29; dive live-verified 98 tools on this VM."
+    },
+    {
+      "name": "sqlmap-mcp",
+      "category": "mcp-hub",
+      "kind": "mcp-stdio",
+      "entry": "web-security/sqlmap-mcp/server.py",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "D:\\opt\\mcp\\mcp-security-hub\\web-security\\sqlmap-mcp\\server.py"
+      ],
+      "env": {
+        "SQLMAP_PATH": "C:\\Python314\\Lib\\site-packages\\sqlmap\\sqlmap.py",
+        "SQLMAP_OUTPUT_DIR": "D:\\opt\\mcp\\mcp-security-hub\\output\\sqlmap"
+      },
+      "note": "FuzzingLabs/mcp-security-hub cherry-pick (mcp-tool-hubs lane): 6-tool sqlmap orchestration (sql_scan/sql_enumerate/sql_dump/sql_test/results) exec-ing the estate's pip sqlmap 1.9.x; runs under py312 via PATH 'python'. Hub cloned at D:/opt/mcp/mcp-security-hub."
+    },
+    {
+      "name": "ffuf-mcp",
+      "category": "mcp-hub",
+      "kind": "mcp-stdio",
+      "entry": "web-security/ffuf-mcp/server.py",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "D:\\opt\\mcp\\mcp-security-hub\\web-security\\ffuf-mcp\\server.py"
+      ],
+      "env": {
+        "FFUF_OUTPUT_DIR": "D:\\opt\\mcp\\mcp-security-hub\\output\\ffuf",
+        "FFUF_WORDLISTS_DIR": "D:\\opt\\mcp\\mcp-security-hub\\wordlists"
+      },
+      "note": "FuzzingLabs/mcp-security-hub cherry-pick (mcp-tool-hubs lane): 7-tool ffuf fuzzing (ffuf_dir/vhost/param/custom, wordlists, results) exec-ing the estate's ffuf at ~/.local/bin. Hub cloned at D:/opt/mcp/mcp-security-hub."
+    },
+    {
+      "name": "blitzstrike",
+      "category": "mcp-hub",
+      "kind": "mcp-stdio",
+      "entry": "npx blitzstrike serve --mcp",
+      "command": [
+        "npx",
+        "-y",
+        "blitzstrike",
+        "serve",
+        "--mcp"
+      ],
+      "note": "BLITZ/EAGLE-EYE/STRIKE methodology MCP + 130-tool catalog with ensure_tool auto-install + nuclei template lookup + PayloadsAllTheThings DB + append-only engagement memory. npm 2.4.123, active (pushed 2026-09-29). Found by mcp-tool-hubs + wildcard-2026 lanes."
+    },
+    {
+      "name": "cloudfox",
+      "category": "cloud-sec",
+      "kind": "binary",
+      "binary": "cloudfox.exe",
+      "note": "BishopFox multi-cloud situational awareness + IAM privesc (AWS 34 cmds, GCP ~60) - single native exe at D:/opt/bin (v2.0.5, release sha1-verified by dive). Found by ad-entra/cloud-ai-security lanes; topNative #2. Region-hang fix is on main, not in 2.0.5."
+    },
+    {
+      "name": "rusthound-ce",
+      "category": "ad-entra",
+      "kind": "binary",
+      "binary": "rusthound-ce.exe",
+      "note": "g0h4n RustHound-CE 2.5.14 - pure-native single-exe AD collector -> BloodHound-CE JSON (feeds offline analysis; pair with ArtBlood when built). exe at D:/opt/bin, dive PE-verified no .NET/OpenSSL. Found by ad-entra lanes; topNative #5."
+    },
+    {
+      "name": "knowledge-graph",
+      "category": "knowledge",
+      "kind": "module",
+      "module": "fronts.knowledge_graph",
+      "note": "Shared estate knowledge graph - embedded Kuzu 0.11.3 DB at D:/opt/knowledge-graph (nodes Host/Credential/Finding/Technique/Engagement; edges reached_from/authenticated_to/exploited_via/found_during). Tools: add_node/add_edge/neighbors/shortest_path/search/cypher. ctypes-bound official prebuilt kuzu_shared.dll (no cp314 Windows wheel exists on PyPI; upstream archived) - swap path in NEO4J-MIGRATION.md."
+    }
+  ],
+  "catalogs": {
+    "specialized_total": 20,
+    "legacy_total": 9,
+    "policy": "availability = lazily computed (module importable / binary on PATH / rpc reachable / mcp-stdio worker spawn+initialize / mcp-http initialize handshake). An unavailable backend stays discoverable and harness_invoke returns its install note. No raw fallback, no silent degradation. Decepticon fronts light up when start-decepticon.ps1 runs (127.0.0.1:3001-3003); hexstrike lights up through its launcher worker (loopback 18888). audit-fix 2026-09-29: totals corrected from 34/12 to the measured 20/9 (specialized incl. darkweb / legacy); totals_backends=43.",
+    "total_backends": 53
+  }
+}
