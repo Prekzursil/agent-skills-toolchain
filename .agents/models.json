@@ -1,0 +1,795 @@
+{
+  "schemaVersion": 1,
+  "description": "Hosted + local model endpoint registry (SSOT). Sibling of agents.json (MCP servers). Secrets by environment-variable NAME only. Capability lattice: native > probed{at,version} > declared > emulated > absent; a model row may only override an endpoint value downward. Validated by .agents/scripts/models_control_plane.py; provenance in .provenance/.agents/models.json.md.",
+  "policy": {
+    "capabilityProbe": {
+      "ttlHours": 24
+    },
+    "localRamBudgetBytes": 8589934592,
+    "defaultTimeoutMs": 60000,
+    "hub": {
+      "host": "127.0.0.1",
+      "port": 8901,
+      "idleExitSeconds": 600,
+      "maxInFlightTotal": 16,
+      "ledgerPath": "state/inference-ledger",
+      "haltFile": ".agents/INFERENCE-HALT",
+      "haltEnv": "INFERENCE_HALT"
+    }
+  },
+  "locks": [
+    {
+      "id": "L1",
+      "rule": "OpenRouter is a spend-capped CLI/Codex sidecar only: never Cursor BYOK, never Claude ANTHROPIC_BASE_URL, never a new OpenRouter MCP.",
+      "enforcedBy": [
+        "models_control_plane:V7",
+        "models_control_plane:V14",
+        "models_control_plane:V15"
+      ]
+    },
+    {
+      "id": "L2",
+      "rule": "No LiteLLM proxy, no LangGraph, no second orchestration runtime, no vector-DB memory. Aider embedding the litellm library is a render target, not a proxy.",
+      "enforcedBy": [
+        "review"
+      ]
+    },
+    {
+      "id": "L3",
+      "rule": "auth2api :8317 stays the only Cursor bridge and retires within 7 days of an official Cursor /v1 GA.",
+      "enforcedBy": [
+        "models_control_plane:V6",
+        "models_control_plane:V13"
+      ]
+    },
+    {
+      "id": "L4",
+      "rule": "Ports 8765 (basic-memory), 8812 (agent-mail), 8317 (auth2api), 8770 are owned; 8901 belongs to inference-hub, the only new resident process, and it idle-exits.",
+      "enforcedBy": [
+        "models_control_plane:V8"
+      ]
+    },
+    {
+      "id": "L5",
+      "rule": ".agents/skills is the ONE prompt SSOT; profiles resolve to paths under it.",
+      "enforcedBy": [
+        "inference-hub:profile-resolver"
+      ]
+    },
+    {
+      "id": "L6",
+      "rule": "Never rotate credentials; secrets by environment-variable NAME only; values are never written to any registry, log or report.",
+      "enforcedBy": [
+        "models_control_plane:V1",
+        "models_control_plane:V2",
+        "gate-secrets"
+      ]
+    },
+    {
+      "id": "L7",
+      "rule": "Never remove a feature to buy simplicity or reliability; present the tradeoff. glm-5.3 stays reachable through inference-hub after the glm53-space lane is deleted.",
+      "enforcedBy": [
+        "models_control_plane:V10",
+        "test_models_control_plane:glm53_capability_preserved"
+      ]
+    }
+  ],
+  "endpoints": {
+    "hf-router": {
+      "label": "Hugging Face Inference Providers router",
+      "description": "router.huggingface.co/v1: OpenAI-compatible chat over many providers; model ids carry a :provider suffix (or :fastest / :cheapest). /v1/models is the machine-readable capability + price sheet. Pin a provider whenever response_format is attached. /v1/responses is beta and stays declared until probed.",
+      "kind": "hosted",
+      "enabled": true,
+      "baseUrl": "https://router.huggingface.co/v1",
+      "api": [
+        "openai-completions",
+        "openai-responses"
+      ],
+      "auth": {
+        "env": "HUGGINGFACE_TOKEN_INFERENCE",
+        "altEnv": [],
+        "scheme": "Bearer",
+        "header": "Authorization",
+        "issuerHosts": [
+          "router.huggingface.co",
+          "*.huggingface.co"
+        ]
+      },
+      "wire": {
+        "completions": "native",
+        "responses": "declared",
+        "messages": "absent"
+      },
+      "features": {
+        "streaming": "native",
+        "usage": "native",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "declared",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 4
+      },
+      "budget": {
+        "dailyUsdCap": 2.0,
+        "costBasis": "table_estimate"
+      },
+      "resource": {
+        "ramBytes": 0
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [],
+      "locks": [
+        "L6",
+        "L7"
+      ],
+      "tags": [
+        "approved",
+        "hosted",
+        "hosted-inference",
+        "openai-compatible"
+      ]
+    },
+    "openrouter": {
+      "label": "OpenRouter (spend-capped sidecar)",
+      "description": "openrouter.ai/api/v1: CLI/Codex sidecar only (L1). Two to three labelled keys, each with a daily limit_reset, one Guardrail (provider + model allowlist, data_collection deny, Secrets preset, limit_usd). Names only; the owner mints keys (OWNER-CLICKS.md).",
+      "kind": "hosted",
+      "enabled": true,
+      "sidecarOnly": true,
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "api": [
+        "openai-completions",
+        "openai-responses"
+      ],
+      "auth": {
+        "env": "OPENROUTER_API_KEY_CODEX_SIDECAR",
+        "altEnv": [
+          "OPENROUTER_API_KEY_CLI_GRUNT",
+          "OPENROUTER_API_KEY_IDE_OPENCODE"
+        ],
+        "scheme": "Bearer",
+        "header": "Authorization",
+        "issuerHosts": [
+          "openrouter.ai"
+        ]
+      },
+      "wire": {
+        "completions": "native",
+        "responses": "declared",
+        "messages": "absent"
+      },
+      "features": {
+        "streaming": "native",
+        "usage": "native",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "declared",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 2
+      },
+      "budget": {
+        "dailyUsdCap": 1.0,
+        "costBasis": "provider_reported"
+      },
+      "resource": {
+        "ramBytes": 0
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "excluded",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "excluded",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [
+        "cursor",
+        "claude-code",
+        "claude"
+      ],
+      "locks": [
+        "L1",
+        "L6"
+      ],
+      "tags": [
+        "approved",
+        "hosted",
+        "sidecar",
+        "spend-capped",
+        "openai-compatible"
+      ],
+      "x_openrouter": {
+        "keys": [
+          {
+            "env": "OPENROUTER_API_KEY_CODEX_SIDECAR",
+            "label": "or-codex-sidecar",
+            "consumers": [
+              "codex"
+            ],
+            "limitReset": "daily"
+          },
+          {
+            "env": "OPENROUTER_API_KEY_CLI_GRUNT",
+            "label": "or-cli-grunt",
+            "consumers": [
+              "aider",
+              "grok",
+              "inference-hub"
+            ],
+            "limitReset": "daily"
+          },
+          {
+            "env": "OPENROUTER_API_KEY_IDE_OPENCODE",
+            "label": "or-ide-opencode",
+            "consumers": [
+              "opencode"
+            ],
+            "limitReset": "daily",
+            "optional": true
+          }
+        ],
+        "guardrail": {
+          "providerAllowlist": [
+            "fireworks",
+            "together",
+            "deepinfra",
+            "novita"
+          ],
+          "modelAllowlist": [
+            "z-ai/glm-5.2:free",
+            "z-ai/glm-5.3"
+          ],
+          "dataCollection": "deny",
+          "secretsPreset": true,
+          "limitUsd": "owner-set"
+        }
+      }
+    },
+    "cursor-auth2api": {
+      "label": "Cursor quota bridge (auth2api :8317)",
+      "description": "Local bridge exposing Cursor subscription models as OpenAI /v1 on 127.0.0.1:8317. The only Cursor bridge (L3). Wire shapes stay declared until the D9 probe writes probed{at,version}; renderers floor on probed, so no Codex block and no *-cursor wrapper is rendered before the probe passes. Never called from Cursor itself (denyCallers) and never from CI.",
+      "kind": "bridge",
+      "enabled": true,
+      "singletonKey": "cursor-bridge",
+      "retiresWhen": "within 7 days of an official Cursor /v1 GA (L3); the routing report names the replacement route",
+      "baseUrl": "http://127.0.0.1:8317/v1",
+      "api": [
+        "openai-completions",
+        "openai-responses",
+        "anthropic-messages"
+      ],
+      "auth": null,
+      "wire": {
+        "completions": "declared",
+        "responses": "declared",
+        "messages": "declared"
+      },
+      "features": {
+        "streaming": "declared",
+        "usage": "declared",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "absent",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 1
+      },
+      "budget": {
+        "dailyUsdCap": null,
+        "costBasis": "quota"
+      },
+      "resource": {
+        "ramBytes": 0
+      },
+      "targets": {
+        "codex": "fallback",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "fallback",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [
+        "cursor"
+      ],
+      "locks": [
+        "L3",
+        "L4"
+      ],
+      "tags": [
+        "approved",
+        "bridge",
+        "local",
+        "quota",
+        "openai-compatible"
+      ]
+    },
+    "ollama": {
+      "label": "Ollama (local, RTX 4050 6 GB)",
+      "description": "Local Ollama on 127.0.0.1:11434 (weights on D:\\ai-models\\ollama; GPU = NVIDIA GeForce RTX 4050 Laptop 6 GB, so Tier S/M weights fit GPU-full). Residency discipline lives in user env: OLLAMA_KEEP_ALIVE=2m, OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_CONTEXT_LENGTH=8192, OLLAMA_KV_CACHE_TYPE=q8_0 (OWNER-CLICKS.md). /api/show capabilities[] is the discovery source, never assumed.",
+      "kind": "local",
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:11434/v1",
+      "api": [
+        "openai-completions",
+        "openai-responses",
+        "anthropic-messages",
+        "ollama-native"
+      ],
+      "auth": null,
+      "wire": {
+        "completions": "native",
+        "responses": "declared",
+        "messages": "declared"
+      },
+      "features": {
+        "streaming": "native",
+        "usage": "declared",
+        "tools": "declared",
+        "tool_choice": "absent",
+        "structured_output": "declared",
+        "vision": "declared",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 1
+      },
+      "budget": {
+        "dailyUsdCap": null,
+        "costBasis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 419430400
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "ollama",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "http",
+        "path": "/api/version",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [],
+      "locks": [
+        "L4",
+        "L7"
+      ],
+      "tags": [
+        "approved",
+        "local",
+        "gpu",
+        "openai-compatible"
+      ],
+      "x_ollama": {
+        "keepAlive": "2m",
+        "maxLoadedModels": 1,
+        "numParallel": 1,
+        "contextLength": 8192,
+        "kvCacheType": "q8_0",
+        "bind": "127.0.0.1",
+        "minVersion": "0.17.1"
+      }
+    },
+    "lmstudio": {
+      "label": "LM Studio (llmster daemon, local)",
+      "description": "Local LM Studio on 127.0.0.1:1234 run as the llmster daemon (lms daemon up; lms server start), not the GUI server: JIT model loading ON, auto-evict ON, idle TTL 600 s (the app default of 60 min is the largest idle-RAM hazard found). Never `lms load` without --ttl. /api/v0/models is the discovery source.",
+      "kind": "local",
+      "enabled": true,
+      "baseUrl": "http://127.0.0.1:1234/v1",
+      "api": [
+        "openai-completions",
+        "openai-responses",
+        "anthropic-messages"
+      ],
+      "auth": null,
+      "wire": {
+        "completions": "native",
+        "responses": "declared",
+        "messages": "declared"
+      },
+      "features": {
+        "streaming": "native",
+        "usage": "declared",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "declared",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 1
+      },
+      "budget": {
+        "dailyUsdCap": null,
+        "costBasis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 524288000
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "lm-studio",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [],
+      "locks": [
+        "L4",
+        "L7"
+      ],
+      "tags": [
+        "approved",
+        "local",
+        "gpu",
+        "openai-compatible"
+      ],
+      "x_lmstudio": {
+        "daemon": "llmster",
+        "jit": true,
+        "autoEvict": true,
+        "idleTtlSeconds": 600,
+        "bind": "127.0.0.1"
+      }
+    },
+    "llamacpp": {
+      "label": "llama-server (local, disabled)",
+      "description": "llama.cpp llama-server on 127.0.0.1:8080/v1 with --sleep-idle-seconds and router mode. Disabled: the cleanest primitives but one more thing to run; enable only through the eval gate (D10 option C recorded, not chosen).",
+      "kind": "local",
+      "enabled": false,
+      "baseUrl": "http://127.0.0.1:8080/v1",
+      "api": [
+        "openai-completions"
+      ],
+      "auth": null,
+      "wire": {
+        "completions": "declared",
+        "responses": "absent",
+        "messages": "absent"
+      },
+      "features": {
+        "streaming": "declared",
+        "usage": "declared",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "absent",
+        "reasoning": "absent"
+      },
+      "concurrency": {
+        "maxInFlight": 1
+      },
+      "budget": {
+        "dailyUsdCap": null,
+        "costBasis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 314572800
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "llama.cpp",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "http",
+        "path": "/health",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [],
+      "locks": [
+        "L4"
+      ],
+      "tags": [
+        "parked",
+        "local",
+        "openai-compatible"
+      ]
+    }
+  },
+  "models": {
+    "glm-5.3": {
+      "label": "GLM-5.3 via HF router (zai-org provider)",
+      "description": "Successor of the deleted glm53-space MCP lane (D1 = hard delete): the same model, the same router, reached through inference-hub `chat` instead of the hardcoded glm53_chat tool. Text chat; tools/structured output declared until probed. Pin :zai-org (or :fireworks-ai / :baseten for schema probes).",
+      "endpoint": "hf-router",
+      "remoteId": "zai-org/GLM-5.3:zai-org",
+      "enabled": true,
+      "status": "live",
+      "tier": "hosted",
+      "context": 131072,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "glm",
+        "replaces:glm53-space"
+      ]
+    },
+    "glm-5.2-free": {
+      "label": "GLM-5.2 free slug via OpenRouter",
+      "description": "The OpenRouter T0 smoke slug (z-ai/glm-5.2:free). Sidecar only (L1); denyCallers inherited from the endpoint.",
+      "endpoint": "openrouter",
+      "remoteId": "z-ai/glm-5.2:free",
+      "enabled": true,
+      "status": "live",
+      "tier": "hosted",
+      "context": 131072,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "provider_reported"
+      },
+      "denyCallers": [
+        "cursor",
+        "claude-code",
+        "claude"
+      ],
+      "tags": [
+        "hosted",
+        "sidecar",
+        "smoke"
+      ]
+    },
+    "cursor-grok-4.6": {
+      "label": "cursor-grok-4.6 through auth2api",
+      "description": "One of the 36 cursor-* ids auth2api exposes; recorded as unprobed until the D9 receipt lands. Quota-billed: cost is null, never 0.",
+      "endpoint": "cursor-auth2api",
+      "remoteId": "cursor-grok-4.6",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 131072,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "quota"
+      },
+      "denyCallers": [
+        "cursor"
+      ],
+      "tags": [
+        "bridge",
+        "quota"
+      ]
+    },
+    "qwen2.5-7b": {
+      "label": "qwen2.5:7b (Ollama, on disk, proven)",
+      "description": "Already pulled on the box (.agents/local-models-audit_2026-08-27.md). Tier M reference model until the Qwen3 picks pass the T2 eval lane.",
+      "endpoint": "ollama",
+      "remoteId": "qwen2.5:7b",
+      "enabled": true,
+      "status": "live",
+      "tier": "M",
+      "context": 8192,
+      "maxOutput": 4096,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 5368709120
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "tier-m"
+      ]
+    },
+    "qwen3-4b-instruct": {
+      "label": "Qwen3-4B-Instruct-2507 Q4_K_M (Ollama, Tier S, thinking off)",
+      "description": "Tier S pick (D10): ~4.3 GB at 8k ctx, fits the 6 GB GPU. Thinking off on tool turns. Eval-gated: promoted to live only after T2 pass@3 >= 0.90.",
+      "endpoint": "ollama",
+      "remoteId": "qwen3:4b-instruct-2507-q4_K_M",
+      "enabled": true,
+      "status": "eval-gated",
+      "tier": "S",
+      "context": 8192,
+      "maxOutput": 4096,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 4617089843
+      },
+      "quirks": {
+        "openai": {
+          "thinking_off_for_tools": true
+        }
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "tier-s",
+        "eval-gated"
+      ]
+    },
+    "qwen3-8b": {
+      "label": "Qwen3-8B (Ollama, Tier M, thinking off)",
+      "description": "Tier M pick (D10): ~7 GB working set; partially CPU-offloaded on the 6 GB GPU. Thinking off on tool turns. Eval-gated.",
+      "endpoint": "ollama",
+      "remoteId": "qwen3:8b",
+      "enabled": true,
+      "status": "eval-gated",
+      "tier": "M",
+      "context": 8192,
+      "maxOutput": 4096,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 7516192768
+      },
+      "quirks": {
+        "openai": {
+          "thinking_off_for_tools": true
+        }
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "tier-m",
+        "eval-gated"
+      ]
+    }
+  },
+  "aliases": {
+    "glm53": "glm-5.3",
+    "fabric-default": "glm-5.3",
+    "local-default": "qwen2.5-7b"
+  },
+  "slots": {
+    "large": "glm-5.3",
+    "small": "qwen2.5-7b",
+    "subagent": "qwen2.5-7b",
+    "web_search": null,
+    "summary": "qwen2.5-7b",
+    "embed": null
+  }
+}
