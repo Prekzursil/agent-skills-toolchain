@@ -38,6 +38,8 @@ scalars) and would red-block main and every sibling PR.  So the existing debt is
 pinned in ``ci/skill-description-exemptions.txt`` and the gate refuses only:
 
     over-spec        a NEW description above 1,024 chars, or a pinned one that grew
+    over-estate      a NEW description above the 500-BYTE estate cap, or a pinned
+                     one that grew (see THE ESTATE BYTE CAP below)
     folded           a NEW folded/literal block-scalar or continuation description
     stale-exemption  a pinned skill that no longer violates -- delete its line
     unknown-exemption a pinned skill that exists in neither root
@@ -46,6 +48,20 @@ pinned in ``ci/skill-description-exemptions.txt`` and the gate refuses only:
 The exemption file can therefore only get SHORTER.  Fixing a skill without
 deleting its line is itself a failure, which is what stops the list becoming a
 permanent excuse.
+
+THE ESTATE BYTE CAP (G-12, amended 2026-10-01: RAISE THE CAP)
+-------------------------------------------------------------
+Besides the 1,024-char Agent Skills spec ceiling, the estate bills a
+description's UTF-8 BYTES against a tighter cap, because the deployed listing
+budget is byte-billed.  G-12 originally pinned that estate cap at 300 bytes;
+the 2026-10-01 amendment RAISED it to 500 bytes (``ESTATE_MAX_BYTES`` below).
+Measured on this repo's two roots the same day: 150 (.agents/skills) and 151
+(skills) descriptions exceed 300 bytes while only 35 exceed 500 bytes, so the
+raise clears roughly three-quarters of the fleet's byte-overflow count at a
+stroke; the surviving 35 are pinned as ``over-estate:<name>:<max-bytes>``
+rows in the same shrink-only file.  The cap counts BYTES, not chars,
+deliberately: multi-byte text is billed by what the client actually ships, so
+a 300-char CJK description is 900 bytes of budget, not 300.
 
 WHAT IT REPORTS BUT NEVER BLOCKS ON
 -----------------------------------
@@ -83,6 +99,16 @@ from pathlib import Path
 #: The Agent Skills spec ceiling for a single description.
 SPEC_MAX_CHARS = 1024
 
+#: Estate description cap, in UTF-8 BYTES.  G-12 amendment 2026-10-01 (RAISE
+#: THE CAP): raised from 300 to 500 bytes.  Deliberately tighter than the
+#: 1,024-char spec ceiling above, and deliberately in bytes rather than chars:
+#: the deployed listing budget bills bytes, so multi-byte text pays real budget.
+ESTATE_MAX_BYTES = 500
+
+#: The pre-amendment estate cap, retained ONLY so the advisory can report how
+#: much byte debt the 300 -> 500 raise actually cleared.  Never enforced.
+LEGACY_ESTATE_BYTES = 300
+
 #: YAML block-scalar indicators that make a description multi-line.
 _FOLD_TOKENS = frozenset({"|", ">", "|-", ">-", "|+", ">+"})
 
@@ -90,6 +116,7 @@ DEFAULT_ROOTS = (Path(".agents/skills"), Path("skills"))
 DEFAULT_EXEMPTIONS = Path("ci/skill-description-exemptions.txt")
 
 RULE_OVER_SPEC = "over-spec"
+RULE_OVER_ESTATE = "over-estate"
 RULE_FOLDED = "folded"
 
 EXIT_OK = 0
@@ -123,17 +150,23 @@ class Description:
     def chars(self) -> int:
         return len(self.text)
 
+    @property
+    def byte_len(self) -> int:
+        """UTF-8 byte length -- the unit the estate byte cap bills."""
+        return len(self.text.encode("utf-8"))
+
 
 @dataclass
 class Exemptions:
     """Pinned, shrink-only debt."""
 
     over_spec: dict[str, int] = field(default_factory=dict)
+    over_estate: dict[str, int] = field(default_factory=dict)
     folded: set[str] = field(default_factory=set)
 
     @property
     def names(self) -> set[str]:
-        return set(self.over_spec) | set(self.folded)
+        return set(self.over_spec) | set(self.over_estate) | set(self.folded)
 
 
 def parse_exemptions(path: Path) -> Exemptions:
@@ -170,6 +203,27 @@ def parse_exemptions(path: Path) -> Exemptions:
             if name in out.over_spec:
                 raise ConfigurationError(f"{path}:{lineno}: duplicate entry {name!r}")
             out.over_spec[name] = pinned
+        elif rule == RULE_OVER_ESTATE:
+            if len(parts) != 3:
+                raise ConfigurationError(
+                    f"{path}:{lineno}: expected 'over-estate:<name>:<max-bytes>', "
+                    f"got {entry!r}"
+                )
+            name = parts[1]
+            try:
+                pinned = int(parts[2])
+            except ValueError as exc:
+                raise ConfigurationError(
+                    f"{path}:{lineno}: pinned max is not an integer: {entry!r}"
+                ) from exc
+            if pinned <= ESTATE_MAX_BYTES:
+                raise ConfigurationError(
+                    f"{path}:{lineno}: pinned max {pinned} is not above the "
+                    f"{ESTATE_MAX_BYTES}-byte estate cap, so the entry grants nothing"
+                )
+            if name in out.over_estate:
+                raise ConfigurationError(f"{path}:{lineno}: duplicate entry {name!r}")
+            out.over_estate[name] = pinned
         elif rule == RULE_FOLDED:
             if len(parts) != 2:
                 raise ConfigurationError(
@@ -308,6 +362,33 @@ def evaluate(
                         ),
                     }
                 )
+        if description.byte_len > ESTATE_MAX_BYTES:
+            pinned = exemptions.over_estate.get(name)
+            if pinned is None:
+                violations.append(
+                    {
+                        "rule": RULE_OVER_ESTATE,
+                        "skill": name,
+                        "root": description.root,
+                        "detail": (
+                            f"description is {description.byte_len} UTF-8 bytes, above "
+                            f"the {ESTATE_MAX_BYTES}-byte estate cap (G-12 amended "
+                            f"2026-10-01), and is not pinned"
+                        ),
+                    }
+                )
+            elif description.byte_len > pinned:
+                violations.append(
+                    {
+                        "rule": RULE_OVER_ESTATE,
+                        "skill": name,
+                        "root": description.root,
+                        "detail": (
+                            f"description grew to {description.byte_len} bytes, past "
+                            f"its pinned ceiling of {pinned}"
+                        ),
+                    }
+                )
         if description.folded and name not in exemptions.folded:
             violations.append(
                 {
@@ -345,6 +426,29 @@ def evaluate(
                     ),
                 }
             )
+    for name in sorted(exemptions.over_estate):
+        present = by_name.get(name)
+        if not present:
+            violations.append(
+                {
+                    "rule": "unknown-exemption",
+                    "skill": name,
+                    "root": "-",
+                    "detail": "pinned over-estate skill exists in no skill root",
+                }
+            )
+        elif all(d.byte_len <= ESTATE_MAX_BYTES for d in present):
+            violations.append(
+                {
+                    "rule": "stale-exemption",
+                    "skill": name,
+                    "root": "-",
+                    "detail": (
+                        "description is now within the estate byte cap; delete its "
+                        "over-estate line from the exemptions file"
+                    ),
+                }
+            )
     for name in sorted(exemptions.folded):
         present = by_name.get(name)
         if not present:
@@ -375,6 +479,11 @@ def evaluate(
         "root_measured": surface[0].root,
         "skills": len(surface),
         "description_chars": sum(d.chars for d in surface),
+        "estate_cap_bytes": ESTATE_MAX_BYTES,
+        "over_estate_cap": sum(1 for d in surface if d.byte_len > ESTATE_MAX_BYTES),
+        "over_legacy_estate_cap": sum(
+            1 for d in surface if d.byte_len > LEGACY_ESTATE_BYTES
+        ),
         "note": (
             "ADVISORY ONLY -- never blocks. The client truncation boundary is "
             "SESSION-DEPENDENT: two independent sessions fitted the same fleet at "
@@ -391,6 +500,12 @@ def render(violations: list[dict[str, object]], advisory: dict[str, object]) -> 
     lines = [
         f"skill description surface (ADVISORY): {advisory['description_chars']} chars "
         f"across {advisory['skills']} skills in {advisory['root_measured']}",
+        (
+            f"estate byte cap (ADVISORY): {advisory['over_estate_cap']} descriptions "
+            f"over the {advisory['estate_cap_bytes']}-byte cap; the legacy "
+            f"{LEGACY_ESTATE_BYTES}-byte cap would have flagged "
+            f"{advisory['over_legacy_estate_cap']}"
+        ),
         f"  {advisory['note']}",
         "",
     ]
