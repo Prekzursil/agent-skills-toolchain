@@ -1,0 +1,6 @@
+- [Toolchain skills aren't registered here](toolchain-skills-not-registered-here.md) — unknown /skill? read skills/<name>/SKILL.md in the repo
+- [Qwen38 heretic Space grill](qwen38-heretic-space-grill.md) — ongoing grill; decision log at ~/grills/2026-09-19-qwen38-heretic-space/
+- [User prefers grill before build](user-prefers-grill-before-build.md) — big/fuzzy work: /grill-me-extensive first, one question per turn
+- [Dangling reference = dropped paste](dangling-reference-means-dropped-paste.md) — "these" with no referent: ask to resend, don't investigate
+- [Keep full subagent output, wait for running work](keep-full-subagent-output-and-wait.md) — save reports verbatim, retry failures, don't converge early
+- [Always version work products](always-version-work-products.md) — branch + auto-sync + PR everything; PR #336 holds the grill
