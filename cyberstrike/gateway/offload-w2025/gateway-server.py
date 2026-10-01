@@ -29,6 +29,7 @@ import time
 from datetime import datetime, timezone
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SSOT_PATH = os.path.join(HERE, "mcp-ssot.json")
@@ -39,7 +40,23 @@ with open(SSOT_PATH, encoding="utf-8") as f:
 
 backend_env = {b["name"]: b["env"] for b in SSOT.get("backends", []) if b.get("env")}
 
-mcp = FastMCP("cyberstrike-gateway", host="127.0.0.1", port=SSOT["gateway"]["port"])
+mcp = FastMCP(
+    "cyberstrike-gateway",
+    host="127.0.0.1",
+    port=SSOT["gateway"]["port"],
+    # docker0 bridge of the offload-linux sandbox VM (reachable only via the
+    # SSH reverse tunnel) must pass DNS-rebinding protection so PentAGI
+    # sandbox workers can call the gateway at 172.17.0.1:31100.
+    transport_security=TransportSecuritySettings(
+        allowed_hosts=["127.0.0.1:*", "localhost:*", "[::1]:*", "172.17.0.1:*"],
+        allowed_origins=[
+            "http://127.0.0.1:*",
+            "http://localhost:*",
+            "http://[::1]:*",
+            "http://172.17.0.1:*",
+        ],
+    ),
+)
 
 _AVAIL_CACHE: dict[str, tuple[str, str, float]] = {}  # name -> (status, detail, computed_at)
 # rpc-dispatch 2026-09-30: availability is TTL-cached, not sticky-per-session.
@@ -380,12 +397,30 @@ def _flatten_error(exc) -> str:
     return "%s: %s" % (type(exc).__name__, exc)
 
 
-def _mcphttp_call(url: str, tool: str, args: dict, timeout: float) -> dict:
+def _mcphttp_headers(backend) -> dict:
+    """Optional bearer auth for kind=mcp-http backends.
+
+    Backend may declare {"auth": {"mode": "bearer_env", "env": "VARNAME"}} -
+    the value is read from the gateway process environment (user env of the
+    scheduled task) and sent as 'Authorization: Bearer <value>' on every
+    one-shot request. No declaration or unset env -> no header (the backend's
+    own 401 then surfaces through the probe/invoke error text).
+    linux-vm addition 2026-10-01; decepticon fronts carry no auth and are
+    unaffected."""
+    a = (backend or {}).get("auth") or {}
+    if a.get("mode") == "bearer_env" and a.get("env"):
+        v = os.environ.get(a["env"])
+        if v:
+            return {"Authorization": "Bearer " + v}
+    return {}
+
+
+def _mcphttp_call(url: str, tool: str, args: dict, timeout: float, headers: dict | None = None) -> dict:
     from mcp import ClientSession
     from mcp.client.streamable_http import streamablehttp_client
 
     async def _run():
-        async with streamablehttp_client(url, timeout=timeout) as (r, w, _):
+        async with streamablehttp_client(url, timeout=timeout, headers=dict(headers or {})) as (r, w, _):
             async with ClientSession(r, w) as s:
                 await asyncio.wait_for(s.initialize(), timeout)
                 if tool == "__list__":
@@ -405,7 +440,7 @@ def _mcphttp_call(url: str, tool: str, args: dict, timeout: float) -> dict:
 def _mcphttp_probe(backend) -> tuple[str, str]:
     url = backend.get("url", "")
     try:
-        res = _mcphttp_call(url, "__list__", {}, 10.0)
+        res = _mcphttp_call(url, "__list__", {}, 10.0, _mcphttp_headers(backend))
     except Exception as exc:  # noqa: BLE001 - connection errors are availability data
         return "unavailable", "mcp-http %s failed: %s" % (url, str(exc)[:160])
     return "available", "mcp-http %s (%d tools)" % (url, len(res["tools"]))
@@ -674,7 +709,7 @@ def harness_invoke(backend: str, tool: str, arguments: str = "{}") -> str:
             res = _worker_invoke(match, tool, args, args.get("timeout", WORKER_CALL_TIMEOUT))
             return json.dumps({"backend": backend, "tool": tool, "mode": "mcp-stdio-managed-worker", **res})
         if match["kind"] == "mcp-http":
-            res = _mcphttp_call(match["url"], tool, args, float(args.get("timeout", WORKER_CALL_TIMEOUT)))
+            res = _mcphttp_call(match["url"], tool, args, float(args.get("timeout", WORKER_CALL_TIMEOUT)), _mcphttp_headers(match))
             return json.dumps({"backend": backend, "tool": tool, "mode": "mcp-http-one-shot", **res})
         if match["kind"] == "mcp-sse":
             res = _mcpsse_call(match["url"], tool, args, float(args.get("timeout", WORKER_CALL_TIMEOUT)))
