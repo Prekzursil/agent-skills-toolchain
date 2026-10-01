@@ -28,6 +28,25 @@ import threading
 import time
 from datetime import datetime, timezone
 
+# wedge-fix 2026-10-01: under the hidden scheduled-task session, a rich console
+# write can block forever while holding the logging handler lock, freezing the
+# whole event loop (observed twice during a live assessment). Re-point fd 1/2
+# at the log files BEFORE any logging/rich initializes; file writes never
+# block and rich degrades to plain output on non-tty. Set GATEWAY_NO_REDIRECT=1
+# to keep console output when running manually.
+if os.environ.get("GATEWAY_NO_REDIRECT") != "1" and sys.stdout is not None:
+    try:
+        sys.stdout.flush()
+        sys.stderr.flush()
+        _here = os.path.dirname(os.path.abspath(__file__))
+        os.makedirs(os.path.join(_here, "logs"), exist_ok=True)
+        _out = open(os.path.join(_here, "logs", "gateway.out.log"), "ab", buffering=0)
+        _err = open(os.path.join(_here, "logs", "gateway.err.log"), "ab", buffering=0)
+        os.dup2(_out.fileno(), 1)
+        os.dup2(_err.fileno(), 2)
+    except OSError:
+        pass
+
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
