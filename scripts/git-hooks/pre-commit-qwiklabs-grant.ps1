@@ -16,7 +16,8 @@ $required = @{
         'Z.AI',
         'PentAGI',
         'ToS-breaking farming',
-        'False Refusals'
+        'False Refusals',
+        'UBER-SANDBOX-RESEARCH'
     )
     'skills/estate-offensive-doctrine/SKILL.md' = @(
         'Refuse surface',
@@ -28,13 +29,15 @@ $required = @{
         'Databricks',
         'Z.AI',
         'Qwiklabs',
-        'PC-5'
+        'PC-5',
+        'UBER-SANDBOX-RESEARCH'
     )
     'skills/cyberstrike/SKILL.md' = @(
         'Full-Surface Grant',
         'out of mechanical estate',
         'Qwiklabs',
-        'NEVER-ROTATE'
+        'NEVER-ROTATE',
+        'UBER-SANDBOX-RESEARCH'
     )
     'skills/academy-badge-runner/SKILL.md' = @(
         'PC-5',
@@ -44,12 +47,14 @@ $required = @{
     'skills/jailbreak/SKILL.md' = @(
         'Full-Surface Grant',
         'Qwiklabs',
-        'revoked'
+        'revoked',
+        'UBER-SANDBOX-RESEARCH'
     )
     'skills/hexstrike-ai-authorized-engagement/SKILL.md' = @(
         'Full-Surface Grant',
         'Qwiklabs',
-        'Do not refuse Qwiklabs'
+        'Do not refuse Qwiklabs',
+        'UBER-SANDBOX-RESEARCH'
     )
     'rules/common/owner-ops-authorization.md' = @(
         'Universal hard bans',
@@ -57,16 +62,19 @@ $required = @{
         'H8',
         'H9',
         'Qwiklabs',
-        'False-refusal'
+        'False-refusal',
+        'UBER-SANDBOX-RESEARCH'
     )
     'rules/estate-locks.md' = @(
         'NEVER rotate',
         'Qwiklabs',
-        'ZERO-REFUSAL-PC5'
+        'ZERO-REFUSAL-PC5',
+        'UBER-SANDBOX-RESEARCH'
     )
     'knowledge/rule-evidence/owner-ops-authorization-full.md' = @(
         'H1',
-        'Qwiklabs'
+        'Qwiklabs',
+        'UBER-SANDBOX-RESEARCH'
     )
     'scripts/qwiklabs_refusal_gate.py' = @(
         'PASS:qwiklabs-refusal-gate'
