@@ -80,6 +80,8 @@ def start_account(acct: dict, chrome: str) -> str:
             [
                 chrome,
                 f"--remote-debugging-port={cdp}",
+                "--window-position=-32000,-32000",  # off-screen: daemons must not pop windows (owner, 2026-09-29)
+                "--window-size=1400,900",
                 f"--user-data-dir={profile}",
                 "--no-first-run",
                 "--no-default-browser-check",
