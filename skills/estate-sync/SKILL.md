@@ -245,18 +245,64 @@ Two rules learned the hard way (2026-09-30):
 
 ## Third surface: the ovido4 mirror
 
-The estate repo has a tertiary 1:1 MIRROR on the `ovido4` GitHub account —
-**mirror, not sync**: a `git push --mirror` snapshot with no live relationship
-(no webhooks, no auto-sync). Staged at
-`D:\optault\mirror-pushgent-skills-toolchain.git` (bare clone, all refs)
-with `push-mirror-to-ovido4.sh` — one command once an `ovido4` GitHub token is
-provided (`GH_TOKEN=<token> bash push-mirror-to-ovido4.sh`; it creates the
-private repo if absent, then mirror-pushes and prints the ref count). No ovido4
-GitHub credential exists on the VM or in the vault env backups (all three
-stored tokens are Prekzursil) — the token must come from home or be minted.
+The estate has TWO mirror surfaces — a **VM-level 1:1 mirror** (GCP machine image,
+executed 2026-10-01) and a **repo-level git mirror** (staged, awaiting token).
+
+### VM-level 1:1 mirror (GCP machine image — the Macrium equivalent)
+
+`offload-mirror` in ovido4's project (`project-90b4a09f-be6f-4040-a6c`) is a
+byte-identical clone of `offload-w2025` created via GCP machine image. Full
+runbook: `estates/offload-w2025/2026-09-30-link-and-mirror/MIRROR-RUNBOOK.md`.
+
+**The three blockers and their fixes** (so nobody rediscovers them):
+
+1. **Billing write-block is account-specific**: `BILLING_DISABLED` on GCP
+   writes affects ovido4@gmail.com but NOT prekzursil1993 (roles/owner), even
+   on the same project. Switch account to do writes.
+2. **Global CPU quota**: `CPUS_ALL_REGIONS` limit=12 per project; a 12-vCPU
+   VM consumes it all. Cannot co-locate a second instance in the same project.
+   Deploy to the other project instead.
+3. **Cross-project service account**: machine image inherits the SOURCE
+   project's SA; target account lacks `iam.serviceAccountUser` on it. Fix:
+   pass `--service-account=<target-project-number>-compute@developer.gserviceaccount.com`
+   explicitly on `instances create`.
+
+**What NOT to use**: wbadmin/Windows Server Backup (requires feature install
+reboot); GCP metadata SSH key deploy (no compute-accounts-daemon on custom
+images). Use `reset-windows-password` + paramiko for initial access instead.
+
+**The working sequence**:
+```bash
+# 1. snapshot + image (as prekzursil1993, source project)
+gcloud compute machine-images create mirror-full-YYYYMMDD \
+  --source-instance=offload-w2025 --source-instance-zone=europe-central2-a \
+  --project=webcoder-462916 --storage-location=europe-central2
+
+# 2. deploy (as ovido4, target project)
+gcloud compute instances create offload-mirror \
+  --source-machine-image=projects/webcoder-462916/global/machineImages/mirror-full-YYYYMMDD \
+  --zone=europe-central2-a --project=project-90b4a09f-be6f-4040-a6c \
+  --machine-type=n2-custom-12-98304 \
+  --service-account=<target-SA> --scopes=default
+
+# 3. access
+gcloud compute reset-windows-password offload-mirror --user=prekzursil ...
+# then paramiko password-login → deploy SSH key → key auth
+```
+
+### Repo-level git mirror (staged)
+
+A git `push --mirror` snapshot of the vault repo. Staged at
+`D:\opt\vault\mirror-push\agent-skills-toolchain.git` (bare clone, all refs)
+with `push-mirror-to-ovido4.sh` — one command once an ovido4 GitHub token is
+provided. No ovido4 GitHub credential exists on the VM or in the vault env
+backups (all three stored tokens are Prekzursil) — the token must come from
+home or be minted.
+
+### Mirror-pending convention
 
 When the primary link is down, session deltas accumulate as
-`D:\optault\mirror-pending\<date>.tar.gz` and drain via
+`D:\opt\vault\mirror-pending\<date>.tar.gz` and drain via
 `D:\opt\scripts\push-home-mirror.ps1` (which self-reports the exact wake-side
 fix if home is unreachable).
 
