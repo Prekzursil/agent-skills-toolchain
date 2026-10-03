@@ -1,0 +1,42 @@
+# LANE 34/36 — SUBTASK 75 STEP 1 STAGING CHECK (local FS only, ZERO network)
+# Executed: 2026-10-01T22:12:58Z (container; mtime cutoff marker 2026-10-01T22:03:00Z)
+
+## Method
+- mtime marker: touch -d '2026-10-01T22:03:00Z' /tmp/.staging_marker_75
+  find /work -maxdepth 4 -newer marker (excluding /work/bolt/REPORT/* and /work/lane* —
+  engagement-own output dirs; anything under them is this engagement's product, not staging)
+- name searches over /work and /opt (maxdepth 5): *mtakso*, *.xapk, *.apk, ca225*, da147*,
+  secrets_found*, *cowork*
+- credential-shaped file sweep: *.json/*.tsv/*.csv/*.txt newer than marker anywhere in /work
+- mount-table inspection for added on-demand/intel binds
+
+NO downloads, NO fetches, NO substitution — local filesystem checks only (STEP 1 rule).
+
+## Results
+
+(1) AWS secret material — ABSENT
+  - /work/on-demand/                     -> ENOENT (staging directory does not exist)
+  - secrets_found* / *cowork*            -> 0 hits across /work and /opt (maxdepth 5)
+  - /work/intel-core/credentials/        -> 27 SSOT/bak files, ALL mtime 2026-10-01T17:09:38Z
+                                            (initial intel mount; zero arrivals since)
+  - find /work -newer marker             -> 0 files outside engagement output dirs
+  - credential-shaped file sweep         -> 0 hits
+  - mount table                          -> only /dev/sda1 bind on /work; no new bind added
+  => 181-pair cowork-inv archive (host: D:\bolt\enum\pulls\cowork-inv\secrets_found.json)
+     remains UNSTAGED.
+
+(2) XAPKs — ABSENT
+  - find /work /opt -iname '*mtakso*' -o -iname '*.xapk' -o -iname 'ca225*' -o -iname 'da147*'
+    -> 0 hits
+  - consistent with phase0/SHA256-RECEIPTS.txt (2026-10-01T18:26:29Z, FAIL-CLOSED, both absent)
+  => operator item B (cp -r /opt/intel/extracted/apks /work/on-demand/) remains UNFULFILLED.
+
+## Branch decision
+BOTH ABSENT -> BRANCH C (fail-closed closure receipts).
+Branch A (AWS deep-enum) and Branch B (mobile RE Track A1) NOT executed — no material to
+execute against. 0 AWS API calls, 0 Databricks calls, 0 GitHub calls this subtask.
+
+## Total network actions this subtask
+- 1 (ONE) DNS CNAME re-observation of WATCH7 testregistry.bolt.eu — explicitly permitted,
+  DNS-only; see lane-34 JFrog closure receipt.
+- 0 HTTP/TLS touches of any kind.

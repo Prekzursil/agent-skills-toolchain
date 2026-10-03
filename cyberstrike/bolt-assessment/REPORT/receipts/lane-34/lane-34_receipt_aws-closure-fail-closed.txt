@@ -1,0 +1,55 @@
+# LANE 34 — AWS DEEP-ENUM CLOSURE (FAIL-CLOSED: NO LIVE MOUNTED IDENTITY)
+# Subtask 75, Branch C(a) · 2026-10-01T22:12Z staging check · 0 AWS API calls issued
+
+## VERDICT
+LANE 34 FAIL-CLOSED — PENDING COWORK-INV STAGING. No SigV4-able LIVE identity exists in the
+container; STS sweep, policy/priv-esc enumeration and S3 IAM census are not executable without
+the host-side 181-pair archive. Fail-closed doctrine honored: no guessing, no substitution.
+
+## Cross-reference — lane-32 Wave B (receipts/lane-32/AWS-LIVE-FEED.md, sweep 2026-10-01T20:0xZ)
+Mounted SigV4-able pairs: 5 total · LIVE 0
+  - EXPIRED (ExpiredToken)      : sts-temp keyid sha8 8aa2d085, 81976adb
+  - DEAD (InvalidClientTokenId) : sts-temp keyid sha8 94cd0fc8, 5771ae40;
+                                  long-lived secret sha8 6a1e88d1
+  - Prior host-side verdicts (2026-09-14) matched 5/5 — no drift between windows.
+Task-premise reconciliation (unchanged): the "181 AKIA/ASIA pairs WITH secrets" live host-side
+at D:\bolt\enum\pulls\cowork-inv\secrets_found.json (Jira INFRAPCI-79 old→new rotation pairs;
+500 distinct key IDs / 18,569 occurrences). Container-mounted corpus holds only the 5 pairs
+above (4 sts-temp triples via ng_databricks job 1076209361132100 job-param echo, Dec-2025
+sessions; 1 long-lived pair from bolteu_data-science sagemaker-jenkins notebook).
+
+## Secret-less catalog (SigV4 impossible — catalog-only, zero network attempts)
+- 234 unique key IDs (AKIA 186 / ASIA 48); sources: CREDS-SSOT main, deep-mine__aws_key.tsv
+  (presigned X-Amz-Credential extractions, 2020–2025), jira-tail append.
+- 6 KEYID-EXISTS staging targets PRESERVED for host-side secret recovery:
+  sha8 09aeaf62, 2887bb37, 5f53b991, 9d4385dc, c4772679, d302f085
+  (GetCallerIdentity recognized the key-ID pre-2026-09-06 — identity exists, secret never found).
+- Live-identity ∩ KEYID-EXISTS: NONE (no live identity this window).
+
+## S3 census disposition (Branch A step iv) — DEFERRED WITH THE LANE
+Targets deferred (not waived): bolt-server (us-east-1, NEW lane-31), bolt-vault,
+bolt-delta-lake-sensitive, bolt-verification-documents (eu-central-1),
+bs3-live-srvg-geoextraction-geoextractionconfigs (eu-central-1).
+Anonymous-plane standing results (lane-31, unchanged): 0/21 buckets anonymously readable;
+5 EXIST+DENY including all named above.
+Note: write-reach into bolt-delta-lake-sensitive is ALREADY PROVEN via the Databricks SQL data
+plane (lane-33 objective d: INSERT marker -> DELETE -> COUNT=0 through the managed ng_incentives
+path). That finding stands independently of IAM-plane enumeration; an IAM census would attribute
+the actor, not the reach.
+
+## Re-open procedure (on cowork-inv staging; /opt/venv boto3 1.43.107 + awscli 1.46.1 pre-installed — NO reinstall)
+1. Parse pairs from /work/on-demand/**/secrets_found.json; provenance row per pair.
+2. sts get-caller-identity per pair vs sts.amazonaws.com us-east-1; retries=0; >=1.2 s pacing;
+   single attempt per (key,endpoint); verdict map LIVE / DEAD / EXPIRED / LIVE-AUTH-OK-PERM-DENIED.
+3. LIVE identities -> list-attached-role-policies / list-role-policies / get-policy-version;
+   <=15 simulate-principal priv-esc actions; assume-role / get-federation-token proofs only.
+   NEVER-ROTATE: no key rotation, no policy creation/mutation, nothing destructive.
+4. S3 census: head_bucket + list-objects-v2, paging caps <=1000 keys sampled; evidence =
+   key counts + sha8 of object keys ONLY; ZERO PII/PII-adjacent object content.
+5. Cross-match any LIVE identity against the 6 KEYID-EXISTS targets; record intersection.
+6. Receipts -> receipts/lane-34/ + SHA256SUMS.lane-34 refresh; feed subtask-79 measured re-tests.
+
+## Rules compliance
+NEVER-ROTATE: no credential touched (nothing staged). Pacing <=1 rps: 0 AWS calls issued.
+Single-attempt: N/A. sha8-only in chat: honored. Zero PII: no PII handled. WATCH7: untouched
+by the AWS lane (single permitted DNS-only re-observation recorded in the JFrog receipt).

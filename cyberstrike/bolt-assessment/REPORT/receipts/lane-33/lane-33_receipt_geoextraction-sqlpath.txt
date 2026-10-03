@@ -1,0 +1,75 @@
+
+===== LANE-33 objective (g) geoextraction bucket SQL-path re-validation (vul_0791c1c0d001) — 2026-10-01T21:31:36Z =====
+request# at start: 51/600 aborted=False
+[2026-10-01T21:31:37Z] #52 g-extlocations sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.43s)
+  body: {"statement_id":"01f1bddf-7b91-1dc8-b086-913f2b01b3fc","status":{"state":"FAILED","error":{"error_code":"BAD_REQUEST","message":"[UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `name` cannot be resolved. Did you mean one of the following? [`url`, `comment`, `created`, `created_by`, `read_only`]. SQLSTATE: 42703; line 1 pos 7"},"sql_state":"42703"}}
+  SQL-RESULT: state=FAILED cols=[] n_rows=-
+  SQL-ERROR: [UNRESOLVED_COLUMN.WITH_SUGGESTION] A column, variable, or function parameter with name `name` cannot be resolved. Did you mean one of the following? [`url`, `comment`, `created`, `created_by`, `read_only`]. SQLSTATE: 42703; line 1 pos 7
+[2026-10-01T21:31:39Z] #53 g-list-geo sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.89s)
+  body: {"statement_id":"01f1bddf-7c47-1867-bb0d-f3e061929678","status":{"state":"FAILED","error":{"error_code":"BAD_REQUEST","message":"[UNRESOLVABLE_TABLE_VALUED_FUNCTION] Could not resolve LIST to a table-valued function.\nPlease make sure that LIST is defined as a table-valued function and that all required parameters are provided correctly.\nIf LIST is not defined, please create the table-valued func
+  SQL-RESULT: state=FAILED cols=[] n_rows=-
+  SQL-ERROR: [UNRESOLVABLE_TABLE_VALUED_FUNCTION] Could not resolve LIST to a table-valued function.
+Please make sure that LIST is defined as a table-valued function and that all required parameters are provided correctly.
+If LIST is not defined, please create the table-valued function before using it.
+For more information about defining table-valued functions, please refer to the Apache Spark documentation. S
+===== objective (g) done — 2026-10-01T21:31:39Z — budget 53/600 =====
+
+===== LANE-33 objective (g) fix-up: correct columns + read_files SQL-path proof — 2026-10-01T21:33:25Z =====
+request# at start: 67/600 aborted=False
+[2026-10-01T21:33:26Z] #68 g-desc-extloc sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.82s)
+  body: {"statement_id":"01f1bddf-bc67-10d0-9089-de022139dcb8","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":3,"columns":[{"name":"col_name","type_text":"STRING","type_name":"STRING","position":0},{"name":"data_type","type_text":"STRING","type_name":"STRING","position":1},{"name":"comment","type_text":"STRING","type_name":"STRING","position":2}]},"total_chunk_co
+  SQL-RESULT: state=SUCCEEDED cols=['col_name', 'data_type', 'comment'] n_rows=11 hash-only
+[2026-10-01T21:33:27Z] #69 g-extloc-geo sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.57s)
+  body: {"statement_id":"01f1bddf-bd13-1bb2-83d3-0a098e8b1fe7","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":11,"columns":[{"name":"external_location_name","type_text":"STRING","type_name":"STRING","position":0},{"name":"external_location_owner","type_text":"STRING","type_name":"STRING","position":1},{"name":"url","type_text":"STRING","type_name":"STRING","posit
+  SQL-RESULT: state=SUCCEEDED cols=['external_location_name', 'external_location_owner', 'url', 'storage_credential_id', 'storage_credential_name', 'read_only', 'comment', 'created', 'created_by', 'last_altered', 'last_altered_by'] n_rows=-
+[2026-10-01T21:33:29Z] #70 g-extloc-all sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.67s)
+  body: {"statement_id":"01f1bddf-bdcb-136c-91da-3b886c00e868","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":11,"columns":[{"name":"external_location_name","type_text":"STRING","type_name":"STRING","position":0},{"name":"external_location_owner","type_text":"STRING","type_name":"STRING","position":1},{"name":"url","type_text":"STRING","type_name":"STRING","posit
+  SQL-RESULT: state=SUCCEEDED cols=['external_location_name', 'external_location_owner', 'url', 'storage_credential_id', 'storage_credential_name', 'read_only', 'comment', 'created', 'created_by', 'last_altered', 'last_altered_by'] n_rows=1 hash-only
+[2026-10-01T21:33:30Z] #71 g-rf-direct-count sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.49s)
+  body: {"statement_id":"01f1bddf-be82-12bc-83f3-a1f105693279","status":{"state":"FAILED","error":{"error_code":"BAD_REQUEST","message":"[ROUTINE_PARAMETER_NOT_FOUND] The routine `read_files` does not support the parameter `maxFiles` specified at position 1. Did you mean one of the following parameter(s)? [maxFileAge, maxColumns, locale, mode, multiLine] SQLSTATE: 42000; line 1 pos 26"},"sql_state":"42000
+  SQL-RESULT: state=FAILED cols=[] n_rows=-
+  SQL-ERROR: [ROUTINE_PARAMETER_NOT_FOUND] The routine `read_files` does not support the parameter `maxFiles` specified at position 1. Did you mean one of the following parameter(s)? [maxFileAge, maxColumns, locale, mode, multiLine] SQLSTATE: 42000; line 1 pos 26
+===== objective (g) fix-up done — 2026-10-01T21:33:30Z — budget 71/600 =====
+
+===== LANE-33 objective (g) retry: plain read_files on direct bucket path (bounded) — 2026-10-01T21:36:20Z =====
+request# at start: 75/600 aborted=False
+[2026-10-01T21:36:21Z] #76 g-rf-bounded-count sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (1.21s)
+  body: {"statement_id":"01f1bde0-2496-1753-a462-ac956dacab1a","status":{"state":"FAILED","error":{"error_code":"BAD_REQUEST","message":"[CF_UNABLE_TO_DETECT_FILE_FORMAT] Unable to detect the source file format from 401 sampled file(s), found [json, parquet]. Please specify the format. SQLSTATE: 42000"},"sql_state":"42000"}}
+  SQL-RESULT: state=FAILED cols=[] n_rows=-
+  SQL-ERROR: [CF_UNABLE_TO_DETECT_FILE_FORMAT] Unable to detect the source file format from 401 sampled file(s), found [json, parquet]. Please specify the format. SQLSTATE: 42000
+===== (g) retry done — 2026-10-01T21:36:21Z — budget 76/600 =====
+
+===== LANE-33 objective (g) format-explicit read_files proof — 2026-10-01T21:37:06Z =====
+request# at start: 78/600 aborted=False
+[2026-10-01T21:37:18Z] #79 g-rf-json-count sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (11.5s)
+  body: {"statement_id":"01f1bde0-3fe5-1e86-b366-d89f2b0a80fa","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":1,"columns":[{"name":"n","type_text":"BIGINT","type_name":"LONG","position":0}]},"total_chunk_count":1,"chunks":[{"chunk_index":0,"row_offset":0,"row_count":1}],"total_row_count":1,"truncated":false},"result":{"chunk_index":0,"row_offset":0,"row_count":1,
+  SQL-RESULT: state=SUCCEEDED cols=['n'] n_rows=1 hash-only
+[2026-10-01T21:37:32Z] #80 g-rf-json-sample sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (14.23s)
+  body: {"statement_id":"01f1bde0-46b5-10c7-a7b3-e1de158dd919","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":17,"columns":[{"name":"aggregation","type_text":"STRING","type_name":"STRING","position":0},{"name":"config_hash","type_text":"STRING","type_name":"STRING","position":1},{"name":"created_at_ms","type_text":"BIGINT","type_name":"LONG","position":2},{"name"
+  SQL-RESULT: state=SUCCEEDED cols=['aggregation', 'config_hash', 'created_at_ms', 'end_date', 'id', 'location_filter', 'metrics', 'name', 'polygon_wkt', 'run_id', 'start_date', 'status', 'termination_details', 'total', 'user_email', 'user_id', '_rescued_data'] n_rows=2 hash-only
+===== (g) format-explicit done — 2026-10-01T21:37:32Z — budget 80/600 =====
+
+===== LANE-33 objective (g) credential-chain evidence: single external_locations row — 2026-10-01T22:01:59Z =====
+request# at start: 552/600 aborted=False
+[2026-10-01T22:02:00Z] #553 g-extloc-row sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (0.86s)
+  body: {"statement_id":"01f1bde3-b9f2-19cc-b3c1-45161f2c1e07","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":4,"columns":[{"name":"external_location_name","type_text":"STRING","type_name":"STRING","position":0},{"name":"url","type_text":"STRING","type_name":"STRING","position":1},{"name":"storage_credential_name","type_text":"STRING","type_name":"STRING","positi
+  SQL-RESULT: state=SUCCEEDED cols=['external_location_name', 'url', 'storage_credential_name', 'read_only'] n_rows=1 hash-only
+===== (g) chain evidence done — 2026-10-01T22:02:00Z — budget 553/600 =====
+
+===== LANE-33 objective (g) credential-chain evidence: single external_locations row — 2026-10-01T22:02:22Z =====
+request# at start: 553/600 aborted=False
+[2026-10-01T22:02:42Z] #554 g-extloc-row2 sha8=4c5f245f POST /api/2.0/sql/statements
+  -> HTTP 200 (20.36s)
+  body: {"statement_id":"01f1bde3-c72d-1730-aa2c-e9faecd3d8e6","status":{"state":"SUCCEEDED"},"manifest":{"format":"JSON_ARRAY","schema":{"column_count":4,"columns":[{"name":"external_location_name","type_text":"STRING","type_name":"STRING","position":0},{"name":"url","type_text":"STRING","type_name":"STRING","position":1},{"name":"storage_credential_name","type_text":"STRING","type_name":"STRING","positi
+  SQL-RESULT: state=SUCCEEDED cols=['external_location_name', 'url', 'storage_credential_name', 'read_only'] n_rows=1 hash-only
+===== (g) chain evidence done — 2026-10-01T22:02:42Z — budget 554/600 =====

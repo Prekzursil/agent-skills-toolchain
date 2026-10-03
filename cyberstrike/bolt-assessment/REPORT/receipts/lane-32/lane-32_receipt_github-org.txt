@@ -1,0 +1,84 @@
+LANE 32 WAVE D - GITHUB ORG SURFACE ENUMERATION (Part 1+2)
+Window: 2026-10-01T20:24-20:26Z | PAT sha8 94ea4604 (operator classic) | 43 requests | 1.2s pacing <=1rps | single-attempt per URL | 0 transport failures | budget-abort NOT triggered
+Tooling: python3/requests direct, api.github.com only. Rules: NEVER-ROTATE (read-only GETs), sha8-only in prose, names-only for secrets (values never fetched).
+
+== P1 GET /user -> 200
+   identity: Prekzursil (type=User, site_admin=False)  [org/operator account, not PII-restricted]
+   X-OAuth-Scopes (24): admin:enterprise, admin:gpg_key, admin:org, admin:org_hook, admin:public_key, admin:repo_hook, admin:ssh_signing_key, audit_log, codespace, copilot, delete:packages, delete_repo, gist, notifications, project, repo, user, workflow, write:discussion, write:network_configurations, write:packages
+   X-RateLimit: {"X-RateLimit-Limit": "5000", "X-RateLimit-Remaining": "4975", "X-RateLimit-Reset": "1790886934", "X-RateLimit-Used": "25", "X-RateLimit-Resource": "core"}
+
+== P1 GET /orgs/bolteu -> 200
+   id=37693190 login=bolteu created=2018-03-23T09:49:37Z public_repos=38
+   org-owner-only admin fields (default_repository_permission, two_factor_requirement_enabled,
+   advanced_security_enabled, secret_scanning_enabled, secret_scanning_push_protection_enabled,
+   dependabot_alerts_enabled, dependency_graph_enabled, plan) NOT present in payload -> caller is NOT org owner
+
+== P1 GET /orgs/bolteu/members -> 200, count=15 (single page)
+   aditisharma-bolt, alekoleg, alpamys-duimagambetov, christiankalme, dizballanze, irenesunny-spec, keweishang, Mangesh-Khairnar, melihkurtaran, MPogoda, n8v-guy, pavel-kiper, PsychoSanchez, reinra, sunaurus
+
+== P1 GET /orgs/bolteu/repos -> 200, count=38 (single page, per_page=100)
+   2018-03-23  flag-icon-css                                 fork=True  br=master
+   2018-10-09  react-native-image-viewer                     fork=True  br=master
+   2018-11-14  react-actionsheet                             fork=True  br=master
+   2019-04-23  redux-thunk                                   fork=True  br=master
+   2019-07-12  react-native-reanimated-bottom-sheet          fork=True  br=master
+   2019-08-06  fastlane-plugin-property_file_write           fork=True  br=master
+   2019-08-07  recyclerlistview                              fork=True  br=master
+   2019-09-24  screenshotty                                  fork=False br=master
+   2019-10-21  setup-ruby                                    fork=True  br=master
+   2019-10-30  complete-release                              fork=False br=master
+   2019-11-01  set-pr-description-action                     fork=False br=master
+   2019-12-13  fastlane                                      fork=True  br=master
+   2020-02-03  requires-annotation                           fork=False br=master
+   2020-02-05  setup-firebase                                fork=False br=master
+   2020-04-21  autolink-jira-issues                          fork=False br=master
+   2020-04-22  kalev                                         fork=False br=master
+   2020-06-22  old-pelias-api                                fork=True  br=master
+   2020-06-26  osrm-backend-deprecated                       fork=True  br=master
+   2020-10-22  auto-cancel-redundant-job                     fork=True  br=master
+   2020-10-28  setup-xcode                                   fork=False br=master
+   2020-12-02  eslint-plugin-react-redux                     fork=True  br=master
+   2021-01-20  Content-Security-Policy                       fork=True  br=master
+   2021-05-05  delivery-courier-terms-and-conditions         fork=False br=master
+   2021-06-04  aedes-persistence-redis                       fork=True  br=master
+   2021-06-04  aedes-cached-persistence                      fork=True  br=master
+   2021-06-07  aedes-persistence                             fork=True  br=master
+   2021-07-27  osm_mapping                                   fork=False br=main
+   2021-08-10  old-pelias-placeholder                        fork=True  br=master
+   2021-08-30  aedes-packet                                  fork=True  br=master
+   2021-10-18  iOS-interview-assessment                      fork=False br=main
+   2021-11-15  checkout-sparse                               fork=False br=main
+   2022-10-03  agent-js-jest                                 fork=True  br=master
+   2022-10-17  aedes                                         fork=True  br=master
+   2024-03-15  duo-buildroot-sdk                             fork=True  br=develop
+   2024-09-12  MQTT-Client-Framework                         fork=True  br=master
+   2025-05-27  .github                                       fork=False br=main
+   2025-08-15  iOS-interview-assessment-2                    fork=False br=main
+   2026-03-19  iOS-interview-assessment-3                    fork=False br=main
+
+== ORG SECRET NAME LISTINGS (names only, values NEVER requested)
+   GET /orgs/bolteu/actions/secrets -> 403  "You must be an org admin or have the actions secrets fine-grained permission."
+   GET /orgs/bolteu/dependabot/secrets -> 403  "Must have admin rights to Repository."
+   GET /orgs/bolteu/codespaces/secrets -> 403  "Must have admin rights to Repository."
+
+== P2 REPO SECRET NAME LISTINGS (18-repo scan-set x actions+dependabot = 36 requests)
+   ALL 36 -> 403. Distinct bodies:
+     - {"message": "You must have repository read permissions or have the repository secrets fine-grained permission.", "documentation_url": "https://docs.github.com/rest/actions/secrets#list-repository-secrets", "status": "403
+     - {"message": "Must have admin rights to Repository.", "documentation_url": "https://docs.github.com/rest/dependabot/secrets#list-repository-secrets", "status": "403"}
+
+== FINDING (reach limitation): PAT 94ea4604 holds admin:org/admin:enterprise scopes but the
+   authenticated principal (Prekzursil) is bolteu MEMBER-grade, not owner/admin: every org- and
+   repo-level secret-NAME listing is 403. Secret enumeration requires owner token or fine-grained
+   PAT with secrets permission -> BLOCKED, recorded fail-closed. Feeds subtask 58.
+
+== NEW-7 RECONCILIATION (SSOT-31 baseline vs 38 now)
+   Host-side 31-repo clone list NOT mounted -> exact delta UNVERIFIABLE (fail-closed caveat).
+   Created_at evidence (post-baseline creations): iOS-interview-assessment-3 2026-03-19,
+   iOS-interview-assessment-2 2025-08-15, .github 2025-05-27; all other 35 repos pre-date 2025-05.
+   Lane-31 family names reconcile to exact repo names:
+   aedes MQTT family = aedes, aedes-packet, aedes-persistence, aedes-cached-persistence, aedes-persistence-redis (5)
+   fastlane family = fastlane, fastlane-plugin-property_file_write (2); iOS-interview-assessment x3;
+   plus kalev, duo-buildroot-sdk, osm_mapping, checkout-sparse, Content-Security-Policy, osrm-backend-deprecated,
+   agent-js-jest, auto-cancel-redundant-job -> 18-repo scan-set superset (all families present, osrm confirmed).
+
+== RAW RESPONSES: keys-vault/wave-d_state.json (0600) - full bodies incl. member objects and repo metadata.

@@ -1,0 +1,32 @@
+# PHASE 0 — XAPK SHA256 RECEIPTS
+Generated: 2026-10-01T18:26:29Z
+
+STATUS: FAIL-CLOSED — BOTH XAPKs ABSENT FROM CONTAINER; NO HASHES PRODUCED.
+
+Expected per ASSESSMENT-PLAN-SOTA.md task 0.3:
+  1) apks/ca225/ee.mtakso.client.apk   (~67 MB)  — rider client
+  2) apks/da147/ee.mtakso.driver.apk   (~207 MB, pulled 2026-09-17, zero reverse-engineering receipts) — driver client
+Expected output artifact per plan: apks/SHA256RECEIPT.txt (mirror retained here).
+
+Search performed (local-only, no network):
+  - find / -iname '*mtakso*'           -> 0 hits
+  - find / -iname '*.apk' -o -iname '*.xapk' -> 0 hits (excluding /proc,/sys)
+  - find / -type d -iname 'apks'       -> 0 hits
+  - /work/on-demand/                   -> ABSENT (staging dir not injected)
+  - /work/intel-manifest.txt           -> no APK references
+  - /opt/bolt/                         -> absent/empty (intel set lives at /work/bolt-intel/)
+Root cause: the 12G staged archive (bolt-enum 3.1G, bolteu-github-src 1.3G, cowork-curated,
+databricks-harvest 1.5G) resides on the HOST at /opt/intel/extracted/; the container only sees
+injected paths. The operator must stage apks/ca225/ + apks/da147/ into /work/on-demand/ (or
+/work/bolt/apks/) before subtask 36 (offline mobile RE on both XAPKs).
+
+Downstream impact (fail-closed doctrine):
+  - Subtask 36 (jadx/Ghidra 12.1.4/radare2 endpoint/secret/pinning delta vs the 25-endpoint
+    auth map) is BLOCKED until the files are injected; do NOT substitute downloads (network
+    budget + provenance: receipts must match the 2026-09-17 pull).
+  - Re-open procedure: after injection, re-run this receipt:
+      sha256sum <path> | tee -a /work/bolt/REPORT/phase0/SHA256-RECEIPTS.txt
+      stat -c '%s bytes  %n' <path>
+    then append full hex + byte size + path + Thu Oct  1 18:26:29 UTC 2026 line per file.
+
+UTC timestamp of this receipt: 2026-10-01T18:26:29Z

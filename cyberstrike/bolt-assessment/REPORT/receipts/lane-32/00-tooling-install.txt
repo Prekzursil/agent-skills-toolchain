@@ -1,0 +1,50 @@
+================================================================================
+LANE-32 TOOLING INSTALL RECEIPT — AWS SigV4/STS validation tooling
+Task       : subtask 55 pre-step (credential-validation lane)
+Engagement : authorized red-team assessment; container vxcontrol/kali-linux:latest
+================================================================================
+timestamp_utc  : 2026-10-01T19:47:24Z
+scope          : LOCAL container install; PyPI traffic ONLY (pypi.org +
+                 files.pythonhosted.org); ZERO calls to Bolt-estate or AWS
+                 service endpoints; no credential material touched.
+
+[1] ACTIVE VENV
+VIRTUAL_ENV    : /opt/venv
+python3        : /opt/venv/bin/python3  (Python 3.14.7)
+pip            : /opt/venv/bin/pip      (pip 26.2.1)
+
+[2] INSTALL
+command        : pip install --no-input boto3 awscli   (cwd /work, venv /opt/venv)
+pip_exit_code  : 0
+full_log       : /tmp/pip-boto3-install.log
+installed      : boto3-1.43.107  botocore-1.43.107  awscli-1.46.1
+                 s3transfer-0.19.2  jmespath-1.1.0  PyYAML-6.0.3
+                 docutils-0.19  rsa-4.7.2
+note           : awscli bundles its own pinned botocore (CLI banner botocore/1.43.62);
+                 standalone botocore lib in site-packages is 1.43.107. No conflict.
+
+[3] VERIFICATION (all offline, all exit 0)
+import probe   : python3 -c "import boto3, botocore; print(...)"
+                 -> boto3 1.43.107 | botocore 1.43.107                PASS
+cli version    : aws --version
+                 -> aws-cli/1.46.1 Python/3.14.7 botocore/1.43.62     PASS
+cli path       : which aws -> /opt/venv/bin/aws
+cli config     : aws configure list (local read-only):
+                   profile / access_key / secret_key / region = all "<not set>"
+                 (confirms NO credential material configured or handled)
+
+[4] REST-WAVE COMPANION TOOLING (pre-existing, verified present)
+curl           : 8.21.0 (x86_64-pc-linux-gnu)     /usr/bin/curl
+python3-requests: 2.34.2                          import requests
+jq             : jq-1.8.2
+openssl        : OpenSSL 3.6.4 25 Aug 2026
+
+[5] SUCCESS CRITERIA
+[x] boto3+awscli import cleanly in ACTIVE venv (/opt/venv)
+[x] receipt on disk: /work/bolt/REPORT/receipts/lane-32/00-tooling-install.txt
+[x] network traffic limited to PyPI during install
+[x] no credential material handled (aws configure list clean)
+
+[6] SELF-INTEGRITY
+convention     : hash computed over all receipt content ABOVE this line
+sha256(self)  : 4608c9cdd1d9042fbc23ad08bece7b0e919adbbcb27af9fa00b4b4375122365d

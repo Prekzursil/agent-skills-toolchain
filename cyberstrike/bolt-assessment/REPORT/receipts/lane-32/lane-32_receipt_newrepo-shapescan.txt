@@ -1,0 +1,56 @@
+LANE 32 WAVE D - NEW-REPO CREDENTIAL-SHAPE SCAN (Part 3)
+Window: 2026-10-01T20:27-20:36Z | 18 git/trees requests + 400 raw.githubusercontent fetches | HARD CAP 400/400 REACHED
+1.2s pacing across all GitHub hosts | single-attempt per distinct URL (no refetch/retry) | 0 transport failures | budget-abort NOT triggered
+Filter: blobs <=256KB, text/code extensions; priority tier-0 (.env/credential/secret/token/fastlane-.rb/plist/Jenkinsfile/Dockerfile/gradle.properties/.rc/.npmrc), tier-1 (workflows/yml/yaml/json/properties/sh/py/rb), tier-2 (other text).
+
+== COVERAGE (per repo: tree entries / eligible / fetched / truncated)
+   Content-Security-Policy                       tree=     4 elig=    1 fetched=   0 trunc=False
+   aedes                                         tree=    77 elig=   62 fetched=   1 trunc=False
+   aedes-cached-persistence                      tree=    17 elig=   12 fetched=   1 trunc=False
+   aedes-packet                                  tree=    16 elig=   10 fetched=   1 trunc=False
+   aedes-persistence                             tree=    16 elig=   11 fetched=   1 trunc=False
+   aedes-persistence-redis                       tree=    19 elig=   14 fetched=   1 trunc=False
+   agent-js-jest                                 tree=    50 elig=   26 fetched=   0 trunc=False
+   auto-cancel-redundant-job                     tree=    64 elig=   47 fetched=   0 trunc=False
+   checkout-sparse                               tree=     7 elig=    4 fetched=   0 trunc=False
+   duo-buildroot-sdk                             tree= 64781 elig=34642 fetched=   2 trunc=True
+   fastlane                                      tree=  3211 elig= 1844 fetched= 386 trunc=False
+   fastlane-plugin-property_file_write           tree=    27 elig=   14 fetched=   2 trunc=False
+   iOS-interview-assessment                      tree=    23 elig=   10 fetched=   2 trunc=False
+   iOS-interview-assessment-2                    tree=    52 elig=   21 fetched=   1 trunc=False
+   iOS-interview-assessment-3                    tree=    32 elig=   17 fetched=   1 trunc=False
+   kalev                                         tree=    70 elig=   28 fetched=   0 trunc=False
+   osm_mapping                                   tree=     1 elig=    1 fetched=   0 trunc=False
+   osrm-backend-deprecated                       tree=  3694 elig= 2406 fetched=   1 trunc=False
+   TOTAL eligible queued: 39170 | fetched: 400 | cap: 400 | cap state: REACHED
+
+== GAP (fail-closed, honest): 6 repos have ZERO raw-fetch coverage:
+   Content-Security-Policy, agent-js-jest, auto-cancel-redundant-job, checkout-sparse, kalev, osm_mapping
+   (107 eligible files residual). Root cause: tier-0 regex over-matched fastlane fork *.rb upstream files,
+   letting the fastlane fork consume 386/400 fetches. Cap is a binding operator rule -> stopped at cap.
+   Residual staged as FIRST-fetch candidates for any follow-on window with fresh cap (feeds subtask 58).
+   Tree metadata for all 18 repos IS captured (counts above) - path-level recon done, content scan partial.
+   duo-buildroot-sdk tree truncated=true (64,781 entries) - full recursive listing unavailable from API.
+
+== HIT CATALOG (9 values, sha8 ONLY; plaintext exclusively in keys-vault/github-hits.json 0600)
+   sha8      | repo/path:line                                            | shape               | class
+   5e884898  | fastlane/fastlane/lib/fastlane/actions/artifactory.rb:70               | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   e3668991  | fastlane/fastlane/lib/fastlane/actions/mailgun.rb:174                  | apikey-assignment   | PLACEHOLDER
+   240be518  | fastlane/fastlane/lib/fastlane/actions/nexus_upload.rb:206             | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   c7760912  | fastlane/fastlane/lib/fastlane/actions/splunkmint.rb:145               | apikey-assignment   | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   652c7dc6  | fastlane/fastlane/lib/fastlane/actions/unlock_keychain.rb:108          | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   18d38e97  | fastlane/fastlane/lib/fastlane/actions/upload_to_testflight.rb:65      | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   8d508feb  | fastlane/fastlane/spec/actions_specs/appaloosa_spec.rb:137             | apikey-assignment   | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   9f735e0d  | fastlane/fastlane/spec/actions_specs/create_keychain_spec.rb:20        | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+   d2432e0a  | fastlane/fastlane/spec/actions_specs/create_keychain_spec.rb:65        | password-assignment | THIRD-PARTY-VICTIM(possible-upstream-OSS)
+
+== CLASSIFICATION ANALYSIS
+   BOLT-DOMAIN: 0 | THIRD-PARTY-VICTIM(possible-upstream-OSS): 8 | PLACEHOLDER: 1
+   All 9 hits live in the upstream fastlane fork content (lib/fastlane/actions/* documentation examples
+   and spec fixtures). E.g. sha8 5e884898 @ artifactory.rb:70 is the documentation literal "password";
+   9f735e0d/d2432e0a are create_keychain_spec.rb fixture strings; e3668991 is mailgun.rb MY_* placeholder.
+   Verdict: NO Bolt-domain credential exposure in scanned corpus. Hits are catalog-only, never used,
+   never validated against third parties (operator rule).
+
+== SHAPES WITH ZERO HITS in scanned corpus: AKIA/ASIA, aws_secret assignments, dapi, ghp_/gho_/ghu_/ghs_/github_pat_,
+   AIza, xox*, sk-, PRIVATE KEY blocks, JWTs, JFrog AKCp/cmVmdGtuO, vul_ refs, mqtt/amqp cred URLs.

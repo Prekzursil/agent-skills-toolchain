@@ -1,0 +1,92 @@
+==============================================================================================
+LANE 32 / SUBTASK 55 — WAVE C: secondary staged credential set (ELEVATED priority, lane-31 lockdown-lift)
+window 2026-10-01T20:22:26Z - 2026-10-01T20:23:25Z | direct container tooling (requests 2.34.2 + cryptography 50.0.1)
+rules: NEVER-ROTATE read-only | 1.2s pacing (<=1 rps) | SINGLE-ATTEMPT per (key,endpoint), no retries
+       sha8-only fingerprints | zero PII (emails/names/logins masked) | fail-closed budget-abort (NOT triggered: 0 transport failures)
+provenance: CREDS-SSOT_2026-09-06.json rows [53][58][75][70][84][34][580][581] with prior verdicts 2026-09-06/09-14
+note: part-1 run crashed (str/bytes bug) AFTER requests #1-#4, BEFORE any part-2 target was touched;
+      resume script re-probed NOTHING already attempted. WATCH7 (testregistry.bolt.eu) NOT touched.
+==============================================================================================
+--- part 1 (verbatim transcript) ---
+[2026-10-01T20:22:26Z] window start | pacing 1.2s | single-attempt
+[2026-10-01T20:22:28Z] #1 GET https://bolt-common.cloud.databricks.com/api/2.0/preview/scim/v2/Me -> 403 Forbidden (215 ms) [dbx-PAT sha8=476de69a]
+    body: {"error_code":403,"message":"Invalid access token. [ReqId: b840d49d-d0b9-4a79-a4e1-4de2a5b53cab]"}
+[2026-10-01T20:22:29Z] #2 GET https://bolt-common.cloud.databricks.com/api/2.0/preview/scim/v2/Me -> 403 Forbidden (219 ms) [dbx-PAT sha8=5b32f67d]
+    body: {"error_code":403,"message":"Invalid access to Org: 3598988355446810 [ReqId: 0e5da03c-cd28-46d2-a73b-b1bf5361df19]"}
+[2026-10-01T20:22:30Z] #3 GET https://bolt-common.cloud.databricks.com/api/2.0/preview/scim/v2/Me -> 403 Forbidden (136 ms) [dbx-PAT sha8=85dde901]
+    body: {"error_code":403,"message":"Invalid access token. [ReqId: 76646647-a03e-4971-ad9e-c5f7adc14641]"}
+[2026-10-01T20:22:32Z] #4 GET https://api.github.com/user -> 401 Unauthorized (174 ms) [gh-PAT-classic sha8=77e215fb]
+    body: {"message": "Bad credentials", "documentation_url": "https://docs.github.com/rest", "status": "401"}
+    (no X-OAuth-Scopes header on 401 — GitHub returns scopes only on 2xx)
+--- part 2 (verbatim transcript, resume; requests #1-#4 NOT repeated) ---
+=== WAVE C part 2 (resume after part-1 str/bytes crash; part-1 targets NOT re-probed) ===
+window start 2026-10-01T20:23:19Z
+[2026-10-01T20:23:21Z] #5 POST https://oauth2.googleapis.com/token (jwt-bearer RS256, sa=bfdt row sha8=a9759f95, scope=cloud-platform.read-only, exp+600s) -> 400 Bad Request (105 ms) [gcp-SA bolt-databricks-gsheet-drive-2@bolt-finance-data-team (privkey sha8=e5fc59b6)]
+    body(scrubbed): {"error":"invalid_grant","error_description":"Invalid JWT Signature."}
+[2026-10-01T20:23:22Z] #6 GET https://openrouter.ai/api/v1/auth/key -> 200 OK (217 ms) [openrouter sha8=efb9f2bc]
+    body(scrubbed): {"data":{"label":"sk-or-v1-dbb...db7","is_management_key":false,"is_provisioning_key":false,"limit":null,"limit_reset":null,"limit_remaining":null,"include_byok_in_limit":false,"usage":0,"usage_daily":0,"usage_weekly":0,"usage_monthly":0,"byok_usage":0,"byok_usage_daily":0,"byok_usage_weekly":0,"byok_usage_monthly":0,"is_free_tier":false,"expires_at":null,"creator_user_id":"user_2qi545N06q74BKFJmLTLNDy4Dbk","organization_id":null,"workspace_id":"fd5730e1-0332-5cdd-acfe-8f298cddd70a","allowed_data_regions":["global"],"free_model_daily_requests":{"used":0,"limit":1000,"remaining":1000},"rate_lim
+[2026-10-01T20:23:24Z] #7 GET https://bolt.jfrog.io/artifactory/api/repositories (basic-auth, no-redirect) -> 302 Moved Temporarily (497 ms) [jfrog pair sha8=d9311a3e (user row b2b58174)]
+    body(scrubbed): <html>
+ <head><title>302 Found</title></head>
+ <body>
+ <center><h1>302 Found</h1></center>
+ <hr><center>nginx</center>
+ </body>
+ </html>
+ 
+[2026-10-01T20:23:25Z] #8 GET https://bolteu.jfrog.io/artifactory/api/repositories (basic-auth, no-redirect) -> 302 Moved Temporarily (474 ms) [jfrog pair sha8=d9311a3e (user row b2b58174)]
+    body(scrubbed): <html>
+ <head><title>302 Found</title></head>
+ <body>
+ <center><h1>302 Found</h1></center>
+ <hr><center>nginx</center>
+ </body>
+ </html>
+ 
+window end 2026-10-01T20:23:25Z | total requests this run: 4 | consecutive transport failures: 0
+
+==============================================================================================
+VERDICTS + PROVENANCE-VS-NOW DELTA
+------------------------------------------------------------------------------------------
+(1a) databricks-PAT sha8=476de69a  DEAD      403 "Invalid access token" (req#1) | prior DEAD 403 2026-09-06 -> NO DRIFT.
+     Clone-era token did not gain reach from bolteu lockdown lift. Feeds: 56 (negative).
+(1b) databricks-PAT sha8=5b32f67d  DEAD*     403 "Invalid access to Org: 3598988355446810" (req#2) | prior DEAD 403 -> NO DRIFT.
+     *distinct error class vs (1a): org-scope rejection, not token rejection — token may be VALID for a
+     DIFFERENT Databricks org (harvest source unknown org). Report-only; no further probing (attempt spent).
+     Feeds: 56 report-only note.
+(1c) databricks-PAT sha8=85dde901  DEAD      403 "Invalid access token" (req#3) | prior DEAD 403 -> NO DRIFT. Feeds: 56 (negative).
+(2)  github-PAT-classic sha8=77e215fb  DEAD  401 Bad credentials (req#4) | prior DEAD 401 2026-09-06 -> NO DRIFT.
+     X-OAuth-Scopes NOT obtainable (GitHub only returns scopes on 2xx). Feeds: 44/57 (negative).
+(3)  gcp-sa row sha8=a9759f95 (SA bolt-databricks-gsheet-drive-2@bolt-finance-data-team, privkey sha8=e5fc59b6)
+     DEAD: 400 invalid_grant "Invalid JWT Signature" (req#5) | prior DEAD same error 2026-09-14 -> NO DRIFT.
+     Key parses valid but is not registered at Google (rotated/removed server-side). No token minted; the
+     optional projects-enumeration call was therefore not issued. Google-plane remains closed for this SA.
+     Feeds: 57 (google-plane negative), 45/56 (secret-scope 'google-service-account-new' stays a dead end).
+     COHORT RECONCILIATION (fail-closed): premise "6 GCP SAs from CREDS-SSOT" NOT reproducible in mounted
+     corpus. In-container SA key material exists for exactly ONE SA (above). Others are catalog-only:
+       - idx 694 (6a2f9410) analysts@spreadsheets-python-270720: value_file_only D:\bolt\... host-side, not mounted;
+         prior DEAD 2026-09-14 (invalid_grant, key not registered).
+       - bfr-compute-sa-key_2026-09-15.json: 0-byte file, key material absent in container.
+       - idx 695 (5b6155e5) 887149548285-compute: is an ACCESS TOKEN (ya29, PATTERN-BROKEN), not an SA key.
+       - atlantis@bolt-sre: referenced only as mint-context in 2026-09-17 fenti append; no embedded key.
+       - jira-tail append "PRIVATE KEY" hits = redacted/garbage Jira ticket text (len 31/80), not material.
+     => 5 UNTESTABLE-NO-KEY-MATERIAL rows (host-side staging required before any probe).
+(4)  openrouter sha8=efb9f2bc  LIVE  200 /api/v1/auth/key (req#6) | prior LIVE 200 2026-09-06 -> CONFIRMED LIVE.
+     Metadata: never-expires (expires_at null), usage 0 across all windows, is_free_tier false, not
+     management/provisioning key, allowed_data_regions ["global"], free-model 1000 req/day (1000 remaining),
+     workspace fd5730e1-0332-5cdd-acfe-8f298cddd70a, creator user_2qi545N06q74BKFJmLTLNDy4Dbk (opaque IDs).
+     DELTA: zero-spend since 09-06 (usage unchanged); no expiry => long-lived live credential. Feeds: 57/58 report-only.
+(5)  jfrog pair sha8=d9311a3e (username row b2b58174, user databricks-read)  DEAD-SUSPENDED-INSTANCE
+     302 Moved Temporarily (nginx) on BOTH bolt.jfrog.io (req#7) and bolteu.jfrog.io (req#8), no-redirect follow.
+     Location header not captured in transcript (prior 2026-09-06 observation: 302 -> landing.jfrog.com/
+     reactivate-server). DELTA: none — both instances still suspended/reactivation-walled.
+     testregistry.bolt.eu NEVER touched (WATCH7, DNS-only). Feeds: 57 — JFrog deep-enum lane gated on
+     instance reactivation; only JFrog surface remaining is the WATCH7 tripwire (still DNS-only).
+(6)  anthropic sha8=c24e0bd4  SKIP-REVOKED  confirmed revoked 2026-09-10; no probe per rule. Feeds: none.
+
+DISPOSITION SUMMARY: 12/12 targets dispositioned | LIVE 1 (openrouter efb9f2bc) | DEAD 4 (476de69a, 5b32f67d*,
+85dde901, 77e215fb) | DEAD(SA key unregistered) 1 (a9759f95) | DEAD-SUSPENDED-INSTANCE 1 (d9311a3e) |
+UNTESTABLE-NO-KEY-MATERIAL 4 (6a2f9410 catalog, bfr-compute empty file, 5b6155e5 not-an-SA-key, atlantis no-key)
+| SKIP-REVOKED 1 (c24e0bd4). Requests issued: 8 | transport failures: 0 | budget-abort: NOT triggered.
+Full token values: /work/lane32/keys-vault/wave-c_secondary-set.json + wave-c_raw_responses.json (mode 0600).
+==============================================================================================
