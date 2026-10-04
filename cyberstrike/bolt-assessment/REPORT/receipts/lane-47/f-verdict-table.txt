@@ -1,0 +1,36 @@
+# LANE-47 VERDICT TABLE — subtask 107, executed 2026-10-03 17:31:55–17:35:36Z, container vantage
+# gateway sentinel pre-step: 404/406 both OK (00-sentinel.txt) — no harness_bridge_status needed, no fail-closed
+
+| # | item | endpoint | baseline (lane-35, 2026-10-01) | observed (lane-47, 2026-10-03) | verdict | evidence sha256 |
+|---|------|----------|-------------------------------|-------------------------------|---------|-----------------|
+| 1 | a | rider-broker.ws.bolt.eu/mqtt | WS 101 -> CONNECT -> 0 bytes, timeout-silent 7174 ms, TLSv1.3 AES_256_GCM | WS 101 -> CONNECT -> 0 bytes, timeout-silent 7209 ms, TLSv1.3 TLS_AES_256_GCM_SHA384 | **HELD** (fail-silent gate unchanged, delta 35 ms) | a-mqtt-ws-gate.txt (see SHA256SUMS) |
+| 2 | a | driver-broker.ws.bolt.eu/mqtt | WS 101 -> CONNECT -> 0 bytes, timeout-silent 7169 ms, TLSv1.3 AES_256_GCM | WS 101 -> CONNECT -> 0 bytes, timeout-silent 7170 ms, TLSv1.3 TLS_AES_256_GCM_SHA384 | **HELD** (delta 1 ms) | a-mqtt-ws-gate.txt |
+| 3 | b | beehive-csp.applog.bolt.eu/beehive/csp/report | DISCLOSED-NOT-PROBED (CSP report-uri only) | POST csp-report json -> **200 {"code":0,"message":"OK"}** anon, 167 ms | **NEW** (component of vul_07a35e2d1002 — open anonymous ingest vhost confirmed) | b-applog-family.txt |
+| 4 | b | beehive-bolt-eu.applog.bolt.eu/beehive/csp/report | DISCLOSED-NOT-PROBED | POST -> 404 empty body (107-139 ms) | HELD-CLOSED (not open at this path; negative evidence) | b-applog-family.txt |
+| 5 | b | beehive-bolt-eu.applog.bolt.eu/app-log/beehive/csp/report | n/a (node-pattern mirror guess) | POST -> 404 empty body | HELD-CLOSED (negative) | b-applog-family.txt |
+| 6 | b | beehive-csp .../beehive/csp/report (ndjson shape) | node sink accepted ndjson (200) | **400 {"code":702,"message":"INVALID_REQUEST"}** | NEW (schema validation present on beehive-csp; surface bounds platform as PARTIALLY-shared, stricter than node sink) | b-applog-family.txt |
+| 7 | b | beehive-csp .../beehive/csp/report (~66 KB oversize) | unknown | **200 {"code":0,"message":"OK"}** — 66,660-byte report accepted | NEW (no size ceiling at 66 KB; abuse bound = storage-cost ingestion) | b-applog-family.txt |
+| 8 | b | beehive-csp .../beehive/csp/report (text/plain) | unknown | **200 {"code":0,"message":"OK"}** — content-type NOT enforced | NEW (any Content-Type accepted if body parses) | b-applog-family.txt |
+| 9 | b | node.bolt.eu/app-log/node/csp/report | 200 {"code":0,"message":"OK"} 50 ms anon | 200 {"code":0,"message":"OK"} 87 ms anon (identical body sha8 1213aab7) | **HELD** (re-test of baseline sink) | b-applog-family.txt |
+| 10 | c | menu-food.prelive.bolt.eu/health | 200, 0B, cluster header `prelive-euc-1-public` (vul_07a35e2d1001 MEDIUM) | 200, 0B, cluster header `prelive-euc-1-public` — **verbatim identical** | **HELD** (MEDIUM confirmed) | c-menu-food-oracle.txt |
+| 11 | c | menu-food.prelive.bolt.eu/api | 401 Basic realm="Authentication Required" 1394B sha8 42fe3df2 | 401 Basic realm="Authentication Required" 1394B sha8 5d481018 — delta = per-request Cloudflare challenge-platform script embedding unique CF-Ray; underlying Apache stub byte-identical incl. `Apache Server at menu-food.prelive.bolt.eu Port 80` | **HELD** (posture unchanged; body delta explained, non-content) | c-menu-food-oracle.txt |
+| 12 | d | beehive.bolt.eu/ edge 172.65.240.204 | 200, 14174B, sha8 042c2c71, etag e9db2e98…, last-mod 2026-08-13 | 200, 14174B, sha8 042c2c71, etag "e9db2e98f5973ed72e1d02ef890a651a", last-mod Thu 13 Aug 2026, envoy, S3 x-amz-* | **HELD** | d-beehive-edges.txt |
+| 13 | d | beehive.bolt.eu/ edge 172.65.223.108 | 200, byte-identical to other edge | 200, 14174B, sha8 042c2c71 — parity identical=True vs 240.204 | **HELD** (inter-edge parity exact) | d-beehive-edges.txt |
+
+NEW-INTEL (beehive edge bodies/headers vs lane-35 snapshot): **NONE** — hostname/S3 regex sweep over both edge bodies+headers returns only baseline-known hosts (static.bolt.eu, fonts.gstatic, googletagmanager, maps.googleapis, s3.eu-central-1.amazonaws.com/bolt-voice-call-records, etc.).
+
+SEVERITY FINALIZATION — vul_07a35e2d1002 (anonymous multi-tenant log-ingestion platform):
+**LOW -> MEDIUM (FINAL: MEDIUM)**. Rationale: (1) surface confirmed multi-vhost, not a single sink — anonymous unauthenticated ingest now verified on node.bolt.eu (Fastify, accepts any shape incl. ndjson) AND beehive-csp.applog.bolt.eu (the beehive internal-tool CSP pipeline) with the identical handler signature {"code":0,"message":"OK"}; (2) no payload-size enforcement at 66,660 B (single-report ceiling unbounded above 64 KB) -> practical storage-cost ingestion DoS / telemetry-pollution ceiling at scale; (3) Content-Type not enforced (text/plain accepted) — no origin/attestation layer. Mitigating (caps at MEDIUM, not HIGH): csp-report schema validation present on beehive-csp (non-schema bodies rejected 400 code 702), no reflection/no data exposure, no code-exec path, CSP collectors semi-public by design, CDN-fronted (Cloudflare DYNAMIC). Abuse ceiling bounded by characterization probes only — no flooding performed (13 counted calls total).
+
+FINDINGS FILED:
+- /work/bolt/REPORT/findings/vul_07a35e2d1001-retetest-2026-10-03.md (HELD, MEDIUM confirmed — evidence addendum)
+- /work/bolt/REPORT/findings/vul_07a35e2d1002-retetest-2026-10-03.md (expanded + severity finalization LOW->MEDIUM)
+- /work/bolt/REPORT/findings/lane-47-evidence-only.md (HELD/NEW-negatives evidence rows — no new vul id minted; beehive-csp openness absorbed into 1002 per its multi-tenant scope)
+No NEW vul_* id minted: all CHANGED/NEW observations are components of the 1002 platform finding per its defined scope ("node.bolt.eu + beehive family").
+
+HANDOFFS FOR SUBTASK 110 (register append must capture):
+1. vul_07a35e2d1002 severity change LOW -> MEDIUM (final) with 2-vhost + 66KB + content-type evidence.
+2. lane-47 re-test set: ALL HELD except NEW sub-observations (rows 3,6,7,8 above) — register row moves to CLOSED-RETESTED.
+3. MQTT fail-silent gates unchanged both brokers (no new exposure; auth-gate verdict stands).
+4. beehive edges parity exact, NEW-INTEL none — beehive SNI row can be marked STABLE.
+5. Budget discipline: 13/25 used, receipts sealed lane-47/, zero PII/credential leak-gate pass.

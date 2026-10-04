@@ -1,0 +1,30 @@
+# SUBTASK 114 — RB-1 (RANGER / MLFLOW / DATAHUB INGRESS) DISPOSITION RECEIPT
+# Run 2026-10-03 · P0 reachability proof 1/1 wire attempt · sentinel status: AWAITING OWNER GO — DO NOT FIRE
+
+## P0 PROOF (single attempt, no retry)
+- Target: ranger.data.boltint.net:443 (documented VIP 172.28.98.10, 172.28.98.x nine-app mega-cluster:
+  ranger.data + mlflow + mlflow-api + vouch.mlflow + datahub + ab-scorecard + verification-gpt + 2 unknown;
+  runbook RB-1-ranger.md sha256 35178bbacc39c15c…)
+- Action: `timeout 8 openssl s_client -connect ranger.data.boltint.net:443 -servername <same>`
+  at 2026-10-03T18:22:40Z → 18:22:48Z
+- Result: **exit 124 (connect timeout), ZERO bytes in either direction.** No TLS handshake, no cert,
+  no HTTP. Transport silence = no route from container vantage into the RFC1918 172.28.98.x plane.
+- Fresh msfrpcd re-check (cited from branch (a)): 127.0.0.1:55553 → Connection refused at 18:21:32Z
+  (1 attempt). RB-1's msfrpcd revival precondition remains UNSATISFIED.
+
+## VERDICT
+**BLOCKED-VANTAGE.** RB-1 runbook remains UNFIRED (T1 login-oracle, T2 authed legs, T3 ranger-nashorn
+RCE ladder all held). The generic operator directive of 2026-10-03 does NOT satisfy the named-GO
+sentinel per GO-INTERPRETATION-MEMO-2026-10-03.md.
+
+## RE-OPEN CHECKLIST (all four required)
+(i) Named owner GO for the Ranger lane (explicit lane-level go, not the generic directive);
+(ii) msfrpcd revival on 127.0.0.1:55553 (currently REFUSED, re-proven 2026-10-03T18:21:32Z);
+(iii) operator 10.130.x/VPC vantage or employee session (bolt.okta.com) from which 172.28.98.10:443
+      is routable — container has no route (proven above);
+(iv) [RB-1-specific] Ranger credential or authed-session path; Ranger band 2.2.0-2.4.0 with
+      CVE-2025-59059 (CVSS 9.8) in-range NEEDS-VERIFY — assessment unchanged, still gated.
+
+## RULES COMPLIANCE
+Single attempt, no retry (1 wire action total). NEVER-ROTATE untouched. No credential material
+handled. sha8-only. Zero PII. WATCH7 untouched. No T1+ phases fired.

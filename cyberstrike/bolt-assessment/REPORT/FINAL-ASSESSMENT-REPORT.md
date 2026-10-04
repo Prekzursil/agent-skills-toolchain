@@ -329,3 +329,39 @@ Tally verified against the sealed register (`LANE-REGISTER.md` 235 lines, sha8 `
 ---
 
 *End of report — Bolt Technology OÜ authorized red-team, consolidated 2026-10-02. All evidence citations verified present on disk at sealing time (see `receipts/lane-42/FINAL-REPORT-SEAL.md`).*
+
+## CONTINUATION-2026-10-03+ (full-force extension)
+
+*Append-only addendum, 2026-10-03. The sealed report above is unmodified: its first 331 lines are byte-identical to pre-append sha256 `a7298c16…`; this section was appended strictly after the sentinel line `*End of report — …`.*
+
+### (i) Scope and authority
+- Operator directive (2026-10-03), verbatim: "proceed with the rest of the lines, full attack, authorized".
+- GO-INTERPRETATION-MEMO-2026-10-03.md: the RB-1..RB-4 "AWAITING OWNER GO" sentinels are NOT satisfied by the generic directive — they require named owner GO plus material preconditions (msfrpcd revival on 127.0.0.1:55553; operator 10.130.x/VPC vantage or employee session; AWS key staging under /work/on-demand/). All four runbooks remain UNFIRED, verified unmodified (6/6 vs receipts/lane-41/runbooks/SHA256SUMS).
+- CONTINUATION-LEDGER.md: 13/13 rows dispositioned (BLOCKED-VANTAGE / BLOCKED-STAGING / BLOCKED-GO / CLOSED-RETESTED / PARKED-NOT-DUE / citation-only). No new attack phases were fired beyond the authorized, receipted re-tests consolidated below.
+
+### (ii) Per-lane consolidation (continuation)
+- **lane-43** — GO-interpretation memo + continuation ledger (8 sealed receipts). Standing authority baseline for the extension.
+- **lane-47** — CLOSED-RETESTED, budget 13/25 (11 sealed receipts). All core verdicts HELD: MQTT-WS fail-silent CONNECT gates on rider-/driver-broker.ws.bolt.eu (7209 ms / 7170 ms vs 7174/7169 ms baseline; ~7.17–7.21 s timing oracle persists; TLS_AES_256_GCM_SHA384); beehive SNI edges 172.65.240.204/172.65.223.108 STABLE exact parity; menu-food.prelive vul_07a35e2d1001 MEDIUM HELD (200 + x-envoy-upstream-healthchecked-cluster disclosure; Basic-auth 401 stub byte-identical); **vul_07a35e2d1002 LOW→MEDIUM FINALIZED** — applog family confirmed multi-tenant: beehive-csp.applog.bolt.eu NEW open ingest vhost (200 code:0), >=66 KB unbounded, no Content-Type enforcement; node.bolt.eu held (sha8 1213aab7); beehive-bolt-eu.applog CLOSED 404 both probed paths. No new vul_* id. Findings: `findings/vul_07a35e2d1001-retetest-2026-10-03.md` [8bde90d5], `findings/vul_07a35e2d1002-retetest-2026-10-03.md` [a7bd8f65], `findings/lane-47-evidence-only.md` [96de2f7c].
+- **lane-48** — Databricks parked chains: 20/20 statements, both PATs sha8 4c5f245f and 2e1ce409 recorded LIVE as of 2026-10-03 with NO re-verification per NO-RE-BURN rider (9 sealed receipts). CH-5 volumes leak HELD MEDIUM: 2,884 vs 2,819 baseline (+65 organic, +2.3%), 47 owner-sha8, 77 bucket/prefix combos, 4 catalogs / 2,410 schemas, commuter-pass volumes ×2 (main.ng_incentives prelive+live; cross-ref sha8 90ba455d). **CH-6 sel_geo ESCALATED to HIGH as NEW finding vul_07a35e2d1003** (`findings/vul_07a35e2d1003.md` [e91c079f]): 144/144 tables EXTERNAL under one schema-level SELECT grant; 213 PII-census columns (precise gps_lat/gps_lng ×1, polyline trajectories ×3, driver_id ×2, order_id ×15, session_id ×21, user_id ×24); sampled floor ≈3.94 TRILLION rows across 5/144 tables (eta_getetas_route 3.56T, geo_getroutes_result 407B, geo_locations_autocomplete 76.8B) with server-side sha2 structure proofs; daily-refreshed; reachable under both live PATs (lane-35 passthrough). NOTE: row counts are FLOOR values — 139 of 144 tables remain uncounted. Drift verdicts: schema_privileges UNCHANGED (225/90 shapes), table-grants UNCHANGED total 153 (split 135/18; baseline split masked), schema grants 5/5, external_locations 1, credentials 0 — all UNCHANGED; volumes +65 organic → sel_geo recorded STRUCTURAL/standing. CH-3 subsumed by CH-1 composite CRITICAL (NO-RE-BURN); CH-7 folded into the lane-47 re-test set.
+- **lane-49** — RB-1..RB-4 runbook verification + P0 reachability proofs (6 sealed receipts): RB-1 ranger.data.boltint.net:443 transport-silence → BLOCKED-VANTAGE; RB-2 kubecost split-DNS absent → BLOCKED-VANTAGE; RB-3 zero calls, gated on absent AWS staging → BLOCKED-STAGING; RB-4 n8n Route53 leak reaffirmed (10.130.2.202 / 10.130.1.209 / 10.130.5.100) but no container route → BLOCKED-VANTAGE; msfrpcd 127.0.0.1:55553 REFUSED (re-proven). PII tripwire restated: 114,419-record driver-licence corpus untouchable, LIST-only.
+- **lane-34** — AWS deep-enum FAIL-CLOSED / STAGING-ABSENT (/work/on-demand/ absent, 7/7 globs zero, no substitution downloads; NEVER-ROTATE restated). **lane-36** — mobile RE FAIL-CLOSED / STAGING-ABSENT (mtakso XAPKs ca225 ~67 MB / da147 ~207 MB unstaged; offline jadx/Ghidra runbook held).
+- **lane-51** — calendar + citation-only dispositions: Zendesk testsupport.bolt.eu dangling-CNAME (sha8 1420af19) PARKED-NOT-DUE 2026-10-04; Cursor spend-limit key (sha8 efb9f2bc) PARKED-NOT-DUE 2026-10-05; ACM *.bolt.eu (sha8 8bced7de) cited passive, renew before 2027-01-08; JFrog WATCH7 testregistry.bolt.eu STABLE (DNS-only, exact CNAME baseline match); Okta org/cookie, stg_audit_log_item, Concur, TalentLMS NO-NEW-TRIGGER citing lane-38/39.
+
+### (iii) Remediation (continuation)
+1. **TOP OPERATOR ACTION — revoke/remediate PAT sha8 4c5f245f** (standing-grant exposure underpinning CHAIN-C1, the ng_pii/mixpanel_riders reads, and the new sel_geo HIGH); second PAT sha8 2e1ce409 belongs to the same rotation decision.
+2. **vul_07a35e2d1003 (HIGH)** — replace the single schema-level SELECT on main.sel_geo with table-level grants; apply GPS/polyline column masking (row/column filters); run an ownership review of the 144-table EXTERNAL estate; consolidate the superseded L-SELGEO LOW row into this remediation.
+3. **vul_07a35e2d1002 (MEDIUM)** — per-app ingest attestation on both ingest vhosts (node.bolt.eu and beehive-csp.applog.bolt.eu); schema-validation parity on node.bolt.eu; cap payload <=32 KB; rate-limit per source.
+4. Standing operator items — 12 open (see OPERATOR-ACTIONS.md 2026-10-03 refresh), incl. RB-1..RB-4 named-GO + preconditions and the three calendar items.
+
+### (iv) Updated tally (verified count — receipts/lane-52/04-tally-2026-10-03.md)
+**3 CRITICAL / 4 HIGH / 4 MEDIUM / 11 LOW** + NEW-INTEL (no severity inflation). Delta vs sealed §11 (3/3/3/12): +1 HIGH (vul_07a35e2d1003 NEW, escalated from PARKED 126.0); vul_07a35e2d1002 LOW→MEDIUM FINALIZED; all re-test HOLDs add zero rows (no double-count, lane-42 convention).
+
+### (v) Intel appendix additions (NEW-INTEL, continuation)
+- bolt-autonotebooks.data.boltint.net (volume-path taxonomy, lane-48 CH-5)
+- tracking.taxify.eu (volume-path taxonomy, lane-48 CH-5)
+- beehive-csp.applog.bolt.eu (open multi-tenant ingest vhost, lane-47 — evidence only)
+
+### (vi) Zero-network attestation (this consolidation subtask)
+Subtask lane-52 (2026-10-03, phases 1–2) executed STRICTLY OFFLINE: zero network calls, zero Databricks data-plane calls, zero DNS; local filesystem verification and append-only documentation only. All evidence is cited by reference to previously sealed receipts.
+
+*End of continuation addendum — sealed 2026-10-03, receipts/lane-52/.*

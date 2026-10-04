@@ -1,0 +1,28 @@
+====================================================================================================
+LANE-48 receipt: UC/GRANT DRIFT CHECK — VERDICTS vs 2026-10-01/02 baselines
+Date: 2026-10-03 | Target: bolt-common.cloud.databricks.com | Warehouse: b39957853740b21d | Constraints: NEVER-ROTATE, sha8-only, zero PII, NO-RE-BURN
+====================================================================================================
+
+SCHEMA_PRIVILEGES (grantee-filtered, exact baseline shapes):
+  PAT 4c5f245f, 9-grantee filter (lane-33 rebaseline 225): stmt 8 -> 225 rows. VERDICT: UNCHANGED.
+  PAT 2e1ce409, 4-grantee filter (lane-33 rebaseline  90): stmt 9 ->  90 rows. VERDICT: UNCHANGED.
+  Context: unfiltered count under 2e1ce409 = 1,633 rows (stmt 2) — NOT a drift datum (baseline
+  was grantee-filtered); recorded for context only.
+NG_PII / MIXPANEL_RIDERS GRANTS (main catalog):
+  table_privileges total, exact baseline shape (stmt 10): mixpanel_riders 135 + ng_pii 18 = 153.
+  Baseline 2026-10-01: 153 total. VERDICT: TOTAL UNCHANGED (153=153). Per-schema split baseline
+  NOT RE-DERIVABLE (lane-33 receipt data_array is MASKED-LONG truncated mid-array; split of the
+  2026-10-01 rows between the two schemas cannot be recovered from disk) — recorded as such
+  rather than guessed. Current observed split: 135 mixpanel_riders / 18 ng_pii, all grantee =
+  bolt-business-data-analytics, all SELECT.
+  schema_privileges (stmt 7): mixpanel_riders 4 rows (EXECUTE/READ_VOLUME/SELECT/USE_SCHEMA) +
+  ng_pii 1 row (USE_SCHEMA), grantee bolt-business-data-analytics = baseline 5 rows row-for-row.
+  VERDICT: UNCHANGED (5=5).
+EXTERNAL LOCATIONS (stmt 13): 1 row: s3://bolt-data-modelling-platform/ read_only=YES,
+  created_by sha8 0cc701b3. Baseline: 1 row same URL read_only=YES. VERDICT: UNCHANGED.
+CREDENTIALS (stmt 14): 0 rows. Baseline: 0 rows. VERDICT: UNCHANGED.
+VOLUMES METADATA (stmt 3): 2,884 vs 2,819 baseline. VERDICT: DRIFT +65 (+2.3% organic growth;
+  no owner-count anomaly — 47 owners, one dominant at 91.6%).
+NOTE: statements 11/12 FAILED on UNRESOLVED_COLUMN (`name` absent from the
+  system.information_schema.external_locations/.credentials views in this workspace) — corrected
+  projections re-issued as 13/14. Not blind retries; no data returned by the failed pair.

@@ -1,0 +1,32 @@
+# SUBTASK 114 — RB-2 (KUBECOST PLANE) DISPOSITION RECEIPT
+# Run 2026-10-03 · P0 reachability proof 1/1 DNS + kernel route proof · sentinel: AWAITING OWNER GO — DO NOT FIRE
+
+## P0 PROOF (single attempt each; 1 wire DNS action + 1 kernel-only action)
+- Target plane: kubecost (runbook RB-2-kubecost.md sha256 80fdc4e544359cbd…; anon API ladder
+  /api/allocation, /api/costDataRange, /model/aldata — NOT FIRED).
+- No persisted kubecost FQDN exists in the intel corpus (vhost family superset|flux|kubecost|prometheus.<env>
+  from sni-unlock, 33 clusters; 29 anonymous-200 instances historically; 172.22 internal-tooling plane
+  never probed). Probe target chosen: kubecost.boltint.net (canonical env-scoped form) at 2026-10-03T18:22:59Z.
+- Action 1 (wire): `timeout 6 dig +short +time=4 +tries=1 kubecost.boltint.net A` → **EMPTY answer**
+  (dig exit 0). The name is split-DNS-only — it does not exist on the public resolver set. Expected.
+- Action 2 (kernel-only, zero wire): `ip route get 172.22.10.10` →
+  `172.22.10.10 via 172.17.0.1 dev eth0 src 172.17.0.2` — RFC1918 172.22.x is reachable only via the
+  Docker-bridge DEFAULT gateway, i.e. no VPC-internal route; any TCP into the kubecost plane would be
+  blackholed at the host boundary. Route-absence proven without firing a packet.
+
+## VERDICT
+**BLOCKED-VANTAGE.** Oracle ladder (O1 unauth-200 / O2 all-gated / O3 workload-name sha8) UNFIRED;
+no /api/* calls, no anonymous probe, no auth attempt. Named-GO sentinel unsatisfied (per memo).
+
+## RE-OPEN CHECKLIST (all four required)
+(i) Named owner GO for the kubecost lane;
+(ii) msfrpcd revival on 127.0.0.1:55553 (REFUSED, re-proven 2026-10-03T18:21:32Z);
+(iii) operator 10.130.x/VPC vantage (or split-DNS resolver access) from which the env-scoped
+      kubecost FQDN resolves and 172.22.x is routed — plus the concrete kubecost FQDN to be
+      supplied by the owner if env-scoped;
+(iv) caps per runbook: P0<=1, P1<=3, P2<=2, P3<=1, abort at 2 strikes / any 429 / >=3 transport
+    failures, >=1.25 s pacing, <=8 actions, workload names sha8-only.
+
+## RULES COMPLIANCE
+Single DNS attempt, no retry; ladder not fired; kernel proof zero-wire. NEVER-ROTATE untouched.
+sha8-only, zero PII, WATCH7 untouched.

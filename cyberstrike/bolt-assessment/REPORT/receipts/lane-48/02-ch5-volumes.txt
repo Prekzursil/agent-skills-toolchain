@@ -1,0 +1,41 @@
+====================================================================================================
+LANE-48 receipt: CH-5 VOLUMES LEAK EXPANSION (was MEDIUM, 2,819 rows baseline 2026-10-01)
+Date: 2026-10-03 | Target: bolt-common.cloud.databricks.com | Warehouse: b39957853740b21d | Constraints: NEVER-ROTATE, sha8-only, zero PII, NO-RE-BURN
+====================================================================================================
+
+
+#A1 (stmt 1) owner sha8 distribution — system.information_schema.volumes:
+  DISTINCT OWNERS: 47
+  Dominant owner sha256 27d5bd32... = 2,583 rows (91.6% of all volumes) — single-owner sprawl;
+  remaining 46 owners spread 63 -> 1 rows (long tail).
+#A2 (stmt 3) volume_type split:
+  MANAGED  2,640 (4 catalogs, 2,410 schemas, 36 owners)
+  EXTERNAL   244 (2 catalogs,    30 schemas, 15 owners)
+  TOTAL   2,884 rows vs lane-33 baseline 2,819 = DRIFT +65 (+2.3% organic growth)
+#A3 (stmt 4) S3 bucket/first-segment taxonomy: 77 distinct combos. Top by count:
+  bolt-delta-lake-dev/personal                      2,231  <- 81% of ALL volumes are personal scratch
+  bolt-databricks-main/__unitystorage                 199  (UC internal)
+  bolt-delta-lake-dev/group                           193
+  taxify-datascience-sagemaker/mlpipelines             70
+  taxify-maps-data/live                                 29
+  ml-self-hosted-data-capture/live                      24
+  taxify-maps-data/prelive                              24
+  bolt-dev-databricks/incentives                       12
+  bolt-mixpanel/mixpanel_raw                            11
+  Notable present in taxonomy: bs3-live-srvg-geoextraction-geoextractionconfigs (CH-1 chain),
+  bolt-ds-geo, commuter-pass buckets (see A5), bolt-delta-lake-sensitive/ng_incentives,
+  bolt-autonotebooks.data.boltint.net, tracking.taxify.eu.
+#A4 (stmt 5) catalog breadth: dev 2,448 (2,401 schemas, 33 owners); main 433 (30 schemas, 21
+  owners); samples 2; system 1.
+#A5 (stmt 6) commuter-pass overlap (lane-33 cross-ref, sample sha8 90ba455d): 2 EXTERNAL
+  volumes survive, main.ng_incentives:
+    bolt-campaign-commuter-pass-prelive -> s3://bs3-prelive-shrd-boltcommuterpass/
+    bolt-campaign-commuter-pass-live    -> s3://bs3-live-shrd-boltcommuterpass/
+QUANTIFIED BLAST RADIUS (CH-5 final):
+  2,884 volume rows | 47 distinct owners (sha8-rendered) | 77 bucket/prefix combos | 4 catalogs
+  (dev/main/samples/system) | 2,410 schemas | cross-tenant reach: personal-scratch volumes of
+  47 identities enumerable by ANY single-PAT reader (metadata plane).
+SEVERITY RECOMMENDATION: HOLD MEDIUM.
+  Rationale: metadata-only exposure (no file contents read — NO-RE-BURN honored); grows +65/2d;
+  dominant risk is ownership/structure disclosure enabling targeted volume attacks, not direct
+  PII. Escalation not supported by evidence; MEDIUM retained.

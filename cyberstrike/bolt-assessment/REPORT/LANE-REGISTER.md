@@ -233,3 +233,54 @@ HELD LIVE (HIGH vul_0791c1c0d001); gs-gpt 401 DEAD; grants expanded 12 types/225
 - FINAL TALLY (verified against register body): 3 CRITICAL / 3 HIGH / 3 MEDIUM / ~12 LOW + NEW-INTEL.
 - Receipt: receipts/lane-42/REGISTER-APPEND.md (pre/post sha256 per copy); all 3 canonical copies
   byte-identical post-append.
+
+## 2026-10-03 CONTINUATION APPEND — full-force extension (operator directive 2026-10-03: "proceed with the rest of the lines, full attack, authorized")
+Pre-append baseline: all three copies sha256 a3a12a55e17c00d31255c3349bd178265fced34c4f348f54a85edc0250ef9866 @ 235 lines (verified receipts/lane-52/00-pre-verify-2026-10-03.md and again immediately pre-append). Governing: GO-INTERPRETATION-MEMO-2026-10-03.md, CONTINUATION-LEDGER.md.
+
+2026-10-03 lane-47 CLOSED-RETESTED (budget 13/25, receipts lane-47/): MQTT fail-silent CONNECT gates HELD both brokers (rider 7209 ms / driver 7170 ms vs 7174/7169 ms baseline, ~7.17-7.21 s timing oracle persists, TLS_AES_256_GCM_SHA384); applog family multi-tenant confirmed — vul_07a35e2d1002 LOW->MEDIUM FINALIZED (beehive-csp.applog.bolt.eu NEW open ingest vhost 200 code:0, >=66 KB unbounded, no Content-Type enforcement; node.bolt.eu held sha8 1213aab7; beehive-bolt-eu.applog CLOSED 404 both probed paths); menu-food.prelive vul_07a35e2d1001 MEDIUM HELD (200 + x-envoy-upstream-healthchecked-cluster disclosure; Basic-auth 401 stub byte-identical); beehive SNI edges 172.65.240.204/172.65.223.108 STABLE exact parity, NEW-INTEL none; no new vul_* id.
+
+2026-10-03 lane-48: CH-5 volumes metadata re-measured 2,884 rows (+65 vs 2026-10-01 baseline 2,819, +2.3% organic) — 47 owners (sha8), 77 bucket/prefix combos, 4 catalogs, 2,410 schemas; 81% bolt-delta-lake-dev/personal scratch; commuter-pass volumes x2 confirmed (main.ng_incentives prelive+live). Severity HELD MEDIUM (metadata-only). Receipts lane-48/02.
+2026-10-03 lane-48: CH-6 sel_geo enumerated — 144/144 tables EXTERNAL, all covered by single schema-level SELECT; PII census: precise gps_lat/gps_lng (1 table), trajectories polyline (3 tables), driver_id (2), order_id (15), session_id (21), user_id (24); >=3.94e12 rows across 5 sampled tables (eta_getetas_route 3.56T, geo_getroutes_result 407B, geo_locations_autocomplete 76.8B); daily-refreshed; reachable under BOTH live PATs (lane-35 passthrough). Severity ESCALATED PARKED(126.0) -> HIGH. NEW finding vul_07a35e2d1003. Receipts lane-48/03.
+2026-10-03 lane-48 UC drift: schema_privileges UNCHANGED (225/90 exact baseline shapes); ng_pii/mixpanel_riders table grants UNCHANGED total 153 (split 135/18 observed; baseline split not re-derivable — masked); schema grants UNCHANGED 5/5; external_locations UNCHANGED 1 (s3://bolt-data-modelling-platform/ read_only); credentials UNCHANGED 0; volumes DRIFT +65. Receipts lane-48/04.
+CH-3 subsumed by CH-1 composite CRITICAL (NO-RE-BURN); citation-only 2026-10-03 lane-48/05.
+CH-7 folded into lane-47 re-test set 2026-10-03 (receipts lane-47/); citation-only lane-48/05.
+lane-48 2026-10-03: Databricks data-plane execution, 20/20 statements, both PATs LIVE (4c5f245f, 2e1ce409), zero 401/403, NO-RE-BURN honored, receipts sealed SHA256SUMS 0600.
+
+- 2026-10-03 lane-34 AWS deep-enum: FAIL-CLOSED / STAGING-ABSENT — /work/on-demand/ not present, 7/7
+  staging globs zero hits, 0 credential-file mtimes newer than 2026-10-01T17:09:38Z baseline; 181-pair
+  staging request restated (INFRAPCI-79 lineage); NEVER-ROTATE restated; no substitution downloads.
+  Receipt: receipts/lane-34/lane-34_receipt_staging-absent-rereceipt_2026-10-03.txt.
+- 2026-10-03 lane-36 mobile RE: FAIL-CLOSED / STAGING-ABSENT — mtakso XAPKs (ca225 ~67 MB / da147
+  ~207 MB) not staged; offline jadx/Ghidra-12.1.4-headless re-open runbook held; NEVER-ROTATE restated.
+  Receipt: receipts/lane-36/lane-36_receipt_staging-absent-rereceipt_2026-10-03.txt.
+- 2026-10-03 RB-1..RB-4 remain UNFIRED (AWAITING OWNER GO sentinels intact; generic directive does not
+  satisfy named-GO per GO-INTERPRETATION-MEMO-2026-10-03.md). Runbooks verified 6/6 vs SHA256SUMS
+  (receipts/lane-41/runbooks/). P0 reachability proofs 1/1 each: RB-1 ranger.data.boltint.net:443
+  transport-silence (exit 124) → BLOCKED-VANTAGE; RB-2 kubecost split-DNS absent + 172.22.x no route
+  → BLOCKED-VANTAGE; RB-3 zero calls, T2 gated on absent AWS staging → BLOCKED-STAGING; RB-4 n8n
+  10.130.x Route53 leak reaffirmed (10.130.2.202/10.130.1.209/10.130.5.100) but no container route
+  → BLOCKED-VANTAGE; msfrpcd 127.0.0.1:55553 REFUSED (re-proven 18:21:32Z). PII tripwire restated:
+  114,419-record driver-licence corpus untouchable, LIST-only. Receipts: receipts/lane-49/00-05.
+  Collective disposition: BLOCKED-VANTAGE (RB-1/RB-2/RB-4) / BLOCKED-STAGING (RB-3) / BLOCKED-GO (all four
+  pending named-GO). Re-open checklist: named owner GO; msfrpcd revival on 127.0.0.1:55553; operator
+  10.130.x/VPC vantage or employee session; AWS key staging under /work/on-demand/.
+- 2026-10-03 Zendesk testsupport.bolt.eu dangling-CNAME (sha8 1420af19): PARKED-NOT-DUE (due
+  2026-10-04) — DNS-only recheck scheduled on/after due date; ZERO network today. Receipt:
+  receipts/lane-51/01-zendesk-park.txt.
+- 2026-10-03 Cursor spend-limit review (key sha8 efb9f2bc, report-only): PARKED-NOT-DUE (due
+  2026-10-05); NEVER-ROTATE; ZERO network. Receipt: receipts/lane-51/02-cursor-park.txt.
+- 2026-10-03 ACM *.bolt.eu cert sha8 8bced7de (bolt-common.cloud.databricks.com ingress, org-id
+  3598988355446810): PASSIVE — cited by reference receipts/lane-31/, no handshake fired;
+  renew-before 2027-01-08. Receipt: receipts/lane-51/03-acm-citation.txt.
+- 2026-10-03 lane-46 JFrog WATCH7 DNS-only: testregistry.bolt.eu CNAME → k8s-jfrogart-jfrogart-
+  d21d9676b1-1146137979.eu-central-1.elb.amazonaws.com — STABLE vs baseline; ZERO HTTP.
+  Receipt: receipts/lane-51/04-jfrog-watch7-dns.txt.
+- 2026-10-03 NO-NEW-TRIGGER (zero budget, cites lane-38/39 by reference): Okta org/cookie lanes;
+  stg_audit_log_item (staging absent → no new material); Concur; TalentLMS. Receipt:
+  receipts/lane-51/05-citation-only-rows.txt. → All 13 CONTINUATION-LEDGER rows now dispositioned.
+- Sealed: receipts/lane-49/ (runbook-verification + RB-1..4 + summary, SHA256SUMS N/N OK) and
+  receipts/lane-51/ (sentinel + 4 calendar + citation + budget + integrity + this file, SHA256SUMS
+  N/N OK); lane-34/36 re-receipts sealed; all chmod 600. Register untouched: 235 lines /
+  a3a12a55… on all 3 copies (attestation receipts/lane-51/07-register-integrity.txt).
+
+— 2026-10-03 continuation append sealed: 8ee75f70c24ad457dd980a32e44404500e25d96131e255350e5ec92c8a4bfdcf (285 lines, register state immediately before this footer line; final post-append hash recorded in receipts/lane-52/05-phase2-proof.md), appended identically to all three copies; proof receipts/lane-52/. Continuation engagement exit attestation: receipts/lane-52/ (phase 3).

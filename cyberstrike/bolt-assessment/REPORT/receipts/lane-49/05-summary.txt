@@ -1,0 +1,28 @@
+# SUBTASK 114 — RB-1..RB-4 DISPOSITION SUMMARY
+# Run 2026-10-03 18:2xZ · lane-49 · disposition-only (sentinels unsatisfied)
+
+| RB | Object | P0 action | Observed | Verdict | Ladder state |
+|----|--------|-----------|----------|---------|--------------|
+| RB-1 | ranger.data.boltint.net:443 (Ranger/MLflow/DataHub ingress, VIP 172.28.98.10) | 1 TLS connect (timeout 8 s) | exit 124, 0 bytes — transport silence | **BLOCKED-VANTAGE** | T1+ UNFIRED |
+| RB-2 | kubecost plane (env-scoped boltint.net) | 1 DNS + kernel route proof | EMPTY answer (split-DNS-only); 172.22.x only via bridge default gw | **BLOCKED-VANTAGE** | O1-O3 UNFIRED |
+| RB-3 | Delta-lake lifecycle DoS | ZERO calls (by construction) | T1 gated on named-GO; T2 gated on AWS staging (ABSENT) | **BLOCKED-STAGING / BLOCKED-GO** | T1/T2 UNFIRED |
+| RB-4 | n8n editor fleet (10.130.x) | 1 DNS + kernel route proof (no TCP) | A: 10.130.2.202/10.130.1.209/10.130.5.100 (Route53 leak reaffirmed); no route via bridge gw | **BLOCKED-VANTAGE / BLOCKED-GO** | T1-T4 UNFIRED |
+
+## COMMON ROOT CAUSE
+Container vantage has no RFC1918-internal routing (bridge default gateway only). All four lanes need
+the material preconditions the GO-INTERPRETATION-MEMO already requires: named-GO + (msfrpcd revival |
+10.130.x/VPC vantage | employee session | AWS key staging). None present as of 2026-10-03 18:2xZ.
+
+## SHARED RE-OPEN CHECKLIST (per-lane receipts carry the full four-point form)
+(i) named owner GO per lane · (ii) msfrpcd 127.0.0.1:55553 revived · (iii) operator 10.130.x/VPC
+vantage or employee session · (iv) AWS key staging under /work/on-demand/ where the lane is T2-class.
+
+## SENTINEL DISCIPLINE
+"AWAITING OWNER GO — DO NOT FIRE" sentinels remain in place on all four lanes. The 2026-10-03 generic
+directive ("proceed with the rest of the lines, full attack, authorized") does NOT constitute the
+named-GO required. Zero T1+ phases fired this session.
+
+## RULES COMPLIANCE
+Total wire actions for the RB set: 3 (RB-1 TLS, RB-2 DNS, RB-4 DNS) + 1 localhost msfrpcd probe
+(uncounted-class) + kernel-only route proofs (zero wire). Single attempt each, zero retries.
+NEVER-ROTATE / NO-RE-BURN honored. sha8-only, zero PII, WATCH7 untouched.

@@ -1,0 +1,40 @@
+====================================================================================================
+LANE-48 receipt: CH-6 sel_geo ENUMERATION (schema-level SELECT, lane-35: both PATs via COMPUTE-IDENTITY PASSTHROUGH)
+Date: 2026-10-03 | Target: bolt-common.cloud.databricks.com | Warehouse: b39957853740b21d | Constraints: NEVER-ROTATE, sha8-only, zero PII, NO-RE-BURN
+====================================================================================================
+
+#B1+B1b (stmts 15,17) table inventory: EXACTLY 144 tables, ALL table_type=EXTERNAL.
+  The 144 lane-35 "SCHEMA-inherited grant rows" = 144/144 tables fully covered by the
+  single schema-level SELECT grant. Created 2026-02-13; last_altered as fresh as
+  2026-10-03T00:xx (daily-refreshed live surfaces). Sample names: geo_locations_autocomplete,
+  geo_getroutes_result, eta_getetas_route, geo_getplacedetails, geo_getturnbyturnroutes_result,
+  geo_reversegeocode, delivery_order_history, geo_forwardgeocode, geo_congestion_log, ...
+#B2 (stmt 16) PII column census (213 rows, complete):
+  gps_lat/gps_lng (PRECISE GEOLOCATION, DOUBLE): geo_locations_autocomplete (1 table)
+  lat/lng (geolocation, DOUBLE): geo_getautocomplete_result, geo_getplacedetails,
+    geo_locations_autocomplete (3 tables)
+  polyline (TRAJECTORY, STRING): geo_getroutes_result, geo_getturnbyturnroutes_result,
+    geo_google_directions_response_routes (3 tables)
+  driver_id: eta_getetas_route, geo_getturnbyturnroutes_result (2 tables)
+  order_id: 15 tables | session_id: 21 tables | user_id: 24 tables
+  device_id / imei / idfa / gaid / msisdn / phone / email / ip: ABSENT (0)
+#B3 (stmt 18) representative row counts (actual counts, 5 heaviest PII tables):
+  eta_getetas_route              3,561,760,089,974   (driver_id + order_id + user_id)
+  geo_getroutes_result              407,438,270,045   (polyline trajectories)
+  geo_locations_autocomplete         76,799,768,110   (gps_lat + gps_lng + user_id + session_id)
+  geo_getplacedetails                 66,632,437,237   (lat + lng + user_id + session_id)
+  geo_getturnbyturnroutes_result         246,080,707   (driver_id + order_id + polyline)
+  ---- sample of 5 tables only: ~3.94 TRILLION rows; 139 further tables uncounted (budget).
+#B4 (stmt 19) server-side structure proof, geo_locations_autocomplete LIMIT 3 — sha2(row):
+  sha256 09add626..., bedcd5b0..., f8681bc7... (raw rows never left the warehouse)
+#B5 (stmt 20) server-side structure proof, geo_getturnbyturnroutes_result LIMIT 3 — sha2(row):
+  sha256 b84c26a7..., ad2b60f2..., 8630397f...
+QUANTIFIED EXPOSURE (CH-6 final):
+  144/144 tables readable by one schema-level grant | precise GPS + full trajectories linked
+  to driver_id/user_id/order_id/session_id | >=3.94e12 rows across just 5 of 144 tables |
+  refreshed daily (last_altered 2026-10-03) | reachable under BOTH live PATs (lane-35 passthrough).
+SEVERITY RECOMMENDATION: ESCALATE PARKED(126.0) -> HIGH.
+  Impact class equals CH-1 CRITICAL (PII-scale geoextraction) but DIRECT: no presigned-S3 exfil
+  chain required — a single employee PAT SQL-reads trillions of rows of precise GPS linked to
+  person identifiers. Held at HIGH (not CRITICAL) only because read-only, no MODIFY grant
+  observed on sel_geo, and PII column breadth (no device_id/phone/email) is narrower than ng_pii.

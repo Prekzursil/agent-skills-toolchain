@@ -1,0 +1,34 @@
+# LANE-47 BUDGET ACCOUNTING — proof of <=25 HTTP/WS counted calls
+# generated 2026-10-03T17:36:30Z | ledger source: /work/lane47/budget.jsonl (13 entries)
+# gateway sentinel (2 calls, 17:31:55Z, 404 + 406 both OK) logged separately in 00-sentinel.txt — NOT counted per subtask 107 budget terms.
+# pacing: >=1.2 s sleep between calls (<=1 rps discipline), single attempt per endpoint/shape, no retries, no subscription, no brute force.
+
+ITEM (a) MQTT-WS CONNECT GATES — 2 calls
+  1 | 17:32:07.028Z (session start) | rider-broker.ws.bolt.eu/mqtt   | WS+MQTT CONNECT l47probe-c41054-rider  | timeout-silent 7209 ms
+  2 | 17:32:14.238Z | driver-broker.ws.bolt.eu/mqtt  | WS+MQTT CONNECT l47probe-c41054-driver | timeout-silent 7170 ms
+  item subtotal: 2
+
+ITEM (b) APPLOG INGESTION FAMILY — 7 calls
+  3 | 17:32:35.685Z | POST beehive-csp.applog.bolt.eu/beehive/csp/report     | application/csp-report 326B  | 200
+  4 | 17:32:37.044Z | POST beehive-bolt-eu.applog.bolt.eu/beehive/csp/report | application/csp-report 326B  | 404
+  5 | 17:32:38.369Z | POST beehive-bolt-eu.applog.bolt.eu/app-log/beehive/csp/report | application/csp-report 326B | 404
+  6 | 17:32:39.691Z | POST beehive-csp.applog.bolt.eu/beehive/csp/report     | application/x-ndjson 107B    | 400 code 702
+  7 | 17:32:41.046Z | POST beehive-csp.applog.bolt.eu/beehive/csp/report     | csp-report json 66660B (oversize probe) | 200 (accepted)
+  8 | 17:32:42.322Z | POST beehive-csp.applog.bolt.eu/beehive/csp/report     | text/plain csp-report body   | 200 (accepted)
+  9 | 17:32:43.629Z | POST node.bolt.eu/app-log/node/csp/report              | application/csp-report 326B  | 200 (re-test, held)
+  item subtotal: 7
+
+ITEM (c) MENU-FOOD PRELIVE ORACLE — 2 calls
+ 10 | 17:33:53.147Z | GET  menu-food.prelive.bolt.eu/health | anonymous | 200 + cluster header
+ 11 | 17:33:54.456Z | GET  menu-food.prelive.bolt.eu/api    | anonymous | 401 Basic (control re-confirm)
+  item subtotal: 2
+
+ITEM (d) BEEHIVE SNI EDGES — 2 calls
+ 12 | 17:35:34.692Z | GET beehive.bolt.eu/ via --resolve beehive.bolt.eu:443:172.65.240.204  | 200
+ 13 | 17:35:36.053Z | GET beehive.bolt.eu/ via --resolve beehive.bolt.eu:443:172.65.223.108 | 200
+  item subtotal: 2
+
+TOTAL COUNTED: 13 / 25 budget  -> REMAINING: 12 (unused, intentionally — single-shot discipline)
+Sentinel: 2 uncounted (both expected codes). Total wire calls including sentinel: 15.
+All payloads synthetic l47probe* — zero PII, zero credential shapes, zero real customer/device identifiers.
+NEVER-ROTATE honored: no credentials submitted, no auth headers sent, no subscription attempted.
