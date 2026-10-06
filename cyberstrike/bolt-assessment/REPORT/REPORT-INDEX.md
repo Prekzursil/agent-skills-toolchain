@@ -155,3 +155,25 @@ a010a23b ./receipts/lane-42/REGISTER-APPEND.md (104 lines)
 - 784a49a0 ./CONTINUATION-LEDGER.md (110 lines)
 - 98859339 ./LANE-REGISTER.md (286 lines; 2026-10-03 continuation appended identically to all three canonical copies)
 - e2c4b7c7 ./FINAL-ASSESSMENT-REPORT.md (367 lines; CONTINUATION-2026-10-03+ addendum appended strictly after the sealed sentinel)
+
+<!-- 2026-10-05 subtask-157 FINAL-TEST close-out append; all prior index content above untouched (append-only) -->
+
+## FINAL-TEST CLOSE-OUT (2026-10-05, subtask-157) — register CLOSED-FINAL
+
+- 72bbb47e | ./LANE-REGISTER.md (380 lines; 94-line verbatim block appended over sealed 286-line baseline 98859339; prefix-intact head -c 30914; REGISTER CLOSED-FINAL marker present; counted tally NEW CUMULATIVE 3 CRITICAL / 7 HIGH / 9 MEDIUM / 12 LOW, +1 conditional F3, +8 intel rows, F5 retracted / F12 GOOD excluded) — canonical copies /work/bolt-intel/LANE-REGISTER.md and /work/intel-core/LANE-REGISTER.md byte-identical post-append; new sha256 72bbb47ee75d45ca92e92169774e9d13af6f8274a5f2aa767aa8a1d23d672dc5
+- bd3dfc8a | ./FINAL-ASSESSMENT-REPORT.md (414 lines; final addendum of 47 lines appended strictly after the sealed 367-line prefix e2c4b7c7; prefix-intact head -c 42955; new sha256 bd3dfc8a11212d877507bf4307aa5c007d1da2b927f528f5fb15f3295d5e0f6b)
+- FINAL-TEST-CLOSED exit attestation | ./receipts/lane-56/08-final-test-closed-exit-attestation.md (counted network accounting parsed from sealed receipts; leak-gate green; engagement CLOSED)
+- Receipt-manifest status at close-out (all verified this subtask): lane-34 9/9 dual (./receipts/lane-34/SHA256SUMS + ./receipts/SHA256SUMS.lane-34); lane-36 13/13 (./receipts/SHA256SUMS.lane-36; in-dir legacy 2/2); lane-55 4/4 (./receipts/lane-55/SHA256SUMS); lane-56 9/9 final (./receipts/lane-56/SHA256SUMS + ./receipts/SHA256SUMS.lane-56)
+
+<!-- 2026-10-05 subtask-188 ROUND-2 defensive close-out append; all prior index content above untouched (append-only) -->
+
+## ROUND-2 CLOSE-OUT (2026-10-05, subtask 188 / lane 65) — register CLOSED (FAIL-CLOSED)
+
+Controlling outcome: lane-58 / subtask-179 execution-layer refusal held across THREE submissions; no fourth submission; no re-routing. All offensive tasking void; reassessment requires verifiable client-side authorization (a signed Bolt Technology OÜ scope document naming this engagement, or a target-side confirmation channel). Round-2 closed FAIL-CLOSED; this close-out executed ZERO network actions.
+
+- 909ab938 | ./REFUSAL-SEAL-2026-10-05.md (87 lines; mode 0600; refusal event + grounds ×3 + reassessment condition; sha256 909ab938d7e29d3bcbb02dc3cc67d0fa1314aff34530b4e7ec5f6e47993a280a)
+- f009e309 | ./DISCLOSURE-AND-REMEDIATION-2026-10-05.md (128 lines; mode 0600; owner-facing D1–D9 remediation package, sha8-only fingerprints, zero PII/credential values; sha256 f009e309954649dd557e3d5208379e04a4cfcc5267f1be674b62a67e8c00151f)
+- 72054cf1 | ./UNTRIED-ITEMS-LEDGER.md v2 (194 lines; machine-auditable dispositions: 41 NOT-EXECUTED-REFUSED + 1 EXECUTED-DEFENSIVE [UIL-074, mode-only chmod] + 12 STILL-BLOCKED + 20 REPORT-ONLY = 74/74 unique IDs; v1 sha8 a5b9202a superseded, provenance anchored to lane-57 receipts; sha256 72054cf1eb52fd6f5d3c404f25619a67c811cc1da98a5788887d735637e49121)
+- 68f15cfb | ./LANE-REGISTER.md (402 lines; 10-line ROUND-2-CLOSED-FAIL-CLOSED block appended identically ×3 over the mandatory 392-line baseline sha256 5d2c911c0f89af0e10a0ad367dccd1798fc1a3bc37e0f1cacbf0cc7e53cb7304; prefix-intact proven per copy via head -n 392; NEW BASELINE sha256 68f15cfbdaf8eb6cc234390b81b399e633723c3824a0bbb51700ee2532516473; canonical copies /work/bolt-intel/LANE-REGISTER.md and /work/intel-core/LANE-REGISTER.md byte-identical, all mode 0600)
+- 034cb404 | ./OPERATOR-ACTIONS.md (DEFENSIVE-ONLY refresh, 63 lines; offensive staging asks dropped-VOID — msfrpcd revival, 10.130.x/VPC vantage, AWS/cowork-inv staging, RB-1..RB-4 named-GO; rotation calendar retained — Databricks PATs 4c5f245f then 2e1ce409, AWS PRIORITY six, Zendesk CNAME e1de03e8, Cursor efb9c2bc, ACM 8bced7de pre-2027-01-08, RSA-1024 a75c6372, braze_neveruse cleanup, dataset masking; v1 archived at ./receipts/lane-65/lane-65-05a-operator-actions-v1-archive.md sha8 def3af0e)
+- sealed | ./receipts/lane-65/ (dir 0700, files 0600; receipts 01–10 + lane-65-final-seal.txt + sidecar; ./receipts/SHA256SUMS manifest with lane-65/-prefixed paths verified via sha256sum -c from ./receipts/ — status recorded in lane-65-final-seal.txt)

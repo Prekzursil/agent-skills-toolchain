@@ -1,0 +1,32 @@
+lane-57 environment verification — proxy vault integrity & single-location & leak scan
+subtask: 158 (Phase 0R3 reopen gate) | lane: 57 (environment verification)
+date_utc: 2026-10-05
+binding: zero credential values printed or persisted anywhere in this task; sha8-only
+  fingerprints recorded below
+
+vault path: /work/bolt/.vaults/proxy-residential
+mode check:
+  stat: "600 root /work/bolt/.vaults/proxy-residential"
+  expected 600: PASS
+
+credential-line fingerprint (vault = 1 line, 79 chars, contains scheme):
+  sha256 | cut -c1-8 of credential line WITH trailing newline = 78f3b99d
+    -> MATCHES expected 78f3b99d: PASS
+  variant (line WITHOUT trailing newline) = 32c392af — recorded for completeness only
+
+single-location scan (note: / and /work are different devices, so both were enumerated):
+  find /     -xdev -type f -name 'proxy-residential*' -> 0 hits (root fs)
+  find /work -xdev -type f -name 'proxy-residential*' -> 1 hit:
+    /work/bolt/.vaults/proxy-residential
+  total: exactly ONE location — PASS
+
+copy-scan / leak check (values never echoed to stdout or disk):
+  method: credential line read into shell variable from the vault (never echoed);
+    grep -rlF (fixed-string) over /work /tmp /root, vault file itself excluded;
+    two patterns: full credential line (79 chars) and userinfo substring (43 chars)
+  full_line_hit_count: 0
+  userinfo_hit_count: 0
+  result: ZERO copies of the credential anywhere under /work, /tmp, /root — PASS
+
+result: mode 600 PASS, credential-line sha8 78f3b99d MATCH, single-location PASS
+  (exactly 1 hit), copy-scan zero-leak PASS

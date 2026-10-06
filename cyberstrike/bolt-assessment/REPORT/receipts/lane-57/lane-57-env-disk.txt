@@ -1,0 +1,29 @@
+lane-57 environment verification — disk guard
+subtask: 158 (Phase 0R3 reopen gate) | lane: 57 (environment verification)
+date_utc: 2026-10-05
+
+threshold: ~15G free on the relevant filesystem(s)
+
+BEFORE:
+  df -h /     -> overlay   99G total, 84G used, 11G avail, 89% used (device 4d)
+  df -h /work -> /dev/sda1 99G total, 84G used, 11G avail, 89% used (device 801)
+  note: / and /work are DIFFERENT filesystems/devices (4d vs 801)
+  verdict: free space 11G is BELOW the ~15G guard threshold on both filesystems
+
+guard action triggered (< ~15G): candidate scan performed
+  command: find /work /tmp /root -xdev -type f -size +1G 2>/dev/null
+  candidates_found: 0 (zero files larger than 1G across /work, /tmp, /root)
+  pruned: NOTHING — no clearly temporary/non-canonical +1G items were identified,
+    so nothing qualified under the prune policy (prune only clearly temporary items)
+
+canonical trees: /work/bolt/REPORT, /work/bolt-intel, /work/intel-core,
+  /work/bolt/.vaults, all receipts and all sealed artifacts — untouched (no writes,
+  no deletes anywhere in the guard step)
+
+AFTER:
+  df -h /     -> overlay   99G total, 84G used, 11G avail, 89% used (unchanged)
+  df -h /work -> /dev/sda1 99G total, 84G used, 11G avail, 89% used (unchanged)
+
+result: PASS — guard evaluated, candidate scan clean, before == after, zero prunes,
+  zero disturbance to canonical/sealed material. 11G free is adequate for the planned
+  round (artifact volume is KB-scale); no remediation required by delegation.

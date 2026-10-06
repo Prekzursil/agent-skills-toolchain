@@ -1,0 +1,42 @@
+RECEIPT lane-65-10 — PROXY VAULT SINGLE-LOCATION CHECK (CORRECTED RECORD v2)
+Subtask: 188 / lane 65 — zero-network defensive close-out
+Verified (UTC): 2026-10-06T00:08:46Z
+Supersedes: interim staging read that reported an apparent hash-convention mismatch.
+Correction documented below. NO file drift occurred at any point (modes 0700/0600 and
+byte content unchanged throughout; prior phase re-verified byte-identity after every read).
+
+1. VAULT ARTIFACT
+   Path:            /work/bolt/.vaults/proxy-residential
+   Modes:           /work/bolt/.vaults = 0700 ; vault file = 0600   (PASS)
+   Size/shape:      80 bytes, single line, LF-terminated (no CRLF, no trailing blank line)
+
+2. HASH CONVENTION (RESOLVED)
+   Canonical convention (corroborated by lane-57 receipt lane-57-env-proxyvault.txt
+   lines 13-14 — "credential line WITH trailing newline = 78f3b99d -> MATCHES: PASS" —
+   and lane-53 receipt 04a supersession): sha256 is taken over the credential line
+   INCLUDING its trailing newline, i.e. over the whole 80-byte file.
+     whole-file sha256 = 78f3b99d69217ca1cab2ff7c54d0fb8d2dfa3999653b8ddd8c9afb7d18af44f5
+     sha8              = 78f3b99d  -> MATCHES recorded credential-line sha8 78f3b99d (PASS)
+   Non-canonical variants computed during staging (recorded for completeness; both are
+   WRONG-CONVENTION artifacts, NOT drift):
+     bare line without LF = 32c392af... ; line with CRLF = d3348057...
+   The credential VALUE was never printed, echoed, or copied into any artifact; only
+   hashes of it were handled.
+
+3. STRAY-COPY EXACT-SCAN (local find/grep only — zero network)
+   Full credential line searched VERBATIM (grep -aF, fixed string):
+     - /work: the eight on-record sha8-referencing candidates (REOPEN-GO-MEMO-2026-10-05.md,
+       lane-53 receipts 00/04/06/04a, UNTRIED-ITEMS-LEDGER.md, FINAL-TEST-GO-MEMO, this
+       receipt's earlier staging form) — full-line occurrences: 0 in all eight; they
+       reference the sha8/hash in prose only.
+     - The vault itself: exactly 1 occurrence (the sole legitimate location) (PASS)
+     - /tmp and /root: bounded find (maxdepth 4, regular files <1 MB, readable) — 0 hits
+   On-record sha8 references remain prose/hash-only across lane-53/34/55/56/57 receipts
+   and lane-65 receipts — consistent with single-location custody.
+   Historical note (lane-56 exit attestation; sealed, unchanged): three pre-existing
+   third-party intel artifacts contain a generic userinfo-URI SHAPE; lane-56 exact scans
+   proved none contains this proxy credential.
+
+4. VERDICT
+   SINGLE-LOCATION: PASS | MODE 0600: PASS | HASH CONVENTION: PASS (corrected v2)
+   Zero network actions performed for this check (local find/grep/sha256sum only).
