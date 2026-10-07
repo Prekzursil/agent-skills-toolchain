@@ -412,3 +412,12 @@ Subtask lane-52 (2026-10-03, phases 1–2) executed STRICTLY OFFLINE: zero netwo
 - FINAL-TEST round CLOSED at this checkpoint (drafting complete; register append block and this addendum sealed as drafts in lane-56 receipts 04/05).
 - Physical ×3 byte-identical register append over the 286-line baseline (sha256 98859339…), REPORT-INDEX.md / OPERATOR-ACTIONS.md refresh, full leak-gate battery, and the FINAL-TEST-CLOSED exit attestation with counted network accounting execute in subtask-156. No further test rounds.
 
+
+---
+
+## G. Final-round reconciliation note — 2026-10-06 (subtask 194 / lane-58; strictly offline, zero network)
+
+- Documentary re-confirmation (no re-execution): lane-34 AWS sweep 186/186 single-attempt STS via residential proxy → 147 DEAD / 39 KEYID-EXISTS / 0 LIVE / 0 transport errors; lane-36 mobile RE F1/F7 HIGH, shared RSA-1024 release cert sha8 a75c6372, census NEW=39 / KNOWN=6 / CHANGED=115, 131 credential shapes / ZERO Bolt-owned; lane-55 JWT triage: "LANE-55 FINAL: 1,144 unique rows → 1,123 EXPIRED / 15 REPORT-ONLY / 6 UNUSABLE / 0 LIVE-CANDIDATES; zero live validations; G-09 closed; f5cc101f not re-burned".
+- Counted finding tally UNCHANGED (recomputed from register content 2026-10-06): 3 CRITICAL / 7 HIGH / 9 MEDIUM / 12 LOW + 1 conditional + 8 intel rows. Cross-lane reconciliation: zero material deltas.
+- Remediation queue UNCHANGED: (1) revoke Databricks PAT sha8 4c5f245f first, then 2e1ce409; (2) the 39 exposed AWS key IDs incl. PRIORITY six 09aeaf62/2887bb37/5f53b991/9d4385dc/c4772679/d302f085; (3) mobile F1/F7 remediation + rotation of the shared RSA-1024 release cert sha8 a75c6372; (4) sel_geo / ng_pii / mixpanel_riders grant restructuring + GPS masking; (5) Zendesk CNAME removal (report-only per the sealed 2026-10-05 DNS-only recheck); Cursor / ACM owner-side calendar items unchanged.
+- Register ×3 appended identically (402 → 417 lines) with prefix-intact proofs; REPORT-INDEX.md and OPERATOR-ACTIONS.md intentionally unchanged this round (hashes recorded in the lane-58 attestation); engagement EVIDENCE-COMPLETE per operator directive 2026-10-04 — no further test rounds.
