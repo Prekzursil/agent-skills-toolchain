@@ -3,7 +3,7 @@
 Written: 2026-10-01. Zero PII values; identifiers, sha8 fingerprints and counts only. All 10 files parsed/read successfully; all four JSONs validate.
 
 ## 1. AUTHORIZATION.md (1,894 B; /work/bolt-intel/AUTHORIZATION.md, mirror /work/intel-core/)
-- Chain: 20.09.2026 initial (Andrei Visalon) → 29.09.2026 continuation ACCEPTED → **01.10.2026 FULL FORCE supersession: unrestricted scope, no exclusions.**
+- Chain: 20.09.2026 initial (the operator) → 29.09.2026 continuation ACCEPTED → **01.10.2026 FULL FORCE supersession: unrestricted scope, no exclusions.**
 - Prior hard stops LIFTED: own bolt.eu identity minting; AWS + JFrog live-key deep enumeration.
 - Binding process rules survive the lift: NEVER-ROTATE; no phishing / no MFA interception of a person; no live third-party-victim credentials; sha8-only fingerprints in chat/artifacts.
 - Full-force ≠ rule-free: ASSESSMENT-PLAN L19–22 supplies the pacing/PII/leak-gate/budget rules (see OPERATOR-RULES.md).

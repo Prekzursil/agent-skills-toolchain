@@ -19,7 +19,7 @@
   - 2026-09-29 — continuation round ACCEPTED.
   - 2026-10-01 — **FULL FORCE: no exclusions, all prior hard stops LIFTED** (including own bolt.eu identity minting and AWS+JFrog live-key deep enumeration).
   - No expiry clause present → window is live and **covers the 2026-10-04 final round**.
-  - Operator of record: Andrei Visalon.
+  - Operator of record: the operator.
 
 ## 2. Proxy-egress interpretation clause ("use 3rd party network")
 

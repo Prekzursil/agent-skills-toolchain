@@ -35,7 +35,7 @@ The systemic gap is consistent: **UC grant hygiene and egress-path control at th
 ## 2. SCOPE, AUTHORIZATION & RULES
 
 ### 2.1 Authorization chain
-- **20.09.2026** — initial engagement request (operator: A. Visalon).
+- **20.09.2026** — initial engagement request (operator: the operator).
 - **29.09.2026** — authorization ACCEPTED.
 - **01.10.2026** — operator supersession: **"full force, no exclusions"**; two previously operator-closed items explicitly LIFTED (operator's own bolt.eu identity for credential minting; AWS + JFrog live-key deep enumeration). Recorded at `LANE-REGISTER.md` lines 4–6 (register sha8 `a3a12a55…`).
 - Rules 1–4 recorded in `phase0/AUTHORIZATION-side rules` corpus (`/work/bolt/REPORT/phase0/OPERATOR-RULES.md` sha8 `3d4936a4`); rules 5–10 in the assessment plan SOTA (L19–22, L178–180) with rule 8 stricter at INDEX L110.
