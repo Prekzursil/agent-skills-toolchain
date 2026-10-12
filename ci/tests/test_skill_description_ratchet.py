@@ -108,8 +108,15 @@ def test_an_oversized_description_fails(clean: tuple[Path, Path]) -> None:
 def test_a_description_exactly_at_the_spec_limit_passes(
     clean: tuple[Path, Path],
 ) -> None:
-    """Boundary: 1024 is allowed, 1025 is not -- an off-by-one here mis-gates."""
+    """Boundary: 1024 is allowed, 1025 is not -- an off-by-one here mis-gates.
+
+    The fixture pins over-estate as well, because 1,024 ASCII chars are 1,024
+    bytes and the 500-byte estate cap (G-12 amendment 2026-10-01) would
+    otherwise fire before the spec boundary under test is reached."""
     root, exemptions = clean
+    exemptions.write_text(
+        f"over-estate:bravo:{mod.SPEC_MAX_CHARS}\n", encoding="utf-8"
+    )
     _skill(root, "bravo", "y" * mod.SPEC_MAX_CHARS)
     assert _run(root, exemptions) == mod.EXIT_OK
     _skill(root, "bravo", "y" * (mod.SPEC_MAX_CHARS + 1))
@@ -122,12 +129,76 @@ def test_a_folded_description_fails(clean: tuple[Path, Path]) -> None:
     assert _run(root, exemptions) == mod.EXIT_VIOLATION
 
 
+def test_an_over_estate_description_fails(clean: tuple[Path, Path]) -> None:
+    """The estate byte cap: 600 bytes is under the 1,024-char spec limit but
+    over the 500-byte estate cap (G-12 amendment 2026-10-01), so ONLY the
+    over-estate rule can catch it."""
+    root, exemptions = clean
+    _skill(root, "bravo", "b" * 600)
+    assert _run(root, exemptions) == mod.EXIT_VIOLATION
+
+
+def test_a_description_exactly_at_the_estate_cap_passes(
+    clean: tuple[Path, Path],
+) -> None:
+    """Boundary: 500 bytes is allowed, 501 is not -- an off-by-one here mis-gates."""
+    root, exemptions = clean
+    _skill(root, "bravo", "b" * mod.ESTATE_MAX_BYTES)
+    assert _run(root, exemptions) == mod.EXIT_OK
+    _skill(root, "bravo", "b" * (mod.ESTATE_MAX_BYTES + 1))
+    assert _run(root, exemptions) == mod.EXIT_VIOLATION
+
+
+def test_multibyte_text_is_billed_in_bytes_not_chars(clean: tuple[Path, Path]) -> None:
+    """300 chars of CJK is 900 bytes of budget: the estate cap bills bytes."""
+    root, exemptions = clean
+    _skill(root, "bravo", "漢" * 300)
+    assert _run(root, exemptions) == mod.EXIT_VIOLATION
+
+
+def test_a_pinned_over_estate_skill_passes_but_may_not_grow(
+    tmp_path: Path,
+) -> None:
+    """The ratchet, byte edition: grandfathered at its pinned size, red on growth."""
+    root = tmp_path / "skills"
+    _skill(root, "legacy", "z" * 600)
+    exemptions = tmp_path / "exempt.txt"
+    exemptions.write_text("over-estate:legacy:600\n", encoding="utf-8")
+    assert _run(root, exemptions) == mod.EXIT_OK
+    _skill(root, "legacy", "z" * 601)
+    assert _run(root, exemptions) == mod.EXIT_VIOLATION
+
+
+def test_a_stale_over_estate_exemption_fails(tmp_path: Path) -> None:
+    """Shrink-only, byte edition: fixed without deleting the line is a failure."""
+    root = tmp_path / "skills"
+    _skill(root, "legacy", "z" * 400)
+    exemptions = tmp_path / "exempt.txt"
+    exemptions.write_text("over-estate:legacy:600\n", encoding="utf-8")
+    assert _run(root, exemptions) == mod.EXIT_VIOLATION
+
+
+def test_an_over_estate_exemption_that_grants_nothing_is_a_config_error(
+    clean: tuple[Path, Path],
+) -> None:
+    """A pin at or below the estate cap is dead data, not a permissive default."""
+    root, exemptions = clean
+    exemptions.write_text(
+        f"over-estate:alpha:{mod.ESTATE_MAX_BYTES}\n", encoding="utf-8"
+    )
+    assert _run(root, exemptions) == mod.EXIT_CONFIG
+
+
 def test_a_pinned_over_spec_skill_passes_but_may_not_grow(tmp_path: Path) -> None:
-    """The ratchet: grandfathered at its pinned size, red the moment it grows."""
+    """The ratchet: grandfathered at its pinned size, red the moment it grows.
+
+    Both caps are pinned: 1,500 chars also exceeds the 500-byte estate cap, and
+    an unpinned over-estate row would fire before the over-spec growth under
+    test is reached."""
     root = tmp_path / "skills"
     _skill(root, "legacy", "z" * 1500)
     exemptions = tmp_path / "exempt.txt"
-    exemptions.write_text("over-spec:legacy:1500\n", encoding="utf-8")
+    exemptions.write_text("over-spec:legacy:1500\nover-estate:legacy:1500\n", encoding="utf-8")
     assert _run(root, exemptions) == mod.EXIT_OK
     _skill(root, "legacy", "z" * 1501)
     assert _run(root, exemptions) == mod.EXIT_VIOLATION
@@ -208,10 +279,13 @@ def test_crlf_and_lf_measure_the_same_length(tmp_path: Path) -> None:
 
 
 def test_the_advisory_total_never_blocks(clean: tuple[Path, Path]) -> None:
-    """The session-dependent number is reported, never enforced."""
+    """The session-dependent number is reported, never enforced.
+
+    The bulk descriptions stay under the 500-byte estate cap so the ONLY thing
+    this surface accumulates is advisory chars -- that is the claim under test."""
     root, exemptions = clean
     for index in range(30):
-        _skill(root, f"bulk{index}", "q" * 900)
+        _skill(root, f"bulk{index}", "q" * 400)
     assert _run(root, exemptions) == mod.EXIT_OK
 
 

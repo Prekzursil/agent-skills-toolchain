@@ -41,7 +41,9 @@ AREAS = {
 # --------------------------------------------------------------------------- helpers
 
 
-def run_sync(root: Path, home: Path, *args: str, timeout: int = 300, apply: bool = True):
+def run_sync(
+    root: Path, home: Path, *args: str, timeout: int = 300, apply: bool = True
+):
     """Invoke the real script. Returns the CompletedProcess.
 
     apply=True appends -Apply (writes allowed) -- the P0 contract (fd11a6cfa,
@@ -782,4 +784,6 @@ def test_bare_run_writes_nothing_p0_dry_default(env):
     write(env.live("rules", "dry.md"), "live bytes\n")
     doc = report(env.root, env.home, apply=False)
     assert doc["totals"]["new"] >= 1, doc["totals"]
-    assert not env.repo("rules", "dry.md").exists(), "bare run WROTE -- dry-by-default broken"
+    assert not env.repo("rules", "dry.md").exists(), (
+        "bare run WROTE -- dry-by-default broken"
+    )

@@ -1,0 +1,141 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://bloodhound.specterops.io/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# OpenHound for BloodHound Community Edition
+
+> Learn about the OpenHound framework for BHCE.
+
+<img noZoom src="https://mintcdn.com/specterops/tTIczgde9H07oLXf/assets/community-edition-pill-tag.svg?fit=max&auto=format&n=tTIczgde9H07oLXf&q=85&s=3a8d58a0f10bb4bd4c711489b93d6dda" alt="Applies to BloodHound Community Edition" width="237" height="45" data-path="assets/community-edition-pill-tag.svg" />
+
+In BloodHound Community Edition, you can run OpenHound as a standalone CLI application to execute built-in collectors or community-built collectors. You can configure OpenHound with environment variables, configuration files, or both. See the [configuration](/openhound/configuration) page to set up OpenHound.
+
+## Install the OpenHound CLI
+
+OpenHound is typically installed and executed inside a dedicated Python virtual environment. We recommend using a Python
+package and project manager such as [uv](https://docs.astral.sh/uv/) to manage the virtual environment and dependencies.
+
+When using `uv`, you can install OpenHound by running the following command in your terminal:
+
+```bash theme={null}
+uv tool install openhound
+```
+
+The core installation of OpenHound does not include any collectors. However, the following collectors are available as
+additional packages that can be installed along with the core OpenHound package:
+
+* Okta
+* Jamf
+* GitHub
+
+You can specify which collector(s) to include by adding the collector name as an extra dependency with the install
+command. You can specify one or more collectors by separating them with a comma.
+
+Choose the install command that matches the collectors you want to use:
+
+<Tabs>
+  <Tab title="All built-in collectors" icon="layer-group">
+    Install OpenHound with every built-in collector:
+
+    ```bash theme={null}
+    uv tool install "openhound[all]"
+    ```
+  </Tab>
+
+  <Tab title="Specific collectors" icon="sliders">
+    Install OpenHound with only the collectors you need. For example, to install the Okta, Jamf, and GitHub collectors:
+
+    ```bash theme={null}
+    uv tool install "openhound[okta,jamf,github]"
+    ```
+  </Tab>
+</Tabs>
+
+## Upgrade the OpenHound CLI
+
+When you install OpenHound with `uv`, the CLI runs from an isolated tool environment that stays on your system until you replace or upgrade it.
+
+<Tip>
+  If a newer OpenHound release is available, we recommend upgrading the installed tool before you troubleshoot version-specific issues.
+</Tip>
+
+<Steps>
+  <Step title="Upgrade the installed OpenHound tool">
+    Run the following command:
+
+    ```bash theme={null}
+    uv tool upgrade openhound
+    ```
+
+    This upgrades the existing OpenHound tool environment to the latest compatible release.
+  </Step>
+
+  <Step title="Reinstall collectors">
+    After upgrading the OpenHound CLI, reinstall the collectors to get the latest versions:
+
+    <Tabs>
+      <Tab title="All built-in collectors" icon="layer-group">
+        Reinstall every built-in collector:
+
+        ```bash theme={null}
+        uv tool install "openhound[all]"
+        ```
+      </Tab>
+
+      <Tab title="Specific collectors" icon="sliders">
+        Reinstall only the collectors you use. For example:
+
+        ```bash theme={null}
+        uv tool install "openhound[okta,jamf,github]"
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+## CLI Commands
+
+The `openhound` command supports several subcommands for running collectors and converting data to the OpenGraph format.
+
+The following sections provide an overview of the commonly used subcommands. For a full list of available commands and options, refer to the built-in help documentation by running `openhound --help` or `openhound <subcommand> --help`.
+
+### Collect
+
+The `collect` subcommand is used to start the collection process. You can start collecting data by specifying the collector name
+and output directory.
+
+For example, to run the Okta collector and save the output in the `output` directory:
+
+```bash theme={null}
+openhound collect okta ./output
+```
+
+OpenHound will then run the Okta collector and save the collected resources in the `./output/okta` directory. The collected
+resources will be saved in a JSONL compressed format and can be processed and converted to OpenGraph using the `preprocess`
+and `convert` subcommands.
+
+### Preprocess
+
+The `preprocess` subcommand preprocesses collected resources before they are converted into OpenGraph data. During this phase, OpenHound imports raw data into a DuckDB database and creates materialized tables to support efficient lookups for transformations.
+
+This phase is optional and is only required for collectors that depend on preprocessed data. The following command preprocesses Okta resources from the `./output/okta` directory and generates a DuckDB lookup database at `./lookup.duckdb`:
+
+```bash theme={null}
+openhound preprocess okta ./output/okta ./lookup.duckdb
+```
+
+The preprocessed data can then be used as a lookup database in the convert phase to generate the
+OpenGraph output (if required).
+
+### Convert
+
+The `convert` subcommand transforms collected resources into the OpenGraph format. This phase converts the raw data to
+nodes and edges and saves them as OpenGraph-compatible JSON files that you can upload to BloodHound.
+
+The following command converts the collected Okta resources from the `./output/okta` directory and saves the OpenGraph files in the `./graph/okta` directory:
+
+```bash theme={null}
+openhound convert okta ./output/okta ./graph/okta
+```
+
+<Note>OpenHound will automatically split each graph into multiple files based on source node and chunk size to optimize file uploads for BloodHound.</Note>
