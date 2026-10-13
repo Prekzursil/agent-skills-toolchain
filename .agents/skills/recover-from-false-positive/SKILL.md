@@ -107,11 +107,14 @@ hard request failure. The turn dies mid-generation.
   your work requires this access, you can apply for an exemption:
   https://claude.com/form/cyber-use-case?token=…"* (2026-07 onward)
 
-The detector (`scrub_refusals.py` `SIGNATURES` + `detect-false-positive.py`) matches
+The detector (`scripts/scrub_refusals.py` and its `SIGNATURES` list) matches
 a LIST of these plus a loose fallback, gated on `isApiErrorMessage:true` + an
 "API Error" prefix. A single hard-coded phrase once let a whole recovery silently
-report "clean" against the new wording — `tests/smoke.sh` now pins every known
-signature so that can't regress.
+report "clean" against the new wording. (HISTORICAL paths, no longer shipped in
+this skill: the standalone `detect-false-positive.py` helper and the
+`tests/smoke.sh` signature-pin test are gone — the detector is reword-proof via
+the structural `stop_reason=="refusal"` marker, and `--selfcheck` now audits
+detector/signature health instead.)
 
 **The response schema (source of truth — read this, don't guess).** A refusal is an
 HTTP 200 with, on the stored turn:
@@ -336,8 +339,9 @@ claude --resume <session-id> "continue"
 
 ## Step 0 — Check for pre-computed state (hook may have done the work)
 
-Check for `~/.claude/.fp-state.json`. If present, the `detect-false-positive.py`
-hook already extracted vocab clusters and pre-classified the trigger. Read it:
+Check for `~/.claude/.fp-state.json`. If present, a `detect-false-positive.py`
+pre-classifier hook (HISTORICAL — no longer shipped in this skill) already
+extracted vocab clusters and pre-classified the trigger. Read it:
 
 ```bash
 cat ~/.claude/.fp-state.json

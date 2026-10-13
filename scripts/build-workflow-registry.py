@@ -65,24 +65,36 @@ def collect():
             if "_bak" in dirpath:
                 continue  # snapshots stay snapshots; note in digest, not rows
             for fn in sorted(files):
-                if not fn.endswith((".js", ".yaml", ".yml", ".json")):
+                if not fn.endswith((".js", ".mjs", ".yaml", ".yml", ".json")):
                     continue
                 p = os.path.join(dirpath, fn)
-                row = {
-                    "class": label,
-                    "file": fn,
-                    "path": p,
-                    "mtime": datetime.fromtimestamp(
-                        os.path.getmtime(p), tz=timezone.utc
-                    ).strftime("%Y-%m-%d"),
-                }
-                row["sha8"] = sha8(p)
-                if fn.endswith(".js"):
-                    row.update(parse_js(p))
+                try:
+                    row = {
+                        "class": label,
+                        "file": fn,
+                        "path": p,
+                        "mtime": datetime.fromtimestamp(
+                            os.path.getmtime(p), tz=timezone.utc
+                        ).strftime("%Y-%m-%d"),
+                    }
+                    row["sha8"] = sha8(p)
+                    if fn.endswith((".js", ".mjs")):
+                        row.update(parse_js(p))
+                except OSError as e:
+                    # Reserved-name entries (stray NUL in ~/.claude/workflows) and
+                    # unreadable files are skipped with a WARN, never fatal. 2026-10-13
+                    print(f"WARN:workflow-registry skipped {p!r}: {e}")
+                    continue
                 rows.append(row)
     # session-embedded class: ~/.claude/projects/<proj>/<session>/workflows/**
     if os.path.isdir(SESSION_GLOB_PARENT):
-        for proj in sorted(os.listdir(SESSION_GLOB_PARENT)):
+        try:
+            projects = sorted(os.listdir(SESSION_GLOB_PARENT))
+        except OSError as e:
+            print(f"WARN:workflow-registry listdir failed "
+                  f"on {SESSION_GLOB_PARENT}: {e}")
+            projects = []
+        for proj in projects:
             pproj = os.path.join(SESSION_GLOB_PARENT, proj)
             if not os.path.isdir(pproj):
                 continue
@@ -90,22 +102,26 @@ def collect():
                 if not (dirpath.endswith("workflows") or "workflows" in dirpath):
                     continue
                 for fn in sorted(files):
-                    if not fn.endswith(".js"):
+                    if not fn.endswith((".js", ".mjs")):
                         continue
                     p = os.path.join(dirpath, fn)
-                    rel = os.path.relpath(p, pproj).replace("\\", "/")
-                    sess = rel.split("/")[0] if "/" in rel else "-"
-                    row = {
-                        "class": "session-embedded",
-                        "file": re.sub(r"-wf_[0-9a-f-]+", "", fn),
-                        "path": p,
-                        "project": proj[:28],
-                        "session": sess,
-                        "mtime": datetime.fromtimestamp(
-                            os.path.getmtime(p), tz=timezone.utc
-                        ).strftime("%Y-%m-%d"),
-                    }
-                    row.update(parse_js(p))
+                    try:
+                        rel = os.path.relpath(p, pproj).replace("\\", "/")
+                        sess = rel.split("/")[0] if "/" in rel else "-"
+                        row = {
+                            "class": "session-embedded",
+                            "file": re.sub(r"-wf_[0-9a-f-]+", "", fn),
+                            "path": p,
+                            "project": proj[:28],
+                            "session": sess,
+                            "mtime": datetime.fromtimestamp(
+                                os.path.getmtime(p), tz=timezone.utc
+                            ).strftime("%Y-%m-%d"),
+                        }
+                        row.update(parse_js(p))
+                    except OSError as e:
+                        print(f"WARN:workflow-registry skipped {p!r}: {e}")
+                        continue
                     rows.append(row)
     return rows
 
