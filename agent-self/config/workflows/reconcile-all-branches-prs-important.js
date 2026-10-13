@@ -1,3 +1,4 @@
+// STALE-SNAPSHOT WARNING (2026-10-13): this script hardcodes the July 2026 PR landscape (open PRs #79-#92 + stale/merged branch lists); the estate is now at PR #359 — a re-run fans agents at a fictional world. Refresh the branch/PR inventory before running.
 export const meta = {
   name: 'reconcile-all-branches-prs',
   description: 'READ-ONLY reconcile of the whole agent-skills-toolchain branch/PR landscape into one consolidation plan: analyze all 14 open PRs (by family: monitorcore, schrodinger, mcp-fix, harness) for what/completeness/why-draft/overlap/merge-order/corroboration, map the 19 stale + 9 merged branches (salvage vs prune, EVIDENCE-FIRST), dedup against the BW1 harness-upgrade queue, then synthesize a reconciliation map + phased consolidation plan (merge-order, draft-finish list, salvage/prune list, BW1 integration) + recommended merge-strategy + <=3 owner decisions. NO merges/commits/pushes — analysis only.',
