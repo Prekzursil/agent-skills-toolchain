@@ -27,6 +27,7 @@ import io
 import json
 import time
 
+from harness.registration import _TIMEOUTS
 from harness.dispatcher import (
     _MIN_BUDGET_SEC,
     _STARTUP_ALLOWANCE_SEC,
@@ -332,9 +333,9 @@ def test_budget_tracks_the_registered_host_deadline(monkeypatch):
     monkeypatch.delenv("HARNESS_DISPATCH_BUDGET_MS", raising=False)
     # The budget has to leave the process room to start up and to write its
     # terminal record + native output INSIDE the host's registered timeout.
-    assert _host_deadline_sec("PreToolUse") == 2.0  # registration._TIMEOUTS
-    assert _dispatch_budget_sec("PreToolUse") == 2.0 - _STARTUP_ALLOWANCE_SEC
-    assert _dispatch_budget_sec("SessionStart") == 5.0 - _STARTUP_ALLOWANCE_SEC
+    assert _host_deadline_sec("PreToolUse") == _TIMEOUTS["PreToolUse"]  # tracks registration — never pin a literal
+    assert _dispatch_budget_sec("PreToolUse") == _TIMEOUTS["PreToolUse"] - _STARTUP_ALLOWANCE_SEC
+    assert _dispatch_budget_sec("SessionStart") == _TIMEOUTS["SessionStart"] - _STARTUP_ALLOWANCE_SEC
     # An event the harness does not register falls back to the 5s default.
     assert _host_deadline_sec("NoSuchEvent") == 5.0
     # A floor keeps the watchdog usable even if a deadline ever drops below it.
@@ -344,7 +345,7 @@ def test_budget_tracks_the_registered_host_deadline(monkeypatch):
 
 def test_unparseable_budget_override_falls_back_to_the_default(monkeypatch):
     monkeypatch.setenv("HARNESS_DISPATCH_BUDGET_MS", "not-a-number")
-    assert _dispatch_budget_sec("PreToolUse") == 2.0 - _STARTUP_ALLOWANCE_SEC
+    assert _dispatch_budget_sec("PreToolUse") == _TIMEOUTS["PreToolUse"] - _STARTUP_ALLOWANCE_SEC
 
 
 def test_negative_budget_override_disables_the_watchdog(monkeypatch):

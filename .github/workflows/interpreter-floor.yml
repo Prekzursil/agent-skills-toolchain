@@ -75,6 +75,11 @@ jobs:
     name: gate-interpreter-floor
     runs-on: [self-hosted, Linux]
     steps:
+      - name: runner-health preamble
+        if: runner.os == 'Linux'
+        run: |
+          avail=$(awk '/MemAvailable/{print $2}' /proc/meminfo); echo "MemAvailable=${avail}KB"
+          [ "${avail:-0}" -ge 2000000 ] || { echo "FAILED:runner-health MemAvailable=${avail}KB below floor"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Newer-than-floor interpreter, present ONLY so the self-test's skew row can run.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

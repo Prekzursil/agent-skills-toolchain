@@ -1,3 +1,10 @@
+---
+paths:
+  - "**/*.sh"
+  - "**/*.ps1"
+  - "**/statusline*"
+---
+
 # Bash HUD / terminal-emit gotchas
 
 Hard-won building a Claude Code **statusline** (a bash script that runs on every render and emits

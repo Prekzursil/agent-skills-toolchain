@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/.claude/**"
+  - "**/.agents/**"
+---
+
 # Fan-Out Contract (spawn prompts and fan-in gates)
 
 Measured over 50 agents / 6 workflows, 2026-07-18. Element presence in the prompt predicts
@@ -170,3 +176,26 @@ divergent content MATTERS, summarising what a change means, weighing a trade-off
 right split was: differ classifies all 338, agents describe the 10 behaviour-bearing DIVERGED files.
 Handing the classification to agents cost six Opus runs and produced a result that could not be used.
 
+
+## D. Dispatch-time RAM gate (2026-10-13) — ENFORCED, not advisory
+
+`mcp-process-hygiene.md` already carries the HARD pre-flight ("run `mcp_ram_audit.ps1` before ANY
+workflow / fleet / second-session launch") and the "NO multi-agent fleets < 8 GB" floor — but the
+2026-10-13 audit found ZERO references to either in the workflow registry or any workflow body:
+the gate existed on paper only. This section binds it to the dispatch boundary.
+
+**Before ANY Workflow / parallel fan-out / multi-agent fleet launch, the ORCHESTRATOR runs
+`C:\Users\Prekzursil\.agents\scripts\mcp_ram_audit.ps1` and branches on the free-RAM reading:**
+
+1. **< 4 GB free** -> sequential implements only: **concurrency 1**. No parallel lanes launch;
+   work units run one at a time, each joined per `cross-vendor-dispatch.md` §1 before the next
+   starts.
+2. **< 2 GB free** -> **postpone non-urgent fan-outs** entirely (reschedule, or degrade to a
+   single agent with the smallest viable scope). Urgency waives the postponement, never the audit.
+3. **Evidence, not intent.** The gate is satisfied ONLY by a **logged RAM reading in the launch
+   receipt** — the free-GB value + timestamp from the audit. A fan-out launched without that
+   logged reading violates this gate regardless of how the launch turned out.
+
+This is the dispatch-time companion to the 8 GB fleet floor: that rule caps how BIG a fleet may
+be; this gate decides whether any fan-out launches at all. Both hold — neither substitutes for
+the other.

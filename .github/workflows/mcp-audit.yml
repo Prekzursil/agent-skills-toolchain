@@ -69,6 +69,11 @@ jobs:
     name: gate-mcp-audit
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
+      - name: runner-health preamble
+        if: runner.os == 'Linux'
+        run: |
+          avail=$(awk '/MemAvailable/{print $2}' /proc/meminfo); echo "MemAvailable=${avail}KB"
+          [ "${avail:-0}" -ge 2000000 ] || { echo "FAILED:runner-health MemAvailable=${avail}KB below floor"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0

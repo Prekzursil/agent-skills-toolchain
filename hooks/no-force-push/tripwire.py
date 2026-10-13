@@ -15,7 +15,7 @@ import re
 KIND = "command"
 FIELD = "tool_input.command"
 ACTION = "Tripwire: refusing git push --force. Force-push can destroy remote history; AGENTS.md section 9 requires explicit user approval. If approved, re-run with FORGE_NO_FORCE_PUSH_OFF=1."
-_PATTERN = re.compile("git\\s+push\\b[^\\n]*(--force\\b|-f\\b)", re.IGNORECASE)
+_PATTERN = re.compile("git\\s+push\\b[^;|&\\n]*(--force\\b|-f\\b)", re.IGNORECASE)
 
 
 def _dig(payload: dict, path):
