@@ -66,6 +66,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import threading
 import time
@@ -221,6 +222,34 @@ def _worker(mod, args, buf: io.StringIO, payload_json: str, rc_sink: list) -> No
         pass  # fail-open: a check must never crash the dispatcher
 
 
+def _exec_worker(path: str, args, payload_json: str, buf: io.StringIO,
+                 err_buf: io.StringIO, rc_sink: list, budget: float) -> None:
+    """Run one check as a SUBPROCESS in its own thread (2026-10-17 blocking-mode wave).
+
+    WHY exec mode exists: the blocking guards (no-force-push, test-tamper-guard,
+    ulysses, deny-credential-reads, estate-deny-guard) are standalone hook scripts
+    with bare top-level ``sys.exit(main())`` and their own stdin/exit-code contract;
+    importing them in-process would fire main() at import time under the wrong argv.
+    A subprocess preserves their exact standalone semantics (own interpreter, own
+    stdin/stdout/stderr, real exit code) while still collapsing N settings.json
+    hook entries into ONE dispatcher invocation. Timeout is enforced by
+    ``subprocess.run`` itself; on expiry the child is killed and the check fails open.
+    """
+    try:
+        p = subprocess.run(
+            [sys.executable, path, *args],
+            input=payload_json, capture_output=True, text=True,
+            timeout=max(1.0, budget), cwd=str(Path(path).parent),
+        )
+        buf.write(p.stdout or "")
+        err_buf.write(p.stderr or "")
+        rc_sink.append(p.returncode)
+    except subprocess.TimeoutExpired:
+        rc_sink.append("TIMEOUT")
+    except BaseException:
+        pass  # fail-open: rc_sink stays empty -> receipt "output-unreadable" path
+
+
 def _blocking_status(rc: object) -> int | None:
     """The would-be non-zero exit code a check returned, or None if it did not."""
     if isinstance(rc, bool) or not isinstance(rc, int) or rc == 0:
@@ -309,8 +338,15 @@ def _select(checks: list, tool_name: str) -> list:
     return sel
 
 
-def run(event: str, raw_payload: str, manifest: dict) -> str | None:
-    """Core: returns the aggregated additionalContext for the event (or None)."""
+def run(event: str, raw_payload: str, manifest: dict, collect: list | None = None) -> str | None:
+    """Core: returns the aggregated additionalContext for the event (or None).
+
+    ``collect``, when a list is passed, receives one record per finished check:
+    ``{"chk": <manifest check>, "rc": <would-be exit code or None>,
+    "out": <captured stdout>, "err": <captured stderr, exec-mode checks only>}``.
+    main() uses the records to propagate BLOCK/decision results (2026-10-17
+    blocking mode); passing nothing keeps the historical inject-only contract.
+    """
     ev = (manifest.get("events") or {}).get(event)
     if not ev:
         return None
@@ -326,9 +362,26 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
     root = manifest.get("hooks_root") or str(THIS.parent)
 
     # Serial imports (cheap; keeps the _common/stubscan sys.modules pop race-free).
-    loaded = []  # (chk, module, buffer, rc_sink)
+    # exec-mode checks (chk["exec"] is truthy) need no import: they run as subprocesses.
+    loaded = []  # entry dicts: chk, mod (None for exec), buf, err, rc_sink, path
     for chk in matched:
         try:
+            if chk.get("exec"):
+                if chk.get("exec_path"):
+                    # Explicit absolute target (owner-reviewed): same power as a
+                    # settings.json hook command, just consolidated behind dispatch.
+                    path = str(chk["exec_path"])
+                    if not Path(path).is_file():
+                        _receipt(event, _check_label(chk), "load-failed")
+                        continue
+                else:
+                    path = _resolve_script(root, chk["script"])
+                    if path is None:
+                        _receipt(event, _check_label(chk), "out-of-root")
+                        continue
+                loaded.append({"chk": chk, "mod": None, "buf": io.StringIO(),
+                               "err": io.StringIO(), "rc": [], "path": path})
+                continue
             path = _resolve_script(root, chk["script"])
             if path is None:
                 # escapes hooks_root -> never imported (see module docstring)
@@ -337,7 +390,8 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
             uniq = "dispq_" + re.sub(r"\W", "_", str(chk.get("name") or chk["script"]))
             mod = _load_module(path, uniq)
             if mod is not None:
-                loaded.append((chk, mod, io.StringIO(), []))
+                loaded.append({"chk": chk, "mod": mod, "buf": io.StringIO(),
+                               "err": io.StringIO(), "rc": [], "path": None})
             else:
                 _receipt(event, _check_label(chk), "load-failed")
         except BaseException:
@@ -348,18 +402,32 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
 
     # Concurrent execution: thread-per-check, per-check deadline join.
     threads = []
-    for chk, mod, buf, rc_sink in loaded:
-        t = threading.Thread(
-            target=_worker,
-            args=(mod, chk.get("args") or [], buf, raw_payload, rc_sink),
-            daemon=True,
-        )
+    for entry in loaded:
+        try:
+            budget = float(entry["chk"].get("timeout") or 8)
+        except (TypeError, ValueError):
+            budget = 8.0
+        if entry["path"] is not None:
+            t = threading.Thread(
+                target=_exec_worker,
+                args=(entry["path"], entry["chk"].get("args") or [], raw_payload,
+                      entry["buf"], entry["err"], entry["rc"], budget),
+                daemon=True,
+            )
+        else:
+            t = threading.Thread(
+                target=_worker,
+                args=(entry["mod"], entry["chk"].get("args") or [],
+                      entry["buf"], raw_payload, entry["rc"]),
+                daemon=True,
+            )
         t.start()
         threads.append(t)
 
     start = time.monotonic()
     pieces: list[str] = []
-    for (chk, _mod, buf, rc_sink), t in zip(loaded, threads):
+    for entry, t in zip(loaded, threads):
+        chk = entry["chk"]
         try:
             budget = float(chk.get("timeout") or 8)
         except (TypeError, ValueError):
@@ -370,14 +438,26 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
             # timed out -> fail-open, drop this check's (incomplete) output
             _receipt(event, _check_label(chk), "timeout")
             continue
+        rc_val = entry["rc"][0] if entry["rc"] else None
+        if rc_val == "TIMEOUT":
+            # exec-mode child was killed by subprocess timeout -> fail-open, attest loss
+            _receipt(event, _check_label(chk), "timeout")
+            continue
         try:
-            pieces.extend(_extract_ctx(buf.getvalue()))
+            pieces.extend(_extract_ctx(entry["buf"].getvalue()))
         except BaseException:
             _receipt(event, _check_label(chk), "output-unreadable")
             continue
+        if collect is not None:
+            try:
+                collect.append({"chk": chk, "rc": rc_val,
+                                "out": entry["buf"].getvalue(),
+                                "err": entry["err"].getvalue()})
+            except BaseException:
+                pass
         try:
-            rc = _blocking_status(rc_sink[0] if rc_sink else None)
-            if rc is not None:
+            rc = _blocking_status(rc_val)
+            if rc is not None and not chk.get("blocking_rc"):
                 pieces.append(
                     _disarmed_note(str(chk.get("name") or chk.get("script")), rc)
                 )
@@ -407,7 +487,61 @@ def main(argv) -> int:
         sys.stdout = _ThreadStdout(real_out)
         sys.stdin = _ThreadStdin(sys.stdin)
 
-        agg = run(event, raw, manifest)
+        records: list = []
+        agg = run(event, raw, manifest, collect=records)
+
+        # 2026-10-17 blocking mode: propagate BLOCK/decision results instead of
+        # disarming them. Precedence mirrors Claude Code's own multi-hook merge:
+        # exit-code BLOCK (rc!=0 + stderr) > JSON deny > JSON allow/rewrite > context.
+        block = None    # (rc, stderr_text, name)
+        deny = None     # decision JSON object (permissionDecision: deny)
+        forward = None  # first allow/ask/rewrite decision JSON
+        for r in records:
+            chk = r.get("chk") or {}
+            rc = r.get("rc")
+            out, err = r.get("out") or "", r.get("err") or ""
+            if chk.get("blocking_rc") and isinstance(rc, int) and rc != 0 and block is None:
+                block = (rc, err, str(chk.get("name") or chk.get("script")))
+            if chk.get("decision"):
+                for line in out.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except Exception:
+                        continue
+                    if not isinstance(obj, dict):
+                        continue
+                    hso = obj.get("hookSpecificOutput")
+                    if not isinstance(hso, dict):
+                        continue
+                    d = hso.get("permissionDecision")
+                    if d == "deny" and deny is None:
+                        deny = obj
+                    elif forward is None and (d in ("allow", "ask")
+                                              or hso.get("updatedInput") is not None
+                                              or hso.get("updatedCommand") is not None):
+                        forward = obj
+                    break  # first decision JSON on this check's stdout wins
+
+        if block is not None:
+            # exit-code blocking protocol: stderr reason is fed back by the host
+            if block[1]:
+                try:
+                    sys.stderr.write(block[1] if block[1].endswith("\n") else block[1] + "\n")
+                    sys.stderr.flush()
+                except Exception:
+                    pass
+            return block[0]
+        if deny is not None:
+            real_out.write(json.dumps(deny) + "\n")
+            real_out.flush()
+            return 0
+        if forward is not None:
+            real_out.write(json.dumps(forward) + "\n")
+            real_out.flush()
+            return 0
         if agg:
             # ensure_ascii=True mirrors every consolidated hook's own json.dumps default
             # (pure-ASCII \uXXXX escaping) -> encoding-safe on any Windows console codepage.

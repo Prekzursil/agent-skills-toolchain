@@ -38,24 +38,33 @@ EVENTS = (
     "Stop",
 )
 
+# 2026-10-13 lockstep raise with the live ~/.claude/settings.json UserPromptSubmit
+# raise (dispatcher 25s there) and above the RAM-starvation floor: the old 2s/5s
+# host deadlines fed dispatcher._dispatch_budget_sec (deadline - startup allowance),
+# clamping module budgets to ~1.4s and letting every hot event die before its
+# modules ran on the RAM-starved box. Hot events 25; SessionStart/Stop 60;
+# PreCompact 30; the remaining events scaled x3 from their previous values.
+# NOTE settings.json dispatcher entries for the other events still carry the OLD
+# values until regenerated or hand-raised — _TIMEOUTS is meant to become the
+# single source (structural fix is a tracked follow-up).
 _TIMEOUTS = {
-    "SessionStart": 5,
-    "UserPromptSubmit": 2,
-    "PreToolUse": 2,
-    "PermissionRequest": 2,
-    "PermissionDenied": 2,
-    "PostToolUse": 2,
-    "PostToolUseFailure": 2,
-    "PreCompact": 5,
-    "PostCompact": 3,
-    "ConfigChange": 3,
-    "InstructionsLoaded": 3,
-    "SubagentStart": 3,
-    "SubagentStop": 3,
-    "TaskCreated": 3,
-    "TaskCompleted": 5,
-    "TeammateIdle": 3,
-    "Stop": 5,
+    "SessionStart": 60,
+    "UserPromptSubmit": 25,
+    "PreToolUse": 25,
+    "PermissionRequest": 25,
+    "PermissionDenied": 25,
+    "PostToolUse": 25,
+    "PostToolUseFailure": 25,
+    "PreCompact": 30,
+    "PostCompact": 9,
+    "ConfigChange": 9,
+    "InstructionsLoaded": 9,
+    "SubagentStart": 9,
+    "SubagentStop": 9,
+    "TaskCreated": 9,
+    "TaskCompleted": 15,
+    "TeammateIdle": 9,
+    "Stop": 60,
 }
 _NO_MATCHER = {"UserPromptSubmit", "Stop"}
 
