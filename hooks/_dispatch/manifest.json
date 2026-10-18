@@ -227,7 +227,8 @@
     },
     "PreToolUse": {
       "settings_matcher": ".*",
-      "settings_timeout": 20,
+      "settings_timeout": 25,
+      "settings_timeout_note": "2026-10-18 P2 thread: raised 20->25 in lockstep with test-tamper-guard's restored 20s budget (below) so the host deadline clears the check budget with 5s of collection headroom — a ceiling at exactly the budget kills the dispatcher at the same instant the check finishes (test_every_check_budget_fits_its_event_ceiling pins budget <= ceiling, never ==).",
       "checks": [
         {
           "name": "mcp-liveness/pretool",
@@ -313,10 +314,11 @@
           "name": "test-tamper-guard",
           "script": "test-tamper-guard/guard.py",
           "args": [],
-          "timeout": 10,
+          "timeout": 20,
           "matcher": "Bash",
           "exec": true,
-          "blocking_rc": true
+          "blocking_rc": true,
+          "timeout_rationale": "2026-10-18 P2 thread: restored to the former standalone registration's 20s. guard.py::_run deliberately allows individual git subprocesses up to 15s, so the consolidation wave's 10s dispatcher budget could kill a valid scan before the guard's own operation-level timeout — a fail-open that let the commit proceed unscanned. Ceiling headroom: PreToolUse settings_timeout is 25."
         },
         {
           "name": "inject-nopager",

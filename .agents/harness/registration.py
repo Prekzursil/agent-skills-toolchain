@@ -44,9 +44,14 @@ EVENTS = (
 # clamping module budgets to ~1.4s and letting every hot event die before its
 # modules ran on the RAM-starved box. Hot events 25; SessionStart/Stop 60;
 # PreCompact 30; the remaining events scaled x3 from their previous values.
-# NOTE settings.json dispatcher entries for the other events still carry the OLD
-# values until regenerated or hand-raised — _TIMEOUTS is meant to become the
-# single source (structural fix is a tracked follow-up).
+# 2026-10-18 lockstep COMPLETED (PR #374 review thread "keep registered deadlines
+# within deployed host timeouts"): the tracked deploy mirror
+# agent-self/config/settings.json now carries these exact values on every
+# harness-dispatcher entry (16 events; InstructionsLoaded has no mirror entry
+# yet — a registration regen, deliberately out of scope here), pinned by
+# test_wiring.py::test_mirror_harness_dispatcher_timeouts_match_registration.
+# _TIMEOUTS is the single source; a host timeout below the derived module
+# budget lets the host kill the dispatcher before it emits anything.
 _TIMEOUTS = {
     "SessionStart": 60,
     "UserPromptSubmit": 25,

@@ -464,6 +464,62 @@ def test_tracked_deploy_mirror_admits_every_dispatched_route(event: str, token: 
         )
 
 
+def test_mirror_harness_dispatcher_timeouts_match_registration():
+    """P1c (2026-10-18 review thread): host deadlines must cover the registered budgets.
+
+    ``registration._TIMEOUTS`` is the single source the harness dispatcher
+    derives its internal module budgets from (deadline - startup allowance).
+    The tracked deploy mirror used to carry stale 2/3/5/8/10/35s host timeouts
+    against 25/60s registered deadlines, so the host could kill the dispatcher
+    before it emitted its result or terminal record — exactly the failure the
+    2026-10-13 raise existed to fix. Every harness-dispatcher entry in the
+    mirror must now equal ``_TIMEOUTS`` for its event.
+    """
+
+    reg_path = CLAUDE_ROOT / ".agents" / "harness" / "registration.py"
+    if not reg_path.is_file():
+        pytest.skip(
+            f"registration.py not present beside this checkout ({reg_path}); "
+            "the lockstep is only checkable where the harness tree ships"
+        )
+    spec = importlib.util.spec_from_file_location(
+        "registration_under_test", reg_path
+    )
+    assert spec is not None and spec.loader is not None
+    reg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(reg)
+
+    settings = _load(TRACKED_DEPLOY_SETTINGS)
+    seen: dict[str, object] = {}
+    for event_name, _group, hook in _hook_entries(settings):
+        command = str(hook.get("command") or "")
+        if ".agents/harness/dispatcher.py" not in command:
+            continue
+        m = re.search(r"--event (\w+)", command)
+        assert m, f"unparseable harness dispatcher command: {command!r}"
+        assert m.group(1) == event_name, (
+            f"hooks.{event_name} carries a --event {m.group(1)} command"
+        )
+        seen[event_name] = hook.get("timeout")
+
+    assert seen, (
+        "found no harness dispatcher entries in the mirror — this lockstep "
+        "assertion degraded to a vacuous pass"
+    )
+    mismatches = [
+        f"hooks.{ev}: mirror timeout {t!r} != registration._TIMEOUTS "
+        f"{reg._TIMEOUTS.get(ev)!r}"
+        for ev, t in sorted(seen.items())
+        if t != reg._TIMEOUTS.get(ev)
+    ]
+    assert not mismatches, (
+        "tracked mirror host timeouts are out of step with "
+        "registration._TIMEOUTS (a host timeout below the derived module "
+        "budget kills the dispatcher before it emits anything):\n"
+        + "\n".join(mismatches)
+    )
+
+
 def _dispatch_module():
     """Import the PRODUCTION dispatcher (stdlib-only at module level)."""
 

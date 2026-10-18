@@ -167,6 +167,35 @@ def test_blocking_gates_in_the_manifest_must_run_in_exec_blocking_mode():
     assert not violations, "; ".join(violations)
 
 
+def test_test_tamper_guard_keeps_its_former_standalone_budget():
+    """P2 (2026-10-18 review thread): the tamper scan needs its 20s back.
+
+    The consolidation wave first shipped a 10s dispatcher budget for
+    test-tamper-guard, but the guard's own ``_run`` deliberately allows
+    individual git subprocesses up to 15s — the dispatcher could kill a valid
+    scan before the guard's own operation-level timeout and fail the commit
+    open, unscanned. The former standalone registration allowed 20s; the
+    ceiling (PreToolUse settings_timeout, 25) must stay ABOVE the budget so
+    the host does not kill the dispatcher at the same instant (pinned by
+    test_every_check_budget_fits_its_event_ceiling as ``<=``; equality is
+    still a race, hence the explicit headroom assertion here).
+    """
+
+    pre = _manifest()["events"]["PreToolUse"]
+    entry = next(
+        c for c in pre["checks"] if c.get("script") == "test-tamper-guard/guard.py"
+    )
+    assert entry.get("timeout") == 20, (
+        f"test-tamper-guard budget is {entry.get('timeout')!r}; the former "
+        "standalone registration allowed 20s and guard.py::_run permits 15s "
+        "per git op — anything lower kills valid scans (fail-open)"
+    )
+    assert pre["settings_timeout"] > entry["timeout"], (
+        "PreToolUse settings_timeout must leave headroom above the guard "
+        "budget, or the host kills the dispatcher at the budget boundary"
+    )
+
+
 def test_wired_gates_reference_existing_scripts():
     """hooks_root/<script> must exist on disk for each A6-wired gate."""
     data = _manifest()
