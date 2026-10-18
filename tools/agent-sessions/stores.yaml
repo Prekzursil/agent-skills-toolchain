@@ -1,0 +1,159 @@
+# stores.yaml — the single registry of AI-agent session stores.
+# Edit THIS when a new TUI appears (then run agent_sessions_sync.py).
+#
+# Registry extended 2026-10-18 from the harness-audit discovery pass.
+# NOTE: the vault lane's discovery report
+#   C:/Users/Prekzursil/.zcode/workspace/default/out/harness-audit-2026-10-18/sessions-vault.md
+# was NOT present when this registry was seeded. When it lands, merge any new
+# stores here — or run:  agent_sessions_sync.py --rediscover
+# to print suggested entries for anything missed.
+#
+# Fields:
+#   id      unique store id (becomes vault/stores/<id>/)
+#   tui     human label of the producing agent/TUI
+#   path    source root (copied read-only; NEVER modified)
+#   include posix globs on the store-relative path (empty = everything)
+#   exclude posix globs to skip (volatile/lock/cache artifacts)
+#   mode    copy (default) | rename  — rename = same-drive adoption of an
+#           already-archived tree into the vault (owner-sanctioned ONLY for
+#           D:/codex-sessions-archive-20260621; saves ~56G of copying; the
+#           tree stays intact inside vault/stores/<id>/)
+
+vault: D:/agent-sessions-vault
+
+stores:
+  # ---- live TUI stores (the sessions that keep growing) ----
+  - id: claude-code
+    tui: "Claude Code"
+    path: "C:/Users/Prekzursil/.claude/projects"
+    include: ["**/*.jsonl"]
+
+  - id: codex-live
+    tui: "Codex CLI"
+    path: "C:/Users/Prekzursil/.codex/sessions"
+    exclude: ["log/**", "*.lock"]
+
+  - id: zcode-rollout
+    tui: "ZCode"
+    path: "C:/Users/Prekzursil/.zcode/cli/rollout"
+
+  - id: zcode-exec
+    tui: "ZCode"
+    path: "C:/Users/Prekzursil/.zcode/cli/exec"
+
+  - id: zcode-workspace
+    tui: "ZCode"
+    path: "C:/Users/Prekzursil/.zcode/workspace"
+
+  - id: cursor-chats
+    tui: "Cursor"
+    path: "C:/Users/Prekzursil/.cursor/chats"
+
+  - id: opencode-config
+    tui: "OpenCode"
+    path: "C:/Users/Prekzursil/.config/opencode"
+
+  - id: opencode-data
+    tui: "OpenCode"
+    path: "C:/Users/Prekzursil/.local/share/opencode"
+    # opencode.db-wal holds committed data; -shm is a transient shared-memory
+    # artifact and is excluded. Live-SQLite copies can be torn mid-write; the
+    # .prev growth chain in the vault keeps prior generations recoverable.
+    exclude: ["log/**", "*.db-shm", "*.lock"]
+
+  - id: grok
+    tui: "Grok CLI"
+    path: "C:/Users/Prekzursil/.grok"
+    include: ["sessions/**", "active_sessions.json", "campaigns_state.json",
+              "claude_import_state.json"]
+    # the rest of ~/.grok is app state (vendor/downloads/tmp...) — trim if the
+    # owner wants it preserved too.
+
+  - id: grokbot
+    tui: "GrokBot"
+    path: "C:/Users/Prekzursil/.grokbot"
+
+  - id: cyberstrike-tui
+    tui: "CyberStrike TUI"
+    path: "C:/Users/Prekzursil/.local/share/cyberstrike"
+
+  # ---- extended scope (added 2026-10-18 sessions-sync-tooling lane; probed on
+  #      disk, see harness-audit-2026-10-18/sessions-sync-tooling.md) ----
+  - id: gemini-cli
+    tui: "Gemini CLI / Antigravity CLI"
+    path: "C:/Users/Prekzursil/.gemini"
+    # history/ = gemini CLI sessions; antigravity-cli/conversations + history.jsonl
+    # = AGY session corpus (conversation_summaries.db alongside). tmp/ is volatile.
+    exclude: ["tmp/**", "*.lock", "oauth_creds.json"]
+
+  - id: goose-config
+    tui: "Goose"
+    path: "C:/Users/Prekzursil/.config/goose"
+
+  - id: goose-appdata
+    tui: "Goose (desktop)"
+    path: "C:/Users/Prekzursil/AppData/Roaming/Goose"
+    # Electron app data; Local Storage/ + Partitions/ hold the chats, the rest
+    # is volatile cache.
+    exclude: ["Cache/**", "Code Cache/**", "GPUCache/**", "Dictionaries/**"]
+
+  - id: aider
+    tui: "Aider"
+    path: "C:/Users/Prekzursil/.aider"
+
+  - id: continue-vscode
+    tui: "Continue (VS Code)"
+    path: "C:/Users/Prekzursil/.continue"
+    exclude: ["index/**"]
+
+  - id: vscode-copilot-chat
+    tui: "VS Code Copilot Chat"
+    path: "C:/Users/Prekzursil/AppData/Roaming/Code/User/globalStorage/github.copilot-chat"
+    # copilot.cli.*Sessions*.json + copilotCli/ hold session/chat state
+    exclude: ["toolEmbeddingsCache.bin"]
+
+  # Probed and NOT present on this machine (2026-10-18): Windsurf (~/.codeium,
+  # AppData/Local/Codeium/windsurf*), fabric (~/.fabric), Cline / Ro VS Code
+  # extensions (globalStorage saoudrizwan.claude-dev etc.). .agy exists but holds
+  # only AGENTS.md + skills (no sessions; AGY sessions live in gemini-cli above).
+
+  # ---- backup / orphaned-backup stores ----
+  - id: codex-archive-20260621
+    tui: "Codex CLI (archive)"
+    path: "D:/codex-sessions-archive-20260621"
+    mode: rename   # owner-sanctioned same-drive adoption; saves ~56G of copying
+
+  - id: claude-desktop-backup-20260524
+    tui: "Claude Desktop (backup)"
+    path: "C:/Users/Prekzursil/Documents/claude-desktop-backup-20260524"
+
+  - id: cursor-auth-backups
+    tui: "Cursor (auth backups)"
+    path: "C:/Users/Prekzursil/Cowork/private"
+
+  - id: claude-projects-archive
+    tui: "Claude Code (archive)"
+    path: "D:/claude-projects-archive"
+
+  - id: claude-history-viewer-archive
+    tui: "Claude history viewer (archive)"
+    path: "D:/claude-history-viewer-archive"
+
+  - id: verdict-archive
+    tui: "Verdict (archive)"
+    path: "D:/verdict-archive"
+
+  - id: primariro-scratchpad-archive
+    tui: "PrimariRo scratchpad (archive)"
+    path: "D:/PrimariRo-scratchpad-archive-20260812"
+
+  - id: d-backups
+    tui: "D:/Backups (mixed)"
+    path: "D:/Backups"
+
+  # from-C-20260818 dirs: NOT found on either drive at seeding time
+  # (checked D:/*, C:/Users/Prekzursil/from-C-*, D:/from-C-*). If they exist
+  # elsewhere, add:
+  #  - id: from-c-20260818
+  #    tui: "mixed (from-C migration)"
+  #    path: "<wherever it lives>"
