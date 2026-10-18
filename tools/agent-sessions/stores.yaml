@@ -1,159 +1,343 @@
-# stores.yaml — the single registry of AI-agent session stores.
-# Edit THIS when a new TUI appears (then run agent_sessions_sync.py).
+# stores.yaml - agent-session vault source registry (agent_sessions_sync.py)
+# Vault: D:/agent-sessions-vault  (content lives OUTSIDE git; repo owns tooling+manifests)
 #
-# Registry extended 2026-10-18 from the harness-audit discovery pass.
-# NOTE: the vault lane's discovery report
-#   C:/Users/Prekzursil/.zcode/workspace/default/out/harness-audit-2026-10-18/sessions-vault.md
-# was NOT present when this registry was seeded. When it lands, merge any new
-# stores here — or run:  agent_sessions_sync.py --rediscover
-# to print suggested entries for anything missed.
+# FINAL CONSOLIDATED REGISTRY (2026-10-18, sessions-repo-wiring lane, branch
+# sessions/vault-sync). Provenance: the vault-build registry (branch sessions-vault,
+# tools/sessions-vault/stores.yaml - the registry that BUILT the live manifest,
+# 134,828 entries / 57 store ids) merged with the tooling lane's registry
+# (98515d111, 25 stores, 6 on-disk-probed extras). Reconcile-not-duplicate: the
+# vault-build ids are canonical (they key the live manifest.jsonl); tooling-lane
+# ids that pointed at the SAME paths were folded in as aliases documented below.
+# Entries below are ordered by DEDUP PRIORITY (first store holding a sha owns
+# the canonical copy) - DO NOT reorder: the vault-build order is load-bearing.
 #
-# Fields:
-#   id      unique store id (becomes vault/stores/<id>/)
-#   tui     human label of the producing agent/TUI
-#   path    source root (copied read-only; NEVER modified)
-#   include posix globs on the store-relative path (empty = everything)
-#   exclude posix globs to skip (volatile/lock/cache artifacts)
-#   mode    copy (default) | rename  — rename = same-drive adoption of an
-#           already-archived tree into the vault (owner-sanctioned ONLY for
-#           D:/codex-sessions-archive-20260621; saves ~56G of copying; the
-#           tree stays intact inside vault/stores/<id>/)
+# Engine requirement: agent_sessions_sync.py >= 1.2.0 (vault dialect: modes
+# tree/accepted/accepted_top/accepted_top2/files/move). The watchdog runs the
+# live copy at C:/Users/Prekzursil/.agents/scripts/agent_sessions_sync.py.
+#
+# Modes:
+#   tree          - whole tree minus global prunes (node_modules/.git/__pycache__/...)
+#   accepted      - session-file accept filter (same rule as tss/tsis-deepdive corpus)
+#   accepted_top  - accept filter, files directly in store root only
+#   accepted_top2 - accept filter, depth<=2 (globalStorage vscdb pattern)
+#   files         - explicit file list (| separated)
+#   move          - same-volume rename into vault/stores/<id>, then adopt+index
+#                   (ONLY for already-archived trees; owner-approved for the codex
+#                   archive; once the vault dir exists the store adopts-in-place
+#                   CALMLY - the source being gone is the post-move steady state)
+#
+# Tooling-lane id merge map (their id -> canonical id here):
+#   opencode-data       -> opencode                     (same path)
+#   cyberstrike-tui     -> cyberstrike-share            (same path)
+#   cursor-auth-backups -> cowork-private               (same path)
+#   grok (includes)     -> grok + grok-root + grok-desktop
+#   gemini-cli (~/.gemini whole) -> gemini-cli + gemini-history + gemini-antigravity
+#   continue-vscode (excl index/) -> continue-index + continue-vscode (full tree)
+#   codex-archive-20260621 (mode: rename) -> codex-archive-20260621 (mode: move, done)
+#   claude-code/codex-live/zcode-*/cursor-chats/d-backups etc. -> same ids here
 
 vault: D:/agent-sessions-vault
+reserve_gb: 20
 
 stores:
-  # ---- live TUI stores (the sessions that keep growing) ----
+  # ---------------- bootstrap fixtures (keep manifest continuity) ----------------
+  - id: fixt-a
+    tui: FixtureA
+    path: C:/Users/Prekzursil/.zcode/workspace/default/out/harness-audit-2026-10-18/_selftest/fixt-a
+    mode: tree
+  - id: fixt-b
+    tui: FixtureB
+    path: C:/Users/Prekzursil/.zcode/workspace/default/out/harness-audit-2026-10-18/_selftest/fixt-b
+    mode: tree
+
+  # ---------------- C: live stores ----------------
   - id: claude-code
-    tui: "Claude Code"
-    path: "C:/Users/Prekzursil/.claude/projects"
-    include: ["**/*.jsonl"]
-
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/projects
+    mode: accepted
+  - id: claude-history
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/history.jsonl
+    mode: tree
+  - id: claude-todos
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/todos
+    mode: tree
+  - id: claude-checkpoints
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/checkpoints
+    mode: accepted
+  - id: claude-agent-worktrees
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/agent-worktrees
+    mode: accepted
+  - id: claude-agent-handoff
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude/agent-handoff
+    mode: tree
+  - id: claude-free
+    tui: claude-code
+    path: C:/Users/Prekzursil/.claude-free
+    mode: accepted
+  - id: claude-server-commander
+    tui: claude-server-commander
+    path: C:/Users/Prekzursil/.claude-server-commander
+    mode: accepted
   - id: codex-live
-    tui: "Codex CLI"
-    path: "C:/Users/Prekzursil/.codex/sessions"
-    exclude: ["log/**", "*.lock"]
-
-  - id: zcode-rollout
-    tui: "ZCode"
-    path: "C:/Users/Prekzursil/.zcode/cli/rollout"
-
-  - id: zcode-exec
-    tui: "ZCode"
-    path: "C:/Users/Prekzursil/.zcode/cli/exec"
-
-  - id: zcode-workspace
-    tui: "ZCode"
-    path: "C:/Users/Prekzursil/.zcode/workspace"
-
-  - id: cursor-chats
-    tui: "Cursor"
-    path: "C:/Users/Prekzursil/.cursor/chats"
-
-  - id: opencode-config
-    tui: "OpenCode"
-    path: "C:/Users/Prekzursil/.config/opencode"
-
-  - id: opencode-data
-    tui: "OpenCode"
-    path: "C:/Users/Prekzursil/.local/share/opencode"
-    # opencode.db-wal holds committed data; -shm is a transient shared-memory
-    # artifact and is excluded. Live-SQLite copies can be torn mid-write; the
-    # .prev growth chain in the vault keeps prior generations recoverable.
-    exclude: ["log/**", "*.db-shm", "*.lock"]
-
+    tui: codex
+    path: C:/Users/Prekzursil/.codex/sessions
+    mode: accepted
+  - id: codex-archived
+    tui: codex
+    path: C:/Users/Prekzursil/.codex/archived_sessions
+    mode: tree
+  - id: codex-root-state
+    tui: codex
+    path: C:/Users/Prekzursil/.codex
+    mode: accepted_top
   - id: grok
-    tui: "Grok CLI"
-    path: "C:/Users/Prekzursil/.grok"
-    include: ["sessions/**", "active_sessions.json", "campaigns_state.json",
-              "claude_import_state.json"]
-    # the rest of ~/.grok is app state (vendor/downloads/tmp...) — trim if the
-    # owner wants it preserved too.
-
-  - id: grokbot
-    tui: "GrokBot"
-    path: "C:/Users/Prekzursil/.grokbot"
-
-  - id: cyberstrike-tui
-    tui: "CyberStrike TUI"
-    path: "C:/Users/Prekzursil/.local/share/cyberstrike"
-
-  # ---- extended scope (added 2026-10-18 sessions-sync-tooling lane; probed on
-  #      disk, see harness-audit-2026-10-18/sessions-sync-tooling.md) ----
+    tui: grok
+    path: C:/Users/Prekzursil/.grok/sessions
+    mode: tree
+  - id: grok-root
+    tui: grok
+    path: C:/Users/Prekzursil/.grok
+    mode: accepted_top
+  - id: grok-desktop
+    tui: grok
+    path: C:/Users/Prekzursil/AppData/Roaming/Grok Bot
+    mode: tree
+  - id: zcode-rollout
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/cli/rollout
+    mode: tree
+  - id: zcode-exec
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/cli/exec
+    mode: tree
+  - id: zcode-image-cache
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/cli/image-cache
+    mode: tree
+  - id: zcode-cli-db
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/cli/db
+    mode: tree
+  - id: zcode-v2
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/v2
+    mode: accepted_top
+  - id: zcode-memories
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/cli/memories
+    mode: tree
+  - id: zcode-workspace
+    tui: zcode
+    path: C:/Users/Prekzursil/.zcode/workspace
+    mode: accepted
   - id: gemini-cli
-    tui: "Gemini CLI / Antigravity CLI"
-    path: "C:/Users/Prekzursil/.gemini"
-    # history/ = gemini CLI sessions; antigravity-cli/conversations + history.jsonl
-    # = AGY session corpus (conversation_summaries.db alongside). tmp/ is volatile.
-    exclude: ["tmp/**", "*.lock", "oauth_creds.json"]
+    tui: gemini
+    path: C:/Users/Prekzursil/.gemini/tmp
+    mode: tree
+  - id: gemini-history
+    tui: gemini
+    path: C:/Users/Prekzursil/.gemini/history
+    mode: tree
+  - id: cursor-chats
+    tui: cursor
+    path: C:/Users/Prekzursil/.cursor/chats
+    mode: tree
+  - id: cursor-acp
+    tui: cursor
+    path: C:/Users/Prekzursil/.cursor/acp-sessions
+    mode: tree
+  - id: cursor-globalstorage
+    tui: cursor
+    path: C:/Users/Prekzursil/AppData/Roaming/Cursor/User/globalStorage
+    mode: accepted_top2
+  - id: opencode
+    tui: opencode
+    path: C:/Users/Prekzursil/.local/share/opencode
+    mode: tree
+  - id: cline
+    tui: cline
+    path: C:/Users/Prekzursil/.cline
+    mode: accepted
+  - id: copilot
+    tui: copilot
+    path: C:/Users/Prekzursil/.copilot
+    mode: accepted
+  - id: cyberstrike-share
+    tui: cyberstrike
+    path: C:/Users/Prekzursil/.local/share/cyberstrike
+    mode: tree
+  - id: cyberstrike-home
+    tui: cyberstrike
+    path: C:/Users/Prekzursil/.cyberstrike
+    mode: tree
+  - id: antigravity-cli
+    tui: antigravity
+    path: C:/Users/Prekzursil/.antigravitycli
+    mode: tree
+  - id: antigravity-local
+    tui: antigravity
+    path: C:/Users/Prekzursil/AppData/Local/antigravity
+    mode: tree
+  - id: claude-desktop-code-sessions
+    tui: claude-desktop
+    path: C:/Users/Prekzursil/AppData/Roaming/Claude/claude-code-sessions
+    mode: tree
+  - id: claude-desktop-agent-mode
+    tui: claude-desktop
+    path: C:/Users/Prekzursil/AppData/Roaming/Claude/local-agent-mode-sessions
+    mode: tree
+  - id: claude-desktop-indexeddb
+    tui: claude-desktop
+    path: C:/Users/Prekzursil/AppData/Roaming/Claude/IndexedDB
+    mode: tree
+  - id: claude-desktop-localstorage
+    tui: claude-desktop
+    path: C:/Users/Prekzursil/AppData/Roaming/Claude/Local Storage
+    mode: tree
+  - id: vscode-globalstorage
+    tui: vscode
+    path: C:/Users/Prekzursil/AppData/Roaming/Code/User/globalStorage
+    mode: accepted_top2
+  - id: vscode-workspacestorage
+    tui: vscode
+    path: C:/Users/Prekzursil/AppData/Roaming/Code/User/workspaceStorage
+    mode: accepted
+  - id: continue-index
+    tui: continue
+    path: C:/Users/Prekzursil/.continue/index
+    mode: accepted
+  - id: d-agentchattr
+    tui: agentchattr
+    path: D:/agentchattr
+    mode: tree
 
-  - id: goose-config
-    tui: "Goose"
-    path: "C:/Users/Prekzursil/.config/goose"
-
-  - id: goose-appdata
-    tui: "Goose (desktop)"
-    path: "C:/Users/Prekzursil/AppData/Roaming/Goose"
-    # Electron app data; Local Storage/ + Partitions/ hold the chats, the rest
-    # is volatile cache.
-    exclude: ["Cache/**", "Code Cache/**", "GPUCache/**", "Dictionaries/**"]
-
-  - id: aider
-    tui: "Aider"
-    path: "C:/Users/Prekzursil/.aider"
-
-  - id: continue-vscode
-    tui: "Continue (VS Code)"
-    path: "C:/Users/Prekzursil/.continue"
-    exclude: ["index/**"]
-
-  - id: vscode-copilot-chat
-    tui: "VS Code Copilot Chat"
-    path: "C:/Users/Prekzursil/AppData/Roaming/Code/User/globalStorage/github.copilot-chat"
-    # copilot.cli.*Sessions*.json + copilotCli/ hold session/chat state
-    exclude: ["toolEmbeddingsCache.bin"]
-
-  # Probed and NOT present on this machine (2026-10-18): Windsurf (~/.codeium,
-  # AppData/Local/Codeium/windsurf*), fabric (~/.fabric), Cline / Ro VS Code
-  # extensions (globalStorage saoudrizwan.claude-dev etc.). .agy exists but holds
-  # only AGENTS.md + skills (no sessions; AGY sessions live in gemini-cli above).
-
-  # ---- backup / orphaned-backup stores ----
-  - id: codex-archive-20260621
-    tui: "Codex CLI (archive)"
-    path: "D:/codex-sessions-archive-20260621"
-    mode: rename   # owner-sanctioned same-drive adoption; saves ~56G of copying
-
+  # ---------------- C: backups / exports ----------------
   - id: claude-desktop-backup-20260524
-    tui: "Claude Desktop (backup)"
-    path: "C:/Users/Prekzursil/Documents/claude-desktop-backup-20260524"
+    tui: claude-desktop
+    path: C:/Users/Prekzursil/Documents/claude-desktop-backup-20260524
+    mode: tree
+  - id: ai-exports
+    tui: multi
+    path: C:/Users/Prekzursil/Downloads/AIs Conversations
+    mode: tree
+  - id: vm-backup
+    tui: multi
+    path: C:/Users/Prekzursil/Downloads/BACKUPS VM
+    mode: accepted
+  - id: vm-consolidated
+    tui: multi
+    path: C:/Users/Prekzursil/Downloads/vm-consolidated-2026-09-24
+    mode: accepted
+  - id: skills-claude-web
+    tui: claude-web
+    path: C:/Users/Prekzursil/Downloads/skills_claude_web
+    mode: accepted
+  - id: downloads-loose-rollouts
+    tui: codex
+    mode: files
+    files: C:/Users/Prekzursil/Downloads/rollout-2026-02-13T15-23-36-019c572b-d59e-7521-85c5-231b7d24a34c.jsonl|C:/Users/Prekzursil/Downloads/rollout-2026-02-18T02-51-29-019c6e3b-0cab-77c3-ad4a-3f5623f4ff4e.jsonl
 
-  - id: cursor-auth-backups
-    tui: "Cursor (auth backups)"
-    path: "C:/Users/Prekzursil/Cowork/private"
+  # ---------------- Cowork (owner-named) ----------------
+  - id: cowork-private
+    tui: cursor
+    path: C:/Users/Prekzursil/Cowork/private
+    mode: accepted
+  - id: cowork-backups
+    tui: multi
+    path: C:/Users/Prekzursil/Cowork/backups
+    mode: accepted
 
+  # ---------------- D: archives ----------------
   - id: claude-projects-archive
-    tui: "Claude Code (archive)"
-    path: "D:/claude-projects-archive"
-
+    tui: claude-code
+    path: D:/claude-projects-archive
+    mode: tree
   - id: claude-history-viewer-archive
-    tui: "Claude history viewer (archive)"
-    path: "D:/claude-history-viewer-archive"
-
-  - id: verdict-archive
-    tui: "Verdict (archive)"
-    path: "D:/verdict-archive"
-
-  - id: primariro-scratchpad-archive
-    tui: "PrimariRo scratchpad (archive)"
-    path: "D:/PrimariRo-scratchpad-archive-20260812"
-
+    tui: claude-history-viewer
+    path: D:/claude-history-viewer-archive
+    mode: tree
+  - id: codex-archive-20260621
+    tui: codex
+    path: D:/codex-sessions-archive-20260621
+    mode: move
+    walk: tree
+  - id: codex-seed-extracted
+    tui: codex
+    path: D:/codex-seed-extracted
+    mode: tree
   - id: d-backups
-    tui: "D:/Backups (mixed)"
-    path: "D:/Backups"
+    tui: multi
+    path: D:/Backups
+    mode: accepted
+    prune: images,docker-volumes
+  # LAST on purpose: a redundant container of codex-seed-extracted (43.9GB, no dedup possible)
+  - id: codex-seed-tar
+    tui: codex
+    mode: files
+    files: D:/codex-sessions-seed-20260315.tar
 
-  # from-C-20260818 dirs: NOT found on either drive at seeding time
-  # (checked D:/*, C:/Users/Prekzursil/from-C-*, D:/from-C-*). If they exist
-  # elsewhere, add:
-  #  - id: from-c-20260818
-  #    tui: "mixed (from-C migration)"
-  #    path: "<wherever it lives>"
+  # ---------------- consolidated additions 2026-10-18 (sessions-repo-wiring) ----------------
+  # From the tooling lane's registry after on-disk verification (files/bytes at
+  # verification time in comments). Appended LAST = lowest dedup priority.
+
+  # GAP FIXED: the AGY session corpus was covered by NEITHER gemini-cli
+  # (~/.gemini/tmp) NOR gemini-history (~/.gemini/history).
+  - id: gemini-antigravity
+    tui: antigravity
+    path: C:/Users/Prekzursil/.gemini/antigravity-cli
+    mode: tree
+    # 8,907 files / 626.5MB: conversations/ + history.jsonl + conversation_summaries.db
+  - id: opencode-config
+    tui: opencode
+    path: C:/Users/Prekzursil/.config/opencode
+    mode: tree
+    # 3,450 files / 50.8MB
+  - id: grokbot
+    tui: grok
+    path: C:/Users/Prekzursil/.grokbot
+    mode: tree
+    # 10 files / 64KB. Vault lane sample-reviewed as no-session-content; kept
+    # whole-tree anyway (zero-loss, trivial size).
+  - id: goose-config
+    tui: goose
+    path: C:/Users/Prekzursil/.config/goose
+    mode: tree
+    # 0 files (dir exists) - registry-only until goose writes here
+  - id: goose-appdata
+    tui: goose
+    path: C:/Users/Prekzursil/AppData/Roaming/Goose
+    mode: tree
+    # 88 files / 3.7MB whole-tree (tooling lane excluded Chromium caches;
+    # zero-loss prefers keeping them at this trivial size)
+  - id: aider
+    tui: aider
+    path: C:/Users/Prekzursil/.aider
+    mode: tree
+    # 4 files / 3.3MB
+  - id: continue-vscode
+    tui: continue
+    path: C:/Users/Prekzursil/.continue
+    mode: tree
+    # 14 files / 251KB whole-tree; index/ files dedup as aliases vs continue-index
+  - id: vscode-copilot-chat
+    tui: copilot
+    path: C:/Users/Prekzursil/AppData/Roaming/Code/User/globalStorage/github.copilot-chat
+    mode: tree
+    # 10 files / 94.2MB (toolEmbeddingsCache.bin kept - zero-loss over slimness)
+  # ORPHANED D: archives missed by the vault lane's discovery pass, registered
+  # by the tooling lane, verified on disk this wave:
+  - id: verdict-archive
+    tui: verdict
+    path: D:/verdict-archive
+    mode: tree
+    # 34,118 files / 334.7MB
+  - id: primariro-scratchpad-archive
+    tui: primariro
+    path: D:/PrimariRo-scratchpad-archive-20260812
+    mode: tree
+    # 10 files / 134.0MB
