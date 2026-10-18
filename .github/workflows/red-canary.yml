@@ -1,0 +1,44 @@
+name: red-canary
+
+# CANARY WORKFLOW -- audit 2026-10-18 (slug: ci-quality-red-proof).
+#
+# Exists ONLY to prove that a deliberately failing assertion on a pushed
+# branch propagates to a RED GitHub check run, end to end. It runs exactly one
+# test file, ci/tests/test_red_canary.py, whose single assertion is
+# intentionally impossible.
+#
+# Trigger is scoped to the canary branch ONLY, so it can never fire for any
+# other branch, PR or main. ubuntu-latest (not the self-hosted runner) so the
+# proof does not queue behind real work.
+#
+# SELF-DELETING NOTE: to retire the canary, delete this file together with
+# ci/tests/test_red_canary.py. The ci/red-canary branch itself is left up on
+# purpose as evidence; do not merge it.
+
+on:
+  push:
+    branches: [ci/red-canary]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: red-canary-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  red-canary:
+    name: gate-red-canary (must report RED on this branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - run: pip install pytest==8.4.2
+      # The single gate step. No continue-on-error, no || true, no pipe: the
+      # pytest exit code IS the job verdict, by construction.
+      - name: gate-red-canary deliberately failing assertion
+        run: python -m pytest ci/tests/test_red_canary.py -q
