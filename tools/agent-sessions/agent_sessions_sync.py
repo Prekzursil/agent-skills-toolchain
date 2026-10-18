@@ -1187,11 +1187,14 @@ def cmd_verify(args):
     log = syncer.log
     # pass 1: hash every unique materialized vault file once
     unique = {}
+    alias_vps = set()
     for e in man.entries.values():
         vp = e.get("vault_path")
         sha = e.get("sha256")
         if vp and sha and vp not in unique:
             unique[vp] = sha
+        if e.get("alias_of") and vp:
+            alias_vps.add(vp)
     bad = 0
     hashed = 0
     for vp, sha in sorted(unique.items()):
@@ -1199,6 +1202,13 @@ def cmd_verify(args):
         try:
             got = sha256_file(ap)
         except OSError as ex:
+            if vp in alias_vps:
+                # vault-build alias encoding: copy-store alias rows carry a
+                # vault_path that is intentionally NOT materialized (the file
+                # lives only at the alias target); in move/adopt stores the
+                # file DOES exist and is hashed. Absence here is fine - the
+                # row is proven via its target in pass 2 (alias-broken).
+                continue
             log.err("MISSING vault file %s: %s" % (vp, ex))
             bad += 1
             continue
