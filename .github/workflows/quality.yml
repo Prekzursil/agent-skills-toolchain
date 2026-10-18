@@ -90,6 +90,12 @@ jobs:
   lint:
     name: gate-lint-format (ruff)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: job-level timeout. Every gate job in this file previously
+    # lacked one (only test-platform had 30), so a hung step pinned a runner slot for
+    # GitHub's 360-minute default and read as a slow run, not a stuck one. Measured
+    # healthy duration of this job on the green run 33604920925: 0.3 min; 15 min is
+    # ~50x headroom.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -143,6 +149,8 @@ jobs:
   types:
     name: gate-types (basedpyright)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 1.1 min (run 33604920925); 20 min headroom.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -255,6 +263,8 @@ jobs:
   test-node:
     name: gate-tests-coverage (node workspaces)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 0.5 min (run 33604920925); 15 min headroom.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -299,6 +309,9 @@ jobs:
   test-python:
     name: gate-tests-coverage (python packages)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 6.2 min (run 33604920925), the slowest job
+    # in the workflow; 45 min is ~7x headroom so a cold-cache hosted run still fits.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -662,9 +675,24 @@ jobs:
       # fleet-supervisor suite. Stdlib-only (pytest already installed above); the tests
       # load the scripts by path and read .agents/agents.json in place. Reuses the
       # existing `gate-tests-coverage` charter slug on purpose -- it is not a new gate,
-      # so .quality/charter_check.sh stays consistent with no charter.yml edit. The
-      # bm_cursor_http_session bridge suite is deliberately NOT listed: it drives a fake
-      # streamable-HTTP daemon over loopback and is gated with tools/mcp/mcp-http-host.
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit. (The
+      # bm_cursor_http_session bridge suite used to be "deliberately NOT listed" here
+      # on the since-refuted belief it was gated elsewhere -- see the block below.)
+      # HARDENING 2026-10-18 (audit ci-quality-red-proof): two more .agents/tests suites
+      # were named by NO workflow and swept by NO directory selector -- measured with
+      # grep across .github/ ci/ scripts/ agent-self/ returning zero references for
+      # either filename, and re-run green on this tree:
+      #   test_stale_codex_threads.py         1 passed
+      #   test_bm_cursor_http_session.py     26 passed (loopback-only fake HTTP daemon)
+      # The comment above used to claim the bm_cursor suite was "gated with
+      # tools/mcp/mcp-http-host" -- REFUTED: that step runs the PACKAGE's tests, not
+      # this .agents file, which nothing invoked. Named here now, like its siblings.
+      # NOT wired, deliberately, because they are RED against main on the audit
+      # interpreter (owner-debt to disposition, see the audit report):
+      #   test_skills_and_agents_contract.py       5 failed / 2 passed
+      #   test_mcp_control_plane_live_lineage.py   6 failed / 41 passed
+      # Wiring red suites here would pin this branch red; they stay listed so the
+      # gap is visible instead of silently tolerated.
       - name: gate-tests-coverage mcp control plane (.agents/scripts; main + live lineage suites)
         run: |
           python -m pytest \
@@ -672,6 +700,8 @@ jobs:
             .agents/tests/test_mcp_control_plane_live.py \
             .agents/tests/test_cursor_remote_transport_policy.py \
             .agents/tests/test_mcp_fleet_supervisor.py \
+            .agents/tests/test_stale_codex_threads.py \
+            .agents/tests/test_bm_cursor_http_session.py \
             -q -p no:cacheprovider
       # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
       # Naming the script here turns its existing tests and production-wiring checks
@@ -1703,6 +1733,10 @@ jobs:
   sast:
     name: gate-sast (opengrep)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 0.6 min (run 33604920925); 15 min headroom.
+    # The install half keeps --retry 5 --retry-all-errors, so transient network still
+    # has room inside this budget.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 4 — static security analysis with the CURATED in-repo ruleset under
@@ -1753,6 +1787,9 @@ jobs:
   secrets:
     name: gate-secrets (gitleaks)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 0.8 min over ~950 commits (run 33604920925);
+    # 20 min headroom because full-history scan time grows with the repo.
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
@@ -1816,6 +1853,8 @@ jobs:
   deps:
     name: gate-deps (osv-scanner)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # HARDENING 2026-10-18: measured healthy 0.4 min (run 33604920925); 15 min headroom.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE
