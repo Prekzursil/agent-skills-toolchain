@@ -1,6 +1,6 @@
 ---
 name: hosted-model-agents
-description: Deploy hosted or local models as agent runtimes in different environments (Hugging Face router + Hub MCP + Spaces + Endpoints, Modal/RunPod/Lightning, Azure Foundry, Ollama/LM Studio/llama.cpp, Cursor Max/auth2api), register them once in the .agents/models.json registry, reach them through the inference-hub MCP (models_list / chat / chat_many) or rendered provider blocks, then give them tools in the local harness. Use when choosing where to run a model, wiring OpenAI /v1 or Gradio MCP, attaching tool loops for red-team/learning/coding agents, or deciding Hub MCP vs inference HTTP. Not Qwen-specific - any chat model that emits tool_calls.
+description: Deploy hosted or local models as agent runtimes (Hugging Face router + Hub MCP + Spaces + Endpoints, Modal/RunPod/Lightning, Azure Foundry, Ollama/LM Studio/llama.cpp, Cursor Max/auth2api), register them in .agents/models.json, reach them via the inference-hub MCP (models_list/chat/chat_many), then give them tools in the local harness. Use when choosing where to run a model, wiring OpenAI /v1 or Gradio MCP, or attaching tool loops for agents. Any chat model that emits tool_calls.
 metadata:
   status: active
   valid_as_of: 2026-09-02
