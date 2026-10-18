@@ -164,19 +164,18 @@ EXPECTED_DISPATCH_ROUTES = {
     },
 }
 
-# These ten handlers use an enforcement or mutation contract which the current
-# inject-only dispatcher cannot preserve.  An exit-2 gate, permission decision,
-# updatedInput, or updatedToolOutput must stay a separate Claude hook until the
-# dispatcher grows explicit merge/precedence semantics for those fields.
+# Handlers that must keep their OWN settings.json entry. 2026-10-17 blocking-mode
+# update: the five exit-2/decision guards that used to sit here
+# (test-tamper-guard, inject-nopager, ulysses, loop-recovery, deny-credential-reads,
+# plus the live-only no-force-push and estate-deny-guard) are now CONSOLIDATED as
+# exec-mode manifest checks -- subprocess isolation propagates their real exit
+# code / decision JSON (test_blocking_mode.py), so a standalone entry would be a
+# DOUBLE-RUN, not extra safety. The handlers below stay standalone because their
+# contract is still beyond the dispatcher: transform of host output
+# (compress-output) or per-edit mutation checks, none of which carry an
+# exec/blocking_rc manifest entry.
 REQUIRED_STANDALONE_HANDLERS = {
     "PreToolUse": {
-        "test-tamper-guard/guard.py": ("Bash", 20, ""),
-        "cmd-rewrite/inject-nopager.py": ("Bash", 5, ""),
-        "ulysses/enforce.py": (
-            "Edit|Write|MultiEdit|Bash|PowerShell|mcp__cheatengine__.*|mcp__frida-mcp__.*",
-            10,
-            "",
-        ),
         "re-autolaunch/autolaunch.py": (
             "mcp__ida-pro-mcp__.*|mcp__ghidra-mcp__.*|mcp__binary-ninja-mcp__.*",
             12,
@@ -188,12 +187,6 @@ REQUIRED_STANDALONE_HANDLERS = {
             "",
         ),
         "file-scope/check.py": ("Edit|Write|MultiEdit|NotebookEdit", 10, ""),
-        "loop-recovery/handler.py": ("Bash", 5, "--mode pretooluse"),
-        "deny-credential-reads/deny.py": (
-            "Read|Edit|MultiEdit|Grep|Bash|PowerShell",
-            8,
-            "",
-        ),
     },
     "PostToolUse": {
         # Extended beyond Bash to the browser rail so oversized base64 screenshots
@@ -295,28 +288,37 @@ def test_settings_has_exactly_one_local_dispatch_for_event(event: str, token: st
 
 
 @requires_live_settings
-def test_no_force_push_is_a_standalone_bash_gate():
+def test_no_force_push_is_consolidated_not_standalone():
+    """2026-10-17 flip: no-force-push must run ONLY behind the dispatcher.
+
+    It was a standalone exit-2 Bash gate until the blocking-mode wave gave
+    dispatch.py real exit-code propagation (exec mode + ``blocking_rc``, pinned
+    by test_blocking_mode.py::test_cli_blocking_exit2_end_to_end, which uses
+    exactly the force-push shape). A standalone entry left behind would double-
+    run the guard on every Bash call -- harmless-looking, but it silently
+    re-adds a settings.json surface the consolidation removed.
+    """
     settings = _load(SETTINGS)
     matches = _commands_referencing(settings, NO_FORCE_PUSH, "PreToolUse")
-    assert len(matches) == 1, (
-        "hooks.PreToolUse must contain exactly one standalone no-force-push command"
+    assert not matches, (
+        "hooks.PreToolUse still carries a standalone no-force-push command; "
+        "the guard is consolidated behind _dispatch (exec + blocking_rc) and "
+        "a standalone entry double-runs it"
     )
-    _event, group, hook = matches[0]
-    assert group.get("matcher") == "Bash"
-    assert len(group.get("hooks") or []) == 1, (
-        "no-force-push must remain its own hook group"
-    )
-    assert hook.get("timeout") == 8
 
     manifest = _load(MANIFEST)
-    manifest_scripts = {
-        _norm(check.get("script") or "")
-        for event_data in (manifest.get("events") or {}).values()
-        for check in (event_data.get("checks") or [])
-        if isinstance(event_data, dict) and isinstance(check, dict)
-    }
-    assert _norm(NO_FORCE_PUSH.relative_to(HOOKS_ROOT)) not in manifest_scripts, (
-        "the exit-2 no-force-push gate must not be folded into the exit-0 dispatcher"
+    entry = next(
+        (
+            c
+            for c in manifest["events"]["PreToolUse"]["checks"]
+            if c.get("script") == "no-force-push/hook.py"
+        ),
+        None,
+    )
+    assert entry is not None, "no-force-push must be a PreToolUse manifest check"
+    assert entry.get("exec") is True and entry.get("blocking_rc") is True, (
+        "the consolidated no-force-push must run in exec mode with blocking_rc "
+        "so its exit-2 block survives the dispatcher"
     )
 
 
@@ -341,6 +343,20 @@ def test_prepost_manifest_entries_are_unique_and_reference_files(event: str):
     recorded_root = Path(manifest.get("hooks_root") or HOOKS_ROOT)
     root = recorded_root if recorded_root.is_dir() else HOOKS_ROOT
     for check in checks:
+        # 2026-10-17 blocking-mode contract: a check carries EITHER a contained
+        # relative ``script`` (import or exec mode) OR an absolute ``exec_path``
+        # (exec mode only, owner-reviewed out-of-tree bridge -- live-host
+        # absolute, so its existence is NOT assertable in a checkout or on CI).
+        if check.get("exec_path"):
+            assert check.get("exec"), (
+                f"events.{event} check {check.get('name')!r} carries an absolute "
+                "exec_path outside exec mode -- a containment escape"
+            )
+            assert isinstance(check["exec_path"], str) and check["exec_path"].strip(), (
+                f"events.{event} check {check.get('name')!r} exec_path must be a "
+                "non-empty string"
+            )
+            continue
         script = check.get("script")
         assert isinstance(script, str) and script.strip(), (
             f"events.{event} check {check.get('name')!r} must name a script"
@@ -446,6 +462,62 @@ def test_tracked_deploy_mirror_admits_every_dispatched_route(event: str, token: 
             "PreToolUse carries matcher-scoped checks, so a zero here means this "
             "assertion degraded to a vacuous pass"
         )
+
+
+def test_mirror_harness_dispatcher_timeouts_match_registration():
+    """P1c (2026-10-18 review thread): host deadlines must cover the registered budgets.
+
+    ``registration._TIMEOUTS`` is the single source the harness dispatcher
+    derives its internal module budgets from (deadline - startup allowance).
+    The tracked deploy mirror used to carry stale 2/3/5/8/10/35s host timeouts
+    against 25/60s registered deadlines, so the host could kill the dispatcher
+    before it emitted its result or terminal record — exactly the failure the
+    2026-10-13 raise existed to fix. Every harness-dispatcher entry in the
+    mirror must now equal ``_TIMEOUTS`` for its event.
+    """
+
+    reg_path = CLAUDE_ROOT / ".agents" / "harness" / "registration.py"
+    if not reg_path.is_file():
+        pytest.skip(
+            f"registration.py not present beside this checkout ({reg_path}); "
+            "the lockstep is only checkable where the harness tree ships"
+        )
+    spec = importlib.util.spec_from_file_location(
+        "registration_under_test", reg_path
+    )
+    assert spec is not None and spec.loader is not None
+    reg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(reg)
+
+    settings = _load(TRACKED_DEPLOY_SETTINGS)
+    seen: dict[str, object] = {}
+    for event_name, _group, hook in _hook_entries(settings):
+        command = str(hook.get("command") or "")
+        if ".agents/harness/dispatcher.py" not in command:
+            continue
+        m = re.search(r"--event (\w+)", command)
+        assert m, f"unparseable harness dispatcher command: {command!r}"
+        assert m.group(1) == event_name, (
+            f"hooks.{event_name} carries a --event {m.group(1)} command"
+        )
+        seen[event_name] = hook.get("timeout")
+
+    assert seen, (
+        "found no harness dispatcher entries in the mirror — this lockstep "
+        "assertion degraded to a vacuous pass"
+    )
+    mismatches = [
+        f"hooks.{ev}: mirror timeout {t!r} != registration._TIMEOUTS "
+        f"{reg._TIMEOUTS.get(ev)!r}"
+        for ev, t in sorted(seen.items())
+        if t != reg._TIMEOUTS.get(ev)
+    ]
+    assert not mismatches, (
+        "tracked mirror host timeouts are out of step with "
+        "registration._TIMEOUTS (a host timeout below the derived module "
+        "budget kills the dispatcher before it emits anything):\n"
+        + "\n".join(mismatches)
+    )
 
 
 def _dispatch_module():
@@ -839,11 +911,36 @@ def test_incompatible_gates_and_transformers_remain_standalone(event: str):
 
 def test_prepost_manifest_scripts_have_no_standalone_duplicates():
     manifest = _load(MANIFEST)
-    scripts = {
-        (_norm(check["script"]), event): check["script"]
-        for event in ("PreToolUse", "PostToolUse")
-        for check in manifest["events"][event]["checks"]
-    }
+    # 2026-10-17: exec-path checks carry no ``script`` (their target is the
+    # absolute ``exec_path``); both spellings are needles below so a guard
+    # consolidated under EITHER key is caught running standalone again.
+    scripts: dict = {}
+    for event in ("PreToolUse", "PostToolUse"):
+        for check in manifest["events"][event]["checks"]:
+            target = check.get("script") or check.get("exec_path")
+            if target:
+                scripts[(_norm(target), event)] = (target, check.get("matcher"))
+
+    def _routes_overlap(standalone_matcher: object, check_matcher: object) -> bool:
+        """True when both matchers can select the SAME tool_name.
+
+        A shared script is only a DOUBLE-RUN when the routes overlap. The live
+        wave legitimately split one script across two disjoint routes (manifest
+        check ``codex-monitor-autolaunch`` on ``Bash|PowerShell`` behind the
+        dispatcher, standalone entry on ``mcp__codex__codex``), which is
+        consolidation-compatible; identical/overlapping matchers would run the
+        script twice per matching call.
+        """
+        if not isinstance(standalone_matcher, str) or not standalone_matcher:
+            return True  # standalone entry matches everything -> always overlap
+        if not isinstance(check_matcher, str) or not check_matcher:
+            return True
+        for outer, inner in ((standalone_matcher, check_matcher),
+                             (check_matcher, standalone_matcher)):
+            for alternative in outer.split("|"):
+                if alternative and re.fullmatch(inner, _sample_tool_name(alternative)):
+                    return True
+        return False
 
     # Each registration document is optional and the two surfaces do not co-exist:
     # settings.json is the untracked live deployment (absent in a checkout/CI) while
@@ -862,12 +959,20 @@ def test_prepost_manifest_scripts_have_no_standalone_duplicates():
     failures: list[str] = []
     for label, path in available:
         document = _load(path)
-        for event, _group, hook in _hook_entries(document):
+        for event, group, hook in _hook_entries(document):
             command = _norm(str(hook.get("command") or ""))
-            for (script_norm, manifest_event), script in scripts.items():
-                if event == manifest_event and script_norm in command:
+            for (script_norm, manifest_event), (script, check_matcher) in scripts.items():
+                # Path-boundary match: `monitor-autolaunch/check.py` must not
+                # hit `codex-monitor-autolaunch/check.py` as a substring.
+                hits = command.startswith(script_norm) or ("/" + script_norm) in command
+                if (
+                    event == manifest_event
+                    and hits
+                    and _routes_overlap(group.get("matcher"), check_matcher)
+                ):
                     failures.append(
-                        f"{label}:{event} duplicates {script}: {hook['command']}"
+                        f"{label}:{event} duplicates {script} on an overlapping "
+                        f"route: {hook['command']}"
                     )
 
     assert not failures, "manifest scripts must not also run standalone:\n" + "\n".join(

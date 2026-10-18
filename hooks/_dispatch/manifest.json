@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Per-event dispatcher manifest. Each event lists the SESSION-NEW checks consolidated behind one hook invocation. dispatch.py reads stdin once, runs each check whose `matcher` (regex on tool_name; absent = always) matches, IN-PROCESS in its own thread with a per-check timeout, fail-open, and aggregates every check's additionalContext into ONE hookSpecificOutput for the event. Adding a future check = one line here (seeds the later Discipline-Forge). The PRE-EXISTING B1/legacy hooks are intentionally NOT listed here and stay as their own settings.json entries.",
+  "description": "Per-event dispatcher manifest. Each event lists the SESSION-NEW checks consolidated behind one hook invocation. dispatch.py reads stdin once, runs each check whose `matcher` (regex on tool_name; absent = always) matches, IN-PROCESS in its own thread with a per-check timeout, fail-open, and aggregates every check's additionalContext into ONE hookSpecificOutput for the event. Adding a future check = one line here (seeds the later Discipline-Forge). The PRE-EXISTING B1/legacy hooks are intentionally NOT listed here and stay as their own settings.json entries. 2026-10-17: blocking-mode wave - exec/decision/blocking_rc flags let the 7 PreToolUse Bash/Edit guards run consolidated as subprocesses with real exit codes (see dispatch.py _exec_worker + main).",
   "hooks_root": "C:/Users/Prekzursil/.claude/hooks",
   "events": {
     "SessionStart": {
@@ -226,8 +226,9 @@
       ]
     },
     "PreToolUse": {
-      "settings_matcher": "Task|Edit|Write|MultiEdit|mcp__basic-memory__.*|Workflow|mcp__codex__codex|Bash|PowerShell",
-      "settings_timeout": 15,
+      "settings_matcher": ".*",
+      "settings_timeout": 25,
+      "settings_timeout_note": "2026-10-18 P2 thread: raised 20->25 in lockstep with test-tamper-guard's restored 20s budget (below) so the host deadline clears the check budget with 5s of collection headroom — a ceiling at exactly the budget kills the dispatcher at the same instant the check finishes (test_every_check_budget_fits_its_event_ceiling pins budget <= ceiling, never ==).",
       "checks": [
         {
           "name": "mcp-liveness/pretool",
@@ -299,6 +300,77 @@
           "isolate": null,
           "side_effect": "launch",
           "emits": true
+        },
+        {
+          "name": "no-force-push",
+          "script": "no-force-push/hook.py",
+          "args": [],
+          "timeout": 8,
+          "matcher": "Bash|PowerShell",
+          "exec": true,
+          "blocking_rc": true
+        },
+        {
+          "name": "test-tamper-guard",
+          "script": "test-tamper-guard/guard.py",
+          "args": [],
+          "timeout": 20,
+          "matcher": "Bash",
+          "exec": true,
+          "blocking_rc": true,
+          "timeout_rationale": "2026-10-18 P2 thread: restored to the former standalone registration's 20s. guard.py::_run deliberately allows individual git subprocesses up to 15s, so the consolidation wave's 10s dispatcher budget could kill a valid scan before the guard's own operation-level timeout — a fail-open that let the commit proceed unscanned. Ceiling headroom: PreToolUse settings_timeout is 25."
+        },
+        {
+          "name": "inject-nopager",
+          "script": "cmd-rewrite/inject-nopager.py",
+          "args": [],
+          "timeout": 8,
+          "matcher": "Bash",
+          "exec": true,
+          "decision": true
+        },
+        {
+          "name": "ulysses",
+          "script": "ulysses/enforce.py",
+          "args": [],
+          "timeout": 10,
+          "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell|mcp__cheatengine__.*|mcp__frida-mcp__.*",
+          "exec": true,
+          "blocking_rc": true
+        },
+        {
+          "name": "loop-recovery",
+          "script": "loop-recovery/handler.py",
+          "args": [
+            "--mode",
+            "pretooluse"
+          ],
+          "timeout": 8,
+          "matcher": "Bash",
+          "exec": true
+        },
+        {
+          "name": "deny-credential-reads",
+          "script": "deny-credential-reads/deny.py",
+          "args": [],
+          "timeout": 8,
+          "matcher": "Read|Edit|MultiEdit|Grep|Bash|PowerShell",
+          "exec": true,
+          "decision": true
+        },
+        {
+          "name": "estate-deny-guard",
+          "exec_path": "C:/Users/Prekzursil/.agents/scripts/estate-deny-guard.py",
+          "args": [
+            "--runtime",
+            "claude"
+          ],
+          "timeout": 8,
+          "matcher": "Bash|PowerShell|Edit|Write|MultiEdit",
+          "exec": true,
+          "decision": true,
+          "blocking_rc": true,
+          "comment": "2026-10-17 blocking-mode wave: bridged out-of-tree guard (owner-reviewed absolute path) - same power as its former standalone settings.json entry, consolidated. Emits deny JSON at exit 0 for runtime claude; blocking_rc kept as belt."
         }
       ]
     }

@@ -67,6 +67,25 @@ SUPERSEDED_STANDALONE: dict[str, dict[str, str]] = {
         # tool its own ``_is_codex_launch`` returns False for.  Those are disjoint routes that
         # the repo mirror keeps on purpose, not a supersession.
         "workflow-monitor-autolaunch/check.py": "monitor-autolaunch/check.py",
+        # 2026-10-18 review thread "remove superseded guards during surgical
+        # deployment": the six PreToolUse guards the blocking-mode wave
+        # consolidated as exec-mode manifest checks.  On an install deployed
+        # BEFORE that wave the standalone groups are still wired; widening the
+        # dispatcher matcher alone would run BOTH copies on every overlapping
+        # call (double scans, racing side effects on stateful hooks such as
+        # loop-recovery).  Each successor below IS the same script, now reached
+        # behind the dispatcher with its real exit code / decision JSON
+        # propagated (dispatch.py exec mode; pinned by test_blocking_mode.py),
+        # so the standalone copy is a double-run, not extra safety.
+        # ``estate-deny-guard.py`` is deliberately NOT listed: it never had a
+        # standalone settings entry on the tracked-mirror deploy path (it was
+        # bridged live-only via the manifest's owner-reviewed ``exec_path``).
+        "no-force-push/hook.py": "no-force-push/hook.py",
+        "test-tamper-guard/guard.py": "test-tamper-guard/guard.py",
+        "cmd-rewrite/inject-nopager.py": "cmd-rewrite/inject-nopager.py",
+        "ulysses/enforce.py": "ulysses/enforce.py",
+        "loop-recovery/handler.py": "loop-recovery/handler.py",
+        "deny-credential-reads/deny.py": "deny-credential-reads/deny.py",
     },
 }
 

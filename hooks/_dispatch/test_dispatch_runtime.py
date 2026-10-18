@@ -135,7 +135,17 @@ def test_resolve_script_rejects_the_root_itself(hooks_root: Path):
 
 
 def test_every_shipped_manifest_script_survives_containment():
-    """The real manifest must not be collateral damage of the new guard."""
+    """The real manifest must not be collateral damage of the guard.
+
+    2026-10-17 blocking-mode contract update: a check may now carry an absolute
+    ``exec_path`` instead of a contained ``script`` (owner-reviewed bridge for
+    out-of-tree guards such as ``estate-deny-guard``), but ONLY under ``exec``
+    mode -- an absolute path that slipped into import mode would be exactly the
+    containment escape this suite exists to catch. So: ``script`` checks (import
+    or exec) must still resolve inside ``hooks_root``; ``exec_path`` checks must
+    declare ``exec`` truthy and are exempt from root containment by design (the
+    live-host absolute path does not exist in a checkout or on CI).
+    """
 
     manifest = dispatch._load_manifest()
     root = manifest.get("hooks_root") or str(HERE.parent)
@@ -145,12 +155,23 @@ def test_every_shipped_manifest_script_survives_containment():
         for check in (event.get("checks") or [])
     ]
     assert checks, "shipped manifest exposed no checks -- detector is broken"
-    rejected = [
-        c["script"]
-        for c in checks
-        if dispatch._resolve_script(root, c["script"]) is None
-    ]
+    contained = 0
+    rejected = []
+    unguarded = []
+    for c in checks:
+        if c.get("exec_path"):
+            if not c.get("exec"):
+                unguarded.append(
+                    f"{c.get('name')!r} carries exec_path without exec mode -- "
+                    "an absolute import target is a containment escape"
+                )
+            continue
+        contained += 1
+        if dispatch._resolve_script(root, c["script"]) is None:
+            rejected.append(c["script"])
+    assert not unguarded, f"exec_path outside exec mode: {unguarded}"
     assert not rejected, f"containment rejected shipped manifest scripts: {rejected}"
+    assert contained, "no script-based checks survived -- containment half is vacuous"
 
 
 # --- 2. disarmed block requests --------------------------------------------

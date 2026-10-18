@@ -18,6 +18,13 @@ os.environ["OPEN_LOOPS_DIR"] = _TMP
 os.environ["EVENT_LEDGER_ROOT"] = os.path.join(_TMP, "ledger")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# `_common` is a DIR-LOCAL name shared by bg-registry/, memory-spool/ and this
+# dir. Under a full `pytest hooks/` run those siblings are collected first and
+# cache THEIR `_common` in sys.modules, so a plain `import _common` here binds
+# the wrong module and collection dies on the GEM-5 attributes below (the
+# 2026-10-18 suite-abort). Pop the cache and re-resolve against THIS dir — the
+# same idiom dispatch.py::_SHARED_NAMES uses for exactly this collision.
+sys.modules.pop("_common", None)
 import _common as C  # noqa: E402
 import resurface  # noqa: E402
 import trigger_match  # noqa: E402

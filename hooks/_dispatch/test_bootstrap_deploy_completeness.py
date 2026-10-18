@@ -104,7 +104,10 @@ def test_bootstrap_still_performs_the_copy_this_gate_assumes(line: str):
 def test_detector_finds_the_known_present_references():
     """Control: a zero-miss verdict is worthless if the scan finds nothing."""
     references = _settings_hook_references()
-    assert len(references) >= 15, (
+    # 2026-10-17 blocking-mode consolidation removed six standalone PreToolUse
+    # guard references from the mirror (now exec checks behind _dispatch), so
+    # the distinct-reference floor tracks the shrunk registration surface.
+    assert len(references) >= 14, (
         f"only {len(references)} hook references parsed out of settings.json - "
         "the regex is broken, not the configuration"
     )
