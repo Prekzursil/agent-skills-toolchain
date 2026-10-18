@@ -140,3 +140,19 @@ After step 1 passes, flip browser-rail's
 UNVERIFIED) to VERIFIED with the resolved listing URL
 (https://chromewebstore.google.com/detail/playwright-extension/mmlmfjhmonkocbjadbfplnigmagldckm)
 and the date.
+
+
+## Wired state (2026-10-19)
+
+The entries actually registered on the estate (names and env match the
+SKILL.md "Wired on this estate" section): `browser-attach-chrome` and
+`browser-attach-edge` in ZCode `~/.zcode/cli/config.json`, Claude Code
+`~/.claude.json`, and Codex `~/.codex/config.toml`, each carrying its
+browser's `PLAYWRIGHT_MCP_EXTENSION_TOKEN` (and the Edge executable path for
+the edge entry). `PLAYWRIGHT_MCP_EXTENSION_TOKEN` (Chrome default) is also
+`setx`-ed at user AND machine scope for ad-hoc CLI use. Token values are
+deliberately absent from this repo - see the security rule in SKILL.md.
+Post-wiring validation: both JSON configs re-parsed OK and the Codex TOML
+passed `tomllib` after the backslash fix; backups of the pre-edit configs
+live in the session workspace under
+`out/harness-audit-2026-10-18/backups/tui-mcp-wiring-v2/`.

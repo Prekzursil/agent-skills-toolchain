@@ -91,6 +91,34 @@ Gemini/AGY, OpenCode) is in
 [references/mcp-client-registration.md](references/mcp-client-registration.md),
 along with the first-session acceptance checklist.
 
+## Wired on this estate (2026-10-19)
+
+Live in three TUI configs - ZCode `~/.zcode/cli/config.json` (`mcp.servers`),
+Claude Code `~/.claude.json` (`mcpServers`), Codex `~/.codex/config.toml`
+(`[mcp_servers."..."]`) - as TWO entries each:
+
+- `browser-attach-chrome` - `npx -y @playwright/mcp@latest --extension` with
+  env `PLAYWRIGHT_MCP_EXTENSION_TOKEN=<Chrome token>`. Chrome is the default
+  exe; no executable-path override needed.
+- `browser-attach-edge` - same command with env
+  `PLAYWRIGHT_MCP_EXECUTABLE_PATH=C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
+  plus `PLAYWRIGHT_MCP_EXTENSION_TOKEN=<Edge token>` (tokens are
+  per-browser-profile; they differ between Chrome and Edge).
+
+Persistent beyond the configs: `PLAYWRIGHT_MCP_EXTENSION_TOKEN` (the Chrome
+default) is set via `setx` at BOTH user and machine scope, so ad-hoc
+`npx @playwright/mcp --extension` runs from any shell reconnect silently.
+TUIs need one restart to boot the new entries - ZCode connects MCP servers
+at startup only. Codex TOML gotcha learned here: Windows paths inside TOML
+basic strings must be double-backslash escaped, and a bash-heredoc python
+layer can silently halve them - validate with `tomllib` after every edit.
+
+SECURITY RULE: token VALUES never enter this repo, docs, or transcripts.
+The literals live only in the local TUI configs and the Windows env; this
+module and the registration reference document the env-var NAMES only. If a
+token leaks anywhere, reset it from the extension status page - the leaked
+one dies with the reset.
+
 ## Known limits (teach these verbatim)
 
 - **Downloads throw** "Download is starting" - but the file still lands in
