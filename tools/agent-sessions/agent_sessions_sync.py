@@ -31,7 +31,28 @@ Design
                          os.rename the whole tree into the vault (saves ~56G of
                          copying), verify file/byte counts pre/post, then hash-index
                          it in place. Original path recorded in _ADOPTED_FROM.txt.
-                         Never executed in --dry-run.
+                         Never executed in --dry-run. (Legacy alias of mode: move.)
+* VAULT DIALECT (v1.2.0, 2026-10-18 sessions-repo-wiring lane) — this engine now
+  drives the SAME registry + manifest as the vault-build engine
+  (tools/sessions-vault/agent_sessions_sync.py on branch sessions-vault), so the
+  watchdog runs ONE coherent pipeline:
+  * mode: tree         -> whole tree minus GLOBAL_PRUNE_DIRS (+ store `prune` csv).
+  * mode: accepted     -> same walk, files filtered by the session-accept rule
+                          (storage_type + name rule IDENTICAL to the vault-build
+                          engine / tss/tsis-deepdive/corpus/build_corpus.py).
+  * mode: accepted_top / accepted_top2 -> accepted, files at depth 0 / <=1 only.
+  * mode: files        -> explicit '|'-separated absolute file list (no `path`).
+  * mode: move         -> vault-dialect adoption: if the source still exists and
+                          the vault dir does not, os.rename it in (dry-run logs
+                          only); if the vault dir ALREADY exists the store is
+                          adopted-in-place CALMLY (a completed move means the
+                          source is intentionally gone — never a WARN loop).
+                          Manifest rows stay keyed by the ORIGINAL source path
+                          (src + "/" + rel), matching the live vault manifest.
+  * VANISHED files     -> after each copy store's walk, manifest rows of that
+                          store whose src was not seen flip to status=missing
+                          (kept forever, vault copy retained) — same zero-loss
+                          semantics as the vault-build engine.
 * Copy discipline     -> copy to <dest>.part, hash the .part, compare to the
                          source hash, only then os.replace. Any mismatch = loss
                          risk = nonzero exit.
@@ -74,20 +95,140 @@ import sys
 import time
 import traceback
 
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 STAMP_FMT = "%Y-%m-%dT%H:%M:%S"
 
-DEFAULT_STORES_YAML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stores.yaml")
+DEFAULT_STORES_YAML = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "stores.yaml"
+)
 DEFAULT_VAULT = "D:/agent-sessions-vault"
 
 CHUNK = 1024 * 1024
 LOCK_MAX_AGE_S = 12 * 3600  # stale lock takeover
 DEFAULT_EXCLUDES = ["*.part", "*.tmp", "*.swp", "desktop.ini", "thumbs.db", ".ds_store"]
 
+# ---- vault dialect (mode: tree / accepted* / files / move) ------------------
+# Walk + accept rule byte-compatible with the vault-build engine
+# (tools/sessions-vault/agent_sessions_sync.py, branch sessions-vault), which is
+# identical to tss/tsis-deepdive/corpus/build_corpus.py::file_accepts. Keeping
+# the rule identical means this engine re-walks the live registry EXACTLY as the
+# build engine did — no under-copying (loss) and no idle re-copying.
+VAULT_WALK_MODES = {"tree", "accepted", "accepted_top", "accepted_top2"}
+
+GLOBAL_PRUNE_DIRS = {
+    "node_modules",
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+
+_SESSIONISH = (
+    "session",
+    "chat",
+    "conversation",
+    "history",
+    "rollout",
+    "transcript",
+    "dialog",
+    "thread",
+    "completion",
+    "prompt",
+)
+
+
+def storage_type(name):
+    n = name.lower()
+    if n.endswith(".jsonl.zst"):
+        return "zst"
+    if n.endswith(".jsonl.gz") or n.endswith(".json.gz"):
+        return "gz"
+    if n.endswith(".jsonl"):
+        return "jsonl"
+    if n.endswith(".json"):
+        return "json"
+    if n.endswith((".sqlite", ".sqlite3", ".db", ".vscdb")):
+        return "sqlite"
+    return "other"
+
+
+def accepts(name):
+    """Session-file matcher - identical to the vault-build engine + corpus rule."""
+    n = name.lower()
+    st = storage_type(n)
+    if st in ("jsonl", "zst", "gz"):
+        return True
+    if st == "sqlite":
+        if n.endswith(("-shm", "-wal", "-journal")):
+            return False
+        return True
+    if st == "json":
+        base = os.path.basename(n)
+        if base == "conversations.json" or base.startswith("conversations-"):
+            return True
+        if base in ("codex.json", "transcript.json", "updates.json", "summary.json"):
+            return True
+        if any(k in base for k in _SESSIONISH):
+            return True
+        if base.startswith("local_") or base == "meta.json":
+            return True
+    return False
+
+
+def _walk_vault(root, mode, extra_prune_csv=""):
+    """Vault-dialect walk: (abs, rel_posix, size, mtime_ns) under root.
+
+    Depth/accept semantics copied from the vault-build engine's walk_root so the
+    same registry produces the same file set under either engine.
+    """
+    prunes = GLOBAL_PRUNE_DIRS | set(x for x in (extra_prune_csv or "").split(",") if x)
+    top_only = mode.endswith("_top") and not mode.endswith("_top2")
+    top2_only = mode.endswith("_top2")
+    use_accept = mode.startswith("accepted")
+
+    if os.path.isfile(lp(root)):  # store root IS a single file
+        st = os.stat(lp(root))
+        yield up(root), os.path.basename(root), st.st_size, st.st_mtime_ns
+        return
+
+    stack = [(lp(root), 0)]
+    while stack:
+        d, dep = stack.pop()
+        try:
+            entries = list(os.scandir(d))
+        except OSError:
+            continue
+        for e in entries:
+            try:
+                if e.is_dir(follow_symlinks=False):
+                    if e.name in prunes:
+                        continue
+                    if top_only:
+                        continue
+                    if top2_only and dep >= 1:
+                        continue
+                    stack.append((e.path, dep + 1))
+                elif e.is_file(follow_symlinks=False):
+                    if use_accept and not accepts(e.name):
+                        continue
+                    st = e.stat(follow_symlinks=False)
+                    yield (
+                        up(e.path),
+                        os.path.relpath(e.path, lp(root)).replace("\\", "/"),
+                        st.st_size,
+                        st.st_mtime_ns,
+                    )
+            except OSError:
+                continue
+
 
 # ----------------------------------------------------------------------------
 # small utilities
 # ----------------------------------------------------------------------------
+
 
 def lp(path):
     """Normalize to an absolute long path (\\\\?\\-prefixed on Windows)."""
@@ -120,7 +261,9 @@ class Log:
                 os.makedirs(d, exist_ok=True)
                 self.path = os.path.join(d, "sync-%s.log" % time.strftime("%Y%m%d"))
                 # append-open once; keep handle
-                self._fh = io.open(lp(self.path), "a", encoding="utf-8", errors="replace")
+                self._fh = io.open(
+                    lp(self.path), "a", encoding="utf-8", errors="replace"
+                )
             except OSError:
                 self.path = None
                 self._fh = None
@@ -175,6 +318,7 @@ def sha256_file(path):
 # stores.yaml loading (PyYAML preferred, minimal fallback parser otherwise)
 # ----------------------------------------------------------------------------
 
+
 def _join_flow_lines(text):
     """Join multi-line YAML flow lists (include: ["a",\n  "b"]) into one logical
     line so the line-oriented fallback parser below can handle them."""
@@ -201,7 +345,7 @@ def _strip_comment(v):
     """Remove a trailing YAML comment from a scalar value, quote-aware."""
     if v and v[0] in "\"'":
         end = v.find(v[0], 1)
-        return v if end == -1 else v[:end + 1]
+        return v if end == -1 else v[: end + 1]
     i = 0
     while True:
         i = v.find("#", i)
@@ -278,6 +422,7 @@ def load_stores(path):
         text = f.read()
     try:
         import yaml  # type: ignore
+
         data = yaml.safe_load(text)
     except ImportError:
         data = _mini_yaml_load(text)
@@ -293,13 +438,16 @@ def load_stores(path):
             raise ValueError("duplicate store id: %s" % sid)
         seen.add(sid)
         if not s.get("path"):
-            raise ValueError("store %s has no path" % sid)
+            mode = (s.get("mode") or "").lower()
+            if mode != "files" or not s.get("files"):
+                raise ValueError("store %s has no path" % sid)
     return data
 
 
 # ----------------------------------------------------------------------------
 # manifest
 # ----------------------------------------------------------------------------
+
 
 class Manifest:
     """manifest.jsonl — one JSON object per source file (keyed by 'src')."""
@@ -328,7 +476,8 @@ class Manifest:
         if bad:
             raise RuntimeError(
                 "manifest.jsonl has %d corrupt lines (vault state unsafe) - "
-                "restore from manifest.jsonl.bak or rebuild deliberately" % bad)
+                "restore from manifest.jsonl.bak or rebuild deliberately" % bad
+            )
 
     def sha_index(self):
         """sha256 -> sorted list of vault-relative paths materialized with that sha."""
@@ -359,6 +508,7 @@ class Manifest:
 # walking / classification
 # ----------------------------------------------------------------------------
 
+
 def _match_any(rel_posix, patterns):
     low = rel_posix.lower()
     for p in patterns or []:
@@ -380,6 +530,20 @@ def _top_segments(patterns):
 def iter_store_files(store, log):
     """Yield (abs_path, rel_posix, size, mtime_ns) for files under store path,
     honoring include/exclude globs (posix-style, case-insensitive)."""
+    # ---- vault dialect first (mode: files / tree / accepted*) ----
+    vmode = (store.get("mode") or "").lower()
+    if vmode == "files":
+        for f in [
+            x.strip() for x in (store.get("files") or "").split("|") if x.strip()
+        ]:
+            if os.path.isfile(lp(f)):
+                st = os.stat(lp(f))
+                yield up(f), os.path.basename(f), st.st_size, st.st_mtime_ns
+        return
+    if vmode in VAULT_WALK_MODES:
+        yield from _walk_vault(store["path"], vmode, store.get("prune", ""))
+        return
+    # ---- legacy include/exclude dialect (mode copy/rename or absent) ----
     root = store["path"]
     include = store.get("include") or []
     exclude = list(DEFAULT_EXCLUDES) + list(store.get("exclude") or [])
@@ -436,6 +600,7 @@ def walk_counts(root):
 # sync engine
 # ----------------------------------------------------------------------------
 
+
 class Syncer:
     def __init__(self, args):
         self.args = args
@@ -445,10 +610,19 @@ class Syncer:
         self.man = Manifest(self.vault)
         self.warnings = 0
         self.lossrisk = 0
-        self.stats = {"new": 0, "new_alias": 0, "grown": 0, "rematerialized": 0,
-                      "unchanged": 0, "adopted_files": 0, "bytes_copied": 0,
-                      "bytes_saved_by_alias": 0, "bytes_saved_by_rename": 0,
-                      "unreadable": 0, "missing_stores": 0}
+        self.stats = {
+            "new": 0,
+            "new_alias": 0,
+            "grown": 0,
+            "rematerialized": 0,
+            "unchanged": 0,
+            "adopted_files": 0,
+            "bytes_copied": 0,
+            "bytes_saved_by_alias": 0,
+            "bytes_saved_by_rename": 0,
+            "unreadable": 0,
+            "missing_stores": 0,
+        }
 
     # ---- helpers ----
 
@@ -491,7 +665,9 @@ class Syncer:
                     return False
             else:
                 # concurrent instance: skip cleanly (watchdog pattern), not a loss
-                self.log.info("SKIP another sync instance holds the lock (%s)" % up(lock))
+                self.log.info(
+                    "SKIP another sync instance holds the lock (%s)" % up(lock)
+                )
                 return False
         with os.fdopen(fd, "w") as f:
             f.write(json.dumps({"pid": os.getpid(), "started": now_iso()}))
@@ -519,8 +695,10 @@ class Syncer:
             shutil.copyfile(lp(src_abs), tmp)
             got = sha256_file(tmp)
             if got != src_sha:
-                self.note_loss("VERIFY-FAIL copy %s -> %s (sha mismatch)" % (
-                    up(src_abs), up(dst_abs)))
+                self.note_loss(
+                    "VERIFY-FAIL copy %s -> %s (sha mismatch)"
+                    % (up(src_abs), up(dst_abs))
+                )
                 try:
                     os.remove(tmp)
                 except OSError:
@@ -539,65 +717,152 @@ class Syncer:
 
     # ---- adopt (rename) mode ----
 
-    def adopt_rename(self, store, sid):
+    def adopt_move(self, store, sid, sha_idx):
+        """Vault-dialect adoption (mode: move; legacy alias: mode: rename).
+
+        - src present, vault dir absent  -> os.rename into the vault (never in
+          --dry-run), file/byte counts verified pre/post, _ADOPTED_FROM.txt.
+        - vault dir present, src absent  -> CALM adopt-in-place: a completed
+          move means the source is intentionally gone (steady state for
+          D:/codex-sessions-archive-20260621 since 2026-10-18 09:11).
+        - both present                   -> conflict = loss-risk (never overwrite).
+        - neither                       -> "missing" (caller flags the store).
+
+        Indexing is hash-only (no copying) and keys manifest rows by the
+        ORIGINAL source path (src + "/" + rel) — byte-compatible with the
+        vault-build engine's adopt_moved, so both engines share one manifest
+        without duplicating rows for the same physical files.
+        """
         src = up(store["path"])
-        sid = store["id"]
         dest = self.vault_abs("stores/" + sid)
-        if not os.path.exists(lp(src)):
-            if os.path.exists(lp(dest)):
-                return "already-adopted"
-            return "missing"
-        if os.path.exists(lp(dest)):
-            self.note_loss("adopt-rename %s: BOTH source and vault dir exist "
-                           "(%s / %s) - refusing to overwrite" % (sid, src, up(dest)))
-            return "conflict"
-        if self.dry:
-            files, total = walk_counts(src)
-            self.stats["bytes_saved_by_rename"] += total
-            self.log.info("[dry-run] ADOPT-RENAME %s: %s -> %s (%d files, %d bytes)"
-                          % (sid, src, up(dest), files, total))
-            return "planned"
-        files_pre, total_pre = walk_counts(src)
-        # same-drive check (os.rename across drives fails anyway; pre-check for msg)
-        try:
-            os.rename(lp(src), lp(dest))
-        except OSError as e:
-            self.note_loss("adopt-rename %s failed: %s" % (sid, e))
-            return "failed"
-        files_post, total_post = walk_counts(dest)
-        if files_post != files_pre or total_post != total_pre:
-            self.note_loss("adopt-rename %s COUNT MISMATCH pre=%d/%d post=%d/%d "
-                           "- inspect immediately" % (sid, files_pre, total_pre,
-                                                      files_post, total_post))
-            return "mismatch"
-        with io.open(lp(os.path.join(dest, "_ADOPTED_FROM.txt")), "w",
-                     encoding="utf-8") as f:
-            f.write("adopted_by_rename_from: %s\nadopted_at: %s\n"
-                    "files: %d\nbytes: %d\n" % (src, now_iso(), files_post, total_post))
-        self.stats["bytes_saved_by_rename"] += total_pre
-        self.log.info("ADOPTED %s: renamed %s into vault (%d files, %d bytes, "
-                      "0 bytes copied)" % (sid, src, files_post, total_post))
-        # index in place (hash-only, no copying)
-        rel_files = 0
+        walk_mode = store.get("walk", "tree")
+        if not os.path.exists(lp(dest)):
+            if not os.path.exists(lp(src)):
+                return "missing"
+            if self.dry:
+                files, total = walk_counts(src)
+                self.stats["bytes_saved_by_rename"] += total
+                self.log.info(
+                    "[dry-run] MOVE %s: %s -> %s (%d files, %d bytes)"
+                    % (sid, src, up(dest), files, total)
+                )
+                return "planned"
+            files_pre, total_pre = walk_counts(src)
+            # same-drive rename (os.rename across drives fails; message via OSError)
+            try:
+                os.rename(lp(src), lp(dest))
+            except OSError as e:
+                self.note_loss("move %s failed: %s" % (sid, e))
+                return "failed"
+            files_post, total_post = walk_counts(dest)
+            if files_post != files_pre or total_post != total_pre:
+                self.note_loss(
+                    "move %s COUNT MISMATCH pre=%d/%d post=%d/%d "
+                    "- inspect immediately"
+                    % (sid, files_pre, total_pre, files_post, total_post)
+                )
+                return "mismatch"
+            with io.open(
+                lp(os.path.join(lp(dest), "_ADOPTED_FROM.txt")), "w", encoding="utf-8"
+            ) as f:
+                f.write(
+                    "adopted_by_move_from: %s\nadopted_at: %s\n"
+                    "files: %d\nbytes: %d\n" % (src, now_iso(), files_post, total_post)
+                )
+            self.stats["bytes_saved_by_rename"] += total_pre
+            self.log.info(
+                "MOVE %s: renamed %s into vault (%d files, %d bytes, "
+                "0 bytes copied)" % (sid, src, files_post, total_post)
+            )
+        else:
+            if os.path.exists(lp(src)):
+                self.note_loss(
+                    "move %s: BOTH source and vault dir exist "
+                    "(%s / %s) - refusing to touch either" % (sid, src, up(dest))
+                )
+                return "conflict"
+            self.log.info(
+                "ADOPT %s: vault dir present (move already complete) - "
+                "re-indexing in place, rows keyed by original source "
+                "path" % sid
+            )
+        # index in place: hash-only, no copying; rows keyed by ORIGINAL src path
+        adopted = 0
         for ap, rel, size, mns in iter_store_files(
-                dict(store, path=up(dest)), self.log):
+            dict(store, path=up(dest), mode=walk_mode), self.log
+        ):
             if rel == "_ADOPTED_FROM.txt":
+                continue
+            orig_src = src + "/" + rel
+            e = self.man.entries.get(orig_src)
+            if (
+                e
+                and e.get("status") == "ok"
+                and e.get("size") == size
+                and e.get("mtime_ns") == mns
+            ):
+                e["last_synced"] = now_iso()
+                self.stats["unchanged"] += 1
                 continue
             try:
                 sha = sha256_file(ap)
-            except OSError as e:
-                self.note_warn("unreadable adopted file %s: %s" % (ap, e))
+            except OSError as ex:
+                self.note_warn("unreadable adopted file %s: %s" % (up(ap), ex))
                 self.stats["unreadable"] += 1
+                self.man.entries[orig_src] = {
+                    "src": orig_src,
+                    "store": sid,
+                    "tui": store.get("tui", sid),
+                    "vault_path": self.vault_rel(sid, rel),
+                    "alias_of": None,
+                    "sha256": None,
+                    "size": size,
+                    "mtime_ns": mns,
+                    "gen": 0,
+                    "prev": None,
+                    "first_seen": e["first_seen"] if e else now_iso(),
+                    "last_synced": now_iso(),
+                    "status": "unreadable",
+                }
                 continue
-            self.man.entries[ap] = {
-                "src": ap, "store": sid, "tui": store.get("tui", sid),
-                "vault_path": self.vault_rel(sid, rel), "alias_of": None,
-                "sha256": sha, "size": size, "mtime_ns": mns, "gen": 0,
-                "prev": None, "first_seen": now_iso(), "last_synced": now_iso(),
-                "status": "ok"}
-            rel_files += 1
-        self.stats["adopted_files"] += rel_files
-        self.log.info("ADOPT-INDEX %s: hashed %d files in place" % (sid, rel_files))
+            first = now_iso()
+            gen = 0
+            prev = None
+            if e:
+                first = e.get("first_seen", first)
+                if e.get("status") == "ok":
+                    prev = {"sha256": e.get("sha256"), "size": e.get("size")}
+                    gen = e.get("gen", 0) + 1
+            vrel = self.vault_rel(sid, rel)
+            alias_of = None
+            targets = sha_idx.get(sha) if sha_idx else None
+            if targets:
+                alias_of = targets[0]
+            self.man.entries[orig_src] = {
+                "src": orig_src,
+                "store": sid,
+                "tui": store.get("tui", sid),
+                "vault_path": vrel,
+                "alias_of": alias_of,
+                "sha256": sha,
+                "size": size,
+                "mtime_ns": mns,
+                "gen": gen,
+                "prev": prev,
+                "first_seen": first,
+                "last_synced": now_iso(),
+                "status": "ok",
+            }
+            # the physical file lives at vrel (renamed-in tree) — a valid
+            # canonical target for later stores
+            if not alias_of:
+                sha_idx.setdefault(sha, []).append(vrel)
+                sha_idx[sha].sort()
+            adopted += 1
+            if adopted % 500 == 0:
+                self.log.info("  adopt %s: %d files re-indexed" % (sid, adopted))
+        self.stats["adopted_files"] += adopted
+        self.log.info("ADOPT-DONE %s: %d file(s) indexed in place" % (sid, adopted))
         return "adopted"
 
     # ---- main sync ----
@@ -619,8 +884,8 @@ class Syncer:
                 if only and sid not in only:
                     continue
                 mode = (store.get("mode") or "copy").lower()
-                if mode in ("rename", "adopt-rename"):
-                    res = self.adopt_rename(store, sid)
+                if mode in ("move", "rename", "adopt-rename"):
+                    res = self.adopt_move(store, sid, sha_idx)
                     if res == "missing":
                         self.handle_missing_store(store)
                     continue
@@ -629,8 +894,10 @@ class Syncer:
                 self.man.save_atomic()
                 self.write_summary()
             rc = 2 if self.lossrisk else (1 if self.warnings else 0)
-            self.log.info("RUN COMPLETE rc=%d stats=%s"
-                          % (rc, json.dumps(self.stats, sort_keys=True)))
+            self.log.info(
+                "RUN COMPLETE rc=%d stats=%s"
+                % (rc, json.dumps(self.stats, sort_keys=True))
+            )
             self.write_state(rc, "done")
             return rc
         finally:
@@ -642,16 +909,25 @@ class Syncer:
         self.stats["missing_stores"] += 1
         n = sum(1 for e in self.man.entries.values() if e.get("store") == sid)
         if n:
-            self.note_loss("store %s MISSING but has %d manifest entries - "
-                           "possible source loss" % (sid, n))
+            self.note_loss(
+                "store %s MISSING but has %d manifest entries - "
+                "possible source loss" % (sid, n)
+            )
         else:
-            self.note_warn("store %s path missing (never synced): %s"
-                           % (sid, store["path"]))
+            self.note_warn(
+                "store %s path missing (never synced): %s"
+                % (sid, store.get("path") or store.get("files"))
+            )
 
     def sync_copy_store(self, store, sha_idx):
         sid = store["id"]
-        root = up(store["path"])
-        if not os.path.isdir(lp(root)):
+        if store.get("path"):
+            root = up(store["path"])
+            if not (os.path.isdir(lp(root)) or os.path.isfile(lp(root))):
+                self.handle_missing_store(store)
+                return
+        elif not store.get("files"):
+            # neither path nor files list — unusable entry
             self.handle_missing_store(store)
             return
         seen_srcs = set()
@@ -660,8 +936,12 @@ class Syncer:
             e = self.man.entries.get(ap)
             vrel = self.vault_rel(sid, rel)
             vabs = self.vault_abs(vrel)
-            if e and e.get("status") == "ok" and e.get("size") == size \
-                    and e.get("mtime_ns") == mns:
+            if (
+                e
+                and e.get("status") == "ok"
+                and e.get("size") == size
+                and e.get("mtime_ns") == mns
+            ):
                 # quick-check unchanged — but heal aliases whose target drifted
                 if e.get("alias_of"):
                     tgt = self.vault_abs(e["alias_of"])
@@ -671,16 +951,24 @@ class Syncer:
                     except OSError:
                         ok = False
                     else:
-                        ok = (tsz == e.get("size"))
+                        ok = tsz == e.get("size")
                     if not ok:
-                        self.log.info("REMAT %s: alias target drifted; "
-                                      "materializing own copy" % ap)
+                        self.log.info(
+                            "REMAT %s: alias target drifted; "
+                            "materializing own copy" % ap
+                        )
                         sha = self.verified_copy(ap, vabs)
                         if sha:
-                            e.update({"vault_path": vrel, "alias_of": None,
-                                      "sha256": sha, "size": size,
-                                      "mtime_ns": mns,
-                                      "last_synced": now_iso()})
+                            e.update(
+                                {
+                                    "vault_path": vrel,
+                                    "alias_of": None,
+                                    "sha256": sha,
+                                    "size": size,
+                                    "mtime_ns": mns,
+                                    "last_synced": now_iso(),
+                                }
+                            )
                             self.stats["rematerialized"] += 1
                         continue
                 self.stats["unchanged"] += 1
@@ -696,28 +984,40 @@ class Syncer:
                 self.note_warn("unreadable %s: %s" % (ap, ex))
                 self.stats["unreadable"] += 1
                 self.man.entries[ap] = {
-                    "src": ap, "store": sid, "tui": store.get("tui", sid),
-                    "vault_path": None, "alias_of": None, "sha256": None,
-                    "size": size, "mtime_ns": mns, "gen": 0, "prev": None,
+                    "src": ap,
+                    "store": sid,
+                    "tui": store.get("tui", sid),
+                    "vault_path": None,
+                    "alias_of": None,
+                    "sha256": None,
+                    "size": size,
+                    "mtime_ns": mns,
+                    "gen": 0,
+                    "prev": None,
                     "first_seen": e["first_seen"] if e else now_iso(),
-                    "last_synced": now_iso(), "status": "unreadable"}
+                    "last_synced": now_iso(),
+                    "status": "unreadable",
+                }
                 continue
             if e and e.get("status") == "ok" and e.get("sha256") == sha:
                 # mtime-only churn: content identical
-                e.update({"size": size, "mtime_ns": mns,
-                          "last_synced": now_iso()})
+                e.update({"size": size, "mtime_ns": mns, "last_synced": now_iso()})
                 self.stats["unchanged"] += 1
                 continue
             if e and e.get("status") == "ok":
                 # GROWN (or truncated): rotate .prev, re-copy, never alias
-                self.log.info("GROWN %s (gen %s -> %s)" % (ap, e.get("gen", 0),
-                                                           e.get("gen", 0) + 1))
+                self.log.info(
+                    "GROWN %s (gen %s -> %s)"
+                    % (ap, e.get("gen", 0), e.get("gen", 0) + 1)
+                )
                 if self.dry:
                     self.stats["grown"] += 1
                     continue
                 prev_sha = e.get("sha256")
                 prev_size = e.get("size")
-                old_vabs = self.vault_abs(e["vault_path"]) if e.get("vault_path") else None
+                old_vabs = (
+                    self.vault_abs(e["vault_path"]) if e.get("vault_path") else None
+                )
                 if old_vabs and os.path.exists(lp(old_vabs)):
                     prevp = lp(old_vabs) + ".prev"
                     try:
@@ -725,14 +1025,23 @@ class Syncer:
                             os.remove(prevp)  # keep exactly one generation
                         os.replace(lp(old_vabs), prevp)
                     except OSError as ex:
-                        self.note_loss("prev-rotation failed %s: %s" % (up(old_vabs), ex))
+                        self.note_loss(
+                            "prev-rotation failed %s: %s" % (up(old_vabs), ex)
+                        )
                 got = self.verified_copy(ap, vabs, src_sha=sha)
                 if got:
-                    e.update({"vault_path": vrel, "alias_of": None,
-                              "sha256": sha, "size": size, "mtime_ns": mns,
-                              "gen": e.get("gen", 0) + 1,
-                              "prev": {"sha256": prev_sha, "size": prev_size},
-                              "last_synced": now_iso()})
+                    e.update(
+                        {
+                            "vault_path": vrel,
+                            "alias_of": None,
+                            "sha256": sha,
+                            "size": size,
+                            "mtime_ns": mns,
+                            "gen": e.get("gen", 0) + 1,
+                            "prev": {"sha256": prev_sha, "size": prev_size},
+                            "last_synced": now_iso(),
+                        }
+                    )
                     self.stats["grown"] += 1
                 continue
             # NEW (or recovering from unreadable): dedup by content
@@ -744,15 +1053,25 @@ class Syncer:
                     self.log.info("[dry-run] NEW-ALIAS %s == %s" % (ap, tgt))
                     continue
                 self.man.entries[ap] = {
-                    "src": ap, "store": sid, "tui": store.get("tui", sid),
-                    "vault_path": None, "alias_of": tgt, "sha256": sha,
-                    "size": size, "mtime_ns": mns, "gen": 0, "prev": None,
+                    "src": ap,
+                    "store": sid,
+                    "tui": store.get("tui", sid),
+                    "vault_path": None,
+                    "alias_of": tgt,
+                    "sha256": sha,
+                    "size": size,
+                    "mtime_ns": mns,
+                    "gen": 0,
+                    "prev": None,
                     "first_seen": e["first_seen"] if e else now_iso(),
-                    "last_synced": now_iso(), "status": "ok"}
+                    "last_synced": now_iso(),
+                    "status": "ok",
+                }
                 self.stats["new_alias"] += 1
                 self.stats["bytes_saved_by_alias"] += size
-                self.log.info("ALIAS %s == %s (dedup, %d bytes saved)"
-                              % (ap, tgt, size))
+                self.log.info(
+                    "ALIAS %s == %s (dedup, %d bytes saved)" % (ap, tgt, size)
+                )
                 continue
             if self.dry:
                 self.log.info("[dry-run] NEW %s (%d bytes)" % (ap, size))
@@ -761,15 +1080,44 @@ class Syncer:
             got = self.verified_copy(ap, vabs, src_sha=sha)
             if got:
                 self.man.entries[ap] = {
-                    "src": ap, "store": sid, "tui": store.get("tui", sid),
-                    "vault_path": vrel, "alias_of": None, "sha256": sha,
-                    "size": size, "mtime_ns": mns, "gen": 0, "prev": None,
+                    "src": ap,
+                    "store": sid,
+                    "tui": store.get("tui", sid),
+                    "vault_path": vrel,
+                    "alias_of": None,
+                    "sha256": sha,
+                    "size": size,
+                    "mtime_ns": mns,
+                    "gen": 0,
+                    "prev": None,
                     "first_seen": e["first_seen"] if e else now_iso(),
-                    "last_synced": now_iso(), "status": "ok"}
+                    "last_synced": now_iso(),
+                    "status": "ok",
+                }
                 sha_idx.setdefault(sha, []).append(vrel)
                 sha_idx[sha].sort()
                 self.stats["new"] += 1
                 self.log.info("NEW %s (%d bytes) sha=%s" % (ap, size, sha[:12]))
+
+        # VANISHED: rows of this store whose src was NOT seen this walk flip to
+        # status=missing — kept forever, vault copies retained (zero-loss: the
+        # manifest records the source's history instead of lying with ok).
+        # Move stores are exempt: their rows are keyed by the ORIGINAL source
+        # path and are reconciled inside adopt_move instead.
+        vanished = 0
+        for src_key, e in self.man.entries.items():
+            if (
+                e.get("store") == sid
+                and e.get("status") == "ok"
+                and src_key not in seen_srcs
+            ):
+                e["status"] = "missing"
+                vanished += 1
+        if vanished:
+            self.log.info(
+                "VANISHED %s: %d file(s) gone from source - rows kept "
+                "as status=missing (vault copies retained)" % (sid, vanished)
+            )
 
     # ---- state / summary ----
 
@@ -779,12 +1127,23 @@ class Syncer:
         try:
             d = os.path.join(self.vault, "state")
             os.makedirs(d, exist_ok=True)
-            with io.open(lp(os.path.join(d, "last-run.json")), "w",
-                         encoding="utf-8") as f:
-                json.dump({"rc": rc, "phase": phase, "finished": now_iso(),
-                           "version": VERSION, "stats": self.stats,
-                           "warnings": self.warnings, "lossrisk": self.lossrisk},
-                          f, indent=1, sort_keys=True)
+            with io.open(
+                lp(os.path.join(d, "last-run.json")), "w", encoding="utf-8"
+            ) as f:
+                json.dump(
+                    {
+                        "rc": rc,
+                        "phase": phase,
+                        "finished": now_iso(),
+                        "version": VERSION,
+                        "stats": self.stats,
+                        "warnings": self.warnings,
+                        "lossrisk": self.lossrisk,
+                    },
+                    f,
+                    indent=1,
+                    sort_keys=True,
+                )
         except OSError as e:
             sys.stderr.write("FATAL cannot write state: %s\n" % e)
             sys.exit(2)
@@ -792,9 +1151,10 @@ class Syncer:
     def write_summary(self):
         per = {}
         for e in self.man.entries.values():
-            s = per.setdefault(e.get("store", "?"),
-                               {"files": 0, "aliases": 0, "bytes": 0,
-                                "unreadable": 0})
+            s = per.setdefault(
+                e.get("store", "?"),
+                {"files": 0, "aliases": 0, "bytes": 0, "unreadable": 0},
+            )
             if e.get("status") == "ok":
                 s["files"] += 1
                 s["bytes"] += e.get("size") or 0
@@ -802,8 +1162,12 @@ class Syncer:
                     s["aliases"] += 1
             else:
                 s["unreadable"] += 1
-        out = {"generated": now_iso(), "version": VERSION,
-               "total_entries": len(self.man.entries), "stores": per}
+        out = {
+            "generated": now_iso(),
+            "version": VERSION,
+            "total_entries": len(self.man.entries),
+            "stores": per,
+        }
         p = os.path.join(self.vault, "manifest-summary.json")
         tmp = p + ".tmp"
         with io.open(lp(tmp), "w", encoding="utf-8") as f:
@@ -814,6 +1178,7 @@ class Syncer:
 # ----------------------------------------------------------------------------
 # --verify : zero-loss proof
 # ----------------------------------------------------------------------------
+
 
 def cmd_verify(args):
     man = Manifest(args.vault)
@@ -854,8 +1219,10 @@ def cmd_verify(args):
                 ok_lines += 1
             else:
                 alias_broken += 1
-                log.err("BROKEN ALIAS %s -> %s (target drifted; re-run sync "
-                        "to rematerialize)" % (src, tgt))
+                log.err(
+                    "BROKEN ALIAS %s -> %s (target drifted; re-run sync "
+                    "to rematerialize)" % (src, tgt)
+                )
         else:
             if unique.get(e.get("vault_path")) == sha:
                 ok_lines += 1
@@ -863,15 +1230,21 @@ def cmd_verify(args):
                 bad += 1
     # pass 3: sources must be current (no pending new/grown) — reuse dry-run plan
     pending = plan_pending(args, man)
-    log.info("VERIFY unique-vault-files=%d hashed=%d ok-manifest-lines=%d "
-             "alias-broken=%d bad=%d pending-at-source=%d"
-             % (len(unique), hashed, ok_lines, alias_broken, bad, pending))
-    verdict_ok = (bad == 0 and alias_broken == 0 and pending == 0)
-    log.info("ZERO-LOSS PROOF: %s"
-             % ("PASS — every source file's sha256 is present & verified in the "
-                "vault, and no source changes are pending"
-                if verdict_ok else
-                "FAIL — see ERROR lines above (vault incomplete or stale)"))
+    log.info(
+        "VERIFY unique-vault-files=%d hashed=%d ok-manifest-lines=%d "
+        "alias-broken=%d bad=%d pending-at-source=%d"
+        % (len(unique), hashed, ok_lines, alias_broken, bad, pending)
+    )
+    verdict_ok = bad == 0 and alias_broken == 0 and pending == 0
+    log.info(
+        "ZERO-LOSS PROOF: %s"
+        % (
+            "PASS — every source file's sha256 is present & verified in the "
+            "vault, and no source changes are pending"
+            if verdict_ok
+            else "FAIL — see ERROR lines above (vault incomplete or stale)"
+        )
+    )
     syncer.log.close()
     return 0 if verdict_ok else 2
 
@@ -883,21 +1256,52 @@ def plan_pending(args, man):
     data = load_stores(args.stores)
     for store in data.get("stores") or []:
         mode = (store.get("mode") or "copy").lower()
-        if mode in ("rename", "adopt-rename"):
+        if mode in ("move", "rename", "adopt-rename"):
             src = up(store["path"])
             dest = os.path.join(args.vault, "stores", store["id"])
             if os.path.exists(lp(src)) and not os.path.exists(lp(dest)):
                 s.stats["new"] += 1
+            elif (
+                not os.path.exists(lp(src))
+                and not os.path.exists(lp(dest))
+                and any(e.get("store") == store["id"] for e in man.entries.values())
+            ):
+                s.stats["missing_stores"] += 1
+            # vault dir present (with or without src) = adopted/calm -> not pending
+            continue
+        if mode == "files":
+            for f in [
+                x.strip() for x in (store.get("files") or "").split("|") if x.strip()
+            ]:
+                if not os.path.isfile(lp(f)):
+                    continue
+                st = os.stat(lp(f))
+                e = man.entries.get(up(f))
+                if (
+                    e
+                    and e.get("status") == "ok"
+                    and e.get("size") == st.st_size
+                    and e.get("mtime_ns") == st.st_mtime_ns
+                ):
+                    continue
+                if e and e.get("status") == "ok":
+                    s.stats["grown"] += 1
+                else:
+                    s.stats["new"] += 1
             continue
         root = up(store["path"])
-        if not os.path.isdir(lp(root)):
+        if not (os.path.isdir(lp(root)) or os.path.isfile(lp(root))):
             if any(e.get("store") == store["id"] for e in man.entries.values()):
                 s.stats["missing_stores"] += 1
             continue
         for ap, rel, size, mns in iter_store_files(store, s.log):
             e = man.entries.get(ap)
-            if e and e.get("status") == "ok" and e.get("size") == size \
-                    and e.get("mtime_ns") == mns:
+            if (
+                e
+                and e.get("status") == "ok"
+                and e.get("size") == size
+                and e.get("mtime_ns") == mns
+            ):
                 continue
             if e and e.get("status") == "ok":
                 s.stats["grown"] += 1
@@ -909,6 +1313,7 @@ def plan_pending(args, man):
 # ----------------------------------------------------------------------------
 # --restore
 # ----------------------------------------------------------------------------
+
 
 def cmd_restore(args):
     if not args.to:
@@ -935,7 +1340,7 @@ def cmd_restore(args):
         rel = e["src"]
         pref = up(store["path"]).rstrip("/") + "/"
         if rel.startswith(pref):
-            rel = rel[len(pref):]
+            rel = rel[len(pref) :]
         dst = os.path.join(dest_root, rel.replace("/", os.sep))
         src_vault = e.get("alias_of") or e.get("vault_path")
         if not src_vault:
@@ -952,8 +1357,9 @@ def cmd_restore(args):
         except OSError as ex:
             log.err("restore failed %s: %s" % (dst, ex))
             fail += 1
-    log.info("RESTORE %s -> %s: %d files ok, %d failed"
-             % (args.restore, dest_root, n, fail))
+    log.info(
+        "RESTORE %s -> %s: %d files ok, %d failed" % (args.restore, dest_root, n, fail)
+    )
     log.close()
     return 0 if fail == 0 else 2
 
@@ -970,8 +1376,7 @@ REDISCOVER_ROOTS = [
     "C:/Users/Prekzursil/Cowork",
     "D:/",
 ]
-SESSION_HINTS = ("session", "transcript", "chat", "rollout", "conversations",
-                 "history")
+SESSION_HINTS = ("session", "transcript", "chat", "rollout", "conversations", "history")
 FILE_HINTS = (".jsonl", ".jsonl.zst", ".zst", ".db")
 
 
@@ -980,10 +1385,13 @@ def cmd_rediscover(args):
     known = set()
     for s in data.get("stores") or []:
         known.add(up(s["path"]).lower().rstrip("/"))
-    print("# rediscover %s — candidate session stores NOT yet in stores.yaml"
-          % now_iso())
-    print("# review each, then paste accepted entries into stores.yaml "
-          "(the registry is the single source of truth)")
+    print(
+        "# rediscover %s — candidate session stores NOT yet in stores.yaml" % now_iso()
+    )
+    print(
+        "# review each, then paste accepted entries into stores.yaml "
+        "(the registry is the single source of truth)"
+    )
     found = 0
     for root in REDISCOVER_ROOTS:
         try:
@@ -999,8 +1407,11 @@ def cmd_rediscover(args):
             score = 0
             n_checked = 0
             for dp, dns, fns in os.walk(lp(cand), followlinks=False):
-                dns[:] = [d for d in dns if d.lower() not in
-                          ("node_modules", ".git", "__pycache__")]
+                dns[:] = [
+                    d
+                    for d in dns
+                    if d.lower() not in ("node_modules", ".git", "__pycache__")
+                ]
                 low = dp.lower()
                 if any(h in low for h in SESSION_HINTS):
                     score += 2
@@ -1014,8 +1425,10 @@ def cmd_rediscover(args):
                     dns[:] = []
             if score >= 4:
                 found += 1
-                print("  - id: CHANGEME-%d\n    tui: \"%s\"\n    path: \"%s\""
-                      % (found, name, up(cand)))
+                print(
+                    '  - id: CHANGEME-%d\n    tui: "%s"\n    path: "%s"'
+                    % (found, name, up(cand))
+                )
     if found == 0:
         print("  # (no new candidates above threshold)")
     print("# end rediscover (%d candidates)" % found)
@@ -1026,6 +1439,7 @@ def cmd_rediscover(args):
 # main
 # ----------------------------------------------------------------------------
 
+
 def main(argv=None):
     if os.name == "nt":
         try:
@@ -1035,25 +1449,47 @@ def main(argv=None):
             pass
     ap = argparse.ArgumentParser(
         description="Incremental zero-loss sync of AI-agent session stores "
-                    "into the vault")
-    ap.add_argument("--stores", default=DEFAULT_STORES_YAML,
-                    help="path to stores.yaml (default: %(default)s)")
-    ap.add_argument("--vault", default=DEFAULT_VAULT,
-                    help="vault root (default: %(default)s)")
-    ap.add_argument("--only", action="append", metavar="ID",
-                    help="restrict to this store id (repeatable)")
-    ap.add_argument("--dry-run", action="store_true",
-                    help="plan only; write nothing (no state, no manifest)")
-    ap.add_argument("--verify", action="store_true",
-                    help="zero-loss proof: re-hash the vault vs the manifest")
-    ap.add_argument("--restore", metavar="ID",
-                    help="materialize store ID from the vault (needs --to)")
+        "into the vault"
+    )
+    ap.add_argument(
+        "--stores",
+        default=DEFAULT_STORES_YAML,
+        help="path to stores.yaml (default: %(default)s)",
+    )
+    ap.add_argument(
+        "--vault", default=DEFAULT_VAULT, help="vault root (default: %(default)s)"
+    )
+    ap.add_argument(
+        "--only",
+        action="append",
+        metavar="ID",
+        help="restrict to this store id (repeatable)",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="plan only; write nothing (no state, no manifest)",
+    )
+    ap.add_argument(
+        "--verify",
+        action="store_true",
+        help="zero-loss proof: re-hash the vault vs the manifest",
+    )
+    ap.add_argument(
+        "--restore",
+        metavar="ID",
+        help="materialize store ID from the vault (needs --to)",
+    )
     ap.add_argument("--to", metavar="DIR", help="restore destination")
-    ap.add_argument("--rediscover", action="store_true",
-                    help="suggest stores.yaml additions from a bounded scan")
+    ap.add_argument(
+        "--rediscover",
+        action="store_true",
+        help="suggest stores.yaml additions from a bounded scan",
+    )
     ap.add_argument("--quiet", action="store_true")
-    ap.add_argument("--version", action="version",
-                    version="agent_sessions_sync.py " + VERSION)
+    ap.add_argument(
+        "--version", action="version", version="agent_sessions_sync.py " + VERSION
+    )
     args = ap.parse_args(argv)
 
     try:
