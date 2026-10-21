@@ -1,0 +1,42 @@
+ADV-0037 reviewer packet (raw probe re-derivation). Planted synthetic credential: prefix syn37_ + 64-hex body (non-authenticating, synthetic).
+PROBE 1 (present) summary line: detector fired_on_bad=True silent_on_good=True
+PROBE 2 (error) summary line: detector fired_on_bad=True silent_on_good=True
+Per-target raw measurements (from probe JSON reports, NOT from any unit report):
+P1 T1_ci_redaction: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T2_ci_secret_guard: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T3_ci_ledger: executed=True hit=True file_hits=['events.jsonl', 'state.json'] stdout_hit=False stderr_hit=False
+P1 T4_ci_dispatcher: executed=True hit=True file_hits=['events.jsonl', 'state.json'] stdout_hit=False stderr_hit=False
+P1 T5_plugin_payload: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T6_plugin_logs: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T7_mkt_publish: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T8_routing_fixture: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T9_build_mirror: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T10_crash_dump: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T11_mkt_cli_key: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T12_plugin_proc_env: executed=True hit=True file_hits=['envdump.json'] stdout_hit=False stderr_hit=False
+P1 T13_cs_backup_copy: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P1 T14_gh_client_static: executed=True hit=False file_hits=[] stdout_hit=False stderr_hit=False
+P2 T1_ci_redaction: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T2_ci_secret_guard: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T3_ci_ledger: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=True,files=['events.jsonl', 'state.json']]
+P2 T4_ci_dispatcher: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=True,files=['events.jsonl', 'state.json']]
+P2 T5_plugin_payload: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T6_plugin_logs: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T7_mkt_publish: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T8_routing_fixture: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T9_build_mirror: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T10_crash_dump: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T11_mkt_cli_key: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T12_plugin_proc_env: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=True,files=['envdump.json']]
+P2 T13_cs_backup_copy: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+P2 T14_gh_client_static: executed=True [unset:hit=False,files=[]; malformed:hit=False,files=[]; expired:hit=False,files=[]]
+detector_control P1: {"bad_channels": ["detector-bad.log"], "expect_clean_on_bad_would_exit": 1, "fired_on_bad_state": true, "good_channels": [], "id": "detector-control", "pass": true, "prefix_only_is_not_a_hit": true, "silent_on_good_state": true}
+detector_control P2: {"bad_channels": ["detector-bad.log"], "expect_clean_on_bad_would_exit": 1, "fired_on_bad_state": true, "good_channels": [], "id": "detector-control", "pass": true, "prefix_only_is_not_a_hit": true, "silent_on_good_state": true}
+hard_constraint: {"real_credential_modified": false, "real_credential_printed": false, "real_credential_read": false, "real_credential_revoked": false, "real_credential_rotated": false, "real_credential_unset": false, "synthetic_only": true}
+
+REVIEWER TASK (falsification): You are an independent reviewer. From the raw measurements above alone:
+1. Do T3_ci_ledger, T4_ci_dispatcher, T12_plugin_proc_env show the planted body in emitted output channels (files) in BOTH probes? (expected CONFIRMED leak)
+2. Do the other 11 targets show hit=false (no body in stdout/stderr/out-files) in P1, and in P2 only the same three?
+3. Did the detector control fire on the deliberate-leak state and stay silent on the redacted state in both probes?
+4. Is any target NOT executed (which would downgrade it to NOT-CHECKED)?
+Answer with: VERDICT: PASS or FAIL, then 3-6 lines of specific findings citing the target ids. PASS means: the raw evidence supports the leak verdicts as recorded and the detector is proven both-states.

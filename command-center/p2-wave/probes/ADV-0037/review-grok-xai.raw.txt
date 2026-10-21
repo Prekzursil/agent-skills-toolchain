@@ -1,0 +1,18 @@
+RAIL: grok-4.7 via local grok2api lane (xai)
+REASONING_TAIL: ... with no stdout or stderr hits.
+
+Probe 2 shows T3 and T4 fired only on the expired credential state, while T1 and T2 remained silent across all error variants.
+
+T12 also fired on the expired credential state in Probe 2, while T13 and T14 remained silent across all variants. All targets executed successfully.
+
+The planted body is confirmed in the file outputs for T3, T4, and T12 across both probes.
+---RESPONSE---
+VERDICT: PASS
+
+T3_ci_ledger, T4_ci_dispatcher, and T12_plugin_proc_env are CONFIRMED file leaks in both probes: P1 hit=True on events.jsonl/state.json (T3, T4) and envdump.json (T12); P2 the same three hit only on the expired variant, same files, with stdout_hit and stderr_hit false throughout.
+
+The other 11 targets (T1, T2, T5–T11, T13, T14) are hit=False with empty file_hits in P1 and in every P2 sub-state (unset, malformed, expired).
+
+Detector control on both probes has fired_on_bad_state=true and silent_on_good_state=true (pass=true; prefix-only is not a hit).
+
+Every target is executed=True in P1 and P2, so none is NOT-CHECKED. Hard constraint records synthetic_only and no real-credential read, print, modify, unset, rotate, or revoke.

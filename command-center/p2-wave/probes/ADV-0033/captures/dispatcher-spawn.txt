@@ -1,0 +1,31 @@
+"""Trigger each declared hook event and require a child-written RECEIPT line.
+
+The client loop: strict-load hooks.json, then subprocess-exec each loaded
+command. A listing of hook files is not a trigger. If strict-load returns
+nothing, events are still requested so the unloaded state is observable.
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+import loader as L
+import scenario as S
+
+REPO = S.REPO
+
+
+def parse_receipt(path: Path) -> list[dict[str, str]]:
+    if not path.is_file() or path.stat().st_size <= 0:
+        return []
+    rows: list[dict[str, str]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("RECEIPT "):
+            continue
+        fields = {"raw": line}
+        for part in line.split():
+            if "=" in part:
+                key, value = p

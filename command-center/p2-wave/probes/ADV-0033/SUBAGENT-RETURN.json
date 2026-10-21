@@ -1,0 +1,46 @@
+{
+  "id": "ADV-0033",
+  "unit_id": "ADV-0033",
+  "status": "DELIVERED",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0033 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0033 <reason>.",
+  "registered": true,
+  "output_path": "command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json",
+  "output_schema": "command-center/schema/threat-model.schema.json",
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0033/probe1_control.py",
+      "exit_code": 0,
+      "raw_output": "Probe 1: run the identical probe payload in every substrate and record the four outcomes per substrate as a matrix.\n{\"cells\": {\"cloud-sandbox\": {\"credential_read\": null, \"executed\": false, \"outbound_socket\": null, \"process_list\": null, \"reason\": \"cli-absent-and-cloud-hub-mcp-not-in-session\", \"verdict\": \"NOT-CHECKED\", \"write_outside_root\": null}, \"docker\": {\"credential_read\": null, \"executed\": false, \"outbound_socket\": null, \"process_list\": null, \"reason\": \"binary-absent\", \"verdict\": \"NOT-CHECKED\", \"write_outside_root\": null}, \"linux-user-namespace-isolator\": {\"credential_read\": true, \"executed\": true, \"outbound_socket\": false, \"process_list\": false, \"reason\": \"linux-user-namespace-net-pid\", \"verdict\": \"PARTIAL\", \"write_outside_root\": true}, \"local-process\": {\"credential_read\": true, \"executed\": true, \"outbound_socket\": true, \"process_list\": true, \"reason\": null, \"verdict\": \"REFUTED\", \"write_outside_root\": true}, \"worktree\": {\"credential_read\": true, \"executed\": true, \"outbound_socket\": true, \"process_list\": true, \"reason\": null, \"verdict\": \"REFUTED\", \"write_outside_root\": true}, \"wsl2\": {\"credential_read\": null, \"executed\": false, \"outbound_socket\": null, \"process_list\": null, \"reason\": \"binary-absent-native-linux\", \"verdict\": \"NOT-CHECKED\", \"write_outside_root\": null}}, \"control_unisolated_all_four\": true, \"host\": {\"docker\": \"binary-absent\", \"modal\": \"binary-absent\", \"native_linux\": true, \"os\": \"posix\", \"podman\": \"binary-absent\", \"proc_version_has_microsoft\": false, \"unshare\": \"present\", \"wsl\": \"binary-absent\"}, \"instrument\": \"identical-payload-capability-matrix\", \"isolator_detects_block\": true, \"targets\": [{\"target_id\": \"isolation:local-process\", \"verdict\": \"REFUTED\"}, {\"target_id\": \"isolation:worktree\", \"verdict\": \"REFUTED\"}, {\"target_id\": \"isolation:wsl2\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"isolation:docker\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"isolation:cloud-sandbox\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"control:isolator-can-go-red\", \"verdict\": \"CONFIRMED\"}, {\"target_id\": \"control:unisolated-capability-detection\", \"verdict\": \"CONFIRMED\"}]}\nlocal-process executed=True verdict=REFUTED reason=None credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True\nworktree executed=True verdict=REFUTED reason=None credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True\nwsl2 executed=False verdict=NOT-CHECKED reason=binary-absent-native-linux credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\ndocker executed=False verdict=NOT-CHECKED reason=binary-absent credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\ncloud-sandbox executed=False verdict=NOT-CHECKED reason=cli-absent-and-cloud-hub-mcp-not-in-session credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\nisolator executed=True verdict=PARTIAL reason=linux-user-namespace-net-pid credential_read=True,process_list=False,write_outside_root=True,outbound_socket=False\ncontrol_unisolated_all_four=True isolator_detects_block=True\nSUCCESS:ADV-0033-probe1 identical-payload-matrix"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0033/probe2_router.py",
+      "exit_code": 0,
+      "raw_output": "Probe 2 (mechanically different): read the router's selection logic and identify which substrate untrusted/third-party code is actually routed to, then check that cell of the matrix - a strong sandbox that untrusted code is never routed to provides zero protection.\n{\"catalog_execution_substrate_is_metadata\": true, \"cell\": {\"credential_read\": true, \"outbound_socket\": true, \"process_list\": true, \"write_outside_root\": true}, \"completeness_default_substrates\": [\"local-windows-pwsh7\", \"local-parallel\", \"local-serialized\", \"worktree-isolated\", \"cloud-batch\"], \"imp0064_exec_policy_schema_present\": false, \"imp0064_exec_policy_test_present\": false, \"instrument\": \"static-router-then-matrix-cell\", \"os_substrate_dispatcher_present\": false, \"plugin_hooks_spawn_local_subprocess\": true, \"plugin_longrun_spawn_local_subprocess\": true, \"routing_verdict\": \"REFUTED\", \"untrusted_routed_to\": \"local-process\", \"unused_sandbox_protects\": false, \"why\": \"routed-to-unisolated-local-process\"}\nuntrusted_routed_to=local-process dispatcher=False routing_verdict=REFUTED why=routed-to-unisolated-local-process\ncell credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True unused_sandbox_protects=False\nspawn hooks=True longrun=True exec_policy_schema=False\nSUCCESS:ADV-0033-probe2 router-then-matrix-cell"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json",
+      "sha256": "a95fd88244348eeff08f95b68f3144a213362fbf20c8cc96bbc1530c4e9b8046",
+      "bytes": 35461,
+      "exists": true,
+      "role": "primary"
+    }
+  ],
+  "manifest_path": "command-center/p2-wave/probes/ADV-0033/UNIT-ARTIFACT-MANIFEST.json",
+  "reviewer": {
+    "reviewer_id": "ADV-0033-probe2-router-cell",
+    "verdict": "PASS",
+    "independent": true
+  },
+  "ts": "2026-08-24T20:55:58Z",
+  "notes": "G-1 for ADV-0033: live named probes exit 0, honest PARTIAL isolation matrix (local/worktree REFUTED; docker/WSL2/cloud NOT-CHECKED), untrusted code routed to the unisolated local cell, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+  "measure_line": "SUCCESS:delivered ADV-0033",
+  "measure": {
+    "exit_code": 0,
+    "line": "SUCCESS:delivered ADV-0033"
+  }
+}

@@ -1,0 +1,15 @@
+ADV-0036 reviewer packet (raw re-derivation). Unit question: after install on Windows, which deployed files that influence execution (hooks, settings, MCP configs, launchers) are writable by a non-elevated user or a broad group?
+PROBE 1 (real icacls on THIS Windows host, user=Prekzursil, elevated=True, EnableLUA=0): 368 deployed execution-influencing targets enumerated under the real user profile (~/.claude, ~/.codex, ~/.zcode, hooks).
+Targets with BROAD-GROUP WRITE ACEs: 363. Targets clean (owner/admins/SYSTEM only): 5 -> ['claude-json', 'zcode-agents-md', 'claude-hook:.gitignore', 'claude-hook:CACHEDIR.TAG', 'claude-hook:README.md']
+Broad write ACE census: {"DESKTOP-A60S9GP\\CodexSandboxUsers:M,DC": 363, "S-1-5-21-1838525764-1127316684-2374434444-3170517000:M,DC": 363}
+Example verbatim icacls (claude-settings): C:\Users\Prekzursil\.claude\settings.json DESKTOP-A60S9GP\CodexSandboxUsers:(I)(RX) |                                           DESKTOP-A60S9GP\CodexSandboxUsers:(I)(M,DC) |                                           S-1-5-21-1838525764-1127316684-2374434444-3170517000:(I)(M,DC) |                                           NT AUTHORITY\SYSTEM:(I)(F) |                                           BUILTI
+codex-config carries an explicit DENY (W,D,Rc,DC) for the foreign SID only - CodexSandboxUsers is NOT denied (recorded in raw json).
+CLASSIFIER both-states control: fired_on_bad_state=True (scratch dir granted Everyone:(W) flagged) silent_on_good_state=True (owner-only scratch dir clean).
+Protected control System32: broad_write_aces=0 (none).
+PROBE 2 (empirical non-elevated write attempt): executed via duplicated EXPLORER shell token AND via Safer NORMALUSER token; BOTH contexts measured elevated=true (IsUserAnAdmin true); host registry EnableLUA=0 (UAC disabled) - no non-elevated principal exists on this host. Write-open ALLOWED on all sampled targets AND the System32 marker control was ALSO allowed (proof the context cannot exercise ACL denials). Probe2 raw: {"protected_error": null, "protected_system32_write_denied": false, "user_owned_write_ok": true}
+
+REVIEWER TASK (falsification), from the raw data above alone:
+1. Does the icacls evidence support: deployed execution-influencing files (settings.json, AGENTS.md/CLAUDE.md, codex config.toml, hook dispatch.py + manifest.json) are MODIFIABLE by the machine-local group CodexSandboxUsers and an unresolved foreign SID (broad-group write), while a handful (.claude.json, dirs) are owner/admin-only?
+2. Is the classifier proven both-states (fires on Everyone:(W) scratch, silent on owner-only scratch)?
+3. Is the empirical non-elevated write limb honestly NOT-EXERCISABLE on this host (EnableLUA=0, both spawned contexts elevated, System32 control allowed)?
+Answer VERDICT: PASS or FAIL + 3-5 lines citing the data. PASS = raw evidence supports the verdicts as recorded.
