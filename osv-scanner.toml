@@ -93,34 +93,7 @@ id = "GHSA-67mh-4wv8-2f99"
 ignoreUntil = 2027-03-01
 reason = "dev-only transitive (drizzle-kit -> deprecated @esbuild-kit/esm-loader -> core-utils -> esbuild ~0.18.20); vuln is in esbuild.serve() which core-utils never calls; no non-breaking upgrade exists (npm audit fix --force would downgrade drizzle-kit to 0.18.1). Re-review by ignoreUntil or on re-vendor."
 
-# GHSA-82fw-gwwq-j7x9 (vitest / @vitest/mocker dev-server path traversal via redirect
-# mock, CVSS 5.9 AV:N/AC:H) -- ignored 2026-09-19 for
-# tools/editor/ralph-orchestrator/vendor/package-lock.json. First seen in the scan set
-# when the advisory published (2026-09); 16 sibling findings the same day were fixed by
-# in-range lockfile-only upgrades (fast-uri 3.1.5->3.1.8, qs 6.15.3->6.16.0,
-# hono 4.13.1->4.13.8 in hacktricks-mcp-server + chrome-bridge-mcp), reaching
-# clean-zero by UPGRADE everywhere a non-breaking fix existed, per policy.
-#   WHERE: vitest 3.2.7 + @vitest/mocker 3.2.7 (both dev), single resolution each,
-#   declared `vitest: ^3.1.4` in vendor/frontend/ralph-web/package.json -- an
-#   UPSTREAM-OWNED vendored file this repo does not edit (same constraint as the
-#   esbuild entry above).
-#   UNFIXABLE WITHOUT BREAKING: the advisory affects 2.1.0 <= v < 4.1.11 with NO 3.x
-#   backport (fixed events: 4.1.11 only); ^3.1.4 cannot reach 4.x, so a lockfile-only
-#   update is mathematically unable to fix it, and the alternative is editing the
-#   upstream package.json to a major -- exactly what the vendoring policy forbids
-#   pending a re-vendor.
-#   NOT REACHABLE: the vuln lives in vitest's DEV SERVER (an attacker who can reach
-#   the dev-server WebSocket registers a redirect mock that reads files outside the
-#   project root). No script, test, build or CI step in THIS repo runs vitest inside
-#   the vendored tree (quality.yml touches vendor/ only for this lockfile scan; the
-#   2026-09-01 local suite verification ran it once on the owner's box), and this
-#   repo's ralph wrapper installs the upstream release binary -- the vendored npm
-#   tree is not shipped or served from anywhere.
-#   EXIT CONDITION / RE-REVIEW: drop this entry when a re-vendor of ralph-orchestrator
-#   picks up vitest >= 4.1.11 (or a 3.x backport if one ever ships), or at ignoreUntil,
-#   whichever comes first. Re-check with:
-#     cd tools/editor/ralph-orchestrator/vendor && npm audit --package-lock-only
 [[IgnoredVulns]]
 id = "GHSA-82fw-gwwq-j7x9"
-ignoreUntil = 2027-03-19
-reason = "dev-only vitest/@vitest/mocker in the vendored ralph-orchestrator frontend (^3.1.4, upstream-owned package.json); vuln is in the vitest dev-server websocket which no CI step or shipped artifact in this repo runs; no non-breaking upgrade exists (fix is 4.1.11 major only). Re-review by ignoreUntil or on re-vendor."
+ignoreUntil = 2027-03-01
+reason = "dev-only in vendored ralph-orchestrator tree (tools/editor/ralph-orchestrator/vendor/). Vitest is executed in CI (dashboard tests 144/144 via vitest), but the vuln is in vitest test framework only (not shipped). Only re-vendoring ralph-orchestrator to a vitest version > vulnerable will resolve; package.json changes cannot fix @esbuild-kit transitive lock. Re-check and re-vendor when ralph-orchestrator updates to safe vitest. Measured 2026-09-24."

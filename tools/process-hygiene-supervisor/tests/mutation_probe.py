@@ -1,0 +1,246 @@
+"""Mutation probe: revert each safety rule in turn; the suite MUST go red.
+
+A suite that stays green after a reverted guard is not protecting the behaviour it
+claims to (the both-states rule). Each mutation re-introduces a leak or a hazard
+the 02.09.2026 measurement or the estate incidents already paid for. Mutations
+may target any module in the tool (``file`` field); the probe restores every
+file it touched even if pytest crashes.
+
+Run from the tool root: ``python tests/mutation_probe.py``
+(a legacy positional target path is accepted and ignored for compatibility).
+Exit 0 = every mutation killed.
+"""
+
+import pathlib
+import subprocess
+import sys
+
+TOOL_ROOT = pathlib.Path(__file__).resolve().parents[1]
+
+# (label, file, old, new)
+MUTATIONS = [
+    (
+        "orphan reaps active processes (drop the whole-tree-idle gate)",
+        "hygiene.py",
+        "            if not self._all_idle(tree, observations):\n                continue",
+        "            if False:\n                continue",
+    ),
+    (
+        "protected allowlist disabled (auth2api / daemons / Windows get reaped)",
+        "hygiene.py",
+        'return any(token in haystack for token in self.policy["protected"]["tokens"])',
+        "return False",
+    ),
+    (
+        "cursor-agent orphans reaped directly instead of via the reaper",
+        "hygiene.py",
+        "            if self._is_parentless(proc, snapshot):\n                for pid in self._descendants(proc.pid, snapshot):",
+        "            if False:\n                for pid in self._descendants(proc.pid, snapshot):",
+    ),
+    (
+        "singleton port owner is killed instead of kept",
+        "hygiene.py",
+        "                if pid == keeper or pid in claimed:",
+        "                if pid in claimed:",
+    ),
+    (
+        "orphan age gate dropped (a just-detached process is reaped immediately)",
+        "hygiene.py",
+        "            if snapshot.taken_unix - proc.created_unix < min_age:\n                continue",
+        "            if False:\n                continue",
+    ),
+    (
+        "apply ignores the tier gate (elevated/critical actions fire at normal)",
+        "hygiene.py",
+        '        elif not gate_ok:\n            planned, deferred = "deferred", deferred + 1',
+        '        elif False:\n            planned, deferred = "deferred", deferred + 1',
+    ),
+    (
+        "empty-executable fail-closed removed (unidentifiable processes become killable)",
+        "hygiene.py",
+        "        if not proc.executable:\n            return True",
+        "        if False:\n            return True",
+    ),
+    (
+        "PID-reuse child-predates-parent guard dropped",
+        "hygiene.py",
+        "                if snapshot.by_pid[child].created_unix < parent_created:\n                    continue",
+        "                if False:\n                    continue",
+    ),
+    (
+        "tier de-escalates immediately (hysteresis dropped)",
+        "hygiene.py",
+        '        if streak >= self.policy["pressure"]["deescalate"]:',
+        "        if True:",
+    ),
+    (
+        "IDE-owned agent treated as a stale session",
+        "hygiene.py",
+        "            if current.name.lower() in IDE_NAMES:",
+        "            if False:",
+    ),
+    (
+        "orphan rule ignores reaper delegation (delegated cursor reaped inline)",
+        "hygiene.py",
+        "            if proc.pid in claimed or proc.pid in delegate_pids:",
+        "            if proc.pid in claimed:",
+    ),
+    (
+        "actuator kills without identity revalidation",
+        "hygiene_actuate.py",
+        "        if not self._identity_matches(member, identity):",
+        "        if False:",
+    ),
+    (
+        "actuator ignores the opt-in polite stop and forces at once",
+        "hygiene_actuate.py",
+        "            if polite_seconds > 0:",
+        "            if False:",
+    ),
+    (
+        "actuator terminates without waiting for the pinned handle to exit",
+        "hygiene_actuate.py",
+        "            if handle.wait(EXIT_WAIT_SECONDS):",
+        "            if True:",
+    ),
+    (
+        "actuator treats an unopenable (protected) process as vanished",
+        "hygiene_actuate.py",
+        '            return result("failed", f"cannot open process: {exc}")',
+        '            return result("vanished", "gone before kill")',
+    ),
+    (
+        "singleton grace dropped (a warming relaunch is killed)",
+        "hygiene.py",
+        "                if snapshot.taken_unix - proc.created_unix <= grace:",
+        "                if False:",
+    ),
+    (
+        "daemon carve-out dropped (port-owning orphans reaped)",
+        "hygiene.py",
+        "            if owned_port is not None:",
+        "            if False:",
+    ),
+    (
+        "protected members pulled into kill trees",
+        "hygiene.py",
+        "            if self._is_protected(proc, snapshot):\n                protected.append(pid)",
+        "            if False:\n                protected.append(pid)",
+    ),
+    (
+        "commit-ratio leg dropped from the pressure tiers",
+        "hygiene.py",
+        '            "ratio": ratio,',
+        '            "ratio": 0,',
+    ),
+    (
+        "ledger stops redacting credential flags",
+        "hygiene.py",
+        '    text = _SECRET_FLAG_RE.sub(r"\\1[REDACTED]", text)',
+        "    text = text",
+    ),
+    (
+        "commit-headroom leg dropped (allocation-failure proximity ignored)",
+        "hygiene.py",
+        '            "headroom": headroom,',
+        '            "headroom": None,',
+    ),
+    (
+        "network veto never applies (a session awaiting a model reply is reaped)",
+        "hygiene.py",
+        "        if not any(member.pid in snapshot.networked for member in tree):",
+        "        if True:",
+    ),
+    (
+        "crash-loop breaker disabled (a respawning retired component is killed forever)",
+        "hygiene.py",
+        "    return len(recent) >= kills",
+        "    return False",
+    ),
+    (
+        "stop budget ignored (one snapshot can trigger a kill storm)",
+        "hygiene.py",
+        "            and (stopped + failed) >= max_stops",
+        "            and False",
+    ),
+    (
+        "WSL shutdown while Docker Desktop is running",
+        "hygiene.py",
+        "        if snapshot.docker_desktop_running:",
+        "        if False:",
+    ),
+    (
+        "wrapper-chain rule reports nothing (orphan-prone configs stay invisible)",
+        "hygiene.py",
+        "            if not servers:",
+        "            if True:",
+    ),
+    (
+        "failure modes collapsed (owner told 'critical' without which failure)",
+        "hygiene.py",
+        '            modes.add("working-set")',
+        "            pass",
+    ),
+    (
+        "memory-priority demotes protected or active processes",
+        "hygiene.py",
+        "            if self._is_protected(proc, snapshot) or not self._confirmed_idle(",
+        "            if False or not self._confirmed_idle(",
+    ),
+    (
+        "memory-priority never restores (demoted tenants stay demoted forever)",
+        "hygiene.py",
+        "            if active_enough and self._confirmed_idle(proc, observations):",
+        "            if True:",
+    ),
+    (
+        "actuator changes memory priority without the identity check",
+        "hygiene_actuate.py",
+        '                return result("vanished", "exited before the priority change")\n            if not self._identity_matches(member, identity):',
+        '                return result("vanished", "exited before the priority change")\n            if False:',
+    ),
+    (
+        "ownership carve-out dropped (an IDE-owned agent is a stale session)",
+        "hygiene.py",
+        '        if kind in ("ide", "runtime"):',
+        "        if False:",
+    ),
+]
+
+originals: dict[pathlib.Path, str] = {}
+failures = []
+try:
+    for label, filename, old, new in MUTATIONS:
+        target = TOOL_ROOT / filename
+        original = originals.setdefault(target, target.read_text(encoding="utf-8"))
+        if old not in original:
+            failures.append(
+                f"ANCHOR-MISS: {label!r} -- pattern not found in {filename}"
+            )
+            print(f"[ANCHOR-MISS] {label}")
+            continue
+        target.write_text(original.replace(old, new, 1), encoding="utf-8")
+        try:
+            proc = subprocess.run(
+                [sys.executable, "-m", "pytest", "tests/", "-q", "--no-header", "-x"],
+                cwd=TOOL_ROOT,
+                capture_output=True,
+                text=True,
+            )
+        finally:
+            target.write_text(original, encoding="utf-8")
+        killed = proc.returncode != 0
+        print(f"[{'KILLED ' if killed else 'SURVIVED'}] {label}")
+        if not killed:
+            failures.append(f"SURVIVED: {label}")
+finally:
+    for target, original in originals.items():
+        target.write_text(original, encoding="utf-8")
+
+print()
+if failures:
+    print("MUTATION PROBE FAILED:")
+    for line in failures:
+        print("  -", line)
+    raise SystemExit(1)
+print(f"MUTATION PROBE PASSED: all {len(MUTATIONS)} mutations killed by the suite")

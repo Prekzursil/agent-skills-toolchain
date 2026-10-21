@@ -1,0 +1,59 @@
+# Deploy to %USERPROFILE%\.wslconfig  (i.e. C:\Users\Prekzursil\.wslconfig)
+# then run `wsl --shutdown` once so the new limits take effect on next start.
+#
+# WHY: on 02.09.2026 04:50 EEST vmmemWSL held 1.1 GB with NO workload inside it.
+# WSL2's default memory ceiling is 50% of RAM (~15.8 GB on this 31.6 GB box) and
+# it does not return freed guest page cache to Windows unless autoMemoryReclaim is
+# enabled. The cap below bounds the guest, and autoMemoryReclaim hands cache back
+# to Windows while WSL keeps running - so the supervisor's idle `wsl --terminate`
+# is only a last resort, not the routine reclaim path.
+#
+# Key placement verified against Microsoft Learn (wsl-config) AND the
+# microsoft/WSL source, fetched 2026-09-02:
+#   * memory / processors / swap / vmIdleTimeout live under [wsl2];
+#   * autoMemoryReclaim and sparseVhd are [experimental]-ONLY keys - putting them
+#     under [wsl2] is a silent no-op (WSL logs nothing and ignores the line);
+#   * valid autoMemoryReclaim values: disabled | gradual | dropCache.
+#
+# Tune `memory` to the largest guest workload you actually run. 8GB leaves ample
+# headroom for the AI runtimes + browsers on the Windows side; drop to 4GB if WSL
+# is only used for light tooling.
+
+[wsl2]
+# Hard cap on the WSL2 guest VM (vmmemWSL) RAM.
+memory=8GB
+
+# Cap guest processors so a WSL build cannot starve the Windows-side agents.
+processors=4
+
+# Bound the swap file so a runaway guest cannot balloon commit charge on C:.
+swap=8GB
+
+# Native idle shutdown (Windows 11): milliseconds the VM may sit with NO distro
+# running before WSL stops it. Default is already 60000; kept explicit so the
+# knob is visible. Note this does NOT fire while a distro shell/service is open -
+# that is the case the supervisor's idle terminate covers.
+vmIdleTimeout=60000
+
+[experimental]
+# Return unused guest page cache to Windows automatically.
+#
+# `dropCache`, not `gradual`, ON PURPOSE. Measured on this box: vmmemWSL sat at
+# 1.1 GB with an idle guest. `gradual` reclaims slowly and, per the WSL source,
+# stops well short of an empty guest - it is a plausible cause of exactly that
+# plateau. `dropCache` drops the guest page cache outright; the cost is that the
+# next read in the guest re-reads from the VHD (slower first build after idle),
+# which is the right trade on a box that lives above 2x commit. Switch back to
+# `gradual` if guest I/O latency after idle becomes annoying.
+autoMemoryReclaim=dropCache
+
+# sparseVhd returns the disk space freed above to Windows for NEWLY CREATED VHDs
+# (existing ones need `wsl --manage <distro> --set-sparse true`).
+#
+# LEFT OFF DELIBERATELY. The WSL source gates this behind a corruption warning,
+# and the tracker carries reports of disk corruption with sparse VHDs; this is a
+# DISK-space feature and does nothing for the RAM/commit problem the supervisor
+# exists to solve. Enable only if C: space is the actual complaint, and take a
+# distro export first:
+#   wsl --export <distro> D:\backup\<distro>.tar
+# sparseVhd=true

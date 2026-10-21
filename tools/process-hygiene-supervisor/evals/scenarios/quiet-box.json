@@ -1,0 +1,152 @@
+{
+  "name": "quiet-box",
+  "kind": "regression",
+  "description": "A healthy box: one active Claude session with one playwright child, a few chrome renderers, the daemons. Nothing may be stopped and no pressure/lifecycle rule may fire. The ONE advisory row that is expected is wrapper-chain: pid 701 is a real `npx -y @playwright/mcp` shim whose actual server (702) is a GRANDCHILD of the host, so it is structurally orphan-prone - naming it on a healthy box is the point, and it stops nothing.",
+  "rounds": 4,
+  "host": {
+    "physical_bytes": 34359738368,
+    "free_bytes": 8589934592,
+    "commit_total_bytes": 21474836480,
+    "commit_limit_bytes": 68719476736
+  },
+  "wsl": {
+    "available": true,
+    "running_distros": []
+  },
+  "listeners": {
+    "8317": 4001,
+    "8765": 5001,
+    "8812": 5002
+  },
+  "processes": [
+    {
+      "pid": 100,
+      "ppid": 1,
+      "name": "explorer.exe",
+      "executable": "C:\\Windows\\explorer.exe",
+      "command_line": "explorer.exe",
+      "age_seconds": 390000,
+      "private_mib": 150
+    },
+    {
+      "pid": 110,
+      "ppid": 100,
+      "name": "WindowsTerminal.exe",
+      "executable": "C:\\Program Files\\WindowsApps\\Microsoft.WindowsTerminal_1.0\\WindowsTerminal.exe",
+      "command_line": "wt",
+      "age_seconds": 380000,
+      "private_mib": 120
+    },
+    {
+      "pid": 430,
+      "ppid": 110,
+      "name": "pwsh.exe",
+      "executable": "C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+      "command_line": "pwsh",
+      "age_seconds": 11000,
+      "private_mib": 50
+    },
+    {
+      "pid": 700,
+      "ppid": 430,
+      "name": "claude.exe",
+      "executable": "C:\\Users\\Prekzursil\\.local\\bin\\claude.exe",
+      "command_line": "claude",
+      "age_seconds": 10800,
+      "private_mib": 600,
+      "active": true
+    },
+    {
+      "pid": 701,
+      "ppid": 700,
+      "name": "node.exe",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "npx -y @playwright/mcp@latest",
+      "age_seconds": 7200,
+      "private_mib": 60
+    },
+    {
+      "pid": 702,
+      "ppid": 701,
+      "name": "node.exe",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "node C:\\x\\_npx\\abc\\node_modules\\@playwright\\mcp\\cli.js",
+      "age_seconds": 7199,
+      "private_mib": 90
+    },
+    {
+      "pid": 7000,
+      "ppid": 100,
+      "name": "chrome.exe",
+      "executable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "command_line": "chrome --type=renderer",
+      "age_seconds": 30000,
+      "private_mib": 68,
+      "count": 10
+    },
+    {
+      "pid": 4001,
+      "ppid": 9995,
+      "name": "node.exe",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "command_line": "node C:\\Users\\Prekzursil\\Cowork\\tools\\auth2api\\dist\\index.js",
+      "age_seconds": 378000,
+      "private_mib": 180
+    },
+    {
+      "pid": 5001,
+      "ppid": 9996,
+      "name": "python.exe",
+      "executable": "C:\\Python314\\python.exe",
+      "command_line": "python -m basic_memory mcp --transport streamable-http --port 8765",
+      "age_seconds": 30000,
+      "private_mib": 843
+    },
+    {
+      "pid": 5002,
+      "ppid": 9997,
+      "name": "python.exe",
+      "executable": "C:\\Python314\\python.exe",
+      "command_line": "python -m mcp_agent_mail.cli serve-http --host 127.0.0.1 --port 8812",
+      "age_seconds": 200000,
+      "private_mib": 120
+    }
+  ],
+  "expect": {
+    "tier": "normal",
+    "stop_pids": [],
+    "never_touched": [
+      100,
+      110,
+      430,
+      700,
+      701,
+      702,
+      7000,
+      4001,
+      5001,
+      5002
+    ],
+    "rules_absent": [
+      "retired",
+      "orphan",
+      "daemon",
+      "session-age",
+      "rss-soft",
+      "rss-hard",
+      "mcp-duplicate-same-owner",
+      "mcp-duplicate-cross-owner",
+      "mcp-singleton-duplicate",
+      "mcp-over-budget",
+      "cursor-orphan-reaper",
+      "wsl-idle",
+      "wsl-report",
+      "browser"
+    ],
+    "delegate_reaper": false,
+    "wsl_shutdown": false,
+    "rules_present": [
+      "wrapper-chain"
+    ]
+  }
+}

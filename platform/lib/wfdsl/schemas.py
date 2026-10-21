@@ -74,21 +74,32 @@ def load_all() -> dict[str, dict[str, Any]]:
     return out
 
 
-def _forbid_retrieve(uri: str):  # noqa: ANN202 - referencing callback
+def _retrieve_schema(uri: str) -> Resource:  # noqa: ANN202 - referencing callback
+    """Retrieve a schema from our local offline collection by URI.
+
+    This is called when the referencing library encounters a $ref that needs resolution.
+    We look up the schema in our loaded docs and return it as a Resource.
+    """
+    docs = load_all()
+    if uri in docs:
+        return Resource.from_contents(docs[uri], default_specification=DRAFT202012)
+    # If not found locally, refuse the fetch
     raise NoSuchResource(
-        ref=f"offline registry refused to fetch {uri!r}: every $ref must resolve to a local schema document"
+        ref=f"offline registry cannot resolve {uri!r}: not in local schema set. Known: {sorted(docs)}"
     )
 
 
 @lru_cache(maxsize=1)
 def registry() -> Registry:
-    """A fully offline :class:`referencing.Registry` over the local schema set."""
-    resources: list[tuple[str, Resource]] = []
-    for schema_id, doc in load_all().items():
-        resources.append(
-            (schema_id, Resource.from_contents(doc, default_specification=DRAFT202012))
-        )
-    return Registry(retrieve=_forbid_retrieve).with_resources(resources)
+    """A fully offline :class:`referencing.Registry` over the local schema set.
+
+    Uses a custom retrieve function that directly looks up schemas by their $id URI
+    in the local docs dictionary. When the referencing library encounters a $ref,
+    it calls this function to resolve the base schema. For references with JSON
+    Pointer fragments (e.g., #/$defs/tool_token), the library extracts the fragment,
+    calls retrieve to get the base schema, then navigates the pointer.
+    """
+    return Registry(retrieve=_retrieve_schema)
 
 
 @lru_cache(maxsize=None)

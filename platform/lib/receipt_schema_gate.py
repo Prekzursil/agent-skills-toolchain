@@ -175,10 +175,22 @@ def build_validator(
     ``"security_report"``.
     """
     schema = schema if schema is not None else load_schema()
+    # Register the schema with its $id so that $ref and fragments can be resolved
     registry = Registry().with_resource(
         schema["$id"], Resource.from_contents(schema, default_specification=DRAFT202012)
     )
     if fragment is None:
+        # For the root schema with $ref, ensure we validate against the dereferenced schema
+        # by explicitly resolving the $ref if present
+        if "$ref" in schema and len(schema) <= 3:  # Only $ref, $id, $comment typically
+            ref = schema["$ref"]
+            if ref.startswith("#"):
+                # Internal reference - resolve it from the $defs
+                path = ref.lstrip("#").lstrip("/").split("/")
+                resolved = schema
+                for part in path:
+                    resolved = resolved[part]
+                return Draft202012Validator(resolved, registry=registry)
         return Draft202012Validator(schema, registry=registry)
 
     frag = fragment.lstrip("#")

@@ -61,12 +61,13 @@ def build_claude_server(name: str, server: dict[str, Any]) -> dict[str, Any] | N
     """Convert an agents.json server definition to a .claude.json mcpServers entry."""
     transport = server.get("transport", "stdio")
 
-    if transport == "http":
+    if transport in ("http", "sse"):
         # ``type`` is mandatory for Claude: an entry carrying a ``url`` but no
         # ``type`` is read as a stdio server and SKIPPED, so the server silently
         # never mounts (see tools/mcp/mcp-http-host/README.md).
+        # McpHub and similar gateways use transport=sse (type sse).
         entry: dict[str, Any] = {
-            "type": "http",
+            "type": "sse" if transport == "sse" else "http",
             "url": server["url"],
         }
         headers = dict(server.get("headers", {}))
@@ -188,6 +189,20 @@ def main() -> int:
 
         dump_json(live_path, live_config)
 
+    # Sticky park guard (2026-09-24): refuse to leave parked heavies in live mcpServers
+    parked = [
+        name
+        for name, server in servers.items()
+        if "parked-stdio-use-mcphub" in (server.get("tags") or [])
+        or (
+            server.get("enabled") is False
+            and "parked" in str(server.get("description", "")).lower()
+        )
+    ]
+    leaked = sorted(n for n in parked if n in mcp_servers)
+    if leaked:
+        print(f"FAIL:parked-stdio-leaked count={len(leaked)} names={leaked[:15]}")
+        return 1
     print(
         "SUCCESS:mcp-claude-merge "
         f"managed={len(generated)} added={len(added)} updated={len(updated)} "

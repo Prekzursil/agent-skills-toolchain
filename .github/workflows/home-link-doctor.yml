@@ -1,0 +1,138 @@
+# Home link doctor -- diagnose (and optionally repair) Tailscale on home.
+#
+# WHY THIS EXISTS
+# On 2026-09-24 the VM saw `desktop-a60s9gp` as "offline, last seen 3h" on the
+# tailnet, while THIS runner (`home-wsl`) was status=online and had executed 13
+# jobs in the same window. Home is powered and has internet; it is Tailscale that
+# is down. That inverted the previous diagnosis ("home sleeps"), which would have
+# been fixed with powercfg and would not have helped.
+#
+# UNPROVEN ASSUMPTION THIS JOB SETTLES: that `home-wsl` actually runs on
+# desktop-a60s9gp. It is labelled so, which is strong circumstantial evidence and
+# nothing more. Step 1 checks it rather than assuming it.
+#
+# SAFETY
+#  - workflow_dispatch ONLY. It never runs on push, schedule or PR.
+#  - The diagnosis steps are READ-ONLY and always run.
+#  - Repair is OPT-IN per run via the `repair` input, defaults to false.
+#  - Every step is `continue-on-error` and ends `|| true`: a WSL runner often
+#    CANNOT control a Windows host service, and that must report "cannot", not
+#    fail the run.
+#  - It never touches credentials and never prints an auth key.
+
+name: home-link-doctor
+
+on:
+  workflow_dispatch:
+    inputs:
+      repair:
+        description: "Attempt to restart Tailscale (false = diagnose only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: selfhosted-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  doctor:
+    runs-on: [self-hosted, home-wsl]
+    timeout-minutes: 10
+    steps:
+      - name: Who and where am I
+        continue-on-error: true
+        run: |
+          echo "== identity =="
+          echo "hostname      : $(hostname 2>/dev/null || echo '?')"
+          echo "uname         : $(uname -a 2>/dev/null || echo '?')"
+          echo "is WSL        : $(grep -qi microsoft /proc/version 2>/dev/null && echo yes || echo no)"
+          echo "WSL distro    : ${WSL_DISTRO_NAME:-<not set>}"
+          echo "runner name   : ${RUNNER_NAME:-<not set>}"
+          echo
+          echo "== can this WSL see the Windows host? =="
+          if [ -d /mnt/c/Windows ]; then
+            echo "/mnt/c/Windows : present (interop drive mounted)"
+            echo "windows host   : $(/mnt/c/Windows/System32/cmd.exe /c 'echo %COMPUTERNAME%' 2>/dev/null | tr -d '\r' || echo 'cmd.exe not callable')"
+          else
+            echo "/mnt/c/Windows : ABSENT -- this runner cannot reach the Windows side at all."
+            echo "                 If so, it cannot diagnose or repair host Tailscale, only report that."
+          fi
+          true
+
+      - name: Tailscale state, Linux side
+        continue-on-error: true
+        run: |
+          echo "== tailscale inside WSL =="
+          if command -v tailscale >/dev/null 2>&1; then
+            tailscale version 2>&1 | head -2 || true
+            tailscale status --peers=false 2>&1 | head -5 || true
+          else
+            echo "not installed in WSL (expected -- the tailnet node is the WINDOWS host)"
+          fi
+          true
+
+      - name: Tailscale state, Windows host side
+        continue-on-error: true
+        run: |
+          echo "== tailscale on the Windows host, via interop =="
+          TS="/mnt/c/Program Files/Tailscale/tailscale.exe"
+          if [ ! -x "$TS" ] && [ ! -f "$TS" ]; then
+            echo "tailscale.exe NOT FOUND at $TS"
+            echo "-> either Tailscale is uninstalled on the host, or interop cannot reach it."
+            exit 0
+          fi
+          echo "-- version --"
+          "$TS" version 2>&1 | head -2 | tr -d '\r' || true
+          echo "-- status (self only) --"
+          "$TS" status --self=true --peers=false 2>&1 | head -5 | tr -d '\r' || true
+          echo "-- is it logged in, or logged OUT? --"
+          "$TS" status 2>&1 | head -3 | tr -d '\r' || true
+          echo "-- service state --"
+          /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -Command \
+            "try { \$s=Get-Service Tailscale -EA Stop; 'status=' + \$s.Status; 'start=' + (Get-CimInstance Win32_Service -Filter \"Name='Tailscale'\").StartMode } catch { 'service query failed: ' + \$_.Exception.Message }" 2>&1 | tr -d '\r' || true
+          true
+
+      - name: Attempt repair (opt-in)
+        if: ${{ inputs.repair }}
+        continue-on-error: true
+        run: |
+          echo "== REPAIR REQUESTED =="
+          PS="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+          TS="/mnt/c/Program Files/Tailscale/tailscale.exe"
+          if [ ! -f "$PS" ]; then echo "powershell.exe unreachable -- cannot repair from here."; exit 0; fi
+
+          echo "-- 1. ensure the service is running and set to Automatic --"
+          # A WSL runner is usually NOT elevated, so this may be denied. That is a
+          # legitimate outcome to REPORT, not to retry blindly.
+          "$PS" -NoProfile -Command \
+            "try { Start-Service Tailscale -EA Stop; 'started' } catch { 'start failed (likely not elevated): ' + \$_.Exception.Message }" 2>&1 | tr -d '\r' || true
+          "$PS" -NoProfile -Command \
+            "try { Set-Service Tailscale -StartupType Automatic -EA Stop; 'startup=Automatic' } catch { 'set-startup failed: ' + \$_.Exception.Message }" 2>&1 | tr -d '\r' || true
+
+          echo "-- 2. bring the tailnet connection up --"
+          # No auth key is passed. If it is logged out this will SAY so and print a
+          # login URL; it will not authenticate anything unattended.
+          "$TS" up --timeout=30s 2>&1 | head -6 | tr -d '\r' || true
+
+          echo "-- 3. state after repair --"
+          "$TS" status --self=true --peers=false 2>&1 | head -5 | tr -d '\r' || true
+          true
+
+      - name: Verdict
+        continue-on-error: true
+        run: |
+          TS="/mnt/c/Program Files/Tailscale/tailscale.exe"
+          if [ -f "$TS" ] && "$TS" status --self=true --peers=false >/dev/null 2>&1; then
+            echo "SUCCESS:home-tailscale-responding"
+            echo "The VM should now see desktop-a60s9gp as online. If it still does not,"
+            echo "the host is up but not authenticated -- check for a login URL above."
+          else
+            echo "FAILED:home-tailscale-unreachable-from-this-runner"
+            echo "This does NOT prove Tailscale is broken -- it may only mean this WSL"
+            echo "runner cannot reach the Windows host. Read step 1: if /mnt/c/Windows"
+            echo "was ABSENT, that is the explanation and the host must be checked directly."
+          fi
+          true

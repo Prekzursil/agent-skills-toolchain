@@ -128,6 +128,11 @@
 param(
     [switch]$WhatIf,
     [switch]$Drift,
+    # P0 divergence-council fix (2026-10-01): writes require an EXPLICIT verb. Without
+    # -Apply the script is dry-run-by-default (deploy-skills-daily.py precedent) --
+    # '-Report json' alone must never write (it did: harness-vcs-hygiene.md documents
+    # the -Report select-output-mode footgun that Copy-Item -Force'd live->repo).
+    [switch]$Apply,
     [switch]$Prune,
     [string]$Root = (Split-Path $PSScriptRoot -Parent),
     [ValidateSet('text', 'json')][string]$Report = 'text',
@@ -493,7 +498,7 @@ function Add-Finding {
     })
 }
 
-$writeAllowed = (-not $WhatIf -and -not $Drift)
+$writeAllowed = (-not $WhatIf -and -not $Drift -and $Apply)
 
 # --- refuse to run on a dirty index, so the result is a reviewable diff -------
 $dirtyIndex = $false

@@ -41,8 +41,15 @@ AREAS = {
 # --------------------------------------------------------------------------- helpers
 
 
-def run_sync(root: Path, home: Path, *args: str, timeout: int = 300):
-    """Invoke the real script. Returns the CompletedProcess."""
+def run_sync(
+    root: Path, home: Path, *args: str, timeout: int = 300, apply: bool = True
+):
+    """Invoke the real script. Returns the CompletedProcess.
+
+    apply=True appends -Apply (writes allowed) -- the P0 contract (fd11a6cfa,
+    2026-10-01 divergence council) made writes an EXPLICIT verb: bare runs and
+    bare '-Report json' runs are censuses only. Tests asserting dry semantics
+    pass apply=False."""
     cmd = [
         "pwsh",
         "-NoProfile",
@@ -55,12 +62,14 @@ def run_sync(root: Path, home: Path, *args: str, timeout: int = 300):
         str(home),
         *args,
     ]
+    if apply:
+        cmd.append("-Apply")
     return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
 
 
-def report(root: Path, home: Path, *args: str) -> dict:
+def report(root: Path, home: Path, *args: str, apply: bool = True) -> dict:
     """Run with -Report json and parse stdout. Fails loudly if stdout is not pure JSON."""
-    p = run_sync(root, home, "-Report", "json", *args)
+    p = run_sync(root, home, "-Report", "json", *args, apply=apply)
     out = p.stdout.strip()
     if not out:
         pytest.fail(
@@ -765,4 +774,16 @@ def test_commit_hint_names_the_agents_root_capture(env):
     p = run_sync(env.root, env.home)
     assert "'.agents/*.md'" in p.stdout, (
         f"commit hint does not name the agents-root capture:\n{p.stdout[-1500:]}"
+    )
+
+
+def test_bare_run_writes_nothing_p0_dry_default(env):
+    """P0 divergence-council contract (fd11a6cfa): without -Apply the script is a
+    census, never a write. Pre-2026-10-01 footgun this red-proofs: '-Report json'
+    alone performed live->repo Copy-Item writes."""
+    write(env.live("rules", "dry.md"), "live bytes\n")
+    doc = report(env.root, env.home, apply=False)
+    assert doc["totals"]["new"] >= 1, doc["totals"]
+    assert not env.repo("rules", "dry.md").exists(), (
+        "bare run WROTE -- dry-by-default broken"
     )
