@@ -4,7 +4,7 @@ description: Local on-demand Grok OpenAI-compatible lane (chenyme/grok2api bridg
   D:\opt\grok-lane, http://127.0.0.1:8182/v1) — start command, g2a client keys, model
   mapping, credential import, token hygiene. Use when a task needs Grok models
   (grok-4.5/4.6/4.7, grok-4.20-*, grok-imagine-*, voice, stt) via an OpenAI-compatible
-  endpoint. Currently BLOCKED upstream — no Grok credential imported yet (see Status).
+  endpoint. Build lane ACTIVE (owner-imported credential); smoke-verified 2026-10-21.
 permalink: dqverify-agents-20261013/skills/grok-lane/skill
 ---
 
@@ -56,19 +56,21 @@ Grok Build credential is imported. NOTE: `/v1/models` only lists models servable
 imported credentials — with no account it returns an empty list and completions
 404 `model_not_found`.
 
-## Status: BLOCKED on credential import (owner action)
+## Status: ACTIVE — Grok Build lane (smoke-verified 2026-10-21)
 
-The bridge runs, but upstream Grok calls need a credential imported via the admin
-UI (Accounts page) — NONE exists in this environment yet. Owner must provide ONE of:
+One owner-imported **Grok Build** credential (OAuth/Device flow, done via the admin
+UI Accounts page; the secret never leaves the local encrypted store). Servable
+models live-discovered from upstream `/models`: `grok-4.5`, `grok-4.6`, `grok-4.7`,
+`grok-4.7-build-fast`, `grok-composer-2.5-fast`, `grok-imagine-video-1.5`.
+Smoke (real call): `POST /v1/chat/completions` model `grok-4.5` → HTTP 200 in
+1.9 s, content `grok-lane-ok`, upstream model `grok-4.5-build`.
 
-1. **Grok Web lane** — grok.com `sso` cookie token (TXT/JSON/JSONL import)
-2. **Grok Build lane** — official Grok CLI OAuth/Device-OAuth flow (interactive,
-   run from the admin UI; do NOT share one Build credential across multiple clients
-   — refresh-token rotation conflicts)
-3. **Grok Console lane** — Console SSO token
-
-Until then: `/v1/models` = `[]`, `POST /v1/chat/completions` → 404 `model_not_found`,
-`/readyz` shows `grok_web`/`grok_console` "no available account".
+Web/Console lanes remain unconfigured. To add one, the owner imports via the
+admin UI (Accounts page): a grok.com `sso` cookie token (TXT/JSON/JSONL) for the
+Web lane, or a Console SSO token. Do NOT share one Build credential across
+multiple clients (refresh-token rotation conflicts). If `/v1/models` ever returns
+`[]` and completions 404 `model_not_found`, that means no account is currently
+available (check `/readyz`).
 
 ## Token hygiene
 
