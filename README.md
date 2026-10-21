@@ -32,7 +32,7 @@ claude mcp get codex          # expect: Connected
 
 | Surface | Count | Description |
 |---------|-------|-------------|
-| `skills/` | 372 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
+| `skills/` | 381 | Shared skills for Codex + Claude (see `SKILLS-MANIFEST.md`); incl. game-RE (`game-re-binary`, `game-frida-trace`, `game-find-anticheat`, `game-unpack-pe`) + SWFOC + Battle Cats |
 | `skills-claude-only/` | 35 | Claude Code exclusive skills (Azure, metaswarm, Ralph, etc.) |
 | `tools/mcp/` | 24 | MCP server projects (workstation bundle, cloud-hub, search-hub, hexstrike-ai, etc.) |
 | `tools/web/` | 0 | Empty since the 2026-08-09 ChatGPT-web retirement; reserved surface |
