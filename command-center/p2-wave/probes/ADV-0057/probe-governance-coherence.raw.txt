@@ -1,0 +1,29 @@
+PROBE-1-BEGIN:ADV-0057 (pairwise contradiction matrix, file:line cited)
+DOC SECURITY.md present=True
+DOC CONTRIBUTING.md present=False
+DOC SUPPORT.md present=False
+DOC DEPRECATION.md present=False
+DOC LICENSE present=False
+DOC NOTICE present=False
+DOC marketplace GOVERNANCE.md present=True
+DOC plugin.json (outbound license claim) present=True
+CONTRADICTION C1-license-claimed-not-delivered
+  A .claude-plugin/plugin.json:8 verified_on_disk=True :: "license": "MIT",
+  B repo root exists=False :: ABSENT: no LICENSE/COPYING/NOTICE file exists at the repo root (verified by this probe)
+  NOTE The repo's own marketplace governance (platform/marketplace/GOVERNANCE.md:34, precondition license-basis-present / MKT-P05) REFUSES a package publishe
+CONTRADICTION C2-private-only-vs-redistribution-obligations
+  A SECURITY.md:3 verified_on_disk=True :: **This repository must never be made public.**
+  B platform/marketplace/GOVERNANCE.md:46-47 exists=True :: aggregating 31 Apache-2.0 payload entries under a declared MIT, plus at least one CC BY-SA 4.0 share-alike ent
+  NOTE Redistribution-obliged content (Apache-2.0 notices, CC BY-SA share-alike) is aggregated inside a repository whose security policy forbids ever making 
+CONTRADICTION C3-contribution-terms-absent-while-signing-gates-exist-elsewhere
+  A platform/marketplace/GOVERNANCE.md:8-13 verified_on_disk=True :: Separation is enforced, not documented ... A publisher therefore cannot revoke a rival
+  B repo root exists=False :: ABSENT: no CONTRIBUTING document, no PR template, no DCO/CLA configuration anywhere in .github/ (verified by t
+  NOTE The only governance machinery that exists governs the marketplace fixture; the repository contribution flow itself declares no terms and collects no r
+PROBE-1-COMPLETE:ADV-0057
+PROBE-2-BEGIN:ADV-0057 (enforcement path)
+scratch_pr_test=NOT-RUN reason=run constraint: no new GitHub Actions billing spend; .github/workflows contains 8 jobs with runs-on: ubuntu-latest (GitHub-hosted, billed); a PR would fire them
+branch_protection rc=1 body={"message":"Branch not protected","documentation_url":"https://docs.github.com/rest/branches/branch-protection#get-branc
+reading=HTTP 404 'Branch not protected' = NOTHING enforces required reviews, required statuses, or signed commits on main
+dco_cla hits=[]
+conclusion=The contribution flow collects NOTHING: main is unprotected and no sign-off check runs on PRs; the catalog control (compliant scratch PR must pass) is NOT-RUN under this run's billing constraint, and the static+API evide
+PROBE-2-COMPLETE:ADV-0057

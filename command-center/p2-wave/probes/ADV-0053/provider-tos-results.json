@@ -1,0 +1,118 @@
+{
+  "empirical": [
+    {
+      "attempted_provider_egress": false,
+      "classification": "opt-in/inert-without-setup",
+      "entrypoint": "zai-lanes/zai-refresh.py",
+      "raw_tail": "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Python314\\Lib\\pathlib\\__init__.py\", line 771, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nFileNotFoundError: [Errno 2] No such file or directory: 'C:\\\\Users\\\\PREKZU~1\\\\AppData\\\\Local\\\\Temp\\\\adv53-db2pbwc7\\\\AppData\\\\Local\\\\Temp\\\\zai_oauth_state.json'",
+      "rc": 1,
+      "scrubbed_home": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv53-db2pbwc7",
+      "stage": "zai-lane-refresh"
+    },
+    {
+      "attempted_provider_egress": false,
+      "classification": "NEEDS-INSPECTION",
+      "entrypoint": "tools/crcp/crcp/auth_sso.py",
+      "raw_tail": "",
+      "rc": 0,
+      "scrubbed_home": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv53-g9gq50ky",
+      "stage": "crcp-codex-rail-login"
+    },
+    {
+      "entrypoint": "tools/crcp/cookie-store/",
+      "stage": "crcp-cookie-bridge",
+      "status": "NOT-RUN (no single-file entrypoint; directory stage)"
+    },
+    {
+      "entrypoint": "tools/biomni-local/",
+      "stage": "biomni-local",
+      "status": "NOT-RUN (no single-file entrypoint; directory stage)"
+    },
+    {
+      "entrypoint": "platform/plugin/",
+      "stage": "local-plugin-lifecycle",
+      "status": "NOT-RUN (no single-file entrypoint; directory stage)"
+    }
+  ],
+  "stages": [
+    {
+      "bucket": "restricted and opt-in (inert without explicit setup)",
+      "clauses": [
+        {
+          "quote": "the script prints: '2. Check the ToS box, click Continue' - the provider's terms are surfaced interactively per authorization",
+          "retrieved": "2026-10-21 (from zai-lanes/zai-refresh.py:14-20)",
+          "source": "chat.z.ai OAuth consent screen (user must check a ToS box per zai-refresh.py's own instructions)"
+        },
+        {
+          "quote": "NOT-CHECKED: z.ai terms text not retrievable from this box (recorded as a gap, not as compliance)",
+          "retrieved": "2026-10-21",
+          "source": "Z.ai terms of service - verbatim clause"
+        }
+      ],
+      "id": "zai-lane-refresh",
+      "mechanism": "official OAuth authorize+token flow driven by the logged-in browser session (the zcode CLI's own client id)",
+      "path": "zai-lanes/zai-refresh.py",
+      "provider": "Z.ai (chat.z.ai / zcode.z.ai)",
+      "restriction_class": "automated-access-to-provider (official OAuth path)"
+    },
+    {
+      "bucket": "restricted and NEEDS-INSPECTION",
+      "clauses": [
+        {
+          "quote": "Automatically or programmatically extract data or Output (except as permitted through the API or with our written consent)",
+          "retrieved": "2026-10-21 via https://openai.com/policies/row-terms-of-use (direct fetch HTTP 403 from this box; clause text corroborated via community.openai.com quotation of the ToU)",
+          "source": "OpenAI Terms of Use (Rest of World), 'What you cannot do'"
+        }
+      ],
+      "id": "crcp-codex-rail-login",
+      "mechanism": "PKCE authorization-code login; module docstring explicitly says it does NOT fabricate NextAuth cookies; a cookie-store/ bridge exists for web-UI sessions",
+      "path": "tools/crcp/crcp/auth_sso.py",
+      "provider": "OpenAI (Codex/API plane via OIDC PKCE)",
+      "restriction_class": "automated access / programmatic extraction"
+    },
+    {
+      "bucket": "restricted and NOT-RUN",
+      "clauses": [
+        {
+          "quote": "Resell, proxy, or otherwise provide access to Claude through unauthorized means",
+          "retrieved": "2026-10-21 via https://www.anthropic.com/legal/aup",
+          "source": "Anthropic Acceptable Use Policy, 'Do Not Abuse Our Platform'"
+        },
+        {
+          "quote": "Coordinate malicious activity across multiple accounts, or create multiple accounts, to avoid detection, circumvent product guardrails",
+          "retrieved": "2026-10-21 via https://www.anthropic.com/legal/aup",
+          "source": "Anthropic Acceptable Use Policy, 'Do Not Abuse Our Platform'"
+        }
+      ],
+      "id": "crcp-cookie-bridge",
+      "mechanism": "cookie bridge carrying web-UI session cookies across runtimes",
+      "path": "tools/crcp/cookie-store/",
+      "provider": "OpenAI / Anthropic (web UI sessions)",
+      "restriction_class": "credential sharing / multi-account / proxying access"
+    },
+    {
+      "bucket": "restricted and NOT-RUN",
+      "clauses": [
+        {
+          "quote": "NOT-CHECKED: no terms text retrievable from this box; recorded as a gap",
+          "retrieved": "2026-10-21",
+          "source": "phylo.bio service terms"
+        }
+      ],
+      "id": "biomni-local",
+      "mechanism": "patched biomni MCP server calling api.phylo.bio",
+      "path": "tools/biomni-local/",
+      "provider": "phylo.bio (LabBench biomni API)",
+      "restriction_class": "unclassified (terms NOT-CHECKED)"
+    },
+    {
+      "bucket": "unrestricted",
+      "clauses": [],
+      "id": "local-plugin-lifecycle",
+      "mechanism": "transactional local installer; probe-verified to spawn only fixed-argv interpreter version probes",
+      "path": "platform/plugin/",
+      "provider": "none (local install/update/uninstall)",
+      "restriction_class": "unrestricted (no external provider)"
+    }
+  ]
+}

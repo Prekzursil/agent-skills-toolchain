@@ -1,0 +1,29 @@
+PROBE-1-BEGIN:ADV-0053 (clause-to-stage mapping, quoted with retrieval date)
+STAGE zai-lane-refresh provider=Z.ai (chat.z.ai / zcode.z.ai) class=automated-access-to-provider (official OAuth path)
+  CLAUSE (2026-10-21 (from zai-lanes/zai-refresh.py:14-20)) chat.z.ai OAuth consent screen (user must check a ToS box per zai-refresh.py's own instructions): the script prints: '2. Check the ToS box, click Continue' - the provider's terms are surfaced interactively per authorization
+  CLAUSE (2026-10-21) Z.ai terms of service - verbatim clause: NOT-CHECKED: z.ai terms text not retrievable from this box (recorded as a gap, not as compliance)
+STAGE crcp-codex-rail-login provider=OpenAI (Codex/API plane via OIDC PKCE) class=automated access / programmatic extraction
+  CLAUSE (2026-10-21 via https://openai.com/policies/row-terms-of-use (direct fetch HTTP 403 from this box; clause text corroborated via community.openai.com quotation of the ToU)) OpenAI Terms of Use (Rest of World), 'What you cannot do': Automatically or programmatically extract data or Output (except as permitted through the API or with our written consent)
+STAGE crcp-cookie-bridge provider=OpenAI / Anthropic (web UI sessions) class=credential sharing / multi-account / proxying access
+  CLAUSE (2026-10-21 via https://www.anthropic.com/legal/aup) Anthropic Acceptable Use Policy, 'Do Not Abuse Our Platform': Resell, proxy, or otherwise provide access to Claude through unauthorized means
+  CLAUSE (2026-10-21 via https://www.anthropic.com/legal/aup) Anthropic Acceptable Use Policy, 'Do Not Abuse Our Platform': Coordinate malicious activity across multiple accounts, or create multiple accounts, to avoid detection, circumvent product guardrails
+STAGE biomni-local provider=phylo.bio (LabBench biomni API) class=unclassified (terms NOT-CHECKED)
+  CLAUSE (2026-10-21) phylo.bio service terms: NOT-CHECKED: no terms text retrievable from this box; recorded as a gap
+STAGE local-plugin-lifecycle provider=none (local install/update/uninstall) class=unrestricted (no external provider)
+PROBE-1-COMPLETE:ADV-0053
+PROBE-2-BEGIN:ADV-0053 (empirical default-state, scrubbed env, no credentials)
+DEFAULT zai-lane-refresh rc=1 egress=False class=opt-in/inert-without-setup
+  TAIL '^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File "C:\\Python314\\Lib\\pathlib\\__init__.py", line 771, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^'
+DEFAULT crcp-codex-rail-login rc=0 egress=False class=NEEDS-INSPECTION
+DEFAULT crcp-cookie-bridge rc=None egress=None class=NOT-RUN (no single-file entrypoint; directory stage)
+DEFAULT biomni-local rc=None egress=None class=NOT-RUN (no single-file entrypoint; directory stage)
+DEFAULT local-plugin-lifecycle rc=None egress=None class=NOT-RUN (no single-file entrypoint; directory stage)
+PROBE-2-COMPLETE:ADV-0053
+SEPARATION (release blocker vs acceptable vs unrestricted):
+  BUCKET zai-lane-refresh -> restricted and opt-in (inert without explicit setup)
+  BUCKET crcp-codex-rail-login -> restricted and NEEDS-INSPECTION
+  BUCKET crcp-cookie-bridge -> restricted and NOT-RUN
+  BUCKET biomni-local -> restricted and NOT-RUN
+  BUCKET local-plugin-lifecycle -> unrestricted
+restricted-and-default-on (release blocker) count = 0
+PROBE-SEPARATION-COMPLETE:ADV-0053

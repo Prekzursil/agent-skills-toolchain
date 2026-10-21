@@ -1,0 +1,15 @@
+PROBE-2-BEGIN:ADV-0060
+mechanism=AST enumeration of process-spawn sites joined to probe1 runtime trace; unexercised site = NOT-EXERCISED gap, never safe
+SITES production_external_command_call_sites=3
+SITE plugin platform/plugin/lifecycle_rehearsal.py:45 in run() subprocess.run argv=argv-variable
+SITE plugin platform/plugin/proc.py:229 in run() subprocess.run argv=argv-variable
+SITE plugin platform/plugin/proc.py:146 in probe_interpreter() subprocess.run argv=argv-array-expression
+JOIN platform/plugin/lifecycle_rehearsal.py:45 subprocess.run -> NOT-EXERCISED-BY-PROBE1 (standalone rehearsal driver; install/update/uninstall path does not import it; declared gap)
+JOIN platform/plugin/proc.py:229 subprocess.run -> EXERCISED-by-probe1-explicit-control
+JOIN platform/plugin/proc.py:146 subprocess.run -> EXERCISED-by-probe1 (2 traced '<interpreter> --version' probes)
+POLICY default_trigger=explicit-invocation-only install_runs_shipped_code=False
+POLICY kind=command trigger=explicit-invocation-only interpreter_required=True network_allowed=False credential_read_allowed=False
+POLICY kind=hook trigger=automatic interpreter_required=True network_allowed=False credential_read_allowed=False
+POLICY kind=script trigger=explicit-invocation-only interpreter_required=True network_allowed=False credential_read_allowed=False
+POLICY kind=skill trigger=explicit-invocation-only interpreter_required=False network_allowed=False credential_read_allowed=False
+POLICY fail_open=['cache'] fail_closed_count=14
