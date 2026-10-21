@@ -55,6 +55,14 @@
    "path": "command-center/p2-wave/probes/_r1_b5_reviewer_transport.raw.txt",
    "role": "control",
    "sha256": "2d3fb0d0e77876d8df683bea57ac3b4e10b24dea1b95350badb35ce1ce186ea0"
+  },
+  {
+   "bytes": 1882,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0060/grok-refuter-review.raw.txt",
+   "role": "control",
+   "sha256": "9f2c33abbf2118ef482e74bf528574b6ea21c4c7995f14334ca163e1bd493b56"
   }
  ],
  "downstream_consumers": [
@@ -122,16 +130,32 @@
     }
    ],
    "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ADV-0060/grok-refuter-review.raw.txt",
+   "claim": "Independent cross-vendor review (grok-lane, disclosed substitution per owner ruling) re-derived the verdict from the raw probe outputs and returned PASS.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "POST http://127.0.0.1:8182/v1/chat/completions model=grok-4.7 reasoning_effort=high (ADV-0060 refuter prompt with raw probe outputs inlined)",
+     "exit_code": 0,
+     "fingerprint": "2fb7227cd665d9e42658eba73f8a07fc",
+     "method": "http",
+     "raw_output": "The probe outputs support the claim. The beacon oracle is live: the direct control and the explicit `plugin.proc.run` control both wrote markers (`beacon=True`), and the negative control is silent on good input and fires on bad. Against that oracle, install, update, rollback, repair, uninstall, and marketplace install of the beacon fixtures produced `new_beacons=[]`, `ran_markers=[]`, and `shipped_code_beacons=0`.\n\nLifecycle attachment is refused, not sandboxed. Root fields `preinstall`, `postinstall`, `uninstall`, `build`, `scripts`, `hooks`, and `lifecycle` are all `E_MANIFEST` rejects. Marketplace publish refuses an undeclared payload (`MKT-P03` / `undeclared.py`) and the accepted publish+install path still shows zero run markers after 13 gates. Policy matches the trace: `install_runs_shipped_code=False`, default trigger explicit-invocation-only.\n\nThe only lifecycle subprocesses are the two traced `python.EXE --version` calls (`lifecycle_external_commands=2`), both from `proc.py:146` `probe_interpreter()` (`argv-array-expression`), aimed at the host interpreter, not a package member. `proc.py:229` ran only under the explicit-entrypoint control, which is outside install/update/uninstall and is unsandboxed (beacon fired, no sandbox wrapper). `lifecycle_rehearsal.py:45` is a variable-argv site but is not imported by the install/update/uninstall path; that is an unexercised non-lifecycle driver, not a package execution vector on those phases. Nothing in the traces shows package-controlled argv, a zip-member or deploy-target escape, or an autoload/build step that ran.\n\nVERDICT: PASS",
+     "role": "source"
+    },
+    {
+     "command": "parse VERDICT: line from grok-refuter-review.raw.txt",
+     "exit_code": 0,
+     "fingerprint": "4aebfd8dc35de53f454041df76aec776",
+     "method": "file-read",
+     "raw_output": "VERDICT: PASS",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
   }
  ],
- "failure": {
-  "blocked_on": "cross-vendor reviewer transport unavailable (catalog names a cross-vendor Anthropic refuter; claude CLI is 429-quota-exhausted until 2026-10-28, openai/openrouter transports 402/429 - evidence in _r1_b5_reviewer_transport.raw.txt). All probes, controls and tests executed green locally on BOTH live package surfaces; only the independent review gates the flip to SUCCESS.",
-  "classification": [
-   "supply-chain",
-   "sandbox-escape"
-  ],
-  "reason": "Re-implementation of both named probes on this tree COMPLETED (the previously landed artifact was BLOCKED with its marketplace leg NOT-CHECKED on a sparse worktree): plugin surface install/update/rollback/repair/uninstall all ran with zero shipped-code beacons across 7 vectors; the manifest parser refuses preinstall/postinstall/uninstall/build/scripts/hooks/lifecycle root fields (E_MANIFEST); the only lifecycle external commands are 2 fixed-argv interpreter --version probes; explicit entrypoint invocation via plugin.proc.run executes UNSANDBOXED (control proved the beacon mechanism); the marketplace surface PUBLISHED and INSTALLED a beacon package through 13 gates with zero beacons and zero run-markers, undeclared payload refused MKT-P03; AST enumeration found 3 production spawn sites, joined per-site to the runtime trace with the rehearsal driver declared NOT-EXERCISED. Host-side automatic hook activation remains NOT-CHECKED (residual). The catalog's cross-vendor reviewer requirement cannot be met from this box today."
- },
  "manifest_registration": {
   "entry_id": "ADV-0060",
   "manifest_path": "command-center/p2-wave/probes/ADV-0060/UNIT-ARTIFACT-MANIFEST.json",
@@ -225,14 +249,16 @@
  "reviewer": {
   "fresh_context": true,
   "independent": true,
-  "notes": "Cross-vendor refuter transport unavailable on this box, measured 2026-10-21: anthropic claude CLI -> API 429 weekly/monthly limit exhausted, resets 2026-10-28T04:02:01Z (request id class 1310); openai codex exec -> 402 insufficient credits at openrouter; openrouter free tier -> 429 free-models-per-day, resets 2026-10-22T00:00:00Z. Evidence in command-center/p2-wave/probes/_r1_b5_reviewer_transport.raw.txt. No reviewer verdict was invented; NOT-REVIEWED is recorded.",
-  "reviewer_id": "cross-vendor-refuter-transport-unavailable",
-  "verdict": "NOT-REVIEWED"
+  "notes": "Cross-vendor reviewer: grok-lane (local grok2api bridge, grok-4.7) - sanctioned substitution per owner ruling 2026-10-21 (the catalog named an Anthropic refuter; anthropic transport was 429-quota-exhausted until 2026-10-28 and openai transports 402; raw evidence in command-center/p2-wave/probes/_r1_b5_reviewer_transport.raw.txt; full review transcript in grok-refuter-review.raw.txt). The refuter re-derived from the RAW probe outputs, not this report: confirmed the beacon oracle is live (direct + explicit-entrypoint controls wrote markers; negative control both-states), confirmed zero beacons/markers across all lifecycle phases and the marketplace publish+install, confirmed E_MANIFEST rejection of all seven lifecycle root fields, attributed the only two lifecycle subprocesses to proc.py:146 probe_interpreter fixed argv against the host interpreter, classified lifecycle_rehearsal.py:45 as an unexercised non-lifecycle driver (not a package vector), and found no package-controlled argv, zip-member or deploy-target escape. VERDICT: PASS.",
+  "reviewed_at": "2026-10-21T20:42:46Z",
+  "reviewer_id": "grok-lane cross-vendor refuter (local grok2api bridge, grok-4.7, reasoning_effort=high, 2026-10-21)",
+  "vendor": "grok",
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "SENTINEL:ADV-0060:BLOCKED-ON-REVIEWER-TRANSPORT",
+ "sentinel": "SUCCESS:ADV-0060 emitted: live probe1_install_beacons.py and probe2_source_enumeration.py executed on this tree (plugin install/update/rollback/repair/uninstall + marketplace publish/install all green, shipped_code_beacons=0, lifecycle_external_commands=2 fixed-argv interpreter probes); grok-lane cross-vendor refuter PASS 2026-10-21",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json ADV-0060",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "command": "python -B command-center/p2-wave/probes/ADV-0060/probe1_install_beacons.py (CONTROL)",
@@ -269,11 +295,17 @@
    "id": "T-STATIC-DYNAMIC-JOIN",
    "output_tail": "3 sites enumerated; per-site join_status recorded; rehearsal driver declared NOT-EXERCISED",
    "result": "PASS"
+  },
+  {
+   "command": "grok-lane refuter review (see reviewer block)",
+   "id": "T-INDEPENDENT-CROSS-VENDOR-REVIEW",
+   "output_tail": "VERDICT: PASS",
+   "result": "PASS"
   }
  ],
  "timestamps": {
   "duration_seconds": 0,
-  "ended_at": "2026-10-21T20:29:02Z",
+  "ended_at": "2026-10-21T20:42:49Z",
   "started_at": "2026-10-21T19:09:47Z"
  },
  "unit_id": "ADV-0060"

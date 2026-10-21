@@ -1,0 +1,11 @@
+ADV-0060 independent cross-vendor refuter review
+transport: grok-lane local bridge http://127.0.0.1:8182 model=grok-4.7 reasoning_effort=high date=2026-10-21
+disclosure per owner ruling: cross-vendor reviewer = grok-lane (local grok2api bridge, grok-4.7)
+---RAW RESPONSE---
+The probe outputs support the claim. The beacon oracle is live: the direct control and the explicit `plugin.proc.run` control both wrote markers (`beacon=True`), and the negative control is silent on good input and fires on bad. Against that oracle, install, update, rollback, repair, uninstall, and marketplace install of the beacon fixtures produced `new_beacons=[]`, `ran_markers=[]`, and `shipped_code_beacons=0`.
+
+Lifecycle attachment is refused, not sandboxed. Root fields `preinstall`, `postinstall`, `uninstall`, `build`, `scripts`, `hooks`, and `lifecycle` are all `E_MANIFEST` rejects. Marketplace publish refuses an undeclared payload (`MKT-P03` / `undeclared.py`) and the accepted publish+install path still shows zero run markers after 13 gates. Policy matches the trace: `install_runs_shipped_code=False`, default trigger explicit-invocation-only.
+
+The only lifecycle subprocesses are the two traced `python.EXE --version` calls (`lifecycle_external_commands=2`), both from `proc.py:146` `probe_interpreter()` (`argv-array-expression`), aimed at the host interpreter, not a package member. `proc.py:229` ran only under the explicit-entrypoint control, which is outside install/update/uninstall and is unsandboxed (beacon fired, no sandbox wrapper). `lifecycle_rehearsal.py:45` is a variable-argv site but is not imported by the install/update/uninstall path; that is an unexercised non-lifecycle driver, not a package execution vector on those phases. Nothing in the traces shows package-controlled argv, a zip-member or deploy-target escape, or an autoload/build step that ran.
+
+VERDICT: PASS
