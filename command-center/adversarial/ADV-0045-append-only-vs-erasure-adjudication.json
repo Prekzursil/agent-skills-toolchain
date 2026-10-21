@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0045",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0045:BLOCKED-ON-OWNER-RULING append-only-vs-erasure adjudication NOT DECIDED. The unit is catalog-gated owner_approval_required=true (which spec requirement wins is an owner policy ruling), its upstream ADV-0044 empirical measurement is itself owner-gated and NOT-RUN, and NO covering owner ruling exists (OWNER-DECISIONS.md: 38 open, zero lines matching append-only/erasure). The prototype-executed evaluation of tombstone/crypto-shredding/payload-externalisation against replay determinism (platform/plugin/journal.py located as the substrate) is therefore withheld.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0045); command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+  "min_bytes_threshold": 8192,
+  "profile": "privacy-dataflow",
+  "produced_by": {
+    "vendor": "other",
+    "model": "GLM-5.3 (zai lane; vendor enum carries no zai token, recorded as other)",
+    "role": "fixer-fleet catalog-fixer round-1 b4 (blocker adjudication, not the catalogued analyst role)",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0045-append-only-vs-erasure-adjudication.json",
+      "bytes": 10433,
+      "sha256": "c5a7ef48fabf3ca1d068688698fd993c8810dcd2af4ab3ad50ef4f3f42edd075",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "UNIT ADV-0045 is catalog-declared owner_approval_required=true, so its terminal state cannot honestly be SUCCESS without an owner ruling; this BLOCKED receipt records the blocker rather than inventing the ruling.",
+      "verdict": "BLOCKED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0045].owner_approval_required",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0045'];print('ADV-0045', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+          "raw_output": "ADV-0045 owner_approval_required=True deps=['B06', 'ADV-0044'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+          "fingerprint": "35b93ae3f85e3f17"
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "No owner ruling covering this unit's subject exists anywhere in the decision of record: OWNER-DECISIONS.md holds 38 open of 45 questions and a regex over it returns zero lines matching erasure/append-only/egress/license/rider/purge; independently, the unit sits in the 164-strong owner-gated not-delivered partition the loop's own dispatch machinery excludes from executor build lists.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+          "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+          "fingerprint": "0f6481b8d79e3688"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;from pathlib import Path;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));def delivered(u):\n    p=Path(u['output_path'])\n    if not p.is_file(): return False\n    try: d=json.loads(p.read_text(encoding='utf-8'))\n    except Exception: return False\n    return d.get('state')=='SUCCESS'\ngated=[u['id'] for u in cat['work_units'] if u.get('owner_approval_required') and not delivered(u)];print('owner-gated not-delivered total:', len(gated));print('ADV-0045', 'in owner-gated not-delivered set:', 'ADV-0045' in gated)\"",
+          "raw_output": "owner-gated not-delivered total: 164\nADV-0045 in owner-gated not-delivered set: True",
+          "fingerprint": "a52004f3c31e7e96"
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [],
+  "reviewer": {
+    "reviewer_id": "<none: unit owner-gated; reviewer may not approve the owner-gated part>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "No review dispatched: the catalog reviewer_requirement for this unit includes an owner sign-off component an executor cannot supply, and the unit's measurement probes were not run, so there is no counterexample for a refuter to re-derive yet."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0045"
+  },
+  "timestamps": {
+    "started_at": "2026-10-21T19:06:07+00:00",
+    "ended_at": "2026-10-21T19:36:02Z",
+    "duration_seconds": 1795
+  },
+  "retry": {
+    "count": 0,
+    "policy": "NO automatic retry on the owner gate: per the fleet protocol an owner-blocked unit is reported BLOCKED with the exact missing prerequisite (mirrors the unit retry_policy and the ADV-0032 precedent). Technical probes were never attempted, so no strike was consumed.",
+    "attempts": []
+  },
+  "failure": {
+    "classification": [
+      "owner-blocked",
+      "privacy-leak",
+      "dependency-blocked"
+    ],
+    "reason": "ADV-0045 adjudicates a DESIGN contradiction between two spec requirements; selecting the winning requirement is an owner policy decision, and the catalog marks the unit owner_approval_required=true. Additionally its named upstream ADV-0044 (whose empirical result the adjudication consumes) is owner-gated with no artifact. An executor cannot supply either input: ready_units.py:650 parks owner-gated units outside the build list, and OWNER-DECISIONS.md contains no ruling on append-only/erasure (regex-verified zero hits). Inventing an owner answer here is the exact CC-0023-class violation the fleet protocol forbids.",
+    "blocked_on": "owner adjudication of which requirement wins (append-only event-log integrity vs erasure obligation) - catalog owner_approval_required=true; zero covering rulings in command-center/OWNER-DECISIONS.md; plus upstream ADV-0044 (the empirical purge-capability input this adjudication consumes) is itself owner-gated and has no artifact.",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "command",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0045'];print('ADV-0045', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+        "raw_output": "ADV-0045 owner_approval_required=True deps=['B06', 'ADV-0044'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+        "fingerprint": "35b93ae3f85e3f17"
+      },
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+        "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+        "fingerprint": "0f6481b8d79e3688"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No candidate reconciliation was prototype-executed; replay determinism and audit-verification behaviour under tombstone/crypto-shred/externalisation are UNMEASURED, and the proof-of-impossibility branch (no reconciliation possible) is unevaluated.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After the owner ruling: write a personal-field record through the journal prototype, then for each candidate reconciliation execute replay/verification on the prototype and record whether replay determinism or audit verification breaks; deliver the adjudication with the raw runs."
+    }
+  ],
+  "report": {
+    "kind": "privacy-dataflow",
+    "observations": [
+      {
+        "name": "reconciliation-prototype-substrate-located",
+        "measured": "platform/plugin/journal.py exists (True) - the append-only event-log implementation against which tombstone vs crypto-shredding vs payload-externalisation replay determinism would be prototype-executed.",
+        "method": "file-read",
+        "anchor": "platform/plugin/journal.py"
+      },
+      {
+        "name": "owner-gate-two-signal",
+        "measured": "catalog owner_approval_required=True (source) AND zero covering rulings + owner-gated partition membership (verifier) - the blocker is owner-input-shaped, not tool- or skill-shaped.",
+        "method": "static-analysis",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0045); command-center/OWNER-DECISIONS.md"
+      }
+    ],
+    "control_ids": [
+      "ADV-0045-C1-owner-gate-source-probe",
+      "ADV-0045-C2-owner-gate-verifier-probe"
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 = SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest; ADV-0034 convention). artifacts[0].bytes is the true on-disk size.",
+    "claims_file": "command-center/p2-loop/FIXER-CLAIMS.jsonl (fixer catalog-fixer-r1-b4)"
+  }
+}

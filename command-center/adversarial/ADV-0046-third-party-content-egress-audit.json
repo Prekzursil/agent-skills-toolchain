@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0046",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0046:BLOCKED-ON-OWNER-RULING content-egress canary audit NOT EXECUTED. The unit is catalog-gated owner_approval_required=true (it deliberately sends a canary inside owner-originated content to third-party providers - real outbound egress of owner material), no owner consent exists (OWNER-DECISIONS.md: 38 open, zero lines covering egress), and its reviewer_requirement demands TWO cross-vendor refuters whose availability is not established (the sibling egress unit ADV-0032 is BLOCKED with both external rails down: OpenAI cyber-policy refusal, Google tier-ineligible, recorded 2026-08-15). Probes withheld; prerequisite recorded.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0046); command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+  "min_bytes_threshold": 8192,
+  "profile": "privacy-dataflow",
+  "produced_by": {
+    "vendor": "other",
+    "model": "GLM-5.3 (zai lane; vendor enum carries no zai token, recorded as other)",
+    "role": "fixer-fleet catalog-fixer round-1 b4 (blocker adjudication, not the catalogued analyst role)",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0046-third-party-content-egress-audit.json",
+      "bytes": 10334,
+      "sha256": "d5c641dcd998c72ae5e7b6e389daaf036ec594b202d3f3112659437aeea8fae6",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "UNIT ADV-0046 is catalog-declared owner_approval_required=true, so its terminal state cannot honestly be SUCCESS without an owner ruling; this BLOCKED receipt records the blocker rather than inventing the ruling.",
+      "verdict": "BLOCKED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0046].owner_approval_required",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0046'];print('ADV-0046', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+          "raw_output": "ADV-0046 owner_approval_required=True deps=['B07', 'B03'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+          "fingerprint": "49f6d4a66d400e72"
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "No owner ruling covering this unit's subject exists anywhere in the decision of record: OWNER-DECISIONS.md holds 38 open of 45 questions and a regex over it returns zero lines matching erasure/append-only/egress/license/rider/purge; independently, the unit sits in the 164-strong owner-gated not-delivered partition the loop's own dispatch machinery excludes from executor build lists.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+          "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+          "fingerprint": "0f6481b8d79e3688"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;from pathlib import Path;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));def delivered(u):\n    p=Path(u['output_path'])\n    if not p.is_file(): return False\n    try: d=json.loads(p.read_text(encoding='utf-8'))\n    except Exception: return False\n    return d.get('state')=='SUCCESS'\ngated=[u['id'] for u in cat['work_units'] if u.get('owner_approval_required') and not delivered(u)];print('owner-gated not-delivered total:', len(gated));print('ADV-0046', 'in owner-gated not-delivered set:', 'ADV-0046' in gated)\"",
+          "raw_output": "owner-gated not-delivered total: 164\nADV-0046 in owner-gated not-delivered set: True",
+          "fingerprint": "afafc3746910b800"
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [],
+  "reviewer": {
+    "reviewer_id": "<none: unit owner-gated; reviewer may not approve the owner-gated part>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "No review dispatched: the catalog reviewer_requirement for this unit includes an owner sign-off component an executor cannot supply, and the unit's measurement probes were not run, so there is no counterexample for a refuter to re-derive yet."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0046"
+  },
+  "timestamps": {
+    "started_at": "2026-10-21T19:06:07+00:00",
+    "ended_at": "2026-10-21T19:36:02Z",
+    "duration_seconds": 1795
+  },
+  "retry": {
+    "count": 0,
+    "policy": "NO automatic retry on the owner gate: per the fleet protocol an owner-blocked unit is reported BLOCKED with the exact missing prerequisite (mirrors the unit retry_policy and the ADV-0032 precedent). Technical probes were never attempted, so no strike was consumed.",
+    "attempts": []
+  },
+  "failure": {
+    "classification": [
+      "owner-blocked",
+      "privacy-leak",
+      "secret-exposure"
+    ],
+    "reason": "ADV-0046's control test alone requires deliberately transmitting a canary through every outbound transport (HTTP client, MCP stdio, CLI subprocess) - real egress of owner-originated content to third parties. The catalog marks the unit owner_approval_required=true and the repo's dispatch machinery excludes it from executors (ready_units.py:650-652). No owner consent for content egress exists in OWNER-DECISIONS.md (regex-verified: zero lines matching egress). Running the canary without consent would itself commit the privacy action the unit is supposed to audit.",
+    "blocked_on": "owner consent for outbound canary egress to third-party providers (catalog owner_approval_required=true; zero covering rulings in command-center/OWNER-DECISIONS.md) + two reviewers from different vendors per reviewer_requirement (cross-vendor rail availability unproven - see the ADV-0032 BLOCKED record for the measured rail outages).",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "command",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0046'];print('ADV-0046', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+        "raw_output": "ADV-0046 owner_approval_required=True deps=['B07', 'B03'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+        "fingerprint": "49f6d4a66d400e72"
+      },
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+        "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+        "fingerprint": "0f6481b8d79e3688"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No outbound payload was intercepted or classified, no canary was planted or transmitted, and per-transport reach (HTTP/stdio/subprocess) is UNMEASURED.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After owner consent: plant a distinctive canary in a private artifact, stand up the local interceptor over every transport in use, deliberately send the canary once as the positive control, then measure actual reach of the canary in real outbound payloads."
+    }
+  ],
+  "report": {
+    "kind": "privacy-dataflow",
+    "observations": [
+      {
+        "name": "outbound-call-surface-already-censused",
+        "measured": "The sibling egress unit ADV-0032 mechanically enumerated 209 fetch/search/crawl call sites across 106 files in this repo - the intercept surface this unit's Probe 1 would classify by content origin is already mapped and citable.",
+        "method": "file-read",
+        "anchor": "command-center/adversarial/ADV-0032-research-stage-egress-ssrf.json report.observations[0]"
+      },
+      {
+        "name": "owner-gate-two-signal",
+        "measured": "catalog owner_approval_required=True (source) AND zero covering rulings + owner-gated partition membership (verifier).",
+        "method": "static-analysis",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0046); command-center/OWNER-DECISIONS.md"
+      }
+    ],
+    "control_ids": [
+      "ADV-0046-C1-owner-gate-source-probe",
+      "ADV-0046-C2-owner-gate-verifier-probe"
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 = SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest; ADV-0034 convention). artifacts[0].bytes is the true on-disk size.",
+    "claims_file": "command-center/p2-loop/FIXER-CLAIMS.jsonl (fixer catalog-fixer-r1-b4)"
+  }
+}

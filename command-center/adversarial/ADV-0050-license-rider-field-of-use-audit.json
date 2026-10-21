@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0050",
+  "state": "BLOCKED",
+  "sentinel": "SENTINEL:ADV-0050:BLOCKED-ON-OWNER-RULING license-rider audit NOT EXECUTED. The unit is catalog-gated owner_approval_required=true with reviewer_requirement 'one cross-vendor refuter PLUS explicit owner sign-off ... the reviewer may not approve the owner-gated part': whether the program COMPLIES with each rider (no-ML-training, non-commercial, attribution-in-UI, ethical-use) is an owner ruling, and OWNER-DECISIONS.md holds zero license/rider rulings (38 open). The rider corpus to audit is present in-repo (49 vendored skill LICENSE* files under .agents/skills/ plus tools/crcp/vendor_src) and the canonical-diff control is mechanical - both await the ruling.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0050); command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+  "min_bytes_threshold": 8192,
+  "profile": "license-and-rights-record",
+  "produced_by": {
+    "vendor": "other",
+    "model": "GLM-5.3 (zai lane; vendor enum carries no zai token, recorded as other)",
+    "role": "fixer-fleet catalog-fixer round-1 b4 (blocker adjudication, not the catalogued analyst role)",
+    "execution_substrate": "local-serialized"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0050-license-rider-field-of-use-audit.json",
+      "bytes": 10158,
+      "sha256": "aef11f87e46db66184f14acc0a4af739a845a916a8f407ab4b6c39a36ffe26a9",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "UNIT ADV-0050 is catalog-declared owner_approval_required=true, so its terminal state cannot honestly be SUCCESS without an owner ruling; this BLOCKED receipt records the blocker rather than inventing the ruling.",
+      "verdict": "BLOCKED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ADV-0050].owner_approval_required",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0050'];print('ADV-0050', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+          "raw_output": "ADV-0050 owner_approval_required=True deps=['B04', 'B02'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+          "fingerprint": "02251774638fb34b"
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "No owner ruling covering this unit's subject exists anywhere in the decision of record: OWNER-DECISIONS.md holds 38 open of 45 questions and a regex over it returns zero lines matching erasure/append-only/egress/license/rider/purge; independently, the unit sits in the 164-strong owner-gated not-delivered partition the loop's own dispatch machinery excludes from executor build lists.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/OWNER-DECISIONS.md; command-center/ready_units.py:650",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+          "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+          "fingerprint": "0f6481b8d79e3688"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;from pathlib import Path;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));def delivered(u):\n    p=Path(u['output_path'])\n    if not p.is_file(): return False\n    try: d=json.loads(p.read_text(encoding='utf-8'))\n    except Exception: return False\n    return d.get('state')=='SUCCESS'\ngated=[u['id'] for u in cat['work_units'] if u.get('owner_approval_required') and not delivered(u)];print('owner-gated not-delivered total:', len(gated));print('ADV-0050', 'in owner-gated not-delivered set:', 'ADV-0050' in gated)\"",
+          "raw_output": "owner-gated not-delivered total: 164\nADV-0050 in owner-gated not-delivered set: True",
+          "fingerprint": "25f5730c2ba1d314"
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [],
+  "reviewer": {
+    "reviewer_id": "<none: unit owner-gated; reviewer may not approve the owner-gated part>",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "No review dispatched: the catalog reviewer_requirement for this unit includes an owner sign-off component an executor cannot supply, and the unit's measurement probes were not run, so there is no counterexample for a refuter to re-derive yet."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0050"
+  },
+  "timestamps": {
+    "started_at": "2026-10-21T19:06:07+00:00",
+    "ended_at": "2026-10-21T19:36:02Z",
+    "duration_seconds": 1795
+  },
+  "retry": {
+    "count": 0,
+    "policy": "NO automatic retry on the owner gate: per the fleet protocol an owner-blocked unit is reported BLOCKED with the exact missing prerequisite (mirrors the unit retry_policy and the ADV-0032 precedent). Technical probes were never attempted, so no strike was consumed.",
+    "attempts": []
+  },
+  "failure": {
+    "classification": [
+      "owner-blocked",
+      "license-violation"
+    ],
+    "reason": "ADV-0050's verdict per rider is 'does the program currently comply' - a legal-exposure ruling the catalog reserves to the owner (owner_approval_required=true; the reviewer_requirement states the reviewer may not approve the owner-gated part). No rider or license ruling exists in OWNER-DECISIONS.md (regex-verified zero hits), so no compliant terminal state is reachable by an executor; ready_units.py:650 parks the unit accordingly.",
+    "blocked_on": "owner sign-off on rider/field-of-use compliance posture per component (catalog owner_approval_required=true; reviewer explicitly may not approve the owner-gated part; zero rider/license rulings in command-center/OWNER-DECISIONS.md).",
+    "two_signal_proof": [
+      {
+        "role": "source",
+        "method": "command",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import json;cat=json.load(open('command-center/WORK-UNIT-CATALOG.json'));byid={u['id']:u for u in cat['work_units']};u=byid['ADV-0050'];print('ADV-0050', 'owner_approval_required=', u['owner_approval_required'], 'deps=', u['dependencies'], 'retry=', u['retry_policy'][:60])\"",
+        "raw_output": "ADV-0050 owner_approval_required=True deps=['B04', 'B02'] retry=two strikes then pivot (AGENTS.md 4b): after the SECOND fail",
+        "fingerprint": "02251774638fb34b"
+      },
+      {
+        "role": "source",
+        "method": "file-read",
+        "command": "cd /c/Users/Prekzursil/source/ast-pr325 && python -c \"import re;from pathlib import Path;od=Path('command-center/OWNER-DECISIONS.md').read_text(encoding='utf-8');print([l.strip() for l in od.splitlines() if 'open of' in l][0]);print('covering_ruling_lines=', [l.strip()[:80] for l in od.splitlines() if re.search(r'erasure|append-only|egress|licen[cs]e|rider|purge', l, re.I)] or 'NONE')\"",
+        "raw_output": "**38 open of 45.** Send as ONE batch — the owner asked explicitly not to be interrupted piecemeal (`sources/REGISTER.md` section 6).\ncovering_ruling_lines= NONE",
+        "fingerprint": "0f6481b8d79e3688"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No LICENSE text was diffed against its canonical SPDX form, no obligation outside the LICENSE file (NOTICE/README/headers) was searched, and no compliance verdict was formed - riders are UNMEASURED.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After the owner ruling: for each adopted/vendored component diff its full license text against the canonical text of its declared SPDX id (control: an unmodified canonical file must diff zero), and grep repository/README/package metadata for restrictions stated outside the LICENSE file; present each non-zero rider to the owner for the compliance call."
+    }
+  ],
+  "report": {
+    "kind": "license-and-rights-record",
+    "observations": [
+      {
+        "name": "rider-corpus-located",
+        "measured": "49 vendored LICENSE* files exist under .agents/skills/ and tools/crcp/vendor_src exists (True) - the on-disk corpus for the canonical-SPDX-text diff is enumerable without any owner action.",
+        "method": "file-read",
+        "anchor": ".agents/skills/*/LICENSE*; tools/crcp/vendor_src"
+      },
+      {
+        "name": "owner-gate-two-signal",
+        "measured": "catalog owner_approval_required=True (source) AND zero covering rulings + owner-gated partition membership (verifier).",
+        "method": "static-analysis",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json (unit ADV-0050); command-center/OWNER-DECISIONS.md"
+      }
+    ],
+    "control_ids": [
+      "ADV-0050-C1-owner-gate-source-probe",
+      "ADV-0050-C2-owner-gate-verifier-probe"
+    ]
+  },
+  "extensions": {
+    "digest_basis": "artifacts[0].sha256 = SHA-256 over this file's bytes with the 64-hex value at artifacts[0].sha256 replaced by 64 '0' characters (a file cannot contain its own digest; ADV-0034 convention). artifacts[0].bytes is the true on-disk size.",
+    "claims_file": "command-center/p2-loop/FIXER-CLAIMS.jsonl (fixer catalog-fixer-r1-b4)"
+  }
+}
