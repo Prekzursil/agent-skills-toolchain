@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "unit_id": "ADV-0022",
-  "state": "BLOCKED",
-  "sentinel": "SUCCESS:ADV-0022 both named probes re-ran to exit 0 on this Linux worktree; narrow component escaped 4/4 (subprocess, loopback network, write-outside-root, wider sibling); wide control 4/4 unimpeded; static audit finds 0 runtime callers of check_work_unit_authorization; hooks/ and platform/lib/wfdsl are absent from this checkout so the declaration cannot be enforced at call time here; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0022 both named probes re-ran to exit 0 and re-measured on the 2026-10-21 Windows FULL tree @ c119cf0da (hooks/, platform/lib/wfdsl and platform/marketplace now PRESENT, unlike the sparse 2026-08-19 Linux worktree): narrow read-only-declared component escaped 4/4 (subprocess, loopback network, write-outside-root, wider sibling); wide control 4/4 unimpeded; detector-integrity battery discriminates; static audit still finds 0 call-time callers of check_work_unit_authorization and 0 hooks consulting tool_permissions (bg-registry PreToolUse is a fail-open recorder, tool-preflight is an existence check), so the declaration remains metadata-only at call time; D-ADV0022-1 superseded to CNF-0111 (runtime permission enforcement vs declared manifest permissions); per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
   "spec_anchor": "_USER-PROMPTS.md:11346, 10804",
   "min_bytes_threshold": 8192,
   "profile": "exploit-proof",
@@ -15,8 +15,8 @@
   "artifacts": [
     {
       "path": "command-center/adversarial/ADV-0022-declared-permission-escape.json",
-      "bytes": 110259,
-      "sha256": "c2e3e9fab79df44f0cd602e8a35d1bd1e9320cb751028b8b2d20c92009454de3",
+      "bytes": 114606,
+      "sha256": "0112c65d6352526c5d2d5d8818dfe076b5f869784f7505797d0aa5473ba84486",
       "exists": true,
       "eol": "LF",
       "role": "primary"
@@ -160,6 +160,31 @@
           "exit_code": 1
         }
       ]
+    },
+    {
+      "claim": "ENUMERATED TARGET 7 - full-tree re-measure (2026-10-21, Windows, repo @ c119cf0da). The 2026-08-19 measurement ran on a SPARSE Linux worktree lacking hooks/ and platform/lib/wfdsl; both are present now. Re-ran the SAME 4-op harness (vendored from command-center/casualty/probes/adv0022_escape_harness.py): narrow component escaped 4/4, wide control 4/4 unimpeded, detector-integrity battery discriminates. Re-ran the static enforcement audit: 0 call-time callers of check_work_unit_authorization (all callers analysis-time or tests), 0 files under hooks/ mention tool_permissions (bg-registry PreToolUse is a fail-open recorder; tool-preflight is an existence check). The Aug conclusion holds on the full tree.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0022/probe1-escape.raw.txt + probe2-static.raw.txt (committed)",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0022/probe1_escape.py",
+          "raw_output": "narrow_out_of_declaration_escapes=4/4; wide_ops_succeeded=4/4; detector_discriminates=true; platform=win32 python=3.14.6",
+          "fingerprint": "test-run:643691bf7e3f15bfbfbd4954",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -B command-center/p2-wave/probes/ADV-0022/probe2_static.py",
+          "raw_output": "runtime_callers_count=0; checker_reference_count=5 (4 analysis-time, 1 test); hooks tool_permissions mentions=0; conclusion=ZERO call-time enforcement callers",
+          "fingerprint": "static-analysis:7433b0b6211553ca1d881540",
+          "exit_code": 0
+        }
+      ]
     }
   ],
   "tests": [
@@ -194,6 +219,14 @@
       "result": "PASS",
       "assertions": 1,
       "output_tail": "manifest_path=command-center/p2-wave/probes/ADV-0022/UNIT-ARTIFACT-MANIFEST.json registered=true"
+    },
+    {
+      "id": "T-REMEASURE-20261021-FULLTREE",
+      "name": "both named probes re-ran exit 0 on the 2026-10-21 Windows full tree; escape 4/4 reproduced; wide control unimpeded; 0 runtime callers",
+      "command": "python -B command-center/p2-wave/probes/ADV-0022/probe1_escape.py && python -B command-center/p2-wave/probes/ADV-0022/probe2_static.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "narrow_out_of_declaration_escapes=4 wide_ops_succeeded=4 detector_discriminates=true; runtime_callers_count=0"
     }
   ],
   "negative_controls": [
@@ -256,8 +289,8 @@
     {
       "id": "D-ADV0022-1",
       "severity": "P1",
-      "status": "open",
-      "summary": "tool_permissions / allowed-tools are not enforced at call time on this checkout. A narrowly-declared component performed subprocess, loopback network, write-outside-root, and sibling import with no call-time refusal. hooks/ and platform/lib/wfdsl are absent here; remaining surface has zero PreToolUse callers of the declaration."
+      "status": "superseded",
+      "summary": "tool_permissions / allowed-tools are not enforced at call time in this tree. Re-measured 2026-10-21 on the FULL tree (hooks/ and platform/lib/wfdsl present, unlike the sparse 2026-08-19 checkout): narrow component escaped 4/4 with no call-time refusal; static audit finds 0 runtime callers of check_work_unit_authorization (all callers are analysis-time: wfdsl authz_census / semantics) and 0 hooks consulting tool_permissions. Aimed at CNF-0111 (Runtime permission enforcement versus declared manifest permissions)."
     }
   ],
   "manifest_registration": {
@@ -285,8 +318,8 @@
   ],
   "timestamps": {
     "started_at": "2026-08-19T11:50:46Z",
-    "ended_at": "2026-08-19T11:52:46Z",
-    "duration_seconds": 120.0
+    "ended_at": "2026-10-21T14:05:00Z",
+    "duration_seconds": 5451254
   },
   "retry": {
     "count": 1,
@@ -303,6 +336,12 @@
         "outcome": "SUCCESS",
         "started_at": "2026-08-19T11:52:46Z",
         "error_fingerprint": "g1-per-unit-manifest-live-probes"
+      },
+      {
+        "attempt": 3,
+        "outcome": "SUCCESS",
+        "started_at": "2026-10-21T13:50:00Z",
+        "error_fingerprint": "windows-fulltree-remeasure-d1-superseded-cnf0111"
       }
     ],
     "pivot_alternatives": [
@@ -317,8 +356,8 @@
       "settling_experiment": "Owner restores Modal spend and re-runs probe1_escape.py inside modal_sandbox_exec with block_network=true."
     },
     {
-      "claim": "This P2 checkout does not contain hooks/, platform/, skills/, or .agents/skills. A fuller tree may still have no call-time interceptor (Windows measurement: hooks token hits=0 on a populated pathspec). This live run cannot re-walk trees that are not present.",
-      "verdict": "NOT-CHECKED",
+      "claim": "SETTLED 2026-10-21: probe2 re-ran on a checkout that CONTAINS hooks/ and platform/lib/wfdsl. The hooks-zero still holds: no hook consults tool_permissions; all check_work_unit_authorization callers are analysis-time.",
+      "verdict": "CONFIRMED",
       "settling_experiment": "Re-run probe2_static.py and probe2_git.py on a checkout that contains hooks/ and platform/lib/wfdsl and confirm the hooks-zero still holds."
     },
     {
@@ -334,7 +373,7 @@
         "name": "narrow_out_of_declaration_escapes",
         "measured": 4,
         "method": "disposable component four-op harness",
-        "anchor": "probe1-escape.raw.txt summary"
+        "anchor": "probe1-escape.raw.txt summary (2026-08-19 and 2026-10-21 runs, both 4/4)"
       },
       {
         "name": "wide_declares_what_it_uses",
@@ -344,20 +383,20 @@
       },
       {
         "name": "hooks_dir_exists",
-        "measured": false,
-        "method": "Path.is_dir on this worktree",
+        "measured": true,
+        "method": "Path.is_dir on the 2026-10-21 full tree (false on the sparse 2026-08-19 worktree)",
         "anchor": "probe2-static.raw.txt checkout_surface"
       },
       {
         "name": "runtime_callers_COUNT",
         "measured": 0,
-        "method": "line scan + AST Call nodes + getattr heuristic",
+        "method": "line scan + AST Call nodes + getattr heuristic, re-run 2026-10-21 on the full tree",
         "anchor": "probe2-static.raw.txt classified.runtime_callers"
       },
       {
         "name": "enforcement_point_absent_from_checkout",
-        "measured": true,
-        "method": "existence of hooks/ and platform/lib/wfdsl/semantics.py",
+        "measured": false,
+        "method": "existence of hooks/ and platform/lib/wfdsl/semantics.py on the 2026-10-21 full tree (both present; call-time enforcement still absent)",
         "anchor": "probe2-static.raw.txt checkout_surface"
       },
       {
@@ -369,13 +408,13 @@
       {
         "name": "modal_sandbox_available",
         "measured": false,
-        "method": "cloud-hub__modal_sandbox_create",
+        "method": "cloud-hub__modal_sandbox_create (billing cycle spend limit; local OS harness used instead, loopback-only)",
         "anchor": "modal-attempt.txt billing cycle spend limit"
       },
       {
         "name": "answer_to_the_units_question",
-        "measured": "YES. A narrowly-declared component reached all four out-of-set capabilities. This checkout has no call-time interceptor.",
-        "method": "dynamic 4-op harness + static caller audit + posix grep -R",
+        "measured": "YES. A narrowly-declared component reached all four out-of-set capabilities, re-confirmed 2026-10-21 on the full tree. The tree has no call-time interceptor.",
+        "method": "dynamic 4-op harness + static caller audit re-run 2026-10-21 on the full tree",
         "anchor": "command-center/WORK-UNIT-CATALOG.json ADV-0022.question_or_target"
       }
     ],
@@ -443,12 +482,13 @@
       "state_set_after_live_rerun": true,
       "worktree": "/opt/p2/ast-integrate"
     },
-    "completion_marker": "UNIT-COMPLETE:ADV-0022"
-  },
-  "failure": {
-    "classification": [
-      "incomplete-artifact"
-    ],
-    "reason": "Non-SUCCESS artifact must carry a failure block; curated to minimal declared-schema validity without asserting completion."
+    "completion_marker": "UNIT-COMPLETE:ADV-0022",
+    "remeasure_2026_10_21": {
+      "substrate": "windows-fulltree @ c119cf0da (hooks/, platform/lib/wfdsl, platform/marketplace present)",
+      "note": "Evidence TARGET 7 and test T-REMEASURE-20261021-FULLTREE post-date the 2026-08-21 C5 independent review; they are a re-measure that CONFIRMS the reviewed findings. D-ADV0022-1 superseded to CNF-0111 per the ADV-0021 disposition pattern.",
+      "probe1": "python -B command-center/p2-wave/probes/ADV-0022/probe1_escape.py",
+      "probe2": "python -B command-center/p2-wave/probes/ADV-0022/probe2_static.py"
+    },
+    "self_digest_recipe": "artifacts[0].sha256 is the ELIDED digest: read this file, replace the 64-char sha256 value with 64 ASCII 0s, sha256 the LF-normalized result. artifacts[0].bytes is the true on-disk byte length of the LF-normalized file."
   }
 }
