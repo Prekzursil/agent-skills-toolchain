@@ -360,8 +360,14 @@ def _infra_hit(text: str, tool_name: str = ""):
         return m if m else None
 
 
-def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
-    """Return (verdict, reason). verdict in SUCCESS/FAILED/AMBIGUOUS."""
+def classify(tool_name: str, tool_input, resp, response_present: bool = True) -> tuple[str, str]:
+    """Return (verdict, reason). verdict in SUCCESS/FAILED/AMBIGUOUS.
+
+    ``response_present`` is False when the payload carried NO result key at all
+    (grok's common shape). An absent result can still be judged FAILED only by
+    structural envelope signals, which an absent value cannot carry, so absence
+    short-circuits to SUCCESS (silent) rather than AMBIGUOUS.
+    """
     # 1. Structural FAILED (all tools).
     failed, reason = _structural_failed(resp)
     if failed:
@@ -377,8 +383,11 @@ def classify(tool_name: str, tool_input, resp) -> tuple[str, str]:
             return "FAILED", f"infra-failure text: '{m.group(0)}'"
 
     # 3. AMBIGUOUS: empty where content is expected (MCP must-return-content tools).
+    #    Only an OBSERVED empty (the response key was present but its value is
+    #    empty) qualifies — an absent response is unverifiable, not empty.
     if (
-        is_mcp
+        response_present
+        and is_mcp
         and _EXPECTS_CONTENT.search(tool_name)
         and not _EMPTY_OK.search(tool_name)
     ):
@@ -404,11 +413,20 @@ def main() -> int:
         if not tool_name:
             return 0
         tool_input = data.get("tool_input") or {}
+        # grok absent-field class (2026-10-21): grok populates NO tool_response/
+        # tool_output key on most PostToolUse events (measured over the harness
+        # ledger: 62,373 of 86,056 grok tool_result rows carry the null-result
+        # digest). An ABSENT response is UNVERIFIABLE, not empty — ruling it
+        # AMBIGUOUS "empty result where content was expected" nagged every
+        # must-return-content MCP call under grok. Only a response key that is
+        # PRESENT-but-empty is an observable empty result. (Same doctrine as the
+        # SubagentStop hollow-output fix: absent = unverifiable = silent.)
+        response_present = ("tool_response" in data) or ("tool_output" in data)
         resp = data.get("tool_response")
         if resp is None:
             resp = data.get("tool_output")
 
-        verdict, reason = classify(tool_name, tool_input, resp)
+        verdict, reason = classify(tool_name, tool_input, resp, response_present)
         if verdict == "SUCCESS":
             return 0  # hot path: no file I/O, no output
 

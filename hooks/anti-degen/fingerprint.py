@@ -117,7 +117,7 @@ def _save_window(session_id: str, window: list) -> None:
         pass
 
 
-def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) -> bool:
+def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h) -> bool:
     """Record the new triple and return True iff the warning should fire.
 
     Returns True only when:
@@ -126,6 +126,9 @@ def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) 
         (i.e. the output has NEVER changed for this tool+args combination).
 
     A single differing output_hash means progress happened → return False.
+    An absent output (out_h is None, recorded when the host sent no result key)
+    is UNVERIFIABLE, not identical — any None in the matching window suppresses
+    the warning (absent = unverifiable = allow, the SubagentStop doctrine).
     """
     window = _load_window(session_id)
 
@@ -152,6 +155,10 @@ def _check_and_update(session_id: str, tool_name: str, args_h: str, out_h: str) 
     if len(matches) < REPEAT_THRESHOLD:
         return False
 
+    # any unobserved output in the matches -> "identical output" is unverifiable
+    if any(e.get("oh") is None for e in matches):
+        return False
+
     # all matching entries must share the SAME output_hash — any variation = progress
     output_hashes = {e.get("oh") for e in matches}
     if len(output_hashes) > 1:
@@ -174,11 +181,20 @@ def main() -> int:
         session_id = str(data.get("session_id") or "unknown")
         tool_name = str(data.get("tool_name") or "")
         tool_input = data.get("tool_input") or {}
-        # PostToolUse uses "tool_response"; some schemas use "tool_output"
-        tool_response = data.get("tool_response") or data.get("tool_output") or ""
+        # PostToolUse uses "tool_response"; some schemas use "tool_output".
+        # grok absent-field class (2026-10-21): grok sends NO result key on most
+        # PostToolUse events. An absent response must NOT hash to the same
+        # ""-digest as every other absent response — that made any 3x identical
+        # call read as "identical output" when no output was ever seen. Absent =
+        # unverifiable: record oh=None and let _check_and_update refuse to fire
+        # on unobserved outputs (observed empties keep their old semantics).
+        tool_response = data.get("tool_response")
+        if tool_response is None:
+            tool_response = data.get("tool_output")
+        response_present = tool_response is not None
 
         args_h = _args_hash(tool_input)
-        out_h = _output_hash(tool_response)
+        out_h = _output_hash(tool_response) if response_present else None
 
         should_warn = _check_and_update(session_id, tool_name, args_h, out_h)
 
