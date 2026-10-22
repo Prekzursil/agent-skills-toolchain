@@ -96,25 +96,33 @@ def _evict(ledger, tmp_path, count=130):
 def test_sibling_session_bm_write_does_not_mute_this_session(iso, tmp_path):
     # The ledger is PROJECT-keyed and stores no session_id, so a basic-memory
     # write by ANOTHER session sharing this cwd sits in our replay window. It
-    # must not be read as "this session captured the why".
+    # must not be read as "this session captured the why". Since the 2026-10-22
+    # de-injection the firing surface is the session-note SPOOL, never an
+    # inject: the sibling's write must not mute OUR capture.
     ledger = EventLedger(tmp_path / "state")
     _bm_write(ledger, tmp_path, use_id="bmS", session="session-SIBLING")
     _canonical_write(ledger, tmp_path, session="session-1")
     out = ClaimWarningModule(ledger).run(
         _event(tmp_path, "Stop", session_id="session-1")
     )
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert list((iso / "bm-spool").glob("*.json")), "this session still captures"
 
 
 def test_nudge_survives_ledger_eviction_of_the_canonical_edit(iso, tmp_path):
     # 85% of real canonical edits already carry >=120 later events in their own
     # shard by the time Stop fires; the bounded window is minutes, a session is
-    # hours. The sticky per-session flag is what keeps the fact alive.
+    # hours. The sticky per-session flag is what keeps the fact alive — and the
+    # spool still happens after eviction (no model feedback, by the 2026-10-22
+    # de-injection).
     ledger = EventLedger(tmp_path / "state")
     _canonical_write(ledger, tmp_path)
     _evict(ledger, tmp_path)
     out = ClaimWarningModule(ledger).run(_event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert list((iso / "bm-spool").glob("*.json"))
 
 
 def test_own_bm_write_mutes_after_ledger_eviction(iso, tmp_path):
@@ -137,29 +145,36 @@ def test_unidentified_session_shares_no_flag_directory(iso, tmp_path):
     assert not (iso / "session-flags" / UNKNOWN_DIGEST).exists()
 
 
-def test_unidentified_session_keeps_a_once_per_session_cooldown(iso, tmp_path):
-    # Rejecting "unknown" must not cost the cooldown: without a fallback the gate
-    # would re-nag at every single Stop of an unidentified session.
+def test_unidentified_session_keeps_a_once_per_session_spool(iso, tmp_path):
+    # Rejecting "unknown" must not cost the capture: an unidentified session
+    # still spools its note, and the once-per-session contract now lives in the
+    # session-hash-keyed spool itself (the cooldown marker machinery was removed
+    # with the 2026-10-22 de-injection — there is no nag left to cool down).
     ledger = EventLedger(tmp_path / "state")
     _canonical_write(ledger, tmp_path, session="unknown")
     module = ClaimWarningModule(ledger)
     first = module.run(_event(tmp_path, "Stop", session_id="unknown"))
     second = module.run(_event(tmp_path, "Stop", session_id="unknown"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    for out in (first, second):
+        assert out.action == "allow"
+        assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1
 
 
-def test_cooldown_survives_a_mid_session_carrier_flip(iso, tmp_path):
-    # A session can START on the FALLBACK carrier (fired from a sibling's canonical
-    # edit in the shared, project-keyed ledger window, cooled down by the marker
-    # file) and only LATER make its own canonical edit, which creates the sticky
-    # flag directory. If the sticky cooldown read ignores the marker, the
-    # once-per-session cap is lost and the gate nags a second time.
+def test_spool_stays_singleton_across_a_mid_session_carrier_flip(iso, tmp_path):
+    # A session can START on the FALLBACK carrier (its firing fact coming from a
+    # sibling's canonical edit in the shared, project-keyed ledger window) and
+    # only LATER make its own canonical edit, which creates the sticky flag
+    # directory. Both Stops capture, but the session-hash-keyed spool keeps the
+    # once-per-session contract across the carrier flip — and neither Stop ever
+    # injects model feedback (2026-10-22 de-injection).
     ledger = EventLedger(tmp_path / "state")
     module = ClaimWarningModule(ledger)
     _canonical_write(ledger, tmp_path, use_id="wSIB", session="session-SIBLING")
     first = module.run(_event(tmp_path, "Stop", session_id="session-1"))
     _canonical_write(ledger, tmp_path, use_id="wOWN", session="session-1")
     second = module.run(_event(tmp_path, "Stop", session_id="session-1"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    for out in (first, second):
+        assert out.action == "allow"
+        assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1

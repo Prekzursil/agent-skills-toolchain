@@ -765,16 +765,24 @@ def test_receipt_gate_noop_on_exception(iso, tmp_path, monkeypatch):
     assert out.action == "allow"
 
 
-def test_basic_memory_nudge_cooldown_write_survives_oserror(iso, tmp_path, monkeypatch):
-    # When the nudge surfaces, its once-per-session cooldown write is best-effort:
-    # an OSError writing the marker is swallowed (lines 2326-2327).
+def test_basic_memory_nudge_spool_oserror_never_raises(iso, tmp_path, monkeypatch):
+    # 2026-10-22 port: the cooldown marker write is gone with the de-injection.
+    # The best-effort write under the Stop path is now the session-note SPOOL,
+    # and an OSError writing it is swallowed AND recorded in the capped
+    # flush-errors sidecar so the capture carrier cannot rot invisibly.
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
     ledger.append(str(tmp_path), "mutation", canonical_tree=True, path="harness/x.py")
     module = ClaimWarningModule(ledger)
     monkeypatch.setattr(m, "atomic_write_json", _raise_oserror)
     out = module._basic_memory_nudge(_event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    assert any(
+        "spool-write OSError" in line
+        for line in sidecar.read_text(encoding="utf-8").splitlines()
+    )
 
 
 # --------------------------------------------------------------------------- #
