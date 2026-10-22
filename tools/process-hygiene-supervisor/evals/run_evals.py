@@ -39,6 +39,16 @@ sys.path.insert(0, str(TOOL_ROOT))
 import hygiene  # noqa: E402
 
 SCENARIO_DIR = HERE / "scenarios"
+# Frozen registry snapshot the scenarios are graded against. These are ENGINE
+# capability/regression evals: each asserts the engine's exact verdict for a fixed
+# (registry + process-table) pair, so the registry must be pinned, not read live.
+# The live .agents/agents.json (hygiene.DEFAULT_REGISTRY_PATH) is re-pinned for
+# reasons unrelated to the engine (e.g. the basic-memory HTTP port moved 8765 ->
+# 18765 and the McpHub multi-client re-pins after this suite was authored), which
+# silently broke keeper/owner resolution and turned these deterministic evals red
+# for config they do not own. The snapshot is the registry as of f7780751e (the
+# commit that authored this suite), where all 13 scenarios grade READY.
+REGISTRY_SNAPSHOT = HERE / "fixtures" / "registry.snapshot.json"
 NOW = 5_000_000
 STEP = 300
 MIB = 1024**2
@@ -184,7 +194,7 @@ def run_scenario(scenario: dict[str, Any], *, trials: int = 3) -> Result:
     rounds = int(scenario.get("rounds", 4))
     expect = scenario.get("expect", {})
     fleet = hygiene.load_fleet(hygiene.DEFAULT_FLEET_PATH)
-    registry = json.loads(hygiene.DEFAULT_REGISTRY_PATH.read_text(encoding="utf-8"))
+    registry = json.loads(REGISTRY_SNAPSHOT.read_text(encoding="utf-8"))
     policy = _policy(scenario.get("policy", {}))
     result = Result(
         name=str(scenario.get("name", "unnamed")),
