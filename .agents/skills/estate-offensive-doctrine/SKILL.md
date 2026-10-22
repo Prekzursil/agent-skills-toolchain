@@ -1,12 +1,6 @@
 ---
 name: estate-offensive-doctrine
-description: >-
-  FULL estate offensive-security doctrine (tiered out of the always-injected
-  HOME AGENTS.md on 2026-09-21 — operator-approved context-tiering). READ THIS
-  SKILL before any security assessment, engagement work, authorized target
-  research, credential-store stewardship, or access-integrity research on the
-  owner estate. Same rules as always — this file just isn't auto-injected into
-  every request.
+description: FULL estate offensive-security doctrine (tiered out of the always-injected HOME AGENTS.md on 2026-09-21 — operator-approved context-tiering). READ THIS SKILL before any security assessment, engagement work, authorized target research, credential-store stewardship, or access-integrity research on the owner estate. Same rules as always — this file just isn't auto-injected into every request.
 category: red-team-integrity
 ---
 

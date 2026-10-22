@@ -114,9 +114,7 @@ def test_a_description_exactly_at_the_spec_limit_passes(
     bytes and the 500-byte estate cap (G-12 amendment 2026-10-01) would
     otherwise fire before the spec boundary under test is reached."""
     root, exemptions = clean
-    exemptions.write_text(
-        f"over-estate:bravo:{mod.SPEC_MAX_CHARS}\n", encoding="utf-8"
-    )
+    exemptions.write_text(f"over-estate:bravo:{mod.SPEC_MAX_CHARS}\n", encoding="utf-8")
     _skill(root, "bravo", "y" * mod.SPEC_MAX_CHARS)
     assert _run(root, exemptions) == mod.EXIT_OK
     _skill(root, "bravo", "y" * (mod.SPEC_MAX_CHARS + 1))
@@ -198,7 +196,9 @@ def test_a_pinned_over_spec_skill_passes_but_may_not_grow(tmp_path: Path) -> Non
     root = tmp_path / "skills"
     _skill(root, "legacy", "z" * 1500)
     exemptions = tmp_path / "exempt.txt"
-    exemptions.write_text("over-spec:legacy:1500\nover-estate:legacy:1500\n", encoding="utf-8")
+    exemptions.write_text(
+        "over-spec:legacy:1500\nover-estate:legacy:1500\n", encoding="utf-8"
+    )
     assert _run(root, exemptions) == mod.EXIT_OK
     _skill(root, "legacy", "z" * 1501)
     assert _run(root, exemptions) == mod.EXIT_VIOLATION
