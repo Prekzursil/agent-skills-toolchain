@@ -658,8 +658,8 @@ def selftest() -> int:
        framed.count("=== END UNVERIFIED EXPERT OUTPUT ===") != 1:
         failures.append("fence-escape: framing broken by hostile payload")
     try:
-        payload_line = [l for l in framed.splitlines()
-                        if l.startswith("expert_answer_json:")][0]
+        payload_line = [ln for ln in framed.splitlines()
+                        if ln.startswith("expert_answer_json:")][0]
         decoded = json.loads(payload_line[len("expert_answer_json: "):])
         if decoded != hostile:
             failures.append("fence-escape: payload not losslessly round-tripped")
