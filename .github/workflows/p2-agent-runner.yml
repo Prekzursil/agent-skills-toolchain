@@ -83,7 +83,17 @@ jobs:
         run: |
           git add -A
           git commit -m "feat(p2-agent): GLM delivery batch $(date -u +%Y%m%dT%H%M) per agent contract" || { echo "agent produced no changes"; }
-          git push origin HEAD:cursor/p2-loop-to-green-0db0 || echo "push skipped (no new commits)"
+          # HARDENING 2026-10-18: was `|| echo "push skipped (no new commits)"`.
+          # That label was reachable ONLY on a real push failure -- when there are no
+          # new commits the line above already reported it and `git push` succeeds as
+          # a no-op -- so every actual failure (auth, network, non-fast-forward) was
+          # misreported as a benign skip and the run stayed green while the agent's
+          # delivery batch was lost. The shard runner (p2-agent-shard.yml) already
+          # treats this as an error; this brings the serial runner in line.
+          if ! git push origin HEAD:cursor/p2-loop-to-green-0db0; then
+            echo "::error::push failed -- the agent's delivery batch was NOT landed. Re-dispatch after investigating."
+            exit 1
+          fi
       - name: goal check (end) + chain transition
         id: goal1
         env:

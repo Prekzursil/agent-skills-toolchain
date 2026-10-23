@@ -34,7 +34,11 @@ jobs:
           github.event.workflow_run.event == 'push' &&
           github.event.workflow_run.head_branch == 'main' }}
     steps:
-      - uses: actions/checkout@v7
+      # HARDENING 2026-10-18: was `actions/checkout@v7` and `actions/ai-inference@v3`
+      # (mutable tags) while this workflow holds contents:write. Both now SHA-pinned,
+      # matching the repo-wide rule stated at quality.yml:26. SHAs resolved from the
+      # tags 2026-10-18 via `git ls-remote`.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: main
           fetch-depth: 0
@@ -74,7 +78,7 @@ jobs:
       - name: Draft fix with Copilot
         if: steps.cred.outputs.have == 'true'
         id: ai
-        uses: actions/ai-inference@v3
+        uses: actions/ai-inference@2c43c91ae16266ca159d311430343c67a5ffa222 # v3
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
         with:

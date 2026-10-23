@@ -59,3 +59,9 @@ jobs:
       - name: final state
         run: |
           echo "loop_rc=${{ steps.loop.outputs.loop_rc }} (0 = all gates green; check https://github.com/Prekzursil/agent-skills-toolchain/actions for the run record)"
+          # HARDENING 2026-10-18: the loop step above ends `exit 0`, so this workflow
+          # used to conclude SUCCESS even when the loop exited 1 (unresolved gates) or
+          # 2 (budget exhausted) -- a green verdict over a failed loop, with only the
+          # sibling issue-filing step as the tell. The issue still gets filed (step
+          # above); now the run verdict agrees with it.
+          exit "${{ steps.loop.outputs.loop_rc }}"

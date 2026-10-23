@@ -78,6 +78,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.CODEX_RUNNER_PAT }}
         run: |
-          gh issue create --repo Prekzursil/agent-skills-toolchain \
+          # HARDENING 2026-10-18: was `|| echo "issue step failed (report retained in
+          # run log)"`, which turned a failed issue-file into a GREEN run -- the
+          # classify step above could complete, its only output artifact fail to
+          # land, and the run still read success. The report IS still in the run log
+          # either way; now the verdict is honest about the landing.
+          if ! gh issue create --repo Prekzursil/agent-skills-toolchain \
             --title "pr-reconcile sweep report $(date -u +%Y-%m-%dT%H:%M)" \
-            --body-file /tmp/recon/report.md || echo "issue step failed (report retained in run log)"
+            --body-file /tmp/recon/report.md; then
+            echo "::error::failed to file the summary issue; the report is retained in this run's log (classify step)."
+            exit 1
+          fi

@@ -21,7 +21,11 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: meta
-        uses: dependabot/fetch-metadata@v3
+        # HARDENING 2026-10-18: was `@v3` (mutable tag). quality.yml:26 pins EVERY
+        # action this repo uses to a SHA; this job runs with contents:write, so a
+        # re-pointed tag would be the one unpinned write path. SHA resolved from the
+        # tag 2026-10-18 via `git ls-remote ... refs/tags/v3`.
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Enable auto-merge (squash)
