@@ -1,10 +1,25 @@
 """Flat-Task + workflow subagent discovery (ported from agent_monitor.py).
 
 Discovers EVERY subagent transcript a Claude Code session produces — the flat
-``subagents/agent-*.jsonl`` (which the wfmon cockpit does NOT surface: its known gap) AND the
-nested ``subagents/workflows/<wf>/agent-*.jsonl`` — and summarises each row with a cheap
-last-event line. Pure and read-only, so it is safe against a live session and reaches 100%
-branch coverage against a fixture dir with an injected clock.
+``subagents/agent-*.jsonl`` AND the nested ``subagents/workflows/<wf>/agent-*.jsonl`` — and
+summarises each row with a cheap last-event line. Pure and read-only, so it is safe against a
+live session and reaches 100% branch coverage against a fixture dir with an injected clock.
+
+CORRECTED 2026-10-24. This docstring used to describe the flat transcripts as "which the
+wfmon cockpit does NOT surface: its known gap". That is stale and was misread as applying to
+the current cockpit. Accurately:
+
+* the ``cockpit`` (``monitorcore.unified``) DOES surface flat Task agents — its ``agents``
+  pane is :mod:`monitorcore.agents_source` over this scan, and
+  :func:`monitorcore.agents_source.workflow_key` buckets a flat row under
+  ``UNGROUPED_WF`` ("(no workflow)"). ``tests/test_agents_source.py`` asserts exactly that,
+  with a fixture holding one flat Task agent and one workflow-owned agent.
+* the gap is real only for the retired predecessor board, ``skills/workflow-monitor/
+  workflow_monitor.py``, which is organised runs → phases → agents around ``wf_id`` via
+  ``workflow_run`` and therefore has nowhere to put a transcript that has no workflow.
+
+Stating it precisely because the old wording cost a reader a wrong conclusion about what is
+and is not already built.
 """
 
 from __future__ import annotations
