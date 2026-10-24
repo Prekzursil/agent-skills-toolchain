@@ -722,11 +722,24 @@ jobs:
       # files, all unloadable, manifest removed to start a mirror that never finished); the
       # centrepiece test reproduces that and asserts the previous generation still verifies
       # and still resumes. Also gated: pruning refused unless a newer generation verified on
-      # read-back, keep_generations >= 2, verify-before-hydrate by size and SHA-256, the
-      # signal-driven final checkpoint with handler chaining, mirror failures staying
-      # isolated from the job, and the AST import allowlist that keeps the module
-      # provider-agnostic and network-free. Measured: 38 passed, ruff 0.15.17 check+format
-      # clean, runner fails below its MIN_TESTS floor so 0/0 cannot report green.
+      # read-back, keep_generations >= 2, verify-before-hydrate by size and SHA-256, mirror
+      # failures staying isolated from the job, and the AST import allowlist.
+      #
+      # CORRECTED 2026-10-24: this comment previously also claimed it gates "the
+      # signal-driven final checkpoint with handler chaining". IT DOES NOT. Every test
+      # either forces handle_signals=False or calls _on_signal directly with a hand-filled
+      # _prev_handlers, so installation, restoration and the SIG_DFL re-raise are UNGATED.
+      # A false claim in a CI comment is worse than no claim, because a comment next to a
+      # gate is read as evidence that the gate checks it. spec_longhaul_checkpoint.py
+      # check 6 is the real test, using signal.raise_signal on the main thread.
+      #
+      # ALSO: an adversarial review of this code found 40 confirmed findings, six of them
+      # release blockers -- including that retention counts INCOMPLETE generations, so a
+      # torn directory takes the retained slot and the last good copy is deleted. The
+      # 41 tests below do not catch any of the six: they never run a SUCCESSFUL mirror
+      # after an incomplete or failed one. Read spec_longhaul_checkpoint.py before trusting
+      # this suite's coverage. Measured: 41 passed, ruff 0.15.17 check+format clean, runner
+      # fails below its MIN_TESTS floor so 0/0 cannot report green.
       - name: durable-checkpoint standalone regression
         working-directory: tools/durable-checkpoint
         run: python test_durable_checkpoint.py
