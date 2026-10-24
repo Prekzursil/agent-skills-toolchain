@@ -45,6 +45,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import shutil
 import signal
 import sys
 import tempfile
@@ -547,6 +548,113 @@ def fix_6():
 
 # ╭──────────────────────────── the runner ────────────────────────────╮
 
+
+def check_7_resume_then_mirror_matches_an_uninterrupted_baseline() -> str:
+    """ORDERING: mirror, interrupt, resume, mirror — differentialled against the
+    same sequence WITHOUT the interrupt.
+
+    REQUIREMENT: the mirror after a resume must behave as it would have without
+    one. Same retained loadable count, and no re-copying of content that is
+    byte-identical to the previous generation.
+
+    This row exists because rows 1-6 each assert against a FIXED expectation, and
+    none compares resumed behaviour against an uninterrupted baseline. That
+    differential is its own test shape, and it is the shape that catches a resume
+    which preserves the DATA while corrupting state DERIVED from it. A third
+    independent instance of that class turned up elsewhere in this estate the same
+    week: a checker whose per-level counters diverged only on the one run that was
+    preempted, with the liveness watchdog firing NO events — because a silently
+    mis-accounting resume looks exactly like a healthy one.
+
+    THE CONCRETE DEFECT, and it is not cosmetic. ``resume_into`` rewrites every
+    file, so every mtime differs from the manifest that described it. The reuse
+    predicate is ``(size, mtime_ns)``, so the first tick after ANY resume
+    re-copies the entire tree and hardlinks nothing. On the 15 GB tree this design
+    exists for, that silently turns each preemption into a full rewrite — the
+    opposite of the README's cost claim, and worst exactly when the job has just
+    lost time to a preemption.
+    """
+
+    def one_run(root: Path, interrupt: bool) -> tuple[int, int, int]:
+        work, durable = root / "w", root / "d"
+        work.mkdir(parents=True)
+        for i in range(3):
+            _write(work / f"f{i}.ckpt", f"payload {i}")
+        ck = _ckpt(work, durable, keep_generations=3)
+        ck.mirror_now()
+        if interrupt:
+            # The container died and came back: scratch is gone, rehydrate it.
+            dc.clear_work_dir(work)
+            dc.resume_into(durable, work)
+        r = ck.mirror_now()
+        return r.copied, r.linked, len(_loadable(durable))
+
+    base = tempfile.mkdtemp(prefix="spec7-base-")
+    resumed = tempfile.mkdtemp(prefix="spec7-resume-")
+    try:
+        b_copied, b_linked, b_loadable = one_run(Path(base), interrupt=False)
+        r_copied, r_linked, r_loadable = one_run(Path(resumed), interrupt=True)
+        problems = []
+        if b_linked and not r_linked:
+            problems.append(
+                f"uninterrupted linked {b_linked} unchanged file(s) and copied "
+                f"{b_copied}; after a resume it linked {r_linked} and copied "
+                f"{r_copied} — the whole tree is re-copied because resume_into "
+                f"rewrote every mtime"
+            )
+        elif (r_copied, r_linked) != (b_copied, b_linked):
+            problems.append(
+                f"copy/link decision diverged: uninterrupted (copied={b_copied}, "
+                f"linked={b_linked}) vs resumed (copied={r_copied}, "
+                f"linked={r_linked})"
+            )
+        if r_loadable != b_loadable:
+            problems.append(
+                f"retained loadable generations diverged: uninterrupted "
+                f"{b_loadable} vs resumed {r_loadable}"
+            )
+        return "; ".join(problems)
+    finally:
+        shutil.rmtree(base, ignore_errors=True)
+        shutil.rmtree(resumed, ignore_errors=True)
+
+
+@contextlib.contextmanager
+def fix_7():
+    """MINIMAL FIX, and note WHERE it belongs: in ``resume_into``, not in the
+    reuse predicate.
+
+    The manifest already records ``mtime_ns`` for every file it describes, so a
+    hydrate can restore the mtimes of the tree it is reconstructing instead of
+    stamping every file with 'now'. Then the existing ``(size, mtime_ns)``
+    predicate is simply correct again and the next mirror links as it would have.
+
+    The alternative — teaching the predicate to fall back to hashing when the
+    mtime differs but the size matches — costs a full read of the tree on exactly
+    the tick that is already recovering from a preemption. Restoring metadata that
+    was always in the manifest is cheaper and more honest: the resumed tree IS the
+    recorded tree, so it should carry the recorded mtimes.
+    """
+    original = dc.resume_into
+
+    def patched(durable_dir, work_dir, quick=False):
+        result = original(durable_dir, work_dir, quick=quick)
+        man = dc._Manifest.from_json(
+            dc.manifest_path(durable_dir, result.generation).read_text(encoding="utf-8")
+        )
+        for rel, rec in man.files.items():
+            target = Path(work_dir) / rel
+            if target.is_file() and rec.mtime_ns:
+                os.utime(target, ns=(rec.mtime_ns, rec.mtime_ns))
+        return result
+
+    dc.resume_into = patched
+    try:
+        yield
+    finally:
+        dc.resume_into = original
+
+
 CHECKS = [
     (
         "1 retention counts only loadable",
@@ -583,6 +691,12 @@ CHECKS = [
         check_6_real_signal_installs_restores_and_chains,
         fix_6,
         False,
+    ),
+    (
+        "7 post-resume matches uninterrupted",
+        check_7_resume_then_mirror_matches_an_uninterrupted_baseline,
+        fix_7,
+        True,
     ),
 ]
 
