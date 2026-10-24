@@ -16,6 +16,7 @@ boundaries understandable.
 ## Standalone utilities
 
 - [`tools/triage-router`](triage-router/README.md) — stdlib model-tier routing CLI used by `/model-route` and `/start-task`
+- [`tools/modal-budget-ledger`](modal-budget-ledger/README.md) — stdlib per-account spend ledger and account selector over Modal accounts you fund; no network, never switches accounts itself
 
 ## Current live projects
 
