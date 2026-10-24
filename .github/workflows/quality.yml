@@ -714,14 +714,19 @@ jobs:
       # a container timeout, a preemption signal or a crash does not restart it from zero.
       # Stdlib-only custom __main__ runner like triage-router and account-hopper above, so
       # pytest discovery would not execute it; naming it here is what makes it gate. What it
-      # gates: the manifest-last/removed-first ordering that makes an interrupted mirror
-      # REFUSE to load rather than load torn (the ported program has the opposite behaviour
-      # on record -- resumes died with "Bad checkpoints, ckpt_is_valid missing after
-      # mid-write kill"), verify-before-hydrate by size and SHA-256, the signal-driven final
-      # checkpoint with handler chaining, mirror failures staying isolated from the job, and
-      # the AST import allowlist that keeps the module provider-agnostic and network-free.
-      # Measured when it landed: 30 passed, ruff 0.15.17 check+format clean, and the runner
-      # fails below its MIN_TESTS floor so a discovery break cannot report 0/0 as green.
+      # gates: that a checkpoint cut short costs ONLY itself. Each checkpoint is a new
+      # numbered generation (files, then manifest, then commit, then read-back verify), and
+      # the loader takes the highest generation that verifies -- so no rename and no pointer
+      # file, because a Modal Volume promises atomicity for neither. The in-place build of
+      # this module lost EVERYTHING to a preemption during its final checkpoint (four intact
+      # files, all unloadable, manifest removed to start a mirror that never finished); the
+      # centrepiece test reproduces that and asserts the previous generation still verifies
+      # and still resumes. Also gated: pruning refused unless a newer generation verified on
+      # read-back, keep_generations >= 2, verify-before-hydrate by size and SHA-256, the
+      # signal-driven final checkpoint with handler chaining, mirror failures staying
+      # isolated from the job, and the AST import allowlist that keeps the module
+      # provider-agnostic and network-free. Measured: 38 passed, ruff 0.15.17 check+format
+      # clean, runner fails below its MIN_TESTS floor so 0/0 cannot report green.
       - name: durable-checkpoint standalone regression
         working-directory: tools/durable-checkpoint
         run: python test_durable_checkpoint.py

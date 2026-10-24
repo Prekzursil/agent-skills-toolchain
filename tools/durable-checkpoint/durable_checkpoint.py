@@ -3,44 +3,47 @@
 
 The problem it solves: a job runs for longer than its container is guaranteed to
 live. A Modal function caps at 24h, a connected FEP+ map is 12-27h, preemptible
-GPUs disappear with a signal and a few seconds' notice, and laptops lose power.
-The job's working directory is on fast local scratch (a network/volume
+GPUs disappear with a signal and a few seconds' notice, laptops lose power. The
+job's working directory sits on fast local scratch (a volume or network
 filesystem is usually too slow and too loosely consistent for MD-style I/O), so
 when the container dies that scratch dies with it.
 
 The pattern: run in fast scratch, mirror to a durable path periodically, and on
 re-invocation resume from the mirror instead of starting over.
 
-This module is the mirror, hardened. It is deliberately provider-agnostic: the
-durable path is just a directory, and anything that needs doing after a mirror
+This module is that mirror. It is deliberately provider-agnostic: the durable
+path is just a directory, and anything that needs doing to make writes durable
 (committing a mounted volume, say) is a callable you pass in. Nothing here
 imports a cloud SDK, knows about accounts, or moves state between them.
 
-WHAT THIS FIXES RELATIVE TO THE NAIVE VERSION
+WHY GENERATIONS, AND NOT AN IN-PLACE MIRROR
 
-A first cut of this pattern usually looks like `cp -a work/. durable/` on a
-timer, and it has three defects that cost real GPU time:
+An in-place mirror has a fatal window, and it is not an exotic edge case — it is
+exactly where a preemption lands. Writing into the live durable path means
+invalidating the existing checkpoint before the new one is complete, so a kill
+in between leaves nothing loadable. Measured on an earlier build of this module:
+four complete checkpoint files sat physically intact on disk and every one was
+unusable, because the manifest vouching for them had been removed to begin a
+final checkpoint that never finished. That is total loss, not last-interval
+loss, and it is the one failure a durability tool must never have.
 
-1. **The copy is not atomic.** Killed mid-copy, the durable path holds a torn
-   mix of old and new files — and a validity sentinel written earlier is still
-   sitting there, so the next run happily loads the wreckage. This exact failure
-   is on record in the source program: resumes died with "Bad checkpoints,
-   `ckpt_is_valid` missing after mid-write kill". Here, every file lands via
-   write-temp-then-`os.replace`, and the manifest that makes a checkpoint
-   loadable is written LAST and removed FIRST. A mirror interrupted at any point
-   leaves no manifest, so :func:`verify` refuses it. You lose the resume, but
-   you are told, instead of burning another day on corrupt state.
+So each checkpoint is written into its own **new, monotonically numbered
+generation directory** — files first, the manifest with hashes last — and only
+then is the volume committed. Nothing existing is touched. The loader takes the
+highest-numbered generation whose manifest verifies and falls back down the
+list, so **at least one complete checkpoint exists at every instant**, including
+mid-write. An interrupted generation has no manifest, so it is simply skipped.
 
-2. **No final checkpoint on the way out.** Preemption sends SIGINT (SIGTERM on
-   many other platforms) before the container goes. With only a periodic timer,
-   everything since the last tick is discarded for free. :meth:`start` installs
-   handlers that take one last incremental mirror first.
+There is no pointer file and nothing is renamed, which matters because a Modal
+Volume promises neither: its docs make no atomicity claim for rename, writes
+become durable only on commit, background commits happen "every few seconds",
+and v2 is beta and "may lose data". A design whose correctness rested on an
+atomic rename would be resting on an unsupported assumption. Highest-verifying
+generation wins is correct even if a rename or a background commit tears.
 
-3. **Resume trusts whatever it finds.** `sorted(glob(...))[-1]` is
-   lexicographic, not newest, and globbing the scratch dir after a copy that
-   ignored its own exit status raises IndexError on an empty list rather than
-   reporting a bad resume. Here :func:`resume_into` verifies every file in the
-   manifest by size and hash before a single byte is hydrated, and fails closed.
+An older generation is deleted only once a newer one has been committed AND
+re-verified by reading it back, and never below ``keep_generations`` (minimum
+two). Pruning is therefore always a no-op on the only good copy.
 
 A TRAP WORTH KNOWING BEFORE YOU AUTOMATE RESTARTS
 (measured by this estate's fractal-compute steward, not by me)
@@ -53,11 +56,19 @@ a real error. Any supervisor built around this module should respect that.
 
 COST NOTE
 
-Hashes are computed during the mirror, in the same pass that reads a file to
-copy it, so hashing is close to free. Unchanged files keep their previous hash
-from the old manifest rather than being re-read. That matters on a
-thermally-limited machine: a full re-hash of a multi-gigabyte job directory
-every ten minutes is a cost you do not need to pay.
+A new generation does not mean re-writing unchanged bytes. Unchanged files are
+**hardlinked** from the previous generation where the filesystem allows it, which
+costs no space and no I/O, and their hashes are carried over rather than
+recomputed. Where linking is unsupported — a plausible outcome on a FUSE volume
+mount — it falls back to copying, and then each retained generation costs a full
+copy of the job directory. Size that against ``keep_generations`` before pointing
+this at a 15 GB tree.
+
+SINGLE WRITER
+
+One process mirrors one durable path. Concurrent mirrors into the same path
+would race on generation numbering, and Modal's own guidance is that a given
+file should be written by a single container at a time anyway.
 
 Stdlib only.
 """
@@ -68,6 +79,7 @@ import fnmatch
 import hashlib
 import json
 import os
+import re
 import shutil
 import signal
 import threading
@@ -76,9 +88,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 MANIFEST_NAME = "MANIFEST.durable-checkpoint.json"
-MANIFEST_VERSION = 1
+MANIFEST_VERSION = 2
+GEN_PREFIX = "gen-"
+GEN_WIDTH = 8
+_GEN_RE = re.compile(rf"\A{GEN_PREFIX}(\d{{{GEN_WIDTH}}})\Z")
 DEFAULT_INTERVAL_S = 600.0
-_CHUNK = 1 << 20  # 1 MiB; big enough to be efficient, small enough to be kind
+DEFAULT_KEEP_GENERATIONS = 2
+MIN_KEEP_GENERATIONS = 2
+_CHUNK = 1 << 20  # 1 MiB
 
 
 class CheckpointError(Exception):
@@ -94,20 +111,23 @@ class FileRecord:
 
 @dataclass(frozen=True)
 class MirrorResult:
+    generation: int
     copied: int
-    reused: int
-    removed: int
+    linked: int
     bytes_copied: int
     seconds: float
-    manifest_path: str
+    pruned: tuple[int, ...]
+    verified: bool
+    generation_dir: str
 
 
 @dataclass(frozen=True)
 class VerifyResult:
-    """``ok`` is the only thing a caller should branch on. ``reason`` explains."""
+    """``ok`` is the only thing to branch on. ``reason`` explains a refusal."""
 
     ok: bool
     reason: str
+    generation: int = 0
     files: int = 0
     extras: tuple[str, ...] = ()
     created: float = 0.0
@@ -118,6 +138,7 @@ class VerifyResult:
 
 @dataclass(frozen=True)
 class ResumeResult:
+    generation: int
     hydrated: int
     bytes_written: int
     verify: VerifyResult
@@ -151,11 +172,10 @@ class _Manifest:
             raise CheckpointError(f"manifest is not valid JSON: {exc}") from None
         if not isinstance(raw, dict):
             raise CheckpointError("manifest is not a JSON object")
-        version = raw.get("version")
-        if version != MANIFEST_VERSION:
+        if raw.get("version") != MANIFEST_VERSION:
             raise CheckpointError(
-                f"manifest version {version!r} is not supported "
-                f"(this build writes and reads {MANIFEST_VERSION})"
+                f"manifest version {raw.get('version')!r} is not supported "
+                f"(this build reads {MANIFEST_VERSION})"
             )
         files_raw = raw.get("files")
         if not isinstance(files_raw, dict):
@@ -187,10 +207,13 @@ class _Manifest:
 
 
 def _atomic_write_text(path: Path, text: str) -> None:
-    """Write via a sibling temp file then rename, so readers never see a partial.
+    """Write via a sibling temp then rename.
 
-    The temp file is a sibling so the rename stays within one filesystem, which
-    is what makes it atomic.
+    Note what this is and is not relied upon for: it keeps a *reader in this
+    container* from seeing a half-written manifest. Correctness across a crash
+    does NOT depend on the rename being atomic, because a generation with no
+    readable manifest is skipped either way. That distinction is deliberate —
+    see the module docstring on Modal Volumes.
     """
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     tmp.write_text(text, encoding="utf-8")
@@ -198,7 +221,7 @@ def _atomic_write_text(path: Path, text: str) -> None:
 
 
 def _copy_and_hash(src: Path, dst: Path) -> tuple[str, int]:
-    """Copy src to dst atomically, returning (sha256, bytes). Hash in one pass."""
+    """Copy src to dst, returning (sha256, bytes), hashing in the same pass."""
     dst.parent.mkdir(parents=True, exist_ok=True)
     tmp = dst.with_name(f".{dst.name}.{os.getpid()}.tmp")
     digest = hashlib.sha256()
@@ -214,8 +237,6 @@ def _copy_and_hash(src: Path, dst: Path) -> tuple[str, int]:
                 total += len(chunk)
         os.replace(tmp, dst)
     except BaseException:
-        # Never leave a stray temp behind: a dot-prefixed orphan in the durable
-        # path would be mistaken for junk, or worse, counted as an extra file.
         tmp.unlink(missing_ok=True)
         raise
     return digest.hexdigest(), total
@@ -234,11 +255,17 @@ def _hash_file(path: Path) -> tuple[str, int]:
     return digest.hexdigest(), total
 
 
-def _iter_files(root: Path, exclude: tuple[str, ...]) -> list[Path]:
-    """Every regular file under root, relative-path sorted, excludes applied.
+def _excluded(rel: str, exclude: tuple[str, ...]) -> bool:
+    base = rel.rsplit("/", 1)[-1]
+    return any(
+        fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(base, pat) for pat in exclude
+    )
 
-    Symlinks are skipped rather than followed: following them can copy a whole
-    tree from outside the job directory, or loop.
+
+def _iter_files(root: Path, exclude: tuple[str, ...]) -> list[Path]:
+    """Every regular file under root, sorted. Symlinks skipped, not followed.
+
+    Following them can copy a tree from outside the job directory, or loop.
     """
     out: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -247,7 +274,7 @@ def _iter_files(root: Path, exclude: tuple[str, ...]) -> list[Path]:
         dirnames[:] = [
             n
             for n in dirnames
-            if not _excluded(str((rel_dir / n).as_posix()), exclude)
+            if not _excluded((rel_dir / n).as_posix(), exclude)
             and not (d / n).is_symlink()
         ]
         for name in filenames:
@@ -262,98 +289,157 @@ def _iter_files(root: Path, exclude: tuple[str, ...]) -> list[Path]:
     return out
 
 
-def _excluded(rel: str, exclude: tuple[str, ...]) -> bool:
-    base = rel.rsplit("/", 1)[-1]
-    return any(
-        fnmatch.fnmatch(rel, pat) or fnmatch.fnmatch(base, pat) for pat in exclude
-    )
-
-
 # --------------------------------------------------------------------------- #
-# Verify and resume                                                           #
+# Generations                                                                 #
 # --------------------------------------------------------------------------- #
 
 
-def manifest_path(durable_dir: str | Path) -> Path:
-    return Path(durable_dir) / MANIFEST_NAME
+def gen_name(n: int) -> str:
+    return f"{GEN_PREFIX}{n:0{GEN_WIDTH}d}"
+
+
+def gen_dir(durable_dir: str | Path, n: int) -> Path:
+    return Path(durable_dir) / gen_name(n)
+
+
+def generations(durable_dir: str | Path) -> list[int]:
+    """Every generation number present, ascending. Cheap: a directory listing."""
+    durable = Path(durable_dir)
+    if not durable.is_dir():
+        return []
+    out: list[int] = []
+    for child in durable.iterdir():
+        if not child.is_dir():
+            continue
+        m = _GEN_RE.match(child.name)
+        if m:
+            out.append(int(m.group(1)))
+    out.sort()
+    return out
+
+
+def manifest_path(durable_dir: str | Path, n: int) -> Path:
+    return gen_dir(durable_dir, n) / MANIFEST_NAME
 
 
 def has_checkpoint(durable_dir: str | Path) -> bool:
-    """Cheap presence test. Says nothing about integrity — use :func:`verify`."""
-    return manifest_path(durable_dir).is_file()
+    """Is there any generation with a manifest? Presence only, no integrity.
 
-
-def verify(durable_dir: str | Path, quick: bool = False) -> VerifyResult:
-    """Is the durable copy loadable? Fails closed on anything unexpected.
-
-    ``quick`` checks size and mtime only, skipping hashes — useful for a cheap
-    liveness poll on a huge directory. Do not resume on a quick pass alone: the
-    corruption this guards against is exactly the kind that preserves size.
+    Cheap by design, so a caller can ask before paying for hashes. Use
+    :func:`latest_verified` before trusting anything.
     """
-    durable = Path(durable_dir)
-    mpath = manifest_path(durable)
+    return any(
+        manifest_path(durable_dir, n).is_file() for n in generations(durable_dir)
+    )
+
+
+def verify_generation(
+    durable_dir: str | Path, n: int, quick: bool = False
+) -> VerifyResult:
+    """Is generation ``n`` loadable? Fails closed on anything unexpected.
+
+    ``quick`` checks size only, skipping hashes — fine for a cheap poll, not
+    for deciding to resume: the corruption this guards against preserves size.
+    """
+    gdir = gen_dir(durable_dir, n)
+    mpath = manifest_path(durable_dir, n)
     if not mpath.is_file():
-        # The ordinary "no checkpoint yet" case AND the "interrupted mid-mirror"
-        # case both land here, which is the point: both are unsafe to load.
-        return VerifyResult(False, "no manifest: nothing complete to resume from")
+        # Either nothing was written yet, or a generation was interrupted before
+        # its manifest. Both are unsafe to load, which is why this is one case.
+        return VerifyResult(
+            False, "no manifest: generation is incomplete", generation=n
+        )
     try:
         man = _Manifest.from_json(mpath.read_text(encoding="utf-8"))
     except CheckpointError as exc:
-        return VerifyResult(False, str(exc))
+        return VerifyResult(False, str(exc), generation=n)
     if not man.files:
-        return VerifyResult(False, "manifest lists no files")
+        return VerifyResult(False, "manifest lists no files", generation=n)
 
     for rel, rec in sorted(man.files.items()):
-        p = durable / rel
+        p = gdir / rel
         if not p.is_file():
-            return VerifyResult(False, f"missing file from manifest: {rel}")
-        stat = p.stat()
-        if stat.st_size != rec.size:
             return VerifyResult(
-                False, f"size mismatch on {rel}: {stat.st_size} != {rec.size}"
+                False, f"missing file from manifest: {rel}", generation=n
+            )
+        if p.stat().st_size != rec.size:
+            return VerifyResult(
+                False,
+                f"size mismatch on {rel}: {p.stat().st_size} != {rec.size}",
+                generation=n,
             )
         if quick:
             continue
         got, _ = _hash_file(p)
         if got != rec.sha256:
-            return VerifyResult(False, f"checksum mismatch on {rel}")
+            return VerifyResult(False, f"checksum mismatch on {rel}", generation=n)
 
-    on_disk = {str(p.relative_to(durable).as_posix()) for p in _iter_files(durable, ())}
-    # Extras are reported, not fatal: a stray log beside a good checkpoint is
-    # not a reason to refuse a resume that would otherwise succeed.
+    on_disk = {p.relative_to(gdir).as_posix() for p in _iter_files(gdir, ())}
     extras = tuple(sorted(on_disk - set(man.files)))
     return VerifyResult(
         True,
         "ok" if not extras else f"ok ({len(extras)} file(s) not in manifest)",
+        generation=n,
         files=len(man.files),
         extras=extras,
         created=man.created,
     )
 
 
+def latest_verified(
+    durable_dir: str | Path, quick: bool = False
+) -> tuple[int | None, VerifyResult]:
+    """Highest-numbered generation that verifies, walking down on failure.
+
+    This IS the pointer: implicit, derived on read, and needing no rename. A
+    torn newest generation costs you that generation and nothing more.
+    """
+    gens = generations(durable_dir)
+    if not gens:
+        return None, VerifyResult(False, "no generations: nothing to resume from")
+    worst = VerifyResult(False, "no generations: nothing to resume from")
+    for n in reversed(gens):
+        result = verify_generation(durable_dir, n, quick=quick)
+        if result.ok:
+            return n, result
+        worst = result
+    return None, VerifyResult(
+        False,
+        f"no generation verifies (newest failure: {worst.reason})",
+        generation=worst.generation,
+    )
+
+
+def verify(durable_dir: str | Path, quick: bool = False) -> VerifyResult:
+    """Is there a loadable checkpoint at all? Delegates to :func:`latest_verified`."""
+    return latest_verified(durable_dir, quick=quick)[1]
+
+
 def resume_into(
     durable_dir: str | Path, work_dir: str | Path, quick: bool = False
 ) -> ResumeResult:
-    """Verify the durable copy, then hydrate ``work_dir`` from it.
+    """Hydrate ``work_dir`` from the newest generation that verifies.
 
-    Raises :class:`CheckpointError` rather than hydrating anything if verify
-    fails. Refusing loudly beats resuming a job onto corrupt state and
+    Raises :class:`CheckpointError` rather than hydrating anything if no
+    generation verifies. Refusing loudly beats resuming onto corrupt state and
     discovering it hours of GPU time later.
     """
-    result = verify(durable_dir, quick=quick)
-    if not result.ok:
+    n, result = latest_verified(durable_dir, quick=quick)
+    if n is None:
         raise CheckpointError(f"refusing to resume: {result.reason}")
-    durable = Path(durable_dir)
+    gdir = gen_dir(durable_dir, n)
     work = Path(work_dir)
     work.mkdir(parents=True, exist_ok=True)
-    man = _Manifest.from_json(manifest_path(durable).read_text(encoding="utf-8"))
+    man = _Manifest.from_json(manifest_path(durable_dir, n).read_text(encoding="utf-8"))
     written = 0
     count = 0
     for rel in sorted(man.files):
-        _, n = _copy_and_hash(durable / rel, work / rel)
-        written += n
+        _, size = _copy_and_hash(gdir / rel, work / rel)
+        written += size
         count += 1
-    return ResumeResult(hydrated=count, bytes_written=written, verify=result)
+    return ResumeResult(
+        generation=n, hydrated=count, bytes_written=written, verify=result
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -362,20 +448,20 @@ def resume_into(
 
 
 class DurableCheckpoint:
-    """Mirror ``work_dir`` to ``durable_dir``, atomically and on a timer.
+    """Write successive generations of ``work_dir`` under ``durable_dir``.
 
     Typical use, where ``commit`` is whatever makes a volume durable::
 
         ckpt = DurableCheckpoint(work, durable, interval_s=600, commit=vol.commit)
         if has_checkpoint(durable):
-            resume_into(durable, work)   # raises if the mirror is torn
+            resume_into(durable, work)   # newest generation that verifies
         with ckpt:                       # periodic + final-on-signal
             run_the_job()
 
     ``start`` installs SIGINT/SIGTERM handlers, so it must be called from the
     main thread; that is a CPython restriction, not a choice here. Pass
-    ``handle_signals=False`` for a worker thread, and call
-    :meth:`mirror_now` yourself on the way out.
+    ``handle_signals=False`` from a worker thread and call :meth:`mirror_now`
+    yourself on the way out.
     """
 
     def __init__(
@@ -387,6 +473,8 @@ class DurableCheckpoint:
         exclude: tuple[str, ...] = (),
         logger: object = None,
         handle_signals: bool = True,
+        keep_generations: int = DEFAULT_KEEP_GENERATIONS,
+        link_unchanged: bool = True,
     ) -> None:
         self.work = Path(work_dir)
         self.durable = Path(durable_dir)
@@ -394,21 +482,28 @@ class DurableCheckpoint:
             raise CheckpointError("work_dir and durable_dir must differ")
         if interval_s <= 0:
             raise CheckpointError(f"interval_s must be positive, got {interval_s}")
+        if keep_generations < MIN_KEEP_GENERATIONS:
+            # Keeping one would reintroduce the whole bug: pruning the only good
+            # copy to make room for a generation that might not finish.
+            raise CheckpointError(
+                f"keep_generations must be at least {MIN_KEEP_GENERATIONS}, "
+                f"got {keep_generations}"
+            )
         self.interval_s = float(interval_s)
         self._commit = commit
         self.exclude = tuple(exclude)
         self._log = logger
         self.handle_signals = handle_signals
+        self.keep_generations = int(keep_generations)
+        self.link_unchanged = bool(link_unchanged)
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
-        # Serialises the timer tick against a signal-driven final mirror, so the
-        # two cannot interleave and write a half-and-half manifest.
+        # Serialises a timer tick against a signal-driven final mirror, so the
+        # two cannot interleave and produce one mixed generation.
         self._lock = threading.Lock()
         self._prev_handlers: dict[int, object] = {}
         self.mirrors = 0
         self.failures = 0
-
-    # -- logging ---------------------------------------------------------- #
 
     def _say(self, msg: str) -> None:
         if self._log is None:
@@ -418,23 +513,12 @@ class DurableCheckpoint:
 
     # -- the mirror ------------------------------------------------------- #
 
-    def _read_prev(self) -> _Manifest:
-        mpath = manifest_path(self.durable)
-        if not mpath.is_file():
-            return _Manifest()
-        try:
-            return _Manifest.from_json(mpath.read_text(encoding="utf-8"))
-        except CheckpointError:
-            # An unreadable previous manifest costs us incremental reuse and
-            # nothing else: everything gets re-copied and re-hashed.
-            return _Manifest()
-
     def mirror_now(self) -> MirrorResult:
-        """One mirror pass. Manifest removed first, written last.
+        """Write one new generation. Nothing existing is modified.
 
-        That ordering is the whole guarantee. Interrupted at any point, the
-        durable path has no manifest, so :func:`verify` refuses it rather than a
-        later run loading a half-written checkpoint and believing it.
+        Files first, manifest last, then commit, then read-back verify, then
+        prune. Interrupted at any point, every previously complete generation
+        is still exactly where it was and still verifies.
         """
         with self._lock:
             return self._mirror_locked()
@@ -444,76 +528,122 @@ class DurableCheckpoint:
         if not self.work.is_dir():
             raise CheckpointError(f"work_dir does not exist: {self.work}")
         self.durable.mkdir(parents=True, exist_ok=True)
-        prev = self._read_prev()
-        mpath = manifest_path(self.durable)
 
-        # STEP 1 - invalidate. From here until step 3 there is no loadable
-        # checkpoint, by design: a crash in this window must not look resumable.
-        mpath.unlink(missing_ok=True)
+        prev_n, _ = latest_verified(self.durable, quick=True)
+        prev_man = (
+            _Manifest.from_json(
+                manifest_path(self.durable, prev_n).read_text(encoding="utf-8")
+            )
+            if prev_n is not None
+            else _Manifest()
+        )
+        existing = generations(self.durable)
+        n = (max(existing) + 1) if existing else 1
+        gdir = gen_dir(self.durable, n)
+        gdir.mkdir(parents=True, exist_ok=False)
 
-        # STEP 2 - copy what changed, hashing in the same read.
         files = _iter_files(self.work, self.exclude)
         new_files: dict[str, FileRecord] = {}
-        copied = reused = 0
+        copied = linked = 0
         bytes_copied = 0
         for src in files:
             rel = src.relative_to(self.work).as_posix()
             stat = src.stat()
-            old = prev.files.get(rel)
-            dst = self.durable / rel
-            if (
+            old = prev_man.files.get(rel)
+            dst = gdir / rel
+            reusable = (
                 old is not None
+                and prev_n is not None
                 and old.size == stat.st_size
                 and old.mtime_ns == stat.st_mtime_ns
-                and dst.is_file()
-                and dst.stat().st_size == old.size
-            ):
-                new_files[rel] = old
-                reused += 1
+            )
+            if reusable and self._try_link(gen_dir(self.durable, prev_n) / rel, dst):
+                new_files[rel] = old  # type: ignore[assignment]
+                linked += 1
                 continue
-            sha, n = _copy_and_hash(src, dst)
-            new_files[rel] = FileRecord(sha256=sha, size=n, mtime_ns=stat.st_mtime_ns)
+            sha, size = _copy_and_hash(src, dst)
+            new_files[rel] = FileRecord(
+                sha256=sha, size=size, mtime_ns=stat.st_mtime_ns
+            )
             copied += 1
-            bytes_copied += n
+            bytes_copied += size
 
-        removed = self._prune(set(new_files))
+        if not new_files:
+            # An empty generation would verify as "manifest lists no files",
+            # i.e. never, and would shadow nothing. Refuse rather than leave a
+            # permanently-unverifiable directory behind.
+            shutil.rmtree(gdir, ignore_errors=True)
+            raise CheckpointError(
+                f"nothing to checkpoint: no files under {self.work} after excludes"
+            )
 
-        # STEP 3 - the manifest, last. Now the checkpoint is loadable.
-        man = _Manifest(created=time.time(), files=new_files)
-        _atomic_write_text(mpath, man.to_json())
+        # The manifest, last. Only now is this generation loadable.
+        _atomic_write_text(
+            manifest_path(self.durable, n),
+            _Manifest(created=time.time(), files=new_files).to_json(),
+        )
 
-        # The volume commit comes after the manifest: if it fails, the local
-        # durable dir is already self-consistent, and the next pass retries.
+        # Commit before trusting the generation: on a volume, nothing written
+        # above is durable until this returns.
         if self._commit is not None:
             self._commit()  # type: ignore[operator]
 
+        # Read it back. Pruning anything on the strength of a generation we have
+        # not re-read would be taking the write's word for it.
+        check = verify_generation(self.durable, n)
+        pruned: tuple[int, ...] = ()
+        if check.ok:
+            pruned = self._prune_generations(keep_newest=n)
+        else:
+            self._say(f"generation {n} failed read-back ({check.reason}); keeping all")
+
         self.mirrors += 1
         return MirrorResult(
+            generation=n,
             copied=copied,
-            reused=reused,
-            removed=removed,
+            linked=linked,
             bytes_copied=bytes_copied,
             seconds=round(time.time() - started, 3),
-            manifest_path=str(mpath),
+            pruned=pruned,
+            verified=check.ok,
+            generation_dir=str(gdir),
         )
 
-    def _prune(self, keep: set[str]) -> int:
-        """Drop durable files the job has deleted, so the mirror stays a mirror.
+    def _try_link(self, src: Path, dst: Path) -> bool:
+        """Hardlink an unchanged file from the previous generation, if we can.
 
-        Without this, a file removed in scratch lingers in the durable copy and
-        a resumed job sees a directory that never existed.
+        Costs no space and no I/O. Returns False on any filesystem that will not
+        do it — a plausible outcome on a FUSE volume mount — so the caller
+        falls back to copying.
         """
-        removed = 0
-        for p in _iter_files(self.durable, ()):
-            rel = p.relative_to(self.durable).as_posix()
-            if rel in keep:
-                continue
+        if not self.link_unchanged or not src.is_file():
+            return False
+        try:
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            os.link(src, dst)
+        except (OSError, NotImplementedError, AttributeError):
+            dst.unlink(missing_ok=True)
+            return False
+        return True
+
+    def _prune_generations(self, keep_newest: int) -> tuple[int, ...]:
+        """Drop the oldest generations beyond ``keep_generations``.
+
+        Only ever called after ``keep_newest`` has been committed and verified
+        by read-back, and it never removes that generation or takes the retained
+        count below the floor.
+        """
+        gens = [g for g in generations(self.durable) if g != keep_newest]
+        # Keep the newest (keep_generations - 1) older ones alongside keep_newest.
+        drop = gens[: max(0, len(gens) - (self.keep_generations - 1))]
+        removed: list[int] = []
+        for g in drop:
             try:
-                p.unlink()
-                removed += 1
-            except OSError:
-                pass
-        return removed
+                shutil.rmtree(gen_dir(self.durable, g))
+                removed.append(g)
+            except OSError as exc:
+                self._say(f"could not prune generation {g}: {exc!r}")
+        return tuple(removed)
 
     # -- lifecycle -------------------------------------------------------- #
 
@@ -522,25 +652,26 @@ class DurableCheckpoint:
             try:
                 r = self.mirror_now()
                 self._say(
-                    f"mirrored {r.copied} new / {r.reused} unchanged "
+                    f"generation {r.generation}: {r.copied} copied / {r.linked} linked "
                     f"({r.bytes_copied / 1e6:.1f} MB) in {r.seconds}s"
+                    + (f", pruned {list(r.pruned)}" if r.pruned else "")
                 )
             except Exception as exc:  # noqa: BLE001 - a mirror must never kill the job
                 self.failures += 1
                 self._say(f"MIRROR FAILED ({self.failures}): {exc!r}")
 
     def _on_signal(self, signum: int, frame: object) -> None:
-        """Final mirror, then hand back to whatever was there before us.
+        """Final checkpoint, then hand back to whatever handler was there.
 
-        Incremental, so it is usually quick — but a preemption grace period is
-        seconds, and a large first mirror can exceed it. Mirror often enough
-        that the final one has little left to do.
+        Safe to be cut short: this writes a NEW generation, so a kill partway
+        through costs only the generation in progress. Every earlier one still
+        verifies. That is the whole reason for the generation layout.
         """
         self._say(f"signal {signum}: taking a final checkpoint")
         try:
             r = self.mirror_now()
-            self._say(f"final checkpoint ok ({r.copied} new, {r.seconds}s)")
-        except Exception as exc:  # noqa: BLE001 - still must not mask the signal
+            self._say(f"final checkpoint ok: generation {r.generation} in {r.seconds}s")
+        except Exception as exc:  # noqa: BLE001 - must not mask the signal
             self.failures += 1
             self._say(f"final checkpoint FAILED: {exc!r}")
         self._stop.set()
@@ -561,7 +692,7 @@ class DurableCheckpoint:
                     signal.signal(signum, self._on_signal)
                 except (ValueError, OSError) as exc:
                     # Not the main thread, or the platform lacks it. Degrade to
-                    # periodic-only rather than refusing to run at all.
+                    # periodic-only rather than refusing to run.
                     self._say(f"no handler for signal {signum} ({exc}); periodic only")
         self._stop.clear()
         self._thread = threading.Thread(
@@ -571,7 +702,7 @@ class DurableCheckpoint:
         return self
 
     def stop(self, final: bool = True) -> MirrorResult | None:
-        """Stop the timer and, by default, take one last mirror."""
+        """Stop the timer and, by default, write one last generation."""
         self._stop.set()
         t, self._thread = self._thread, None
         if t is not None:

@@ -9,28 +9,57 @@ directory sits on fast local scratch, because a volume or network filesystem is
 usually too slow and too loosely consistent for MD-style I/O — so when the
 container dies, the scratch dies with it.
 
-The pattern: **run in fast scratch, mirror to a durable path periodically, and
-on re-invocation resume from the mirror instead of starting over.** This is that
-mirror, hardened.
+The pattern: **run in fast scratch, write successive checkpoint generations to a
+durable path, and on re-invocation resume from the newest one that verifies.**
 
 Stdlib only, no dependencies. Python 3.11+.
 
-## What it fixes relative to the obvious version
+## Why generations, and not an in-place mirror
 
-A first cut of this pattern is `cp -a work/. durable/` on a timer. That has
-three defects, each of which costs real GPU time:
+The obvious implementation of this pattern is `cp -a work/. durable/` on a timer,
+writing into the live durable path. That has a fatal window, and it is not an
+exotic edge case — **it is exactly where a preemption lands.** Writing in place
+means invalidating the existing checkpoint before the replacement is complete, so
+a kill in between leaves nothing loadable.
 
-| Defect | What goes wrong | What this does instead |
-|---|---|---|
-| **The copy isn't atomic** | Killed mid-copy, the durable path holds a torn mix of old and new files — and an earlier validity sentinel is still sitting there, so the next run loads the wreckage | Every file lands via write-temp-then-`os.replace`. The manifest that makes a checkpoint loadable is written **last** and removed **first**, so an interrupted mirror has no manifest and `verify()` refuses it |
-| **No final checkpoint on the way out** | Preemption sends SIGINT (SIGTERM elsewhere) before the container goes; with only a timer, everything since the last tick is discarded for free | `start()` installs handlers that take one last incremental mirror first, then chain to whatever handler was already there |
-| **Resume trusts what it finds** | `sorted(glob(...))[-1]` is lexicographic, not newest; globbing scratch after a copy that ignored its exit status raises `IndexError` instead of reporting a bad resume | `resume_into()` checks every manifest file by size and SHA-256 before a byte is hydrated, and fails closed |
+This was measured on an earlier build of this module, not theorised. Four
+complete checkpoint files sat physically intact on disk and every one was
+unusable, because the manifest vouching for them had been removed to begin a
+final checkpoint that never finished. **Total loss, not last-interval loss** —
+and on the ordinary preemption path, since SIGINT is precisely when the final
+checkpoint runs. That is the one failure a durability tool must never have.
 
-The first of these is not hypothetical. The program this was ported from has it
-on record: resumes died with *"Bad checkpoints, `ckpt_is_valid` missing after
-mid-write kill"* — a sentinel lost after what was otherwise a complete write.
-Sentinel-last plus verify-on-load is what turns that from a silent corruption
-into a refusal you can act on.
+So each checkpoint goes into its own **new, monotonically numbered generation
+directory** — files first, the manifest with hashes last — and only then is the
+volume committed. Nothing existing is touched. The loader takes the
+highest-numbered generation whose manifest verifies and walks down on failure,
+so **at least one complete checkpoint exists at every instant**, mid-write
+included. An interrupted generation has no manifest and is simply skipped.
+
+```
+durable/
+  gen-00000003/   MANIFEST.durable-checkpoint.json + files   <- verifies, used
+  gen-00000004/   files only, no manifest                    <- interrupted, skipped
+```
+
+There is **no pointer file and nothing is renamed**, which matters because a
+Modal Volume promises neither. Its docs make no atomicity claim for rename,
+writes become durable only on `commit()`, background commits happen "every few
+seconds", and v2 is beta and "may lose data". A design resting on an atomic
+rename would be resting on an unsupported assumption. "Highest generation that
+verifies" stays correct even if a rename or a background commit tears.
+
+An older generation is deleted only once a newer one has been **committed and
+re-verified by reading it back**, and never below `keep_generations` (minimum
+two, enforced in the constructor). Pruning is therefore always a no-op on the
+only good copy.
+
+## The other two fixes
+
+| Defect in the naive version | What this does |
+|---|---|
+| **No final checkpoint on the way out.** Preemption signals before the container goes; with only a timer, everything since the last tick is discarded for free | `start()` installs SIGINT/SIGTERM handlers that write one last generation, then chain to whatever handler was already installed |
+| **Resume trusts what it finds.** `sorted(glob(...))[-1]` is lexicographic, not newest; globbing scratch after a copy that ignored its exit status raises `IndexError` instead of reporting a bad resume | `resume_into()` checks every manifest file by size and SHA-256 before a byte is hydrated, and fails closed |
 
 ## Use
 
@@ -40,16 +69,16 @@ from durable_checkpoint import DurableCheckpoint, has_checkpoint, resume_into
 work, durable = "/tmp/job-scratch", "/mnt/volume/jobs/my-job"
 
 if has_checkpoint(durable):
-    resume_into(durable, work)      # raises CheckpointError if the mirror is torn
+    resume_into(durable, work)      # newest generation that verifies; raises if none
 
 with DurableCheckpoint(work, durable, interval_s=600, commit=vol.commit):
-    run_the_job()                   # periodic mirrors + a final one on signal/exit
+    run_the_job()                   # periodic generations + a final one on signal/exit
 ```
 
-`commit` is any callable to run after each mirror — for a mounted volume that
-needs an explicit commit, pass its commit function. It is called **after** the
-manifest is written, so if it fails the local durable directory is already
-self-consistent and the next pass simply retries.
+`commit` is any callable to run once a generation is complete — for a mounted
+volume, pass its commit function. It is called **after** the manifest and
+**before** the read-back verification, because on a volume nothing written is
+durable until it returns.
 
 `start()` installs signal handlers, so it must be called from the main thread
 (a CPython restriction, not a choice here). From a worker thread, pass
@@ -59,17 +88,19 @@ self-consistent and the next pass simply retries.
 
 | Call | Does |
 |---|---|
-| `DurableCheckpoint(work, durable, interval_s=600, commit=None, exclude=(), logger=None, handle_signals=True)` | The mirror. Usable as a context manager |
-| `.mirror_now()` | One pass now. Returns counts, bytes and duration |
+| `DurableCheckpoint(work, durable, interval_s=600, commit=None, exclude=(), logger=None, handle_signals=True, keep_generations=2, link_unchanged=True)` | The mirror. Usable as a context manager |
+| `.mirror_now()` | Write one new generation now. Returns generation number, counts, bytes, duration, what was pruned, and whether read-back verified |
 | `.start()` / `.stop(final=True)` | Timer thread and signal handlers on/off |
-| `has_checkpoint(durable)` | Cheap presence test. Says nothing about integrity |
-| `verify(durable, quick=False)` | Is it loadable? Returns a truthy `VerifyResult` with a `reason` |
+| `has_checkpoint(durable)` | Is any generation present? Cheap; presence, not integrity |
+| `generations(durable)` | Generation numbers present, ascending |
+| `verify_generation(durable, n, quick=False)` | Is generation `n` loadable? |
+| `latest_verified(durable, quick=False)` | `(n, VerifyResult)` for the newest that verifies — this *is* the pointer, derived on read |
+| `verify(durable, quick=False)` | Is anything loadable? Delegates to `latest_verified` |
 | `resume_into(durable, work, quick=False)` | Verify, then hydrate. Raises rather than half-hydrating |
 | `clear_work_dir(work)` | Empty scratch without removing it |
 
-`exclude` takes `fnmatch` patterns, matched against both the relative path and
-the bare filename, so `("*.tmp", "logs")` drops scratch files and a log
-directory.
+`exclude` takes `fnmatch` patterns matched against both the relative path and the
+bare filename, so `("*.tmp", "logs")` drops scratch files and a log directory.
 
 ## Before you automate restarts: the preemption trap
 
@@ -79,53 +110,47 @@ If a call's input status reads FAILURE while `FunctionCall.get(timeout=0)` still
 raises `TimeoutError`, the platform is **mid-restart after preemption** — delays
 of 13-20 minutes were observed. **Cancelling there kills a live restart** and
 throws away the work it was about to resume. Only re-spawn once `get()` raises a
-real error. Any supervisor built around this module should respect that, because
-a naive "status says FAILURE, so respawn" loop destroys work in flight.
+real error. A naive "status says FAILURE, so respawn" loop destroys work in
+flight.
 
-## Guarantees, and the one real tradeoff
+## Cost
 
-**Guaranteed:** if `verify()` returns ok, every file in the manifest is present
-with the recorded size and SHA-256. If a mirror is interrupted at any point,
-`verify()` returns not-ok. A resume never hydrates a checkpoint that failed
-verification.
+A new generation does **not** mean re-writing unchanged bytes. Unchanged files are
+**hardlinked** from the previous generation where the filesystem allows it — no
+space, no I/O — and their hashes are carried over rather than recomputed. Where
+linking is unsupported, which is a plausible outcome on a FUSE volume mount, it
+falls back to copying, and then each retained generation costs a full copy of the
+job directory. Size that against `keep_generations` before pointing this at a
+15 GB tree; `link_unchanged=False` forces the copy path if you want to measure it.
 
-**The tradeoff, stated plainly:** between the manifest being removed and the new
-one being written, there is no loadable checkpoint. A container death inside
-that window leaves nothing resumable — whereas the naive version would leave
-*something*, albeit something corrupt that it would then load. This is a
-deliberate trade of a small window of total loss against the much worse
-open-ended cost of resuming onto corrupt state and finding out hours of GPU time
-later.
+Hashing happens in the same pass that reads a file to copy it, so it is close to
+free. A full `verify()` does re-read everything, so run it at resume — where it
+matters and happens once — not on a timer; `quick=True` checks size only for a
+cheap poll.
 
-Two things keep the window small: copies are **incremental** (only files whose
-size or mtime changed are re-read, and unchanged files keep their previous hash),
-and the final signal-driven mirror is incremental too. Mirror often enough that
-a tick has little to do and the window is brief. If you need a previous-good
-state preserved across the window, that wants generation directories and roughly
-double the space — not implemented here, and a deliberate omission rather than
-an oversight.
+## Limits
 
-**Other limits:**
-
+- **Single writer.** One process mirrors one durable path. Concurrent mirrors
+  would race on generation numbering, and Modal's own guidance is that a given
+  file should be written by one container at a time anyway.
 - **Symlinks are skipped, not followed.** Following them can copy a tree from
   outside the job directory, or loop.
-- **Deleted files are pruned** from the mirror, so it stays a mirror. Without
-  that, a resumed job sees a directory that never existed.
-- **`quick=True` skips hashes** — size and mtime only. Fine for a cheap
-  liveness poll on a huge tree; do not resume on a quick pass alone, since the
-  corruption this guards against is exactly the kind that preserves size.
-- **Hashing is close to free, but not free.** It happens in the same pass that
-  reads a file to copy it. A full `verify()` does re-read everything, so run it
-  at resume (where it matters and happens once), not on a timer.
+- **Deleted files are implicitly pruned.** Each generation is built from current
+  scratch, so a file deleted in scratch is absent from the next generation —
+  while remaining in older ones, which are immutable.
+- **`quick=True` is not enough to resume on.** The corruption this guards
+  against is exactly the kind that preserves size.
+- **An empty scratch directory is refused** rather than written as a generation
+  that could never verify.
 
 ## Scope
 
-It mirrors one directory to one durable path. Moving state between accounts,
-workspaces or providers is out of scope, and so is deciding *where* a job should
-run — this module has no provider SDK, no network access and no notion of an
-account. `test_durable_checkpoint.py::test_imports_match_the_allowlist` walks the
-AST and fails on any import outside an explicit allowlist, so that stays true by
-construction rather than by good intentions.
+It writes generations of one directory to one durable path. Moving state between
+accounts, workspaces or providers is out of scope, as is deciding *where* a job
+should run — this module has no provider SDK, no network access and no notion of
+an account. `test_durable_checkpoint.py::test_imports_match_the_allowlist` walks
+the AST and fails on any import outside an explicit allowlist, so that stays true
+by construction rather than by good intentions.
 
 ## Tests
 
@@ -133,11 +158,15 @@ construction rather than by good intentions.
 python test_durable_checkpoint.py      # self-contained, or run under pytest
 ```
 
-30 tests: mirror/verify/resume round trips; the torn-mirror refusal including a
-simulated mid-copy container death; corrupted, truncated and missing files;
-malformed and wrong-version manifests; incremental reuse; pruning; excludes;
-symlink skipping; commit-hook ordering; construction guards; the periodic timer;
-signal-driven final checkpoint with handler chaining; mirror failures isolated
-from the job; and the import allowlist. All run in a temp directory on tiny
-files with no network and no subprocess, so the suite is cheap on a
-thermally-limited machine.
+38 tests. The centrepiece is
+`test_preemption_during_final_checkpoint_keeps_the_previous_generation`, which
+reproduces the original data-loss scenario and asserts the previous generation
+still verifies *and* still resumes. Also covered: fallback past a torn newest
+generation; manifest-less generations skipped; retention keeping the configured
+count; pruning refused when read-back fails; `keep_generations < 2` rejected;
+hardlink reuse and the copy fallback; corrupted, truncated and missing files;
+malformed and wrong-version manifests; excludes; symlink skipping; commit
+ordering; the periodic timer; signal handler chaining; mirror failures isolated
+from the job; and the import allowlist. All run in a temp directory on tiny files
+with no network and no subprocess, so the suite is cheap on a thermally-limited
+machine.
