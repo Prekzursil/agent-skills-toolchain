@@ -9,6 +9,7 @@ use a 50ms interval rather than the 600s default.
 from __future__ import annotations
 
 import ast
+import json
 import os
 import signal
 import sys
@@ -687,10 +688,120 @@ def test_allowlist_excludes_provider_and_network_modules() -> None:
         assert banned not in ALLOWED_IMPORTS, f"{banned} must not be allowlisted"
 
 
+# --------------------------------------------------------------------------- #
+# Mutation-review follow-ups (adversarial review, 2026-10-24)                 #
+# --------------------------------------------------------------------------- #
+
+
+def test_incomplete_generation_refused_whatever_the_write_order() -> None:
+    """Pins the REAL guarantee, which is stronger than "manifest last".
+
+    The review flagged that no test catches a mutant writing the manifest
+    BEFORE the files. Measured: that mutant is harmless here, because a
+    manifest enumerates its own generation's files with hashes and
+    verify_generation checks every one. An interrupted generation therefore
+    fails verification whichever order it was written in, and latest_verified
+    falls back. Manifest-last is defence in depth; this is the guarantee.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        work, durable = _dirs(d)
+        for i in range(4):
+            _mk(work, f"f{i}.txt", f"content {i}")
+        _ckpt(work, durable).mirror_now()
+        assert dc.verify(durable).ok
+
+        # Generation 2 built the mutant way: manifest first, files incomplete.
+        g2 = dc.gen_dir(durable, 2)
+        g2.mkdir()
+        files = {}
+        for i in range(4):
+            src_f = work / f"f{i}.txt"
+            sha, size = dc._hash_file(src_f)
+            files[f"f{i}.txt"] = {
+                "sha256": sha,
+                "size": size,
+                "mtime_ns": src_f.stat().st_mtime_ns,
+            }
+        (g2 / dc.MANIFEST_NAME).write_text(
+            json.dumps(
+                {"version": dc.MANIFEST_VERSION, "created": 1.0, "files": files}
+            ),
+            encoding="utf-8",
+        )
+        (g2 / "f0.txt").write_text("content 0", encoding="utf-8")  # 1 of 4
+
+        v2 = dc.verify_generation(durable, 2)
+        assert not v2.ok
+        assert "missing file from manifest" in v2.reason
+        n, best = dc.latest_verified(durable)
+        assert n == 1 and best.ok, "falls back to the last complete generation"
+
+
+def test_same_mtime_different_size_is_not_reused() -> None:
+    """Closes a real review gap: the SIZE half of the changed-file check.
+
+    Reuse requires size AND mtime to match. Drop the size half and a file
+    rewritten to a different length within one mtime tick is hardlinked from
+    the previous generation under its OLD hash — a checkpoint that verifies
+    while silently holding stale content, which is the worst failure shape.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        work, durable = _dirs(d)
+        p = _mk(work, "a.txt", "short")
+        ck = _ckpt(work, durable, keep_generations=3)
+        first = ck.mirror_now()
+        stat0 = p.stat()
+
+        # Longer content, mtime forced back to the original: only the size
+        # differs, which is exactly the signal the mutant removes.
+        p.write_text("considerably longer content", encoding="utf-8")
+        os.utime(p, ns=(stat0.st_atime_ns, stat0.st_mtime_ns))
+        assert p.stat().st_mtime_ns == stat0.st_mtime_ns, "mtime really is unchanged"
+
+        second = ck.mirror_now()
+        assert second.generation != first.generation
+        assert second.copied == 1, "a size change alone must force a re-copy"
+        assert second.linked == 0
+        got = (dc.gen_dir(durable, second.generation) / "a.txt").read_text(
+            encoding="utf-8"
+        )
+        assert got == "considerably longer content", "must not hold stale content"
+        assert dc.verify(durable).ok
+
+
+def test_signal_re_raises_when_the_previous_handler_was_default() -> None:
+    """Closes a real review gap: the SIG_DFL re-raise.
+
+    With SIG_DFL installed before us, taking the final checkpoint and then
+    returning would swallow the signal and leave the process alive, so a
+    preemption would not actually stop it. The handler must restore the default
+    and re-deliver. os.kill is injected rather than real, for obvious reasons.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        work, durable = _dirs(d)
+        _mk(work, "a.txt", "alpha")
+        ck = _ckpt(work, durable, interval_s=5)
+        ck._prev_handlers[signal.SIGTERM] = signal.SIG_DFL
+
+        restored: list[tuple[int, object]] = []
+        killed: list[tuple[int, int]] = []
+        real_signal, real_kill = signal.signal, os.kill
+        signal.signal = lambda s, h: restored.append((s, h))
+        os.kill = lambda pid, sig: killed.append((pid, sig))
+        try:
+            ck._on_signal(signal.SIGTERM, None)
+        finally:
+            signal.signal, os.kill = real_signal, real_kill
+
+        assert (signal.SIGTERM, signal.SIG_DFL) in restored, "default restored first"
+        assert killed == [(os.getpid(), signal.SIGTERM)], "then re-delivered to self"
+        assert dc.verify(durable).ok, "and the final checkpoint still landed"
+
+
 # Floor, not just "no failures": a discovery break (a rename, a decorator that
 # hides the test_ functions) would otherwise report PASS on 0/0 and gate
 # nothing. Raise it when tests are added; a drop below it is a lost test.
-MIN_TESTS = 38
+MIN_TESTS = 41
 
 
 def main() -> int:
