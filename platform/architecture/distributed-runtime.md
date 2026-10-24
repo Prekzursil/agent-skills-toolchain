@@ -192,7 +192,7 @@ platform/schema/
 | phase/bucket order | `command-center/PHASE-GRAPH.json` | Wave 1 | read-only |
 | artifact contract | `platform/schema/ARTIFACT-CLASS-REGISTRY.json` + `schema_resolver.py` | substrate sibling | read-only |
 | completion truth | `command-center/receipts/**` | the units themselves | derived-from |
-| trace | `tools/event-ledger/ledger.py` | existing | append |
+| trace | `hooks/event-ledger/ledger.py` | existing | append |
 | view | `tools/monitorcore/` | existing | unchanged |
 
 ### 1.7 Why `tools/agentrail` is the single biggest reuse
