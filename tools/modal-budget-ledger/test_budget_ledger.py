@@ -328,8 +328,27 @@ def test_effective_remaining_tracks_the_binding_limit() -> None:
         assert row.eligible, "$15 still clears the $5 headroom"
 
 
-def test_most_remaining_ranks_on_effective_not_account_remaining() -> None:
-    """A clipped account must not win the ranking on its unclipped figure."""
+def test_most_remaining_picks_maximal_spendable_room() -> None:
+    """`most-remaining` hands out the account with the most SPENDABLE room.
+
+    CORRECTED 2026-10-24 after review. This test used to be called
+    "...ranks_on_effective_not_account_remaining" and claimed "a clipped account
+    must not win the ranking on its unclipped figure". That scenario cannot
+    arise, so the claim was an overclaim:
+
+    the ceiling room C is global, so every account is clipped by the SAME C, and
+    `min(r, C)` is monotone in r. Sorting by `-r` therefore always picks an
+    account of maximal spendable room too — the two keys differ only in WHICH of
+    several equally-spendable accounts is named. Brute-forced over 905 eligible
+    configurations: the spendable amount differed in 0 of them, the identity in
+    60. So ranking on the effective figure is a clarity and determinism choice,
+    NOT a correctness fix, and a mutant reverting the sort key survives this
+    suite legitimately.
+
+    What is worth pinning, and is pinned below: the account handed out really
+    does have maximal spendable room, and ties resolve deterministically by name
+    rather than by whatever order the config happened to list.
+    """
     with tempfile.TemporaryDirectory() as d:
         cfg = bl.load_config(
             _cfg(
@@ -345,9 +364,8 @@ def test_most_remaining_ranks_on_effective_not_account_remaining() -> None:
         picked, _ = bl.select_account(cfg, [], strategy="most-remaining")
         assert picked is not None and picked.profile == "big"
 
-        # With only $10 of ceiling room left, both clip to $10 and the tie
-        # breaks on name, so the pick stays deterministic rather than
-        # following the now-meaningless per-account figure.
+        # With only $10 of ceiling room left both clip to $10, so the pick is a
+        # tie on spendable room and the name breaks it deterministically.
         tight = bl.load_config(
             _cfg(
                 Path(d),

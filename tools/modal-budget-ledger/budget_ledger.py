@@ -336,8 +336,11 @@ def select_account(
             )
         return None, "no enrolled account has headroom"
     if strategy == "most-remaining":
-        # Sort on the EFFECTIVE figure: ranking by per-account remaining would
-        # prefer an account whose room the ceiling has already clipped away.
+        # Rank on the effective figure because it is the one that governs. Note
+        # this is clarity, not correctness: C is global, every account is clipped
+        # by the same C, and min(r, C) is monotone in r, so ranking by raw
+        # remaining would pick an equally-spendable account and differ only on
+        # ties. Keep the name in the key so those ties resolve deterministically.
         rows.sort(key=lambda s: (-s.effective_remaining_usd, s.profile))
     return rows[0], "ok"
 
