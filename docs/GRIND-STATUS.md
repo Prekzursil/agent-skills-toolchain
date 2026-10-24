@@ -115,6 +115,32 @@ frozen into a git blob).
 
 **This needs the owner.** No agent action clears it.
 
+### RE-MEASURED 2026-09-06 — outage SURVIVED the Sept 1 reset (curator session)
+
+The August diagnosis above stands as history. The monthly reset on **2026-09-01** did
+restore private-repo CI briefly — then the same signature returned:
+
+| probe (2026-09-06 curator) | reading |
+|---|---|
+| last success on this repo | `2026-09-02T09:11:40Z` (PR #310 audit wave) |
+| first failure after that | `2026-09-02T09:28:39Z` — **~17 min later**, same PR push |
+| since break (sampled) | **152 failure / 0 success** in the post-09:12 window |
+| run `34019229964` today | schedule `routing-benchmark`: **3s, steps=0** |
+| run `34008279375` (PR #322 quality) | 8 jobs, all **steps=0**, 3–5s |
+| `Reframe` PUBLIC control | `mutation-incremental` **success** today `08:57Z` |
+| billing / actions-permissions APIs | **403** to the current integration token |
+
+Private-vs-public discriminator **still holds**. Best reading: included private minutes
+were burned again in early September (heavy PR storm) **and/or** spending limit is still
+unset, so overflow never engages. This token cannot re-read `settings/billing/usage`.
+
+**Owner unblock (unchanged, still cheap):** Settings → Billing → set a non-zero Actions
+spending limit. Probe workflow landed on branch
+`cursor/maintainer-session-2026-09-06-0db0` as `.github/workflows/ci-probe-runner.yml`
+(one echo step, no checkout) so a green run there is the allocator-recovery signal.
+
+**This still needs the owner.** No agent action clears it.
+
 ---
 
 ## 1. Volume delivered

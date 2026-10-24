@@ -1,0 +1,35 @@
+name: ci-probe-runner
+
+# Minimal one-step probe for the private-repo Actions outage documented in
+# docs/GRIND-STATUS.md §0 and docs/SESSION-LOGS/curator-2026-09-06.md.
+#
+# PURPOSE. Discriminate "runner refused before any step" (steps=0, ~3s failure —
+# the live outage signature) from "content/test failure" (steps>=1, real logs).
+# A green run here means private-repo runners allocate again. A steps=0 failure
+# confirms the outage is still allocation-level, not a shared early checkout bug.
+#
+# WHY NO checkout. Checkout burns minutes and is unnecessary for the allocator
+# probe. If this job ever starts, the echo step alone proves allocation.
+#
+# DO NOT treat a steps=0 failure of this workflow as a content regression.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - cursor/maintainer-session-2026-09-06-0db0
+    paths:
+      - .github/workflows/ci-probe-runner.yml
+
+jobs:
+  probe:
+    name: allocator-probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: prove-runner-allocated
+        run: |
+          echo "ci-probe-runner: runner allocated"
+          echo "sha=${GITHUB_SHA}"
+          echo "ref=${GITHUB_REF}"
+          date -u +%Y-%m-%dT%H:%M:%SZ

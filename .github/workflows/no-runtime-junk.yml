@@ -30,51 +30,12 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
+      # Logic lives in ci/no_runtime_junk.py (both-states --self-test). The old
+      # inline copy missed harness/ast-integrate/ nested estate dumps (PRs #316/#319).
+      - name: self-test no_runtime_junk both-states
+        run: python ci/no_runtime_junk.py --self-test
       - name: fail if runtime junk is tracked
-        shell: python
-        run: |
-          import subprocess, sys
-
-          # Directory segments that must never be tracked (matched as a full path segment,
-          # so "prevent/venv-notes.md" does NOT trip on "venv").
-          BAD_DIR_SEGMENTS = {
-              ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache",
-          }
-          # Basenames that must never be tracked.
-          BAD_BASENAMES = {"installed.json"}
-
-          def tracked_files():
-              out = subprocess.check_output(["git", "ls-files", "-z"])
-              return [p for p in out.decode("utf-8", "replace").split("\0") if p]
-
-          def gitlinks():
-              # `git ls-files -s`: mode objecthash stage\tpath ; gitlink mode == 160000.
-              out = subprocess.check_output(["git", "ls-files", "-s", "-z"])
-              found = []
-              for rec in out.decode("utf-8", "replace").split("\0"):
-                  if not rec:
-                      continue
-                  meta, _, path = rec.partition("\t")
-                  if meta.split(" ", 1)[0] == "160000":
-                      found.append(path)
-              return found
-
-          violations = []
-          for path in tracked_files():
-              segments = path.split("/")
-              if BAD_DIR_SEGMENTS.intersection(segments):
-                  violations.append(("runtime-dir", path))
-              elif segments[-1] in BAD_BASENAMES:
-                  violations.append(("runtime-file", path))
-          for path in gitlinks():
-              violations.append(("nested-git-gitlink", path))
-
-          if violations:
-              print("Tracked runtime junk detected (must be gitignored / removed):")
-              for kind, path in sorted(violations):
-                  print(f"  [{kind}] {path}")
-              sys.exit(1)
-          print("OK: no tracked runtime junk.")
+        run: python ci/no_runtime_junk.py
       - name: crcp reports must stay deny-by-default
         shell: python
         run: |
