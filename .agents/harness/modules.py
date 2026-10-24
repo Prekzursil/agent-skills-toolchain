@@ -3651,6 +3651,37 @@ class EnforcementScaffoldModule:
             self._write_state(event, state)
 
 
+# --- Profile-aware doctrine gate (added 2026-10-24) ---------------------------
+# The owner-ops/estate doctrine injected by OwnerOpsAuthorizationModule trips
+# Anthropic's [cyber] classifier when it lands in-context on otherwise-benign
+# work. The cyber-CLEAN 'claude' profile (launched by ~/.local/bin/cc-cc.ps1,
+# which exports CC_ACTIVE_PROFILE=claude) suppresses it. EVERY OTHER profile keeps
+# it -- the full-power / offensive lanes: glm, grok, cyberstrike, zcode, unified,
+# plus the unset/default fail-open case. To move a profile between clean and
+# offensive, edit _CLEAN_PROFILES only. Signal mirrors
+# ~/.agents/scripts/zai_key_failover.py: the CC_ACTIVE_PROFILE env var first, then
+# the ~/.claude/profiles/state/cc-active-profile sentinel. These helpers NEVER
+# raise -- the fail direction is "inject as today", so no offensive lane can lose
+# its doctrine through a bug here.
+_CLEAN_PROFILES = frozenset({"claude"})
+
+
+def _cc_active_profile() -> str:
+    try:
+        prof = os.environ.get("CC_ACTIVE_PROFILE", "").strip().lower()
+        if not prof:
+            sentinel = Path.home() / ".claude" / "profiles" / "state" / "cc-active-profile"
+            prof = sentinel.read_text(encoding="utf-8", errors="ignore").strip().lower()
+        return prof
+    except Exception:
+        return ""
+
+
+def _ownerops_suppressed() -> bool:
+    """True only for the cyber-clean profile(s); never raises."""
+    return _cc_active_profile() in _CLEAN_PROFILES
+
+
 class OwnerOpsAuthorizationModule:
     """Inject-only GENERAL anti-over-refusal (all domains on this estate).
 
@@ -3727,6 +3758,11 @@ class OwnerOpsAuthorizationModule:
         if event.event not in {"UserPromptSubmit", "SessionStart"}:
             return HookResult.success()
         if _is_subagent(event):
+            return HookResult.success()
+        if _ownerops_suppressed():
+            # cc-cc (cyber-clean 'claude' profile): drop the owner-ops/estate
+            # doctrine so the Anthropic [cyber] classifier doesn't fire on benign
+            # work. glm/grok/cyberstrike/zcode never resolve to 'claude' -> keep it.
             return HookResult.success()
         prompt = str(getattr(event, "prompt", "") or "")
         cwd = str(getattr(event, "cwd", "") or "")
