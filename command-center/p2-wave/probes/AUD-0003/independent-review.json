@@ -1,0 +1,98 @@
+{
+  "unit_id": "AUD-0003",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_role": "falsify-reviewer",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0003-pr-unique-content.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "5847d3f99620d30048b7c9fcf84251fe684e828b",
+  "reviewed_at": "2026-09-07T22:25:30Z",
+  "method": "Re-ran probe1, probe2, and negative_control from scratch; then independently re-counted sample composition, git-diff∩PR-path findings, merge-reachability agreement, and PR #313 local-delete control via gh/git without treating the receipt headline as authoritative.",
+  "re_runs": {
+    "probe1_git_diff_missing": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0003/probe1_git_diff_missing.py",
+      "exit_code": 0,
+      "sample_count": 20,
+      "prs_with_findings": 9,
+      "total_missing_or_differing_paths": 33,
+      "main_sha": "acb040577ecd72eacacf61e65f7ee0633a80f939"
+    },
+    "probe2_github_merge_reachability": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0003/probe2_github_merge_reachability.py",
+      "exit_code": 0,
+      "agree_merged": 12,
+      "agree_not_merged": 8,
+      "disagree": 0,
+      "deliberate_absent_prs": 5,
+      "deliberate_absent_paths": 13
+    },
+    "negative_control_local_delete": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0003/negative_control_local_delete.py",
+      "exit_code": 0,
+      "control_pr": 313,
+      "baseline_missing_count": 0,
+      "after_delete_missing_count": 1,
+      "ok": true
+    }
+  },
+  "falsification_attempts": [
+    {
+      "attempt": "Re-select the 20-PR bound and assert 12 merged + 8 closed-unmerged; cross-check merged set against `gh pr list --state merged --limit 12`.",
+      "result": "could_not_falsify",
+      "observed": "sample_count=20; merged_numbers match gh list"
+    },
+    {
+      "attempt": "Independently recompute per-PR (gh files ∩ git diff head main --name-only) for all 20 PRs; challenge headline sum=33 and prs_with_diff=9.",
+      "result": "could_not_falsify",
+      "observed": "sum_paths=33; prs_with=9; spot-checks #305=9, #83=15, #313=0"
+    },
+    {
+      "attempt": "Challenge whether '33 path(s)' overclaims uniqueness (quality.yml appears in 3 PRs).",
+      "result": "not_a_falsification",
+      "observed": "unique_paths=31; multi_pr_paths=[('.github/workflows/quality.yml', 3)]. Receipt observations define the metric as sum of missing_or_differing_count, not unique-path cardinality; headline is consistent with that method."
+    },
+    {
+      "attempt": "Independently recompute merged_at XOR merge_commit_sha ancestor-of-main; challenge agree_merged=12, agree_not_merged=8, disagree=0 and deliberate/never-merged split (5/13 vs 4/20).",
+      "result": "could_not_falsify",
+      "observed": "agree_merged=12; agree_not_merged=8; disagree=0; deliberate_prs=5 deliberate_paths=13; never_merged_diff_prs=4 never_merged_paths=20"
+    },
+    {
+      "attempt": "Independent negative control on PR #313: clean origin/main worktree baseline missing=0; delete one head-present path; expect after_delete=1.",
+      "result": "could_not_falsify",
+      "observed": "baseline=[]; after_delete=['.github/workflows/quality.yml']"
+    },
+    {
+      "attempt": "Challenge residual '~310 closed PRs' scope claim used to justify BLOCKED scope defect.",
+      "result": "could_not_falsify",
+      "observed": "GitHub Link rel=last page=310 at per_page=1"
+    },
+    {
+      "attempt": "Confirm receipt was not promoted to SUCCESS after probe refresh.",
+      "result": "could_not_falsify_blocker",
+      "observed": "command-center/audit/AUD-0003-pr-unique-content.json state=BLOCKED; reviewer.verdict remains NOT-REVIEWED on receipt (this file is the independent review, not a promotion)"
+    }
+  ],
+  "headline_claims_checked": {
+    "sample_prs": 20,
+    "prs_with_diff": 9,
+    "differing_paths_sum": 33,
+    "agree_merged": 12,
+    "agree_not_merged": 8,
+    "disagree": 0,
+    "deliberate_prs": 5,
+    "deliberate_paths": 13,
+    "never_merged_diff_prs": 4,
+    "never_merged_differing_paths": 20,
+    "negative_control_pr_313_baseline_then_delete": [0, 1]
+  },
+  "notes": "Fresh-context falsify review. All named probes re-executed successfully and matched receipt headline counts. Independent gh/git recount could not break sample=20, diff_paths=33 (sum), deliberate 5/13, never-merged 4/20, probe2 agreement 12/8/0, or PR #313 control 0→1. Unique-path count is 31 due to quality.yml multi-counting; that does not falsify the documented sum metric. Receipt deliberately left BLOCKED; did not promote to SUCCESS.",
+  "residual_unknowns": [
+    "Full ~310 closed-PR history outside the 20-PR bound remains NOT-CHECKED (AUD-0003-D-SCOPE).",
+    "Deliberate paths not split into path-absent vs content-evolved on main.",
+    "Non-main baseRef reachability not separately tip-checked (none of the merged sample required it this pass)."
+  ]
+}

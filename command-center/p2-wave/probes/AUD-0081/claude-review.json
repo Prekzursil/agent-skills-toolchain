@@ -1,0 +1,93 @@
+{
+  "unit_id": "AUD-0081",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "fresh-context-claude-falsify-reviewer-aud-0081-bc15abe3ab-01",
+  "reviewed_at": "2026-09-08T00:50:00Z",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0081-untrusted-autoload-config-audit.json",
+  "base_tip_sha": "2c364c6b1063adc7e5186c589bd8a302883694a4",
+  "method": "Created branch cursor/aud-0081-claude-review-0db0 from origin/cursor/p2-loop-to-green-0db0 tip 2c364c6b1 (AUD-0081 BLOCKED commit). Read the BLOCKED receipt, probe1_filename_search.py, probe2_content_classify.py, control_prose_vs_hook_fixture.py, and _autoload_classifier.py without treating headline counts as trusted. Independently re-ran all three scripts via python3 -B from repo root; re-run headlines matched committed probe JSON (vendored_tree_root_count=4, hits_count=15, active_count=1, mention_only_count=2, inert_count=12, control ok=true with prose inert and PreToolUse active). Then git checkout -- restored all mutated probe JSON/raw outputs so only this review file is staged. Spot-checked the sole ACTIVE hit by reading tools/editor/ralph-orchestrator/vendor/examples/hooks/minimal/ralph.hooks.yml (YAML hooks: block with two command: entries and header -c/--config opt-in disclosure). Spot-checked inert AGENTS.md/CLAUDE.md prose (setup-hooks.sh mention only), ralph-core/src/hooks (*.rs source), frontend/ralph-web/src/hooks (*.ts non-exec), hono jsx/hooks (index.js non-exec), mention-only .claude (skills/agents, no settings.json), and mention-only e2e features/hooks (*.feature + TRACEABILITY.md only). Ran five concrete falsification attempts (wrong/extra active, missed hit via independent os.walk, control both-states + adversarial mention/empty-hooks fixtures, scope overclaim vs single-checkout disclosure, AGENTS.md false-active from prose hooks mention). Did not run _pack_receipt.py, did not modify the receipt or any probe/classifier script, did not invent SUCCESS, and left receipt_state BLOCKED. This is the Claude half of the dual-reviewer requirement; disagreement with Codex is owner-escalated, not voted.",
+  "notes": "Headline counts and classifications reproduce under independent re-run and filesystem spot-checks. ACTIVE remains a content-syntax finding for examples/hooks (real YAML hooks+command) with explicit opt-in disclosed in-file, not proof of default auto-load. Zero-hit vendored roots node_modules and tools/crcp/vendor_src are correctly still counted in vendored_tree_root_count=4. Residual classifier quirk: empty JSON '\"hooks\": {}' text classifies active via regex; that does not falsify the catalog control (prose inert vs PreToolUse active) or any committed hit classification. Frontend .ts React hooks dirs are inert via the non-exec script-shaped path rather than the source-only path; still correctly not active. Receipt correctly stays BLOCKED pending dual independent review payment.",
+  "falsification_attempts": [
+    {
+      "attempt": "Wrong active classification or missed second ACTIVE: verify examples/hooks YAML really registers commands, and try to find another active hooks/ among ralph-core, e2e features, frontend, and hono samples (would falsify active_count=1).",
+      "result": "NOT_FALSIFIED",
+      "detail": "ralph.hooks.yml has hooks: key, two command: lines, and -c/--config opt-in note; classifier returns active with that nuance. Spot-checked other hooks dirs classify inert/mention-only only; no second active."
+    },
+    {
+      "attempt": "Missed hit or wrong root count: independent os.walk for topmost {node_modules,vendor,vendor_src,third_party,third-party} roots and AUTOLOAD file/dir names; also hunt .codex/.mcp.json under those roots.",
+      "result": "NOT_FALSIFIED",
+      "detail": "Independent walk matched committed roots exactly (4) and hit path set exactly (15). No .codex or .mcp.json under vendored roots. by_matched_name hooks=10, agents.md=2, .claude=1, AGENTS.md=1, CLAUDE.md=1."
+    },
+    {
+      "attempt": "Control failing both-states: re-toggle single AGENTS.md fixture prose vs PreToolUse JSON; plus adversarial 'git hooks' mention-only and empty '\"hooks\": {}' fixtures against the same classify_text_content path.",
+      "result": "NOT_FALSIFIED",
+      "detail": "Prose->inert and PreToolUse->active; mention-only fixture inert. Empty hooks JSON block classifies active (regex quirk residual) but catalog control both-states and committed control JSON still pass (ok=true, fired_on_bad_state/silent_on_good_state true)."
+    },
+    {
+      "attempt": "Scope overclaim: check receipt/probe1 for estate-wide 178-checkout absolute claims without single-checkout disclosure.",
+      "result": "NOT_FALSIFIED",
+      "detail": "Receipt state=BLOCKED; evidence claim discloses single-checkout scope and that CLAUDE.md's 178-checkout section is a different Windows box. probe1.scope_note states single checkout only. Zero-hit roots still counted as roots by definition, not hidden."
+    },
+    {
+      "attempt": "AGENTS.md false-active from prose mentioning ./scripts/setup-hooks.sh (use-vs-mention trap the catalog names).",
+      "result": "NOT_FALSIFIED",
+      "detail": "File contains setup-hooks prose but no PreToolUse/PostToolUse/etc. marker and no '\"hooks\": {' JSON block; classify_hit returns inert, matching probe2."
+    }
+  ],
+  "re_runs": {
+    "probe1_filename_search.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+      "exit_code": 0,
+      "vendored_tree_root_count": 4,
+      "hits_count": 15,
+      "vendored_tree_roots": [
+        "node_modules",
+        "tools/crcp/vendor_src",
+        "tools/editor/ralph-orchestrator/vendor",
+        "tools/mcp/hacktricks-mcp-server/node_modules"
+      ],
+      "by_matched_name": {
+        "hooks": 10,
+        "agents.md": 2,
+        ".claude": 1,
+        "AGENTS.md": 1,
+        "CLAUDE.md": 1
+      },
+      "matched_committed_json": true
+    },
+    "probe2_content_classify.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0081/probe2_content_classify.py",
+      "exit_code": 0,
+      "classified_count": 15,
+      "active_count": 1,
+      "mention_only_count": 2,
+      "inert_count": 12,
+      "active_hits": [
+        "tools/editor/ralph-orchestrator/vendor/examples/hooks"
+      ],
+      "matched_committed_json": true
+    },
+    "control_prose_vs_hook_fixture.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0081/control_prose_vs_hook_fixture.py",
+      "exit_code": 0,
+      "ok": true,
+      "prose_only_classification": "inert",
+      "active_hook_classification": "active",
+      "real_classifier_passes_control": true,
+      "matched_committed_json": true
+    },
+    "probe_artifacts_restored": true
+  },
+  "residual_unknowns": [
+    "Empty JSON '\"hooks\": {}' text is classified active by _HOOKS_JSON_BLOCK_RE without requiring non-empty lifecycle entries; no committed AUD-0081 hit exercises this shape.",
+    "Auto-load-vs-explicit-opt-in for examples/hooks is disclosed in the reason string but not separately measured by a live agent process load probe.",
+    "Estate-wide (178-checkout) coverage remains out of scope for this pod; only this single checkout was walked.",
+    "Codex half of the dual-reviewer requirement is unpaid here; on disagreement the OWNER escalates rather than this reviewer voting."
+  ]
+}

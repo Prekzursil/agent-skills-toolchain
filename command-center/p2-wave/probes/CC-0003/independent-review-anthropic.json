@@ -1,0 +1,43 @@
+{
+  "reviewer_id": "claude-sonnet-4.5-fresh-context-cc0003-second-reviewer",
+  "vendor": "anthropic",
+  "model": "claude-sonnet-4.5",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T11:49:21Z",
+  "role_note": "SECOND independent reviewer for CC-0003. Not the implementer. A separate OpenAI/Codex cross-vendor reviewer (p2-cc0003-independent-review-openai.json) already satisfies the cross-vendor requirement; this review satisfies the catalog's second-independent-reviewer requirement, same-vendor as the implementer (anthropic) but run in a fresh, independent context with no shared state from the implementation session.",
+  "notes": "Read platform/lib/completion_predicate.py (the 12-condition reducer, ~1310 lines) and platform/lib/test_completion_predicate.py (the conformance/mutation-battery suite) in full, plus command-center/receipts/CC-0003.json end to end. The reducer's 12 conditions match COMPLETION-GATES.json's gate_a texts in order (1-12), NON_WAIVABLE={1,2,3,4,5,11,12} matches the spec's 'structural, never waivable' set, and Outcome.NOT_CHECKED is a first-class enum member distinct from SATISFIED/UNSATISFIED that is never folded into COMPLETE (verdict logic: any UNSATISFIED -> INCOMPLETE, else any NOT_CHECKED -> INDETERMINATE, else COMPLETE; both INCOMPLETE and INDETERMINATE fail is_complete). Ran the full pytest suite verbatim below: 65 passed, 0 failed, 0.84s. Verified independently (not by re-reading the receipt's claims) that: (a) the mutation battery's own both-states control (test_battery_rejects_a_noop_predicate) proves the battery itself can go red against a stub always-COMPLETE predicate, so the 12 green per-condition mutation tests are not vacuous; (b) the receipt's own reviewer field correctly declares verdict=NOT-REVIEWED/independent=false/state=BLOCKED rather than fabricating a PASS -- the implementer did not self-certify; (c) the cross-vendor comparison (vendor_identity.compare_vendors) resolves canonical identity rather than doing a naive string-inequality check, which the code comments (DEFECT D1) document was a real, previously-measured hole (alias pairs like anthropic/claude or trailing-space variants used to be accepted as 'cross-vendor'). I independently re-verified this defect is actually fixed rather than trusting the comment, by calling evaluate() directly with a reviewer vendor string 'Claude ' (trailing space, different case, alias of 'anthropic') against a produced_by.vendor of 'anthropic' under require_cross_vendor_review=True: condition 9 correctly returned UNSATISFIED with basis 'both resolve to vendor anthropic', not a false-positive cross-vendor pass. Verdict: PASS. This is a well-hardened total-function reducer with an honest not-yet-reviewed receipt; no load-bearing defect found.\n\nPytest tail (verbatim):\n.................................................................        [100%]\n65 passed in 0.84s",
+  "falsification_attempts": [
+    {
+      "attempt": "Constructed a from-scratch hostile receipt (not derived from the test fixture) declaring state=SUCCESS, a matching sentinel, and a self-declared reviewer PASS with independent=true, vendor=anthropic, but with NO artifacts key at all -- i.e. a bare 'trust me, I succeeded' receipt with require_cross_vendor_review=True.",
+      "expected": "Must not read as COMPLETE; condition 2 (artifact exists) must fail since there is nothing to stat.",
+      "observed": "verdict=INCOMPLETE, is_complete=False, unsatisfied=[2,5,6,11,12], not_checked=[3,4,7,8,9]. Condition 2's basis correctly reported 'receipt declares no artifacts'.",
+      "result": "PASS"
+    },
+    {
+      "attempt": "Cross-vendor alias attack: called evaluate() directly with produced_by.vendor='anthropic' and reviewer.vendor='Claude ' (trailing whitespace + case difference, a known alias of the same canonical vendor) under require_cross_vendor_review=True, to check whether the DEFECT D1 fix documented in code comments is real rather than aspirational.",
+      "expected": "Condition 9 must be UNSATISFIED (same-vendor), not SATISFIED, because a naive string-inequality comparison would have wrongly accepted this as cross-vendor.",
+      "observed": "condition 9 = UNSATISFIED, basis: \"unit requires a cross-vendor reviewer; executor 'anthropic' and reviewer 'Claude ' both resolve to vendor 'anthropic'; a same-vendor reviewer inherits the executor's blind spots\".",
+      "result": "PASS"
+    },
+    {
+      "attempt": "Built the full valid baseline fixture (Case class from the test file, all 12 conditions genuinely satisfied) then removed the 'reviewer' key entirely -- an incomplete receipt that is otherwise perfect -- to confirm NOT-CHECKED is a real block and not decorative.",
+      "expected": "verdict=INDETERMINATE (not INCOMPLETE, since nothing is UNSATISFIED), condition 9 outcome=NOT-CHECKED, is_complete=False.",
+      "observed": "verdict=INDETERMINATE, not_checked=[9], unsatisfied=[], is_complete=False. Confirms NOT-CHECKED alone (with zero UNSATISFIED conditions) still blocks completion and is never silently treated as a pass.",
+      "result": "PASS"
+    },
+    {
+      "attempt": "Full pytest re-run for baseline confirmation (not the sole falsification method, but included for completeness): python3 -m pytest platform/lib/test_completion_predicate.py -q --tb=line",
+      "expected": "65 passed, 0 failed, exit 0.",
+      "observed": "65 passed in 0.84s, exit 0.",
+      "result": "PASS"
+    }
+  ],
+  "commands_run": [
+    "python3 -m pytest platform/lib/test_completion_predicate.py -q --tb=line",
+    "python3 - <<EOF (adversarial script 1: hostile no-artifacts receipt and vendor-alias-attack via completion_predicate.evaluate)",
+    "python3 - <<EOF (adversarial script 2: Case-fixture baseline with reviewer key removed, verifying INDETERMINATE + NOT-CHECKED condition 9)",
+    "date -u +%Y-%m-%dT%H:%M:%SZ"
+  ]
+}

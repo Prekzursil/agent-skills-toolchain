@@ -1,0 +1,119 @@
+{
+  "reviewer_id": "openai-composer-cross-vendor-cc0009",
+  "vendor": "openai",
+  "model": "composer",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T18:55:00Z",
+  "unit_id": "CC-0009",
+  "notes": "Cross-vendor fresh-context review of CC-0009. Re-ran pytest (9/9) and live probe (14/14 consumers read_ok). Catalog reviewer_requirement met by planting a phantom entry on a scratch copy of command-center/ARTIFACT-MANIFEST.json; probe_manifest_consumers failed with registered-but-absent (failing=1/15). Also confirmed: empty artifacts array fails, register_on_write refuses absent paths, unparseable declared consumer fails, unregistered artifact fails condition 11, present=false fails, unknown consumer rejected, empty jsonl/utf8 fail. Live ARTIFACT-MANIFEST currently carries stale sha256/bytes for STATUS.md and TEST-REGISTRY.json while verified_on_disk=true; that is render.py digest drift, outside this unit's readability gate contract (condition 12 / probe_manifest_consumers deliberately does not verify digests). Does not falsify register-on-write + consumer-read claims. PASS.",
+  "falsification_attempts": [
+    {
+      "attempt": "Plant phantom path on scratch copy of live ARTIFACT-MANIFEST and run probe_manifest_consumers",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "ok=False failing=1/15 path=command-center/PHANTOM-INDEPENDENT-REVIEW-DOES-NOT-EXIST.json summary contains registered-but-absent. Catalog reviewer_requirement satisfied."
+    },
+    {
+      "attempt": "Empty artifacts array / missing artifacts key must not SUCCESS",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "Both return FAILED with 'manifest has no artifacts array (empty registration is a fail)'."
+    },
+    {
+      "attempt": "register_on_write on absent path (registration bypass via path string)",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "FileNotFoundError: register_on_write refused: nope.json is absent on disk."
+    },
+    {
+      "attempt": "Unregistered on-disk artifact vs condition 11 predicate",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "evaluate() -> INCOMPLETE; condition 11 UNSATISFIED with 'not registered' basis."
+    },
+    {
+      "attempt": "Exists but declared consumer cannot parse (json.loads on non-JSON)",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "probe ok=False; summary json.loads FAILED: JSONDecodeError."
+    },
+    {
+      "attempt": "present=false entry still treated as registered-but-absent",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "failing path out/ghost.json; sentinel failing=1/2."
+    },
+    {
+      "attempt": "Unknown consumer id pickle.load",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "read_ok=False; summary unknown consumer 'pickle.load'."
+    },
+    {
+      "attempt": "Empty jsonl / empty utf8-text consumers",
+      "result": "NOT-FALSIFIED (control fired)",
+      "detail": "jsonl FAILED: zero non-empty records; utf8-text FAILED: empty after strip."
+    },
+    {
+      "attempt": "Stale sha256 on readable file — does readability gate still pass?",
+      "result": "CONFIRMED (in-scope: readability-only)",
+      "detail": "Probe still ok=True when sha256/bytes are wrong. Matches module contract: condition 12 is consumer-read, not digest parity. Digest check lives in receipt condition 11 for unit primaries."
+    },
+    {
+      "attempt": "Live ARTIFACT-MANIFEST digest parity vs disk",
+      "result": "OBSERVED-DRIFT (out of gate scope)",
+      "detail": "STATUS.md and TEST-REGISTRY.json digest/bytes drift while verified_on_disk=true. render.py --check would catch; probe_manifest_consumers still SUCCESS:14/14. Not a falsification of CC-0009 readability claims."
+    },
+    {
+      "attempt": "Both-states live green + named tests_required pytest",
+      "result": "NOT-FALSIFIED (reproducibility)",
+      "detail": "9 passed; SUCCESS:artifact-manifest-gate entries=14 all_consumers_read_ok; receipt_validate ACCEPT:CC-0009."
+    }
+  ],
+  "commands_run": [
+    {
+      "command": "git fetch/checkout/pull cursor/p2-loop-to-green-0db0",
+      "exit_code": 0
+    },
+    {
+      "command": "python3 -m pytest platform/lib/test_artifact_manifest_gate.py -q --tb=line",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-pytest.log"
+    },
+    {
+      "command": "python3 platform/lib/artifact_manifest_gate.py --manifest command-center/ARTIFACT-MANIFEST.json probe",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-live-probe.log"
+    },
+    {
+      "command": "python3 - <<'PY' [falsification battery: phantom/empty/register/unparseable/c11/present-false/unknown/empty-consumers/sha-stale/live-drift] PY",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-falsification.log"
+    },
+    {
+      "command": "python3 -m pytest ... tests_required four cases -q",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-tests-required.log"
+    },
+    {
+      "command": "python3 command-center/receipt_validate.py command-center/receipts/CC-0009.json",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-receipt-validate.log"
+    },
+    {
+      "command": "python3 command-center/p2-wave/probes/CC-0009/_pack_receipt.py",
+      "exit_code": 0,
+      "log": "/opt/cursor/artifacts/cc0009-review-pack.log"
+    }
+  ],
+  "confirmed": [
+    "pytest_9_passed",
+    "live_manifest_14_consumers_read_ok",
+    "phantom_entry_rejected",
+    "empty_manifest_fails",
+    "register_on_write_refuses_absent",
+    "unregistered_fails_condition_11",
+    "unparseable_consumer_fails",
+    "present_false_fails",
+    "unknown_consumer_rejected",
+    "empty_jsonl_and_utf8_fail",
+    "both_states_live_green",
+    "receipt_validate_admits"
+  ],
+  "falsified": []
+}
