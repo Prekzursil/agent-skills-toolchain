@@ -695,18 +695,21 @@ jobs:
       - name: triage-router standalone regression
         working-directory: tools/triage-router
         run: python test_triage_router.py
-      # tools/modal-budget-ledger -- per-account spend ledger and account selector over
+      # tools/account-hopper -- per-account budget ledger and account hopper over
       # Modal accounts the user funds. Stdlib-only custom __main__ runner like
       # triage-router above, so pytest discovery would not execute it; naming it here is
       # what makes it gate. What it gates: the global ceiling bounding each account's
       # spendable room (select once handed out an account the ceiling had already
-      # clipped), explicit enrolment with `funded` required, and the AST import
-      # allowlist that keeps the module network-free. Measured when it landed: 33
-      # passed, a 5-mutant harness killed 4 (the survivor is a tie-break-only
-      # equivalent), and the runner fails below its MIN_TESTS floor so 0/0 is not green.
-      - name: modal-budget-ledger standalone regression
-        working-directory: tools/modal-budget-ledger
-        run: python test_budget_ledger.py
+      # clipped), explicit enrolment with `funded` required, the AST import
+      # allowlist that keeps the module network-free, and the `hop` rotation step.
+      # Measured when it landed: 33 passed, a 5-mutant harness killed 4 (the survivor
+      # is a tie-break-only equivalent), and the runner fails below its MIN_TESTS
+      # floor so 0/0 is not green. Extended 2026-10-24 (renamed account-hopper, hop
+      # rotation step, coverage-gap tests): 61 passed, 100% line+branch coverage of
+      # the module measured under coverage.py.
+      - name: account-hopper standalone regression
+        working-directory: tools/account-hopper
+        run: python test_account_hopper.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are

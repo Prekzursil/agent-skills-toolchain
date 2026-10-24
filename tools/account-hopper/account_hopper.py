@@ -1,10 +1,16 @@
 #!/usr/bin/env python
-"""modal-budget-ledger — per-account budget tracking over accounts YOU fund.
+"""account-hopper — per-account budget tracking and account rotation over accounts YOU fund.
 
-What this is for: you hold more than one Modal account, you have decided how much
-of your own money each one may spend, and you want a job launcher to ask "which
-account should I use, and have I got room left?" without you tracking it in your
-head. It answers from a ledger of what you have already spent.
+What this is for: you hold more than one cloud account, you have decided how
+much of your own money each one may spend, and you run jobs that can outlive a
+single account's budget. You want the launcher to ask "which account should I
+hop to next, and have I got room left?" without tracking it in your head. The
+tool answers from a ledger of what you have already spent, and ``hop`` closes
+out the account you are leaving and names the next one in the same step.
+
+Built for the Modal-profile rotation pattern (drain one funded account, relay
+the job's checkpointed state to the next, resume), but there is nothing
+Modal-specific in it — the accounts are just names.
 
 DELIBERATE NON-FEATURES, each one load-bearing rather than unfinished:
 
@@ -12,10 +18,11 @@ DELIBERATE NON-FEATURES, each one load-bearing rather than unfinished:
   Caps come only from your config file. That is the structural guarantee that
   nothing here can trigger off a *provider-side* limit: it cannot read one. A
   budget is a number you chose, not a wall someone else put up.
-* **No switching.** ``select`` prints a profile name on stdout and exits. It does
-  not set ``MODAL_PROFILE``, spawn a subprocess, or write anything. Acting on the
-  answer is the caller's explicit step, so a human (or a reviewed launcher) stays
-  in the loop.
+* **No switching.** ``select`` and ``hop`` print a profile name on stdout and
+  exit. Neither sets ``MODAL_PROFILE``, spawns a subprocess, or touches any
+  account; ``hop`` writes only its own ledger line. Acting on the answer —
+  switching profiles, relaying job state — is the caller's explicit step, so a
+  human (or a reviewed launcher) stays in the loop.
 * **No account discovery.** An account is eligible only if you enrolled it in the
   config by hand with a cap and ``funded: true``. The tool never enumerates the
   profiles configured on the machine, so it cannot assemble a fleet on your
@@ -234,6 +241,16 @@ def total_spent(entries: list[Entry]) -> float:
     return round(float(sum(e.usd for e in entries)), 2)
 
 
+def ceiling_remaining(cfg: Config, entries: list[Entry]) -> float | None:
+    """Dollars left under the global ceiling, or None when no ceiling is set.
+
+    Never negative: an overshoot already recorded reads as zero room left.
+    """
+    if cfg.global_ceiling_usd is None:
+        return None
+    return max(0.0, round(cfg.global_ceiling_usd - total_spent(entries), 2))
+
+
 def account_status(cfg: Config, entries: list[Entry]) -> list[Status]:
     """Cap/spent/remaining and an eligibility verdict for every enrolled account.
 
@@ -282,16 +299,6 @@ def account_status(cfg: Config, entries: list[Entry]) -> list[Status]:
             )
         )
     return out
-
-
-def ceiling_remaining(cfg: Config, entries: list[Entry]) -> float | None:
-    """Dollars left under the global ceiling, or None when no ceiling is set.
-
-    Never negative: an overshoot already recorded reads as zero room left.
-    """
-    if cfg.global_ceiling_usd is None:
-        return None
-    return max(0.0, round(cfg.global_ceiling_usd - total_spent(entries), 2))
 
 
 def ceiling_blocked(cfg: Config, entries: list[Entry]) -> str:
@@ -401,12 +408,12 @@ def default_ledger_path(config_path: str | Path) -> Path:
 
 
 def _resolve_paths(args: argparse.Namespace) -> tuple[Path, Path]:
-    cfg_path = args.config or os.environ.get("MODAL_BUDGET_CONFIG") or ""
+    cfg_path = args.config or os.environ.get("ACCOUNT_HOPPER_CONFIG") or ""
     if not cfg_path:
-        raise ConfigError("no config: pass --config PATH or set MODAL_BUDGET_CONFIG")
+        raise ConfigError("no config: pass --config PATH or set ACCOUNT_HOPPER_CONFIG")
     ledger = (
         args.ledger
-        or os.environ.get("MODAL_BUDGET_LEDGER")
+        or os.environ.get("ACCOUNT_HOPPER_LEDGER")
         or default_ledger_path(cfg_path)
     )
     return Path(cfg_path), Path(ledger)
@@ -478,7 +485,7 @@ def _cmd_select(args: argparse.Namespace) -> int:
         print(f"no account available: {reason}", file=sys.stderr)
         return EXIT_NO_ACCOUNT
     # Bare profile name on stdout so it composes:
-    #   MODAL_PROFILE="$(budget_ledger.py select --config c.json)" modal run ...
+    #   MODAL_PROFILE="$(account_hopper.py select --config c.json)" modal run ...
     # Acting on it stays the caller's explicit step; this tool does not switch.
     print(picked.profile)
     if args.verbose:
@@ -491,6 +498,62 @@ def _cmd_select(args: argparse.Namespace) -> int:
         if picked.effective_remaining_usd < picked.remaining_usd:
             msg += " — clipped by the global ceiling"
         print(msg, file=sys.stderr)
+    return EXIT_OK
+
+
+def _cmd_hop(args: argparse.Namespace) -> int:
+    """The rotation step: close out one account, name the next one to hop to.
+
+    With ``--account``/``--usd`` it first records that spend (identical
+    validation and dry-run semantics to ``record``), then answers select's
+    question against the updated ledger. With no ``--account`` it is a pure
+    select — the first hop. Under ``--dry-run`` the pending spend is included
+    in the preview, so the printed next account is what a real hop would pick,
+    while nothing is written.
+
+    stdout stays a bare profile name so the launcher can compose it; everything
+    else goes to stderr. Exit 3 means the rotation is out of budget — a routine
+    outcome the launcher branches on, not a crash.
+    """
+    if args.account is None and args.usd is not None:
+        raise ConfigError("--usd only makes sense together with --account")
+    if args.account is not None and args.usd is None:
+        raise ConfigError("--usd is required with --account")
+    cfg_path, ledger_path = _resolve_paths(args)
+    cfg = load_config(cfg_path)
+    note = ""
+    pending: list[Entry] = []
+    if args.account is not None:
+        entry = record_spend(
+            ledger_path,
+            cfg,
+            profile=args.account,
+            usd=args.usd,
+            job_id=args.job_id or "",
+            note=args.note or "",
+            dry_run=args.dry_run,
+        )
+        prefix = "would record" if args.dry_run else "recorded"
+        note = f"{prefix} ${entry.usd:.2f} on {entry.profile}; "
+        if args.dry_run:
+            # A preview must answer for the world WITH the pending spend, or it
+            # would hand out the account the real hop would refuse.
+            pending = [entry]
+    # Non-dry-run re-reads from disk so the answer reflects the real ledger.
+    entries = read_entries(ledger_path) + pending
+    picked, reason = select_account(cfg, entries, strategy=args.strategy)
+    if picked is None:
+        print(f"no account available: {reason}", file=sys.stderr)
+        if note:
+            print(f"{note}nothing left to hop to", file=sys.stderr)
+        return EXIT_NO_ACCOUNT
+    print(picked.profile)
+    tail = " [dry-run: nothing written]" if args.dry_run else ""
+    print(
+        f"{note}next: {picked.profile} "
+        f"(spendable ${picked.effective_remaining_usd:.2f}){tail}",
+        file=sys.stderr,
+    )
     return EXIT_OK
 
 
@@ -510,31 +573,32 @@ def _cmd_record(args: argparse.Namespace) -> int:
     # Under --dry-run nothing was written, so subtract the pending amount.
     pending = entry.usd if args.dry_run else 0.0
     after_entries = read_entries(ledger_path)
+    # The profile was validated as enrolled above, so its row always exists.
     row = next(
-        (s for s in account_status(cfg, after_entries) if s.profile == entry.profile),
-        None,
+        s for s in account_status(cfg, after_entries) if s.profile == entry.profile
     )
     prefix = "would record" if args.dry_run else "recorded"
-    tail = ""
-    if row is not None:
-        projected = round(row.remaining_usd - pending, 2)
-        tail = f"; remaining ${projected:.2f} of ${row.cap_usd:.2f}"
-        room = ceiling_remaining(cfg, after_entries)
-        if room is not None:
-            tail += f", ${round(room - pending, 2):.2f} under the global ceiling"
+    projected = round(row.remaining_usd - pending, 2)
+    tail = f"; remaining ${projected:.2f} of ${row.cap_usd:.2f}"
+    room = ceiling_remaining(cfg, after_entries)
+    if room is not None:
+        tail += f", ${round(room - pending, 2):.2f} under the global ceiling"
     print(f"{prefix} ${entry.usd:.2f} on {entry.profile}{tail}")
     return EXIT_OK
 
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
-        prog="budget_ledger.py",
+        prog="account_hopper.py",
         description=(
-            "Per-account budget ledger for accounts you fund. Reports and "
-            "selects; never switches anything and never calls the network."
+            "Account hopper: per-account budget ledger plus the rotation step. "
+            "Reports, selects, records, and names the next account to hop to; "
+            "never switches anything and never calls the network."
         ),
     )
-    ap.add_argument("--config", help="path to the JSON config (or MODAL_BUDGET_CONFIG)")
+    ap.add_argument(
+        "--config", help="path to the JSON config (or ACCOUNT_HOPPER_CONFIG)"
+    )
     ap.add_argument("--ledger", help="path to spend.jsonl (default: beside the config)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -546,6 +610,27 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--strategy", choices=STRATEGIES, default="order")
     s.add_argument("--verbose", action="store_true", help="headroom note on stderr")
     s.set_defaults(func=_cmd_select)
+
+    s = sub.add_parser(
+        "hop",
+        help="record what the current account spent, then print the next account",
+    )
+    s.add_argument(
+        "--account",
+        help="the account you are leaving (enrolled profile name); omit for a pure first hop",
+    )
+    s.add_argument(
+        "--usd", type=float, help="amount spent on it, >= 0 (required with --account)"
+    )
+    s.add_argument("--job-id", help="your job identifier, for the audit trail")
+    s.add_argument("--note", help="free-text note")
+    s.add_argument("--strategy", choices=STRATEGIES, default="order")
+    s.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="preview the hop including the pending spend, write nothing",
+    )
+    s.set_defaults(func=_cmd_hop)
 
     s = sub.add_parser("record", help="append a spend entry for a finished job")
     s.add_argument("--account", required=True, help="enrolled profile name")
@@ -570,5 +655,5 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - thin CLI entry point
     sys.exit(main())
