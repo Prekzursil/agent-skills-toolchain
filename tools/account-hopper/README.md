@@ -85,6 +85,28 @@ design, the per-workspace volume relay, and the account drain that forced the
 first hop — is the phenibut manuscript compute log:
 `D:\Research\projects\phenibut\compute\modal_ckpt_2026-09-15\MODAL_RUNS.md`.
 
+### The automatic loop: `hopper_launch.ps1`
+
+The launcher that acts on the answers, so you do not have to. It wraps any
+resumable job: `hop` names the account, the script unsets `MODAL_TOKEN_*` (the
+override gotcha above), sets `MODAL_PROFILE`, runs your job, and on a non-zero
+exit treats the account as drained — records the run, hops to the next account,
+and loops. Job exit 0 stops the loop (done); the ledger's exit 3 stops it
+(rotation dry); `-MaxHops` caps the loop for a human look.
+
+```powershell
+.\hopper_launch.ps1 -Config cfg.json -CostEstimateUsd 8 -JobId gpn-run1 `
+  -Job 'modal run D:\Research\projects\phenibut\compute\modal_scripts\atm_modal_resumable.py --cmd gpn'
+```
+
+`-CostEstimateUsd` is what gets recorded per drained run; without it the loop
+still rotates but warns that the spend is invisible to the ledger. The job
+command is yours verbatim — the script never talks to Modal itself, and the
+ledger stays network-free. Relay the job's checkpointed state across accounts
+however the job does it (for ATM/FEP: the volume get/put relay) — the loop
+calls your job fresh on each new account and the job's own resume logic picks
+up its checkpoints.
+
 ## Config
 
 A JSON file you author. Its path is always a parameter — `--config PATH`, or
