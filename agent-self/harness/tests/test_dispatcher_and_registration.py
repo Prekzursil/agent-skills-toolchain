@@ -200,11 +200,21 @@ def test_claude_build_hooks_folds_in_live_settings_hand_edits():
     assert tui["command"].endswith('local-tui-reminder/check.py"')
     assert (tui["timeout"], tui["statusMessage"]) == (5, "local-TUI reminder")
 
-    # (c) 2nd PreToolUse group: wfmon auto-launch, matcher "Workflow".
-    workflow = next(g for g in pre if g.get("matcher") == "Workflow")
-    wf = workflow["hooks"][0]
-    assert wf["command"].endswith('workflow-monitor-autolaunch/check.py"')
-    assert (wf["timeout"], wf["statusMessage"]) == (8, "wfmon auto-launch")
+    # (c) REMOVED 2026-10-24. This used to assert a standalone "Workflow"-matcher
+    # group running workflow-monitor-autolaunch. Asserting its ABSENCE instead of
+    # just deleting the check, so re-adding it fails loudly: the dispatcher already
+    # admits Workflow and runs the generalized monitor-autolaunch on
+    # Task|Workflow|mcp__codex__codex, and the two groups' per-session locks have
+    # different names, so neither suppresses the other. Measured consequence per
+    # CLOSE-PROPOSALS-M1.md:25 is two tabs and two poller processes in one reusable
+    # window (both launch `wt -w <name> new-tab`), not two windows.
+    assert not [g for g in pre if g.get("matcher") == "Workflow"], (
+        "no standalone Workflow group may be generated: the dispatcher owns that "
+        "route, and a second launcher guarantees a duplicate window"
+    )
+    assert "workflow-monitor-autolaunch" not in json.dumps(claude), (
+        "the superseded legacy hook must not be wired anywhere in the built block"
+    )
 
     # (d)/(e) WorktreeCreate + WorktreeRemove: PowerShell scripts, no matcher,
     # claude-only.
