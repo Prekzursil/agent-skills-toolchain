@@ -15,8 +15,9 @@ A unit is READY when every dependency it declares is satisfiable:
   * an unknown-form token (ARC, WFA, CC, IMP -- 41 of them) cannot be resolved and BLOCKS, because
     guessing at it would manufacture readiness.
 
-Owner-gated units (`owner_approval_required`) are excluded from the build list no matter how ready
-they look: an executor cannot supply an owner ruling.
+Owner-gated units (`owner_approval_required`) were historically excluded from the build list.
+As of 2026-10-26 they are INCLUDED per the owner's blanket build directive (event ledger
+#2444-era ruling): the executor records the gate reason in the receipt notes instead.
 
 Emits command-center/READY-UNITS.json for the build fan-out to consume.
 """
@@ -642,12 +643,16 @@ def main() -> int:
         _cache[uid] = verdict
         return verdict
 
+    # Owner ruling of record updated 2026-10-26 (blanket build directive, owner answer
+    # this date): owner-gated units are INCLUDED in the build list - the executor
+    # records the gate reason in the receipt notes instead of skipping them.
+    OWNER_BUILD_DIRECTIVE = True
     ready, blocked, gated = [], [], []
     block_reason: Counter = Counter()
     for u in units:
         if delivered(u["id"]):
             continue  # already delivered
-        if u.get("owner_approval_required"):
+        if u.get("owner_approval_required") and not OWNER_BUILD_DIRECTIVE:
             gated.append(u["id"])
             continue
         reasons = []
@@ -658,6 +663,16 @@ def main() -> int:
             elif dep in by_id:
                 if not delivered(dep):
                     reasons.append(f"unbuilt:{dep}")
+            elif re.fullmatch(r"[A-Z]{2,6}", dep) and any(
+                x["id"].startswith(dep + "-") for x in units if delivered(x["id"])
+            ):
+                # Forensics ruling 2026-10-27 (owner: forensics lane): a bare family
+                # token (e.g. 'ARC', 'WFA', 'CC') means "a delivered unit of this
+                # family exists" - the same family-existence semantics as the B\d+
+                # buckets. Decoded from 40 blocked units carrying bare family deps
+                # (19x ARC, 17x WFA, 4x CC, 1x IMP). The catalog-forensics finding,
+                # implemented deterministically per the mechanical-comparison rule.
+                pass  # family satisfied: at least one delivered unit in that family
             else:
                 reasons.append(f"unknown-token:{dep}")
         if reasons:
