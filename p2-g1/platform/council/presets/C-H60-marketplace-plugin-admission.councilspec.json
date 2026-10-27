@@ -1,0 +1,267 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h60-marketplace-plugin-admission",
+  "preset": "custom",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Admit or reject a marketplace plugin or skill, on a computed catalogue tax, an inspected hooks surface, and a verified user-scope disable path.",
+    "charter": "MANDATE. Installation defaults to ENABLED, so admission is the only moment the decision is cheap. Three things must be established. (1) The CATALOGUE TAX: what this plugin costs every turn in tools, tokens and attention, whether or not it is used - the measured baseline this preset defends is a catalogue where the great majority of installed plugins are disabled and the tax is paid anyway. (2) The HOOKS SURFACE: what the plugin registers, because a hook changes behaviour without being invoked. (3) The DISABLE PATH, verified at USER scope - disabling through a UI toggle writes project scope and the plugin returns the moment the working directory changes, which is the measured root cause of plugins that will not stay disabled. Admission needs a supermajority AND the owner; either alone is insufficient.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "catalogue tax computed as a number, per turn, not described qualitatively",
+      "every hook the plugin registers is enumerated with a file:line anchor",
+      "the disable path is exercised at user scope and shown to survive a directory change",
+      "supermajority reached AND the owner approves"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "rely on a UI toggle as the disable mechanism",
+        "admit a plugin whose hook surface has not been enumerated",
+        "describe the catalogue tax without computing it"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "stakeholder_balanced", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 6, "min": 6, "max": 6 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 5 },
+    "roster": [
+      {
+        "participant_id": "security",
+        "display_name": "Security - hook surface and supply chain",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["plugin hooks", "supply chain", "permission model"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "source_access": ["repo", "internal_docs"]
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE - what breaks if this is enabled everywhere",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["scope semantics", "config precedence"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "Exercise the disable path at USER scope, then change working directory and confirm it is still disabled. A disable that does not survive a cwd change is not a disable."
+        }
+      },
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst - computes the catalogue tax",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["context accounting", "tool-count budgets"],
+        "role": "custom:cost_analyst",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "Report tools added, tokens added per turn, and the share of the per-turn budget consumed. A tax paid on every turn for a capability used monthly is the pattern that bloats a catalogue."
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - adopt versus enable-a-native-feature",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["prior-art scanning", "build-vs-adopt"],
+        "role": "custom:methodologist",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true }
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative - the second required key",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["catalogue policy", "owner intent"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      },
+      {
+        "participant_id": "dissent-guardian",
+        "display_name": "Dissent guardian - keeps the rejection case on the record",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["minority reporting", "suppression detection"],
+        "role": "custom:dissent_guardian",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" },
+    "replacement": { "enabled": true, "triggers": ["conflict_of_interest", "dominance"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["prior_art_scan", "evidence_pack", "risk_list"]
+  },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      {
+        "committee_id": "tax-and-scope",
+        "mandate": "Compute the per-turn catalogue tax and verify the user-scope disable path survives a working-directory change.",
+        "members": ["cost-analyst", "sre"]
+      },
+      {
+        "committee_id": "surface-and-alternatives",
+        "mandate": "Enumerate the hook surface with anchors and establish whether a native feature already covers the need.",
+        "members": ["security", "methodologist"]
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-read", "rounds": 1, "independent": true },
+      { "kind": "custom", "stage_id": "catalogue-tax", "custom_name": "compute tools added and tokens per turn", "rounds": 1 },
+      { "kind": "custom", "stage_id": "hook-surface", "custom_name": "enumerate every registered hook with anchors", "rounds": 1 },
+      { "kind": "custom", "stage_id": "user-scope-disable", "custom_name": "exercise the disable at user scope and survive a cwd change", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "admit-or-reject", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 6, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 20, "experiments": 6 },
+  "targets": { "evidence_items": 8, "objections": 2 },
+  "voting": {
+    "method": "supermajority",
+    "supermajority_threshold": 0.8,
+    "quorum": { "min_voters": 5, "min_fraction": 0.8, "on_failure": "no_decision" },
+    "veto": { "holders": ["security", "owner-rep"], "scope": "final_decision", "must_justify": true, "overridable_by_owner": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 2, "suppression_check": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:catalogue_tax_computed == true AND custom:hook_surface_enumerated == true AND custom:disable_verified_at_user_scope == true AND owner_approved == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:catalogue_tax_computed", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:hook_surface_enumerated", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:disable_verified_at_user_scope", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "owner_approved", "op": "==", "value": true }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 2
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the plugin ships disabled at user scope and is enabled only for the sessions that need it"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2 },
+    "resolution": ["run_experiment", "narrow_scope", "strongest_counterexample", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "hidden_conflict_of_interest",
+      "lost_dissent",
+      "minority_suppression",
+      "strategic_abstention",
+      "prompt_injection",
+      "weak_synthesis"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "option_cards",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["installing the plugin", "enabling it at user scope"]
+    },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h60", "checkpoint_every_round": true },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "Marketplace plugin / skill admission (advisory, owner-keyed)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H60", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P46,P41,P19"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2027", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H60 `marketplace-plugin-admission`, global ordinal 60, tier standard, protocols P46/P41/P19, 6 seats, 2 rounds, default binding ADVISORY, OWNER-DECISION YES. The design's note names the measured baseline this preset defends: a catalogue where nearly a hundred plugins are installed and a single-digit number are enabled, with the tax paid regardless. || EDITABLE DIALS: (1) tax_budget -> the catalogue-tax stage and custom:catalogue_tax_computed; declare the per-turn tool and token ceiling a single plugin may consume. (2) scope -> the user-scope-disable stage and custom:disable_verified_at_user_scope; USER scope is the default because project scope is the measured failure. Secondary dials: voting.supermajority_threshold (0.8), consensus.dissent_policy.min_dissenters_to_block (2), budgets.time_minutes (45). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `supermajority_0.8_plus_owner` -> voting.method `supermajority` with supermajority_threshold 0.8 (the schema REQUIRES the threshold whenever the method is supermajority, so a threshold-less supermajority cannot be expressed - that is a deliberate schema guard) PLUS the owner_approved clause in stopping.expression and objective.owner_constraints.approval_required true. The `plus_owner` half is not in the ballot; it is a stopping clause, which is stronger - the council cannot terminate without it. roles `security` -> security_reviewer (enum), `sre` -> custom:sre, `cost_analyst` -> custom:cost_analyst, `methodologist` -> custom:methodologist, `owner_rep` -> custom:owner_rep (kind human), `dissent_guardian` -> custom:dissent_guardian. Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision. `evidence standard: grounded_file_line` -> anchor_style `file_line`. || CUSTOM METRICS AND THEIR PRODUCERS: custom:catalogue_tax_computed (boolean; produced by the cost-analyst seat in the catalogue-tax stage as tools added plus tokens per turn), custom:hook_surface_enumerated (boolean; produced by the security seat with a file:line anchor per registered hook), custom:disable_verified_at_user_scope (boolean; produced by the SRE seat, true only if the disable survived a working-directory change). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. Three SEM-012 WARNs are expected and non-blocking. || WHY THE DISABLE CLAUSE IS A STOPPING CONDITION AND NOT A CHECKLIST ITEM: a plugin that cannot be reliably disabled is effectively permanent, so the reversibility of the decision is part of the decision. Putting it in stopping.expression means the council structurally cannot conclude while the exit is unproven."
+  }
+}

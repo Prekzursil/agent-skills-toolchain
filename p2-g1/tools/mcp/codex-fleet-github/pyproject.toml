@@ -1,0 +1,26 @@
+[project]
+name = "codex-fleet-github-mcp"
+version = "0.1.0"
+description = "codex-fleet-github MCP -- drive the private Codex runner fleet (dispatch/sweep/status/orchestrate) via a scoped dispatch token. Never handles auth.json; propose-only DRAFT PRs."
+requires-python = ">=3.10"
+dependencies = [
+    "mcp==1.28.1",
+    "pyyaml==6.0.3",
+]
+
+[project.optional-dependencies]
+# keyring is a SOFT fallback for the dispatch token (env vars work without it).
+keyring = ["keyring==25.7.0"]
+test = ["pytest==9.0.3"]
+
+# Flat two-file server (server.py + fleet_core.py), launched as a script -- not
+# an installable package (mirrors qdx-rush-mcp).
+#   Runtime:  cd tools/mcp/codex-fleet-github && uv sync   # builds .venv with mcp + pyyaml
+#   Register: command="<.venv python>", args=[".../server.py"]
+#   Auth:     a scoped dispatch token via CODEX_DISPATCH_PAT / GH_TOKEN / keyring
+#             (or gh's own `gh auth login`). This MCP never reads the runner's auth.json.
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

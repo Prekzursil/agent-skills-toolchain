@@ -1,0 +1,1 @@
+Diff two workflow specs stage by stage. Extract each stage's role, gate, and tool, then compute added, removed, and changed entries, and record the diff in both directions. Verify the diff is antisymmetric before you file it.

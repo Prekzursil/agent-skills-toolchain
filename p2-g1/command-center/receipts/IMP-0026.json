@@ -1,0 +1,196 @@
+{
+  "unit_id": "IMP-0026",
+  "id": "IMP-0026",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0026",
+  "title": "`rollback` command that cannot remove existing commands or user data",
+  "question_or_target": "Implement rollback to a previous version from the rollback manifest such that commands, skills, and user data introduced OUTSIDE the rolled-back version survive. The seeded failure class is 'rollback removes existing commands or user data'; the rollback must compute a set difference, not restore a snapshot wholesale.",
+  "answer": "Set-difference rollback at tools/plugin/rollback.py restores only owned_to paths from the target payload and unlinks only owned_from \u2212 owned_to. Live paths outside owned_from are foreign and are never unlinked or overwritten (clash refuses). A throwaway HOME rehearsal kept commands/user-created.md byte-identical. An independent payload-derived hash census matched the post-rollback tree (v1 \u222a foreign). Wholesale snapshot restore deleted all three foreign paths, so the preservation test discriminates. Rollback-then-reinstall returned the original hash census. SUCCESS:IMP-0026",
+  "output_path": "command-center/receipts/IMP-0026.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "spec_anchor": "_USER-PROMPTS.md:11347 (rollback removes existing commands or user data)",
+  "seeded_failure_class": "rollback removes existing commands or user data",
+  "mechanism": "set-difference over owned path sets; not wholesale snapshot restore",
+  "owner_approval_required": true,
+  "live_tree_touched": false,
+  "throwaway_home_only": true,
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0026/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "rollback": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/rollback.py",
+    "mode": "set-difference",
+    "from_version": "2.0.0",
+    "to_version": "1.0.0",
+    "owned_from": [
+      "commands/plugin-status.md",
+      "hooks/hook.pre-tool.json",
+      "plugin.json",
+      "rules/rule.no-secrets.md",
+      "skills/plugin-skill/SKILL.md"
+    ],
+    "owned_to": [
+      "commands/plugin-status.md",
+      "hooks/hook.pre-tool.json",
+      "plugin.json",
+      "rules/rule.no-secrets.md",
+      "skills/core/SKILL.md"
+    ],
+    "foreign_paths": [
+      "commands/user-created.md",
+      "skills/user-notes/SKILL.md",
+      "user-data/notes.txt"
+    ],
+    "refuse_overwrite_foreign": true,
+    "wholesale_is_negative_control_only": true
+  },
+  "evidence": [
+    {
+      "id": "E1-rehearsal",
+      "claim": "A rollback rehearsal in a throwaway HOME seeded with a user-created command file still has that file afterwards, byte-identical.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0026/probe1_rehearsal.py",
+      "probes": [
+        {
+          "id": "probe1",
+          "role": "source",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe1_rehearsal.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"byte_identical\": true, \"exists_after\": true, \"foreign_preserved_report\": true, \"live_plugin_root\": \"/tmp/imp0026-probe1-bxp5efcq/home/.claude/plugins/ast-integrate\", \"marker\": true, \"pass\": true, \"post_sha256\": \"0792f25a864cbd041ef41f8592e15ca18ebefe012d5ee7cb8fe4e53fa24fab7c\", \"pre_sha256\": \"0792f25a864cbd041ef41f8592e15ca18ebefe012d5ee7cb8fe4e53fa24fab7c\", \"probe\": \"probe1-rehearsal\", \"rollback_error\": null, \"rollback_mode\": \"set-difference\", \"seeded\": true, \"throwaway_home\": \"/tmp/imp0026-probe1-bxp5efcq/home\", \"unit_id\": \"IMP-0026\", \"user_command\": \"commands/user-created.md\"}\nSUCCESS:IMP-0026-probe1 throwaway HOME user-created command survived"
+        }
+      ]
+    },
+    {
+      "id": "E2-census",
+      "claim": "Independent pre/post inventory hash census equals the set derived from PAYLOAD_V1 \u222a FOREIGN, not from rollback()'s own added/removed lists. Changed paths reviewed against that expected set.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0026/probe2_census.py",
+      "probes": [
+        {
+          "id": "probe2",
+          "role": "verifier",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe2_census.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"census_match\": true, \"delta_match\": true, \"expected_delta\": {\"added\": [\"skills/core/SKILL.md\"], \"changed\": [\"commands/plugin-status.md\", \"hooks/hook.pre-tool.json\", \"plugin.json\", \"rules/rule.no-secrets.md\"], \"removed\": [\"skills/plugin-skill/SKILL.md\"]}, \"expected_post_count\": 8, \"foreign_ok\": true, \"missing_expected_paths\": [], \"observed_delta\": {\"added\": [\"skills/core/SKILL.md\"], \"changed\": [\"commands/plugin-status.md\", \"hooks/hook.pre-tool.json\", \"plugin.json\", \"rules/rule.no-secrets.md\"], \"removed\": [\"skills/plugin-skill/SKILL.md\"]}, \"oracle\": \"census_from_mapping(PAYLOAD_V1 \\u222a FOREIGN) independent of rollback report lists\", \"pass\": true, \"post_count\": 8, \"pre_count\": 8, \"probe\": \"probe2-census\", \"rollback_reported_added\": [\"skills/core/SKILL.md\"], \"rollback_reported_changed\": [\"commands/plugin-status.md\", \"hooks/hook.pre-tool.json\", \"plugin.json\", \"rules/rule.no-secrets.md\"], \"rollback_reported_removed\": [\"skills/plugin-skill/SKILL.md\"], \"unexpected_paths\": [], \"unit_id\": \"IMP-0026\", \"wholesale_lost_foreign\": [\"commands/user-created.md\", \"skills/user-notes/SKILL.md\", \"user-data/notes.txt\"], \"wholesale_negative_control_fails_preservation\": true}\nchanged=4 added=1 removed=1 census_match=True wholesale_fails=True\nSUCCESS:IMP-0026-probe2 independent hash census matched expected set"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_rollback_preserves_foreign_files",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_rollback_preserves_foreign_files.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "raw_output": "PASS test_set_difference_keeps_foreign\nPASS test_wholesale_snapshot_fails_preservation\nPASS test_rollback_then_reinstall_round_trip\nPASS test_clash_refuses_foreign_overwrite\nSUCCESS:IMP-0026 tests set-difference preserves foreign files"
+    },
+    {
+      "id": "probe1-rehearsal",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe1_rehearsal.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2-census",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe2_census.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "wholesale-snapshot-restore",
+      "kind": "mutant-implementation",
+      "description": "wholesale_snapshot_restore wipes live and copies v1. The same foreign_preserved predicate returns False; all three foreign paths are absent. Set-difference rollback keeps them.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state": "wholesale-snapshot-restore",
+      "good_state": "set-difference rollback"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0026-probe2-census",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 recomputes expected post-census from payload maps and does not trust probe 1's existence check or rollback report lists."
+  },
+  "artifacts": [
+    {
+      "path": "tools/plugin/rollback.py",
+      "sha256": "b479880a2e93186b432322727cf385f8a64aa13ee28ed98c9b57414ea955c9b5",
+      "bytes": 10732,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/trees.py",
+      "sha256": "20d31c1c8e4e94f5535eab2a526bcbf37a6b65dc91625b967a57bf102989c437",
+      "bytes": 3162,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_rollback_preserves_foreign_files.py",
+      "sha256": "2a030882d3b3c1c233bb5b7bcebae0c1f1757b4ba23e3235cf65e6d8b5ec8fda",
+      "bytes": 5388,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0026/probe1_rehearsal.py",
+      "sha256": "45ab8a09ce54064459c61abe8b7d64618c688ba7bff9ca3cef9c82620d9757c2",
+      "bytes": 2523,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0026/probe2_census.py",
+      "sha256": "0af05476ab3fda30183b16d23870ee52a3f4155ac4e59b7f24d3eefa67843522",
+      "bytes": 4178,
+      "exists": true,
+      "present": true,
+      "role": "supporting"
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe1_rehearsal.py",
+      "exit_code": 0,
+      "role": "throwaway-HOME-rehearsal"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0026/probe2_census.py",
+      "exit_code": 0,
+      "role": "independent-hash-census"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry; every attempt requires a fresh backup (IMP-0030)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This worktree has no platform/plugin/ and no live owner HOME. Rehearsal used a throwaway prefix only.",
+      "verdict": "DISCLOSED",
+      "settling_experiment": "Owner-gated rehearsal against a real profile after IMP-0030 backup."
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:08Z"
+  },
+  "notes": "G-1 for IMP-0026: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery."
+}

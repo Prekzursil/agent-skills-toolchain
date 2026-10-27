@@ -1,0 +1,213 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "Live .claude-plugin/marketplace.json round-trips byte-identically through tools/marketplace/manifest_reader.py (raw=18544 dump=18544). Plugin census listed=1 resolved=1 unresolved=0. Conformance suite negative cases cover 5 rules; compact encoding and dangling source both-states controls fire. SUCCESS:TST-0034",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0034.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/conformance-report.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/marketplace/schema/marketplace-manifest.schema.json",
+   "role": "contract-schema"
+  },
+  {
+   "exists": true,
+   "path": "tools/marketplace/manifest_reader.py",
+   "role": "registry-reader"
+  },
+  {
+   "exists": true,
+   "path": ".claude-plugin/marketplace.json",
+   "role": "live-marketplace"
+  }
+ ],
+ "canonical_document_keys": [
+  "name",
+  "owner",
+  "description",
+  "plugins"
+ ],
+ "completion_sentinel": "SUCCESS:TST-0034",
+ "contract_rules": [
+  "round-trip-canonical",
+  "plugin-source-resolvable",
+  "plugin-name-unique",
+  "required-fields",
+  "schema-valid"
+ ],
+ "contract_under_test": {
+  "id": "marketplace-manifest",
+  "live_path": ".claude-plugin/marketplace.json",
+  "live_present": true,
+  "path": "tools/marketplace/schema/marketplace-manifest.schema.json",
+  "present": true
+ },
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/manifest_reader.py:3",
+   "claim": "Registry dump is defined as indent=2 / LF / trailing newline.",
+   "kind": "reader",
+   "line": 3,
+   "path": "tools/marketplace/manifest_reader.py",
+   "snippet": "Load \u2192 dump is byte-identical for a canonical"
+  },
+  {
+   "anchor": "tools/marketplace/manifest_reader.py:21",
+   "claim": "The catalog input path is the live subject, not a second index file.",
+   "kind": "reader",
+   "line": 21,
+   "path": "tools/marketplace/manifest_reader.py",
+   "snippet": "LIVE_REL = \".claude-plugin/marketplace.json\""
+  },
+  {
+   "anchor": ".claude-plugin/marketplace.json:10",
+   "claim": "Live marketplace lists one plugin whose source is './'.",
+   "kind": "live-manifest",
+   "line": 10,
+   "path": ".claude-plugin/marketplace.json",
+   "snippet": "\"source\": \"./\""
+  },
+  {
+   "anchor": "tools/marketplace/tests/test_marketplace_manifest.py:5",
+   "claim": "Negative case per contract rule is executable, not narrative.",
+   "kind": "suite",
+   "line": 5,
+   "path": "tools/marketplace/tests/test_marketplace_manifest.py",
+   "snippet": "Each contract rule has at least one mutant that fires it"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0034/probe2_path_resolution.py:5",
+   "claim": "Probe 2 prints listed/resolved/unresolved for every plugin source.",
+   "kind": "probe",
+   "line": 5,
+   "path": "command-center/p2-wave/probes/TST-0034/probe2_path_resolution.py",
+   "snippet": "unresolved count is printed"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:77484",
+   "claim": "Catalog TST-0034 asks for byte-identical round-trip and on-disk sources.",
+   "kind": "catalog",
+   "line": 77484,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Does .claude-plugin/marketplace.json round-trip through the registry reader"
+  }
+ ],
+ "kind": "conformance-report",
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/TST-0034/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "method": "Registry reader json.loads the marketplace bytes, dumps with a fixed canonical encoder (indent=2, UTF-8, LF, trailing newline), and compares dump(load(raw)) to LF-normalised raw. Plugin source strings resolve relative to the marketplace.json parent; each resolved path must exist and contain plugin.json. JSON-Schema Draft-07 gates the documented field set; Python adds uniqueness, path existence, and the round-trip oracle.",
+ "min_bytes_threshold": 2048,
+ "named_probes": [],
+ "negative_controls": [
+  {
+   "fired": true,
+   "id": "compact-encoding-fails-round-trip",
+   "rule": "round-trip-canonical",
+   "silent_on_clean": true
+  },
+  {
+   "fired": true,
+   "id": "dangling-source-fails-resolution",
+   "rule": "plugin-source-resolvable",
+   "silent_on_clean": true
+  }
+ ],
+ "path_census": {
+  "entries": [
+   {
+    "exists": true,
+    "name": "agent-skills-toolchain",
+    "plugin_json_exists": true,
+    "resolved": "/opt/p2/ast-integrate/.claude-plugin",
+    "source": "./"
+   }
+  ],
+  "listed": 1,
+  "resolved": 1,
+  "unresolved": 0
+ },
+ "phase": "4",
+ "question": "Does .claude-plugin/marketplace.json round-trip through the registry reader and back byte-identically, and are plugin entries resolvable to real on-disk paths?",
+ "report": {
+  "control_ids": [
+   "compact-encoding-fails-round-trip",
+   "dangling-source-fails-resolution"
+  ],
+  "kind": "conformance-report",
+  "observations": [
+   {
+    "anchor": "tools/marketplace/manifest_reader.py:3",
+    "measured": true,
+    "method": "dump-load-compare",
+    "name": "round_trip_byte_identical"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0034/probe2_path_resolution.py",
+    "measured": 0,
+    "method": "path-census",
+    "name": "unresolved_plugin_sources"
+   }
+  ]
+ },
+ "required_fix": null,
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "independent": true,
+  "method": "Probe 2 re-resolves each plugin source to a real path and prints listed/resolved/unresolved. It does not re-check canonical dump bytes; agreement with probe 1's round-trip narrative is not required.",
+  "reviewer_id": "TST-0034-probe2-path-resolution",
+  "scope_not_agreement": true,
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "round_trip": {
+  "byte_identical": true,
+  "dump_bytes": 18544,
+  "encoder": "json.dumps indent=2 ensure_ascii=False + trailing LF",
+  "raw_bytes": 18544
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0034",
+ "spec_anchor": "_USER-PROMPTS.md:10802",
+ "state": "SUCCESS",
+ "suite_output_tail": "PASS test_live_subject_round_trips_and_resolves\nPASS test_each_rule_has_a_mutant\nPASS test_both_states_canonical_vs_compact\nPASS test_both_states_dangling_source\nSUCCESS:test_marketplace_manifest",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0034/probe1_roundtrip.py",
+   "id": "T1-round-trip-byte-identity",
+   "name": "Live marketplace.json dump(load) equals original bytes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0034/probe2_path_resolution.py",
+   "id": "T2-source-path-census",
+   "name": "Each listed plugin source resolves to an existing path; unresolved count printed",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_marketplace_manifest.py",
+   "id": "T3-conformance-suite-negatives",
+   "name": "Negative case per contract rule plus both-states control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:10:13Z"
+ },
+ "title": "Executable conformance tests for the marketplace manifest contract",
+ "unit_id": "TST-0034",
+ "verdict": "PASS",
+ "worktree_note": "This worktree ships .claude-plugin/marketplace.json (v1 plugins[] shape, one plugin, source './'). dump(load) already matches the canonical encoder; TST-0034 did not replace those bytes. This is the conformance subject, not the IMP-0067 packages/digests/channels extension."
+}

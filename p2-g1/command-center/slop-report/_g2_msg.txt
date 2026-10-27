@@ -1,0 +1,47 @@
+docs(slop): ground round 2 -- classify the platform/ surface and the deploy-twin drift
+
+Round-1/2 of this lane scoped themselves to command-center/ and closed it: the 45 cited
+probes are tracked, the published-command gate is wired into no-runtime-junk.yml, and
+151 of 155 slop-report artifacts are committed. This round measures the two surfaces
+those rounds explicitly left unmeasured, and stops the build lane redoing the rest.
+
+Findings, ranked:
+
+G1 (highest) -- 195 deploy-twin pairs exist between the repo root and agent-self/config/.
+Both trees are DEPLOYED: scripts/bootstrap-codespace.sh:31-32 copies rules/ and hooks/
+from the repo root, while agent-self/bootstrap.ps1:38-45 layers config/* over them. So
+this is not a delete-one-side duplicate. ci/tests/test_deployed_hook_twin_parity.py is
+the only guard; executed here, it reports 21 passed and all 4 of its PINNED_TWINS hold.
+It declares 7 pairs of 195. 34 pairs differ; after excluding the 3 declared
+KNOWN_DIVERGENT, 2 {{USER_HOME}} templating pairs and 2 same-filename-different-document
+pairs (AGENTS.md, CLAUDE.md), 27 are undeclared drift -- including hashlib.sha1 vs
+hashlib.sha256 in hooks/edit-validate/validate-stop.py. This is a guard-coverage gap,
+not a consolidation task.
+
+G2 -- platform/ + docs/ untracked classified for the first time (149 files). 14 are cited
+by a published `python <path>` command in a tracked file; 0 have a tracked producer, so
+bucket (c) is EMPTY here and nothing is deletable on reproducibility grounds.
+_g2_classify.py imports the shipped resolver from check_published_commands.py rather than
+reimplementing it.
+
+G3 -- committing that bucket costs 23 format + 11 lint failures at the CI pin
+(ruff 0.15.17, with ruff.toml staged alongside so the config is the project's). Measured,
+not assumed; a clean/mangled control pair distinguishes.
+
+G4 -- 33 true duplicate directory pairs, found only after the first detector was refuted.
+Grouping dirs by file-NAME set reported 26 "unsanctioned" groups; adding content hashing
+showed 5,574 of 5,802 examined pairs share names and no bytes (rules/cpp vs rules/java,
+the 52 cloudflare-deploy reference dirs). A signal that looks identical under "duplicate"
+and "parallel structure" was never a control.
+
+G5 -- `$null`, a new 0-byte file at the repo root, untracked and NOT ignored: the
+Git-Bash form of the `2>$null` footgun, which appears in tracked .ps1 scripts. Genuine
+bucket (d). Proposed, not executed.
+
+Nothing was deleted except five of my own zero-byte .err.txt files. Frozen evidence
+(casualty/probes, p2-wave/probes) measured 0 dirty lines at lane start and lane end.
+
+These five probes were ruff-formatted before commit -- they are this lane's own files,
+not another lane's evidence, which is the distinction rounds 1 and 2 declined to cross.
+Verified after formatting: check rc 0, format --check rc 0, and _g2_census.py re-executed
+at rc 0 with its controls still passing.

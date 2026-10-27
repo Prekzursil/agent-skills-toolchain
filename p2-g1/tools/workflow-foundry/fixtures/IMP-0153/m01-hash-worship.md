@@ -1,0 +1,1 @@
+Recording a hash proves nothing by itself. Teams that treat the digest as the work ship bytes nobody can re-fetch. The hash registry pattern is an anti-pattern when the recorded path is never re-read; it is a harmless ritual otherwise.

@@ -1,0 +1,166 @@
+{
+ "artifacts": [
+  {
+   "bytes": 58505,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json",
+   "role": "primary",
+   "sha256": "d01cb40f45dd5b93879410b89de17b2f85a4c31675bdfda50d3cb27b057c4d10"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json",
+   "consumer": "probe1 reviewer rerun (2026-10-25)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0132/probe1_cadence_flips.py",
+    "exit_code": 0,
+    "fingerprint": "ffcf835dbb9691289d2e6a8bd4d7b49b",
+    "method": "command",
+    "raw_output": "historical_t30_flip_rate=1.0 interval_flip_rate=0.5 median_lag_days=7.942436342592593 named_flips=4 product_flip=False\nSUCCESS:RES-0132-probe1 cadence named flips match artifact",
+    "role": "verifier"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json",
+   "consumer": "probe2 reviewer rerun (2026-10-25)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0132/probe2_control_red.py",
+    "exit_code": 0,
+    "fingerprint": "097e55218fefa916e72084a3f4b52924",
+    "method": "command",
+    "raw_output": "{\"both_states\": true, \"braces_3_0_2_t0\": \"GREEN\", \"braces_3_0_2_t30\": \"RED\", \"braces_3_0_3_t30\": \"GREEN\", \"date_cut_works\": true, \"fires_on_already_published\": true, \"lodash_still_red_at_product_t0\": true, \"lodash_t0\": \"RED\", \"lodash_t0_ids\": [\"GHSA-jf85-cpcp-j695\", \"GHSA-p6mc-m468-83gw\", \"GHSA-35jh-r3h4-6jhm\", \"GHSA-29mw-wpgm-hmr9\"], \"requests_2_25_1_t0\": \"RED\", \"requests_t0_ids\": [\"GHSA-j8r2-6x86-q33q\"], \"second_signal_all_agree\": true, \"silent_on_patched_pin\": true}\nreviewer_id=RES-0132-probe2-control-red\nSUCCESS:RES-0132-probe2 both-states control-red and patched-pin silence",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0132/SUBAGENT-RETURN.json",
+   "claim": "Live named probes re-run exit 0 against the artifact at its catalog output_path.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0132/probe1_cadence_flips.py",
+     "exit_code": 0,
+     "fingerprint": "ffcf835dbb9691289d2e6a8bd4d7b49b",
+     "method": "command",
+     "raw_output": "historical_t30_flip_rate=1.0 interval_flip_rate=0.5 median_lag_days=7.942436342592593 named_flips=4 product_flip=False\nSUCCESS:RES-0132-probe1 cadence named flips match artifact",
+     "role": "source"
+    },
+    {
+     "command": "manifest sha row vs live artifact norm-hash",
+     "exit_code": 0,
+     "fingerprint": "a1880917bb86021d9cd224e9a196967e",
+     "method": "file-read",
+     "raw_output": "manifest row sha == norm(live bytes)",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0132/UNIT-ARTIFACT-MANIFEST.json",
+   "claim": "Artifact registered in UNIT-ARTIFACT-MANIFEST.json with the CRLF-normalized sha256 matching the live bytes.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "read manifest artifacts[] row for this unit",
+     "exit_code": 0,
+     "fingerprint": "3fe3d37f4bb7f721d8c4716579be7d13",
+     "method": "file-read",
+     "raw_output": "row: path=catalog output_path present=true",
+     "role": "source"
+    },
+    {
+     "command": "python -I _p2shard18-w2/_measure_one_delivered.py RES-0132",
+     "exit_code": 0,
+     "fingerprint": "853c64429fd150cc1253dd68f8220022",
+     "method": "command",
+     "raw_output": "measure gate re-hashes the live artifact and compares the manifest row",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "owner_approval_required": false,
+  "resume_from_cache": true,
+  "shard": 18,
+  "wave": "p2-g1-wave-2"
+ },
+ "manifest_registration": {
+  "entry_id": "RES-0132",
+  "manifest_path": "command-center/p2-wave/probes/RES-0132/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-10-25T17:37:45Z"
+ },
+ "min_bytes_threshold": 512,
+ "negative_controls": [
+  {
+   "bad_state_output": "P.validate(state=SUCCESS, reviewer={checks,method,model,...}) -> required-field + unexpected-property errors, no write",
+   "description": "Builder lane withheld SUCCESS (state=BLOCKED, reviewer.verdict NOT-REVIEWED, failure.classification ['reviewer-absent']): receipt_core rejects closure without an independent PASS reviewer. Exercised both-states during this review: a closure attempt with a reviewer block shape this schema forbids was ABORTED pre-write by the canonical validator and wrote nothing (bad state); the proper closure validates zero errors (good state).",
+   "fired_on_bad_state": true,
+   "good_state_output": "P.validate(closed receipt) -> [] zero errors; canonical gate SUCCESS:delivered",
+   "id": "NC-SELF-CERT-BLOCK",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "Owner approval not required per catalog row (owner_approval_required=false).",
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "claude-opus-5-5",
+  "role": "builder-shard-18",
+  "vendor": "anthropic"
+ },
+ "residual_unknowns": [],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b); resume-from-cache pass consumed no new retries"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Wave-2 shard-18 independent closure review, fresh context, adversarial. (1) Artifact at catalog output_path: exists, non-empty, JSON dict; self-declared-BLOCKED/FAILED scans (state|status|verdict|result fields + UNIT-INCOMPLETE|UNIT-FAILED|NOT-DELIVERING text) fired nowhere; catalog completion_sentinel present in bytes. (2) Both named probes re-run live by the reviewer, direct sys.executable subprocesses from repo root, transport independent of builder lane and canonical gate wrapper: exit 0 with SUCCESS markers. (3) sha256 recomputed CRLF-to-LF matches probes/RES-0132/UNIT-ARTIFACT-MANIFEST.json primary row. (4) output_schema resolved fail-closed via platform/lib/schema_resolver: zero violations. (5) Canonical gate re-run by reviewer: SUCCESS:delivered. (6) Receipt did not self-certify (pre-review BLOCKED/NOT-REVIEWED). (7) Closed receipt validated zero errors by canonical _p2lib.validate BEFORE write. Reviewer did not build these units.",
+  "reviewed_at": "2026-10-25T17:37:45Z",
+  "reviewer_id": "claude-opus-5-5 wave2-shard18-independent-reviewer",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:RES-0132 independent closure review PASS: both named probes re-run live exit 0 (direct subprocess transport), artifact sha256 recomputed CRLF-to-LF matches probes/RES-0132/UNIT-ARTIFACT-MANIFEST.json primary row, output_schema validates zero errors via platform/lib/schema_resolver, canonical _measure_one_delivered.py SUCCESS:delivered; built by builder-shard-18, closed by wave2-shard18-independent-reviewer",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0132",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0132/probe1_cadence_flips.py",
+   "id": "probe1",
+   "name": "Reviewer live rerun of named probe (independent transport)",
+   "output_tail": "historical_t30_flip_rate=1.0 interval_flip_rate=0.5 median_lag_days=7.942436342592593 named_flips=4 product_flip=False\nSUCCESS:RES-0132-probe1 cadence named flips match artifact",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0132/probe2_control_red.py",
+   "id": "probe2",
+   "name": "Reviewer live rerun of named probe (independent transport)",
+   "output_tail": "t_product_t0\": true, \"lodash_t0\": \"RED\", \"lodash_t0_ids\": [\"GHSA-jf85-cpcp-j695\", \"GHSA-p6mc-m468-83gw\", \"GHSA-35jh-r3h4-6jhm\", \"GHSA-29mw-wpgm-hmr9\"], \"requests_2_25_1_t0\": \"RED\", \"requests_t0_ids\": [\"GHSA-j8r2-6x86-q33q\"], \"second_signal_all_agree\": true, \"silent_on_patched_pin\": true}\nreviewer_id=RES-0132-probe2-control-red\nSUCCESS:RES-0132-probe2 both-states control-red and patched-pin silence",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-10-25T16:04:45Z",
+  "started_at": "2026-10-25T16:04:45Z"
+ },
+ "unit_id": "RES-0132"
+}

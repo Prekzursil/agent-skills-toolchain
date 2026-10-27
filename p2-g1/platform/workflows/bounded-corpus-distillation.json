@@ -1,0 +1,977 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bounded-corpus-distillation",
+  "name": "Bounded corpus distillation with two-probe enumeration agreement",
+  "description": "Turn a very large, messy log or session corpus into a bounded structured artifact an agent can reason over, WITHOUT loading it all. The mechanism that makes this more than a streaming script is the pair of gates around it: (a) two mechanically independent enumerations of the population must AGREE before any streaming starts, because a naive glob once returned 11,335 for a population that is actually 708, and (b) malformed records are COUNTED rather than skipped, and the tail dropped by the token budget is written to its own ledger - a silent skip is a coverage lie.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative"
+  ],
+  "tags": [
+    "bp-dat-02",
+    "corpus",
+    "bounded-memory",
+    "coverage-honesty",
+    "two-probe"
+  ],
+  "flagship": true,
+  "params": {
+    "corpus_roots": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "items": {
+        "type": "path"
+      },
+      "description": "Roots to distil. One fan-out shard per root."
+    },
+    "token_budget": {
+      "type": "integer",
+      "default": 120000,
+      "minimum": 1000,
+      "maximum": 4000000,
+      "description": "Hard ceiling on the bounded corpus. The loop truncates by rank until it holds."
+    },
+    "extraction_schema": {
+      "type": "path",
+      "required": true,
+      "description": "The schema that says WHAT to extract; the distillation is schema-bound by design."
+    },
+    "max_memory_mb": {
+      "type": "integer",
+      "default": 512,
+      "minimum": 64,
+      "maximum": 8192,
+      "description": "Streaming memory ceiling. Under pressure the budget shrinks; the corpus is never fully loaded."
+    },
+    "rank_strategy": {
+      "type": "enum",
+      "enum": [
+        "reference-degree",
+        "recency",
+        "size",
+        "none"
+      ],
+      "default": "reference-degree",
+      "description": "How the token budget picks survivors. 'none' means head-truncate, which hides the tail hardest."
+    },
+    "second_probe_source": {
+      "type": "enum",
+      "enum": [
+        "run-directory-index",
+        "manifest-file",
+        "record-count-scan"
+      ],
+      "default": "run-directory-index",
+      "description": "The independent enumeration. MUST NOT be a re-run of the glob - a re-run is not a second signal."
+    }
+  },
+  "roles": {
+    "enumerator": {
+      "description": "Probe A: enumerates the population by filesystem glob over the declared roots.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python"
+      ],
+      "write_paths": [
+        "command-center/corpus/bounded-corpus-distillation/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "second-prober": {
+      "description": "Probe B: enumerates the SAME population by a mechanically different route - an index, a manifest, or a record-count scan - and never sees probe A's count.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python"
+      ],
+      "write_paths": [
+        "command-center/corpus/bounded-corpus-distillation/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "streamer": {
+      "description": "Streams one shard under the memory ceiling and extracts per the schema, counting every malformed record.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/corpus/**)"
+      ],
+      "write_paths": [
+        "command-center/corpus/bounded-corpus-distillation/**"
+      ]
+    },
+    "reporter": {
+      "description": "Writes the coverage report: what was seen, what was malformed, what the budget dropped.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/corpus/**)"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/corpus/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write(command-center/WORK-UNIT-CATALOG.json)"
+    ],
+    "write_paths": [
+      "command-center/corpus/bounded-corpus-distillation/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "paywalled": "record-as-not-checked",
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "probes-agree": {
+      "predicate": "custom-expression",
+      "expression": "probe_a_count == probe_b_count",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "coverage-honest": {
+      "predicate": "custom-expression",
+      "expression": "malformed_records_counted == true AND dropped_tail_recorded == true AND coverage_reported == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate-glob",
+      "title": "Probe A - enumerate the population by glob",
+      "kind": "task",
+      "role": "enumerator",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python"
+      ],
+      "work_unit": {
+        "id": "DAT-7301",
+        "title": "Enumerate the corpus population by filesystem glob",
+        "phase": "2B",
+        "question_or_target": "Count and list every record-bearing file under corpus_roots by glob, and record the exact glob used so the probe is reproducible and its blind spots are inspectable.",
+        "inputs": [
+          "params.corpus_roots",
+          "params.extraction_schema"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "enumerator",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/corpus/bounded-corpus-distillation/probe-a-enumeration.json",
+        "output_schema": "command-center/schema/sampling-frame.schema.json",
+        "evidence_requirement": "the literal glob pattern, the root list, and the per-root file count, so a reader can re-run the identical probe and get the identical number",
+        "tests_required": [
+          "a root containing a known file count enumerates to exactly that count",
+          "both-states control: deleting one known file must decrease the count by exactly one"
+        ],
+        "reviewer_requirement": "probe B's author, who must not see this count before publishing their own",
+        "completion_sentinel": "SUCCESS:DAT-7301 emitted only when the artifact exists, parses, and records both the pattern and a per-root count; otherwise FAILED:DAT-7301 <reason>",
+        "retry_policy": "two strikes then pivot to a different enumeration route; a third identical glob is not a third signal",
+        "failure_classification": [
+          "detector-failure",
+          "path-enumeration-gap",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "glob enumeration - fast, and blind to anything the pattern does not match"
+      },
+      "produces": [
+        {
+          "path": "command-center/corpus/bounded-corpus-distillation/probe-a-enumeration.json",
+          "schema_ref": "command-center/schema/sampling-frame.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7301",
+          "consumers": [
+            "probe-agreement",
+            "coverage-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "enumerate-independent",
+      "title": "Probe B - enumerate the SAME population by a different mechanism",
+      "kind": "task",
+      "role": "second-prober",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python"
+      ],
+      "work_unit": {
+        "id": "DAT-7302",
+        "title": "Enumerate the corpus population by an index, manifest or record-count scan",
+        "phase": "2B",
+        "question_or_target": "Independently count the same population WITHOUT re-running probe A's glob, and state which mechanism was used, so a disagreement can be attributed rather than argued.",
+        "inputs": [
+          "params.corpus_roots",
+          "params.second_probe_source"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "second-prober",
+          "basis": "a second signal must be mechanically independent, so it gets its own agent and its own route"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/corpus/bounded-corpus-distillation/probe-b-enumeration.json",
+        "output_schema": "command-center/schema/sampling-frame.schema.json",
+        "evidence_requirement": "the mechanism name, the command or index path used, and the count - plus an explicit statement that probe A's pattern was NOT re-run",
+        "tests_required": [
+          "the recorded mechanism is not 'glob'",
+          "both-states control: on a population where probe A is known wrong (a directory the pattern misses) probe B must DISAGREE"
+        ],
+        "reviewer_requirement": "probe A's author, cross-examining after both counts are published",
+        "completion_sentinel": "SUCCESS:DAT-7302 emitted only when the artifact exists, parses, and names a mechanism other than the glob used by probe A; otherwise FAILED:DAT-7302 <reason>",
+        "retry_policy": "two strikes then escalate: a second failing independent probe means the population itself is ill-defined",
+        "failure_classification": [
+          "detector-failure",
+          "population-ambiguous",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "index/manifest/record-count enumeration - slower, and blind to different things than a glob",
+        "not_a_duplicate_because": "it is the SAME question asked through a different instrument; that is what makes the pair a corroboration rather than a repetition"
+      },
+      "produces": [
+        {
+          "path": "command-center/corpus/bounded-corpus-distillation/probe-b-enumeration.json",
+          "schema_ref": "command-center/schema/sampling-frame.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7302",
+          "consumers": [
+            "probe-agreement",
+            "coverage-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "probe-agreement",
+      "title": "HALT unless the two independent enumerations agree",
+      "kind": "gate",
+      "depends_on": [
+        "enumerate-glob",
+        "enumerate-independent"
+      ],
+      "checkpoint": true,
+      "gate_ref": "probes-agree",
+      "produces": [
+        {
+          "path": "command-center/corpus/bounded-corpus-distillation/enumeration-agreement.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "consumers": [
+            "stream-extract",
+            "coverage-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "stream-extract",
+      "title": "Stream each root under the memory ceiling and extract per the schema",
+      "kind": "fanout",
+      "depends_on": [
+        "probe-agreement"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "corpus_roots",
+        "item_var": "corpus_root",
+        "key_field": "corpus_root"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 150,
+      "max_items": 64,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "extract-shard",
+          "title": "One shard: stream, extract, count malformed",
+          "kind": "task",
+          "role": "streamer",
+          "timeout_seconds": 3600,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/corpus/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/corpus/bounded-corpus-distillation/cache",
+            "ttl_seconds": 604800,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "DAT-7303",
+            "title": "Stream one corpus root and extract records per the extraction schema",
+            "phase": "2B",
+            "question_or_target": "Read one root as a stream, never materialising more than max_memory_mb, emit one extracted record per input record, and COUNT every record that failed to parse with its reason.",
+            "inputs": [
+              "item.corpus_root",
+              "params.extraction_schema",
+              "params.max_memory_mb"
+            ],
+            "dependencies": [
+              "DAT-7301",
+              "DAT-7302"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "streamer",
+              "basis": "extraction judgement is substantive; the streaming itself is mechanical python"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/corpus/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/corpus/bounded-corpus-distillation/shards/extraction.jsonl",
+            "output_schema": "platform/schema/artifact-class-profiles.schema.json#/$defs/ExtractionReport",
+            "evidence_requirement": "records_seen, records_extracted and records_malformed must sum consistently, and every malformed record contributes a reason string - a skip with no reason is indistinguishable from a record that never existed",
+            "tests_required": [
+              "a deliberately malformed record appears in skipped_reasons with a reason, and is NOT silently dropped",
+              "peak RSS stays under max_memory_mb on a root larger than the ceiling"
+            ],
+            "reviewer_requirement": "the reporter, who must be able to reconcile this shard's counts against the agreed enumeration",
+            "completion_sentinel": "SUCCESS:DAT-7303 emitted only when records_seen == records_extracted + records_malformed and every malformed entry carries a reason; otherwise FAILED:DAT-7303 <reason>",
+            "retry_policy": "two strikes then pivot: halve the memory budget rather than retrying the same allocation",
+            "failure_classification": [
+              "memory-pressure",
+              "record-parse-failure",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "bounded-memory streaming extraction with counted malformed records",
+            "notes": "one record per fan-out item, keyed by item_key; resume granularity is fanout-item and the barrier verifies the artifact exists before any digest is read"
+          },
+          "produces": [
+            {
+              "path": "command-center/corpus/bounded-corpus-distillation/shards/extraction.jsonl",
+              "schema_ref": "platform/schema/artifact-class-profiles.schema.json#/$defs/ExtractionReport",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7303",
+              "consumers": [
+                "bound-to-budget",
+                "coverage-report"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "no files found"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "stream-join",
+      "title": "Hard barrier - every shard must be on disk before ranking",
+      "kind": "barrier",
+      "depends_on": [
+        "stream-extract"
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "stream-extract"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "stream-extract"
+      ]
+    },
+    {
+      "id": "bound-to-budget",
+      "title": "Rank and drop until the corpus fits the token budget",
+      "kind": "loop",
+      "depends_on": [
+        "stream-join"
+      ],
+      "loop_var": "truncation_pass",
+      "body": [
+        {
+          "id": "rank-and-drop",
+          "title": "One truncation pass - drop the lowest-ranked tail and log it",
+          "kind": "task",
+          "role": "streamer",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/corpus/**)"
+          ],
+          "work_unit": {
+            "id": "DAT-7304",
+            "title": "Rank extracted records and truncate to the token budget, logging the dropped tail",
+            "phase": "2B",
+            "question_or_target": "Rank every extracted record by rank_strategy, keep the highest-ranked prefix that fits token_budget, and write the DROPPED tail to its own ledger so the interesting tail is visible instead of hidden.",
+            "inputs": [
+              "command-center/corpus/bounded-corpus-distillation/shards/extraction.jsonl",
+              "params.token_budget",
+              "params.rank_strategy"
+            ],
+            "dependencies": [
+              "DAT-7303"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "streamer",
+              "basis": "ranking choice is a judgement about what matters; the truncation is mechanical"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/corpus/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/corpus/bounded-corpus-distillation/bounded-corpus.json",
+            "output_schema": "command-center/schema/router-corpus.schema.json",
+            "evidence_requirement": "tokens_selected <= token_budget measured by the same tokeniser the consumer uses, plus a dropped-tail ledger whose length equals records_extracted minus records_selected",
+            "tests_required": [
+              "tokens_selected never exceeds token_budget after the final pass",
+              "the dropped-tail ledger length plus the selected count equals records_extracted (no record vanishes)",
+              "both-states control: with rank_strategy=none the ledger must still be complete, proving the ledger is not a property of ranking"
+            ],
+            "reviewer_requirement": "the reporter, who cross-checks the ledger arithmetic independently",
+            "completion_sentinel": "SUCCESS:DAT-7304 emitted only when the bounded corpus fits the budget AND the dropped-tail ledger accounts for every unselected record; otherwise FAILED:DAT-7304 <reason>",
+            "retry_policy": "fixed, two attempts: a second overflow means the ranking is not shrinking the set and the loop must exit on no-progress",
+            "failure_classification": [
+              "budget-overflow",
+              "ledger-arithmetic-mismatch",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "ranked truncation to a token budget with a complete dropped-tail ledger"
+          },
+          "produces": [
+            {
+              "path": "command-center/corpus/bounded-corpus-distillation/bounded-corpus.json",
+              "schema_ref": "command-center/schema/router-corpus.schema.json",
+              "min_bytes": 512,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7304",
+              "consumers": [
+                "coverage-report",
+                "command-center/MANIFEST.json"
+              ]
+            },
+            {
+              "path": "command-center/corpus/bounded-corpus-distillation/dropped-tail.json",
+              "schema_ref": "command-center/schema/digest-loss-report.schema.json",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "consumers": [
+                "coverage-report"
+              ]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 8,
+        "min_iterations": 1,
+        "converged_when": "tokens_selected <= token_budget AND dropped_tail_recorded == true",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "tokens_selected",
+            "direction": "decrease",
+            "epsilon": 0
+          },
+          {
+            "name": "dropped_tail_recorded",
+            "direction": "stabilize"
+          }
+        ],
+        "on_no_convergence": "fail"
+      }
+    },
+    {
+      "id": "coverage-report",
+      "title": "Report coverage, malformed counts and what the budget dropped",
+      "kind": "task",
+      "depends_on": [
+        "bound-to-budget"
+      ],
+      "role": "reporter",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/corpus/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7305",
+        "title": "Emit the coverage report reconciling enumeration, extraction and truncation",
+        "phase": "2B",
+        "question_or_target": "State what fraction of the agreed population was streamed, how many records were malformed and why, and what the token budget dropped - so a consumer knows what the bounded corpus does NOT contain.",
+        "inputs": [
+          "command-center/corpus/bounded-corpus-distillation/probe-a-enumeration.json",
+          "command-center/corpus/bounded-corpus-distillation/probe-b-enumeration.json",
+          "command-center/corpus/bounded-corpus-distillation/shards/extraction.jsonl",
+          "command-center/corpus/bounded-corpus-distillation/dropped-tail.json"
+        ],
+        "dependencies": [
+          "DAT-7301",
+          "DAT-7302",
+          "DAT-7303",
+          "DAT-7304"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reporter",
+          "basis": "the reconciliation is the honesty-bearing step and is not delegated to the streamer that produced the numbers"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/corpus/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/corpus/bounded-corpus-distillation/coverage-report.json",
+        "output_schema": "command-center/schema/coverage-map.schema.json",
+        "evidence_requirement": "a per-root table of enumerated / streamed / extracted / malformed / dropped counts that arithmetically reconciles, with any unreconciled remainder named rather than absorbed",
+        "tests_required": [
+          "the report FAILS when a shard's counts do not reconcile, rather than reporting a rounded coverage figure",
+          "a root that was quarantined appears as UNSTREAMED, never as covered"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who recomputes the arithmetic from the shard files",
+        "completion_sentinel": "SUCCESS:DAT-7305 emitted only when every root is classified as streamed, partially streamed or UNSTREAMED and the counts reconcile; otherwise FAILED:DAT-7305 <reason>",
+        "retry_policy": "none: a reconciliation failure is a finding to report, not an operation to retry",
+        "failure_classification": [
+          "coverage-unreconciled",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "arithmetic reconciliation of enumeration against extraction against truncation"
+      },
+      "produces": [
+        {
+          "path": "command-center/corpus/bounded-corpus-distillation/coverage-report.json",
+          "schema_ref": "command-center/schema/coverage-map.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7305",
+          "consumers": [
+            "coverage-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "coverage-gate",
+      "title": "A silent skip is a coverage lie - assert the honesty properties",
+      "kind": "gate",
+      "depends_on": [
+        "coverage-report"
+      ],
+      "gate_ref": "coverage-honest"
+    },
+    {
+      "id": "distillation-complete",
+      "title": "The one shared 12-condition completion predicate",
+      "kind": "gate",
+      "depends_on": [
+        "coverage-gate"
+      ],
+      "gate_ref": "unit-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "corpus-streamed",
+      "expression": "records_streamed >= records_enumerated AND coverage_reported == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "probe_a_count == probe_b_count",
+      "on_stop": "complete"
+    },
+    {
+      "id": "probe-disagreement-halts",
+      "expression": "probe_a_count != probe_b_count",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "memory-pressure-degrades",
+      "expression": "peak_memory_mb >= max_memory_mb",
+      "applies_to": "stage",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 15,
+    "jitter": true,
+    "retry_on": [
+      "memory-pressure",
+      "record-parse-failure"
+    ],
+    "no_retry_on": [
+      "coverage-unreconciled",
+      "population-ambiguous"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "probe-agreement"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "memory-pressure",
+      "record-parse-failure",
+      "coverage-unreconciled",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "probe-agreement",
+    "quarantine_path": "command-center/corpus/bounded-corpus-distillation/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/corpus/bounded-corpus-distillation/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/corpus/bounded-corpus-distillation/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "params_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/corpus/bounded-corpus-distillation/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/corpus/bounded-corpus-distillation/dry-run-plan.json",
+    "forbid_tools": [
+      "Write(command-center/corpus/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.9,
+      "max": 4.0
+    },
+    "wallclock_seconds": {
+      "expected": 2400,
+      "max": 10800
+    },
+    "tokens": {
+      "expected": 250000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/corpus/bounded-corpus-distillation/**; the source corpus is opened read-only",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/corpus/bounded-corpus-distillation/export/bounded-corpus-distillation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-02",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "07f465f3:tools/harness-corpus",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-agent-journal-corpus",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/repomap",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/harness-corpus@07f465f3"
+    ]
+  },
+  "outputs": {
+    "bounded_corpus": {
+      "path": "command-center/corpus/bounded-corpus-distillation/bounded-corpus.json",
+      "schema_ref": "command-center/schema/router-corpus.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "rules-distill-sweep"
+      ]
+    },
+    "coverage_stats": {
+      "path": "command-center/corpus/bounded-corpus-distillation/coverage-report.json",
+      "schema_ref": "command-center/schema/coverage-map.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "skipped_reasons": {
+      "path": "command-center/corpus/bounded-corpus-distillation/dropped-tail.json",
+      "schema_ref": "command-center/schema/digest-loss-report.schema.json",
+      "min_bytes": 64,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DAT-02",
+      "card_index_in_library": 73,
+      "family": "D14-data",
+      "primary_category": "data-science-knowledge-and-creative",
+      "mechanism_signature": [
+        "two-probe-enumeration-agreement-gate",
+        "bounded-memory-streaming-extraction",
+        "ranked-truncation-to-token-budget",
+        "counted-malformed-records",
+        "dropped-tail-ledger"
+      ],
+      "worked_example": {
+        "scenario": "Distil the 344 surviving workflow scripts named by BP-GEM-05 into a 120k-token corpus.",
+        "params": {
+          "corpus_roots": [
+            "command-center/corpus/workflow-scripts"
+          ],
+          "token_budget": 120000,
+          "extraction_schema": "command-center/schema/router-corpus.schema.json",
+          "max_memory_mb": 512,
+          "rank_strategy": "reference-degree",
+          "second_probe_source": "run-directory-index"
+        },
+        "expected_trace": [
+          "enumerate-glob -> probe_a_count = 344",
+          "enumerate-independent -> probe_b_count = 344 via the run-directory index",
+          "probe-agreement -> PASS (equal); had the glob returned 11335 as it once did, this gate HALTS the run instead of distilling a phantom population",
+          "stream-extract -> 4 concurrent shards, 344 records seen, 341 extracted, 3 malformed each with a reason",
+          "bound-to-budget -> pass 1 selects 402k tokens (over budget); pass 2 selects 118k and writes 197 records to dropped-tail.json",
+          "coverage-report -> enumerated 344 / streamed 344 / extracted 341 / malformed 3 / dropped 197, reconciled",
+          "coverage-gate -> PASS; distillation-complete -> SUCCESS"
+        ],
+        "expected_terminal_state": "SUCCESS:DAT-7305"
+      },
+      "unverified": "UNVERIFIED that the harness-corpus machinery transfers to the WORKFLOW population it was not built for; settling experiment = distil the 344 surviving workflow scripts and reconcile this coverage report against BP-GEM-05's index, which is a mechanically different count.",
+      "distinct_from": {
+        "BP-GEM-05": "that one mines for workflow TOPOLOGIES; this is the general bounded-distillation machinery any corpus can use",
+        "BP-MNT-06": "that one decides WHETHER to snapshot a decaying corpus; this one distils a corpus it is handed",
+        "bp-dat-04": "no cost tiers and no funnel - this bounds by TOKENS, not by spend"
+      },
+      "flagship_test": "platform/lib/workflows/test_bounded_corpus_distillation.py"
+    }
+  }
+}

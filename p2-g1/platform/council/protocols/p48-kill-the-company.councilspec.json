@@ -1,0 +1,437 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p48-kill-the-company",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Task the seats with destroying the estate's own capability, then invert the attack list into a ranked defence backlog.",
+    "charter": "Bodell kill-the-company, aimed at the harness rather than an artifact. Each attack must name the concrete file, task or config it would touch; the backlog is ranked by how CHEAPLY the attack succeeds.",
+    "risk_tier": "high",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "every attack names a concrete file, task or config",
+      "at least one attack maps to an already-known real incident",
+      "the attack list inverted into a defence backlog ranked by attack cheapness"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "forbidden_actions": [
+        "executing any attack against the live estate",
+        "targeting any system the owner does not control"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5,
+      "max_share_per_vendor": 0.5
+    },
+    "roster": [
+      {
+        "participant_id": "attacker-1",
+        "role": "red_team",
+        "expertise": [
+          "harness internals",
+          "hooks and gates"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "context": {
+          "briefing": "Design the change that would most damage this estate's capability. Name the file, task or config. Paper attacks are rejected."
+        }
+      },
+      {
+        "participant_id": "attacker-2",
+        "role": "red_team",
+        "expertise": [
+          "supply chain",
+          "marketplace and plugins"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "attacker-3",
+        "role": "red_team",
+        "expertise": [
+          "credentials and sessions"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "defender-1",
+        "role": "blue_team",
+        "expertise": [
+          "detection and gates"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "defender-2",
+        "role": "blue_team",
+        "expertise": [
+          "recovery and rollback"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "calibration-auditor",
+        "role": "calibrator",
+        "expertise": [
+          "incident history",
+          "attack plausibility"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "tools": [
+          "attack_ledger"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      }
+    ],
+    "recruitment": {
+      "dynamic": true,
+      "triggers": [
+        "low_novelty",
+        "fast_unanimity",
+        "missing_expertise"
+      ],
+      "max_recruits": 3
+    },
+    "anonymity": {
+      "mode": "pseudonymous",
+      "reveal_after_round": 2
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "topology": {
+    "kind": "red_blue"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "attack-generation",
+        "rounds": 3,
+        "independent": true,
+        "anonymous": true,
+        "participants": [
+          "attacker-1",
+          "attacker-2",
+          "attacker-3"
+        ],
+        "quotas": {
+          "ideas_per_participant": 8,
+          "novel_ideas_per_round": 3
+        }
+      },
+      {
+        "kind": "war_game",
+        "stage_id": "attack-vs-defence",
+        "rounds": 2,
+        "quotas": {
+          "counterexamples_per_round": 2,
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "invert",
+        "custom_name": "attack-list-to-defence-backlog",
+        "rounds": 1,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:attacks_without_concrete_target",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "attack_ledger",
+              "note": "Card failure mode: produces fantasy attacks. Every attack must name the concrete file, task or config it would touch."
+            },
+            {
+              "metric": "custom:attacks_matching_known_incident",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number",
+              "producer": "attack_ledger.calibration_probe",
+              "note": "Card proof gate: at least one attack must map to an already-known real incident (e.g. install.py replacing the hooks key), proving the lens is calibrated rather than imaginative."
+            },
+            {
+              "metric": "custom:defence_items_without_cost_estimate",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "attack_ledger",
+              "note": "Ranking is by how CHEAPLY the attack succeeds, so a defence item without an attack-cost estimate cannot be ranked."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "defence-backlog"
+      }
+    ],
+    "speaking_order": "random",
+    "rounds": {
+      "min": 3,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 300
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "forced_dissent": true
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 4,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "xhigh",
+    "time_minutes": 120,
+    "turns": 48,
+    "speaking_quota_per_participant": 9,
+    "min_engagement_turns": 3,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 24,
+    "raw_ideas": 40,
+    "categories": 5,
+    "novelty_ratio": 0.6,
+    "diversity_index": 0.65,
+    "counterexamples": 6,
+    "objections": 10,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.75,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "bayesian",
+    "belief_aggregation": {
+      "method": "logarithmic_pool",
+      "require_confidence_per_vote": true,
+      "calibration_source": "attack_ledger.calibration_probe"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.5,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "unique_ideas >= 20 AND novelty_ratio >= 0.6 AND categories_covered >= 5 AND all_participants_spoke == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 20
+        },
+        {
+          "metric": "novelty_ratio",
+          "op": ">=",
+          "value": 0.6
+        },
+        {
+          "metric": "categories_covered",
+          "op": ">=",
+          "value": 5
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4,
+      "min_minutes": 20,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 120,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "each top-ranked defence item assigned an owner and a detector"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.8
+    },
+    "resolution": [
+      "rotate_roles",
+      "recruit_independent_critic",
+      "forced_dissent",
+      "strongest_counterexample",
+      "narrow_scope"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "echo_chamber",
+      "instant_unanimity",
+      "premature_convergence",
+      "role_collapse",
+      "participant_dominance",
+      "hallucinated_expertise",
+      "lost_dissent",
+      "weak_synthesis"
+    ],
+    "fast_unanimity_response": [
+      "role_rotation",
+      "forced_dissent",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_ledger",
+      "idea_catalog",
+      "option_cards",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "action_plan",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P48 kill-the-company",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:883-897",
+      "_USER-PROMPTS.md:10929",
+      "_USER-PROMPTS.md:11236-11237"
+    ],
+    "lineage": [
+      "P48 kill-the-company",
+      "Lisa Bodell kill-the-company exercise"
+    ],
+    "notes": "Role collapse is the signature failure of this protocol (attackers start defending what they know), so attack generation runs anonymous and INDEPENDENT before red meets blue, role_collapse is a declared control, and role_rotation leads the fast-unanimity response. objective.owner_constraints forbids executing any attack and forbids non-owner targets - the exercise produces a backlog, never an action. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

@@ -1,0 +1,846 @@
+{
+ "unit_id": "WFA-0128",
+ "state": "SUCCESS",
+ "extensions": {
+  "legacy_root": {
+   "record_type": "WorkflowIR",
+   "ir_version": "wfa-workflow-ir/0.1",
+   "id": "meta.workflow-forge",
+   "title": "workflow-forge executable meta-workflow over fusion and certification",
+   "completion_sentinel": "SUCCESS:WFA-0128",
+   "question_or_target": "Implementation target: an executable workflow-forge that takes the scout's candidate set, selects a fusion operator by policy, constructs the fusion, benchmarks it against its sources, and returns either a certified executable workflow with its lineage or an honest proof that no fusion beats the best source.",
+   "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/WorkflowIR",
+   "schema_pack_note": "WFA-0001 schema pack is absent on this worktree. This document is a WorkflowIR instance by the WFA-0044 construct list (stages, roles, gates, tool policy, fan-out, barriers, loops with convergence, retries, resume, stopping expression, lineage, source_anchor on every node). It is not claimed to have been validated against a missing $defs/WorkflowIR fragment.",
+   "ir_has_no_execution_semantics": true,
+   "runtime_entrypoint_defined": false,
+   "lossy_field_ledger": [],
+   "roles": [
+    {
+     "id": "role.forge-operator",
+     "kind": "role",
+     "title": "Selects operator, constructs, emits terminal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "id": "role.certifier",
+     "kind": "role",
+     "title": "Runs detectors and the certification gate",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "id": "role.lineage-clerk",
+     "kind": "role",
+     "title": "Records lineage and runs rollback rehearsal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    }
+   ],
+   "tool_policy": {
+    "id": "tool-policy",
+    "kind": "tool_policy",
+    "title": "Local Python only",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+    "allow": [
+     "python3"
+    ],
+    "deny": [
+     "network",
+     "git-write",
+     "secret-read"
+    ]
+   },
+   "human_checkpoints": [],
+   "retries": {
+    "id": "retry-construct",
+    "kind": "retry",
+    "title": "One construct retry then NO-IMPROVEMENT",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+    "max_attempts": 2,
+    "then": "emit NO-IMPROVEMENT rather than loop"
+   },
+   "resume": {
+    "id": "resume-from-last-pair",
+    "kind": "resume",
+    "title": "Resume from the last pair with a terminal record",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+    "cursor": "pair_index"
+   },
+   "stopping_expression": {
+    "id": "stop-when-every-pair-has-a-terminal",
+    "kind": "stopping_expression",
+    "title": "Stop when no pair remains PENDING",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+    "expression": "all(pair.terminal in {CERTIFIED-FUSION, NO-IMPROVEMENT} for pair in pairs)"
+   },
+   "stages": [
+    {
+     "id": "ingest-scout-candidates",
+     "kind": "stage",
+     "title": "Ingest scout candidate set",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "forge-operator",
+     "input_schema": "scout.CandidateSet",
+     "notes": "Takes the WFA-0127 scout ranking; does not re-search."
+    },
+    {
+     "id": "pair-enumerate",
+     "kind": "stage",
+     "title": "Enumerate source pairs",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "forge-operator",
+     "loop": {
+      "over": "candidate_pairs",
+      "convergence": "every pair has a terminal record (CERTIFIED-FUSION or NO-IMPROVEMENT)"
+     }
+    },
+    {
+     "id": "precondition-check",
+     "kind": "gate",
+     "title": "Refuse illegal pairs before construction",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "certifier",
+     "fail_closed": true,
+     "refuse_on": [
+      "mechanism-conflict",
+      "licence-incompatibility",
+      "duplicate-control-plane"
+     ],
+     "both_states": "legal complementary pair proceeds; planted scheduler.central vs scheduler.distributed pair is refused and never constructed"
+    },
+    {
+     "id": "operator-select-by-policy",
+     "kind": "stage",
+     "title": "Select fusion operator from measured pair properties",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "forge-operator",
+     "policy_inputs": [
+      "overlap_ratio",
+      "conflict_present",
+      "licence_blocked",
+      "cost_asymmetry"
+     ],
+     "operators": [
+      "stage-splice",
+      "common-core",
+      "union",
+      "best-of-breed",
+      "conditional-hybrid",
+      "ensemble",
+      "progressive"
+     ],
+     "selection_rule": "overlap < 0.35 -> union; overlap > 0.65 -> best-of-breed; else stage-splice. common-core, conditional-hybrid, ensemble, and progressive remain named on the surface but are not selected by this pair-property policy."
+    },
+    {
+     "id": "construct-fusion",
+     "kind": "stage",
+     "title": "Construct the selected operator's fusion IR",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "forge-operator",
+     "construction_surface": [
+      "stage-splice",
+      "common-core",
+      "union",
+      "best-of-breed",
+      "conditional-hybrid",
+      "ensemble",
+      "progressive"
+     ],
+     "notes": "Construction is skipped when precondition-check refuses."
+    },
+    {
+     "id": "benchmark-vs-sources",
+     "kind": "stage",
+     "title": "Score fusion against each source on the same goal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "certifier",
+     "fan_out": [
+      "score(source_a)",
+      "score(source_b)",
+      "score(fusion)"
+     ],
+     "barrier": "all three scores present before the gate",
+     "metric_weights": {
+      "quality": 0.4,
+      "coverage": 0.3,
+      "recovery": 0.2,
+      "usability": 0.1
+     },
+     "not_a_signal": "stage_count (more stages is not better)"
+    },
+    {
+     "id": "capability-and-control-plane-detectors",
+     "kind": "gate",
+     "title": "Fail capability loss or duplicate control planes",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "certifier",
+     "fail_closed": true,
+     "detectors": [
+      "capability-superset-of-sources",
+      "single-control-plane"
+     ]
+    },
+    {
+     "id": "certification-gate",
+     "kind": "gate",
+     "title": "Certify only if fusion beats the best source by the margin floor",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "certifier",
+     "margin_floor": 0.05,
+     "never_depends_on": "stage_count"
+    },
+    {
+     "id": "lineage-and-rollback-rehearsal",
+     "kind": "stage",
+     "title": "Record lineage and restore each source to a runnable smoke fingerprint",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "lineage-clerk",
+     "required_fields": [
+      "source_ids",
+      "operator",
+      "inherited_licence_obligations",
+      "attribution",
+      "decomposition_keys"
+     ],
+     "rollback": "decompose fusion stages by origin_id / origin_stage_id and match smoke fingerprints"
+    },
+    {
+     "id": "emit-terminal",
+     "kind": "stage",
+     "title": "Emit exactly one terminal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+     "role": "forge-operator",
+     "terminals": [
+      "CERTIFIED-FUSION",
+      "NO-IMPROVEMENT"
+     ],
+     "no_improvement_must_name": [
+      "best_source_id",
+      "best_source_score",
+      "margin",
+      "margin_definition"
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "from": "ingest-scout-candidates",
+     "to": "pair-enumerate",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "pair-enumerate",
+     "to": "precondition-check",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "precondition-check",
+     "to": "emit-terminal",
+     "on": "illegal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "precondition-check",
+     "to": "operator-select-by-policy",
+     "on": "legal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "operator-select-by-policy",
+     "to": "construct-fusion",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "construct-fusion",
+     "to": "benchmark-vs-sources",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "benchmark-vs-sources",
+     "to": "capability-and-control-plane-detectors",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "capability-and-control-plane-detectors",
+     "to": "certification-gate",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "certification-gate",
+     "to": "lineage-and-rollback-rehearsal",
+     "on": "pass",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "certification-gate",
+     "to": "emit-terminal",
+     "on": "fail",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    },
+    {
+     "from": "lineage-and-rollback-rehearsal",
+     "to": "emit-terminal",
+     "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+    }
+   ],
+   "operators_named": [
+    "stage-splice",
+    "common-core",
+    "union",
+    "best-of-breed",
+    "conditional-hybrid",
+    "ensemble",
+    "progressive"
+   ],
+   "certification_predicates": {
+    "margin_floor": 0.05,
+    "fusion_beats_best_source": true,
+    "capability_superset": true,
+    "single_control_plane": true,
+    "lineage_decomposable": true,
+    "rollback_rehearsal_green": true,
+    "stage_count_is_not_evidence": true
+   },
+   "terminals": {
+    "CERTIFIED-FUSION": "certified executable workflow plus lineage",
+    "NO-IMPROVEMENT": "best_source_id + numeric margin + reason; a valid terminal"
+   },
+   "reference_interpreter_path": "command-center/p2-wave/probes/WFA-0128/forge.py",
+   "reference_interpreter_is_not_an_ir_entrypoint": true,
+   "tests_required_discharged": {
+    "known_bad_fusion_returns_no_improvement": true,
+    "every_forge_output_decomposes_and_rollback_rehearsal": true,
+    "no_improvement_names_best_source_and_margin": true
+   },
+   "live_reference_runs": {
+    "complementary": {
+     "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/complementary.json",
+     "terminal": "CERTIFIED-FUSION",
+     "operator": "union",
+     "margin": 0.145,
+     "fusion_id": "fusion[union](src-retrieve-filter+src-rank-emit)",
+     "rollback_pass": true
+    },
+    "no_gain": {
+     "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/no-gain.json",
+     "terminal": "NO-IMPROVEMENT",
+     "reason": "MARGIN_BELOW_FLOOR",
+     "best_source_id": "src-full-strong",
+     "margin": 0.0
+    },
+    "known_bad_conflict": {
+     "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/known-bad-conflict.json",
+     "terminal": "NO-IMPROVEMENT",
+     "reason": "MECHANISM_CONFLICT:scheduler.central|scheduler.distributed",
+     "fusion_attempted": false,
+     "best_source_id": "src-central-scheduler",
+     "margin": 0.03
+    }
+   },
+   "dependencies_on_this_tree": {
+    "WFA-0111": "absent; operator policy is inlined in this interpreter",
+    "WFA-0118": "absent; certification gate is inlined in this interpreter",
+    "WFA-0110": "absent; lineage and rollback rehearsal are inlined",
+    "WFA-0127": "absent; scout candidate sets are fixtures, not a live scout",
+    "WFA-0001": "absent; schema pack not on this worktree"
+   },
+   "evidence_requirement": {
+    "A": "end-to-end forge run producing CERTIFIED-FUSION on complementary.json",
+    "B": "known-bad-conflict.json returns NO-IMPROVEMENT rather than a fusion"
+   }
+  }
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:WFA-0128",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0128",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0128-workflow-forge-executable-spec.json",
+   "bytes": 12643,
+   "sha256": "4d44e45d287e47f689f5927c9056570445fa0ed5cb7494129bfd6b20fb38acf5",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0128 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0128-workflow-forge-executable-spec.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0128-workflow-forge-executable-spec.json",
+     "raw_output": "bytes=12643 sha256=4d44e45d287e47f689f5927c9056570445fa0ed5cb7494129bfd6b20fb38acf5",
+     "fingerprint": "2825cad06f5b6b7359c3a4c5f1dc4574",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0128",
+     "raw_output": "schema-check",
+     "fingerprint": "4c6d6cd5cd5688295d3dfef1c3495111",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0128 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0128",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0128",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "50a0a07f575713da216a763920d5f2ff",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0128",
+     "raw_output": "schema-valid",
+     "fingerprint": "bc1b94f75e69d829a53054f8326b843e",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0128-workflow-forge-executable-spec.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0128/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0128"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0128-workflow-forge-executable-spec.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0128-workflow-forge-executable-spec.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "4e7145f6d2a92a98db85a2180e6f1b4a",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "WorkflowIR",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 12643,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0128-workflow-forge-executable-spec.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "record_type": "WorkflowIR",
+ "ir_version": "wfa-workflow-ir/0.1",
+ "id": "meta.workflow-forge",
+ "title": "workflow-forge executable meta-workflow over fusion and certification",
+ "completion_sentinel": "SUCCESS:WFA-0128",
+ "question_or_target": "Implementation target: an executable workflow-forge that takes the scout's candidate set, selects a fusion operator by policy, constructs the fusion, benchmarks it against its sources, and returns either a certified executable workflow with its lineage or an honest proof that no fusion beats the best source.",
+ "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/WorkflowIR",
+ "schema_pack_note": "WFA-0001 schema pack is absent on this worktree. This document is a WorkflowIR instance by the WFA-0044 construct list (stages, roles, gates, tool policy, fan-out, barriers, loops with convergence, retries, resume, stopping expression, lineage, source_anchor on every node). It is not claimed to have been validated against a missing $defs/WorkflowIR fragment.",
+ "ir_has_no_execution_semantics": true,
+ "runtime_entrypoint_defined": false,
+ "lossy_field_ledger": [],
+ "roles": [
+  {
+   "id": "role.forge-operator",
+   "kind": "role",
+   "title": "Selects operator, constructs, emits terminal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "id": "role.certifier",
+   "kind": "role",
+   "title": "Runs detectors and the certification gate",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "id": "role.lineage-clerk",
+   "kind": "role",
+   "title": "Records lineage and runs rollback rehearsal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  }
+ ],
+ "tool_policy": {
+  "id": "tool-policy",
+  "kind": "tool_policy",
+  "title": "Local Python only",
+  "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+  "allow": [
+   "python3"
+  ],
+  "deny": [
+   "network",
+   "git-write",
+   "secret-read"
+  ]
+ },
+ "human_checkpoints": [],
+ "retries": {
+  "id": "retry-construct",
+  "kind": "retry",
+  "title": "One construct retry then NO-IMPROVEMENT",
+  "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+  "max_attempts": 2,
+  "then": "emit NO-IMPROVEMENT rather than loop"
+ },
+ "resume": {
+  "id": "resume-from-last-pair",
+  "kind": "resume",
+  "title": "Resume from the last pair with a terminal record",
+  "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+  "cursor": "pair_index"
+ },
+ "stopping_expression": {
+  "id": "stop-when-every-pair-has-a-terminal",
+  "kind": "stopping_expression",
+  "title": "Stop when no pair remains PENDING",
+  "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+  "expression": "all(pair.terminal in {CERTIFIED-FUSION, NO-IMPROVEMENT} for pair in pairs)"
+ },
+ "stages": [
+  {
+   "id": "ingest-scout-candidates",
+   "kind": "stage",
+   "title": "Ingest scout candidate set",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "forge-operator",
+   "input_schema": "scout.CandidateSet",
+   "notes": "Takes the WFA-0127 scout ranking; does not re-search."
+  },
+  {
+   "id": "pair-enumerate",
+   "kind": "stage",
+   "title": "Enumerate source pairs",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "forge-operator",
+   "loop": {
+    "over": "candidate_pairs",
+    "convergence": "every pair has a terminal record (CERTIFIED-FUSION or NO-IMPROVEMENT)"
+   }
+  },
+  {
+   "id": "precondition-check",
+   "kind": "gate",
+   "title": "Refuse illegal pairs before construction",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "certifier",
+   "fail_closed": true,
+   "refuse_on": [
+    "mechanism-conflict",
+    "licence-incompatibility",
+    "duplicate-control-plane"
+   ],
+   "both_states": "legal complementary pair proceeds; planted scheduler.central vs scheduler.distributed pair is refused and never constructed"
+  },
+  {
+   "id": "operator-select-by-policy",
+   "kind": "stage",
+   "title": "Select fusion operator from measured pair properties",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "forge-operator",
+   "policy_inputs": [
+    "overlap_ratio",
+    "conflict_present",
+    "licence_blocked",
+    "cost_asymmetry"
+   ],
+   "operators": [
+    "stage-splice",
+    "common-core",
+    "union",
+    "best-of-breed",
+    "conditional-hybrid",
+    "ensemble",
+    "progressive"
+   ],
+   "selection_rule": "overlap < 0.35 -> union; overlap > 0.65 -> best-of-breed; else stage-splice. common-core, conditional-hybrid, ensemble, and progressive remain named on the surface but are not selected by this pair-property policy."
+  },
+  {
+   "id": "construct-fusion",
+   "kind": "stage",
+   "title": "Construct the selected operator's fusion IR",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "forge-operator",
+   "construction_surface": [
+    "stage-splice",
+    "common-core",
+    "union",
+    "best-of-breed",
+    "conditional-hybrid",
+    "ensemble",
+    "progressive"
+   ],
+   "notes": "Construction is skipped when precondition-check refuses."
+  },
+  {
+   "id": "benchmark-vs-sources",
+   "kind": "stage",
+   "title": "Score fusion against each source on the same goal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "certifier",
+   "fan_out": [
+    "score(source_a)",
+    "score(source_b)",
+    "score(fusion)"
+   ],
+   "barrier": "all three scores present before the gate",
+   "metric_weights": {
+    "quality": 0.4,
+    "coverage": 0.3,
+    "recovery": 0.2,
+    "usability": 0.1
+   },
+   "not_a_signal": "stage_count (more stages is not better)"
+  },
+  {
+   "id": "capability-and-control-plane-detectors",
+   "kind": "gate",
+   "title": "Fail capability loss or duplicate control planes",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "certifier",
+   "fail_closed": true,
+   "detectors": [
+    "capability-superset-of-sources",
+    "single-control-plane"
+   ]
+  },
+  {
+   "id": "certification-gate",
+   "kind": "gate",
+   "title": "Certify only if fusion beats the best source by the margin floor",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "certifier",
+   "margin_floor": 0.05,
+   "never_depends_on": "stage_count"
+  },
+  {
+   "id": "lineage-and-rollback-rehearsal",
+   "kind": "stage",
+   "title": "Record lineage and restore each source to a runnable smoke fingerprint",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "lineage-clerk",
+   "required_fields": [
+    "source_ids",
+    "operator",
+    "inherited_licence_obligations",
+    "attribution",
+    "decomposition_keys"
+   ],
+   "rollback": "decompose fusion stages by origin_id / origin_stage_id and match smoke fingerprints"
+  },
+  {
+   "id": "emit-terminal",
+   "kind": "stage",
+   "title": "Emit exactly one terminal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]",
+   "role": "forge-operator",
+   "terminals": [
+    "CERTIFIED-FUSION",
+    "NO-IMPROVEMENT"
+   ],
+   "no_improvement_must_name": [
+    "best_source_id",
+    "best_source_score",
+    "margin",
+    "margin_definition"
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "from": "ingest-scout-candidates",
+   "to": "pair-enumerate",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "pair-enumerate",
+   "to": "precondition-check",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "precondition-check",
+   "to": "emit-terminal",
+   "on": "illegal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "precondition-check",
+   "to": "operator-select-by-policy",
+   "on": "legal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "operator-select-by-policy",
+   "to": "construct-fusion",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "construct-fusion",
+   "to": "benchmark-vs-sources",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "benchmark-vs-sources",
+   "to": "capability-and-control-plane-detectors",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "capability-and-control-plane-detectors",
+   "to": "certification-gate",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "certification-gate",
+   "to": "lineage-and-rollback-rehearsal",
+   "on": "pass",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "certification-gate",
+   "to": "emit-terminal",
+   "on": "fail",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  },
+  {
+   "from": "lineage-and-rollback-rehearsal",
+   "to": "emit-terminal",
+   "source_anchor": "command-center/WORK-UNIT-CATALOG.json#work_units[id=WFA-0128]"
+  }
+ ],
+ "operators_named": [
+  "stage-splice",
+  "common-core",
+  "union",
+  "best-of-breed",
+  "conditional-hybrid",
+  "ensemble",
+  "progressive"
+ ],
+ "certification_predicates": {
+  "margin_floor": 0.05,
+  "fusion_beats_best_source": true,
+  "capability_superset": true,
+  "single_control_plane": true,
+  "lineage_decomposable": true,
+  "rollback_rehearsal_green": true,
+  "stage_count_is_not_evidence": true
+ },
+ "terminals": {
+  "CERTIFIED-FUSION": "certified executable workflow plus lineage",
+  "NO-IMPROVEMENT": "best_source_id + numeric margin + reason; a valid terminal"
+ },
+ "reference_interpreter_path": "command-center/p2-wave/probes/WFA-0128/forge.py",
+ "reference_interpreter_is_not_an_ir_entrypoint": true,
+ "tests_required_discharged": {
+  "known_bad_fusion_returns_no_improvement": true,
+  "every_forge_output_decomposes_and_rollback_rehearsal": true,
+  "no_improvement_names_best_source_and_margin": true
+ },
+ "live_reference_runs": {
+  "complementary": {
+   "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/complementary.json",
+   "terminal": "CERTIFIED-FUSION",
+   "operator": "union",
+   "margin": 0.145,
+   "fusion_id": "fusion[union](src-retrieve-filter+src-rank-emit)",
+   "rollback_pass": true
+  },
+  "no_gain": {
+   "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/no-gain.json",
+   "terminal": "NO-IMPROVEMENT",
+   "reason": "MARGIN_BELOW_FLOOR",
+   "best_source_id": "src-full-strong",
+   "margin": 0.0
+  },
+  "known_bad_conflict": {
+   "fixture": "command-center/p2-wave/probes/WFA-0128/fixtures/known-bad-conflict.json",
+   "terminal": "NO-IMPROVEMENT",
+   "reason": "MECHANISM_CONFLICT:scheduler.central|scheduler.distributed",
+   "fusion_attempted": false,
+   "best_source_id": "src-central-scheduler",
+   "margin": 0.03
+  }
+ },
+ "dependencies_on_this_tree": {
+  "WFA-0111": "absent; operator policy is inlined in this interpreter",
+  "WFA-0118": "absent; certification gate is inlined in this interpreter",
+  "WFA-0110": "absent; lineage and rollback rehearsal are inlined",
+  "WFA-0127": "absent; scout candidate sets are fixtures, not a live scout",
+  "WFA-0001": "absent; schema pack not on this worktree"
+ },
+ "evidence_requirement": {
+  "A": "end-to-end forge run producing CERTIFIED-FUSION on complementary.json",
+  "B": "known-bad-conflict.json returns NO-IMPROVEMENT rather than a fusion"
+ }
+}

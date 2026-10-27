@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0161",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0161",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0161] and spec 11364-11370 (one foundation-level question, recommendation, strongest tradeoff, default if unanswered, settling-experiment cost)",
+  "min_bytes_threshold": 400,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CNF-0161.json",
+      "bytes": 11940,
+      "sha256": "86552c17beb60b54b58d279b78c9ef1b4c72e3d78557c995ad5c2de5d1b7073d",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/receipts/CNF-0161-owner-packet.md",
+      "bytes": 560,
+      "sha256": "06489bbeaba29c4ada06a3325eb708224893daf39b6392a4f9fefa6ecc4951db",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/schema/program-gate-report.schema.json",
+      "bytes": 1118,
+      "sha256": "56b9275eb8dfc2a06f7ab6a84bbba927c8146893b881c227d4ca754903871f3d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json",
+      "bytes": 3278,
+      "sha256": "26a679bdaf1cef85a3be316c7f2e0ee235a3c5773297956a2ed0fd92e385b2b1",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/OWNER-QUESTION-PACKET.md",
+      "bytes": 42300,
+      "sha256": "11e2f7c043aef633c120edd835967f5025cdb9cf8177fa29163bd10a2588598c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/OWNER-DECISIONS.md",
+      "bytes": 10332,
+      "sha256": "61c9201c6bd0cbb6ca4a71e203e59a968cb6fb8a7d195a5565439050079db89e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Each shippable packet entry has exactly one non-compound foundation-level question, a recommendation, the strongest tradeoff, a non-empty default, an impact statement, and a named settling experiment with cost.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0161/packet.py:validate_entry",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/CNF-0161/packet.py:validate_entry",
+          "raw_output": "fixture_entries=2 compound_rejected=true empty_default_rejected=true empty_impact_rejected=true",
+          "fingerprint": "843eb61bb6db615e90d38ca57da1706204ed0fea15e7ba81e63676439819b8e1"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe1_format.py",
+          "raw_output": "named probe 1 re-run after receipt write",
+          "fingerprint": "1129db59e7ac7155165c8ba11d4471163c9e97923fc9f90f6d2231151401153a",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A recorded owner answer closes the matching claim_id and question fingerprint on re-run; questions already answered in OWNER-DECISIONS.md are not re-asked.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0161/probe2_roundtrip.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe2_roundtrip.py",
+          "raw_output": "named probe 2 re-run after receipt write",
+          "fingerprint": "1a4fc1a6e66c19be3b62473685d74f2efc55183586ada00904203ba139c5acec",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/CNF-0161/packet.py:is_answered",
+          "raw_output": "live_answered_ids=['OQ-1', 'OQ-10', 'OQ-2', 'OQ-3', 'OQ-4', 'OQ-8', 'OQ-9']",
+          "fingerprint": "ed0d449bc427d8d6cba376179cd5f14e634545576c4e06408f78fca64404d58d"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "name": "Format: exactly one foundation-level question; compound fails",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe1_format.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T2",
+      "name": "Duplicate: answered OWNER-DECISIONS questions do not reappear",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe2_roundtrip.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T3",
+      "name": "Default: every entry has a non-empty default and impact",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe1_format.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T4",
+      "name": "Round-trip: a recorded answer closes the claim without re-asking",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe2_roundtrip.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-compound-question",
+      "kind": "malformed-input",
+      "description": "A packet entry whose question joins two interrogatives with 'and should' must be rejected as compound.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "compound-question",
+      "good_state_output": "fixture CLAIM-TRI-001 accepted"
+    },
+    {
+      "id": "NC-empty-default",
+      "kind": "malformed-input",
+      "description": "A packet entry with a whitespace-only default_if_unanswered is not shippable.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "default_if_unanswered-empty",
+      "good_state_output": "fixture defaults non-empty"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0161-probe2-owner-decisions-duplicate",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "vendor": "local",
+    "notes": "Catalog reviewer: check each question against OWNER-DECISIONS.md for prior settlement. Probe 2 is that reviewer. Estate OWNER-DECISIONS.md is parsed (table + Decision blocks) and is not overwritten.",
+    "reviewed_at": "2026-08-25T00:58:56Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0161/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0161",
+    "registered_at": "2026-08-25T00:58:56Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of catalog output_path",
+      "artifact_path": "command-center/receipts/CNF-0161.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "json.loads(command-center/receipts/CNF-0161.json)",
+        "raw_output": "json.loads ok unit_id=CNF-0161 bytes=11940",
+        "fingerprint": "5473b9220cdf571fd1e53b01a81a46ad758bb940f255c4791ce7a3f3f350e50f",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:56Z",
+    "ended_at": "2026-08-25T00:58:56Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run. Retry only for an infrastructure fault."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Production unresolved-list coverage from CNF-0160.json is NOT-CHECKED (CNF-0160 unresolved list is not on disk; claims are not invented). Claims were not invented.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place command-center/receipts/CNF-0160.json on disk and re-run emit_receipt.py; open entries must be the unresolved triangulation rows minus OWNER-DECISIONS.md answers."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "program-confirmer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "program-gate-report",
+    "title": "Owner escalation packet for claims no vendor can settle",
+    "question": "Implementation target: for every claim that survives vendor triangulation unresolved, produce a one-page owner packet containing exactly one foundation-level question, a recommendation, the strongest tradeoff, the default if unanswered, and the cost of the settling experiment - the format spec:11364-11370 mandates. Answers are recorded durably in OWNER-DECISIONS.md and never re-asked.",
+    "packet_path": "command-center/receipts/CNF-0161-owner-packet.md",
+    "decisions_path": "command-center/OWNER-DECISIONS.md",
+    "estate_packet_path": "command-center/OWNER-QUESTION-PACKET.md",
+    "estate_files_written": false,
+    "production_coverage": "NOT-CHECKED",
+    "production_coverage_reason": "CNF-0160 unresolved list is not on disk; claims are not invented",
+    "open_entry_count": 0,
+    "skipped_already_answered": [],
+    "packet_entries": [],
+    "input": {
+      "path": "command-center/receipts/CNF-0160.json",
+      "exists": false,
+      "status": "ABSENT",
+      "unresolved_claim_count": null
+    },
+    "fixture_demonstration": {
+      "path": "command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json",
+      "claim_ids": [
+        "CLAIM-TRI-001",
+        "CLAIM-TRI-002"
+      ],
+      "open_entry_count": 2,
+      "every_entry_has_default_and_impact": true,
+      "settle_claim_CLAIM-TRI-001": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/settle_claim.py --fixture command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json --claim CLAIM-TRI-001",
+        "exit_code": 0,
+        "output_tail": "{\"claim\": \"CLAIM-TRI-001\", \"unresolved\": true, \"reason\": \"status=AMBIGUOUS-CLAIM a=CONFIRMED b=REFUTED c=PARTIAL\"}"
+      }
+    },
+    "observations": [
+      {
+        "name": "production_unresolved_source",
+        "measured": "ABSENT",
+        "method": "file-read",
+        "anchor": "command-center/receipts/CNF-0160.json"
+      },
+      {
+        "name": "open_owner_questions",
+        "measured": 0,
+        "method": "static-analysis",
+        "anchor": "command-center/receipts/CNF-0161-owner-packet.md"
+      },
+      {
+        "name": "fixture_entries_shippable",
+        "measured": 2,
+        "method": "test-run",
+        "anchor": "command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json"
+      },
+      {
+        "name": "estate_owner_files_intact",
+        "measured": true,
+        "method": "file-read",
+        "anchor": "command-center/OWNER-QUESTION-PACKET.md"
+      }
+    ],
+    "control_ids": [
+      "NC-compound-question",
+      "NC-empty-default"
+    ]
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "format-default",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe1_format.py"
+      },
+      {
+        "id": "probe2",
+        "role": "duplicate-roundtrip",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/probe2_roundtrip.py"
+      }
+    ],
+    "does_not_claim": [
+      "CNF-0160 ran or produced an unresolved list on this worktree",
+      "the estate currently has zero unresolved triangulation claims",
+      "the owner answered any production CNF-0161 question",
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "estate OWNER-QUESTION-PACKET.md or OWNER-DECISIONS.md was rewritten"
+    ],
+    "output_schema": "command-center/schema/program-gate-report.schema.json",
+    "output_schema_note": "Catalog program-gate-report.schema.json is a generated shim. This receipt is validated against the unit-local schema at probes/CNF-0161/program-gate-report.local.schema.json."
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/work-unit-strict/1.0.0",
+  "title": "Work Unit - STRICT profile (normative + one canonical form per field)",
+  "description": "NORMATIVE profile plus: exactly one shape per field (no union), a sentinel that starts with the SUCCESS: terminal-state marker, and no undeclared properties. This is the profile NEW units must be authored against; it is deliberately stricter than the existing corpus so that the union shapes the corpus already contains are visible as a finite, countable migration debt rather than as an invisible norm.",
+  "allOf": [{ "$ref": "https://schema.ast-integrate.local/work-unit-normative/1.0.0" }],
+  "type": "object",
+  "properties": {
+    "assigned_model_vendor_role": {
+      "type": "object",
+      "$comment": "canonical: the object form. `type: object` selects the assignment_object branch of the base profile's oneOf, so that branch's required keys (model/vendor/role), its optional basis/rationale/co_assignments/multi_vendor_policy, and its additionalProperties:false all apply through the allOf chain - this profile does not restate them. The rejected 'model/vendor/role' slash-triple string is machine-splittable but loses the optional basis/rationale fields, cannot carry a value containing '/', and cannot express a second vendor at all. The live catalog was normalised to the object form; this field's contribution to the strict failure histogram is therefore 0, down from 128."
+    },
+    "tests_required": {
+      "type": "array",
+      "minItems": 1,
+      "$comment": "canonical: an array, so each required test is individually addressable by a runner. 96 units carry a single prose string instead."
+    },
+    "failure_classification": {
+      "type": "array",
+      "minItems": 1,
+      "$comment": "canonical: an array of class tokens, so a failure can be classified by set membership. 96 units carry a prose string instead."
+    },
+    "completion_sentinel": {
+      "type": "string",
+      "pattern": "^SUCCESS:[A-Z]{2,4}-[0-9]{4}\\b",
+      "$comment": "AGENTS.md 4 terminal-state discipline: the sentinel opens with SUCCESS:<unit-id>. Whether the id it names is its OWN id is a cross-field rule (SEM-002) that JSON Schema cannot express."
+    }
+  },
+  "unevaluatedProperties": false,
+  "$comment": "unevaluatedProperties:false composes over the whole allOf chain and rejects a misspelled field (e.g. 'dependencie'). TWO draft-2020-12 annotation facts make this subtle, both measured rather than assumed. (1) It only works because the structural profile omits `additionalProperties` - setting it to `true` would annotate every unknown property as evaluated and silently neutralise this keyword. (2) When the referenced normative profile FAILS, its annotations are discarded, so every property becomes unevaluated and this keyword also reports a violation at <root>. That secondary report is a CASCADE, not an independent unknown-property finding; wfdsl.validate reports strict failures that already fail normative separately so the cascade is never miscounted as a typo."
+}

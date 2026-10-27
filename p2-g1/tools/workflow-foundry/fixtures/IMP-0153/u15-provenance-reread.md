@@ -1,0 +1,1 @@
+Prove provenance by re-fetching. Sample ten records, re-read each file from the record alone, then compare the fresh hash to the recorded hash, and finally record the reproduction count in the receipt.

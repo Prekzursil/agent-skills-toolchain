@@ -1,0 +1,547 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "deep-research-with-repair",
+  "name": "Deep research with adversarial repair loop",
+  "description": "The conformance workhorse: one workflow that exercises every capability the spec requires of the DSL (_USER-PROMPTS.md:10875-10896). Every mutation in wfdsl.mutations is applied to THIS document, so each rejection is a same-document both-states control rather than a comparison between two unrelated files.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["research-and-evidence"],
+  "tags": ["deep-research", "cross-vendor", "conformance"],
+  "flagship": true,
+
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The owner question to research"
+    },
+    "max_sources": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 500,
+      "description": "Upper bound on sources reviewed"
+    },
+    "shards": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "description": "Fan-out shard keys - one research shard per entry"
+    },
+    "mode": {
+      "type": "enum",
+      "enum": ["broad", "targeted", "contradiction-hunt"],
+      "default": "broad",
+      "description": "Research mode (spec 10702-10715)"
+    },
+    "search_api_key": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference name of the search credential; the VALUE never enters an artifact, log, export bundle or replay journal"
+    },
+    "custom_filter": {
+      "type": "object",
+      "description": "Escape hatch: an inline JSON Schema for a filter too complex for the flat param form",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "min_year": { "type": "integer", "minimum": 1900 },
+          "languages": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+
+  "roles": {
+    "researcher": {
+      "description": "Gathers and normalises evidence; must cite file:line or a URL per claim",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "WebSearch", "mcp__search-hub__web_search_exa", "Write(command-center/research/**)"],
+      "write_paths": ["command-center/research/**"],
+      "speaking_rights": "always"
+    },
+    "refuter": {
+      "description": "Cross-vendor adversarial refuter; re-derives from raw artifacts, never from the researcher's summary",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "Bash:python", "mcp__codex__codex"],
+      "speaking_rights": "rebuttal-only"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may approve an irreversible action",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "Write(command-center/research/**)",
+      "Bash:python",
+      "mcp__search-hub__web_search_exa",
+      "mcp__codex__codex"
+    ],
+    "deny": ["Bash", "WebFetch"],
+    "require_owner_approval": ["Write(command-center/export/**)"],
+    "network": "read-only",
+    "write_paths": ["command-center/research/**", "command-center/adversarial/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "allow_domains": ["arxiv.org", "github.com", "docs.anthropic.com"],
+      "deny_domains": ["example-content-farm.invalid"],
+      "offline_only": false,
+      "license_allowlist": ["MIT", "Apache-2.0", "BSD-3-Clause", "CC-BY-4.0"],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == refuter",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "a same-vendor reviewer shares the author's blind spots"
+      },
+      {
+        "when": "estimated_tokens < 20000 AND risk == low",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+        "reason": "cheap deterministic sub-tasks do not need max effort"
+      }
+    ],
+    "fallbacks": [{ "model": "gpt-5-codex", "vendor": "openai" }],
+    "escalation": {
+      "on": ["failure", "reviewer-refuted", "quota-429"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "max" },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "coverage": {
+      "predicate": "coverage-threshold",
+      "expression": "coverage_lines >= 0.9 AND newly_uncovered_lines == 0",
+      "blocking": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "subworkflows": {
+    "source-quality-audit": {
+      "workflow_id": "source-quality-audit",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/source-quality-audit.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "scope",
+      "title": "Decompose the question",
+      "kind": "task",
+      "role": "researcher",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "RES-0002",
+        "title": "Scope the research question into answerable sub-questions",
+        "phase": "2",
+        "question_or_target": "Decompose the owner question into 5-9 independently answerable sub-questions, each carrying a named settling probe.",
+        "inputs": ["params.question", "command-center/PROGRAM-CHARTER.md"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "researcher",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Grep", "WebSearch"],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/research/RES-0002-scope.json",
+        "output_schema": "command-center/schema/research-claim-record.schema.json",
+        "evidence_requirement": "two mechanically independent signals per sub-question, each anchored to a file:line or a rerunnable command",
+        "tests_required": [
+          "both-states control: the coverage check must FAIL when one sub-question is deleted and pass when it is restored"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the decomposition",
+        "completion_sentinel": "SUCCESS:RES-0002 emitted only when the artifact exists, is non-empty, parses against output_schema, and every sub-question carries a named settling probe; otherwise FAILED:RES-0002 <reason>",
+        "retry_policy": "two strikes then pivot; enumerate at least two alternatives before a third attempt",
+        "failure_classification": ["spec-underspecified", "overclaim", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/research/RES-0002-scope.json",
+          "schema_ref": "command-center/schema/research-claim-record.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-0002",
+          "consumers": ["shard-research", "command-center/CLAIM-REGISTRY.json"]
+        }
+      ]
+    },
+    {
+      "id": "shard-research",
+      "title": "Fan out one research shard per key",
+      "kind": "fanout",
+      "depends_on": ["scope"],
+      "over": {
+        "source": "param",
+        "ref": "shards",
+        "item_var": "shard",
+        "key_field": "shard"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 250,
+      "max_items": 256,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "research-shard",
+          "kind": "task",
+          "role": "researcher",
+          "work_unit_ref": "RES-0001",
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": ["stage_id", "item_key", "params_hash", "model_id"],
+            "store": "command-center/cache/shards",
+            "ttl_seconds": 86400,
+            "verify_integrity": true
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.8,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": ["started in the background", "Check /codex:status"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "join",
+      "title": "Hard barrier before synthesis",
+      "kind": "barrier",
+      "depends_on": ["shard-research"],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": ["shard-research"],
+        "verify_artifact_exists": true
+      },
+      "joins": ["shard-research"]
+    },
+    {
+      "id": "audit",
+      "title": "Delegate source-quality audit to a child workflow",
+      "kind": "subworkflow",
+      "depends_on": ["join"],
+      "workflow": {
+        "workflow_id": "source-quality-audit",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": { "strict": true },
+      "isolation": "worktree",
+      "propagate_failure": true
+    },
+    {
+      "id": "converge",
+      "title": "Refute until counterexamples are resolved or the round budget is spent",
+      "kind": "loop",
+      "depends_on": ["audit"],
+      "loop_var": "round",
+      "body": [
+        {
+          "id": "refute",
+          "kind": "task",
+          "role": "refuter",
+          "work_unit_ref": "ADV-0001"
+        }
+      ],
+      "convergence": {
+        "max_iterations": 6,
+        "min_iterations": 2,
+        "converged_when": "unresolved_counterexamples == 0 AND evidence_saturation == true",
+        "no_progress_rounds": 2,
+        "metrics": [
+          { "name": "unresolved_counterexamples", "direction": "decrease", "target": 0 },
+          { "name": "evidence_saturation", "direction": "stabilize" }
+        ],
+        "on_no_convergence": "escalate"
+      }
+    },
+    {
+      "id": "quality-gate",
+      "title": "The one shared 12-condition completion predicate",
+      "kind": "gate",
+      "depends_on": ["converge"],
+      "gate_ref": "unit-complete"
+    },
+    {
+      "id": "repair",
+      "title": "Diagnose, repair, and INDEPENDENTLY verify a failed convergence",
+      "kind": "repair_loop",
+      "depends_on": ["quality-gate"],
+      "target": ["converge"],
+      "max_attempts": 3,
+      "classification_filter": ["detector-failure", "overclaim", "partial-artifact"],
+      "escalate_to": "owner-review",
+      "require_root_cause": true,
+      "diagnose": {
+        "id": "diagnose-failure",
+        "kind": "task",
+        "role": "refuter",
+        "work_unit_ref": "ADV-0002"
+      },
+      "repair": {
+        "id": "apply-repair",
+        "kind": "task",
+        "role": "researcher",
+        "work_unit_ref": "IMP-0001"
+      },
+      "verify": {
+        "id": "verify-repair",
+        "kind": "gate",
+        "gate": {
+          "predicate": "quality-gate",
+          "expression": "repair_verified == true AND regression_count == 0",
+          "blocking": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "council-review",
+      "title": "Council deliberation on the synthesised answer",
+      "kind": "council",
+      "depends_on": ["repair"],
+      "council_spec_ref": "command-center/schema/councilspec.v2.schema.json",
+      "participants_min": 3,
+      "participants_max": 7,
+      "stopping_rules": [
+        {
+          "id": "consensus-with-quiet-rounds",
+          "expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+          "applies_to": "council",
+          "on_stop": "complete"
+        }
+      ]
+    },
+    {
+      "id": "owner-review",
+      "title": "Human checkpoint before anything leaves the repo",
+      "kind": "human_checkpoint",
+      "depends_on": ["council-review"],
+      "prompt": "Approve publication of the research report, or return it with the objection that must be answered first.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "quorum": 1,
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": ["approve", "return-with-objection", "drop"],
+      "decision_artifact": {
+        "path": "command-center/decisions/owner-review-deep-research.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "evidence-saturated",
+      "expression": "evidence_saturation == true OR time_minutes >= 180",
+      "applies_to": "workflow",
+      "minimum_conditions": "sources_reviewed >= 10",
+      "on_stop": "complete"
+    },
+    {
+      "id": "impossibility-proved",
+      "expression": "proof_of_impossibility == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "weighted-quality",
+      "expression": {
+        "weighted": {
+          "terms": [
+            { "expr": "coverage_score >= 0.9", "weight": 0.5 },
+            { "expr": "independent_confirmations >= 2", "weight": 0.3 },
+            { "expr": { "not": "unresolved_p0_defect" }, "weight": 0.2 }
+          ],
+          "threshold": 0.8
+        }
+      },
+      "applies_to": "workflow"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": ["quota-429-storm", "source-unreachable", "severed-stream"],
+    "no_retry_on": ["owner-blocked", "legal-blocked"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-review"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["source-unavailable", "detector-failure", "partial-artifact"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-review",
+    "quarantine_path": "command-center/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/deep-research",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "workflow_version", "stage_id", "item_key", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 20260809,
+    "journal_path": "command-center/replay/deep-research.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "model_outputs", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": ["workflow_version", "stage_id", "params_hash", "inputs_hash", "model_id", "tool_versions"],
+    "store": "command-center/cache/deep-research",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": ["schema-version-change", "tool-version-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/deep-research-plan.json",
+    "forbid_tools": ["Write(command-center/research/**)", "Bash:python", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "historical-measured",
+    "confidence": "likely",
+    "measurement_source": "command-center/measurements/deep-research-runs.json",
+    "cost": { "currency": "USD", "min": 1.5, "expected": 4.0, "max": 12.0 },
+    "wallclock_seconds": { "min": 600, "expected": 2400, "max": 7200 },
+    "tokens": { "min": 200000, "expected": 900000, "max": 2500000 },
+    "tool_calls": { "expected": 220, "max": 900 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/research/** and command-center/adversarial/**",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "presets", "examples", "tests", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/deep-research.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": ["prekzursil"]
+      }
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/deep-research",
+        "relation": "EXTEND",
+        "license": "owner-proprietary",
+        "credit": "owner",
+        "url": "https://github.com/example/agent-skills-toolchain"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#deep-research",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/deep-research@1.0.0"]
+  },
+
+  "outputs": {
+    "report": {
+      "path": "command-center/research/deep-research-report.json",
+      "schema_ref": "command-center/schema/research-registry.schema.json",
+      "min_bytes": 2048,
+      "register_in_manifest": true,
+      "consumers": ["command-center/CLAIM-REGISTRY.json", "council-review"]
+    }
+  }
+}

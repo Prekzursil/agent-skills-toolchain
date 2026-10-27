@@ -1,0 +1,1 @@
+Splice a better stage into a workflow only after the contract check. Validate the donor's inputs and outputs against the neighbours, then emit the fused workflow, and finally run it on the fake rail to record the plan hash.

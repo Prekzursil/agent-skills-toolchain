@@ -1,0 +1,275 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-x49-mega-lens-fanout-100",
+  "preset": "innovation_moonshot_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Discover the full option space for a program by fanning 100 seats across distinct analytic lenses, then reduce to a tiered decision queue.",
+    "charter": "MANDATE. Run a program-scale discovery fan-out: 94 lens seats each read the problem through ONE declared lens, 2 grounding seats pin the shared ground truth so lens seats do not each re-derive it, 3 synthesisers reduce lens output into a tiered decision queue, and 1 adversarial reviewer attacks the synthesis with the siblings' FULL text in hand - never their digests. The council stops when every LANE clears its own completeness gate, not when the output reaches a byte count: a byte floor rewards padding and killed 84 of 85 terse-but-correct artifacts in the measured precedent. Volume is not evidence. A lane that honestly reports 'nothing found here' has cleared its gate.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "every declared lane reports a per-lane completeness verdict",
+      "no lane is gated on output size",
+      "the adversarial reviewer received full sibling text, not digests",
+      "the tiered queue is decomposable back to the lens that produced each item"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "score a lens seat on output volume",
+        "collapse two lenses into one seat to save budget"
+      ],
+      "budget_ceiling_tokens": 20000000
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["automatic", "expertise_ranked", "model_diverse", "vendor_diverse", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 100 },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 20,
+      "max_share_per_vendor": 0.85
+    },
+    "role_templates": ["custom:lens_seat", "custom:ground_truth", "synthesizer", "critic"],
+    "roster": [
+      {
+        "participant_id": "ground-1",
+        "display_name": "Grounding seat A - reads the shared substrate ONCE for everyone",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["repository archaeology", "shared grounding packs"],
+        "role": "custom:ground_truth",
+        "authority": "contributor",
+        "source_access": ["repo", "internal_docs"],
+        "effort": "high",
+        "context": {
+          "briefing": "Produce ONE pinned digest of the substrate every lens seat needs. Measured precedent: 16 of 25 seats independently re-read the same file and one re-read a single path 22 times; a grounding seat removes an estimated 60-90 duplicate reads per fan-out."
+        }
+      },
+      {
+        "participant_id": "ground-2",
+        "display_name": "Grounding seat B - independent second read of the same substrate",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["independent corroboration", "detector control"],
+        "role": "custom:ground_truth",
+        "authority": "contributor",
+        "source_access": ["repo", "internal_docs"],
+        "effort": "high",
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false },
+        "context": {
+          "briefing": "Corroborate ground-1's digest with a MECHANICALLY DIFFERENT probe - a different shell, field or measurement. Re-running ground-1's own command is not a second signal."
+        }
+      },
+      {
+        "participant_id": "synth-1",
+        "display_name": "Synthesiser 1 - tier assignment",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["decision queues", "prioritisation"],
+        "role": "synthesizer",
+        "authority": "contributor",
+        "effort": "max"
+      },
+      {
+        "participant_id": "synth-2",
+        "display_name": "Synthesiser 2 - deduplication and lineage",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["deduplication", "provenance"],
+        "role": "synthesizer",
+        "authority": "contributor",
+        "effort": "max"
+      },
+      {
+        "participant_id": "synth-3",
+        "display_name": "Synthesiser 3 - cross-lens contradiction map",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["contradiction detection", "argument mapping"],
+        "role": "synthesizer",
+        "authority": "contributor",
+        "effort": "high"
+      },
+      {
+        "participant_id": "adversary-1",
+        "display_name": "Adversarial reviewer - reads siblings' FULL text",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["falsification", "overclaim detection"],
+        "role": "critic",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_recruit": true },
+        "effort": "max",
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false },
+        "context": {
+          "briefing": "You receive the siblings' FULL text, never digests - that was the single highest-value structural choice in the measured corpus and the only mechanism that caught a false premise 8 seats had already built on. Most refutations are OVERCLAIMS, not broken work: if the finding is right but the sentence is wider than its evidence, say REFUTED and give the correctly-scoped version."
+        }
+      }
+    ],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "low_novelty", "fast_unanimity"], "max_recruits": 12 },
+    "replacement": {
+      "enabled": true,
+      "triggers": ["inactivity", "role_collapse", "hallucinated_expertise"],
+      "preserve_prior_positions": true
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": ["prompt", "expertise", "position_similarity"],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": ["prior_art_scan", "evidence_pack"]
+  },
+  "topology": { "kind": "committee" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "lens-divergence",
+        "rounds": 1,
+        "independent": true,
+        "quotas": { "ideas_per_participant": 3, "novel_ideas_per_round": 1 }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "lane-gate",
+        "custom_name": "per-lane completeness gate (NOT a byte floor)",
+        "rounds": 1
+      },
+      { "kind": "synthesis", "stage_id": "tiered-queue", "rounds": 1, "participants": ["synth-1", "synth-2", "synth-3"] },
+      { "kind": "cross_examination", "stage_id": "adversarial-full-text", "rounds": 1, "participants": ["adversary-1"] }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2, "divergence_before_convergence": true },
+    "turn": { "max_words": 400 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 20, "runner": "local" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 720, "tokens": 20000000, "turns": 300 },
+  "targets": {
+    "unique_ideas": 250,
+    "categories": 20,
+    "novelty_ratio": 0.6,
+    "diversity_index": 0.7,
+    "dedup": { "enabled": true, "max_similarity": 0.85, "trivial_variant_policy": "merge" }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "custom:lane_completeness_ratio >= 1 AND unique_ideas >= 250 AND NOT custom:byte_floor_gate_used == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:lane_completeness_ratio", "op": ">=", "value": 1, "value_type": "number" },
+        { "metric": "unique_ideas", "op": ">=", "value": 250 },
+        { "not": { "metric": "custom:byte_floor_gate_used", "op": "==", "value": true, "value_type": "boolean" } }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 90,
+      "min_evidence_items": 100
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 720, "max_tokens": 20000000, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": ["owner ranks the tiered queue before any item is executed"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.9 },
+    "resolution": ["recruit_independent_critic", "narrow_scope", "split_question", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "instant_unanimity",
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "weak_synthesis",
+      "lost_dissent",
+      "participant_dominance",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": ["recruit_independent_critic", "forced_dissent", "blind_re_evaluation"],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "idea_ledger",
+      "idea_catalog",
+      "option_cards",
+      "evidence_map",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["executing any queued item"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-x49", "checkpoint_every_round": true },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "Mega lens fan-out, 100 seats (program discovery)",
+    "owner": "Prekzursil",
+    "lineage": ["C-X49", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P26,P52,P53"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1858", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-X49 `mega-lens-fanout-100`, global ordinal 49, tier mega, protocols P26/P52/P53, 100 seats, 2 rounds, advisory, OWNER-DECISION YES. || EDITABLE DIALS (the design names these as the ones an owner changes FIRST): (1) lens_list -> participants.count.exact_n plus the lane set that feeds custom:lane_completeness_ratio; drop or add lenses here, never by collapsing two lenses into one seat. (2) lane_gates -> the stopping.expression clauses; each lane's gate is its own completeness verdict. Secondary dials: budgets.tokens (20M), budgets.time_minutes (720 = the design's wall<=12h), targets.unique_ideas, participants.diversity.*. || VOCABULARY MAP (design term -> CouncilSpec enum, because the design doc and this schema use different vocabularies): voting `tiered_decision_queue` -> voting.method `synthesis_only` (the tiered queue IS the synthesis product; no ballot is cast) with consensus.measure `agreement_index`; roles `lens_seat_x94` -> role_templates custom:lens_seat filled by selection.mode `mixed` (6 seats pinned in the roster, 94 auto-selected); `ground_x2` -> custom:ground_truth; `synthesiser_x3` -> synthesizer; `adversarial_reviewer_x1` -> critic. Outcome names map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility. `evidence standard: split_by_lens` has NO structural home: objective.evidence_requirements.anchor_style is a single enum, so it is set to `any` and the split (grounded lenses cite file:line, ideation lenses cite an external domain) is carried in each lens seat's briefing - a real expressiveness gap, not a design choice. || CUSTOM METRICS AND THEIR PRODUCERS: custom:lane_completeness_ratio (number, produced by the per-lane gate runner in protocol stage lane-gate; 1.0 means every declared lane returned a verdict) and custom:byte_floor_gate_used (boolean, produced by a gate-config audit; MUST stay false). The producer cannot be written on the leaf itself: SEM-001 compares parse(source_expression) to stopping.expression by dict equality and councilspec.expression.parse emits neither `producer` nor `note`, so a producer on the leaf makes the spec fail SEM-001 - confirmed with a both-states control in platform/council/_probe_note_vs_source_expression.py. A SEM-012 WARN on each custom leaf is therefore expected and non-blocking. || WHY THE STOPPING RULE IS SHAPED THIS WAY: the third clause is a NOT, which reads oddly until you know the measured failure - a byte floor used as the completeness gate killed 84 of 85 honest, terse artifacts. The rule therefore asserts the gate is per-lane AND that no byte floor is in play. || TOPOLOGY LIMITATION: topology.kind is `committee` with NO committees array, because SEM-006 requires every committee member to be a roster participant_id and the 94 lens seats are auto-selected and so have no roster entry. Declaring lanes structurally would require pinning 100 roster entries. Lane membership is therefore assigned at runtime by the lane-gate stage."
+  }
+}

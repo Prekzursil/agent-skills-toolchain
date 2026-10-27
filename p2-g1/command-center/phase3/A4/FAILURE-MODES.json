@@ -1,0 +1,462 @@
+{
+ "a4_design": {
+  "note": "ARC-0024 output is absent. This unit specifies the failure modes and the observable; it does not author DESIGN.json.",
+  "path": "command-center/phase3/A4/DESIGN.json",
+  "present": false
+ },
+ "answer": "Deferred activation breaks four ways: not-selected looks like not-installed unless the gateway emits indexed/installed/selected plus activation at failure time (NOT_SELECTED vs INDEX_MISS_INSTALLED on the both-states control); activation can fail mid-task (ACTIVATION_FAILED); deactivate can leave residual state (DEACTIVATED_RESIDUAL); eager stdio MCP multiplies as N*K (K=3 from the fixture, live config K=0, process-table mcp-like=0) which is linear not P1-superlinear. Reviewer added FM-PARTIAL-MATERIALIZE. SUCCESS:ARC-0026",
+ "architecture_class": "gateway-lazy-activation",
+ "architecture_id": "A4",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A4/FAILURE-MODES.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/architecture-review.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0026/avail.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0026/fixtures/install/skills/skill.alpha.json",
+   "role": "silent-loss-file"
+  }
+ ],
+ "author_failure_modes": [
+  {
+   "detector": "Three-bit availability signal; collapsed unavailable bit rejected",
+   "id": "FM-SILENT-EQUIV",
+   "seeded_classes": [
+    "router fails to select an installed skill",
+    "detector-failure",
+    "single-signal-verification"
+   ],
+   "title": "Not-selected is indistinguishable from not-installed"
+  },
+  {
+   "detector": "activation=failed -> ACTIVATION_FAILED even when indexed and installed",
+   "id": "FM-ACTIVATION-MIDTASK",
+   "seeded_classes": [
+    "partial-artifact",
+    "severed-stream"
+   ],
+   "title": "Activation fails after the router has already selected the capability"
+  },
+  {
+   "detector": "residual_state=true -> DEACTIVATED_RESIDUAL",
+   "id": "FM-DEACTIVATE-RESIDUAL",
+   "seeded_classes": [
+    "stale-cache",
+    "provenance-loss"
+   ],
+   "title": "Deactivated capability retains session state"
+  },
+  {
+   "detector": "Two independent probes today; N*K eager curve; superlinear is P1",
+   "id": "FM-PROCESS-MULT",
+   "seeded_classes": [
+    "eager per-session MCP process multiplication",
+    "commit exhaustion freezes process creation"
+   ],
+   "title": "Per-session stdio MCP process multiplication"
+  },
+  {
+   "detector": "indexed and not installed -> STALE_INDEX",
+   "id": "FM-STALE-INDEX",
+   "seeded_classes": [
+    "stale-cache",
+    "false-coverage"
+   ],
+   "title": "Index lists a capability whose install payload is gone"
+  },
+  {
+   "detector": "not indexed and installed -> INDEX_MISS_INSTALLED",
+   "id": "FM-INDEX-MISS-INSTALLED",
+   "seeded_classes": [
+    "capability-loss",
+    "green-not-live"
+   ],
+   "title": "Installed payload with no index row (both-states planted case)"
+  }
+ ],
+ "both_states": {
+  "activation_failed_code": "ACTIVATION_FAILED",
+  "capability_id": "skill.alpha",
+  "codes_differ": true,
+  "collapsed_same_in_both_states": true,
+  "collapsed_state_a": "UNAVAILABLE",
+  "collapsed_state_b": "UNAVAILABLE",
+  "deactivated_residual_code": "DEACTIVATED_RESIDUAL",
+  "index_miss_installed_code": "INDEX_MISS_INSTALLED",
+  "install_file_survived_index_edit": true,
+  "not_selected_code": "NOT_SELECTED",
+  "silent_loss_file": "command-center/p2-wave/probes/ARC-0026/fixtures/install/skills/skill.alpha.json",
+  "stale_index_code": "STALE_INDEX",
+  "state_a": {
+   "activation": "never",
+   "code": "NOT_SELECTED",
+   "indexed": true,
+   "installed": true,
+   "observable": "indexed=1 installed=1 selected=0 activation=never residual=0 -> NOT_SELECTED",
+   "residual_state": false,
+   "selected": false
+  },
+  "state_b": {
+   "activation": "never",
+   "code": "INDEX_MISS_INSTALLED",
+   "indexed": false,
+   "installed": true,
+   "observable": "indexed=0 installed=1 selected=0 activation=never residual=0 -> INDEX_MISS_INSTALLED",
+   "residual_state": false,
+   "selected": false
+  },
+  "truly_not_installed_code": "NOT_INSTALLED"
+ },
+ "ceiling_test": {
+  "detector_control_linear_silent": true,
+  "detector_control_plant_fires": true,
+  "eager_stdio_curve": [
+   3,
+   6,
+   12,
+   24,
+   48
+  ],
+  "eager_superlinear": false,
+  "k_stdio_from_fixture_mcp": 3,
+  "kind": "simulated",
+  "lazy_shared_curve": [
+   3,
+   3,
+   3,
+   3,
+   3
+  ],
+  "lazy_superlinear": false,
+  "note": "Eager per-session stdio is linear (N*K). That is still process multiplication. Superlinear is a P1 finding and is reserved for the planted curve so the detector is shown to fire and go silent.",
+  "p1_on_eager": false,
+  "p1_on_plant": true,
+  "pass": true,
+  "planted_superlinear": true,
+  "planted_superlinear_curve": [
+   3,
+   8,
+   24,
+   80,
+   288
+  ],
+  "sessions": [
+   1,
+   2,
+   4,
+   8,
+   16
+  ],
+  "stdio_server_ids": [
+   "echo",
+   "files",
+   "git"
+  ]
+ },
+ "claim_under_test": "When activation is deferred, a capability the router does not select is indistinguishable from one that is not installed; a single unavailable bit is enough; and process multiplication may be cited from the earlier 23x65=2037 estate figure without a same-day re-measure.",
+ "claims": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11944",
+   "claim": "A single unavailable bit is a sufficient failure signal under deferred activation.",
+   "defect_locus": "SENTENCE",
+   "id": "C1",
+   "scoped_restatement": "The observable is indexed, installed, selected, plus activation. NOT_SELECTED and INDEX_MISS_INSTALLED must differ.",
+   "verdict": "REFUTED",
+   "why_locus": "A4 DESIGN.json is absent, so this is not a DESIGN-encoded rule. The catalog sentence requiring a distinguishing observable is the binding requirement."
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11948",
+   "claim": "Removing a capability from the index while leaving it installed produces a different signal than not-selected-while-indexed.",
+   "id": "C2",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11922",
+   "claim": "Process multiplication today is the earlier estate figure 23 sessions x 65 servers = 2037 processes.",
+   "defect_locus": "SENTENCE",
+   "id": "C3",
+   "scoped_restatement": "Today: PowerShell/process-table mcp-like count=0; MCP-config stdio per session=0. The 2037 figure is named as prior estate incident only.",
+   "verdict": "REFUTED",
+   "why_locus": "No A4 DESIGN encodes the 2037 number as a live measurement. The catalog evidence_requirement forbids citing the earlier figure."
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11949",
+   "claim": "The eager per-session stdio process curve is superlinear and is therefore a P1 finding on this measurement.",
+   "defect_locus": "SENTENCE",
+   "id": "C4",
+   "scoped_restatement": "Eager curve is N*3 = [3, 6, 12, 24, 48], linear. P1 is reserved for the planted superlinear curve, which the detector does fire on.",
+   "verdict": "REFUTED",
+   "why_locus": "The catalog names superlinear as the P1 finding; it does not assert the eager stdio model is superlinear. Linear N*K is still FM-PROCESS-MULT, not P1-superlinear."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0062/sources.py:70",
+   "claim": "A4 DESIGN.json on this worktree already specifies the distinguishing signal and the activation lifecycle.",
+   "defect_locus": "SENTENCE",
+   "id": "C5",
+   "scoped_restatement": "command-center/phase3/A4/DESIGN.json is absent. command-center/phase3/A9/SECURITY.json is absent. The catalog-bound hop is named in ARC-0062/sources.py (A4.activate.materialize). This unit records failure modes against the catalog and that hop; it does not author DESIGN.",
+   "verdict": "REFUTED",
+   "why_locus": "Cannot be a DESIGN-locus defect: the design file does not exist. Claiming it specifies the signal is a sentence-level overclaim."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:215",
+   "claim": "Eager per-session MCP process multiplication is a seeded failure class this architecture must bound, not ignore.",
+   "id": "C6",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:ARC-0026",
+ "evidence": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11944",
+   "claim": "Catalog requires a distinguishing observable at the moment of failure.",
+   "kind": "live-tree",
+   "line": 11944,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Specify the OBSERVABLE signal that separates 'not selected' from 'not installed'"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11948",
+   "claim": "Catalog both-states: index edit must not be silent versus not-installed.",
+   "kind": "live-tree",
+   "line": 11948,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Both-states control: remove a capability from the index while leaving it installed"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11922",
+   "claim": "Catalog forbids citing the earlier process-multiplication figure.",
+   "kind": "live-tree",
+   "line": 11922,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Process multiplication is re-measured today with two independent probes"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11949",
+   "claim": "Catalog: superlinear process curve is a P1 finding.",
+   "kind": "live-tree",
+   "line": 11949,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Ceiling test: drive N simulated sessions and record the process count curve"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0062/sources.py:70",
+   "claim": "ARC-0062 sources.py names the catalog-bound A4.activate.materialize hop; A9 SECURITY.json is absent.",
+   "kind": "live-tree",
+   "line": 70,
+   "path": "command-center/p2-wave/probes/ARC-0062/sources.py",
+   "snippet": "\"id\": \"A4.activate.materialize\""
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:215",
+   "claim": "Seeded class FC-11326 is the process-multiplication mode this unit re-measures.",
+   "kind": "dossier",
+   "line": 215,
+   "path": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+   "snippet": "\"name\": \"eager per-session MCP process multiplication\""
+  }
+ ],
+ "headline_verdict": "SIGNAL-DISTINGUISHES; EAGER-CURVE-LINEAR-NOT-P1",
+ "live_process_multiplication": {
+  "agreement": true,
+  "cited_estate_figure_as_today": false,
+  "combined_process_count_forbidden": true,
+  "disagreement_expected": false,
+  "disagreement_reason": null,
+  "estate_figure_named_not_used": {
+   "mcp_per_session": 65,
+   "product": 2037,
+   "sessions": 23
+  },
+  "mcp_config": {
+   "derived_for_one_session": 0,
+   "files_present": [
+    {
+     "has_mcpServers": false,
+     "ok": true,
+     "path": "/opt/p2/ast-integrate/.claude-plugin/plugin.json",
+     "stdio_ids": []
+    }
+   ],
+   "note": "Per-session count is the number of stdio (command, not url) MCP servers declared in live config files found today. Session cardinality is not invented; this box has no Windows session table.",
+   "per_session_count": 0,
+   "stdio_ids": []
+  },
+  "mcp_config_per_session_count": 0,
+  "measured_at": "2026-08-25T00:55:17Z",
+  "powershell": {
+   "count": 0,
+   "engine": "cpython-proc-fallback",
+   "hits": [],
+   "note": "pwsh/powershell not on PATH; used /proc cmdline walk with the same mcp|npx heuristic the .ps1 uses.",
+   "powershell_attempted": true,
+   "powershell_binary": null,
+   "scanned": 332
+  },
+  "powershell_process_count": 0
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0026/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0026/probe1_both_states.py",
+   "id": "probe1",
+   "role": "both-states-signal"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0026/probe2_ceiling.py",
+   "id": "probe2",
+   "role": "ceiling-remeasure-overclaim"
+  }
+ ],
+ "observable_signal": {
+  "activation": [
+   "never",
+   "pending",
+   "ok",
+   "failed",
+   "deactivated"
+  ],
+  "bits": [
+   "indexed",
+   "installed",
+   "selected"
+  ],
+  "codes": {
+   "ACTIVATION_FAILED": "selected but materialize failed",
+   "AVAILABLE": "selected, indexed, installed, activation=ok",
+   "DEACTIVATED_RESIDUAL": "deactivated with leftover session state",
+   "INDEX_MISS_INSTALLED": "installed payload, no index row",
+   "NOT_INSTALLED": "not installed (index may also be empty)",
+   "NOT_SELECTED": "indexed and installed and not selected",
+   "STALE_INDEX": "index row, install payload missing"
+  },
+  "collapses_rejected": "A single UNAVAILABLE/AVAILABLE bit is identical for not-selected and index-miss-installed and is not the signal.",
+  "name": "three-bit availability signal"
+ },
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "reliability-engineer",
+  "vendor": "xai"
+ },
+ "question": "What breaks when activation is deferred? Enumerate the modes: a capability the router never selects is indistinguishable from one that does not exist; activation fails mid-task; a deactivated capability retains state; and per-session process multiplication (the measured stdio MCP duplication that drove commit exhaustion). Specify the OBSERVABLE signal that separates 'not selected' from 'not installed' at the moment of failure.",
+ "report": {
+  "control_ids": [
+   "T1-both-states-signal",
+   "T2-ceiling-remeasure-overclaim",
+   "collapsed-unavailable-bit",
+   "planted-superlinear-curve"
+  ],
+  "kind": "architecture-review",
+  "observations": [
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11948",
+    "measured": "NOT_SELECTED",
+    "method": "three-bit classify on indexed+installed+not-selected fixture",
+    "name": "not_selected_code"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11948",
+    "measured": "INDEX_MISS_INSTALLED",
+    "method": "three-bit classify after dropping the index row; install file stays",
+    "name": "index_miss_installed_code"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11949",
+    "measured": false,
+    "method": "simulated N-session N*K stdio curve; superlinear detector",
+    "name": "eager_superlinear"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11922",
+    "measured": 0,
+    "method": "PowerShell process table or /proc cmdline mcp|npx twin",
+    "name": "powershell_process_count"
+   },
+   {
+    "anchor": "command-center/WORK-UNIT-CATALOG.json:11922",
+    "measured": 0,
+    "method": "parse live mcpServers JSON for stdio (command, not url) servers",
+    "name": "mcp_config_per_session_count"
+   }
+  ]
+ },
+ "reviewer": {
+  "added_failure_mode": {
+   "author_missed": true,
+   "caught_by_three_bit_signal": false,
+   "description": "A capability id can map to a skill file AND a stdio MCP server. The author signal is per-id. Selecting the id and loading the skill sets activation=ok / AVAILABLE while the MCP child was never spawned (or the reverse). FM-SILENT-EQUIV stays green because the id is indexed and selected; FM-PROCESS-MULT stays green because no extra process appeared. Split-plane activation is a third axis.",
+   "id": "FM-PARTIAL-MATERIALIZE",
+   "required_followup": "Emit the three-bit signal per payload part (skill / hook / mcp), not only per capability id. Do not rebuild A4 DESIGN.json in this unit (that is ARC-0024).",
+   "seeded_classes": [
+    "plugin appears installed but hooks are unloaded",
+    "eager per-session MCP process multiplication",
+    "router fails to select an installed skill"
+   ],
+   "title": "Skill half activates while the stdio MCP half never spawns"
+  },
+  "enumeration_certified_against_47": false,
+  "enumeration_certify_reason": "The 47 seeded classes are cited as _USER-PROMPTS.md:11300-11347. That file is not on this worktree. Certifying completeness against an unread list would be overclaim. Instead the reviewer adds FM-PARTIAL-MATERIALIZE, which the author's per-id list missed.",
+  "fresh_context": true,
+  "independent": true,
+  "method": "Reviewed the author's four catalog-named modes plus the three-bit signal and the two process probes. Checked both-states codes differ, collapsed bits do not, ceiling plant fires, and today's process numbers are not the estate 2037 figure. Agreement with the linear-not-P1 verdict is not required for PASS; scope is: distinguishing observable, two-probe re-measure, one missed mode.",
+  "reviewer_id": "ARC-0026-independent-reliability",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "scenario": {
+  "catching_architecture": "A4 gateway with a three-bit availability signal (indexed, installed, selected) plus activation status, emitted at failure time; shared or lazy MCP spawn bounded by a recorded process-count curve that flags P1 only when superlinear.",
+  "id": "S1-deferred-activation-signal",
+  "on_this_estate": "Both-states codes NOT_SELECTED vs INDEX_MISS_INSTALLED. Fixture stdio K=3. Eager curve [3, 6, 12, 24, 48] is linear (superlinear=False). Live process-table mcp-like count=0; live MCP-config stdio per session=0. Estate 23x65=2037 is named and not used as today.",
+  "procedure": [
+   "Build an install tree with skill.alpha on disk and an index that lists it.",
+   "Ask the router for a task that does not select skill.alpha; record the three-bit signal (must be NOT_SELECTED).",
+   "Remove skill.alpha from the index only; leave the install file; record the signal (must be INDEX_MISS_INSTALLED).",
+   "Assert the two codes differ; reject a collapsed unavailable bit that is the same in both states.",
+   "Parse live MCP config for stdio server count; enumerate processes via PowerShell or /proc twin; simulate N sessions; flag P1 iff the curve is superlinear."
+  ],
+  "silent_loss_file": "command-center/p2-wave/probes/ARC-0026/fixtures/install/skills/skill.alpha.json",
+  "title": "Index-miss vs not-installed vs not-selected"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0026",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0026]",
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "A collapsed unavailable bit is what operators already see, and three bits on every miss looks like telemetry bloat. On this Linux worktree A4 DESIGN.json is absent and live MCP config files declare zero stdio servers, so the distinguishing signal and the process curve are proven on fixtures plus catalog-bound A4 activation hops, not on a shipped gateway. That limitation does not make not-selected identical to not-installed, and it does not license citing 23x65=2037 as today's measurement. Strongest surviving FOR: keep the three-bit signal even if spawn later becomes a shared pool; the signal is about discovery, the curve is about spawn policy.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0026/probe1_both_states.py",
+   "id": "T1-both-states-signal",
+   "name": "Index-removed-but-installed vs not-selected; collapsed bit rejected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0026/probe2_ceiling.py",
+   "id": "T2-ceiling-remeasure-overclaim",
+   "name": "Simulated N-session curve, two-probe re-measure, reviewer-added mode",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:55:17Z",
+  "started_at": "2026-08-24T20:40:00Z"
+ },
+ "title": "A4 (gateway / lazy-activation): Distinguishing not-selected from not-installed, and bounding activation-driven process multiplication",
+ "unit_id": "ARC-0026"
+}

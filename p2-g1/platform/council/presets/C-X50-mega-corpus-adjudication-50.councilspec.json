@@ -1,0 +1,204 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-x50-mega-corpus-adjudication-50",
+  "preset": "evidence_adjudication_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Classify a large corpus by running an exact algorithm over 100% of it first, then spending agent judgement only on the behaviour-bearing residue the algorithm cannot decide.",
+    "charter": "MANDATE. The algorithm classifies; the jury adjudicates what the algorithm cannot. This ordering is not a style preference, it is a measured result: six Opus agents given the same 338-item classification task with an enumerated verdict vocabulary and a worked counter-example reached 86% accuracy - and 100% of the 47 disagreements pointed in the DANGEROUS direction, calling a two-way-divergent file safe to overwrite. A 40-line deterministic differ was exact and ran in seconds. So: if a question is answerable by an exact algorithm - byte comparison, set membership, counting, hashing - WRITE THE ALGORITHM. Reserve the 48 adjudicator seats for the thing code cannot do: judging whether the divergent content MATTERS. 86% accuracy is the wrong metric; error DIRECTION is the metric.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "the mechanical pass covers 100% of the corpus before any agent is dispatched",
+      "no agent classifies an item the algorithm already decided",
+      "every adjudicated item carries an executable receipt",
+      "error direction is reported, not just accuracy"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "hand a mechanically-decidable classification to an agent",
+        "report accuracy without reporting error direction"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["automatic", "expertise_ranked", "stratified"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 50 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "role_templates": ["custom:mechanical_classifier", "juror", "custom:methodologist"],
+    "roster": [
+      {
+        "participant_id": "classifier-tier0",
+        "display_name": "Tier-0 mechanical classifier (deterministic, not a model)",
+        "model": "deterministic-differ",
+        "vendor": "local",
+        "expertise": ["byte comparison", "set membership", "hashing"],
+        "role": "custom:mechanical_classifier",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false, "may_call_experiment": true },
+        "tools": ["differ", "hashsum"],
+        "source_access": ["repo"],
+        "context": {
+          "briefing": "You run FIRST and you must cover 100% of the corpus. Emit exactly one verdict per item plus an UNDECIDED bucket. Check BOTH directions of any comparison: the measured agent failure was one-directional - they checked whether side A had extra content and stopped, never asking whether side B also had unique lines, so every two-way divergence read as safe."
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - guards the algorithm-first ordering",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["measurement design", "error-direction analysis"],
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true, "may_recruit": true, "may_call_experiment": true },
+        "effort": "max",
+        "context": {
+          "briefing": "Block any dispatch of a mechanically-decidable item to a juror, and require the error-direction breakdown before the run is called done. A high accuracy number whose errors all point at data loss is worse than a lower one whose errors are over-cautious."
+        }
+      }
+    ],
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse"], "preserve_prior_positions": true },
+    "duplicate_detection": { "enabled": true, "dimensions": ["prompt", "position_similarity"], "max_similarity": 0.9 }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 1,
+    "required_artifacts": ["evidence_pack", "benchmark_baseline"]
+  },
+  "topology": { "kind": "jury" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "mechanical-tier0",
+        "custom_name": "exact algorithm over 100% of the corpus (agents are not dispatched yet)",
+        "rounds": 1,
+        "participants": ["classifier-tier0"]
+      },
+      {
+        "kind": "custom",
+        "stage_id": "residue-selection",
+        "custom_name": "select the behaviour-bearing residue the algorithm left UNDECIDED",
+        "rounds": 1,
+        "participants": ["methodologist"]
+      },
+      { "kind": "jury", "stage_id": "adjudicate-residue", "rounds": 1, "independent": true },
+      { "kind": "synthesis", "stage_id": "verdict-roll-up", "rounds": 1 }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 50, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 480, "turns": 150, "tool_calls": 2000 },
+  "targets": { "evidence_items": 50, "dedup": { "enabled": true, "max_similarity": 0.9, "trivial_variant_policy": "merge" } },
+  "voting": {
+    "method": "juror",
+    "quorum": { "min_voters": 24, "min_fraction": 0.5, "on_failure": "extend_rounds" },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:mechanical_coverage_ratio >= 1 AND custom:agent_touched_outside_residue == false AND every_objection_addressed == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:mechanical_coverage_ratio", "op": ">=", "value": 1, "value_type": "number" },
+        { "metric": "custom:agent_touched_outside_residue", "op": "==", "value": false, "value_type": "boolean" },
+        { "metric": "every_objection_addressed", "op": "==", "value": true }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_evidence_items": 25, "min_objections_addressed": 1 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 480, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": ["the UNDECIDED bucket is empty or explicitly deferred by the owner"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["run_experiment", "narrow_scope", "split_question", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "participant_dominance",
+      "weak_synthesis",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_ledger",
+      "evidence_map",
+      "votes_by_round",
+      "experiments",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["overwriting any classified artifact"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-x50", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Mega corpus adjudication, 50 seats (algorithm first, agents on the residue)",
+    "owner": "Prekzursil",
+    "lineage": ["C-X50", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P15,P53"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1873", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-X50 `mega-corpus-adjudication-50`, global ordinal 50, tier mega, protocols P15/P53, 50 seats, 2 rounds, advisory, OWNER-DECISION NO. || EDITABLE DIALS (change these first): (1) algorithm -> the classifier-tier0 seat (its model field names the deterministic tool, its tools array lists the primitives) and the mechanical-tier0 protocol stage. (2) residue_selector -> the residue-selection stage plus custom:agent_touched_outside_residue. Secondary dials: participants.count.exact_n (50), voting.quorum.min_voters (24), budgets.time_minutes (480 = the design's wall<=8h), consensus.threshold. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `algorithm_first_then_agents` has no ballot enum, and is encoded STRUCTURALLY instead - voting.method `juror` (the 48 adjudicators are jurors) plus a protocol.sequence whose FIRST stage is the deterministic classifier and whose jury stage runs only on the residue, plus protocol.experiments.required_before_decision true. Reading the method field alone would miss the ordering; the sequence is the load-bearing part. roles `mechanical_classifier(tier0)` -> custom:mechanical_classifier with vendor `local` (it is not a model); `adjudicator_x48` -> juror, auto-selected; `methodologist` -> custom:methodologist holding authority chair so it can actually block a bad dispatch. Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, DEFER->no_decision. `anti-sycophancy: off` -> consensus.fast_unanimity_is_suspicious false and no anti_failure.fast_unanimity_response: jurors adjudicate independent items, so agreement across different items carries no echo-chamber signal. || CUSTOM METRICS AND THEIR PRODUCERS: custom:mechanical_coverage_ratio (number; produced by classifier-tier0 as items_classified/items_total - 1.0 means the exact algorithm saw every item) and custom:agent_touched_outside_residue (boolean; produced by the methodologist auditing the dispatch log against the UNDECIDED bucket). Producers cannot be written on the leaves: SEM-001 compares parse(source_expression) to the tree by dict equality and parse() emits no `producer` key, so a leaf producer fails SEM-001 - both-states probe at platform/council/_probe_note_vs_source_expression.py. The two SEM-012 WARNs are expected and non-blocking. || WHY THE FIRST CLAUSE IS `>= 1` AND NOT `> 0.95`: partial mechanical coverage is exactly the state that produced the measured 31 data-loss errors. The gate is all-or-nothing on purpose."
+  }
+}

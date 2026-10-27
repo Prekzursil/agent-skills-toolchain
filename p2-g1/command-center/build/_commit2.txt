@@ -1,0 +1,65 @@
+docs(skills): encode four measured verification lessons into the bodies that teach them
+
+Description text is the scarce resource on this fleet -- it is always-loaded, and 26 skills are
+already being dropped from the listing for want of budget. BODY text is not: it loads only on
+invocation. So the cheapest real upgrade available is to put what this estate has actually
+measured into the bodies of the skills that teach verification, and that is what this is.
+
+two-tier-verify -- new section "Three ways a green OUTER loop still lies", because the skill named
+the OUTER loop as the merge signal without saying where that signal has been wrong:
+
+  1. WORKING-TREE green != CLONE green. Measured: 3,910 passed in-tree against 31 collection
+     errors from a fresh clone of the SAME commit. Includes the clone recipe and the MSYS
+     path-form trap (`C:/Users/...` not `/c/Users/...`, and do NOT set MSYS_NO_PATHCONV=1
+     globally to dodge it -- that suppresses the conversion the clone path itself needs and the
+     clone then silently does not happen).
+  2. LOCAL formatter green != CI formatter green. Verify the STORED BLOB with
+     `git show <rev>:<path>` / `git cat-file -p`. I re-measured this rather than quoting it, on
+     two files, with a control requiring all four routes to be byte-identical after
+     LF-normalisation so the delta is provably line-endings and not content:
+
+       git show <rev>:<path>      7,487 B   0 CRLF
+       git cat-file -p <oid>      7,487 B   0 CRLF
+       git archive + tar -x       7,627 B   140 CRLF
+       working tree               7,627 B   140 CRLF
+
+     So `git archive` returns the OPPOSITE of the stored blob on Windows and is the wrong recipe;
+     `git show <rev>:<path>` is correct. This lane's own briefing had that backwards.
+  3. A green SUITE is not a green DETECTOR -- names tools/detector-self-test/ and
+     tools/measure-guard/, which had NO agent-facing surface at all. Before this commit
+     `detector-self-test` had ZERO references outside its own directory; grep now returns
+     exactly one, this line. That count IS the routing fix.
+
+     I nearly shipped an overclaim inside that very paragraph: I wrote that `blobread` was
+     CI-wired alongside its four siblings. It is not. grep returns ONE hit for it in the
+     workflows, `quality.yml:416`, and that line is a COMMENT. suitefloor/refcheck/wudeps/
+     jsonparse/vendordrift are genuinely executed (`:114`, `:439-443`); blobread is a library,
+     not a gate. The sentence now says so, and says why: count the step, not the mention.
+
+rubric-verifier -- the skill deferred to "the 100%-coverage threshold remains the blocking
+authority". That is right about authority to BLOCK and wrong if read as authority to declare
+DONE. Coverage says a line RAN, not that anything ASSERTED on it -- measured here by a surviving
+mutation (DEFAULT_MIN_BYTES 1024 -> 512 kept a fully green suite green, because every case passed
+the value explicitly and the default was never exercised). Ordering is now explicit: rubric rank
+advises, coverage may block, only the held-out golden journey against the PACKAGED artifact may
+declare done.
+
+devtu/modes/fix-tool -- the `grep -c "Failed"` one-liner now carries the doubled-zero trap, with
+the miss case AND the hit case as a control, because a probe that behaves the same either way
+would prove nothing:
+
+    out=$(grep -c zzz   f.txt || echo 0)  ->  "0\n0"   (2 lines -- BOTH sides fire)
+    out=$(grep -c alpha f.txt || echo 0)  ->  "1"      (1 line  -- control)
+
+`grep -c` prints 0 and EXITS 1 on a miss, so "0\n0" != "0" and every downstream threshold
+comparison silently mis-reads.
+
+NOT INCLUDED, and deliberately: the same git-archive correction is needed at
+workflow-authoring/templates/governed-run-orchestrator.md:1145. I made that edit and then REVERTED
+it -- the `skills/` projection of that exact file was modified by a concurrent agent 55 seconds
+earlier (an H6 timeout/heartbeat barrier block). Landing my canonical-side edit would either break
+D-001 byte parity or drag their uncommitted work into my commit. The precise replacement is
+recorded in the lane artifact for whoever owns that file next.
+
+All three edited files are mirrored byte-identically into `skills/`; the D-001 dual-write gate
+passes on the staged set.

@@ -1,0 +1,332 @@
+{
+ "answer": "tools/bench is a cell-grained tournament runner. ResultsLedger.append_cell is keyed by sha256(candidate, case, harness_version, seed) and refuses a second row. TournamentRunner.resume skips completed cells (dispatch log). A kill at 40% then resume matches an uninterrupted run on row count AND per-cell values; a score-mutating resume is the control that keeps row count and breaks values. Torn published tails (missing newline, even when the fragment is valid JSON) are discarded. SUCCESS:TST-0320",
+ "artifacts": [
+  {
+   "bytes": 12732,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/ledger.py",
+   "present": true,
+   "role": "primary-implementation",
+   "sha256": "554e36b13882f5a92b8e8f2c73417223f7539e19bb04fb481167e679d2d69a64"
+  },
+  {
+   "bytes": 291,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/__init__.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "475435988f5958599718361118f1e2ccf40ca9d4d12dfda4b12c09fe92f09370"
+  },
+  {
+   "bytes": 1572,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/cell.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "3381752931b5648cdd63a408a403e68c7be73b006cfeda56679b578b39807a80"
+  },
+  {
+   "bytes": 594,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/evaluate.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "81ab324f5b47bc5841657231cd906916a8ef8cea34c5c51fbcdbcc3010bb4f28"
+  },
+  {
+   "bytes": 2667,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/runner.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "f3be996766403eabb758842753d400b8e51911d2aa62feab96491101c2a1fe46"
+  },
+  {
+   "bytes": 2468,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/kill_target.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "3d700cce6c6fde6493a530b598a65733bc57796aaa72d0adb753e0a4e4b52590"
+  },
+  {
+   "bytes": 1507,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/bench/schema/result-row.schema.json",
+   "present": true,
+   "role": "supporting",
+   "sha256": "2d97fc93a2eeed7aa4e59697e4f92dcda6ef56ec4c326231e57d38bc615a3948"
+  },
+  {
+   "bytes": 334,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/bench/cases/corpus.json",
+   "present": true,
+   "role": "supporting",
+   "sha256": "3f39bc23c787703a00a64e44a788cc64efb5353f5aef8e67fbe922e060df1551"
+  },
+  {
+   "bytes": 464,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/bench/results/LEDGER-CONTRACT.json",
+   "present": true,
+   "role": "supporting",
+   "sha256": "c3d21b4aedbd5543e1c22329dfe46f31c20e877c0aed9c5a9513bcb086589fec"
+  },
+  {
+   "bytes": 8864,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0320/probe1_kill_resume.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "d2d9545efa192afa395e05edf812616e6de54239801d6a4c1f2045482235d0c7"
+  },
+  {
+   "bytes": 13709,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0320/probe2_idempotence_torn.py",
+   "present": true,
+   "role": "supporting",
+   "sha256": "281b5272154f63eb47da712fe122154ca486fac22fa45868008640b4b25df7a4"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0320",
+ "defects": [],
+ "evidence": [
+  {
+   "anchor": "tools/bench/runner.py:44",
+   "claim": "Kill at 40% and resume: ledger matches the uninterrupted run on row count and per-cell values. A mutating resume keeps row count and fails the value comparison.",
+   "confidence": "almost-certain",
+   "id": "E1-kill-40-resume-value-match",
+   "measurement": {
+    "killed_rows": 20,
+    "mutant_mismatch_count": 50,
+    "mutant_row_count_equal": true,
+    "mutant_values_equal": false,
+    "noskip_restart_evaluated": 50,
+    "resume_evaluated": 30,
+    "resume_skipped": 20,
+    "row_count_equal": true,
+    "total_cells": 50,
+    "values_equal": true
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe1_kill_resume.py",
+     "exit_code": 0,
+     "fingerprint": "7535c8664d8117b7744655b35e88b043",
+     "method": "kill-at-40-resume-vs-uninterrupted-per-cell-values",
+     "raw_output": "{\"clean_rows\": 50, \"kill_pct\": 40.0, \"killed_rows\": 20, \"mutant_mismatch_count\": 50, \"mutant_row_count_equal\": true, \"mutant_values_equal\": false, \"noskip_restart_evaluated\": 50, \"pass\": true, \"probe\": \"probe1-kill-resume\", \"resume_evaluated\": 30, \"resume_rows\": 50, \"resume_skipped\": 20, \"row_count_equal\": true, \"seed_in_key\": true, \"total_cells\": 50, \"unit_id\": \"TST-0320\", \"values_equal\": true}\nrows=50 kill=20 resume_eval=30 resume_skip=20 values_equal=True mutant_mismatches=50\nSUCCESS:TST-0320-probe1 kill-at-40% resume matches uninterrupted per-cell values",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe1_kill_resume.py",
+     "exit_code": 0,
+     "fingerprint": "e59a5ef8ed8789d6feb17af5081a7de1",
+     "method": "mutant-resume-same-count-different-values-and-skip-log",
+     "raw_output": "{\"values_equal\": true, \"mutant_values_equal\": false, \"mutant_row_count_equal\": true, \"resume_skipped\": 20, \"noskip_restart_evaluated\": 50}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/bench/ledger.py:122",
+   "claim": "Re-appending a completed cell does not grow the ledger; unsafe_always_append does. A planted newline-less JSON object is discarded by the honest reader and counted by the naive parser. Atomic SIGKILL leaves 0 half-written published rows.",
+   "confidence": "almost-certain",
+   "id": "E2-idempotence-and-torn-discard",
+   "measurement": {
+    "atomic_half_written": 0,
+    "honest_grew": false,
+    "honest_refused": 50,
+    "naive_torn_hits": 8,
+    "planted_honest_rows": 3,
+    "planted_naive_rows": 4,
+    "unsafe_grew": true
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe2_idempotence_torn.py",
+     "exit_code": 0,
+     "fingerprint": "21864cbeff31ac47c0988b0226817988",
+     "method": "idempotence-planted-torn-atomic-kill",
+     "raw_output": "{\"atomic_kill_loop\": {\"half_written\": 0, \"json_fail\": 0, \"ledgers\": 20, \"missing_trailing_newline\": 0, \"ok_lines\": 20, \"schema_fail\": 0, \"staging_hits\": 20}, \"idempotence\": {\"honest_after\": 50, \"honest_before\": 50, \"honest_grew\": false, \"honest_refused\": 50, \"unsafe_after\": 55, \"unsafe_before\": 50, \"unsafe_extra\": 5, \"unsafe_grew\": true, \"unsafe_physical_lines\": 55}, \"naive_in_place_kill\": {\"samples\": [{\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}, {\"bytes\": 478, \"honest_records\": 1, \"json_fail\": 1, \"missing_nl\": true, \"torn\": true}], \"torn_hits\": 8, \"trials\": 8}, \"pass\": true, \"planted_truncation\": {\"fired_on_planted\": true, \"good_honest_rows\": 3, \"good_naive_rows\": 3, \"good_torn\": false, \"planted_honest_discarded\": true, \"planted_honest_rows\": 3, \"planted_naive_included_torn\": true, \"planted_naive_rows\": 4, \"silent_on_good\": true, \"trunc_honest_discarded\": true, \"trunc_honest_rows\": 3, \"trunc_naive_rows\": 3}, \"probe\": \"probe2-idempotence-torn\", \"unit_id\": \"TST-0320\"}\nschema_half=0 planted=True naive_torn=8/8 honest_grew=False unsafe_grew=True\nSUCCESS:TST-0320-probe2 idempotent cell writes; torn rows discarded; naive/planted controls fire",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe2_idempotence_torn.py",
+     "exit_code": 0,
+     "fingerprint": "aa9eba2ef969d0e98cb9fdb9173cfe27",
+     "method": "duplicated-per-line-schema-and-naive-parser",
+     "raw_output": "{\"half_written\": 0, \"fired_on_planted\": true, \"unsafe_grew\": true, \"honest_grew\": false}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "TST-0320",
+ "implementation": {
+  "append_cell": {
+   "line": 369,
+   "snippet": "def append_cell("
+  },
+  "cell_key": [
+   "candidate",
+   "case",
+   "harness_version",
+   "seed"
+  ],
+  "idempotent": true,
+  "inspect_published_bytes": {
+   "line": 122,
+   "snippet": "def inspect_published_bytes(raw: bytes) -> dict[str, Any]:"
+  },
+  "path": "tools/bench/ledger.py",
+  "publish": "staging file, fsync, os.replace; never in-place on published path",
+  "resume_skips_completed": true,
+  "run": {
+   "line": 44,
+   "snippet": "def run("
+  },
+  "runner": "tools/bench/runner.py",
+  "torn_row_policy": "discard incomplete final fragment; never parse as a result"
+ },
+ "inputs_on_this_worktree": {
+  "TST-0300": "not delivered on this worktree; TST-0320 does not claim the scheduler/transitivity work",
+  "_USER-PROMPTS.md:10500": "file absent; resumable artifacts implemented as the cell-keyed ledger",
+  "command-center/bench/cases/": "fixture corpus shipped here (50 cells: 5 candidates x 10 cases)",
+  "command-center/bench/results/": "LEDGER-CONTRACT.json present; live tournament ledgers are probe tempdirs",
+  "tools/bench/": "created by this unit (was absent)"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0320/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "mechanism": {
+  "grain": "case-cell",
+  "key": "(candidate, case, harness_version, seed)",
+  "never_in_place": true,
+  "partial_record": "absent-from-parsed-results (torn tail discarded)",
+  "publish": "write complete snapshot to sibling staging file, fsync, os.replace"
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe1_kill_resume.py",
+   "exit_code": 0,
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe2_idempotence_torn.py",
+   "exit_code": 0,
+   "id": "probe2"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "noskip_restart_evaluated=50",
+   "description": "After a 40% kill, resume=False re-evaluates every cell. Honest resume evaluates only the remainder.",
+   "fired_on_bad_state": true,
+   "good_state_output": "resume_evaluated=30 resume_skipped=20",
+   "id": "skip-less-restart",
+   "kind": "mutation-disable-resume-skip",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutant_values_equal=False mismatches=50",
+   "description": "Mutating evaluate_cell by +1 keeps row count equal to the clean run and fails per-cell value equality. Proves the probe does not pass on count alone.",
+   "fired_on_bad_state": true,
+   "good_state_output": "values_equal=True",
+   "id": "score-mutating-resume",
+   "kind": "value-mutation-same-row-count",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "unsafe_grew=True extra=5",
+   "description": "unsafe_always_append writes a second row for a completed cell. Honest append_cell refuses and the file does not grow.",
+   "fired_on_bad_state": true,
+   "good_state_output": "honest_grew=False refused=50",
+   "id": "unsafe-always-append",
+   "kind": "mutation-disable-cell-id-gate",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive_rows=4 included_torn=True",
+   "description": "Three complete rows plus a schema-valid JSON object with no trailing newline: honest reader returns 3, naive parser returns 4.",
+   "fired_on_bad_state": true,
+   "good_state_output": "honest_rows=3 silent_on_good=True",
+   "id": "planted-newline-less-json",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive torn_hits=8",
+   "description": "unsafe_direct_append writes the published path in chunks. SIGKILL during that write produces a torn tail the schema check rejects.",
+   "fired_on_bad_state": true,
+   "good_state_output": "atomic kill-loop half_written=0",
+   "id": "naive-in-place-chunked-write",
+   "kind": "mutation-replace-atomic-rename-with-direct-write",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0320: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. cloud ok=true is not delivery. Did not run global unit_manifest.py --write. No ADV rebuild. SUCCESS:TST-0320",
+ "output_path": "command-center/receipts/TST-0320.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Implementation target: a tournament over hundreds of cases and dozens of candidates will be interrupted. Make the runner resumable at case granularity with idempotent result writes keyed by (candidate, case, harness version, seed), so a resume neither re-runs completed work nor appends a second result row for it. Double-counting is the silent variant: the tournament completes, the numbers are wrong, and nothing looks broken.",
+ "question_or_target": "Implementation target: a tournament over hundreds of cases and dozens of candidates will be interrupted. Make the runner resumable at case granularity with idempotent result writes keyed by (candidate, case, harness version, seed), so a resume neither re-runs completed work nor appends a second result row for it. Double-counting is the silent variant: the tournament completes, the numbers are wrong, and nothing looks broken.",
+ "registered": true,
+ "residual_unknowns": [
+  "Reviewer requirement names a second Windows shell (pwsh7 and Git Bash). This delivery ran on Linux; probes are CPython and do not depend on a shell dialect. Dual-shell divergence is unmeasured.",
+  "TST-0300 (tournament scheduler / transitivity) is not delivered; this unit proves resume/idempotence on a fixture 50-cell field, not a live hundreds-by-dozens tournament."
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot; this delivery did not require a pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 duplicates the required-field list and splits published bytes on newline itself. The pass predicate for the kill-loop is that duplicated schema check, not inspect_published_bytes. A planted newline-less JSON object and a naive in-place writer both fire. Dual Windows-shell re-run (pwsh7 + Git Bash) was not executed; this worktree is Linux.",
+  "reviewer_id": "TST-0320-probe2-idempotence-torn",
+  "verdict": "PASS"
+ },
+ "schema_note": "receipt.schema.json present",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0320",
+ "spec_anchor": "WORK-UNIT-CATALOG.json TST-0320; tools/bench/; command-center/bench/results/; command-center/bench/cases/",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe1_kill_resume.py",
+   "id": "probe1_kill_resume",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0320/probe2_idempotence_torn.py",
+   "id": "probe2_idempotence_torn",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:09:39Z",
+  "started_at": "2026-08-25T01:09:39Z"
+ },
+ "title": "Resume an interrupted tournament without recomputing or double-counting",
+ "ts": "2026-08-25T01:09:39Z",
+ "unit_id": "TST-0320"
+}

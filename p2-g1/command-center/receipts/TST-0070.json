@@ -1,0 +1,462 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "jsonschema is imported at runtime by tools/plugin/payload.py, tools/plugin/exec_policy.py, tools/marketplace/handoff.py and tools/marketplace/manifest_reader.py. There is no pyproject.toml / setup.py / requirements.txt, and the packed plugin artifact does not vendor jsonschema. Hiding jsonschema makes exec_policy.validate_policy raise. Three golden journeys against the installed packed payload still pass because they are stdlib-only. SUCCESS:TST-0070",
+ "artifacts": [
+  {
+   "bytes": 1083,
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "supporting",
+   "sha256": "ecc5c6e142b9a04b751774098bebfb300593e75b83306f804e75f6a9f7c75377"
+  },
+  {
+   "bytes": 21650,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0070/harness.py",
+   "role": "supporting",
+   "sha256": "9e2ee9bd538564e150989dbe5da5c69de67077a08ab4dca3ad818b92621a1949"
+  },
+  {
+   "bytes": 1266,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0070/probe1_clean_install.py",
+   "role": "supporting",
+   "sha256": "730c2d944639735231ec45e577f2b2844757c9fece63c76be4dcaaa579e6c256"
+  },
+  {
+   "bytes": 1414,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+   "role": "supporting",
+   "sha256": "0c295c14d58d95abb80ff8c57dc70c23744ba146e8a5c09d23a098ae69af7ee8"
+  },
+  {
+   "bytes": 2038,
+   "exists": true,
+   "path": "tools/plugin/install.py",
+   "role": "supporting",
+   "sha256": "0068385798bafb44d1f8e8b3c3d57374c9b1f2cfee77ee345e1e6b363566a272"
+  },
+  {
+   "bytes": 2546,
+   "exists": true,
+   "path": "tools/plugin/payload.py",
+   "role": "supporting",
+   "sha256": "42910b4ebbef7256a7f1c0aba81c3b2050ef9de12679711db6e38e47d7ef179c"
+  },
+  {
+   "bytes": 2435,
+   "exists": true,
+   "path": "tools/marketplace/handoff.py",
+   "role": "supporting",
+   "sha256": "4a466c5fc974fa374b48a122db560c466dcb4646cba86419d6a2e4ad9364d739"
+  },
+  {
+   "bytes": 15153,
+   "exists": true,
+   "path": "tools/plugin/exec_policy.py",
+   "role": "supporting",
+   "sha256": "1c27f2332c8886800d43cb994f6f2f3299e141ac8df25fc1cac9ca0b068fad05"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0070",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0070/harness.py:install_published",
+   "claim": "The published tar.gz is unpacked to a scratch payload and installed into an empty profile. plugin.json at the dest exists, parses, and meets MIN_BYTES. The unpack path is not tools/plugin.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe1_clean_install.py",
+     "method": "named-probe",
+     "raw_output": "{\"bytes\": 332, \"exists\": true, \"ok\": true, \"parses\": true, \"unpacked_is_repo_tools\": false, \"via\": \"marketplace.install\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe1_clean_install.py",
+     "method": "named-probe",
+     "raw_output": "re-run live by _measure_one_delivered.py",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0070/harness.py:run_three_journeys",
+   "claim": "Three golden journeys run against the INSTALLED tree and each produce a JSON file that exists, parses, and is >=256 bytes. Truncating one file makes the postcondition fail.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+     "method": "named-probe",
+     "raw_output": "{\"all_three_pass\": true, \"corruption\": {\"fired_on_corrupt\": true, \"silent_on_good\": true}, \"journey_bytes\": [544, 460, 502]}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+     "method": "named-probe",
+     "raw_output": "re-run live by _measure_one_delivered.py",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/exec_policy.py:validate_policy",
+   "claim": "jsonschema is a runtime import in plugin/marketplace and is load-bearing for exec_policy.validate_policy. It is absent from the packed artifact and from packaging metadata.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+     "method": "named-probe",
+     "raw_output": "{\"answer\": \"jsonschema\", \"exec_policy\": {\"hidden_exception\": \"RuntimeError: jsonschema is required to validate exec policy\", \"hidden_raises\": true, \"live_jsonschema_importable\": true, \"live_validate_error\": \"ValidationError: Additional properties are not allowed ('allow_connect', 'allow_spawn', 'allow_write' were unexpected)\\n\\nFailed validating 'additionalProperties' in schema:\\n    {'$id': 'https://prekzursil.dev/ast-integrate/schema/exec-policy.runtime.json',\\n     '$schema': 'https://json-schema.org/draft/2020-12/schema',\\n     'additionalProperties': False,\\n     'properties': {'allowed_executables': {'items': {'minLength': 1,\\n                                                      'type': 'string'},\\n                                            'type': 'array'},\\n                    'allowed_write_roots': {'items': {'minLength': 1,\\n                                                      'type': 'string'},\\n                                            'type': 'array'},\\n                    'containment': {'properties': {'mechanism': {'const': 'userspace-intercept'},\\n                                                   'os_process_sandbox': {'type': 'boolean'},\\n                                                   'windows_kernel_sandbox': {'type': 'boolean'}},\\n                                    'required': ['mechanism'],\\n                                    'type': 'object'},\\n                    'description': {'type': 'string'},\\n                    'network': {'additionalProperties': False,\\n                                'properties': {'endpoints': {'items': {'additionalProperties': False,\\n                                                                       'properties': {'host': {'minLength': 1,\\n                                                                                               'type': 'string'},\\n                                                                                      'port': {'maximum': 65535,\\n                                                                                               'minimum': 0,\\n                                                                                               'type': 'integer'}},\\n                                                                       'required': ['host',\\n                                                                                    'port'],\\n                                                                       'type': 'object'},\\n                                                             'type': 'array'},\\n                                               'mode': {'enum': ['deny',\\n                                                                 'allowlist']}},\\n                                'required': ['mode'],\\n                                'type': 'object'},\\n                    'on_violation': {'const': 'refuse-and-record'},\\n                    'policy_id': {'minLength': 1, 'type': 'string'},\\n                    'schema_version': {'const': 1, 'type': 'integer'},\\n                    'windows_limitation': {'minLength': 1,\\n                                           'type': 'string'}},\\n     'required': ['schema_version',\\n                  'policy_id',\\n                  'description',\\n                  'allowed_executables',\\n                  'allowed_write_roots',\\n                  'network',\\n                  'on_violation',\\n                  'windows_limitation',\\n                  'containment'],\\n     'type': 'object'}\\n\\nOn instance:\\n    {'allow_connect': [],\\n     'allow_spawn': ['/bin/echo'],\\n     'allow_write': ['/tmp'],\\n     'schema_version': 1,\\n     'windows_limitation': 'Windows has no native OS-level process sandbox '\\n                           'for arbitrary third-party binaries; this '\\n                           'module does NOT provide one.'}\", \"load_bearing\": true}, \"missing_from_package\": [{\"in_packed_artifact\": false, \"name\": \"jsonschema\", \"packaging_metadata_present\": false, \"repo_importers\"",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "TST-0070",
+ "live": {
+  "clean_install": {
+   "artifact": {
+    "bytes": 1621,
+    "contains_jsonschema": false,
+    "contains_repo_tools": false,
+    "member_count": 8,
+    "members": [
+     "golden-kit/PACKAGE-METADATA.json",
+     "golden-kit/hooks/hook.golden.json",
+     "golden-kit/journeys/hook_fire.py",
+     "golden-kit/journeys/identity_manifest.py",
+     "golden-kit/journeys/skill_checksum.py",
+     "golden-kit/plugin.json",
+     "golden-kit/rules/rule.golden.md",
+     "golden-kit/skills/skill.golden/SKILL.md"
+    ],
+    "path": "/tmp/tst0070-m6srmiel/dist/golden-kit-1.0.0.tar.gz",
+    "sha256": "bfb1815b97df6c0c3fc1d89f4ed67f0932479f2f3f15da235a96f6f6113bdd08"
+   },
+   "install": {
+    "dest_root": "/tmp/tst0070-m6srmiel/empty-profile/site",
+    "payload_is_source_tree": false,
+    "payload_path": "/tmp/tst0070-m6srmiel/unpacked/golden-kit",
+    "result": {
+     "handoff": {
+      "declared_permissions": [
+       "fs:write:plugins/golden-kit"
+      ],
+      "digest": {
+       "alg": "sha256",
+       "value": "a3c3a22c003b5bc7cefc42674426fd820586ca51ad0a75296752be496ec28df8"
+      },
+      "payload_path": "/tmp/tst0070-m6srmiel/unpacked/golden-kit",
+      "plugin_name": "golden-kit",
+      "plugin_version": "1.0.0",
+      "projection_map": {
+       "entries": [
+        {
+         "dest": "plugins/golden-kit/PACKAGE-METADATA.json",
+         "source": "PACKAGE-METADATA.json"
+        },
+        {
+         "dest": "plugins/golden-kit/hooks/hook.golden.json",
+         "source": "hooks/hook.golden.json"
+        },
+        {
+         "dest": "plugins/golden-kit/journeys/hook_fire.py",
+         "source": "journeys/hook_fire.py"
+        },
+        {
+         "dest": "plugins/golden-kit/journeys/identity_manifest.py",
+         "source": "journeys/identity_manifest.py"
+        },
+        {
+         "dest": "plugins/golden-kit/journeys/skill_checksum.py",
+         "source": "journeys/skill_checksum.py"
+        },
+        {
+         "dest": "plugins/golden-kit/plugin.json",
+         "source": "plugin.json"
+        },
+        {
+         "dest": "plugins/golden-kit/rules/rule.golden.md",
+         "source": "rules/rule.golden.md"
+        },
+        {
+         "dest": "plugins/golden-kit/skills/skill.golden/SKILL.md",
+         "source": "skills/skill.golden/SKILL.md"
+        }
+       ]
+      },
+      "source": "marketplace",
+      "transaction_id": "c8777e67-e297-47de-ad00-52a0aea3bd95"
+     },
+     "result": {
+      "dest_root": "/tmp/tst0070-m6srmiel/empty-profile/site",
+      "placed": [
+       "plugins/golden-kit/PACKAGE-METADATA.json",
+       "plugins/golden-kit/hooks/hook.golden.json",
+       "plugins/golden-kit/journeys/hook_fire.py",
+       "plugins/golden-kit/journeys/identity_manifest.py",
+       "plugins/golden-kit/journeys/skill_checksum.py",
+       "plugins/golden-kit/plugin.json",
+       "plugins/golden-kit/rules/rule.golden.md",
+       "plugins/golden-kit/skills/skill.golden/SKILL.md"
+      ]
+     }
+    },
+    "via": "marketplace.install"
+   },
+   "installed_files": [
+    "site/plugins/golden-kit/PACKAGE-METADATA.json",
+    "site/plugins/golden-kit/hooks/hook.golden.json",
+    "site/plugins/golden-kit/journeys/hook_fire.py",
+    "site/plugins/golden-kit/journeys/identity_manifest.py",
+    "site/plugins/golden-kit/journeys/skill_checksum.py",
+    "site/plugins/golden-kit/plugin.json",
+    "site/plugins/golden-kit/rules/rule.golden.md",
+    "site/plugins/golden-kit/skills/skill.golden/SKILL.md"
+   ],
+   "pass": true,
+   "plugin_json_postcondition": {
+    "bytes": 332,
+    "exists": true,
+    "min_bytes": 256,
+    "ok": true,
+    "parse_error": null,
+    "parses": true,
+    "path": "/tmp/tst0070-m6srmiel/empty-profile/site/plugins/golden-kit/plugin.json"
+   },
+   "plugin_root": "/tmp/tst0070-m6srmiel/empty-profile/site/plugins/golden-kit",
+   "profile_before": {
+    "empty": true,
+    "file_count": 0,
+    "files": [],
+    "has_claude": false,
+    "has_plugins": false,
+    "path": "/tmp/tst0070-m6srmiel/empty-profile"
+   },
+   "unpacked_is_repo_tools": false,
+   "unpacked_payload": "/tmp/tst0070-m6srmiel/unpacked/golden-kit"
+  },
+  "golden_journeys": {
+   "all_three_pass": true,
+   "corruption_control": {
+    "corrupt": {
+     "bytes": 1,
+     "exists": true,
+     "min_bytes": 256,
+     "ok": false,
+     "parse_error": "JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)",
+     "parses": false,
+     "path": "/tmp/tst0070-j-_s_a33fx/journey-out/journey-identity-manifest.json"
+    },
+    "fired_on_corrupt": true,
+    "restored": {
+     "bytes": 544,
+     "exists": true,
+     "min_bytes": 256,
+     "ok": true,
+     "parse_error": null,
+     "parses": true,
+     "path": "/tmp/tst0070-j-_s_a33fx/journey-out/journey-identity-manifest.json"
+    },
+    "silent_on_good": true
+   },
+   "dep_census": {
+    "answer": "jsonschema",
+    "missing_from_package": [
+     {
+      "in_packed_artifact": false,
+      "name": "jsonschema",
+      "packaging_metadata_present": false,
+      "repo_importers": [
+       "tools/marketplace/handoff.py",
+       "tools/marketplace/tests/test_handoff_contract.py",
+       "tools/plugin/exec_policy.py"
+      ]
+     }
+    ],
+    "packaging_metadata": {
+     "Pipfile": false,
+     "poetry.lock": false,
+     "pyproject.toml": false,
+     "requirements.txt": false,
+     "setup.cfg": false,
+     "setup.py": false
+    },
+    "packed_contains_jsonschema": false,
+    "third_party_imports_in_plugin_and_marketplace": {
+     "arg_marshall": [
+      "tools/plugin/tests/test_argv_only.py"
+     ],
+     "argv_only": [
+      "tools/plugin/tests/test_argv_only.py"
+     ],
+     "compat_diagnostics": [
+      "tools/plugin/tests/test_compat_diagnostics.py"
+     ],
+     "deployed_copy_guard": [
+      "tools/plugin/tests/test_deployed_copy_guard.py"
+     ],
+     "exec_policy": [
+      "tools/plugin/boot.py",
+      "tools/plugin/intercept.py",
+      "tools/plugin/tests/test_argv_only.py",
+      "tools/plugin/tests/test_exec_policy.py"
+     ],
+     "exit_codes": [
+      "tools/plugin/tests/test_argv_only.py"
+     ],
+     "glob_argv_guard": [
+      "tools/plugin/arg_marshall.py",
+      "tools/plugin/argv_only.py",
+      "tools/plugin/exit_codes.py",
+      "tools/plugin/tests/test_argv_only.py"
+     ],
+     "intercept": [
+      "tools/plugin/boot.py"
+     ],
+     "jsonschema": [
+      "tools/marketplace/handoff.py",
+      "tools/marketplace/tests/test_handoff_contract.py",
+      "tools/plugin/exec_policy.py"
+     ],
+     "test_argv_lint": [
+      "tools/plugin/tests/test_argv_only.py"
+     ],
+     "tools": [
+      "tools/marketplace/features.py",
+      "tools/marketplace/fixture.py",
+      "tools/marketplace/index_linter.py",
+      "tools/marketplace/offline.py",
+      "tools/marketplace/tests/test_fixture_registry.py",
+      "tools/marketplace/tests/test_index_migrate.py",
+      "tools/marketplace/tests/test_index_migration.py",
+      "tools/marketplace/tests/test_offline_import.py",
+      "tools/marketplace/trust_policy.py"
+     ]
+    }
+   },
+   "exec_policy_jsonschema": {
+    "hidden_exception": "RuntimeError: jsonschema is required to validate exec policy",
+    "hidden_raises": true,
+    "live_jsonschema_importable": true,
+    "live_validate_error": "ValidationError: Additional properties are not allowed ('allow_connect', 'allow_spawn', 'allow_write' were unexpected)\n\nFailed validating 'additionalProperties' in schema:\n    {'$id': 'https://prekzursil.dev/ast-integrate/schema/exec-policy.runtime.json',\n     '$schema': 'https://json-schema.org/draft/2020-12/schema',\n     'additionalProperties': False,\n     'properties': {'allowed_executables': {'items': {'minLength': 1,\n                                                      'type': 'string'},\n                                            'type': 'array'},\n                    'allowed_write_roots': {'items': {'minLength': 1,\n                                                      'type': 'string'},\n                                            'type': 'array'},\n                    'containment': {'properties': {'mechanism': {'const': 'userspace-intercept'},\n                                                   'os_process_sandbox': {'type': 'boolean'},\n                                                   'windows_kernel_sandbox': {'type': 'boolean'}},\n                                    'required': ['mechanism'],\n                                    'type': 'object'},\n                    'description': {'type': 'string'},\n                    'network': {'additionalProperties': False,\n                                'properties': {'endpoints': {'items': {'additionalProperties': False,\n                                                                       'properties': {'host': {'minLength': 1,\n                                                                                               'type': 'string'},\n                                                                                      'port': {'maximum': 65535,\n                                                                                               'minimum': 0,\n                                                                                               'type': 'integer'}},\n                                                                       'required': ['host',\n                                                                                    'port'],\n                                                                       'type': 'object'},\n                                                             'type': 'array'},\n                                               'mode': {'enum': ['deny',\n                                                                 'allowlist']}},\n                                'required': ['mode'],\n                                'type': 'object'},\n                    'on_violation': {'const': 'refuse-and-record'},\n                    'policy_id': {'minLength': 1, 'type': 'string'},\n                    'schema_version': {'const': 1, 'type': 'integer'},\n                    'windows_limitation': {'minLength': 1,\n                                           'type': 'string'}},\n     'required': ['schema_version',\n                  'policy_id',\n                  'description',\n                  'allowed_executables',\n                  'allowed_write_roots',\n                  'network',\n                  'on_violation',\n                  'windows_limitation',\n                  'containment'],\n     'type': 'object'}\n\nOn instance:\n    {'allow_connect': [],\n     'allow_spawn': ['/bin/echo'],\n     'allow_write': ['/tmp'],\n     'schema_version': 1,\n     'windows_limitation': 'Windows has no native OS-level process sandbox '\n                           'for arbitrary third-party binaries; this '\n                           'module does NOT provide one.'}",
+    "load_bearing": true
+   },
+   "journey_postconditions": [
+    {
+     "bytes": 544,
+     "exists": true,
+     "min_bytes": 256,
+     "ok": true,
+     "parse_error": null,
+     "parses": true,
+     "path": "/tmp/tst0070-j-_s_a33fx/journey-out/journey-identity-manifest.json"
+    },
+    {
+     "bytes": 460,
+     "exists": true,
+     "min_bytes": 256,
+     "ok": true,
+     "parse_error": null,
+     "parses": true,
+     "path": "/tmp/tst0070-j-_s_a33fx/journey-out/journey-skill-checksum.json"
+    },
+    {
+     "bytes": 502,
+     "exists": true,
+     "min_bytes": 256,
+     "ok": true,
+     "parse_error": null,
+     "parses": true,
+     "path": "/tmp/tst0070-j-_s_a33fx/journey-out/journey-hook-fire.json"
+    }
+   ],
+   "pass": true
+  },
+  "missing_runtime_dependency": "jsonschema"
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe1_clean_install.py",
+   "id": "probe1",
+   "role": "clean-install-empty-profile"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+   "id": "probe2",
+   "role": "golden-journeys-and-missing-dep"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"bytes\": 1, \"exists\": true, \"min_bytes\": 256, \"ok\": false, \"parse_error\": \"JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)\", \"parses\": false, \"path\": \"/tmp/tst0070-j-_s_a33fx/journey-out/journey-identity-manifest.json\"}",
+   "description": "Corrupt a journey output to a single '{'. The exists-and-parses-and-min-size postcondition must fail.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"bytes\": 544, \"exists\": true, \"min_bytes\": 256, \"ok\": true, \"parse_error\": null, \"parses\": true, \"path\": \"/tmp/tst0070-j-_s_a33fx/journey-out/journey-identity-manifest.json\"}",
+   "id": "TST0070-C1-corrupt-journey-output",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "RuntimeError: jsonschema is required to validate exec policy",
+   "description": "Hide jsonschema on plugin.exec_policy. validate_policy must raise rather than skip validation.",
+   "fired_on_bad_state": true,
+   "good_state_output": "jsonschema importable; validate_policy runs the Draft7 validator",
+   "id": "TST0070-C2-jsonschema-hidden",
+   "kind": "missing-runtime-dependency",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0070: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. No ADV rebuild circle.",
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "release-test-engineer",
+  "vendor": "cursor"
+ },
+ "question": "Phase 10 layer 5 (:10993). Target: install the built package - not the source tree - into a fresh profile and prove the golden journeys run. A CI-green source tree does not prove the packaged deliverable works (the measured Reframe precedent). Which runtime dependency is present in the repo but missing from the package?",
+ "required_fix": null,
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 is a separate process: it re-installs from the packed artifact, runs three journeys, corrupts one output, and hides jsonschema to prove the missing-dep detector.",
+  "reviewer_id": "TST-0070-probe2-golden-journeys-and-missing-dep",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:TST-0070",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe1_clean_install.py",
+   "id": "test_clean_install_into_empty_profile",
+   "observable": {
+    "distinct_from_exit_code": true,
+    "kind": "file-exists-parses-min-size",
+    "reads": "installed plugin.json bytes/parse/min_bytes"
+   },
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0070/probe2_golden_journeys.py",
+   "id": "test_at_least_three_golden_journeys_pass_against_the_installed_artifact",
+   "observable": {
+    "distinct_from_exit_code": true,
+    "kind": "file-exists-parses-min-size",
+    "reads": "three journey JSON reports under the installed tree"
+   },
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:41Z",
+  "started_at": "2026-08-25T01:06:40Z"
+ },
+ "title": "Clean-install test from the published artifact into an empty profile",
+ "unit_id": "TST-0070"
+}

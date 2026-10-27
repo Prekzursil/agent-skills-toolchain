@@ -1,0 +1,338 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1111,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/confirmation-audit.schema.json",
+      "role": "supporting",
+      "sha256": "c44dcc7cb270b477a7a392e2bc6b33292e91506c02fe15ace9096005990a4ade"
+    },
+    {
+      "bytes": 31682,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0009/comparator.py",
+      "role": "supporting",
+      "sha256": "b8331c05ce28d84186698a751a009df4468c6a3cf70fcc34976aa599d2562492"
+    },
+    {
+      "bytes": 921,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0009/fixtures/claim-registry.json",
+      "role": "fixture",
+      "sha256": "997bfce4ed67ad88a8471907b1714596c2b39b39eb76c1f57e7e7e75adb9949e"
+    },
+    {
+      "bytes": 880,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0009/fixtures/sampling-frame.json",
+      "role": "fixture",
+      "sha256": "5a444e5d64478807116d712b41e5ec8fc16d19705fc39cc525fb0f295685e5c4"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0009-frame-completeness.json",
+      "consumer": "jsonschema.Draft202012Validator with disk-local RefResolver",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/emit_artifact.py",
+        "exit_code": 0,
+        "fingerprint": "cnf0009:consumer:schema-validate",
+        "method": "schema-validate",
+        "raw_output": "schema_ok=True garbage_rejected=4/4",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:155",
+      "claim": "On the measured pair (source=fixture-complete-census) both set-difference directions are empty: registry-minus-frame=[] and frame-minus-registry=[].",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe1_clean_and_plant.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0009:source:set-difference",
+          "method": "file-read",
+          "raw_output": "rmf=[] fmr=[]",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe2_reviewer_detector.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0009:verifier:reviewer-recompute",
+          "method": "static-analysis",
+          "raw_output": "clean_rmf_empty=True clean_fmr_empty=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:213",
+      "claim": "Planted P0 id PLANTED-P0-CNF-0009 is absent from the frame and produces registry-minus-frame=[\"PLANTED-P0-CNF-0009\"] in the same run as the clean comparison.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "command-center/p2-wave/probes/CNF-0009/comparator.py:plant_p0",
+          "exit_code": 0,
+          "fingerprint": "cnf0009:source:plant-p0",
+          "method": "command",
+          "raw_output": "[\"PLANTED-P0-CNF-0009\"]",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe2_reviewer_detector.py # drop CLM-P0-BETA",
+          "exit_code": 0,
+          "fingerprint": "cnf0009:verifier:drop-missing-p0",
+          "method": "test-run",
+          "raw_output": "broken_rmf=[\"CLM-P0-BETA\"]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "catalog_named_inputs_status": "NOT-CHECKED-incomplete-named-pair",
+    "no_adv_rebuild": true
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/CNF-0009/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 512,
+  "negative_controls": [
+    {
+      "bad_state_output": "[\"PLANTED-P0-CNF-0009\"]",
+      "description": "Plant P0 id PLANTED-P0-CNF-0009 that the frame does not contain; registry-minus-frame must become non-empty while the clean pair stays empty.",
+      "fired_on_bad_state": true,
+      "good_state_output": "[]",
+      "id": "NC-planted-p0",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "[\"CLM-P0-BETA\"]",
+      "description": "Drop CLM-P0-BETA from the frame copy; registry-minus-frame must contain it.",
+      "fired_on_bad_state": true,
+      "good_state_output": "[]",
+      "id": "NC-drop-CLM-P0-BETA",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "[\"PHANTOM-ID-CNF-0009\"]",
+      "description": "Plant phantom id PHANTOM-ID-CNF-0009 into the frame; frame-minus-registry must become non-empty.",
+      "fired_on_bad_state": true,
+      "good_state_output": "[]",
+      "id": "NC-planted-phantom",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "report": {
+    "answer": "Named pair incomplete: present=[\"command-center/CLAIM-REGISTRY.json\"] missing_or_empty=[\"command-center/confirmation/CNF-0003-sampling-frame.json\"]. Live named-input completeness is NOT-CHECKED. No ADV rebuild of those corpora. Measured pair is the hermetic complete-census fixture. Clean registry-minus-frame is empty; clean frame-minus-registry is empty. Planted P0 id PLANTED-P0-CNF-0009 produces registry-minus-frame=[\"PLANTED-P0-CNF-0009\"] in the same run. Phantom id PHANTOM-ID-CNF-0009 produces frame-minus-registry=[\"PHANTOM-ID-CNF-0009\"]. SUCCESS:CNF-0009 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the planted-id control produced a non-zero difference in the same run as the clean comparison. Any other terminal state is FAILED:CNF-0009 <classification> with the diagnostic tail attached.",
+    "both_difference_directions_printed": true,
+    "catalog_named_inputs_status": "NOT-CHECKED-incomplete-named-pair",
+    "clean_comparison": {
+      "frame_ids": [
+        "CLM-P0-ALPHA",
+        "CLM-P0-BETA",
+        "CLM-P1-DELTA",
+        "CLM-P1-GAMMA",
+        "CLM-P2-EPSILON"
+      ],
+      "frame_minus_registry": [],
+      "frame_path": "command-center/p2-wave/probes/CNF-0009/fixtures/sampling-frame.json",
+      "registry_all_ids": [
+        "CLM-P0-ALPHA",
+        "CLM-P0-BETA",
+        "CLM-P1-DELTA",
+        "CLM-P1-GAMMA",
+        "CLM-P2-EPSILON"
+      ],
+      "registry_minus_frame": [],
+      "registry_p0p1_ids": [
+        "CLM-P0-ALPHA",
+        "CLM-P0-BETA",
+        "CLM-P1-DELTA",
+        "CLM-P1-GAMMA"
+      ],
+      "registry_path": "command-center/p2-wave/probes/CNF-0009/fixtures/claim-registry.json",
+      "same_run_as_planted_control": true
+    },
+    "completion_sentinel": "SUCCESS:CNF-0009 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the planted-id control produced a non-zero difference in the same run as the clean comparison. Any other terminal state is FAILED:CNF-0009 <classification> with the diagnostic tail attached.",
+    "control_ids": [
+      "T3-planted-absent-p0",
+      "T4-planted-phantom-id",
+      "NC-planted-p0",
+      "NC-drop-CLM-P0-BETA",
+      "NC-planted-phantom"
+    ],
+    "frame_minus_registry": [],
+    "frame_minus_registry_verbatim": [],
+    "kind": "confirmation-audit",
+    "measured_pair_source": "fixture-complete-census",
+    "missing_p0_control": {
+      "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:247",
+      "fires": true,
+      "missing_id": "CLM-P0-BETA",
+      "registry_minus_frame": [
+        "CLM-P0-BETA"
+      ],
+      "registry_minus_frame_verbatim": [
+        "CLM-P0-BETA"
+      ]
+    },
+    "named_inputs": [
+      {
+        "bytes": 11064,
+        "path": "command-center/CLAIM-REGISTRY.json",
+        "present": true,
+        "role": "catalog-named-registry",
+        "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21"
+      },
+      {
+        "bytes": 0,
+        "path": "command-center/confirmation/CNF-0003-sampling-frame.json",
+        "present": false,
+        "role": "catalog-named-frame"
+      },
+      {
+        "bytes": 921,
+        "path": "command-center/p2-wave/probes/CNF-0009/fixtures/claim-registry.json",
+        "present": true,
+        "role": "fixture-registry",
+        "sha256": "997bfce4ed67ad88a8471907b1714596c2b39b39eb76c1f57e7e7e75adb9949e"
+      },
+      {
+        "bytes": 880,
+        "path": "command-center/p2-wave/probes/CNF-0009/fixtures/sampling-frame.json",
+        "present": true,
+        "role": "fixture-frame",
+        "sha256": "5a444e5d64478807116d712b41e5ec8fc16d19705fc39cc525fb0f295685e5c4"
+      }
+    ],
+    "no_adv_rebuild": true,
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:155",
+        "measured": "[]",
+        "method": "set-difference",
+        "name": "registry-minus-frame"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:155",
+        "measured": "[]",
+        "method": "set-difference",
+        "name": "frame-minus-registry"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:213",
+        "measured": true,
+        "method": "same-run-plant-p0",
+        "name": "planted-p0-nonzero"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0009/comparator.py:170",
+        "measured": "fixture-complete-census",
+        "method": "load_measured_pair",
+        "name": "measured-pair-source"
+      }
+    ],
+    "phantom_id_control": {
+      "contains_phantom_id": true,
+      "frame_minus_registry": [
+        "PHANTOM-ID-CNF-0009"
+      ],
+      "frame_minus_registry_verbatim": [
+        "PHANTOM-ID-CNF-0009"
+      ],
+      "nonzero_difference": true,
+      "planted_id": "PHANTOM-ID-CNF-0009",
+      "same_run_as_clean": true
+    },
+    "planted_id_control": {
+      "absent_from_frame": true,
+      "contains_planted_id": true,
+      "nonzero_difference": true,
+      "planted_id": "PLANTED-P0-CNF-0009",
+      "registry_minus_frame": [
+        "PLANTED-P0-CNF-0009"
+      ],
+      "registry_minus_frame_verbatim": [
+        "PLANTED-P0-CNF-0009"
+      ],
+      "same_run_as_clean": true,
+      "severity": "P0"
+    },
+    "question": "Is any P0/P1 claim missing from the confirmation frame? Compute the two-directional set difference between CLAIM-REGISTRY severity>=P1 and the frame, and prove the comparator works by planting a known P0 id that the frame does not contain. A zero difference is only credible once the planted id has been shown to produce a non-zero difference.",
+    "registry_minus_frame": [],
+    "registry_minus_frame_verbatim": []
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live named-pair completeness (command-center/CLAIM-REGISTRY.json severity>=P1 vs command-center/confirmation/CNF-0003-sampling-frame.json) is NOT-CHECKED because the named pair is incomplete (status=NOT-CHECKED-incomplete-named-pair). Fixture completeness is not a live-corpus census.",
+      "settling_experiment": "Deliver CNF-0003 so CNF-0003-sampling-frame.json exists at the catalog path, then re-run CNF-0009 named-pair compare without rebuilding CLAIM-REGISTRY.json or the frame.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Reviewer re-runs the planted-P0 detector control and the known-broken missing-P0 fixture; it does not accept the artifact conclusion as verification.",
+    "reviewer_id": "CNF-0009-probe2-detector-control",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0009",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0009",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe1_clean_and_plant.py",
+      "id": "T1-registry-minus-frame-empty",
+      "name": "registry-minus-frame must be empty",
+      "output_tail": "[]",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe1_clean_and_plant.py",
+      "id": "T2-frame-minus-registry-empty",
+      "name": "frame-minus-registry must be empty (no phantom ids)",
+      "output_tail": "[]",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe1_clean_and_plant.py",
+      "id": "T3-planted-absent-p0",
+      "name": "planted absent P0 id must make registry-minus-frame non-empty",
+      "output_tail": "[\"PLANTED-P0-CNF-0009\"]",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0009/probe2_reviewer_detector.py",
+      "id": "T4-planted-phantom-id",
+      "name": "planted phantom id must make frame-minus-registry non-empty",
+      "output_tail": "[\"PHANTOM-ID-CNF-0009\"]",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:18Z",
+    "started_at": "2026-08-25T00:57:18Z"
+  },
+  "unit_id": "CNF-0009"
+}

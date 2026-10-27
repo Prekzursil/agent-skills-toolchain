@@ -1,0 +1,486 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "license-and-rights-governance-register",
+  "name": "Licence and rights governance register for adopted third-party artifacts",
+  "description": "BP-SEC-05 (card 65). Defining mechanism: VERBATIM RIDER PRESERVATION plus block-on-absence. Every other adoption review summarises a licence; this one asserts byte-identity between the rider text in the source LICENSE file and the rider text in the register, because the estate already carries a non-standard rider (MIT plus a clause forbidding ML training and eval folding) that is destroyed the moment it is flattened to the word 'MIT'. Two hard outcomes follow: an artifact with no discoverable licence may not be adopted, and an ambiguous licence DEFERS to the owner rather than defaulting to permissive.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["security-governance-and-risk", "product-design-and-strategy"],
+  "tags": ["bp-sec-05", "license", "governance", "verbatim"],
+  "flagship": true,
+
+  "params": {
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 128,
+      "required": true,
+      "description": "Fan-out keys - one reviewer per third-party artifact (skill, plugin, MCP, dataset, model)"
+    },
+    "intended_use": {
+      "type": "array",
+      "items": {
+        "type": "enum",
+        "enum": ["internal-tooling", "redistribution", "ml-training", "eval-folding", "commercial-product", "public-publication"]
+      },
+      "min_items": 1,
+      "required": true,
+      "description": "What the estate actually DOES with the artifact. A rider is only checkable against a declared use."
+    },
+    "register_path": {
+      "type": "path",
+      "default": "command-center/governance/license-register.json",
+      "description": "The append-only register every adoption decision is recorded in"
+    },
+    "block_on_absent_license": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true an artifact with no discoverable licence cannot be adopted. Never defaults to permissive."
+    }
+  },
+
+  "roles": {
+    "license-locator": {
+      "description": "Finds the licence text for one artifact and records ABSENT as a finding rather than as a blank field",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/governance/**)"],
+      "write_paths": ["command-center/governance/**"],
+      "speaking_rights": "always"
+    },
+    "obligation-extractor": {
+      "description": "Extracts riders and obligations VERBATIM - attribution, share-alike, no-ML-training, field-of-use",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Bash:python", "Write(command-center/governance/**)"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only actor who may resolve an ambiguous licence or accept an obligation",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/governance/**)"],
+    "deny": ["Bash", "WebFetch", "WebSearch"],
+    "require_owner_approval": ["Write(command-center/governance/license-register.json)"],
+    "network": "none",
+    "write_paths": ["command-center/governance/**"],
+    "forbid_write_paths": ["platform/**"],
+    "source_policy": {
+      "offline_only": true,
+      "license_allowlist": ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "CC-BY-4.0", "CC-BY-SA-4.0"],
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "no-artifact-without-license": {
+      "predicate": "custom-expression",
+      "expression": "artifacts_with_absent_license_marked_adoptable == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "riders-preserved-verbatim": {
+      "predicate": "custom-expression",
+      "expression": "riders_extracted == riders_byte_identical_to_source AND riders_summarised_away == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "every-artifact-pinned": {
+      "predicate": "custom-expression",
+      "expression": "artifacts_without_pinned_ref == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "review-each-artifact",
+      "title": "One licence review per artifact",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "artifacts",
+        "item_var": "artifact",
+        "key_field": "artifact"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 100,
+      "max_items": 128,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "locate-license",
+          "title": "Locate the licence text; ABSENT is a finding, not a blank",
+          "kind": "task",
+          "role": "license-locator",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "SEC-6501",
+            "title": "Locate and hash the licence text for one third-party artifact",
+            "phase": "7",
+            "question_or_target": "Find the licence document for the fan-out artifact (LICENSE, COPYING, an SPDX header, or package metadata), record its path and sha256, and where none exists record license_state ABSENT with the paths that were searched - so absence is a measured result rather than an empty field.",
+            "inputs": ["fanout.item.artifact"],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "license-locator",
+              "basis": "substantive subagents default to Opus"
+            },
+            "tool_permissions": ["Read", "Glob", "Grep", "Write(command-center/governance/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/governance/license-locations",
+            "output_schema": "command-center/schema/license-audit.schema.json",
+            "evidence_requirement": "the licence file path, its sha256, and the enumerated list of paths searched when the state is ABSENT",
+            "tests_required": [
+              "an artifact with no LICENSE anywhere must record ABSENT with a non-empty searched-paths list",
+              "an SPDX-header-only artifact must be located, not reported ABSENT (the format-coverage control)"
+            ],
+            "reviewer_requirement": "the obligation extractor reads the located file itself, not this unit's description of it",
+            "completion_sentinel": "SUCCESS:SEC-6501 when a licence path plus sha256 exists, or ABSENT plus the searched paths; otherwise FAILED:SEC-6501 <reason>",
+            "retry_policy": "two strikes then pivot to package metadata; never resolve to a default licence",
+            "failure_classification": ["license-absent", "license-format-unrecognised"],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "extract-obligations",
+          "title": "Extract riders and obligations VERBATIM",
+          "kind": "task",
+          "depends_on": ["locate-license"],
+          "role": "obligation-extractor",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "SEC-6502",
+            "title": "Extract every rider and obligation as a verbatim span of the licence bytes",
+            "phase": "7",
+            "question_or_target": "For the located licence, emit the base SPDX identifier plus every rider and obligation as a VERBATIM span - the exact substring of the source bytes with its start and end offsets - so the register can assert byte-identity instead of trusting a paraphrase.",
+            "inputs": ["command-center/governance/license-locations", "fanout.item.artifact"],
+            "dependencies": ["SEC-6501"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "obligation-extractor",
+              "basis": "distinguishing a rider from boilerplate is judgement; preserving it is mechanical"
+            },
+            "tool_permissions": ["Read", "Bash:python", "Write(command-center/governance/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/governance/license-obligations",
+            "output_schema": "command-center/schema/license-and-rights-record.schema.json",
+            "evidence_requirement": "each rider carries its byte offsets into the source licence file plus the sha256 of that file, so byte-identity is re-checkable without the extractor",
+            "tests_required": [
+              "an MIT licence carrying an extra no-ML-training clause must be recorded as MIT PLUS the verbatim rider, never flattened to MIT",
+              "a rider whose recorded span does not match the source bytes at the recorded offsets must fail extraction"
+            ],
+            "reviewer_requirement": "byte-identity is re-verified from the source file and the offsets, independently of the extractor",
+            "completion_sentinel": "SUCCESS:SEC-6502 when every recorded rider re-reads byte-identically from the source at its offsets; otherwise FAILED:SEC-6502 <reason>",
+            "retry_policy": "no retry on an offset mismatch - it is an extraction bug",
+            "failure_classification": ["rider-summarised-away", "offset-mismatch", "license-ambiguous"],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "check-against-intended-use",
+          "title": "Check each obligation against what the estate actually does",
+          "kind": "task",
+          "depends_on": ["extract-obligations"],
+          "role": "obligation-extractor",
+          "timeout_seconds": 1200,
+          "work_unit_ref": "AUD-0001"
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": ["started in the background"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "verbatim-gate",
+      "title": "A summarised rider is a lost obligation",
+      "kind": "gate",
+      "depends_on": ["review-each-artifact"],
+      "gate_ref": "riders-preserved-verbatim"
+    },
+    {
+      "id": "absent-license-gate",
+      "title": "No licence means not adoptable - never defaulted to permissive",
+      "kind": "gate",
+      "depends_on": ["verbatim-gate"],
+      "when": "block_on_absent_license == true",
+      "gate_ref": "no-artifact-without-license"
+    },
+    {
+      "id": "owner-resolves-ambiguity",
+      "title": "An ambiguous licence DEFERS to the owner; it never resolves itself",
+      "kind": "human_checkpoint",
+      "depends_on": ["absent-license-gate"],
+      "when": "artifacts_ambiguous >= 1",
+      "prompt": "These artifacts have a licence that cannot be resolved against the declared intended use. For each, decide: adopt with the obligation recorded, adopt with the conflicting use dropped, or do not adopt. This workflow will not assume a permissive reading.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["adopt-with-obligation", "adopt-and-drop-conflicting-use", "do-not-adopt"],
+      "decision_artifact": {
+        "path": "command-center/governance/AMBIGUITY-RULINGS.json",
+        "schema_ref": "command-center/schema/redistribution-adjudication.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": ["pin-and-register"]
+      }
+    },
+    {
+      "id": "pin-and-register",
+      "title": "Pin an exact ref per artifact and append to the register",
+      "kind": "task",
+      "depends_on": ["owner-resolves-ambiguity"],
+      "role": "license-locator",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "SEC-6503",
+        "title": "Pin every adopted artifact to an exact ref and append its rights record to the register",
+        "phase": "7",
+        "question_or_target": "For each adoptable artifact record an exact immutable ref (commit sha, release tag plus digest, or dataset revision) alongside its verbatim obligations, and append one row to the register; an unpinned third-party dependency is itself recorded as a supply-chain finding rather than as a pinned row.",
+        "inputs": ["command-center/governance/license-obligations", "command-center/governance/AMBIGUITY-RULINGS.json", "params.register_path"],
+        "dependencies": ["SEC-6502"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "license-locator",
+          "basis": "the register is the durable governance record"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/governance/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/governance/license-register.json",
+        "output_schema": "command-center/schema/license-and-rights-record.schema.json",
+        "evidence_requirement": "one register row per artifact with the pinned ref, the base licence id, the verbatim obligations and the compatibility verdict against each declared intended use",
+        "tests_required": [
+          "an artifact with a floating ref (a branch name) must be recorded as a supply-chain finding, not as pinned",
+          "the register row count must equal the adoptable artifact count (no silent drop)"
+        ],
+        "reviewer_requirement": "the owner reads the register before any of these artifacts is used for a declared purpose",
+        "completion_sentinel": "SUCCESS:SEC-6503 when every adoptable artifact has a register row with a pinned ref and verbatim obligations; otherwise FAILED:SEC-6503 <reason>",
+        "retry_policy": "no retry on a floating ref - it is a finding, not a transient",
+        "failure_classification": ["unpinned-dependency", "register-row-missing"],
+        "owner_approval_required": true
+      },
+      "produces": [
+        {
+          "path": "command-center/governance/license-register.json",
+          "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6503",
+          "consumers": ["pin-gate", "owner"]
+        }
+      ]
+    },
+    {
+      "id": "pin-gate",
+      "title": "Every registered artifact carries an immutable ref",
+      "kind": "gate",
+      "depends_on": ["pin-and-register"],
+      "gate_ref": "every-artifact-pinned"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "register-complete",
+      "expression": "register_rows == artifacts_adoptable AND artifacts_without_pinned_ref == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "artifacts_reviewed == artifacts_requested",
+      "on_stop": "complete"
+    },
+    {
+      "id": "ambiguity-unresolved-by-owner",
+      "expression": "artifacts_ambiguous >= 1 AND owner_rulings_recorded == 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": ["license-format-unrecognised"],
+    "no_retry_on": ["rider-summarised-away", "offset-mismatch"]
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["license-absent", "rider-summarised-away", "unpinned-dependency"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-resolves-ambiguity",
+    "quarantine_path": "command-center/governance/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/license-register",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/license-register.jsonl",
+    "record": ["params", "inputs", "tool_calls", "model_outputs"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["stage_id", "item_key", "inputs_hash"],
+    "store": "command-center/cache/license-register",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": ["artifact-ref-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report"],
+    "plan_artifact": "command-center/dry-run/license-register-plan.json",
+    "forbid_tools": ["Write(command-center/governance/**)", "Bash:python"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": { "currency": "USD", "min": 0.2, "expected": 1.2, "max": 5.0 },
+    "wallclock_seconds": { "min": 120, "expected": 900, "max": 5400 },
+    "tokens": { "expected": 150000, "max": 700000 },
+    "tool_calls": { "expected": 60, "max": 300 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the artifacts; writes only under command-center/governance/**",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "lineage", "examples"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/license-and-rights-governance-register.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/multi-ai-mingle#mcp_agent_mail-MIT-plus-rider",
+        "relation": "GENERALIZE",
+        "license": "MIT plus an OpenAI/Anthropic rider forbidding ML training and eval folding",
+        "credit": "mcp_agent_mail authors"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-05"]
+  },
+
+  "outputs": {
+    "license-register": {
+      "path": "command-center/governance/license-register.json",
+      "schema_ref": "command-center/schema/license-and-rights-record.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/governance/AMBIGUITY-RULINGS.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "byte-identity-assertion-between-source-licence-and-register-plus-block-on-absence",
+      "distinguishing_stage": "extract-obligations",
+      "distinguishing_gate": "riders-preserved-verbatim",
+      "not_a_duplicate_because": "BP-SEC-03 contains the EXECUTION risk of entering a third-party checkout. This measures LEGAL obligation, and its unique assertion is byte-identity of a rider span - a check no other blueprint in this set performs."
+    },
+    "not_legal_advice": "The register records obligations and their source spans. It does not interpret enforceability, and an ambiguous licence always defers to the owner.",
+    "worked_example": {
+      "name": "the agent-mail rider must survive the register",
+      "params": {
+        "artifacts": ["mcp_agent_mail", "trailofbits-skills", "context-mode-clone"],
+        "intended_use": ["internal-tooling", "eval-folding"],
+        "register_path": "command-center/governance/license-register.json",
+        "block_on_absent_license": true
+      },
+      "expected_stage_path": [
+        "review-each-artifact",
+        "locate-license",
+        "extract-obligations",
+        "check-against-intended-use",
+        "verbatim-gate",
+        "absent-license-gate",
+        "owner-resolves-ambiguity",
+        "pin-and-register",
+        "pin-gate"
+      ],
+      "expected_artifacts": [
+        "command-center/governance/AMBIGUITY-RULINGS.json",
+        "command-center/governance/license-register.json"
+      ],
+      "expected_terminal": "SUCCESS:SEC-6503",
+      "narrative": "mcp_agent_mail resolves to MIT plus a verbatim rider forbidding ML training and eval folding; because eval-folding is a DECLARED intended use, compatible_with_intended_use is false and the artifact reaches the owner ruling rather than the register - exactly the outcome flattening the rider to 'MIT' would have hidden. trailofbits-skills resolves to CC-BY-SA-4.0 with a verbatim attribution and share-alike obligation, compatible with internal-tooling, pinned to a commit sha. context-mode-clone has no LICENSE at any searched path, so license_state is ABSENT with the searched-paths list, and block_on_absent_license stops it being adopted rather than defaulting it to permissive."
+    }
+  }
+}

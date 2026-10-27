@@ -1,0 +1,26 @@
+casualty round 2: ruff-green the lane, except the 5 files whose bytes ARE the evidence
+
+Measured with the CI-pinned uvx ruff@0.15.17, not the ambient one. Main is broadly red - 145
+files would be reformatted repo-wide with 29 lint errors - and this lane owned 41 files and 10
+of those errors. This is the lane's share.
+
+THE CONFLICT, and why it is not papered over. Five scripts under probes/ are byte-identical to
+the dead agents' scratch originals; I re-measured the sha256 against the scratchpad rather than
+trusting the audit (5/5 LOCKED, and adv0021_verifier.py correctly NOT locked because round 1
+authored it and it has no scratch twin). The adversarial audit's "prior work recovered, not
+redone" finding rests entirely on that match. Reformatting them would satisfy a style gate by
+destroying the evidence that the work was recovered rather than re-authored, and there is no
+per-file escape from ruff format that does not itself change the bytes.
+
+  formatted   : 37 lane python files -> "All checks passed!" + "37 files already formatted"
+  provenance  : 5/5 byte-identical BEFORE and AFTER (asserted by the script, which refuses to
+                format anything if provenance is already broken)
+  left red    : the 5 provenance-locked originals, deliberately
+  durable fix : add 'command-center/casualty/probes/' to extend-exclude in the ROOT ruff.toml -
+                one line, outside this lane's declared file scope, so it is reported not done
+
+Three E402s (two in _build_adv0021.py, one in _r1_rerun_diff.py) are deliberate late imports and
+now carry a scoped "# noqa: E402" naming the reason, rather than a repo-wide silence.
+
+All 12 steps of r2_verify_all.py still pass after the reformat, so it is behaviour-preserving -
+checked, not assumed.

@@ -1,0 +1,1 @@
+Chasing every gap the finder cites produces shovelware. Synthesizing a workflow per gap without re-running the finder is a mistake; the cited gap often closes itself in the next pass, and the synthesis claims credit.

@@ -1,0 +1,3287 @@
+[
+  {
+    "id": "RES-0129",
+    "title": "Cross-client extension-manifest compatibility matrix (5+ agent clients)",
+    "phase": "2",
+    "question_or_target": "For Claude Code, Codex CLI, Gemini CLI, Cursor, Continue.dev and Copilot Extensions: which manifest concepts (name, version, entrypoint, permissions, tool declarations, hooks, compatibility ranges) are expressible in EACH, and what is the largest common subset a single published package could satisfy without per-client forks?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10844-10871 (marketplace requirements)",
+      "_USER-PROMPTS.md:10998 (cross-client tests)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__firecrawl_map",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/marketplace-ecosystem/RES-0129-cross-client-manifest-compat-matrix.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); one primary-source citation (official schema file or docs page) per client per concept; a concept absent from a client's docs is NOT-CHECKED until the source repo is read",
+    "tests_required": [
+      "negative control: assert the matrix marks at least one concept UNSUPPORTED per client - an all-green row means the extractor matched prose mentions instead of schema fields (use-vs-mention)"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0129",
+    "retry_policy": "on HTTP 429 back off with jitter and stagger arrivals (spec:10577); a 529 is vendor-side and must NOT trigger self-throttling; after 2 strikes on the same error fingerprint switch search backend rather than re-querying the same one",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0130",
+    "title": "Lockfile resolution behaviour when a pinned package is revoked or the mirror is offline",
+    "phase": "2",
+    "question_or_target": "Which lockfile design - npm package-lock, pnpm-lock, poetry.lock, Cargo.lock, Nix flake.lock - still produces a correct, reproducible install when the upstream version is revoked AND the only reachable source is a stale local mirror, and what error does each emit?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10863 (lockfile support)",
+      "_USER-PROMPTS.md:11305 (stale cache masks a fixed package)"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each error string quoted verbatim from a reproduction or the resolver source; hash-pinning behaviour traced to the specific resolver function",
+    "tests_required": [
+      "both-states control: reproduce one install against a reachable source (must succeed) and the same install against a revoked/offline source (must fail loudly, not silently downgrade)"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0130",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0131",
+    "title": "Package quality/conformance score computable with zero telemetry and zero network",
+    "phase": "2",
+    "question_or_target": "Which of the signals used by npm score, OpenSSF Scorecard and Packagist quality ratings can be computed from the package bytes alone, offline, with no download counts and no GitHub API - and what is the measured rank correlation between that offline subset and the full online score on a sample of 30 real packages?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10861 (quality/conformance score)",
+      "_USER-PROMPTS.md:10862 (benchmark evidence)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/marketplace-ecosystem/RES-0131-locally-computable-package-quality-score.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the correlation is a computed Spearman coefficient over a named 30-package sample with the sample list committed; a qualitative 'correlates well' is rejected",
+    "tests_required": [
+      "negative control: shuffle the offline scores against the online scores and confirm the correlation collapses toward zero, proving the metric is measuring signal and not construction"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0131",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0132",
+    "title": "Measure the decay rate of a stored 'green' vulnerability scan",
+    "phase": "2",
+    "question_or_target": "How fast does a stored green osv-scanner/pip-audit result stop being true? Re-run a FROZEN lockfile against the live advisory DB at T+0, T+7d and T+30d and report the verdict-flip rate and the median lag between advisory publication and verdict flip.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11021 (partial-artifact tests)",
+      "rules/common/ci-hygiene.md (a stored green decays)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the frozen lockfile hash is recorded at T+0 and re-verified at each re-run so the input is provably identical; each flip names the advisory id that caused it",
+    "tests_required": [
+      "both-states control: seed the run with one lockfile pinned to a version with an ALREADY-PUBLISHED advisory - the scanner must be red at T+0, proving the harness can see a positive at all"
+    ],
+    "reviewer_requirement": "one security refuter plus one supply-chain refuter; both default to REFUTED on insufficient evidence",
+    "completion_sentinel": "SUCCESS:RES-0132",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0133",
+    "title": "Secret-scanner coverage gap on markdown, prompt and transcript artifacts",
+    "phase": "2",
+    "question_or_target": "Do gitleaks, trufflehog and GitHub secret scanning actually detect credentials embedded in markdown prose, JSONL transcripts and fenced code blocks - measured as detection rate over a synthetic corpus of 40 planted, clearly-fake-but-format-valid credentials across 10 provider formats?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11018 (secret-leak tests)",
+      "_USER-PROMPTS.md:11345 (credentials enter an artifact bundle)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/supply-chain/RES-0133-secret-scanner-coverage-on-prose-artifacts.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); planted credentials are synthetic and non-functional by construction; the corpus generator is committed and the report prints counts only, never a value",
+    "tests_required": [
+      "detector control: include 5 non-credential strings with credential-like shape and require them to be reported as false positives, quantifying precision as well as recall"
+    ],
+    "reviewer_requirement": "one security refuter plus one supply-chain refuter; both default to REFUTED on insufficient evidence",
+    "completion_sentinel": "SUCCESS:RES-0133",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0134",
+    "title": "What does 'reproducible build' mean for a package of markdown, JSON and scripts?",
+    "phase": "2",
+    "question_or_target": "Which non-determinism sources actually break byte-identical rebuilds of an asset-only package on Windows and Linux (archive member order, mtimes, path separators, CRLF-vs-LF normalisation, unicode path casing), and what is the minimal packaging recipe that produces the same digest on both platforms?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11307 (package includes .git or huge unrelated files)",
+      "rules/common/windows-shell.md section 8b (CRLF vs LF blob)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/supply-chain/RES-0134-reproducible-build-for-asset-packages.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the two-platform digest equality is demonstrated by an actual pair of builds with both digests recorded, not argued from the recipe",
+    "tests_required": [
+      "both-states control: run one build with the normalisation deliberately disabled and confirm the digests DIFFER, proving the equality result is caused by the recipe and not by an insensitive comparison"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0134",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0135",
+    "title": "Licence compatibility matrix for aggregating third-party workflows, skills and prompts",
+    "phase": "2",
+    "question_or_target": "For the licence set actually present in the candidate corpus (MIT, Apache-2.0, BSD, GPL-3.0, AGPL-3.0, MPL-2.0, CC-BY, CC-BY-SA, CC0, unlicensed, and vendor riders): which pairs may be distributed together inside one marketplace package, which require separation into distinct packages, and which forbid redistribution entirely?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10715 (legal and licence review)",
+      "_USER-PROMPTS.md:11334 (workflow provenance or licence is lost)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "legal-licence-reviewer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/supply-chain/RES-0135-licence-compatibility-matrix-for-aggregation.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each cell cites the licence clause number that drives the verdict; an unlicensed source is treated as ALL-RIGHTS-RESERVED (worst case), never as permissive-by-default",
+    "tests_required": [
+      "negative control: the matrix must contain at least one FORBIDDEN cell and one SEPARATE-PACKAGE cell; an all-compatible matrix indicates copyleft clauses were not read"
+    ],
+    "reviewer_requirement": "two reviewers with disjoint mandates: a legal/licence reviewer and a security reviewer; both must PASS (spec:11045-11060)",
+    "completion_sentinel": "SUCCESS:RES-0135",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "legal-uncertainty",
+      "overclaim",
+      "owner-blocked",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0136",
+    "title": "Vendor licence riders and their propagation into a redistributed package",
+    "phase": "2",
+    "question_or_target": "Which candidate dependencies carry a non-OSI rider (for example a no-ML-training / no-eval-folding clause or a field-of-use restriction), does that rider propagate to a package that merely VENDORS the dependency versus one that only calls it over a local socket, and which of our planned distributions would violate it?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11334 (provenance or licence is lost)",
+      "mcp_agent_mail licence (MIT + OpenAI/Anthropic rider) as a live in-estate example"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "legal-licence-reviewer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/supply-chain/RES-0136-vendor-rider-propagation.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each rider quoted verbatim with its file path in the upstream repo; each propagation verdict states which distribution act (vendoring, linking, invoking, publishing) triggers it",
+    "tests_required": [
+      "negative control: include one dependency with a plain OSI licence and confirm the extractor reports NO rider - an extractor that finds a rider everywhere is matching prose, not clauses"
+    ],
+    "reviewer_requirement": "two reviewers with disjoint mandates: a legal/licence reviewer and a security reviewer; both must PASS (spec:11045-11060)",
+    "completion_sentinel": "SUCCESS:RES-0136",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "legal-uncertainty",
+      "overclaim",
+      "owner-blocked",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0137",
+    "title": "Niche and obscure community scan for transferable automation mechanisms",
+    "phase": "2",
+    "question_or_target": "What orchestration, verification or provenance mechanisms are standard practice in communities OUTSIDE agent tooling - bioinformatics pipeline runners, game-modding toolchains, reverse-engineering automation, HPC job schedulers, VFX render farms - and which three transfer with the least adaptation to a prompt-native control plane?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10696 (niche and obscure communities)",
+      "_USER-PROMPTS.md:10712 (gem hunt)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "gem-hunter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0137-cross-domain-niche-community-scan.json",
+    "output_schema": "command-center/schema/gem-candidate.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each mechanism cites the community's own tool documentation or source; each transfer verdict names the specific adaptation cost in concrete terms (what must be rewritten)",
+    "tests_required": [
+      "negative control: include at least one mechanism judged NOT transferable with the blocking reason stated; a scan where everything transfers has not modelled the control plane"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0137",
+    "retry_policy": "on HTTP 429 back off with jitter and stagger arrivals (spec:10577); a 529 is vendor-side and must NOT trigger self-throttling; after 2 strikes on the same error fingerprint switch search backend rather than re-querying the same one",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0138",
+    "title": "Lawful public-Tor/onion research stage: sandbox design, logging contract and legal gate",
+    "phase": "2",
+    "question_or_target": "What is the minimal architecture for an OPT-IN, sandboxed, fully logged onion research stage that can only perform public read access, and which specific technical controls make each prohibited action (transact, buy/sell, access stolen data, bypass access control, deanonymise) impossible rather than merely forbidden by prompt?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11280-11296 (Tor/onion safety policy)",
+      "_USER-PROMPTS.md:11361 (enabling controversial source classes is owner-gated)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/sources-frontier/RES-0138-tor-research-stage-design-and-legal-gate.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each prohibition maps to a TECHNICAL control (egress allowlist, read-only method allowlist, no-credential store, mandatory transcript) with the enforcement point named; a prompt-only control is recorded as NOT ENFORCED",
+    "tests_required": [
+      "both-states control: the design must include a test that a prohibited method attempt is BLOCKED and logged, and that a permitted read succeeds - a stage that logs nothing in the blocked case fails the gate"
+    ],
+    "reviewer_requirement": "two reviewers with disjoint mandates: a legal/licence reviewer and a security reviewer; both must PASS (spec:11045-11060)",
+    "completion_sentinel": "SUCCESS:RES-0138",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "legal-uncertainty",
+      "overclaim",
+      "owner-blocked",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": true
+  },
+  {
+    "id": "RES-0139",
+    "title": "Standards and working-group archives as a first-class source class",
+    "phase": "2",
+    "question_or_target": "For IETF datatracker, W3C group archives, OpenSSF/SLSA working groups and the MCP specification repository: what is the stable, machine-readable way to extract a normative requirement plus its discussion history, and which of our planned contracts already contradict a published normative requirement?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10689 (standards)",
+      "_USER-PROMPTS.md:10797-10822 (Phase 4 formal contracts)"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__firecrawl_map",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0139-standards-working-group-source-adapter.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); a normative requirement is cited by its RFC 2119 keyword and section number; a contradiction claim must quote both our contract text and the normative text",
+    "tests_required": [
+      "negative control: run the contradiction check against a contract clause known to comply and confirm it returns no hit, proving the checker is not flagging every clause"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0139",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0140",
+    "title": "Conference-talk and video-transcript source class: is the extraction cost worth the yield?",
+    "phase": "2",
+    "question_or_target": "Measured over a fixed 20-item sample, how many distinct, non-duplicate mechanisms does a video/talk transcript produce per 10k tokens of extraction cost, compared with the blog-post and official-docs classes over the same subject matter - and does it clear the threshold to stay in the default source-class set?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10694 (engineering blogs)",
+      "_USER-PROMPTS.md:10702-10715 (research modes)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__firecrawl_crawl",
+      "mcp__brightdata__scrape_as_markdown",
+      "mcp__brightdata__search_engine",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0140-transcript-source-class-yield-measurement.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); cost is measured in actual tokens consumed per item, not estimated; the same subject matter is held constant across the three classes so the comparison is like-for-like",
+    "tests_required": [
+      "negative control: include two transcripts of talks that merely restate their companion blog post and confirm the dedup collapses them against the blog entries - a yield figure that counts restatements is inflated"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0140",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0141",
+    "title": "Detect breaking changes from release-note prose across the dependency ecosystem",
+    "phase": "2",
+    "question_or_target": "Which lexical and structural signals in changelogs actually predict a breaking change - a semver-major bump, a BREAKING CHANGE footer, a removal verb, a deprecation-then-removal pair - and what precision/recall does the best combination achieve on a hand-labelled set of 100 real release notes?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10686 (changelogs and release notes)",
+      "_USER-PROMPTS.md:11302 (strict parser rejects unknown fields)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0141-breaking-change-phrase-detection.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the labelled set is committed with labels assigned BEFORE the detector is written; precision and recall are computed, not described",
+    "tests_required": [
+      "detector control: include 20 release notes with no breaking change and require the detector to stay silent on them; report false-positive rate alongside recall"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0141",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0142",
+    "title": "Which issue-tracker signals distinguish a live blocker from noise?",
+    "phase": "2",
+    "question_or_target": "Across the trackers of our load-bearing dependencies, which observable fields (state, label, reaction count, maintainer response latency, linked-PR state, duplicate-count, milestone) predict that an open issue will actually block us - validated against 25 issues whose real-world impact on this estate is already known?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10687 (issue trackers)",
+      "command-center/RISK-REGISTER.md"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0142-issue-tracker-blocker-signal-model.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the 25 ground-truth labels come from this estate's own recorded incidents, not from the issue text; a label derived from the same text the model reads is circular and must be excluded",
+    "tests_required": [
+      "negative control: hold out 8 of the 25 and report performance on the held-out set separately; an in-sample-only figure is reported as NOT VALIDATED"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0142",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0143",
+    "title": "Protocol for converting a practitioner anecdote into a falsifiable, testable claim",
+    "phase": "2",
+    "question_or_target": "Define and validate the transformation that takes an unstructured anecdote ('X broke when I did Y') into a claim record with an explicit precondition, an observable, and a local experiment - and measure what fraction of a 30-anecdote sample survives the transformation without inventing detail the source never stated.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11270 (anecdotal source class)",
+      "_USER-PROMPTS.md:10717 (claim needs lineage, band, verification path)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/sources-frontier/RES-0143-anecdote-to-falsifiable-claim-protocol.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each transformed claim is diffed against the source text and any element not present in the source is flagged INFERRED with the inference stated",
+    "tests_required": [
+      "negative control: pass 5 anecdotes that are too vague to transform and require the protocol to emit NOT-TRANSFORMABLE rather than a plausible-looking claim; a protocol with a 100 percent transformation rate is fabricating"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0143",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0144",
+    "title": "Two-axis source-quality rubric (authority x independence) with a calibrated scoring set",
+    "phase": "2",
+    "question_or_target": "Define a scoring rubric that rates a source separately on authority (is it the thing itself, a maintainer, a practitioner, or a re-teller) and independence (does it add observation or restate another source), then calibrate it: what is the inter-rater agreement between two independent raters on a 40-source set, and which rubric levels cause the disagreements?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10713 (source-quality audit)",
+      "_USER-PROMPTS.md:10679 (rank by independent evidence, not repetition)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0144-two-axis-source-quality-rubric.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); agreement is a computed statistic (Cohen kappa) over the 40-source set with both rating sheets committed; the second rater is a different vendor to avoid a shared blind spot",
+    "tests_required": [
+      "negative control: include 5 sources that are verbatim syndicated copies of one another and require the rubric to score all 5 as low-independence; if they score high, the independence axis is measuring nothing"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter running on anthropic/opus in a fresh context (the unit itself is executed cross-vendor, so the reviewer supplies the Anthropic-side check); a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0144",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); cross-vendor dispatch is BLOCKING with an explicit 30-min timeout, prompt passed by file, --ignore-user-config; exit 0 without a non-empty parsed output file is SEVERED, not SUCCESS (rules/common/cross-vendor-dispatch.md)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0145",
+    "title": "Detect a citation cycle where N apparently independent sources restate one origin",
+    "phase": "2",
+    "question_or_target": "What algorithm reliably detects that a set of sources supporting one claim all descend from a single origin - shared verbatim n-grams, shared factual errors, publication-date ordering, explicit backlinks - and what is its detection rate on a corpus with 10 planted citation cycles and 10 genuinely independent clusters?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11238 (circular citation)",
+      "_USER-PROMPTS.md:10679 (rank by independent evidence)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0145-circular-citation-detection.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the planted corpus is committed; detection rate and false-positive rate are both reported",
+    "tests_required": [
+      "both-states control: the detector must fire on all 10 planted cycles and stay silent on the 10 independent clusters; a detector that fires on both measures nothing"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0145",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0146",
+    "title": "Is machine-generated / SEO-slop source content detectable well enough to gate on?",
+    "phase": "2",
+    "question_or_target": "Can a low-quality machine-generated source be distinguished from a genuine practitioner write-up reliably enough to auto-demote it, or is the honest answer NOT DECIDABLE - measured as accuracy on a 50-document set where the ground truth is established by publication provenance rather than by reading style?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10713 (source-quality audit)",
+      "_USER-PROMPTS.md:11062 (refuters default to REFUTED)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0146-ai-slop-source-detectability.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); ground truth comes from provenance (site history, author record, publication pattern), NOT from the classifier's own stylistic judgement, which would be circular",
+    "tests_required": [
+      "negative control: report the accuracy of a coin-flip baseline on the same set; if the classifier does not beat baseline by a stated margin the deliverable is a documented NOT-DECIDABLE result, which is a valid outcome"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter running on anthropic/opus in a fresh context (the unit itself is executed cross-vendor, so the reviewer supplies the Anthropic-side check); a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0146",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); cross-vendor dispatch is BLOCKING with an explicit 30-min timeout, prompt passed by file, --ignore-user-config; exit 0 without a non-empty parsed output file is SEVERED, not SUCCESS (rules/common/cross-vendor-dispatch.md)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0147",
+    "title": "Mechanical generation of disconfirming queries for any claim",
+    "phase": "2",
+    "question_or_target": "Given a claim, can disconfirming search queries be generated mechanically - negation, failure vocabulary, competitor framing, 'X does not work', issue-tracker state filters - and does the generated set surface contradictory evidence at a higher rate than an unstructured counter-search on the same 20 claims?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10707 (contradiction hunt)",
+      "_USER-PROMPTS.md:10700 (counterevidence to every major conclusion)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0147-disconfirming-query-generation.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the comparison uses the same claims, same backends and same result budget for both arms; the rate difference is reported with the per-claim breakdown",
+    "tests_required": [
+      "negative control: include 3 claims that are true and well-established and confirm the generator surfaces NO contradiction for them; a generator that always finds contradiction is manufacturing it"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0147",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0148",
+    "title": "Where do negative results actually live, and how are they retrieved?",
+    "phase": "2",
+    "question_or_target": "Which venues systematically hold negative results about tooling - closed-wontfix issues, reverted commits, retracted or failed-replication papers, 'we migrated away from X' posts, deprecation notices, post-incident reviews - and what is the retrieval recipe and expected yield for each?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10708 (negative-result hunt)",
+      "_USER-PROMPTS.md:11278 (preserve negative and contradictory evidence)"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0148-negative-result-venue-map.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each venue's recipe is demonstrated by retrieving at least two real negative results; a venue with zero retrieved examples is reported as UNPRODUCTIVE, not merely listed",
+    "tests_required": [
+      "detector control: for the reverted-commit venue, confirm the query finds a KNOWN revert in a repo we control before accepting a zero-result verdict elsewhere"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0148",
+    "retry_policy": "on HTTP 429 back off with jitter and stagger arrivals (spec:10577); a 529 is vendor-side and must NOT trigger self-throttling; after 2 strikes on the same error fingerprint switch search backend rather than re-querying the same one",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0149",
+    "title": "Proof-of-impossibility record: the schema that distinguishes 'cannot be obtained' from 'not found'",
+    "phase": "4",
+    "question_or_target": "Specify and conformance-test the record that closes a research question as unanswerable: the exhausted source classes, the exact queries run with counts, the access barrier encountered, the expiry after which it must be retried, and the falsifier - what single observation would overturn it.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11266 (proof-of-impossibility)",
+      "_USER-PROMPTS.md:11276 (proof-of-impossibility record)",
+      "_USER-PROMPTS.md:11392 (residual unknowns need a settling experiment)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); a conformant record is produced for one REAL unanswerable question from this program and is rejected by the validator when the falsifier field is removed",
+    "tests_required": [
+      "both-states control: the validator must reject a record whose 'exhausted sources' list is empty (a not-found masquerading as impossible) and accept the complete one"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0149",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0150",
+    "title": "Enforce an unfavourable-evidence quota without manufacturing it",
+    "phase": "2",
+    "question_or_target": "How can a research run be required to return a minimum share of disconfirming evidence without creating an incentive to fabricate weak objections - what quota definition, what quality floor per objection, and what detector catches padded objections?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11260 (favorable and unfavorable result quotas)",
+      "_USER-PROMPTS.md:11236 (idea-count gaming through trivial variants)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/evidence-quality/RES-0150-unfavorable-evidence-quota-mechanism.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the padding detector is validated on a set containing deliberately padded objections; the quota definition states what happens when genuine disconfirming evidence does not exist (the honest under-quota path)",
+    "tests_required": [
+      "negative control: run the quota against a claim with no real counterevidence and require the run to report UNDER-QUOTA-HONEST rather than filling it; filling it is the failure this unit exists to prevent"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0150",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0151",
+    "title": "A computable evidence-saturation signal for stopping a research run",
+    "phase": "2",
+    "question_or_target": "Define and validate a stopping metric based on the marginal rate of NEW distinct claims per additional source; on 5 replayed historical research runs, at what point does the metric fire, and how many genuinely new claims arrived after that point (the miss rate)?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11241 (evidence_saturation stopping expression)",
+      "_USER-PROMPTS.md:10485 (do not continue after evidence has converged)"
+    ],
+    "dependencies": [
+      "B01",
+      "RES-0173"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0151-evidence-saturation-stopping-metric.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the 5 replays use real prior corpora so the post-stop miss rate is measured, not simulated; distinctness uses the mechanism-level dedup, not string equality",
+    "tests_required": [
+      "negative control: feed a run of 30 near-identical sources and require the metric to fire EARLY; feed a run of 30 genuinely diverse sources and require it NOT to fire - a metric that fires in both cases is a token counter"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0151",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0152",
+    "title": "Calibrate Sherman-Kent confidence bands against measured outcomes",
+    "phase": "2",
+    "question_or_target": "Build a calibration set of >=60 past forward-looking claims from this estate's own artifacts whose outcomes are now known, and measure: for claims tagged 'likely' (55-80 percent), what fraction actually held - and is the harness systematically over- or under-confident?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "AGENTS.md section 7 (confidence lexicon)",
+      "command-center/CLAIM-REGISTRY.json",
+      "~/.claude/event-ledger"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0152-confidence-band-calibration-set.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); outcomes are resolved from durable artifacts (ledger entries, merged PRs, test results), never from a later summary written by the same agent that made the claim",
+    "tests_required": [
+      "detector control: include 5 claims whose outcome is genuinely still unknown and require the pipeline to exclude them rather than score them; scoring an unresolved claim silently biases the calibration"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context PLUS a cross-vendor (Codex) reproduction of the headline count; a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0152",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0153",
+    "title": "Can the settling experiment for an UNVERIFIED claim be generated mechanically?",
+    "phase": "2",
+    "question_or_target": "For each of 30 real UNVERIFIED tags in this program's corpus, can a usable settling experiment (command, expected observation, discriminating outcome) be produced by rule from the claim's own structure - and what fraction require human framing because the claim names no observable?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11392 (every residual unknown has a named settling experiment)",
+      "rules/common/fan-out-contract.md section A3"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/evidence-quality/RES-0153-settling-experiment-generator.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); a generated experiment counts as usable only if it is RUN for at least 5 of the 30 and produces a discriminating result; the rest are marked GENERATED-UNRUN",
+    "tests_required": [
+      "negative control: include 5 claims that name no observable and require the generator to emit NEEDS-HUMAN-FRAMING; emitting a plausible experiment for an unobservable claim is the failure mode"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0153",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0154",
+    "title": "Refuter role design: incentives, success metric, and measured yield versus finder agents",
+    "phase": "2",
+    "question_or_target": "How should a refutation agent be scored so that producing zero refutations on sound work is a PASS rather than a failure, and what is the measured refutation yield (refutations per agent-hour, share that survive re-review) compared with finder agents on the same corpus?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11043-11064 (Phase 12 adversarial refutation)",
+      "rules/common/fan-out-contract.md section B7 (never score agents on output volume)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0154-refuter-incentive-and-yield-design.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); yield is computed from a real refutation pass over an existing artifact set; survival is judged by a THIRD agent that saw neither the original claim nor the refutation authorship",
+    "tests_required": [
+      "negative control: include one artifact already known to be correct and confirm the refuter returns zero surviving refutations on it - a refuter with a nonzero floor is generating noise to satisfy its metric"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter running on anthropic/opus in a fresh context (the unit itself is executed cross-vendor, so the reviewer supplies the Anthropic-side check); a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0154",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b); cross-vendor dispatch is BLOCKING with an explicit 30-min timeout, prompt passed by file, --ignore-user-config; exit 0 without a non-empty parsed output file is SEVERED, not SUCCESS (rules/common/cross-vendor-dispatch.md)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0155",
+    "title": "Gem-hunt lens taxonomy: prove the lenses are not producing the same findings",
+    "phase": "2",
+    "question_or_target": "Given the candidate lens set for a wide gem-hunt fan-out, what is the pairwise overlap of the findings each lens produces on one shared corpus, and which lenses can be merged or dropped because their unique yield is below a stated threshold?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "rules/common/fan-out-contract.md section B (fan-in gates)",
+      "_USER-PROMPTS.md:10484 (do not confuse more agents with more certainty)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/gem-hunt/RES-0155-lens-taxonomy-non-redundancy.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); overlap is computed at mechanism level over one identical corpus so lens is the only varying factor; unique yield is reported per lens with the merged-lens recommendation",
+    "tests_required": [
+      "negative control: run the SAME lens twice with different seeds and measure its self-overlap - that figure is the noise floor, and any cross-lens overlap below it is indistinguishable from noise"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0155",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0156",
+    "title": "Split the evidence standard by lens type: grounded lenses versus ideation lenses",
+    "phase": "2",
+    "question_or_target": "Which lenses must cite file:line in this repository and which must cite an external source and be explicitly forbidden from grounding in the repo - and what is the measured cost of getting it wrong (duplicate reads, zero-citation output) from the prior fan-out corpus?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "rules/common/fan-out-contract.md section A9 (split the evidence standard by lens type)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/gem-hunt/RES-0156-grounded-vs-ideation-evidence-split.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the cost figures come from the recorded prior corpus (tool-call counts, citation counts per agent), not from recollection",
+    "tests_required": [
+      "negative control: identify at least one lens where the correct standard is ambiguous and record it as CONTESTED with the deciding experiment rather than assigning a standard by preference"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0156",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0157",
+    "title": "Transfer: write-ahead logging, sagas and two-phase commit to a resumable program ledger",
+    "phase": "2",
+    "question_or_target": "For a program whose steps are non-transactional side effects (a file written, a PR opened, a cloud job launched), which durability model gives correct resume after a crash - WAL replay, saga with compensations, or checkpoint-and-restart - and what compensating action does each of our five side-effect classes actually have?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11012 (resume tests)",
+      "_USER-PROMPTS.md:10888-10889 (resume, deterministic replay)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "gem-hunter"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__paper-search__search_arxiv",
+      "mcp__paper-search__search_semantic",
+      "mcp__paper-search__search_openalex",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/gem-hunt/RES-0157-transfer-durability-transaction-models.json",
+    "output_schema": "command-center/schema/gem-candidate.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each of the five side-effect classes is enumerated from real program actions with its compensation stated or explicitly declared NON-COMPENSABLE",
+    "tests_required": [
+      "negative control: at least one side-effect class must be NON-COMPENSABLE (a sent notification is the expected candidate); a model where everything compensates has not looked at the real actions"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0157",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0158",
+    "title": "Transfer: intelligence-community structured analytic techniques to deliberation protocols",
+    "phase": "2",
+    "question_or_target": "Which structured analytic techniques - analysis of competing hypotheses, key assumptions check, devil's advocacy, team A/team B, premortem, ICD-203 analytic standards - are directly implementable as council protocol blueprints, and what does each require that a plain debate protocol does not?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10927 (deliberation protocols incl. premortem, war-game)",
+      "_USER-PROMPTS.md:10765 (48 protocol blueprints)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "gem-hunter"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__paper-search__search_arxiv",
+      "mcp__paper-search__search_semantic",
+      "mcp__paper-search__search_openalex",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/gem-hunt/RES-0158-transfer-structured-analytic-techniques.json",
+    "output_schema": "command-center/schema/gem-candidate.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each technique cites its primary methodological source (tradecraft manual or peer-reviewed evaluation) and its documented failure mode, not only its procedure",
+    "tests_required": [
+      "negative control: include the published critiques of ACH (it can entrench a bad hypothesis set) so the transfer records the technique's weakness, not just its pitch"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0158",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0159",
+    "title": "Measure novelty NET of structure the agent was already told about",
+    "phase": "2",
+    "question_or_target": "When a wide fan-out returns N findings, how many are genuinely novel once every edge already declared in the briefing pack is subtracted? Reproduce the measurement on this program's own Phase-0 output and report the raw-to-novel ratio.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "rules/common/fan-out-contract.md (adversarial auditors re-assert existing edges: 29 raw to 7 novel)",
+      "command-center/events/EVENTS.jsonl"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/gem-hunt/RES-0159-novelty-net-of-declared-structure.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the briefing pack used as the subtraction baseline is the EXACT text the agents received, retrieved from the run record, not reconstructed",
+    "tests_required": [
+      "detector control: plant 3 findings that are verbatim restatements of briefed facts and confirm the subtractor removes all 3; if any survives, every novelty figure is inflated"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0159",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0160",
+    "title": "Adoption gate: a gem may be kept only when improvement is measured, and reverted otherwise",
+    "phase": "2",
+    "question_or_target": "Specify the adopt/park/reject decision record that binds every adopted mechanism to a named before/after metric, a revert trigger and an owner-visible cost line - and back-test it against the mechanisms this estate adopted in the last two sweeps: how many would have survived their own gate?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11135-11150 (Phase 16 self-improvement loop)",
+      "_USER-PROMPTS.md:11146 (revert when neutral or harmful)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "gem-hunter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/gem-hunt/RES-0160-gem-adoption-gate-with-measured-improvement.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the back-test names each prior adoption, its metric (or the absence of one) and the verdict; adoptions with no metric are counted as WOULD-NOT-HAVE-PASSED, which is the honest reading",
+    "tests_required": [
+      "negative control: the back-test must produce at least one WOULD-NOT-HAVE-PASSED verdict on a mechanism still in use; a gate that retroactively blesses everything already adopted is not a gate"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0160",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0161",
+    "title": "Workflow DSL prior art: which typed-DSL features are load-bearing for 96 blueprints?",
+    "phase": "2",
+    "question_or_target": "Across Argo Workflows, Temporal, Airflow, Prefect, Dagster, AWS Step Functions and GitHub Actions: which DSL features (typed params, conditionals, sub-workflows, matrix expansion, artifacts, retries, timeouts, manual approval) are present in each, and which subset is strictly necessary to express our required blueprint categories without escaping to arbitrary code?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10873-10896 (Phase 7 typed workflow system)",
+      "_USER-PROMPTS.md:10900-10907 (required library categories)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__firecrawl_map",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/prior-art/RES-0161-workflow-dsl-feature-matrix.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each feature cell cites the engine's own schema or reference docs; the necessity verdict is justified by naming a required blueprint category that cannot be expressed without it",
+    "tests_required": [
+      "negative control: identify at least one popular DSL feature that is NOT necessary for our categories and state why - a matrix where every feature is necessary is a wish list"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0161",
+    "retry_policy": "on HTTP 429 back off with jitter and stagger arrivals (spec:10577); a 529 is vendor-side and must NOT trigger self-throttling; after 2 strikes on the same error fingerprint switch search backend rather than re-querying the same one",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0162",
+    "title": "Cross-vendor INVOCATION-surface leaks: prompt transport, arg limits, result harvesting and hook lifecycle",
+    "phase": "2",
+    "question_or_target": "At what payload size does each runtime's invocation path actually fail on this Windows box, does it fail loudly or truncate, what does a severed result stream look like from the caller's side, and which runtime's hook lifecycle has no equivalent in the others - measured by invoking each runtime at escalating payload sizes rather than read from documentation?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "rules/common/cross-vendor-dispatch.md (32,767-char CreateProcess cap; os error 206; prompt-by-file; severed-stream taxonomy)",
+      "_USER-PROMPTS.md:11312 (command-line length overflow)",
+      "_USER-PROMPTS.md:11313 (partial artifact without sentinel)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "teardown-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/prior-art/RES-0162-cross-vendor-invocation-surface-leaks.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the failure threshold per runtime is a MEASURED byte count from an escalating-payload probe with the error string quoted, not the documented limit; a runtime not probed is NOT-CHECKED, never assumed to match another",
+    "tests_required": [
+      "both-states control: the harvest check must return SUCCESS for an invocation that wrote a complete parsed output file and SEVERED for one that exited 0 with an empty or absent file - exit code alone must not be able to produce SUCCESS"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context PLUS a cross-vendor (Codex) reproduction of the headline count; a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0162",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0163",
+    "title": "Session discovery, work claims and file leases: prior art across agent and non-agent systems",
+    "phase": "2",
+    "question_or_target": "How do mcp_agent_mail, Goose, OpenHands multi-agent, git worktrees, editor lockfiles and distributed lock services each answer the three questions - who else is running, who owns this work item, who holds this file - and which combination is implementable with no always-on server?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10971-10977 (session discovery, work claims, file leases, conflict detection)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/prior-art/RES-0163-session-claim-lease-prior-art.json",
+    "output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each answer is traced to the mechanism in source (a lock file path, a table, an API); an always-on-server dependency is stated explicitly per system",
+    "tests_required": [
+      "negative control: identify the failure mode of each no-server option when a holder crashes without releasing; an option with no stale-lock story is disqualified, not merely noted"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0163",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0164",
+    "title": "Append-only event-log schema prior art: replay, redaction and privacy",
+    "phase": "2",
+    "question_or_target": "Which existing event schemas (CloudEvents, OpenTelemetry logs/spans, JSONL agent ledgers, Temporal history) support BOTH deterministic replay and after-the-fact redaction of a secret that was accidentally logged - and what does redaction do to replay determinism?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10603 (append-only event logs)",
+      "_USER-PROMPTS.md:10819 (telemetry/privacy contract)",
+      "_USER-PROMPTS.md:11345 (credentials enter an artifact bundle)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebFetch",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__search-hub__firecrawl_map",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/prior-art/RES-0164-event-log-schema-prior-art.json",
+    "output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the redaction-versus-replay tension is demonstrated concretely: name a field whose redaction breaks replay and one whose redaction does not",
+    "tests_required": [
+      "both-states control: show a replay that succeeds pre-redaction and the same replay post-redaction, recording whether it still succeeds; asserting compatibility without running it is NOT-CHECKED"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0164",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0165",
+    "title": "How many parallel researchers before returns diminish, and what is the evidence?",
+    "phase": "2",
+    "question_or_target": "What published or locally measurable evidence exists for the marginal yield of the Nth parallel researcher on one question - distinct claims added, contradiction coverage, cost - and where does the curve flatten for the two run shapes we use (broad landscape scan versus targeted question)?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11249 (researcher count)",
+      "_USER-PROMPTS.md:10484 (do not confuse more agents with more certainty)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__paper-search__search_arxiv",
+      "mcp__paper-search__search_semantic",
+      "mcp__paper-search__search_openalex",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0165-researcher-count-diminishing-returns.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); external evidence is compute-matched where available; local evidence is computed from this estate's recorded fan-out runs (agents, unique findings, overlap) rather than recalled",
+    "tests_required": [
+      "negative control: compute the overlap between two researchers given the SAME prompt - that self-overlap is the noise floor and any 'added value' below it is not real"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0165",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0166",
+    "title": "Sub-orchestrator topology: flat, lead-worker, tree or hierarchical fan-in?",
+    "phase": "2",
+    "question_or_target": "Design and specify the comparison that would decide our topology - what is measured (time to first finding, total distinct findings, deadlock rate, token cost, recovery from a hung worker), on what fixed task set, with what controls - and what does the existing evidence already say about lead-worker escalation thresholds?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11250 (sub-orchestrator topology)",
+      "_USER-PROMPTS.md:11317 (one hung unit blocks a large batch)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0166-suborchestrator-topology-comparison.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the design names each measurement's instrument and its known failure mode; escalation-threshold evidence is cited to the system that implements it (Goose lead/worker) at source level",
+    "tests_required": [
+      "negative control: the design must include a hung-worker injection arm; a topology comparison with no failure injection measures only the happy path"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0166",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0167",
+    "title": "Repair loop: how many fix-review attempts before escalation, and what stops an infinite loop?",
+    "phase": "2",
+    "question_or_target": "What attempt limit, progress predicate and escalation path should govern the sub-orchestrator's fix-review loop, given measured data on how often a second and third attempt actually succeeds on this estate - and what distinguishes 'retry is working' from 'grinding on the same fingerprint'?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11272-11276 (fix-review until pass, attempt limit, or proof-of-impossibility)",
+      "AGENTS.md section 4b (two-strikes pivot)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0167-fix-review-repair-loop-limits.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); success-by-attempt-number is computed from recorded run history (error fingerprints across retries), not assumed; the progress predicate is stated as a computable function of consecutive attempts",
+    "tests_required": [
+      "both-states control: the progress predicate must classify a known productive retry sequence as PROGRESS and a known grind (same fingerprint twice) as NO-PROGRESS"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0167",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0168",
+    "title": "Source-class to backend routing plus a live/down/quota preflight contract",
+    "phase": "2",
+    "question_or_target": "Which available backend serves each of the 16 declared source classes, what is each backend's current auth state, rate limit and failure signature, and what preflight must run before a fan-out so that a dead or quota-exhausted backend is detected BEFORE 50 agents launch against it?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10683-10700 (source classes)",
+      "_USER-PROMPTS.md:10578 (treat quota and arrival rate as scheduler inputs)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0168-source-class-backend-routing-preflight.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); auth state is diagnosed READ-ONLY (presence, scope, whether a whoami still authenticates); no credential value is printed and no credential is modified",
+    "tests_required": [
+      "detector control: the preflight must report DOWN for a deliberately wrong endpoint and UP for a known-good one; a preflight that returns UP for both is not measuring reachability"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0168",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0169",
+    "title": "Backend filter capability matrix: domain, language, region and recency",
+    "phase": "2",
+    "question_or_target": "For each search/fetch backend available here, which of the four required filters are natively supported, which are emulated client-side, and which are silently IGNORED when passed - established by sending a filter that MUST change the result set and checking whether it did?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11253-11256 (domain lists, languages, regions, recency)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0169-backend-filter-capability-matrix.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each SUPPORTED verdict is backed by a differential probe (same query with and without the filter) showing the result set actually changed; a docs claim alone is INFERRED",
+    "tests_required": [
+      "both-states control: a filter is only IGNORED if a filter that SHOULD change results does not - run a positive control filter first to prove the probe can detect a change at all"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0169",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0170",
+    "title": "What is a computable quality target for a research deliverable?",
+    "phase": "2",
+    "question_or_target": "Define a research-quality target that a runner can evaluate without a human - source-class coverage, independent-source count per load-bearing claim, contradiction coverage, unresolved-unknown count with named experiments, citation resolvability - and validate it by scoring 6 existing research artifacts whose quality is already known to differ.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11257 (time/result/quality targets)",
+      "_USER-PROMPTS.md:10717 (claim requirements)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0170-computable-research-quality-target.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); citation resolvability is measured by actually resolving the citations (HTTP status plus content match), not by counting citation-shaped strings",
+    "tests_required": [
+      "negative control: score one artifact that is known to be padded with unresolvable or mismatched citations and require the metric to rank it lowest; if it does not, the metric is counting shape not substance"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0170",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0171",
+    "title": "Research cache key design and resume semantics for a long-running run",
+    "phase": "2",
+    "question_or_target": "What must the cache key for a search/fetch result include (query, backend, filters, time bucket, backend version) so that a resumed run reuses work safely, and what staleness policy applies per source class so a resumed run does not cite a cached page that has since changed?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11268 (resume and cache)",
+      "_USER-PROMPTS.md:11013 (corrupted-cache tests)"
+    ],
+    "dependencies": [
+      "B01",
+      "RES-0006"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0171-research-cache-key-and-resume.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the staleness policy is bound to the measured per-class TTLs rather than chosen; a class with no measured TTL uses the worst-case default and says so",
+    "tests_required": [
+      "both-states control: a resumed run must reuse an unchanged cached entry AND re-fetch a changed one - demonstrate both with a mutated fixture"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0171",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0172",
+    "title": "Where in a long research run does an owner decision actually change the plan?",
+    "phase": "2",
+    "question_or_target": "Enumerate the decision points in the research pipeline and compute, for each, whether the owner's answer would change the subsequent plan (expected value of perfect information) - and produce the minimal checkpoint set, with the default that applies when the owner does not answer.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11267 (human checkpoints)",
+      "_USER-PROMPTS.md:11349-11370 (ask one foundation-level question at a time, state the default)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/deep-research-design/RES-0172-human-checkpoint-evpi-placement.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each retained checkpoint names the two branches the answer selects between; a checkpoint whose branches are identical is removed as permission theatre",
+    "tests_required": [
+      "negative control: the analysis must eliminate at least one candidate checkpoint as zero-EVPI; a set where every proposed checkpoint survives has not applied the test"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0172",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0173",
+    "title": "Mechanism-level claim deduplication: algorithm choice validated with planted mutants",
+    "phase": "2",
+    "question_or_target": "Which deduplication method correctly collapses two claims that describe the SAME mechanism in different words while keeping two genuinely different mechanisms apart - lexical Jaccard, embedding cosine, or structured mechanism-key extraction - measured against a planted set of renames, paraphrases, one-parameter forks and true distinctions?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10666-10677 (mechanism-level deduplication)",
+      "_USER-PROMPTS.md:11236 (idea-count gaming through trivial variants)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/deep-research-design/RES-0173-mechanism-level-claim-dedup.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the planted mutant set is committed with its intended labels; precision and recall are reported per mutant class, since a method can be perfect on renames and blind to paraphrases",
+    "tests_required": [
+      "both-states control: the method must merge every planted paraphrase AND keep every planted true-distinction apart; a method that merges both is a collapser, one that merges neither is a string comparator"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context PLUS a cross-vendor (Codex) reproduction of the headline count; a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0173",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0174",
+    "title": "Extracting a root-cause hierarchy instead of a flat finding list",
+    "phase": "2",
+    "question_or_target": "What algorithm or protocol converts N findings into a causal hierarchy (root cause, contributing factor, symptom) rather than a flat list, how is a proposed parent-child edge falsified, and what does it do with a finding that has two independent causes?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11084-11098 (Phase 14 synthesis must produce a root-cause hierarchy)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0174-root-cause-hierarchy-extraction.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the method is demonstrated on a real finding set from this program with each edge carrying its falsifier; multi-cause findings are represented explicitly rather than forced into a tree",
+    "tests_required": [
+      "negative control: include a finding whose cause is genuinely unknown and require the output to keep it as UNATTRIBUTED rather than attaching it to the nearest plausible parent"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0174",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0175",
+    "title": "Prompt-injection defence for fetched research content, with a both-states test",
+    "phase": "2",
+    "question_or_target": "What filter reliably neutralises instruction-shaped text in fetched pages, tool results and PDFs before it reaches a reasoning context - structural quarantine, provenance tagging, instruction-stripping, or capability withdrawal during synthesis - and what is its measured catch rate against a corpus of 30 real and synthetic injection payloads?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "AGENTS.md section 9 (fetched content is untrusted DATA, never instructions)",
+      "_USER-PROMPTS.md:11057 (workflow prompt injection)",
+      "_USER-PROMPTS.md:11344 (artifact injects instructions into later stages)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit",
+      "mcp__codex__codex"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/deep-research-design/RES-0175-fetched-content-injection-filter.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); catch rate is measured against payloads that are actually fed through the pipeline, and the report distinguishes NEUTRALISED from MERELY-DETECTED; false positives on benign quoted text are counted separately",
+    "tests_required": [
+      "both-states control: include 10 benign documents that legitimately QUOTE instruction-like text (a document about prompt injection necessarily contains injection strings) and require the filter not to mangle them - the use-versus-mention failure this estate has hit repeatedly"
+    ],
+    "reviewer_requirement": "one security refuter plus one supply-chain refuter; both default to REFUTED on insufficient evidence",
+    "completion_sentinel": "SUCCESS:RES-0175",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0176",
+    "title": "Teardown: LangGraph, CrewAI and AutoGen - graph abstraction versus role abstraction",
+    "phase": "2",
+    "question_or_target": "What does each framework make easy that the other two make hard (typed state graphs, role/crew delegation, conversational group chat), and which of those abstractions is transferable to a prompt-native control plane WITHOUT importing a second orchestration runtime?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10727 (do not import a second orchestration runtime; extract the mechanism)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "teardown-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/teardown/RES-0176-teardown-graph-vs-role-frameworks.json",
+    "output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each transfer verdict names the mechanism separately from the runtime that hosts it, and states the concrete reimplementation cost on our control plane",
+    "tests_required": [
+      "negative control: at least one abstraction must be judged NOT transferable without the runtime, with the specific runtime service it depends on named"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0176",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0177",
+    "title": "Teardown: the plugins already installed in THIS harness - mechanism inventory and overlap",
+    "phase": "2",
+    "question_or_target": "For every plugin, skill pack and marketplace currently installed here (metaswarm, superpowers, hookify, claude-reflect, codex, ralph-loop, remember and the rest actually present), what mechanism does each contribute, which mechanisms are duplicated across two or more, and which of our planned builds would re-implement something already installed?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11331 (workflow discovery ignores an existing superior workflow and rebuilds it)",
+      "~/.claude/plugins and the live skills tree"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "teardown-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/teardown/RES-0177-teardown-installed-local-plugins.json",
+    "output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the installed inventory is enumerated from disk and from the client's own plugin listing (two independent signals); an overlap claim quotes both implementations",
+    "tests_required": [
+      "detector control: the enumerator must find a plugin known to be installed AND return nothing for a fabricated plugin name; a lister that reports everything as present is matching directory noise"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context PLUS a cross-vendor (Codex) reproduction of the headline count; a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0177",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0178",
+    "title": "Teardown: skill/MCP distribution hubs and their trust mechanics",
+    "phase": "2",
+    "question_or_target": "How do the public distribution points for skills and MCP servers (vendor skill repositories, registry/aggregator sites, awesome-lists) establish provenance, review and revocation today, what is the actual review depth, and what would a package need to carry for us to install it automatically?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10855-10858 (provenance, signatures)",
+      "_USER-PROMPTS.md:11346 (malicious or excessive permissions)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "security-researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/teardown/RES-0178-teardown-skill-and-mcp-distribution-hubs.json",
+    "output_schema": "command-center/schema/ecosystem-teardown.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); review depth is established from the hub's own published policy AND one observed example (a listed package inspected for whether the claimed review is evident); a policy page alone is INFERRED",
+    "tests_required": [
+      "negative control: attempt to find one listed package that would fail our own minimum bar and report it; a hub survey with zero problematic listings has not sampled"
+    ],
+    "reviewer_requirement": "one security refuter plus one supply-chain refuter; both default to REFUTED on insufficient evidence",
+    "completion_sentinel": "SUCCESS:RES-0178",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0179",
+    "title": "Which sources are lawfully and technically reachable per region, and what changes by jurisdiction?",
+    "phase": "2",
+    "question_or_target": "For the regions this research program will query from: which source classes are geo-blocked, paywalled, robots-excluded or legally restricted, and what does the research plan do when the only source for a claim is unreachable from here? Distinct from RES-0119 (conducts the Tor sweep) and RES-0124 (our own publication privacy surface) - this is inbound reachability.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11255 (regions)",
+      "_USER-PROMPTS.md:11254 (languages)",
+      "_USER-PROMPTS.md:10699 (public sources under the legal policy)"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "legal-licence-reviewer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/sources-frontier/RES-0179-jurisdiction-source-accessibility-scoping.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each restriction is confirmed by an actual attempted fetch recording the status code or block page, not inferred from a policy page",
+    "tests_required": [
+      "detector control: fetch a known-reachable control URL through the same path and require success, so a blocked verdict cannot be a broken fetcher"
+    ],
+    "reviewer_requirement": "two reviewers with disjoint mandates: a legal/licence reviewer and a security reviewer; both must PASS (spec:11045-11060)",
+    "completion_sentinel": "SUCCESS:RES-0179",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "legal-uncertainty",
+      "overclaim",
+      "owner-blocked",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0180",
+    "title": "Standing watchlist: fire a re-check when a watched source changes, without polling everything",
+    "phase": "2",
+    "question_or_target": "Design and validate the watchlist mechanism the spec requires as a first-class workflow - which change signal per source class (ETag, Last-Modified, content hash, feed entry, release tag), what the false-wake rate is on a 20-source sample over a week, and what a wake actually triggers. Distinct from RES-0006 (measures freshness half-life); this is the event-driven re-check itself.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10902 (watchlist workflows)",
+      "_USER-PROMPTS.md:10714 (freshness/revalidation audit)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0180-watchlist-standing-recheck.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the false-wake rate is measured over real sources across real elapsed time, not simulated by mutating a local copy",
+    "tests_required": [
+      "both-states control: a source that genuinely changed must wake the watcher, and a source that only changed its ad markup or timestamp must NOT - a watcher that wakes on both is a poller"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0180",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0181",
+    "title": "Recover WHY a mechanism exists from commit, PR and issue history rather than from its docs",
+    "phase": "2",
+    "question_or_target": "For 12 load-bearing mechanisms in our dependency surface, can the original rationale be recovered from version-control and discussion history - and how often does the recovered rationale CONTRADICT the current documentation? Distinct from RES-0013 (catalogues breaking changes) and RES-0022 (docs versus shipped behaviour): this recovers intent, not behaviour.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10688 (source code)",
+      "_USER-PROMPTS.md:10902 (source-code archaeology)"
+    ],
+    "dependencies": [
+      "B01",
+      "CC-0017"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "salvage-analyst"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "WebSearch",
+      "WebFetch",
+      "mcp__search-hub__web_search_exa",
+      "mcp__search-hub__tavily_search",
+      "mcp__search-hub__firecrawl_scrape",
+      "mcp__searxng__searxng_web_search",
+      "Write",
+      "mcp__github__search_code",
+      "mcp__github__search_repositories",
+      "mcp__github__get_file_contents",
+      "mcp__repomix__pack_remote_repository",
+      "mcp__deepwiki__ask_question"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0181-rationale-archaeology-from-history.json",
+    "output_schema": "command-center/schema/research-claim-record.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each recovered rationale quotes the commit message, PR comment or issue text with its permalink; a rationale reconstructed by inference is tagged INFERRED and counted separately",
+    "tests_required": [
+      "negative control: include 3 mechanisms whose history is genuinely silent and require the output to say NO-RATIONALE-RECOVERABLE rather than supplying a plausible one"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0181",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "source-unreachable",
+      "quota-429-storm",
+      "detector-failure",
+      "overclaim",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0182",
+    "title": "Structured expert elicitation: can it be run with agent participants, and does it beat a search?",
+    "phase": "2",
+    "question_or_target": "Specify a structured elicitation protocol (reference-class framing, independent priors, calibration questions, aggregation) for questions where no literature exists, and determine on 6 such questions whether elicited estimates add information over an honest NOT-FOUND. Distinct from the council bucket: this is a research-input mode, not a decision protocol.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10906 (expert elicitation)",
+      "_USER-PROMPTS.md:11266 (proof-of-impossibility)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__paper-search__search_arxiv",
+      "mcp__paper-search__search_semantic",
+      "mcp__paper-search__search_openalex",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/sources-frontier/RES-0182-expert-elicitation-as-a-source-class.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each elicited estimate is recorded with its calibration-question score so an uncalibrated participant's number is visibly discounted; elicited values are never promoted to measured values",
+    "tests_required": [
+      "negative control: include 2 questions that DO have a literature answer, elicit blind, and compare - if elicitation misses a known answer the mode is reported as weak rather than adopted"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0182",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0183",
+    "title": "Mine the owner's own decision log for constraints that research must not contradict",
+    "phase": "2",
+    "question_or_target": "Extract from OWNER-DECISIONS.md, the 17-DECISION-LOG and the option universe every binding constraint on this program, and produce the machine-checkable list a research unit must test its recommendation against - so no unit recommends something the owner already ruled out. Distinct from RES-0127 (resolves the two-tree corpus split): this extracts binding constraints.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "command-center/OWNER-DECISIONS.md",
+      "17-DECISION-LOG.md",
+      "_USER-PROMPTS.md:10526 (do not re-ask answered questions)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/research/sources-frontier/RES-0183-owner-decision-log-as-a-source-class.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each constraint quotes the decision text and its file:line; a constraint inferred from context rather than stated is listed separately as INFERRED-CONSTRAINT and flagged for owner confirmation",
+    "tests_required": [
+      "both-states control: the checker must flag a deliberately non-compliant draft recommendation (for example one proposing a public canary under PR-ONLY) and pass a compliant one"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0183",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0184",
+    "title": "What evidence bar applies at each claim severity, and who is allowed to lower it?",
+    "phase": "2",
+    "question_or_target": "Define the minimum evidence a claim must carry as a function of its blast radius (P0 architectural commitment versus a P3 note) - number of independent sources, source-class diversity, whether an executable check is mandatory - and validate it by re-scoring 20 existing claims: how many currently sit below the bar their severity demands?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11261 (evidence thresholds)",
+      "_USER-PROMPTS.md:10642 (no unresolved P0/P1 defect attached)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0184-evidence-threshold-by-claim-severity.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the re-score is run over real recorded claims and the count of under-evidenced claims is reported even when it is embarrassing; a bar that nothing currently fails has been set to match the status quo",
+    "tests_required": [
+      "negative control: the re-score must place at least one existing high-severity claim BELOW the bar, or the calibration is reported as UNINFORMATIVE with the reason"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0184",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0185",
+    "title": "Build the evidence map that shows which conclusions are load-bearing and thinly supported",
+    "phase": "2",
+    "question_or_target": "Produce the artifact that cross-tabulates every major conclusion against the source classes and independent sources supporting it, so a conclusion resting on one class or one source is visible at a glance - and report how many of this program's current conclusions are single-source. Distinct from RES-0128 (audits which source classes the bucket never touched).",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10902 (evidence map)",
+      "_USER-PROMPTS.md:10679 (rank by independent evidence)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0185-evidence-map-coverage-holes.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); support edges are computed from the recorded claim lineage, not re-judged by reading; a conclusion with no lineage records is shown as UNSUPPORTED rather than omitted from the map",
+    "tests_required": [
+      "detector control: plant one conclusion with a single known source and confirm the map marks it single-source; plant one with four distinct classes and confirm it does not"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0185",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0186",
+    "title": "Audit an existing report's citations for resolvability and actual support",
+    "phase": "2",
+    "question_or_target": "For a completed research artifact, what fraction of its citations (a) resolve at all, (b) resolve to content that still contains the cited assertion, and (c) actually SUPPORT the sentence they are attached to rather than merely being topically adjacent - measured over every citation in one real artifact, not a sample?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10902 (fact/citation audit)",
+      "_USER-PROMPTS.md:11060 (synthesis distortion refuter)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0186-citation-audit-of-an-existing-report.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); support is judged against the quoted span, and every NON-SUPPORTING verdict quotes both the citing sentence and the cited text so the judgement is checkable",
+    "tests_required": [
+      "detector control: inject 3 deliberately mismatched citations into a copy of the artifact and require the audit to catch all 3; a missed injection means the reported support rate is an upper bound only"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0186",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0187",
+    "title": "How many of this program's major conclusions have had a real counterevidence search?",
+    "phase": "2",
+    "question_or_target": "Audit the program's conclusions for whether a disconfirming search was actually RUN and RECORDED for each - not whether a caveat sentence exists - and report the coverage fraction plus the list of conclusions that have never been challenged. Distinct from RES-0022 (hunts doc-versus-behaviour contradictions in the client).",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10700 (counterevidence to every major conclusion)",
+      "_USER-PROMPTS.md:11062 (refuters default to REFUTED)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0187-counterevidence-coverage-audit.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); a conclusion counts as challenged only if a recorded query, its result set and a verdict exist; a hedging phrase in the prose does not count and the audit must state that rule",
+    "tests_required": [
+      "negative control: a conclusion carrying only the word 'however' must be classified UNCHALLENGED - the use-versus-mention trap this estate has hit repeatedly"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0187",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0188",
+    "title": "Detect a briefing pack that carries an already-FIXED problem as an open one",
+    "phase": "2",
+    "question_or_target": "Build the check that compares every load-bearing premise in a briefing pack against the current state of the artifact it describes, and validate it on the known case: the M-NN option-id collision was re-prefixed to MECH-NN on 2026-08-07 yet 17-DECISION-LOG.md:175 still states it in the present tense, and that stale premise was then pinned as ground truth for a whole program.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11048 (stale assumptions refuter)",
+      "17-DECISION-LOG.md:175",
+      "command-center/OPTION-ID-RESOLUTION.json"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "contradiction-refuter"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/evidence-quality/RES-0188-stale-premise-detection-in-briefing-packs.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the known M-NN case is used as the positive control and must be caught; each additional stale premise found is reported with both the premise text and the current-state measurement that contradicts it",
+    "tests_required": [
+      "both-states control: the check must fire on the known-stale M-NN premise and stay silent on a premise verified current in the same pack; silence on both means it measures nothing"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context PLUS a cross-vendor (Codex) reproduction of the headline count; a split verdict is resolved from raw source, never by vote",
+    "completion_sentinel": "SUCCESS:RES-0188",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0189",
+    "title": "Require a conclusion to rest on K distinct source CLASSES, and handle the case where it cannot",
+    "phase": "2",
+    "question_or_target": "Define and validate the source-diversity rule - how many distinct classes a conclusion needs by severity, how class distinctness is computed when two classes share an upstream origin, and what the honest output is when only one class exists for a question (rather than padding with restatements of the same origin).",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11262 (source diversity)",
+      "_USER-PROMPTS.md:10679 (cross-domain convergence)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0189-source-diversity-enforcement.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); class distinctness is computed after collapsing shared-origin sources, so three re-tellings of one vendor blog count as one class; the collapse rule is stated and tested",
+    "tests_required": [
+      "negative control: feed a conclusion supported by four sources that all descend from one vendor post and require the rule to report ONE class, not four"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0189",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0190",
+    "title": "Given a fixed budget, what split between broad scan and deep dives maximises distinct verified claims?",
+    "phase": "2",
+    "question_or_target": "Determine the allocation policy empirically: on a fixed token budget, does 80/20 broad-to-deep, 50/50, or 20/80 yield more distinct VERIFIED claims - measured on the same three questions with the same backends, where distinctness uses mechanism-level dedup rather than string equality?",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11256 (breadth/depth)",
+      "_USER-PROMPTS.md:11257 (time/result/quality targets)"
+    ],
+    "dependencies": [
+      "B01",
+      "RES-0173"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/deep-research-design/RES-0190-breadth-versus-depth-budget-allocation.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); each arm consumes an equal measured token budget, enforced and recorded, so the comparison is not confounded by one arm simply spending more",
+    "tests_required": [
+      "negative control: run one arm twice at the same allocation to establish run-to-run variance; an observed difference smaller than that variance is reported as NO DETECTED DIFFERENCE"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0190",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0191",
+    "title": "What happens to a long research run when a backend dies halfway, and how does it resume correctly?",
+    "phase": "2",
+    "question_or_target": "Specify and test the resume protocol for a partially-completed research run: which per-query state must be durable, how a partially-harvested query is distinguished from a completed one, and how the resumed run avoids both re-paying for completed work and silently skipping a query that failed. Distinct from RES-0004 (the evidence snapshot substrate) and from cache-key design.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:11268 (resume and cache)",
+      "_USER-PROMPTS.md:11313 (partial artifact without sentinel)",
+      "_USER-PROMPTS.md:11315 (monitor dies while remote work continues)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "schema-author"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write",
+      "Edit"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0191-mid-run-backend-outage-resume.json",
+    "output_schema": "command-center/schema/design-spec.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); the protocol is exercised by killing a real run mid-flight and resuming it, comparing the resumed output against an uninterrupted control run of the same queries",
+    "tests_required": [
+      "both-states control: the resumed run must reproduce the control run's claim set, and a deliberately corrupted state file must cause a loud refusal to resume rather than a silent partial"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0191",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "overclaim",
+      "schema-invalid",
+      "scope-drift",
+      "detector-failure",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0192",
+    "title": "When is a rapid review defensible, and when does the question demand a systematic one?",
+    "phase": "2",
+    "question_or_target": "Define the decision rule that selects between a rapid review and a systematic review for a given question (decision reversibility, blast radius, literature density, contradiction risk), and validate it by running both protocols on 3 questions and comparing what the rapid version missed.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10902 (systematic and rapid literature review)",
+      "_USER-PROMPTS.md:10704-10705 (broad landscape scan, targeted question answering)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "researcher"
+    },
+    "tool_permissions": [
+      "Read",
+      "WebFetch",
+      "mcp__paper-search__search_arxiv",
+      "mcp__paper-search__search_semantic",
+      "mcp__paper-search__search_openalex",
+      "mcp__scholarly-access__paper_resolve",
+      "mcp__scholarly-access__paper_find_oa_pdf",
+      "Write"
+    ],
+    "execution_substrate": "local-parallel",
+    "timeout_seconds": 7200,
+    "output_path": "command-center/research/deep-research-design/RES-0192-rapid-versus-systematic-review-protocol.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); what the rapid version missed is established by diffing the two claim sets, and each missed claim is classified by whether it would have changed the decision",
+    "tests_required": [
+      "negative control: at least one of the 3 questions must show the rapid protocol missing NOTHING decision-relevant, or the rule collapses to always-systematic and is not a rule"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0192",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  },
+  {
+    "id": "RES-0193",
+    "title": "What does one VERIFIED claim actually cost, per research mode?",
+    "phase": "2",
+    "question_or_target": "Compute tokens-and-wall-clock per verified claim for each research mode used in this program, so a mode that produces volume without verified content is visible - and state which modes fall below the threshold to remain in the default set. Distinct from any per-agent productivity score: falsification work is exempt and counted separately, per the standing rule against volume metrics.",
+    "inputs": [
+      "_USER-PROMPTS.md:10681-10717 (Phase 2 source classes, 12 research modes, claim requirements)",
+      "command-center/sources/REGISTER.md",
+      "command-center/CLAIM-REGISTRY.json",
+      "_USER-PROMPTS.md:10498 (resource efficiency is last, but it is on the list)",
+      "rules/common/fan-out-contract.md section B7 (never score agents on output volume)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "role": "measurement-engineer"
+    },
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "PowerShell",
+      "Write"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 5400,
+    "output_path": "command-center/research/deep-research-design/RES-0193-tokens-per-verified-claim-efficiency.json",
+    "output_schema": "command-center/schema/measurement-run.schema.json",
+    "evidence_requirement": "two mechanically independent signals per load-bearing claim (rules/common/single-signal-verification.md); every claim carries source lineage (resolved URL + fetch timestamp + sha256 of the fetched bytes), a Sherman-Kent confidence band, and a named independent verification path (_USER-PROMPTS.md:10717); cost is read from recorded run telemetry; the verified-claim denominator counts only claims that passed independent verification, so unverified output cannot improve a mode's score",
+    "tests_required": [
+      "negative control: a refutation-only run that produces zero new claims must NOT be scored as infinitely inefficient - confirm the metric excludes falsification work rather than penalising it"
+    ],
+    "reviewer_requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)",
+    "completion_sentinel": "SUCCESS:RES-0193",
+    "retry_policy": "two strikes then pivot: after 2 failures on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt (AGENTS.md 4b)",
+    "failure_classification": [
+      "detector-failure",
+      "green-not-live",
+      "overclaim",
+      "uncontrolled-silence",
+      "dependency-blocked"
+    ],
+    "owner_approval_required": false
+  }
+]

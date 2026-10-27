@@ -1,0 +1,389 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p40-quality-of-information-check",
+  "preset": "evidence_adjudication_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Audit the provenance of every evidence item before any verdict may cite it.",
+    "charter": "Mechanises single-signal-verification inside a council. Each item must declare a source probe AND a mechanically different verifier probe; an item failing the pairing is demoted to UNVERIFIED and cannot support CONFIRMED.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "every evidence item carries a non-empty source probe",
+      "every verifier probe is mechanically different from its source probe",
+      "every detector was controlled against a known-present and a known-broken state",
+      "items failing the pairing are demoted, not silently accepted"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4
+    },
+    "roster": [
+      {
+        "participant_id": "evidence-clerk",
+        "role": "chair",
+        "expertise": [
+          "provenance audit",
+          "probe independence"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "chair",
+        "tools": [
+          "claim_gate"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "probe-verifier",
+        "role": "verifier",
+        "expertise": [
+          "detector control",
+          "both-states testing"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "veto_holder",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "staleness-auditor",
+        "role": "calibrator",
+        "expertise": [
+          "read-at refs",
+          "staleness"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "claim-author",
+        "role": "proposer",
+        "expertise": [
+          "the claims under audit"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "conflicts": [
+          {
+            "kind": "authored_artifact",
+            "detail": "authored the claims being audited",
+            "recused": true
+          }
+        ]
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "evidence-clerk"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "qoi-audit",
+        "custom_name": "quality-of-information-audit",
+        "rounds": 2,
+        "participants": [
+          "evidence-clerk",
+          "probe-verifier",
+          "staleness-auditor"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:items_missing_source_probe",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "claim_gate.source_probe_check",
+              "note": "MEASURED HOLE being closed: claim_gate.py _validate() (:132-156) does not require source_probe, and at :173-185 an absent source normalises to four empty strings that any non-empty verifier trivially differs from - so same-probe-rerun cannot fire and a CONFIRMED claim with NO source probe returns ok:true. A non-empty source probe is required here BEFORE fingerprints are compared."
+            },
+            {
+              "metric": "custom:items_with_same_probe_rerun",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "claim_gate.independence_check",
+              "note": "Re-running the source probe is not a second signal."
+            },
+            {
+              "metric": "custom:uncontrolled_detectors",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "claim_gate.detector_control_check",
+              "note": "Both-states rule: a probe silent in the known-BROKEN state measures nothing."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "challenge",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "jury",
+        "stage_id": "adjudicate"
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 2,
+      "max": 6
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 6,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "turns": 28,
+    "sources": 25,
+    "experiments": 6,
+    "speaking_quota_per_participant": 7,
+    "max_inactivity_rounds": 2
+  },
+  "targets": {
+    "evidence_items": 6,
+    "objections": 6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "veto",
+    "veto": {
+      "holders": [
+        "probe-verifier"
+      ],
+      "scope": "final_decision",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "evidence_saturation == true AND evidence_items >= 6 AND sources_gathered >= 4 AND objections_open == 0",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "evidence_saturation",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 6
+        },
+        {
+          "metric": "sources_gathered",
+          "op": ">=",
+          "value": 4
+        },
+        {
+          "metric": "objections_open",
+          "op": "==",
+          "value": 0
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 2,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 3,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every demoted UNVERIFIED item re-probed with an independent method"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "chair_ruling",
+      "recruit_independent_critic",
+      "escalate_to_owner",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "circular_citation",
+      "moderator_capture",
+      "sycophancy",
+      "instant_unanimity",
+      "hidden_conflict_of_interest",
+      "prompt_injection",
+      "weak_synthesis",
+      "consensus_failing_executable_tests"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "recruit_independent_critic",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "evidence_map",
+      "claim_evidence_contradiction_graph",
+      "argument_ledger",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "calibration_report",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P40 quality-of-information-check",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:752-766",
+      "_USER-PROMPTS.md:11198"
+    ],
+    "lineage": [
+      "P40 quality-of-information-check",
+      "IC quality-of-information check",
+      "estate: single-signal-verification rule"
+    ],
+    "notes": "The chair is the evidence clerk but the VETO sits with a different vendor's verifier seat - moderator_capture cannot be resolved by the same seat that runs the audit. The claim-author seat is recused from voting by declared conflict. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

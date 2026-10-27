@@ -1,0 +1,222 @@
+{
+ "schema_version": 1,
+ "id": "IMP-0431",
+ "unit_id": "IMP-0431",
+ "state": "SUCCESS",
+ "sentinel": "SENTINEL:IMP-0431:HARVEST-POSTCONDITION",
+ "completion_sentinel": "SENTINEL:IMP-0431:HARVEST-POSTCONDITION",
+ "title": "Remote-harvest postcondition proving the harvest did something",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0431; command-center/phase3/A1/FAILURE-MODES.json#FC-11319; _USER-PROMPTS.md:11319 (file absent on this sparse worktree)",
+ "question_or_target": "Implement the postcondition for spec failure class 'remote harvest silently does nothing' at line 11319: a harvest run must assert a nonzero delta in harvested artifacts, or terminate as FAILED. Exact target: a harvest that returns exit 0 having transferred nothing must be classified FAILED, not SUCCESS.",
+ "min_bytes_threshold": 2048,
+ "failure_class": "FC-11319",
+ "implementation": {
+  "postcondition": "tools/harvester/postcondition.py",
+  "runner": "tools/harvester/harvest.py",
+  "rule": "SUCCESS requires process_exit_code==0 AND a nonempty dest delta (new or changed artifact paths). Dest already containing files is not a harvest.",
+  "empty_reason_id": "silent-noop-harvest",
+  "retry_policy": "max 2 attempts; backoff 30s/120s in production CLI default; evidence runs used --backoff-seconds 0"
+ },
+ "inputs_on_this_worktree": {
+  "harvester source": "absent; authored this unit as tools/harvester/",
+  "remote job outputs": "fixture trees under probes/IMP-0431/fixtures/",
+  "command-center/receipts/": "present; harvest dest is a temp tree so live receipts are not polluted",
+  "IMP-0415": "dependency receipt absent; reducer not required for delta classification",
+  "IMP-0421": "dependency receipt absent; adapter not required for harvest postcondition",
+  "_USER-PROMPTS.md:11319": "absent; FC-11319 name/why taken from FAILURE-MODES.json"
+ },
+ "evidence": [
+  {
+   "claim": "Deliberately empty harvest: copy step exit 0 transferring 0->0 files and 0->0 bytes was classified FAILED / silent-noop-harvest, not SUCCESS. CLI exit was nonzero. Live emitter re-run: state=FAILED attempts=2.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/harvester/postcondition.py:classify",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe1_empty_harvest.py",
+     "raw_output": "{\"cli_exit_code\": 1, \"empty\": {\"after_file_count\": 0, \"after_total_bytes\": 0, \"before_file_count\": 0, \"before_total_bytes\": 0, \"classification\": \"FAILED\", \"nonempty_delta\": false, \"process_exit_code\": 0, \"reason_id\": \"silent-noop-harvest\"}, \"mutant_dest_populated_classifies_preseeded_success\": true, \"mutant_exit_zero_classifies_empty_success\": true, \"pass\": true, \"preseeded_empty_remote\": {\"after_file_count\": 1, \"before_file_count\": 1, \"classification\": \"FAILED\", \"reason_id\": \"silent-noop-harvest\"}, \"probe\": \"probe1-empty-harvest\", \"real_empty_not_success\": true, \"run_harvest_empty\": {\"attempts\": 2, \"reason_id\": \"silent-noop-harvest\", \"state\": \"FAILED\"}, \"unit_id\": \"IMP-0431\"}\nempty_state=FAILED reason=silent-noop-harvest copy_exit=0 cli_rc=1 attempts=2 preseeded=FAILED mutant_exit_fires=True mutant_stock_fires=True\nSUCCESS:IMP-0431-probe1 empty harvest FAILED (exit-0 silent-noop)",
+     "exit_code": 0,
+     "fingerprint": "fbde33edea66f86c11caa9864cc4a2eb"
+    },
+    {
+     "role": "verifier",
+     "method": "mutant-exit-zero-and-preseeded-dest",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe1_empty_harvest.py",
+     "raw_output": "{\"cli_exit_code\": 1, \"empty\": {\"after_file_count\": 0, \"after_total_bytes\": 0, \"before_file_count\": 0, \"before_total_bytes\": 0, \"classification\": \"FAILED\", \"nonempty_delta\": false, \"process_exit_code\": 0, \"reason_id\": \"silent-noop-harvest\"}, \"mutant_dest_populated_classifies_preseeded_success\": true, \"mutant_exit_zero_classifies_empty_success\": true, \"pass\": true, \"preseeded_empty_remote\": {\"after_file_count\": 1, \"before_file_count\": 1, \"classification\": \"FAILED\", \"reason_id\": \"silent-noop-harvest\"}, \"probe\": \"probe1-empty-harvest\", \"real_empty_not_success\": true, \"run_harvest_empty\": {\"attempts\": 2, \"reason_id\": \"silent-noop-harvest\", \"state\": \"FAILED\"}, \"unit_id\": \"IMP-0431\"}\nempty_state=FAILED reason=silent-noop-harvest copy_exit=0 cli_rc=1 attempts=2 preseeded=FAILED mutant_exit_fires=True mutant_stock_fires=True\nSUCCESS:IMP-0431-probe1 empty harvest FAILED (exit-0 silent-noop)",
+     "exit_code": 0,
+     "fingerprint": "936002134b9351b7c0a8a1b3e4916373"
+    }
+   ]
+  },
+  {
+   "claim": "Nonempty harvest of the planted remote tree: before files=0 bytes=0 after files=3 bytes=350 (delta files=3 bytes=350) classified SUCCESS. Independent walk matched. Emitter re-run after=3 files / 350 bytes.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/harvester/harvest.py:run_harvest",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe2_nonempty_and_discriminating.py",
+     "raw_output": "{\"ast\": {\"classify_uses_delta\": true, \"harvest_calls_classify\": true, \"live_exit_zero_not_sufficient\": true, \"planted_delta_gate_accepted\": true, \"planted_exit_zero_detected\": true}, \"cli_exit_code\": 0, \"discriminates\": true, \"empty_still_failed\": true, \"independent_walk\": {\"file_count\": 3, \"matches\": true, \"total_bytes\": 350}, \"nonempty\": {\"added_paths\": [\"job-001/receipt.json\", \"job-002/notes.txt\", \"job-002/payload.dat\"], \"after_file_count\": 3, \"after_total_bytes\": 350, \"artifact_count_delta\": 3, \"before_file_count\": 0, \"before_total_bytes\": 0, \"bytes_delta\": 350, \"classification\": \"SUCCESS\", \"reason_id\": \"harvest-ok\"}, \"pass\": true, \"probe\": \"probe2-nonempty-harvest-discriminating\", \"retry_empty_then_fill\": {\"added\": [\"job-001/receipt.json\", \"job-002/notes.txt\", \"job-002/payload.dat\"], \"attempts\": 2, \"reason_id\": \"harvest-ok\", \"state\": \"SUCCESS\"}, \"unit_id\": \"IMP-0431\"}\nnonempty=SUCCESS delta_files=3 delta_bytes=350 empty=FAILED walk=3/350 retry=SUCCESS@2 cli_rc=0 ast_ok=True\nSUCCESS:IMP-0431-probe2 nonempty harvest SUCCESS; empty still FAILED",
+     "exit_code": 0,
+     "fingerprint": "833c24e4a3656f3ca57188bb2ee776c9"
+    },
+    {
+     "role": "verifier",
+     "method": "independent-walk-and-ast",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe2_nonempty_and_discriminating.py",
+     "raw_output": "{\"ast\": {\"classify_uses_delta\": true, \"harvest_calls_classify\": true, \"live_exit_zero_not_sufficient\": true, \"planted_delta_gate_accepted\": true, \"planted_exit_zero_detected\": true}, \"cli_exit_code\": 0, \"discriminates\": true, \"empty_still_failed\": true, \"independent_walk\": {\"file_count\": 3, \"matches\": true, \"total_bytes\": 350}, \"nonempty\": {\"added_paths\": [\"job-001/receipt.json\", \"job-002/notes.txt\", \"job-002/payload.dat\"], \"after_file_count\": 3, \"after_total_bytes\": 350, \"artifact_count_delta\": 3, \"before_file_count\": 0, \"before_total_bytes\": 0, \"bytes_delta\": 350, \"classification\": \"SUCCESS\", \"reason_id\": \"harvest-ok\"}, \"pass\": true, \"probe\": \"probe2-nonempty-harvest-discriminating\", \"retry_empty_then_fill\": {\"added\": [\"job-001/receipt.json\", \"job-002/notes.txt\", \"job-002/payload.dat\"], \"attempts\": 2, \"reason_id\": \"harvest-ok\", \"state\": \"SUCCESS\"}, \"unit_id\": \"IMP-0431\"}\nnonempty=SUCCESS delta_files=3 delta_bytes=350 empty=FAILED walk=3/350 retry=SUCCESS@2 cli_rc=0 ast_ok=True\nSUCCESS:IMP-0431-probe2 nonempty harvest SUCCESS; empty still FAILED",
+     "exit_code": 0,
+     "fingerprint": "89df9386efae239018fcaf1e17ffa03a"
+    }
+   ]
+  }
+ ],
+ "harvest_empty": {
+  "classification": "FAILED",
+  "reason_id": "silent-noop-harvest",
+  "process_exit_code": 0,
+  "before_file_count": 0,
+  "after_file_count": 0,
+  "before_total_bytes": 0,
+  "after_total_bytes": 0,
+  "run_attempts": 2,
+  "cli_exit_code": 1,
+  "emitter_state": "FAILED",
+  "emitter_attempts": 2
+ },
+ "harvest_nonempty": {
+  "classification": "SUCCESS",
+  "reason_id": "harvest-ok",
+  "before_file_count": 0,
+  "after_file_count": 3,
+  "before_total_bytes": 0,
+  "after_total_bytes": 350,
+  "artifact_count_delta": 3,
+  "bytes_delta": 350,
+  "added_paths": [
+   "job-001/receipt.json",
+   "job-002/notes.txt",
+   "job-002/payload.dat"
+  ],
+  "independent_walk": {
+   "file_count": 3,
+   "matches": true,
+   "total_bytes": 350
+  },
+  "emitter_after_file_count": 3,
+  "emitter_after_total_bytes": 350,
+  "emitter_walk": {
+   "file_count": 3,
+   "total_bytes": 350,
+   "matches": true
+  }
+ },
+ "timestamps": {
+  "started_at": "2026-08-24T18:45:00Z",
+  "ended_at": "2026-08-25T01:01:58Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s; escalate if the second harvest is also empty. Evidence runs used backoff 0. Retry control: empty remote then fill between attempts reached SUCCESS on attempt 2."
+ },
+ "tests": [
+  {
+   "id": "empty-harvest-must-fail-the-run",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe1_empty_harvest.py",
+   "result": "PASS",
+   "requirement": "empty-harvest test must FAIL the run"
+  },
+  {
+   "id": "nonempty-harvest-must-pass",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe2_nonempty_and_discriminating.py",
+   "result": "PASS",
+   "requirement": "nonempty-harvest test must pass; a harvester that passes both is not discriminating"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "exit-zero-as-success-mutant",
+   "kind": "both-states",
+   "description": "Classifying exit 0 as SUCCESS with no delta check must PASS an empty harvest; the live classifier must not.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mutant_exit_zero=SUCCESS on empty copy",
+   "good_state_output": "live empty classification=FAILED"
+  },
+  {
+   "id": "preseeded-dest-is-not-a-harvest",
+   "kind": "both-states",
+   "description": "A dest that already contains files plus an empty remote must still be FAILED. A mutant that treats dest stock as SUCCESS fires; live classify does not.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mutant_dest_populated=SUCCESS",
+   "good_state_output": "{\"after_file_count\": 1, \"before_file_count\": 1, \"classification\": \"FAILED\", \"reason_id\": \"silent-noop-harvest\"}"
+  },
+  {
+   "id": "empty-and-nonempty-must-disagree",
+   "kind": "both-states",
+   "description": "A harvester that passes both empty and nonempty is not discriminating.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "would-be: empty SUCCESS and nonempty SUCCESS",
+   "good_state_output": "empty_still_failed=True nonempty=SUCCESS"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0431-probe2-walk-and-ast",
+  "verdict": "PASS",
+  "independent": true,
+  "scope_not_agreement": true,
+  "notes": "Probe2 is a second path: independent os.walk counts vs snapshot, plus AST that classify is not exit-zero-as-success and harvest.py calls classify. Catalog reviewer_requirement asks for an independent-claude-reviewer; that human pass is residual and is not claimed."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0431/UNIT-ARTIFACT-MANIFEST.json",
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "artifact_path": "command-center/receipts/IMP-0431.json",
+   "executed": false,
+   "read_ok": true,
+   "notes": "G-1 measure is run after this receipt is written"
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "empty-harvest-failed",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe1_empty_harvest.py"
+  },
+  {
+   "id": "probe2",
+   "role": "nonempty-harvest-discriminating",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0431/probe2_nonempty_and_discriminating.py"
+  }
+ ],
+ "cloud_ok": false,
+ "residual_unknowns": [
+  {
+   "id": "human-reviewer-residual",
+   "text": "G-1 named probes are green. A second human in a fresh context has not scored this unit."
+  },
+  {
+   "id": "spec-file-absent",
+   "text": "_USER-PROMPTS.md:11319 is not on this worktree. The postcondition implements the catalog target and FC-11319 why ('No runtime delta assertion; a silent empty harvest looks like success.')."
+  }
+ ],
+ "does_not_claim": [
+  "cloud ok=true is delivery",
+  "global unit_manifest.py --write was run",
+  "a human adversarial reviewer in a fresh context scored PASS",
+  "IMP-0415 shared reducer was imported (absent on this tree)",
+  "live production remotes were harvested into command-center/receipts/"
+ ],
+ "defects": [],
+ "ts": "2026-08-25T01:01:58Z"
+}

@@ -1,0 +1,76 @@
+{
+  "report_kind": "parser_report",
+  "claims": [
+    {
+      "id": "E-schema-neutral-loading",
+      "anchor": "command-center/p2-wave/probes/TST-0181/hooks_loader.py:load_hooks",
+      "claim": "The presence or absence of a $schema key does not alter which hooks load: identical loaded sets (alpha/beta/gamma) and counts (3 == 3) across both config forms; the $schema key is ignored and does not crash the loader.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-detector-control-file-removal",
+      "anchor": "command-center/p2-wave/probes/TST-0181/probe2_detector_controls.py:main",
+      "claim": "Detector control: removing one hook file drops the loaded count 3 -> 2 AND produces a loud per-hook error naming the missing file (beta: hook file missing) - never a silent zero.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-regression-seed-visible",
+      "anchor": "command-center/p2-wave/probes/TST-0181/hooks_loader.py:load_hooks",
+      "claim": "Regression seed (hooks.json $schema made a client load ZERO hooks): the crash-on-$schema mutant loads 0 hooks with the key present and the probe asserts that zero - the probe can see the failure the unit exists to prevent.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "schema-crash-mutant",
+      "kind": "regression-seed",
+      "description": "crash_on_schema=True reproduces the documented bug: a $schema key zeroes the loaded set; the probe asserts the zero so the real loader's schema-neutrality is a distinguishing result.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "crashed_on_schema=true loaded=0",
+      "good_state_output": "loaded=3 identical with and without $schema"
+    },
+    {
+      "id": "missing-hook-file",
+      "kind": "detector-control",
+      "description": "A missing hook file must be visible: count drops by exactly one and a loud error names the hook and the missing path.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "count 3->2, errors=['beta: hook file missing: h1.py']",
+      "good_state_output": "count=3 errors=[]"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0181/hooks_loader.py",
+    "fixture": "three real hook files written per run under probes/TST-0181/.run-p1 and .run-p2 (self-cleaning)",
+    "signals": {
+      "a": "loaded-hook count reported by the loader across both config forms",
+      "b": "independent probe firing each hook path: file removal drops the count and raises a loud error"
+    }
+  },
+  "observations": [
+    {
+      "name": "loaded hooks with vs without $schema",
+      "measured": "3 == 3, identical name set",
+      "method": "load both config forms over the same fixture files",
+      "anchor": "command-center/p2-wave/probes/TST-0181/probe1_schema_neutral.py"
+    },
+    {
+      "name": "count probe sensitivity",
+      "measured": "3 -> 2 after one hook file removal, loud error emitted",
+      "method": "file-removal detector control",
+      "anchor": "command-center/p2-wave/probes/TST-0181/probe2_detector_controls.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The loader is the probe-local reference client; real clients on this estate (claude/codex hook configs) were not modified or probed in this unit.",
+      "settling_experiment": "Bind load_hooks to a real client's config seam if the program later requires an estate-live measurement.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0181: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

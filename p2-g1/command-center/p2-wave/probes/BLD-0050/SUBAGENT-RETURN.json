@@ -1,0 +1,31 @@
+{
+ "id": "BLD-0050",
+ "unit_id": "BLD-0050",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:BLD-0050",
+ "registered": true,
+ "output_path": "command-center/receipts/BLD-0050.json",
+ "output_schema": "command-center/schema (catalog output_schema; see receipt)",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0050/probe1_delete_rule.py",
+   "exit_code": 0,
+   "role": "probe1_delete_rule.py",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"BLD-0050\",\n \"artifact_bytes\": 489128,\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:BLD-0050-probe1 delivery predicate holds"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0050/probe2_completeness.py",
+   "exit_code": 0,
+   "role": "probe2_completeness.py",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"BLD-0050\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=415a176b675d8f94... rows=3\"\n   },\n   {\n    \"label\": \"census.py recompute matches the counts block\",\n    \"ok\": true,\n    \"detail\": \"{\\\"checked\\\": 4, \\\"unchecked\\\": 22, \\\"consumed\\\": 1, \\\"total\\\": 27}\"\n   },\n   {\n    \"label\": \"delete-rule control: deleting one UNCHECKED row moves the census 27->26\",\n    \"ok\": true,\n    \"detail\": \"total=26 unchecked=21\"\n   },\n   {\n    \"label\": \"identity control: census of the full set sums to 27\",\n    \"ok\": true,\n    \"detail\": \"{\\\"checked\\\": 4, \\\"unchecked\\\": 22, \\\"consumed\\\": 1, \\\"total\\\": 27}\"\n   },\n   {\n    \"label\": \"exactly one CONSUMED row, citing ADV-0021 (no STRIDE rebuild)\",\n    \"ok\": true,\n    \"detail\": \"['TB-INSTALL-ADV0021']\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICATE-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:BLD-0050-probe2 manifest sha match, 5 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "wave2_completion": {
+  "at": "2026-10-25T15:02:54Z",
+  "by": "claude-opus-5-5 builder shard 7 wave 2",
+  "note": "Completed the unit after the prior builder died mid-flight: the delivered artifact and its independent reviewer closure (reviewer.verdict=PASS, independent=true) already verified on disk and were kept verbatim; this wave re-created the lost probes/<id>/ tree (probes + recorded-named instrument modules, headers carry the recreation note), re-ran both live probes green, and registered the manifest sha row. Receipt left at the prior closure state per the reviewer-closure exception."
+ }
+}

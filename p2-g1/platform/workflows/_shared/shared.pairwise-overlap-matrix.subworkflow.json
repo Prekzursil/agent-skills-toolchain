@@ -1,0 +1,286 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "shared.pairwise-overlap-matrix",
+ "name": "Pairwise Overlap Matrix (shared primitive)",
+ "description": "Compute the pairwise intersection of N named path sets and the connected components of the resulting graph. Exact arithmetic, no judgement: fan-out-contract C4 measured that handing this class of question to LLM judgement scores 86% with 100% of the errors pointing at data loss. An UNKNOWN path set is treated as overlapping everything (adverse inference), so a caller can never optimistically parallelise a unit whose footprint it could not determine.",
+ "version": "1.0.0",
+ "kind": "subworkflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "deterministic",
+  "shared-primitive",
+  "adverse-inference"
+ ],
+ "flagship": false,
+ "params": {
+  "path_sets": {
+   "type": "object",
+   "required": true,
+   "description": "name -> array of repo-relative paths, or null for UNKNOWN",
+   "schema": {
+    "type": "object",
+    "minProperties": 1,
+    "additionalProperties": {
+     "oneOf": [
+      {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      },
+      {
+       "type": "null"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "roles": {
+  "computer": {
+   "description": "Runs the exact algorithm; this role holds no discretion at all",
+   "model": "none-deterministic-script",
+   "vendor": "any",
+   "effort": "low",
+   "authority": "judge",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Bash:python"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Bash:python",
+   "Write(command-center/overlap/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/overlap/**"
+  ]
+ },
+ "gates": {
+  "unknown-is-conflict": {
+   "predicate": "custom-expression",
+   "expression": "unknown_sets_treated_as_conflicting == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "compute-matrix",
+   "title": "Compute the intersection matrix and its connected components",
+   "kind": "task",
+   "role": "computer",
+   "timeout_seconds": 300,
+   "work_unit": {
+    "id": "BP3-SHARED-OVERLAP",
+    "title": "Compute the pairwise overlap matrix and the serial groups",
+    "phase": "2B",
+    "question_or_target": "For every unordered pair emit the intersection; then emit the connected components of the overlap graph.",
+    "inputs": [
+     "params.path_sets"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "computer",
+     "basis": "an exact algorithm is cheaper and strictly more accurate than a model here"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 300,
+    "output_path": "command-center/overlap/matrix.json",
+    "output_schema": "command-center/schema/collision-census.schema.json",
+    "evidence_requirement": "the artifact carries every pair with a non-empty intersection, plus the component partition; both are recomputable from the inputs",
+    "tests_required": [
+     "two sets sharing one path must appear in the matrix and land in ONE component",
+     "a null (UNKNOWN) set must overlap every other set, never zero of them",
+     "two disjoint sets must produce no pair entry and two separate components"
+    ],
+    "reviewer_requirement": "none - this is arithmetic and is asserted by tests, not reviewed by opinion",
+    "completion_sentinel": "SUCCESS:BP3-SHARED-OVERLAP only when the component partition covers every input name exactly once; otherwise FAILED:BP3-SHARED-OVERLAP <reason>",
+    "retry_policy": "none; a deterministic computation that fails is a defect, not a flake",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/overlap/matrix.json",
+     "schema_ref": "command-center/schema/collision-census.schema.json",
+     "min_bytes": 64,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-SHARED-OVERLAP",
+     "consumers": [
+      "bp-pln-02.file-disjoint-work-unit-decomposition",
+      "bp-pln-03.multi-pr-stacking-order-planner"
+     ]
+    }
+   ]
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "matrix-complete",
+   "expression": "pairs_computed == expected_pairs",
+   "applies_to": "workflow",
+   "on_stop": "complete"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "none",
+  "max_attempts": 1
+ },
+ "failure_policy": {
+  "on_failure": "fail-fast",
+  "classify_as": [
+   "detector-failure"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "caller",
+  "quarantine_path": "command-center/quarantine/overlap"
+ },
+ "resume": {
+  "enabled": false
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/overlap.jsonl",
+  "record": [
+   "params",
+   "inputs"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "hash-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "inputs_hash"
+  ],
+  "store": "command-center/cache/overlap",
+  "ttl_seconds": 604800,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan"
+  ],
+  "plan_artifact": "command-center/dry-run/overlap-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/overlap/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 1,
+   "expected": 5,
+   "max": 60
+  },
+  "tokens": {
+   "min": 0,
+   "expected": 0,
+   "max": 0
+  },
+  "tool_calls": {
+   "expected": 2,
+   "max": 6
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "pure computation; writes one artifact under command-center/overlap/**",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/shared-overlap.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "rules/common/fan-out-contract.md#C4",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "matrix": {
+   "path": "command-center/overlap/matrix.json",
+   "schema_ref": "command-center/schema/collision-census.schema.json",
+   "min_bytes": 64,
+   "register_in_manifest": true,
+   "consumers": [
+    "bp-pln-02.file-disjoint-work-unit-decomposition",
+    "bp-pln-03.multi-pr-stacking-order-planner"
+   ]
+  }
+ },
+ "x_extensions": {
+  "role": "SHARED PRIMITIVE - not one of the twelve blueprints",
+  "mechanism": "mechanisms.pairwise_overlap + mechanisms.serial_groups",
+  "why_factored_out": "BP-PLN-02 and BP-PLN-03 both need it. Shipping it twice would be the renamed-copy the spec forbids; merging its two callers would conflate concurrency admission with merge ordering."
+ }
+}

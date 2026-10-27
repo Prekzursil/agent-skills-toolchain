@@ -1,0 +1,31 @@
+{
+ "id": "BLD-0059",
+ "unit_id": "BLD-0059",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:BLD-0059",
+ "registered": true,
+ "output_path": "command-center/receipts/BLD-0059.json",
+ "output_schema": "command-center/schema (catalog output_schema; see receipt)",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0059/probe1_power_scheme.py",
+   "exit_code": 0,
+   "role": "probe1_power_scheme.py",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"BLD-0059\",\n \"artifact_bytes\": 26864,\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:BLD-0059-probe1 delivery predicate holds"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0059/probe2_independent_recheck.py",
+   "exit_code": 0,
+   "role": "probe2_independent_recheck.py",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"BLD-0059\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=670976ccae677633... rows=2\"\n   },\n   {\n    \"label\": \"power.py hand-check n=14: detect = 1-(0.8)**14\",\n    \"ok\": true,\n    \"detail\": \"recomputed=0.95601953488896\"\n   },\n   {\n    \"label\": \"reject-scheme control: n=3 at p=0.20 detects 0.488 < 0.95 -> not accepted\",\n    \"ok\": true,\n    \"detail\": \"detect(3,0.2)=0.488000\"\n   },\n   {\n    \"label\": \"sensitivity: halving prevalence lowers detection at fixed n (fires the escalation)\",\n    \"ok\": true,\n    \"detail\": \"detect(14,0.1)=0.7712 < detect(14,0.2)=0.9560\"\n   },\n   {\n    \"label\": \"break-even recompute: implementer_h*3600/census_slots == recorded t_review\",\n    \"ok\": true,\n    \"detail\": \"recorded=3673.8 recomputed=3673.7639\"\n   },\n   {\n    \"label\": \"prevalence recorded at 0.20 (a 20%%-defective class must be detected, not assumed rare)\",\n    \"ok\": true,\n    \"detail\": \"p=0.2\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICATE-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:BLD-0059-probe2 manifest sha match, 6 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "wave2_completion": {
+  "at": "2026-10-25T15:02:55Z",
+  "by": "claude-opus-5-5 builder shard 7 wave 2",
+  "note": "Completed the unit after the prior builder died mid-flight: the delivered artifact and its independent reviewer closure (reviewer.verdict=PASS, independent=true) already verified on disk and were kept verbatim; this wave re-created the lost probes/<id>/ tree (probes + recorded-named instrument modules, headers carry the recreation note), re-ran both live probes green, and registered the manifest sha row. Receipt left at the prior closure state per the reviewer-closure exception."
+ }
+}

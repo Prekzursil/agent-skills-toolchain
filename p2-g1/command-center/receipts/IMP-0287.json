@@ -1,0 +1,191 @@
+{
+  "artifact_paths": [
+    "tools/council/topology/tournament.py",
+    "command-center/p2-wave/probes/IMP-0287/shuffle-winners.json",
+    "command-center/p2-wave/probes/IMP-0287/cycle-report.json",
+    "command-center/receipts/IMP-0287.json"
+  ],
+  "artifacts": [
+    {
+      "bytes": 10144,
+      "exists": true,
+      "path": "tools/council/topology/tournament.py",
+      "role": "implementation",
+      "sha256": "875468a300f3d2e189131394c498df671418a04404406c44dd96a2d6fa649bf1"
+    },
+    {
+      "bytes": 952,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0287/shuffle-winners.json",
+      "role": "shuffle-evidence",
+      "sha256": "5990b44ea7e42a1d1f14fa188ff95a6b02d150354ea74ac0661165ecb3e0cc65"
+    },
+    {
+      "bytes": 576,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0287/cycle-report.json",
+      "role": "cycle-evidence",
+      "sha256": "e169861b62929d2d6a524b45e75bbd6ffd2bced97afb971f5381230adedf5464"
+    }
+  ],
+  "completion_line": "SUCCESS:IMP-0287",
+  "dependencies": {
+    "IMP-0264": "absent-local-scheduler-used",
+    "IMP-0303": "absent-explicit-pairwise-judgements-used"
+  },
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0287/shuffle-winners.json",
+      "claim": "Twenty shuffled round-robin schedules over the same transitive judgements recorded winner=alpha every time; unique_winners=['alpha']; unique_ranking_count=1.",
+      "id": "E1-SHUFFLE-WINNERS",
+      "order_independent": true,
+      "verdict": "CONFIRMED",
+      "winners": [
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha",
+        "alpha"
+      ]
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0287/cycle-report.json",
+      "claim": "Rock-paper-scissors judgements produce cycle_reported=true, winner=null, Copeland scores all 1. The cycle is reported rather than silently broken into a unique winner.",
+      "cycle_reported": true,
+      "cycles": [
+        [
+          "paper",
+          "rock",
+          "scissors"
+        ]
+      ],
+      "id": "E2-CONDORCET-CYCLE",
+      "verdict": "CONFIRMED",
+      "winner": null
+    }
+  ],
+  "falsifiable_answer": {
+    "cycle_reported_not_silently_broken": true,
+    "discriminant": "20/20 round-robin shuffles elect alpha; cycle field winner=null and cycle_reported=true",
+    "n_shuffles": 20,
+    "question": "Is the resulting ranking order-independent \u2014 does shuffling the pairing schedule change the winner?",
+    "round_robin_order_independent": true,
+    "unique_winners": [
+      "alpha"
+    ],
+    "winners": [
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha",
+      "alpha"
+    ]
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0287/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "negative_control_ids": [
+    "IMP-0287-CONDORCET-CYCLE-REPORTED"
+  ],
+  "negative_controls": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0287/probe2_condorcet_cycle.py",
+      "description": "A rock-paper-scissors cycle must be reported; the module must not mint a silent Copeland/lex winner. Transitive control stays quiet.",
+      "exit_code": 0,
+      "fired_on_bad_state": true,
+      "id": "IMP-0287-CONDORCET-CYCLE-REPORTED",
+      "kind": "constructed-condorcet-cycle",
+      "result": "PASS",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-topology-module",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0264 tools/council/kernel.py is absent. This topology schedules and aggregates locally; it does not plug matches into a kernel event loop.",
+      "settling_experiment": "Replay a tournament through kernel.py once IMP-0264 lands and assert turn events equal played matches.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "IMP-0303 tools/council/vote/ballots.py is absent. Judgements here are an explicit pairwise table, not ballot-derived pairwise/Condorcet tallies.",
+      "settling_experiment": "Feed ballots.py pairwise outcomes into run_tournament and re-run the 20-shuffle and cycle probes.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Swiss with 2 rounds on a 5-player field produced unique_winners=['NONE']. Incomplete Swiss is not claimed order-independent.",
+      "settling_experiment": "Run Swiss with n-1 rounds (round-robin equivalent) and compare the winner to complete round-robin.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Adversarial probe starts from the required tests. Cycle reports and withholds a winner; transitive field elects alpha and reports no cycle.",
+    "reviewer_id": "IMP-0287-probe2-condorcet-cycle",
+    "starts_from": "tests",
+    "verdict": "PASS"
+  },
+  "reviewer_verdict": "PASS",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0287",
+  "spec_anchor": "catalog IMP-0287; tools/council/topology/tournament.py Swiss or round-robin pairwise scheduling and ranking aggregation; falsifiable: shuffling the pairing schedule over the same judgements must not change the round-robin winner; a constructed Condorcet cycle must be reported, not silently broken",
+  "state": "SUCCESS",
+  "test_ids": [
+    "IMP-0287-ORDER-INDEPENDENCE-20-SHUFFLES",
+    "IMP-0287-ROUND-ROBIN-CONDORCET-WINNER"
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0287/probe1_order_independence.py",
+      "exit_code": 0,
+      "id": "IMP-0287-ORDER-INDEPENDENCE-20-SHUFFLES",
+      "name": "property: order independence across 20 shuffles",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0287/probe1_order_independence.py",
+      "exit_code": 0,
+      "id": "IMP-0287-ROUND-ROBIN-CONDORCET-WINNER",
+      "name": "round-robin elects the Condorcet winner on a transitive field",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:37Z",
+    "started_at": "2026-08-25T00:57:37Z"
+  },
+  "title": "Pairwise tournament topology",
+  "unit_id": "IMP-0287"
+}

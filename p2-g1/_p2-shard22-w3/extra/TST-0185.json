@@ -1,0 +1,67 @@
+{
+  "report_kind": "parser_report",
+  "claims": [
+    {
+      "id": "E-exact-roundtrip",
+      "anchor": "command-center/p2-wave/probes/TST-0185/int_roundtrip.py:emit_exact",
+      "claim": "64-bit ids and precise numbers survive the exact parse/emit path without loss: 1,000/1,000 generated ids spanning 2^40..2^63 and 500/500 decimals with 20 significant digits round-trip byte-exact (int lane via parse_int=int, decimal lane via parse_float=Decimal and a verbatim-digit emitter).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-float-negative-control",
+      "anchor": "command-center/p2-wave/probes/TST-0185/probe2_float_control.py:main",
+      "claim": "Negative control: a float64-based parser loses ids above 2^53 - 4/6 probed values mis-parsed (e.g. 9007199254740993 -> 9007199254740992) and 2^53 vs 2^53+1 collapse to the same float - proving the exact lane is load-bearing, not a tautology.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "float64-parse-lane",
+      "kind": "mutation",
+      "description": "The known-broken float parse lane (parse_int=float, parse_float=float) mis-parses ids above 2^53; the exact lane returns them bit-exact.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "float_failures=4/6 collapse_2p53_vs_2p53p1=true",
+      "good_state_output": "id_failures=0/1000 decimal_failures=0/500"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0185/int_roundtrip.py",
+    "exact_lane": "json.loads(parse_int=int, parse_float=Decimal); emit_exact serializes Decimal digits verbatim via a quoted marker stripped post-dump",
+    "property": "generated ids uniform over 2^40..2^63; decimals with exactly 20 significant digits, exponents -8..8",
+    "signals": {
+      "a": "string equality of the emitted token with the canonical digit string",
+      "b": "decimal-typed comparison after re-parse (int ==, Decimal ==)"
+    }
+  },
+  "observations": [
+    {
+      "name": "id round-trip exactness",
+      "measured": "1000/1000 exact",
+      "method": "emit_exact -> parse_exact -> int equality over the full 2^40..2^63 span",
+      "anchor": "command-center/p2-wave/probes/TST-0185/probe1_roundtrip.py"
+    },
+    {
+      "name": "decimal round-trip exactness",
+      "measured": "500/500 exact",
+      "method": "emit_exact -> parse_exact -> Decimal equality at 20 significant digits",
+      "anchor": "command-center/p2-wave/probes/TST-0185/probe1_roundtrip.py"
+    },
+    {
+      "name": "float-lane failures above 2^53",
+      "measured": "4/6 values mis-parsed; 2^53 == 2^53+1 under float64",
+      "method": "negative control over the lossy lane",
+      "anchor": "command-center/p2-wave/probes/TST-0185/probe2_float_control.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The exact lane is the probe-local parse/emit path; estate consumers that ingest third-party JSON through float-defaulting parsers elsewhere are out of this unit's scope.",
+      "settling_experiment": "Bind parse_exact/emit_exact to the estate's real manifest ingest seam and re-run the property test.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0185: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

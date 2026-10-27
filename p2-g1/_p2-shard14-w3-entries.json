@@ -1,0 +1,454 @@
+[
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0430:STATE-SESSION-KEYED",
+  "dependencies": [
+   "IMP-0407"
+  ],
+  "evidence_requirement": "Per-store table: store, key shape, repo source file:line, deployed copy file:line. A store armed in the repo but absent from the live tree is still live for anyone who deploys - it must be listed, not dismissed.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: goal-bleed, live-only-audit-misses-repo-armed-config",
+  "id": "IMP-0430",
+  "inputs": [
+   "<REPO>/hooks/**",
+   "<REPO>/agent-self/config/settings.json",
+   "~/.claude/hooks/**"
+  ],
+  "output_path": "command-center/receipts/IMP-0430.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "9",
+  "question_or_target": "Audit and fix every piece of harness state that must be SESSION-keyed rather than PROJECT-keyed - goal injection, ledger replay, claims, caches - because a project-keyed key bleeds one session's goal into a concurrent sibling. Exact question: which state stores are currently project-keyed, checked in the REPO source and not only in the deployed copy?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer repeats the audit against the repo source specifically",
+  "tests_required": "bleed test: two concurrent fixture sessions in the same project must not read each other's goal. Repo-versus-live control asserting the audit read BOTH.",
+  "timeout_seconds": 2700,
+  "title": "Session-scoped state keying audit against goal bleed",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tooling-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0435:RECEIPT-GATE-BOTH-STATES",
+  "dependencies": [
+   "IMP-0434"
+  ],
+  "evidence_requirement": "Both-states CI evidence: the gate red on a deliberately invalid receipt and green on a valid one, with the run ids and the failing step name for the red run.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: gate-is-noop, green-in-both-states",
+  "id": "IMP-0435",
+  "inputs": [
+   "command-center/receipts/IMP-0434.json",
+   "CI workflow definition",
+   "tools/command-center/validate.py"
+  ],
+  "output_path": "command-center/receipts/IMP-0435.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Ship the receipt validator as a command and wire it into the existing command-center CI gate so an invalid or missing receipt turns the gate red. Exact question: with a deliberately invalid receipt committed, does the gate actually fail, or does it pass because the validator is invoked in a mode where the check is a no-op?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer confirms the red run failed at the validator step and not elsewhere",
+  "tests_required": "both-states gate test; a no-op-mode test asserting the validator cannot be invoked in a mode where it validates nothing.",
+  "timeout_seconds": 2700,
+  "title": "Receipt validator command wired into the command-center CI gate",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:gh-readonly"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tooling-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+  "dependencies": [
+   "IMP-0436"
+  ],
+  "evidence_requirement": "Before: the defaults-block-deleted mutation exits 0. After: the same mutation exits nonzero. Both exit codes recorded verbatim from the same command line.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: gate-disarmed-by-default, flag-not-passed-in-ci",
+  "id": "IMP-0437",
+  "inputs": [
+   "tools/command-center/validate.py",
+   "CI workflow definition"
+  ],
+  "output_path": "command-center/receipts/IMP-0437.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Arm tools/command-center/validate.py field completeness: require_complete defaults to False and CI invokes the tool bare, so deleting the ENTIRE defaults block exits 0 and passes the gate. Exact target: after this unit, that same deletion must turn CI red.",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer reproduces both the before and after exit codes",
+  "tests_required": "the defaults-deletion mutation is the test; it must fail the gate. A second control mutation (delete one field only) must also fail.",
+  "timeout_seconds": 1800,
+  "title": "Arm the disarmed work-unit field-completeness check in CI",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:gh-readonly"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "dependencies": [
+   "IMP-0440"
+  ],
+  "evidence_requirement": "Per-file digest table with three columns - working-tree hash, blob hash, recorded provenance hash - across all fourteen manifest entries, taken on a Windows checkout.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P2-degraded / classes: crlf-portability, working-tree-hashed-as-blob",
+  "id": "IMP-0439",
+  "inputs": [
+   "tools/command-center/validate.py",
+   "command-center/ARTIFACT-MANIFEST.json",
+   ".gitattributes"
+  ],
+  "output_path": "command-center/receipts/IMP-0439.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Fix the command-center provenance check so it hashes the COMMITTED blob rather than working-tree bytes, making it runnable on a Windows checkout where core.autocrlf rewrites line endings. Exact question: after the fix, do the Windows and Linux runs produce the same digest for all fourteen manifest entries?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer re-derives two digests by a different command than the implementation uses",
+  "tests_required": "platform-parity test asserting the blob route yields identical digests on a CRLF and an LF checkout; a control asserting the working-tree route DIFFERS, proving the fix changed something.",
+  "timeout_seconds": 2700,
+  "title": "Make the provenance hash read the committed blob, not the working tree",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:git-readonly"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+  "dependencies": [
+   "IMP-0436",
+   "IMP-0443"
+  ],
+  "evidence_requirement": "A time-series of observed concurrent units per substrate across a 40-unit mixed dry run; the local-serialized series must be flat at one.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: substrate-ignored, serial-lane-parallelized",
+  "id": "IMP-0442",
+  "inputs": [
+   "command-center/WORK-UNIT-CATALOG.json",
+   "command-center/receipts/IMP-0436.json"
+  ],
+  "output_path": "command-center/receipts/IMP-0442.json",
+  "output_schema": "command-center/schema/dispatch-plan.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Implement the dispatcher that reads the catalog and routes each unit to its declared execution_substrate, with local-serialized meaning strictly one at a time. Exact question: with a catalog containing units of all four substrates, does the observed simultaneous count for local-serialized ever exceed one?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer inspects the time-series, not the summary",
+  "tests_required": "substrate-isolation test per substrate; a mutation removing the serial lock must show a concurrent count above one and turn the test red.",
+  "timeout_seconds": 3600,
+  "title": "Work-unit dispatcher honoring the declared execution substrate",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0448:RETRY-CLASS-DRIVEN",
+  "dependencies": [
+   "IMP-0449"
+  ],
+  "evidence_requirement": "Decision table: failure class, configured policy, observed attempt count. Any class whose observed count differs from its policy is a defect.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P2-degraded / classes: text-matching-instead-of-typing, infinite-grind",
+  "id": "IMP-0448",
+  "inputs": [
+   "command-center/receipts/IMP-0449.json",
+   "catalog retry_policy fields"
+  ],
+  "output_path": "command-center/receipts/IMP-0448.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Implement the retry engine so the retry decision is a pure function of the typed failure class, not of the raw error text. Exact target: a schema-invalid failure must be retried ZERO times, a provider transient up to its cap, and a second failure on the same fingerprint must trigger the two-strikes pivot rather than a third attempt.",
+  "retry_policy": "max 2 attempts to implement; the engine must not be able to retry its own failure indefinitely",
+  "reviewer_requirement": "independent-claude-reviewer",
+  "tests_required": "one test per failure class; a same-fingerprint repeat test asserting the pivot fires at strike two, not strike three.",
+  "timeout_seconds": 2700,
+  "title": "Retry-policy engine driven by typed failure classification",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pytest"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tooling-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE",
+  "dependencies": [
+   "IMP-0434",
+   "IMP-0443"
+  ],
+  "evidence_requirement": "A control-plane census before and after (count of independent state-mutating surfaces), plus a rendered screenshot or captured pane output proving the new pane displays live data.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: duplicate-control-plane, cockpit-mutates-state",
+  "id": "IMP-0450",
+  "inputs": [
+   "existing monitor cockpit",
+   "command-center/events/EVENTS.jsonl",
+   "command-center/receipts/"
+  ],
+  "output_path": "command-center/receipts/IMP-0450.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Extend the EXISTING monitor cockpit with a program pane reading EVENTS.jsonl and receipts read-only - explicitly NOT a new control plane, per spec line 10483. Exact question: after this unit, how many distinct control planes exist for program state, and is the answer one?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer plus an architecture reviewer on the duplicate-control-plane question",
+  "tests_required": "read-only test asserting the pane cannot mutate program state; a census test asserting no second dispatcher was introduced.",
+  "timeout_seconds": 3600,
+  "title": "Cockpit surface extending the existing monitor rather than a second control plane",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0460:HOOKS-LOAD-VERIFIED",
+  "dependencies": [
+   "IMP-0449",
+   "IMP-0471"
+  ],
+  "evidence_requirement": "Declared-versus-observed hook count with every missing marker named; a config-file listing is explicitly NOT accepted as evidence of loading.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: installed-but-unloaded, silent-in-both-states",
+  "id": "IMP-0460",
+  "inputs": [
+   "hooks manifest (repo source)",
+   "live hook directory",
+   "session start log"
+  ],
+  "output_path": "command-center/receipts/IMP-0460.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Anchor spec:11303 (plugin appears installed but hooks are unloaded). Implement a POSITIVE load probe: each hook emits a load marker the verifier reads, so installed status is never inferred from the presence of a config file. Exact question: how many declared hooks actually emit their load marker at session start, and does that number equal the declared count?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer verifies the broken-state reading specifically",
+  "tests_required": "both-states test: a deliberately malformed hook config must produce a LOWER observed count (proving the probe can see the broken state), and the repaired config must restore it. A probe silent in both states measures nothing.",
+  "timeout_seconds": 2700,
+  "title": "Positive hook-load verification, not installed-status inference",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh-readonly"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0466:PATHCONV-ARGUMENT-SCOPED",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Both-direction evidence: a revision argument surviving unconverted, AND a legitimate POSIX path argument still being converted correctly under the same configuration. A run showing only one direction is half a proof.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: global-suppression-breaks-paths, silent-noop-clone, redirect-truncates-target",
+  "id": "IMP-0466",
+  "inputs": [
+   "shell invocation layer",
+   "argument corpus (revisions, device paths, POSIX paths)"
+  ],
+  "output_path": "command-center/receipts/IMP-0466.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Anchor spec:11309 (PowerShell and Git Bash path rewriting). Implement path-conversion suppression that is COMMAND-aware and ARGUMENT-aware: applied around revision-shaped and device-path arguments, never globally, because a global suppression breaks legitimate POSIX path arguments and silently produces a no-op. Exact target: prove both failure directions are prevented, not just one.",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer plus an adversarial refuter on the silent-no-op direction",
+  "tests_required": "per-argument-shape test; a global-suppression fixture must FAIL the legitimate-path case, proving the scoped implementation is not equivalent to the global one.",
+  "timeout_seconds": 2700,
+  "title": "Argument-aware shell path-rewriting control",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pwsh"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "systems-implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Enumeration count over the fixture tree with and without the reserved-name file present; the counts must differ by exactly one and neither run may raise.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": "P1-blocking / classes: reserved-device-name-crash, crash-swallowed-as-zero, long-path-truncation",
+  "id": "IMP-0467",
+  "inputs": [
+   "path handling layer",
+   "fixture tree containing reserved names and a >260 char path"
+  ],
+  "output_path": "command-center/receipts/IMP-0467.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "5",
+  "question_or_target": "Implement the path library that handles Windows extended-length paths and reserved device names (NUL, CON, AUX, PRN) without aborting a directory walk. Exact question: does a tree containing a file named NUL still enumerate completely, and what does the relative-path computation return for it?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer",
+  "tests_required": "reserved-name test; long-path test above 260 characters; a control asserting the walk does NOT silently swallow the exception and return zero entries.",
+  "timeout_seconds": 2700,
+  "title": "Path library for extended-length paths and reserved device names",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Glob",
+   "Bash:python"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0468:CASE-COLLISION-SCANNED",
+  "dependencies": [
+   "IMP-0433"
+  ],
+  "evidence_requirement": "Collision list with file, both keys, and the value each holds; a zero result must be accompanied by a planted-collision control proving the detector fires.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P2-degraded / classes: case-insensitive-key-drop, zero-result-unverified-detector",
+  "id": "IMP-0468",
+  "inputs": [
+   "all shipped JSON/YAML configs",
+   "manifest set"
+  ],
+  "output_path": "command-center/receipts/IMP-0468.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Anchor spec:11310 (case-insensitive parser collision on case-distinct JSON keys). Implement the detector that finds two keys differing only by case in any shipped config or manifest, before a case-insensitive consumer silently drops one. Exact question: how many such collisions exist across the shipped configuration surface today?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "independent-claude-reviewer",
+  "tests_required": "planted-collision control; nested-object coverage test; a control asserting keys that differ by more than case are not reported.",
+  "timeout_seconds": 1800,
+  "title": "Case-distinct key collision detector for configuration documents",
+  "tool_permissions": [
+   "Read",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash:python"
+  ]
+ },
+ {
+  "_source_slice_file": "IMP-4.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "implementer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+  "dependencies": [
+   "IMP-0449"
+  ],
+  "evidence_requirement": "Confusion matrix before and after on the historical corpus, with each surviving false positive shown as the raw record so the role-versus-text distinction is visible.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": "P1-blocking / classes: use-vs-mention, guard-fires-on-documentation",
+  "id": "IMP-0470",
+  "inputs": [
+   "historical false-positive corpus",
+   "existing guard implementations"
+  ],
+  "output_path": "command-center/receipts/IMP-0470.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "4",
+  "question_or_target": "Anchor spec:11323 (false-positive prose and fixture detectors). Implement the shared library that classifies a match by its semantic ROLE - the tool-input verb, the JSON field, the AST position - rather than by the presence of a string in the payload, since a document describing a defect necessarily contains that defect's text. Exact question: on the historical false-positive corpus, what is the before-and-after false-positive rate?",
+  "retry_policy": "max 2 attempts, backoff 30s/120s",
+  "reviewer_requirement": "adversarial refuter constructs a mention that the library still fires on and a use it misses",
+  "tests_required": "mention corpus (documents quoting a dangerous command) must produce zero fires; use corpus (actual invocation) must produce a fire on every entry. A library passing only one of the two corpora is not a fix.",
+  "timeout_seconds": 3600,
+  "title": "Semantic-role detector library replacing payload-text matching",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Edit",
+   "Bash:python",
+   "Bash:pytest"
+  ]
+ }
+]

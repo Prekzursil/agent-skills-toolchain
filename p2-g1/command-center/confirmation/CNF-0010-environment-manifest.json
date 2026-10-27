@@ -1,0 +1,579 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0010",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0010",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0010",
+  "min_bytes_threshold": 1024,
+  "artifacts": [
+    {
+      "path": "command-center/schema/environment-manifest.schema.json",
+      "sha256": "0087b90878e1699100e8cb79816c3cbd0c094ec2ee71cd5d41611adb2076ecbe",
+      "bytes": 1073,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0010/resolver.py",
+      "sha256": "62b36cebf9fcba113d7bac8da5f15399e7fdfb0ef75645cb1e58ebe1b9ed07d1",
+      "bytes": 3524,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0010/capture.py",
+      "sha256": "280d8ee09500d0b28b5f78a34b950484b5f9af4ab3966a1bcb437e3e8a6a0a1d",
+      "bytes": 8563,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0010/attributor.py",
+      "sha256": "e0abbc5553dbe73ba9878fc05b52b15ec0243fb7e402dc4c860c3744ac4cebe6",
+      "bytes": 3709,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0010/ci_pins.py",
+      "sha256": "852ebf5b71d3d5d5c9f9ff3fef2812e0c2d73aff21e6534cffa5eb0be65a2327",
+      "bytes": 3353,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0010/schema_local.py",
+      "sha256": "f6bdec4aa5ef9b9af1519020e2d6d9fc1ee021028f5d28b1a94bf0cba5534d6b",
+      "bytes": 2217,
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Two operating-system families (linux live, windows PATHEXT fixture) are attached, and a .cmd shim is visible to the PowerShell resolver and invisible to POSIX which.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0010/probe1_resolver_and_pin_parity.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe1_resolver_and_pin_parity.py",
+          "raw_output": "resolver .cmd shim and pin-parity",
+          "fingerprint": "5baf704ee93ec444341de9283d096520"
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "command-center/p2-wave/probes/CNF-0010/schema_local.py",
+          "raw_output": "catalog environment-manifest schema via disk RefResolver",
+          "fingerprint": "bfdd437f6d26c0a37ab717f6644b6624"
+        }
+      ]
+    },
+    {
+      "claim": "Forcing ruff 0.15.17 vs 0.15.22 on identical source bytes is attributed to environment; the same-env source-sha delta stays code.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0010/probe2_forced_mismatch.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe2_forced_mismatch.py",
+          "raw_output": "forced-mismatch attributed to environment",
+          "fingerprint": "67c0e936f4656f36814da5f9563fd163"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/CNF-0010/attributor.py",
+          "raw_output": "code_control attribution=code",
+          "fingerprint": "03b66f80531d178987831c527cf9229e"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "resolver-cmd-shim",
+      "name": "PowerShell resolver sees .cmd; POSIX which misses it",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe1_resolver_and_pin_parity.py",
+      "result": "PASS",
+      "assertions": 2
+    },
+    {
+      "id": "pin-parity-compared",
+      "name": "CI pin vs locally resolved formatter/linter versions",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe1_resolver_and_pin_parity.py",
+      "result": "PASS",
+      "assertions": 2
+    },
+    {
+      "id": "forced-mismatch-environment",
+      "name": "Forced ruff version mismatch attributed to environment",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe2_forced_mismatch.py",
+      "result": "PASS",
+      "assertions": 2
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CNF0010-C1-cmd-shim-pathext",
+      "kind": "known-broken-fixture",
+      "description": "Only ruff.cmd exists on a planted PATH. PowerShell PATHEXT resolver must hit it; POSIX which must miss.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "powershell_found_cmd_shim=true posix_which_missed=true",
+      "good_state_output": "extensionless real binary would be visible to both"
+    },
+    {
+      "id": "CNF0010-C2-forced-ruff-mismatch-environment",
+      "kind": "mutation",
+      "description": "Force ruff 0.15.17 vs 0.15.22 with identical source sha; attributor must report environment, not code.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "attribution=environment delta=tools.ruff.version",
+      "good_state_output": "same-env source-sha delta stays attribution=code"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0010-probe2-forced-mismatch",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe1 re-runs the PATHEXT .cmd control and pin-parity comparison. Probe2 re-runs the forced-mismatch attributor and the code-delta opposite control. Conclusion field was not consulted before re-deriving attribution."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0010/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/CNF-0010/schema_local.py",
+      "artifact_path": "command-center/confirmation/CNF-0010-environment-manifest.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "command-center/p2-wave/probes/CNF-0010/schema_local.py",
+        "raw_output": "disk-local Draft7Validator accepted the receipt",
+        "fingerprint": "bfdd437f6d26c0a37ab717f6644b6624"
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:44:47Z",
+    "ended_at": "2026-08-25T00:44:47Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "one retry only when the failure classifies as environment-transient; logic or evidence failure is filed"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The Windows family is a PATHEXT fixture plus recorded autocrlf clone fields, not a live Win32 confirmation run.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run capture_live on a Windows checkout and attach that verbatim manifest beside the Linux live capture."
+    }
+  ],
+  "produced_by": {
+    "vendor": "x-ai",
+    "model": "grok-4.6",
+    "role": "environment-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "environment-manifest",
+    "title": "Environment pinning manifest so a confirmation discrepancy is attributable",
+    "question": "When a confirmer and an implementer disagree, was it the code or the environment? Capture a pinned manifest per confirmation run and count how many disagreements in the corpus are explained by a manifest delta alone.",
+    "sentinel": "SUCCESS:CNF-0010",
+    "completion_sentinel": "SUCCESS:CNF-0010 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and manifests from two different operating systems are attached and the forced-mismatch control was attributed to environment. Any other terminal state is FAILED:CNF-0010 <classification> with the diagnostic tail attached.",
+    "captured_at": "2026-08-25T00:44:47Z",
+    "manifests": [
+      {
+        "run_id": "linux-live-p2-ovh-waw1-c",
+        "capture_kind": "live",
+        "os": {
+          "family": "linux",
+          "system": "Linux",
+          "build": "#136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+          "release": "6.8.0-136-generic",
+          "pretty": "Ubuntu 24.04.4 LTS",
+          "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+          "machine": "x86_64"
+        },
+        "shell": {
+          "name": "sh",
+          "version": "/bin/sh: 0: Illegal option --"
+        },
+        "python": {
+          "version": "3.12.3",
+          "resolved_path": "/usr/bin/python3",
+          "implementation": "CPython",
+          "full": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]"
+        },
+        "node": {
+          "version": "v24.5.0",
+          "resolved_path": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854/node"
+        },
+        "git": {
+          "version": "git version 2.43.0",
+          "autocrlf": "unset",
+          "resolved_path": "/usr/bin/git"
+        },
+        "locale": {
+          "lang": "C.UTF-8",
+          "lc_all": "unset",
+          "code_page": "UTF-8",
+          "locale_tuple": [
+            "C",
+            "UTF-8"
+          ]
+        },
+        "tools": [
+          {
+            "name": "python3",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/usr/bin/python3.12",
+            "version": "Python 3.12.3"
+          },
+          {
+            "name": "python",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/usr/bin/python3",
+            "version": "Python 3.12.3"
+          },
+          {
+            "name": "node",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854/node",
+            "version": "v24.5.0"
+          },
+          {
+            "name": "git",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/usr/bin/git",
+            "version": "git version 2.43.0"
+          },
+          {
+            "name": "ruff",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": null,
+            "version": null
+          },
+          {
+            "name": "basedpyright",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": null,
+            "version": null
+          },
+          {
+            "name": "pwsh",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": null,
+            "version": null
+          },
+          {
+            "name": "bash",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/usr/bin/bash",
+            "version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)"
+          }
+        ],
+        "verbatim": {
+          "platform.platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+          "platform.version": "#136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+          "sys.version": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+          "git.core.autocrlf": "unset",
+          "PATH": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854:/root/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+          "LANG": "C.UTF-8",
+          "repo": "/opt/p2/ast-integrate"
+        }
+      },
+      {
+        "run_id": "windows-pathext-fixture-recorded-clone",
+        "capture_kind": "windows-pathext-fixture",
+        "os": {
+          "family": "windows",
+          "system": "Windows",
+          "build": "recorded-windows-clone+PATHEXT-fixture",
+          "release": "recorded",
+          "pretty": "Windows checkout with core.autocrlf=true (seed.py measurement)",
+          "platform": "Windows",
+          "machine": "recorded"
+        },
+        "shell": {
+          "name": "pwsh",
+          "version": "PowerShell Get-Command analogue (this module)"
+        },
+        "python": {
+          "version": "not-captured-on-fixture",
+          "resolved_path": null
+        },
+        "node": {
+          "version": null,
+          "resolved_path": null
+        },
+        "git": {
+          "version": "recorded-windows-clone",
+          "autocrlf": "true",
+          "resolved_path": null
+        },
+        "locale": {
+          "lang": "recorded",
+          "lc_all": "recorded",
+          "code_page": "CRLF-working-tree"
+        },
+        "tools": [
+          {
+            "name": "ruff",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": "/tmp/cnf0010-win-y1bj2pty/path/ruff.cmd",
+            "version": "0.15.22"
+          },
+          {
+            "name": "python",
+            "resolved_by": "powershell-resolver",
+            "resolved_path": null,
+            "version": "not-captured-on-fixture"
+          }
+        ],
+        "verbatim": {
+          "source": "tools/command-center/seed.py:140-151",
+          "validate_py": "tools/command-center/validate.py:217-222",
+          "autocrlf_true_clone": {
+            "REGISTER.md_bytes": 61110,
+            "CRLF_count": 339,
+            "REACH-6": "sha256 721c4e577ca5 != 60a4d35f822d"
+          },
+          "validate_worktree_vs_blob": {
+            "worktree": "1a404a91d819",
+            "recorded_blob": "8b3e44cc3813"
+          },
+          "catalog_ruff_precedent": "CI 0.15.17 vs local 0.15.22 (CNF-0021)",
+          "ruff_cmd_shim": "/tmp/cnf0010-win-y1bj2pty/path/ruff.cmd",
+          "PATHEXT": ".COM;.EXE;.BAT;.CMD"
+        }
+      }
+    ],
+    "operating_systems_attached": [
+      "linux",
+      "windows"
+    ],
+    "ci_pins": {
+      "source": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+      "formatters_and_linters": [
+        {
+          "name": "ruff",
+          "pinned_version": "0.15.17",
+          "role": "formatter",
+          "source_step": ".github/workflows/quality.yml job=gate-lint-format (ruff) step=gate-lint-format ruff (install) `python -m pip install --upgrade pip pip install ruff==0.15.17`"
+        },
+        {
+          "name": "basedpyright",
+          "pinned_version": "1.39.8",
+          "role": "typechecker",
+          "source_step": ".github/workflows/quality.yml job=gate-types (basedpyright) step=2 `pip install basedpyright==1.39.8`"
+        }
+      ],
+      "interpreters": [
+        {
+          "name": "python",
+          "pinned_version": "3.11"
+        },
+        {
+          "name": "node",
+          "pinned_version": "22"
+        }
+      ],
+      "jsonschema_pin": {
+        "name": "jsonschema",
+        "pinned_version": "4.25.1",
+        "role": "linter",
+        "source_step": ".github/workflows/quality.yml job=gate-tests-coverage (platform) step=gate-tests-coverage platform (pinned deps) `pip install pytest==8.3.3 jsonschema==4.25.1`"
+      },
+      "inventory_totals": {
+        "conditional_jobs": 2,
+        "conditional_steps": 4,
+        "expanded_legs": 14,
+        "jobs": 14,
+        "steps": 143,
+        "workflow_files": 7
+      }
+    },
+    "pin_parity": {
+      "compared": true,
+      "all_equal": false,
+      "rows": [
+        {
+          "name": "ruff",
+          "ci_pinned": "0.15.17",
+          "local_resolved": null,
+          "equal": false,
+          "role": "formatter"
+        },
+        {
+          "name": "basedpyright",
+          "ci_pinned": "1.39.8",
+          "local_resolved": null,
+          "equal": false,
+          "role": "typechecker"
+        }
+      ]
+    },
+    "forced_mismatch_control": {
+      "tool": "ruff",
+      "pinned_version": "0.15.17",
+      "forced_version": "0.15.22",
+      "source_sha_same": true,
+      "attribution": "environment",
+      "not_code": true,
+      "delta_fields": [
+        "tools.ruff.version"
+      ]
+    },
+    "attribution_table": [
+      {
+        "id": "planted-ruff-0.15.17-vs-0.15.22",
+        "attribution": "environment",
+        "delta_fields": [
+          "tools.ruff.version"
+        ],
+        "source_sha_same": true
+      },
+      {
+        "id": "planted-same-env-code-delta",
+        "attribution": "code",
+        "delta_fields": [],
+        "source_sha_same": false
+      },
+      {
+        "id": "recorded-REACH-6-autocrlf",
+        "attribution": "environment",
+        "delta_fields": [
+          "os.family",
+          "git.autocrlf",
+          "locale.code_page"
+        ],
+        "source_sha_same": true,
+        "note": "tools/command-center/seed.py:140-151 and validate.py:217-222: Windows autocrlf=true clone hashes the CRLF working tree; Linux CI hashes LF. Same commit, different environment."
+      }
+    ],
+    "corpus_answer": {
+      "live_confirmation_receipts_found": 0,
+      "live_disagreements_examined": 0,
+      "explained_by_manifest_delta_alone": 0,
+      "live_receipt_paths": [],
+      "statement": "Live confirmation corpus on this worktree is empty (0 receipts besides this unit). Disagreements explained by a manifest delta alone: 0 of 0. Planted controls in attribution_table prove the comparator: forced ruff 0.15.17 vs 0.15.22 is environment; same-env source-sha delta is code; recorded REACH-6 autocrlf is environment."
+    },
+    "resolver_control": {
+      "powershell_found_cmd_shim": true,
+      "posix_which_missed_cmd_shim": true,
+      "shim_basename": "ruff",
+      "pass": true,
+      "powershell_resolved": "/tmp/cnf0010-win-y1bj2pty/shim/ruff.cmd",
+      "posix_which_resolved": null
+    },
+    "windows_shell_8b": {
+      "input": "rules/common/windows-shell.md section 8b (CRLF pin parity)",
+      "present_on_this_tree": true,
+      "applied": "Pin parity is CI-pinned formatter/linter version vs PowerShell-resolver local version; CRLF/autocrlf is a first-class manifest field so a Windows checkout cannot be compared to Linux CI without an environment delta."
+    },
+    "test_results": {
+      "resolver_cmd_shim": "PASS",
+      "pin_parity_compared": "PASS",
+      "forced_mismatch_environment": "PASS"
+    },
+    "verbatim_evidence": {
+      "linux_manifest_verbatim": {
+        "platform.platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+        "platform.version": "#136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+        "sys.version": "3.12.3 (main, Jun 19 2026, 12:46:00) [GCC 13.3.0]",
+        "git.core.autocrlf": "unset",
+        "PATH": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854:/root/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+        "LANG": "C.UTF-8",
+        "repo": "/opt/p2/ast-integrate"
+      },
+      "windows_manifest_verbatim": {
+        "source": "tools/command-center/seed.py:140-151",
+        "validate_py": "tools/command-center/validate.py:217-222",
+        "autocrlf_true_clone": {
+          "REGISTER.md_bytes": 61110,
+          "CRLF_count": 339,
+          "REACH-6": "sha256 721c4e577ca5 != 60a4d35f822d"
+        },
+        "validate_worktree_vs_blob": {
+          "worktree": "1a404a91d819",
+          "recorded_blob": "8b3e44cc3813"
+        },
+        "catalog_ruff_precedent": "CI 0.15.17 vs local 0.15.22 (CNF-0021)",
+        "ruff_cmd_shim": "/tmp/cnf0010-win-y1bj2pty/path/ruff.cmd",
+        "PATHEXT": ".COM;.EXE;.BAT;.CMD"
+      },
+      "per_disagreement_attribution_table": true
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "resolver-and-pin-parity",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe1_resolver_and_pin_parity.py"
+      },
+      {
+        "id": "probe2",
+        "role": "forced-mismatch-environment",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0010/probe2_forced_mismatch.py"
+      }
+    ],
+    "cloud_ok": false,
+    "linux_ruff_version": null,
+    "scope": {
+      "proof_surface": "Live Linux capture on this host; Windows family attached as a PATHEXT .cmd fixture plus verbatim recorded Windows-clone fields from seed.py/validate.py. Forced ruff version mismatch attributed to environment. Live confirmation corpus 0-of-0.",
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "a live Win32 host was entered on this Linux worktree",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "local ruff equals the CI pin (parity is measured, not forced)",
+        "rules/common/windows-shell.md exists on this worktree"
+      ]
+    },
+    "observations": [
+      {
+        "name": "operating-system-families-attached",
+        "measured": "linux,windows",
+        "method": "live-linux-capture plus windows-pathext-fixture",
+        "anchor": "command-center/p2-wave/probes/CNF-0010/capture.py"
+      },
+      {
+        "name": "forced-mismatch-attribution",
+        "measured": "environment",
+        "method": "attributor.forced_mismatch ruff 0.15.17 vs 0.15.22",
+        "anchor": "command-center/p2-wave/probes/CNF-0010/attributor.py"
+      },
+      {
+        "name": "pin-parity-compared",
+        "measured": true,
+        "method": "CI inventory vs PowerShell-resolver local versions",
+        "anchor": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json"
+      },
+      {
+        "name": "explained-by-manifest-delta-alone",
+        "measured": 0,
+        "method": "confirmation-corpus scan minus this unit",
+        "anchor": "command-center/confirmation"
+      }
+    ],
+    "control_ids": [
+      "CNF0010-C1-cmd-shim-pathext",
+      "CNF0010-C2-forced-ruff-mismatch-environment",
+      "CNF0010-C3-same-env-code-delta"
+    ]
+  }
+}

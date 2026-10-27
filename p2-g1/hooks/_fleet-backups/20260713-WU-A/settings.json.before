@@ -1,0 +1,506 @@
+{
+  "cleanupPeriodDays": 365,
+  "skillListingBudgetFraction": 0.02,
+  "env": {
+    "CLAUDE_CODE_FORK_SUBAGENT": "1",
+    "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "64000",
+    "BASH_MAX_OUTPUT_LENGTH": "150000",
+    "BASH_DEFAULT_TIMEOUT_MS": "600000",
+    "BASH_MAX_TIMEOUT_MS": "1800000",
+    "MCP_TIMEOUT": "120000",
+    "MCP_TOOL_TIMEOUT": "600000",
+    "MCP_CLIENT_SESSION_TIMEOUT_SECONDS": "600",
+    "ECC_CONTEXT_MONITOR_COST_WARNINGS": "0",
+    "ECC_GATEGUARD": "off",
+    "ENABLE_TOOL_SEARCH": "auto:5",
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "90",
+    "CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN": "1",
+    "CLAUDE_CODE_DISABLE_MOUSE": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "permissions": {
+    "allow": [
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "NotebookEdit",
+      "WebSearch",
+      "WebFetch",
+      "TodoWrite",
+      "Task",
+      "Skill",
+      "Monitor",
+      "TaskStop",
+      "SendUserFile",
+      "Artifact",
+      "ToolSearch",
+      "mcp__basic-memory",
+      "mcp__context7",
+      "mcp__deepwiki",
+      "mcp__repomix",
+      "mcp__plugin_serena_serena",
+      "mcp__github_cli",
+      "mcp__search-hub",
+      "mcp__tavily",
+      "mcp__perplexity",
+      "mcp__firecrawl",
+      "mcp__huggingface",
+      "mcp__paper-search",
+      "mcp__scholarly-access",
+      "mcp__playwright"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(**/.env)",
+      "Read(**/*.pem)",
+      "Read(**/*.credentials*)"
+    ],
+    "ask": [],
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "C:",
+      "D:"
+    ]
+  },
+  "model": "opus[1m]",
+  "fallbackModel": [
+    "claude-sonnet-5"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SessionStart",
+            "timeout": 5,
+            "statusMessage": "Shared harness: SessionStart"
+          }
+        ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/local-tui-reminder/check.py\"",
+            "timeout": 5,
+            "statusMessage": "local-TUI reminder"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event UserPromptSubmit",
+            "timeout": 2,
+            "statusMessage": "Shared harness: UserPromptSubmit"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell|Edit|Write|MultiEdit|NotebookEdit|apply_patch|Task|WebFetch|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PreToolUse",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PreToolUse"
+          }
+        ]
+      },
+      {
+        "matcher": "Workflow",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.claude/hooks/workflow-monitor-autolaunch/check.py\"",
+            "timeout": 8,
+            "statusMessage": "wfmon auto-launch"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PermissionRequest",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PermissionRequest"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PermissionDenied",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PermissionDenied"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostToolUse",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PostToolUse"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostToolUseFailure",
+            "timeout": 2,
+            "statusMessage": "Shared harness: PostToolUseFailure"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PreCompact",
+            "timeout": 5,
+            "statusMessage": "Shared harness: PreCompact"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event PostCompact",
+            "timeout": 3,
+            "statusMessage": "Shared harness: PostCompact"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event ConfigChange",
+            "timeout": 3,
+            "statusMessage": "Shared harness: ConfigChange"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SubagentStart",
+            "timeout": 3,
+            "statusMessage": "Shared harness: SubagentStart"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event SubagentStop",
+            "timeout": 3,
+            "statusMessage": "Shared harness: SubagentStop"
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TaskCreated",
+            "timeout": 3,
+            "statusMessage": "Shared harness: TaskCreated"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TaskCompleted",
+            "timeout": 5,
+            "statusMessage": "Shared harness: TaskCompleted"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event TeammateIdle",
+            "timeout": 3,
+            "statusMessage": "Shared harness: TeammateIdle"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"C:/Users/Prekzursil/.agents/harness/dispatcher.py\" --provider claude --event Stop",
+            "timeout": 5,
+            "statusMessage": "Shared harness: Stop"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Users/Prekzursil/.claude/hooks/create-worktree.ps1\"",
+            "timeout": 60,
+            "statusMessage": "Creating git worktree"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"C:/Users/Prekzursil/.claude/hooks/remove-worktree.ps1\"",
+            "timeout": 30,
+            "statusMessage": "Removing git worktree"
+          }
+        ]
+      }
+    ]
+  },
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash C:/Users/Prekzursil/.claude/statusline-command.sh"
+  },
+  "enabledPlugins": {
+    "ai-plugins@claude-plugins-official": false,
+    "aikido@claude-plugins-official": false,
+    "astronomer-data-agents@claude-plugins-official": false,
+    "aws-serverless@claude-plugins-official": false,
+    "context7@claude-plugins-official": false,
+    "data@claude-plugins-official": false,
+    "deploy-on-aws@claude-plugins-official": false,
+    "microsoft-docs@claude-plugins-official": false,
+    "netlify-skills@claude-plugins-official": false,
+    "nightvision@claude-plugins-official": false,
+    "postiz@claude-plugins-official": false,
+    "railway@claude-plugins-official": false,
+    "wordpress.com@claude-plugins-official": false,
+    "typescript-lsp@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": false,
+    "supabase@claude-plugins-official": false,
+    "explanatory-output-style@claude-plugins-official": false,
+    "learning-output-style@claude-plugins-official": false,
+    "gopls-lsp@claude-plugins-official": false,
+    "csharp-lsp@claude-plugins-official": false,
+    "rust-analyzer-lsp@claude-plugins-official": false,
+    "jdtls-lsp@claude-plugins-official": false,
+    "php-lsp@claude-plugins-official": false,
+    "clangd-lsp@claude-plugins-official": false,
+    "firebase@claude-plugins-official": false,
+    "swift-lsp@claude-plugins-official": false,
+    "kotlin-lsp@claude-plugins-official": false,
+    "lua-lsp@claude-plugins-official": false,
+    "ruby-lsp@claude-plugins-official": false,
+    "sourcegraph@claude-plugins-official": false,
+    "atomic-agents@claude-plugins-official": false,
+    "mintlify@claude-plugins-official": false,
+    "math-olympiad@claude-plugins-official": false,
+    "codex@openai-codex": true,
+    "agent-sdk-dev@claude-plugins-official": false,
+    "chrome-devtools-mcp@claude-plugins-official": false,
+    "claude-code-setup@claude-plugins-official": false,
+    "claude-md-management@claude-plugins-official": false,
+    "code-review@claude-plugins-official": false,
+    "code-simplifier@claude-plugins-official": false,
+    "coderabbit@claude-plugins-official": false,
+    "commit-commands@claude-plugins-official": false,
+    "data-engineering@claude-plugins-official": false,
+    "fastly-agent-toolkit@claude-plugins-official": false,
+    "feature-dev@claude-plugins-official": false,
+    "figma@claude-plugins-official": false,
+    "firecrawl@claude-plugins-official": false,
+    "frontend-design@claude-plugins-official": false,
+    "github@claude-plugins-official": false,
+    "gitlab@claude-plugins-official": false,
+    "hookify@claude-plugins-official": true,
+    "huggingface-skills@claude-plugins-official": false,
+    "linear@claude-plugins-official": false,
+    "mcp-server-dev@claude-plugins-official": false,
+    "notion@claude-plugins-official": false,
+    "pinecone@claude-plugins-official": false,
+    "playground@claude-plugins-official": false,
+    "playwright@claude-plugins-official": false,
+    "plugin-dev@claude-plugins-official": false,
+    "pr-review-toolkit@claude-plugins-official": false,
+    "qodo-skills@claude-plugins-official": false,
+    "ralph-loop@claude-plugins-official": true,
+    "remember@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": false,
+    "semgrep@claude-plugins-official": false,
+    "sentry@claude-plugins-official": false,
+    "skill-creator@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "claude-reflect@claude-reflect-marketplace": true,
+    "ecc@everything-claude-code": false,
+    "brightdata-plugin@claude-plugins-official": false,
+    "circleback@claude-plugins-official": false,
+    "cloudflare@claude-plugins-official": false,
+    "code-modernization@claude-plugins-official": false,
+    "cwc-makers@claude-plugins-official": false,
+    "document-skills@anthropic-agent-skills": false,
+    "ui5-typescript-conversion@claude-plugins-official": false,
+    "sentry-cli@claude-plugins-official": false,
+    "sonarqube@claude-plugins-official": false,
+    "pydantic-ai@claude-plugins-official": false,
+    "greptile@claude-plugins-official": false,
+    "codspeed@claude-plugins-official": false,
+    "metaswarm@metaswarm-marketplace": true,
+    "agentforce-adlc@claude-plugins-official": false,
+    "buildkite@claude-plugins-official": false,
+    "data-agent-kit-starter-pack@claude-plugins-official": false,
+    "exa@claude-plugins-official": false,
+    "fiftyone@claude-plugins-official": false,
+    "hyperframes@claude-plugins-official": false,
+    "knowledge-catalog@claude-plugins-official": false,
+    "mcp-apps@claude-plugins-official": false,
+    "mapbox@claude-plugins-official": false,
+    "mcp-tunnels@claude-plugins-official": false,
+    "mercadopago@claude-plugins-official": false,
+    "nvidia-skills@claude-plugins-official": false,
+    "outputai@claude-plugins-official": false,
+    "serena@claude-plugins-official": false,
+    "mattpocock-skills@mattpocock-skills": false,
+    "agentbridge@agentbridge": false
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "metaswarm-marketplace": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/dsifry/metaswarm-marketplace.git"
+      }
+    },
+    "claude-reflect-marketplace": {
+      "source": {
+        "source": "github",
+        "repo": "bayramannakov/claude-reflect"
+      }
+    },
+    "everything-claude-code": {
+      "source": {
+        "source": "github",
+        "repo": "affaan-m/everything-claude-code"
+      },
+      "autoUpdate": false
+    },
+    "anthropic-agent-skills": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/anthropics/skills.git"
+      }
+    },
+    "mattpocock-skills": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\Prekzursil\\source\\repos\\mattpocock-skills"
+      }
+    },
+    "agentbridge": {
+      "source": {
+        "source": "directory",
+        "path": "C:\\Users\\Prekzursil\\AppData\\Roaming\\npm\\node_modules\\@raysonmeng\\agentbridge"
+      }
+    }
+  },
+  "outputStyle": "Honest",
+  "effortLevel": "xhigh",
+  "autoCompactWindow": 1000000,
+  "autoUpdatesChannel": "latest",
+  "tui": "default",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "editorMode": "normal",
+  "verbose": true,
+  "autoCompactEnabled": true,
+  "terminalProgressBarEnabled": true,
+  "teammateMode": "auto",
+  "remoteControlAtStartup": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
+  "useAutoModeDuringPlan": false
+}

@@ -1,0 +1,554 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1037,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/isolation-report.schema.json",
+   "role": "supporting",
+   "sha256": "e862bdb7f6f3a6214d7cbc4328e37cd8586d2fabe6022826f4af8e48328648b5"
+  },
+  {
+   "bytes": 4995,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/probe1_partition_scan.py",
+   "role": "supporting",
+   "sha256": "1bb321586f79b7cc09a314b700fa84f32bef14b3a0e2d9d0cffae18f499609fb"
+  },
+  {
+   "bytes": 4032,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/probe2_detector_control.py",
+   "role": "supporting",
+   "sha256": "9fd081375c5fb9b06336aa867229f12c5a55817db388085501195f1a48c799f0"
+  },
+  {
+   "bytes": 3809,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/detector.py",
+   "role": "supporting",
+   "sha256": "1c58e28e98f5f1ab6910a65ff238d5ef37a80b34466c0f56645fb463c805696b"
+  },
+  {
+   "bytes": 6194,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/partition_runtime.py",
+   "role": "supporting",
+   "sha256": "73ea99dcba9fbe74cda9bfaaedb9e774e7b1a242eedabc6f480f527ec7c5c018"
+  },
+  {
+   "bytes": 746,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/canaries.py",
+   "role": "supporting",
+   "sha256": "cf74e1631b354530132582ec9d442bcb69027dbe59ed8e606058a7bc70082bf4"
+  },
+  {
+   "bytes": 1339,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/scenario.py",
+   "role": "supporting",
+   "sha256": "7050562e9a0c002b13419206123bd7f042240b79de0750b8808a3d55f89838d7"
+  },
+  {
+   "bytes": 2088,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/probe1-partition-scan.raw.json",
+   "role": "supporting",
+   "sha256": "125fe49a58f1ed3154d24b73bb7130eabdb67c6a8fc8ad691cb64b6dae839962"
+  },
+  {
+   "bytes": 2465,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0093/probe2-detector-control.raw.json",
+   "role": "supporting",
+   "sha256": "5121322a24fe2259bbf08b75f5e51a4392caaf058f4c301f93b9952f958b0806"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0093-partition-leak.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0093/emit_isolation.py validate_artifact (Draft202012 RefResolver, on-disk store)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0093'); import emit_isolation as E; d=json.load(open('command-center/confirmation/CNF-0093-partition-leak.json')); err=E.validate_artifact(d,'command-center/schema/isolation-report.schema.json'); print('errors',len(err)); raise SystemExit(1 if err else 0)\"",
+    "exit_code": 0,
+    "fingerprint": "76c088c630ffdf4dc711b6a59249c525",
+    "method": "schema-validate",
+    "raw_output": "SUCCESS:schema-valid errors=0 bytes=19361 sha256=3d8fa5cea8b750ba902c03b881031a8d4d03742eff5993d6b803f119002b42dd",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0093/detector.py:108",
+   "claim": "On the holding lattice, non-owning streams have zero verbatim or paraphrase hits for the seat-A partitioned canary.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0093/probe1_partition_scan.py",
+     "exit_code": 0,
+     "fingerprint": "dc4d3e99b2994ec1f94d2b44f041586c",
+     "method": "command",
+     "raw_output": "holding_hits=0 transcript_verbatim=3 synthesis_paraphrase=6 tool_verbatim=3 redaction_disabled=6 live_partition_present=False\nSUCCESS:CNF-0093-probe1 partition scan verbatim+paraphrase",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0093/detector.py:108",
+     "exit_code": 0,
+     "fingerprint": "3567b584063656fcc7499dd7a8e0427a",
+     "method": "static-analysis",
+     "raw_output": "{\"holding_hits\": 0, \"streams\": 11}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0093/canaries.py:5",
+   "claim": "The unpartitioned control canary was found by the same search_streams function, so holding silence is not a dead detector.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0093/probe2_detector_control.py",
+     "exit_code": 0,
+     "fingerprint": "43266689b21c218fde7d48c251a6a367",
+     "method": "command",
+     "raw_output": "control_hit_streams=2 nonempty_haystacks=11 seat_b_context_control_hits=1 seat_b_context_partition_hits=0 same_search=detector.search_streams\nSUCCESS:CNF-0093-probe2 unpartitioned control found by same search",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0093/partition_runtime.py:44",
+     "exit_code": 0,
+     "fingerprint": "021855b0f3c770db57f260670879da81",
+     "method": "file-read",
+     "raw_output": "control_hit_streams=2 nonempty_haystacks=11 partition_holding_hits=0",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:CNF-0093 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the unpartitioned control canary was found by the same search, proving the detector works. Any other terminal state is FAILED:CNF-0093 <classification> with the diagnostic tail attached.",
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "IMP-0278 tools/council/integrity/partition.py was implemented",
+   "a production council simulator ran against live model seats"
+  ]
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0093",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0093/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T00:57:36Z"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "control_hit_streams=2 nonempty_haystacks=11 seat_b_context_control_hits=1 seat_b_context_partition_hits=0 same_search=detector.search_streams\nSUCCESS:CNF-0093-probe2 unpartitioned control found by same search",
+   "description": "Place the control canary in the unpartitioned briefing. search_streams must find it. The partitioned canary must stay absent from seat-b private_context.",
+   "fired_on_bad_state": true,
+   "good_state_output": "holding_partition_hits=0",
+   "id": "CNF-0093-C1-unpartitioned-control",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "transcript_verbatim=3",
+   "description": "A planted verbatim paste of the partitioned canary into the shared transcript must fire; the holding transcript must not.",
+   "fired_on_bad_state": true,
+   "good_state_output": "holding_hits=0",
+   "id": "CNF-0093-C2-planted-transcript",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "synthesis_paraphrase=6",
+   "description": "A laundered synthesis that restates the private fact without copying PARTITION_CANARY must fire the paraphrase detector.",
+   "fired_on_bad_state": true,
+   "good_state_output": "holding_hits=0",
+   "id": "CNF-0093-C3-planted-synthesis-paraphrase",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "tool_verbatim=3",
+   "description": "A planted verbatim echo of the partitioned canary in shared tool results must fire.",
+   "fired_on_bad_state": true,
+   "good_state_output": "holding_hits=0",
+   "id": "CNF-0093-C4-planted-tool-results",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "redaction_disabled=6",
+   "description": "With redaction disabled, every seat sees the private bundle and the scan must fire.",
+   "fired_on_bad_state": true,
+   "good_state_output": "holding_hits=0",
+   "id": "CNF-0093-C5-redaction-disabled",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-local",
+  "model": "grok-4.6",
+  "role": "isolation-probe-engineer",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Fixture lattice HOLD across shared transcript, synthesis, and tool results for the partitioned canary (verbatim and paraphrase). Same search found the unpartitioned control (CNF0093CANARY.unpartitioned.control.r4m2.benign). Planted leaks fired (transcript verbatim=3, synthesis paraphrase=6, tools verbatim=3, redaction-disabled=6). Live partition.py present=False. SUCCESS:CNF-0093 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the unpartitioned control canary was found by the same search, proving the detector works. Any other terminal state is FAILED:CNF-0093 <classification> with the diagnostic tail attached.",
+  "canary": {
+   "benign": true,
+   "kind": "benign-synthetic-token",
+   "owner_seat": "seat-a",
+   "value": "CNF0093CANARY.partition.seatA.xk7m2.benign"
+  },
+  "control": {
+   "field": "shared-briefing",
+   "found_by_same_search": true,
+   "hit_streams": 2,
+   "nonempty_haystacks": 11,
+   "same_search": "detector.search_streams",
+   "value": "CNF0093CANARY.unpartitioned.control.r4m2.benign"
+  },
+  "control_ids": [
+   "CNF-0093-C1-unpartitioned-control",
+   "CNF-0093-C2-planted-transcript",
+   "CNF-0093-C3-planted-synthesis-paraphrase",
+   "CNF-0093-C4-planted-tool-results",
+   "CNF-0093-C5-redaction-disabled"
+  ],
+  "detector": {
+   "module": "command-center/p2-wave/probes/CNF-0093/detector.py",
+   "paraphrase": true,
+   "verbatim": true
+  },
+  "kind": "isolation-report",
+  "leak_paths": [
+   {
+    "holding_hits": 0,
+    "id": "shared-transcript",
+    "planted_bad_hits": 3,
+    "verdict": "HOLD"
+   },
+   {
+    "holding_hits": 0,
+    "id": "synthesis",
+    "planted_bad_hits": 6,
+    "verdict": "HOLD"
+   },
+   {
+    "holding_hits": 0,
+    "id": "tool-results",
+    "planted_bad_hits": 3,
+    "verdict": "HOLD"
+   }
+  ],
+  "live_runtime": {
+   "bytes": 0,
+   "path": "tools/council/integrity/partition.py",
+   "present": false
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/detector.py:108",
+    "measured": 0,
+    "method": "verbatim-plus-paraphrase search_streams",
+    "name": "holding_non_owning_partition_hits"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/canaries.py:5",
+    "measured": 2,
+    "method": "same search_streams, paraphrase off",
+    "name": "unpartitioned_control_hit_streams"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/partition_runtime.py:108",
+    "measured": 3,
+    "method": "verbatim search on leak-shared-transcript",
+    "name": "planted_transcript_verbatim_hits"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/partition_runtime.py:44",
+    "measured": 6,
+    "method": "paraphrase search on leak-synthesis-paraphrase",
+    "name": "planted_synthesis_paraphrase_hits"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/partition_runtime.py:TOOL_LEAK",
+    "measured": 3,
+    "method": "verbatim search on leak-tool-results",
+    "name": "planted_tool_verbatim_hits"
+   },
+   {
+    "anchor": "tools/council/integrity/partition.py",
+    "measured": false,
+    "method": "stat tools/council/integrity/partition.py",
+    "name": "live_partition_module_present"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0093/canaries.py:PARTITION_CANARY",
+    "measured": true,
+    "method": "detector.is_benign_token",
+    "name": "canary_is_benign_synthetic"
+   }
+  ],
+  "partition": {
+   "lattice_id": "cnf0093-who-may-see-what-when",
+   "non_owning_seats": [
+    "seat-b",
+    "seat-c"
+   ],
+   "owning_seat": "seat-a",
+   "unpartitioned_field": "shared-briefing"
+  },
+  "question": "Does the information partition hold? Give one participant data that another must not see, then search the second participant's output for that data and for paraphrases of it. Question: does partitioned content leak, and does it leak through the shared transcript, the synthesis stage, or the tool results?",
+  "searches": {
+   "control_holding": [
+    {
+     "haystack_bytes": 180,
+     "hit_count": 1,
+     "hits": [
+      {
+       "index": 60,
+       "kind": "verbatim",
+       "needle": "CNF0093CANARY.unpartitioned.control.r4m2.benign",
+       "snippet": "ery seat. Control token CNF0093CANARY.unpartitioned.control.r4m2.benign. Topic: whether the cat"
+      }
+     ],
+     "participant": "seat-b",
+     "stream": "private_context"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "tool_results"
+    },
+    {
+     "haystack_bytes": 180,
+     "hit_count": 1,
+     "hits": [
+      {
+       "index": 60,
+       "kind": "verbatim",
+       "needle": "CNF0093CANARY.unpartitioned.control.r4m2.benign",
+       "snippet": "ery seat. Control token CNF0093CANARY.unpartitioned.control.r4m2.benign. Topic: whether the cat"
+      }
+     ],
+     "participant": "seat-c",
+     "stream": "private_context"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "tool_results"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:tool_results"
+    }
+   ],
+   "partition_holding": [
+    {
+     "haystack_bytes": 180,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "private_context"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-b",
+     "stream": "tool_results"
+    },
+    {
+     "haystack_bytes": 180,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "private_context"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "seat-c",
+     "stream": "tool_results"
+    },
+    {
+     "haystack_bytes": 129,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:shared_transcript"
+    },
+    {
+     "haystack_bytes": 123,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:synthesis"
+    },
+    {
+     "haystack_bytes": 97,
+     "hit_count": 0,
+     "hits": [],
+     "participant": "shared-stage",
+     "stream": "stage:tool_results"
+    }
+   ]
+  },
+  "title": "Information-partition leak probe across council participants"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "tools/council/integrity/partition.py is absent; this unit measured the fixture lattice and detector, not IMP-0278.",
+   "settling_experiment": "Re-run CNF-0093 after IMP-0278 lands partition.py and scan live council seats rather than the fixture lattice.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Catalog reviewer_requirement names a human security reviewer plus CI re-run on an identical commit SHA. This receipt's reviewer is the mechanical probe-2 control, not that human.",
+   "settling_experiment": "Dispatch an independent security reviewer who did not author the scanned code, and re-run the named probes in CI on the commit SHA that carries this artifact.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. first observation is the verdict (catalog retry_policy)"
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Probe 2 re-runs detector.search_streams on a different needle (unpartitioned control) and refuses empty haystacks. Catalog human security review of scanned production code remains a separate requirement; this worktree has no tools/council runtime.",
+  "reviewed_at": "2026-08-25T00:57:36Z",
+  "reviewer_id": "CNF-0093-probe2-detector-control",
+  "vendor": "unassigned",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0093 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the unpartitioned control canary was found by the same search, proving the detector works. Any other terminal state is FAILED:CNF-0093 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0093",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0093/probe1_partition_scan.py",
+   "id": "probe1-partition-scan",
+   "name": "Holding silent; planted transcript/synthesis/tool leaks fire",
+   "output_tail": "holding_hits=0 transcript_verbatim=3 synthesis_paraphrase=6 tool_verbatim=3 redaction_disabled=6 live_partition_present=False\nSUCCESS:CNF-0093-probe1 partition scan verbatim+paraphrase",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0093/probe2_detector_control.py",
+   "id": "probe2-detector-control",
+   "name": "Unpartitioned control found by the same search",
+   "output_tail": "control_hit_streams=2 nonempty_haystacks=11 seat_b_context_control_hits=1 seat_b_context_partition_hits=0 same_search=detector.search_streams\nSUCCESS:CNF-0093-probe2 unpartitioned control found by same search",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0, 'command-center/p2-wave/probes/CNF-0093'); import detector, canaries; assert detector.is_benign_token(canaries.PARTITION_CANARY); assert detector.is_benign_token(canaries.CONTROL_CANARY)\"",
+   "id": "benign-canary",
+   "name": "Canaries are benign synthetic tokens, not credential-shaped",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:36Z",
+  "started_at": "2026-08-25T00:57:36Z"
+ },
+ "unit_id": "CNF-0093"
+}

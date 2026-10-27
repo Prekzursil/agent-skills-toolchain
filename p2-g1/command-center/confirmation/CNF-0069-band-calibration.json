@@ -1,0 +1,552 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1111,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/calibration-report.schema.json",
+   "role": "supporting",
+   "sha256": "af8be92e66df89f65cbe84a64faac3a0fdc60e4a55f3c4826cda7469cfae4eff"
+  },
+  {
+   "bytes": 1926,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0069/bands.py",
+   "role": "supporting",
+   "sha256": "0dd45e648803286d924114ffbbca4aee9dab56f47cbdf294869b64347c3411cb"
+  },
+  {
+   "bytes": 5085,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0069/scorer.py",
+   "role": "supporting",
+   "sha256": "c2e7aedc0e6d42d2ffae5a77c61c714a6d9330a60f68f0e711fc1008a0782a05"
+  },
+  {
+   "bytes": 2287,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0069/control.py",
+   "role": "supporting",
+   "sha256": "0ecfa4d97eb8e528e2ebb449985f3c5789d1ebde97c5a5f75e256b17b51beb50"
+  },
+  {
+   "bytes": 6984,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0069/harvest.py",
+   "role": "supporting",
+   "sha256": "459ae2779989771f204194bbb00cce0b32e7a2cf5011c9da38541c161343472e"
+  },
+  {
+   "bytes": 1789,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0069/schemautil.py",
+   "role": "supporting",
+   "sha256": "cf3ef5629b8e5af3854c635b9767e7a6a2cd5397ca32014be869b22e85c70ee5"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0069-band-calibration.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0069/probe2_recompute.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe2_recompute.py",
+    "exit_code": 0,
+    "fingerprint": "af87dc65e58d68d879151386c3184016",
+    "method": "command",
+    "raw_output": "SUCCESS:CNF-0069-probe2 sample-redraw interval-arithmetic",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0069/control.py:expected_brier",
+   "claim": "The synthetic perfectly-calibrated control returns the independently computed expected Brier, validating the scorer.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+     "exit_code": 0,
+     "fingerprint": "f233d4dc227ff012be7d5276f49fa706",
+     "method": "command",
+     "raw_output": "control expected=0.15325999999999979 observed=0.15325999999999979 n=100 match=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe2_recompute.py",
+     "exit_code": 0,
+     "fingerprint": "5b976a6b0c9c6c1c903678085baaa62a",
+     "method": "test-run",
+     "raw_output": "control expected recomputed=0.15325999999999979 match=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0069/scorer.py:score",
+   "claim": "Unsettled claims are excluded from Brier (not treated as misses) and a band with fewer than 5 settled claims is insufficient-data.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+     "exit_code": 0,
+     "fingerprint": "f233d4dc227ff012be7d5276f49fa706",
+     "method": "command",
+     "raw_output": "unsettled_excluded count=1 brier_n=2",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0069/scorer.py:brier_of",
+     "exit_code": 0,
+     "fingerprint": "ef409fcaf5957aea03ca76b4a858cab0",
+     "method": "static-analysis",
+     "raw_output": "brier_of skips unsettled; MIN_N=5 leaves almost-certain insufficient-data",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "adv_rebuild_circle": false,
+  "cloud_ok": false,
+  "required_fix": null
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0069",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0069/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "bad_state_output": "negative_control brier=0.34146000000000115 differs=True",
+   "description": "All-REFUTED high-p set must not collapse to the perfect-control expected Brier. A scorer that always returns the expected value is a defect.",
+   "fired_on_bad_state": true,
+   "good_state_output": "control expected=0.15325999999999979 observed=0.15325999999999979 match=True",
+   "id": "miscalibrated-set",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "calibration-analyst",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": "NOT-CHECKED on systematic overconfidence: no Sherman-Kent band has >=5 later-settled claims, so no band is scored. Settled later-refute n=2; unsettled (excluded, not misses) n=1; contemporaneous just-executed measurements excluded n=10. The scorer is validated by the synthetic perfectly-calibrated control. The two AUD-0085 almost-certain claims that do have later REFUTED outcomes are a directional overconfidence signal but are reported as insufficient-data rather than scored.",
+  "band_to_probability": {
+   "almost-certain": {
+    "hi": 0.99,
+    "interval_source": "estate: P2-BUILD-ROUND1.md C10 and catalog 'almost-certain 90-99%'",
+    "lo": 0.9,
+    "p": 0.945
+   },
+   "likely": {
+    "hi": 0.8,
+    "interval_source": "estate: P2-BUILD-ROUND1.md C10, SYN-0035 'likely' 55-80%",
+    "lo": 0.55,
+    "p": 0.675
+   },
+   "remote": {
+    "hi": 0.1,
+    "interval_source": "reconstructed: Sherman-Kent 'almost certainly not' / remote (estate sources do not pin a numeric interval)",
+    "lo": 0.01,
+    "p": 0.055
+   },
+   "roughly-even": {
+    "hi": 0.55,
+    "interval_source": "reconstructed: Sherman-Kent 'chances about even' (estate sources do not pin a numeric interval)",
+    "lo": 0.45,
+    "p": 0.5
+   },
+   "unlikely": {
+    "hi": 0.45,
+    "interval_source": "reconstructed: Sherman-Kent 'probably not' band (estate sources do not pin a numeric interval)",
+    "lo": 0.2,
+    "p": 0.325
+   }
+  },
+  "bands": [
+   {
+    "band": "almost-certain",
+    "brier": null,
+    "hi": 0.99,
+    "hit_rate": null,
+    "hits": 0,
+    "lo": 0.9,
+    "n_settled": 2,
+    "n_unsettled": 0,
+    "p": 0.945,
+    "signed_gap": null,
+    "status": "insufficient-data",
+    "why": "n_settled=2 < 5; reported rather than scored"
+   },
+   {
+    "band": "likely",
+    "brier": null,
+    "hi": 0.8,
+    "hit_rate": null,
+    "hits": 0,
+    "lo": 0.55,
+    "n_settled": 0,
+    "n_unsettled": 1,
+    "p": 0.675,
+    "signed_gap": null,
+    "status": "no-settled"
+   },
+   {
+    "band": "roughly-even",
+    "brier": null,
+    "hi": 0.55,
+    "hit_rate": null,
+    "hits": 0,
+    "lo": 0.45,
+    "n_settled": 0,
+    "n_unsettled": 0,
+    "p": 0.5,
+    "signed_gap": null,
+    "status": "no-settled"
+   },
+   {
+    "band": "unlikely",
+    "brier": null,
+    "hi": 0.45,
+    "hit_rate": null,
+    "hits": 0,
+    "lo": 0.2,
+    "n_settled": 0,
+    "n_unsettled": 0,
+    "p": 0.325,
+    "signed_gap": null,
+    "status": "no-settled"
+   },
+   {
+    "band": "remote",
+    "brier": null,
+    "hi": 0.1,
+    "hit_rate": null,
+    "hits": 0,
+    "lo": 0.01,
+    "n_settled": 0,
+    "n_unsettled": 0,
+    "p": 0.055,
+    "signed_gap": null,
+    "status": "no-settled"
+   }
+  ],
+  "brier": {
+   "formula": "Brier = mean((p_i - y_i)^2) over settled claims only; y=1 CONFIRMED, y=0 REFUTED",
+   "n": 2,
+   "note": "overall Brier includes every settled claim; per-band scoring still requires n>=5",
+   "score": 0.893025
+  },
+  "claims": [
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the tier ladder and the 36/1 movement",
+    "id": "CNF69-044f907255f6c784",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "0 unresolvable contracts across all 2,007 units",
+    "id": "CNF69-40989cdc0bc3ac99",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0085/refute-adjudication.raw.txt",
+    "band": "almost-certain",
+    "claim": "A correctly encoded multiplication-sign/yen-sign pair is a reversible UTF-8 collision and turns the production detector red; extension-only parser classification also overclaims strict consumption.",
+    "id": "CNF69-4d854ca9970f06b4",
+    "outcome": "REFUTED",
+    "p": 0.945,
+    "settlement_kind": "later-refute",
+    "source": "command-center/p2-wave/probes/AUD-0085/_extract_out.json"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the 27/14/713/105 missing-directory census",
+    "id": "CNF69-4f8e7fcbc0d043ee",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the IMP-0433 12+1 fixture matrix and the SUCCESS-vs-BLOCKED reviewer measurement",
+    "id": "CNF69-5d38900ffbd258a1",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the inoperable coverage gate (two independent signals: empty `scripts` block AND `exit=1`)",
+    "id": "CNF69-60ef65aedfac369d",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the partition numbers (tool's own self-asserting sum, quoted verbatim, run at both ends)",
+    "id": "CNF69-89ae871323b6f4d3",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the 23/93/4/19 dependency census",
+    "id": "CNF69-8a259203d8bd926e",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "likely",
+    "claim": "that the 17 \"runtime-only internal imports\" in AUD-0030 are genuinely dynamic imports rather than transitive pulls my prefix matcher attributed loosely. Settling experiment is named in that artifact's `residual_unknowns`.",
+    "id": "CNF69-8c7bfc82f2269e0d",
+    "outcome": "UNSETTLED",
+    "p": 0.675,
+    "settlement_kind": "unsettled",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the 41 half-enforced two-schema declarations",
+    "id": "CNF69-9c1b12876046c86d",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0085/probe2-mojibake-detector.raw.txt",
+    "band": "almost-certain",
+    "claim": "Probe 2 freshly passed its named both-state control and emitted 13 reversible-sequence candidates, but the refutation control proves reversibility alone can flag correct Unicode; only 2 of 10 claimed strict-parser anomaly files have path-specific consumer evidence.",
+    "id": "CNF69-aa7ebaa80162d9aa",
+    "outcome": "REFUTED",
+    "p": 0.945,
+    "settlement_kind": "later-refute",
+    "source": "command-center/p2-wave/probes/AUD-0085/_extract_out.json"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the single `crcp` import cycle",
+    "id": "CNF69-b7fc477dee700d14",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   },
+   {
+    "anchor": "P2-BUILD-ROUND1.md:C10",
+    "band": "almost-certain",
+    "claim": "the AUD-0041 7/14/143 CI surface and the 4/4 API reconciliation",
+    "id": "CNF69-f7a10a656aea6703",
+    "outcome": "UNSETTLED",
+    "p": 0.945,
+    "settlement_kind": "contemporaneous-measurement",
+    "source": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+   }
+  ],
+  "contemporaneous_excluded": {
+   "count": 10,
+   "why": "Band attached to a measurement just executed in the same document is not a forecast. Scoring it as calibrated would tautologically hit."
+  },
+  "control": {
+   "expected_brier": 0.15325999999999979,
+   "hits_rule": "hits = round(n_per_band * p) per band",
+   "kind": "synthetic-perfectly-calibrated",
+   "match": true,
+   "n": 100,
+   "n_per_band": 20,
+   "negative_control_brier": 0.34146000000000115,
+   "negative_control_differs": true,
+   "observed_brier": 0.15325999999999979,
+   "scorer_validated": true
+  },
+  "control_ids": [
+   "synthetic-perfectly-calibrated",
+   "miscalibrated-set"
+  ],
+  "inputs_present": {
+   "AUD-0085 extracts": true,
+   "CLAIM-REGISTRY.json": true,
+   "CNF-0008-execution-attestation.json": false,
+   "P2-BUILD-ROUND1.md": true
+  },
+  "kind": "calibration-report",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+    "id": "probe1",
+    "role": "control-exclusion"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe2_recompute.py",
+    "id": "probe2",
+    "role": "sample-redraw-arithmetic"
+   }
+  ],
+  "notes": "G-1 for CNF-0069. Live corpus is harvested from P2-BUILD reports (authoring-time bands) and AUD-0085 refute extracts (later settlements). Contemporaneous just-executed measurements are excluded. Did not run global unit_manifest.py --write. adv_rebuild_circle=false.",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0069/control.py:expected_brier",
+    "measured": 0.15325999999999979,
+    "method": "control.expected_brier independent of scorer.brier_of",
+    "name": "control_expected_brier"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0069/scorer.py:brier_of",
+    "measured": 0.15325999999999979,
+    "method": "scorer.brier_of on synthetic perfectly-calibrated set",
+    "name": "control_observed_brier"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0069/scorer.py:score",
+    "measured": 2,
+    "method": "scorer.score later-independent settlements only",
+    "name": "live_settled_n"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0069/scorer.py:score",
+    "measured": 1,
+    "method": "unsettled counted separately, not scored as misses",
+    "name": "unsettled_excluded_n"
+   }
+  ],
+  "question": "Were the earlier confidence bands calibrated? For every claim whose outcome is now settled, compare the band assigned at authoring time with the settled outcome and compute a hit rate per band plus a Brier score. Question: is the corpus systematically overconfident, and in which band is the miscalibration worst?",
+  "sampling": {
+   "frame": [
+    "CNF69-044f907255f6c784",
+    "CNF69-40989cdc0bc3ac99",
+    "CNF69-4d854ca9970f06b4",
+    "CNF69-4f8e7fcbc0d043ee",
+    "CNF69-5d38900ffbd258a1",
+    "CNF69-60ef65aedfac369d",
+    "CNF69-89ae871323b6f4d3",
+    "CNF69-8a259203d8bd926e",
+    "CNF69-8c7bfc82f2269e0d",
+    "CNF69-9c1b12876046c86d",
+    "CNF69-aa7ebaa80162d9aa",
+    "CNF69-b7fc477dee700d14",
+    "CNF69-f7a10a656aea6703"
+   ],
+   "rule": "take-all (live banded claim count below 200; seed recorded for redraw identity)",
+   "sampled_ids": [
+    "CNF69-044f907255f6c784",
+    "CNF69-40989cdc0bc3ac99",
+    "CNF69-4d854ca9970f06b4",
+    "CNF69-4f8e7fcbc0d043ee",
+    "CNF69-5d38900ffbd258a1",
+    "CNF69-60ef65aedfac369d",
+    "CNF69-89ae871323b6f4d3",
+    "CNF69-8a259203d8bd926e",
+    "CNF69-8c7bfc82f2269e0d",
+    "CNF69-9c1b12876046c86d",
+    "CNF69-aa7ebaa80162d9aa",
+    "CNF69-b7fc477dee700d14",
+    "CNF69-f7a10a656aea6703"
+   ],
+   "seed": 20260824
+  },
+  "systematic_overconfidence": null,
+  "title": "Post-hoc calibration scoring of the confidence bands attached to earlier claims",
+  "unsettled": {
+   "count": 1,
+   "excluded_from_score": true,
+   "ids": [
+    "CNF69-8c7bfc82f2269e0d"
+   ],
+   "not_treated_as_misses": true
+  },
+  "worst_miscalibrated_band": null
+ },
+ "residual_unknowns": [
+  {
+   "claim": "CLAIM-REGISTRY.json exists on this worktree but is not the harvest source; scored later-settlements are AUD-0085 refute extracts plus P2-BUILD banded claims. Expanding harvest to the full registry would change the sampling frame.",
+   "settling_experiment": "Re-harvest CLAIM-REGISTRY.json authoring-time bands against later independent settlements and recompute per-band hit rates.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-draws the sampling frame with the recorded seed and recomputes Brier from the published per-claim table without calling scorer.brier_of.",
+  "reviewer_id": "CNF-0069-probe2-sample-redraw-and-arithmetic",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0069 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the synthetic perfectly-calibrated control returned the expected score, validating the scorer. Any other terminal state is FAILED:CNF-0069 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0069]",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+   "id": "unsettled-excluded-not-misses",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+   "id": "band-n-lt-5-insufficient-data",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe1_control_exclusion.py",
+   "id": "synthetic-perfect-control",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0069/probe2_recompute.py",
+   "id": "sample-redraw-interval-arithmetic",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T00:58:33Z",
+  "started_at": "2026-08-25T00:58:33Z"
+ },
+ "unit_id": "CNF-0069"
+}

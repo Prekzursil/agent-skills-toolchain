@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/quality-score.schema.json",
+  "title": "Quality / conformance score",
+  "description": "Quality and conformance score (spec 10855). The score is a WEIGHTED SUM OF NAMED, INDIVIDUALLY CHECKABLE COMPONENTS, never a bare number: `mkt.lint` recomputes the total from the components and refuses a mismatch, so a publisher cannot assert 100 without asserting the eleven facts that add up to it. All arithmetic is integer (see common.schema.json score_0_100) because the score is inside signed bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "version", "total", "components", "scored_at", "scorer"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "name": { "$ref": "common.schema.json#/$defs/package_name" },
+    "version": { "$ref": "common.schema.json#/$defs/semver" },
+    "total": { "$ref": "common.schema.json#/$defs/score_0_100" },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "weight", "earned", "evidence"],
+        "properties": {
+          "id": {
+            "enum": [
+              "schema-valid", "payload-digest-verified", "sbom-complete", "signature-valid",
+              "license-declared", "license-aggregate-consistent", "permissions-minimal",
+              "provenance-complete", "reproducible-build", "tests-declared", "docs-present"
+            ]
+          },
+          "weight": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "earned": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "evidence": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 400,
+            "description": "A file:line, a command, or a digest. An earned component with no evidence anchor is an assertion, and this field is the reason a score cannot be pure self-report."
+          }
+        }
+      }
+    },
+    "scored_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "scorer": { "type": "string", "minLength": 3, "maxLength": 120 }
+  }
+}

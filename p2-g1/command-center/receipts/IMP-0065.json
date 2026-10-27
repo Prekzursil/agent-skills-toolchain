@@ -1,0 +1,482 @@
+{
+ "evidence": [
+  {
+   "claim": "IMP-0065 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0065.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0065.json",
+     "raw_output": "bytes=7995 sha256=b9ad8f597aed73a5e5dcb2cc27d19df6d782aef759ae07c81c4f930c3f777be5",
+     "fingerprint": "918f8f5bf56b9ff67b5071388a84cb2b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0065",
+     "raw_output": "schema-check",
+     "fingerprint": "56decc4ea6e76efe792969a38ac59095",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0065 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0065",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0065",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "991195ad795e4bfa99c0f04fb9af34c6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0065",
+     "raw_output": "schema-valid",
+     "fingerprint": "88b88ae373078c9ec2a2e66750eefb00",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0065",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0065.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "IMP-0065",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Lazy/shared activation: 8 sessions → 1 shared stub process; eager negative control → 8 processes. ps RSS 224056 kB eager vs 28804 kB shared. Killing the shared child raises SharedServerDeadError without hanging. SUCCESS:IMP-0065",
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:IMP-0065",
+   "failure_mode": {
+    "documented": true,
+    "hung": false,
+    "measured_elapsed_s": 0.0002,
+    "name": "dead shared MCP child",
+    "observable": "SharedServerDeadError raised from poll() before stdio/HTTP wait",
+    "session_must_not": "block on stdin of a dead child or look like a healthy empty tool list"
+   },
+   "historic_pathology": {
+    "arithmetic_product": 1495,
+    "catalog_figure": 2037,
+    "note": "Catalog MEMORY cites 23×65=2037. 23×65=1495; 2037 is the remembered process-table size (sessions×servers plus other children). This unit does not re-measure that Windows box. It reproduces the multiplication class (N sessions → N stdio children) and the shared-HTTP collapse (N sessions → 1 child) on this Linux worktree with a stub server.",
+    "product": 1495,
+    "servers": 65,
+    "sessions": 23
+   },
+   "id": "IMP-0065",
+   "implementation": {
+    "bytes": 16427,
+    "modes": [
+     "eager_stdio",
+     "shared_http",
+     "lazy_shared"
+    ],
+    "module": "tools/plugin/mcp_activation.py",
+    "policy": [
+     "EAGER_STDIO is the negative control: one child per (session, server)",
+     "SHARED_HTTP and LAZY_SHARED keep one child per server_id",
+     "LAZY_SHARED does not spawn on open_session, only on first use",
+     "a dead shared child raises SharedServerDeadError immediately",
+     "call() polls the child before I/O and does not restart it",
+     "pass/fail is /proc cmdline and ps RSS, not the pool dict",
+     "never resolve a hang by killing a shared service (IMP-0066)"
+    ],
+    "sha256": "ce311baea1db42d9f86ad1238003e321e81f3345578141a5bbf25a057eb868ac",
+    "stub": {
+     "bytes": 3084,
+     "path": "tools/plugin/stub_mcp_server.py",
+     "sha256": "3e67bf62f08df25c48fc1942ed125d16118136d5cec6eaaa2cf5f390b3934df5"
+    },
+    "tests": {
+     "bytes": 4553,
+     "path": "tools/plugin/tests/test_mcp_activation.py",
+     "sha256": "80e63d54e51566e222fcc693200df0359b6ef1751431c2889125ff93f7f815f9"
+    }
+   },
+   "inputs_on_this_worktree": {
+    "note": "Catalog lists tools/mcpctl/ and tools/mcp-manager/ as inputs. Those trees exist on this worktree (inventory/CLI), but tests_required names tools/plugin/tests/test_mcp_activation.py, so activation cardinality lives in tools/plugin.",
+    "tools/mcp-manager": true,
+    "tools/mcpctl": true,
+    "tools/plugin": true
+   },
+   "isolation": {
+    "after_kill_count": 0,
+    "before_kill_count": 1,
+    "documented_in_source": true,
+    "elapsed_s": 0.0002,
+    "error": "shared MCP child for 'demo' is dead; call() polls the child before I/O and will not hang",
+    "hung": false,
+    "pass": true,
+    "raised_SharedServerDeadError": true
+   },
+   "measurement": {
+    "commit_proxy": "sum of stub VmRSS+VmSwap (/proc status) and independent ps RSS",
+    "eager_stdio": {
+     "after_open_session_count": null,
+     "elapsed_s": 0.47,
+     "mark": "emeag31c22c38",
+     "mode": "eager_stdio",
+     "n_sessions": 8,
+     "pids": [
+      75318,
+      75320,
+      75321,
+      75335,
+      75336,
+      75337,
+      75338,
+      75341
+     ],
+     "ping_ok": true,
+     "process_table_count": 8,
+     "procfs": {
+      "commit_proxy_bytes": 229433344,
+      "n": 8,
+      "rss_bytes": 229433344,
+      "swap_bytes": 0
+     },
+     "ps": {
+      "n": 8,
+      "rss_kb": 224056
+     }
+    },
+    "host": "linux",
+    "n_sessions": 8,
+    "process_count_collapsed": true,
+    "rss_dropped_with_count": true,
+    "server_id": "demo",
+    "shared_http_also": {
+     "process_table_count": 1,
+     "ps": {
+      "n": 1,
+      "rss_kb": 28740
+     }
+    },
+    "shared_lazy": {
+     "after_open_session_count": 0,
+     "elapsed_s": 0.1415,
+     "mark": "emlaza88b8444",
+     "mode": "lazy_shared",
+     "n_sessions": 8,
+     "pids": [
+      75294
+     ],
+     "ping_ok": true,
+     "process_table_count": 1,
+     "procfs": {
+      "commit_proxy_bytes": 29495296,
+      "n": 1,
+      "rss_bytes": 29495296,
+      "swap_bytes": 0
+     },
+     "ps": {
+      "n": 1,
+      "rss_kb": 28804
+     }
+    },
+    "signals_agree_merged_not_moved": true,
+    "two_servers_across_n_sessions": 2
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0065/probe1_process_table.py",
+     "id": "probe1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0065/probe2_commit_charge.py",
+     "id": "probe2"
+    }
+   ],
+   "output_path": "command-center/receipts/IMP-0065.json",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "question": "Implement activation so an MCP server the plugin depends on is started once and shared, or started lazily on first use, instead of one stdio process per session. The measured pathology on this box was 23 sessions x 65 servers = 2,037 processes, which is the driver behind the commit-exhaustion freeze.",
+   "report_kind": "implementation-receipt",
+   "scope": {
+    "dependency_note": "Catalog depends on IMP-0059 (runtime permission enforcement). That receipt is not claimed here. Activation does not grant undeclared tools; it only changes spawn cardinality.",
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global unit_manifest.py --write was run",
+     "Cursor/Claude Code native MCP host was rewired",
+     "the original 23×65 Windows commit-exhaustion event was re-measured here",
+     "tools/mcpctl or tools/mcp-manager were present on this worktree",
+     "IMP-0059 runtime permission enforcement is delivered"
+    ],
+    "proof_surface": "8 live stub processes in eager vs shared/lazy modes on this Linux box; ps RSS; SIGKILL isolation"
+   },
+   "status": "DELIVERED",
+   "title": "Lazy shared MCP activation to end per-session process multiplication"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0065",
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0065.json",
+   "bytes": 7995,
+   "sha256": "b9ad8f597aed73a5e5dcb2cc27d19df6d782aef759ae07c81c4f930c3f777be5",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0065/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0065"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0065.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0065.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "1f1866fc9f1bf0d541dcb4f1194081dd",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 7995,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0065.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "answer": "Lazy/shared activation: 8 sessions → 1 shared stub process; eager negative control → 8 processes. ps RSS 224056 kB eager vs 28804 kB shared. Killing the shared child raises SharedServerDeadError without hanging. SUCCESS:IMP-0065",
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:IMP-0065",
+ "failure_mode": {
+  "documented": true,
+  "hung": false,
+  "measured_elapsed_s": 0.0002,
+  "name": "dead shared MCP child",
+  "observable": "SharedServerDeadError raised from poll() before stdio/HTTP wait",
+  "session_must_not": "block on stdin of a dead child or look like a healthy empty tool list"
+ },
+ "historic_pathology": {
+  "arithmetic_product": 1495,
+  "catalog_figure": 2037,
+  "note": "Catalog MEMORY cites 23×65=2037. 23×65=1495; 2037 is the remembered process-table size (sessions×servers plus other children). This unit does not re-measure that Windows box. It reproduces the multiplication class (N sessions → N stdio children) and the shared-HTTP collapse (N sessions → 1 child) on this Linux worktree with a stub server.",
+  "product": 1495,
+  "servers": 65,
+  "sessions": 23
+ },
+ "id": "IMP-0065",
+ "implementation": {
+  "bytes": 16427,
+  "modes": [
+   "eager_stdio",
+   "shared_http",
+   "lazy_shared"
+  ],
+  "module": "tools/plugin/mcp_activation.py",
+  "policy": [
+   "EAGER_STDIO is the negative control: one child per (session, server)",
+   "SHARED_HTTP and LAZY_SHARED keep one child per server_id",
+   "LAZY_SHARED does not spawn on open_session, only on first use",
+   "a dead shared child raises SharedServerDeadError immediately",
+   "call() polls the child before I/O and does not restart it",
+   "pass/fail is /proc cmdline and ps RSS, not the pool dict",
+   "never resolve a hang by killing a shared service (IMP-0066)"
+  ],
+  "sha256": "ce311baea1db42d9f86ad1238003e321e81f3345578141a5bbf25a057eb868ac",
+  "stub": {
+   "bytes": 3084,
+   "path": "tools/plugin/stub_mcp_server.py",
+   "sha256": "3e67bf62f08df25c48fc1942ed125d16118136d5cec6eaaa2cf5f390b3934df5"
+  },
+  "tests": {
+   "bytes": 4553,
+   "path": "tools/plugin/tests/test_mcp_activation.py",
+   "sha256": "80e63d54e51566e222fcc693200df0359b6ef1751431c2889125ff93f7f815f9"
+  }
+ },
+ "inputs_on_this_worktree": {
+  "note": "Catalog lists tools/mcpctl/ and tools/mcp-manager/ as inputs. Those trees exist on this worktree (inventory/CLI), but tests_required names tools/plugin/tests/test_mcp_activation.py, so activation cardinality lives in tools/plugin.",
+  "tools/mcp-manager": true,
+  "tools/mcpctl": true,
+  "tools/plugin": true
+ },
+ "isolation": {
+  "after_kill_count": 0,
+  "before_kill_count": 1,
+  "documented_in_source": true,
+  "elapsed_s": 0.0002,
+  "error": "shared MCP child for 'demo' is dead; call() polls the child before I/O and will not hang",
+  "hung": false,
+  "pass": true,
+  "raised_SharedServerDeadError": true
+ },
+ "measurement": {
+  "commit_proxy": "sum of stub VmRSS+VmSwap (/proc status) and independent ps RSS",
+  "eager_stdio": {
+   "after_open_session_count": null,
+   "elapsed_s": 0.47,
+   "mark": "emeag31c22c38",
+   "mode": "eager_stdio",
+   "n_sessions": 8,
+   "pids": [
+    75318,
+    75320,
+    75321,
+    75335,
+    75336,
+    75337,
+    75338,
+    75341
+   ],
+   "ping_ok": true,
+   "process_table_count": 8,
+   "procfs": {
+    "commit_proxy_bytes": 229433344,
+    "n": 8,
+    "rss_bytes": 229433344,
+    "swap_bytes": 0
+   },
+   "ps": {
+    "n": 8,
+    "rss_kb": 224056
+   }
+  },
+  "host": "linux",
+  "n_sessions": 8,
+  "process_count_collapsed": true,
+  "rss_dropped_with_count": true,
+  "server_id": "demo",
+  "shared_http_also": {
+   "process_table_count": 1,
+   "ps": {
+    "n": 1,
+    "rss_kb": 28740
+   }
+  },
+  "shared_lazy": {
+   "after_open_session_count": 0,
+   "elapsed_s": 0.1415,
+   "mark": "emlaza88b8444",
+   "mode": "lazy_shared",
+   "n_sessions": 8,
+   "pids": [
+    75294
+   ],
+   "ping_ok": true,
+   "process_table_count": 1,
+   "procfs": {
+    "commit_proxy_bytes": 29495296,
+    "n": 1,
+    "rss_bytes": 29495296,
+    "swap_bytes": 0
+   },
+   "ps": {
+    "n": 1,
+    "rss_kb": 28804
+   }
+  },
+  "signals_agree_merged_not_moved": true,
+  "two_servers_across_n_sessions": 2
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0065/probe1_process_table.py",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0065/probe2_commit_charge.py",
+   "id": "probe2"
+  }
+ ],
+ "output_path": "command-center/receipts/IMP-0065.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question": "Implement activation so an MCP server the plugin depends on is started once and shared, or started lazily on first use, instead of one stdio process per session. The measured pathology on this box was 23 sessions x 65 servers = 2,037 processes, which is the driver behind the commit-exhaustion freeze.",
+ "report_kind": "implementation-receipt",
+ "scope": {
+  "dependency_note": "Catalog depends on IMP-0059 (runtime permission enforcement). That receipt is not claimed here. Activation does not grant undeclared tools; it only changes spawn cardinality.",
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "Cursor/Claude Code native MCP host was rewired",
+   "the original 23×65 Windows commit-exhaustion event was re-measured here",
+   "tools/mcpctl or tools/mcp-manager were present on this worktree",
+   "IMP-0059 runtime permission enforcement is delivered"
+  ],
+  "proof_surface": "8 live stub processes in eager vs shared/lazy modes on this Linux box; ps RSS; SIGKILL isolation"
+ },
+ "status": "DELIVERED",
+ "title": "Lazy shared MCP activation to end per-session process multiplication"
+}

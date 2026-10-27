@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "platform/coordination/CAPABILITY-REGISTRY.json@v1",
+  "title": "Cross-vendor capability registry for Phase 9 negotiation",
+  "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10979-10983",
+  "description": "The vocabulary capability negotiation is conducted in. Kept as DATA (not branches) for the same reason platform/registry/VENDOR-REGISTRY.json is: the table can be audited and extended without editing the resolver. Three-valued by construction - an adapter either OFFERS a capability (measured true), REFUSES it (measured false), or has not measured it. An UNMEASURED capability is never read as offered; that inversion is precisely how DEFECT D1 turned an unrecognized vendor string into a passing cross-vendor gate.",
+  "criticality_semantics": {
+    "REQUIRED": "A work unit that names this capability cannot run without it. REFUSED or UNMEASURED -> negotiation verdict REFUSED, the dispatch does not start, and the reason is recorded. This is the spec's 'degrade loudly' (line 10983): loud means a typed refusal carrying the missing capability id, not a silent substitution.",
+    "DEGRADABLE": "The unit can still run, but the run is materially different and the difference must be recorded on the receipt. REFUSED or UNMEASURED -> negotiation verdict DEGRADED with this capability listed under degraded[]. A DEGRADED negotiation is never reported as AGREED."
+  },
+  "provenance_note": "Every codex-cli entry below is LEDGER-RECORDED by a prior session (the 2026-07-18 cross-vendor rail smoke-test, transcribed into ~/.claude/agents/codex.md) and was NOT re-measured by the Phase 9 build unit. verified_by_this_unit records that distinction so a reader cannot mistake an inherited measurement for a fresh one. The experiment that would settle any of them is re-running the named probe against the current codex-cli build.",
+  "capabilities": [
+    {
+      "id": "fs.read",
+      "title": "Read files in the workspace",
+      "criticality": "REQUIRED",
+      "provenance": "universal across the adapters on this estate",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "fs.write",
+      "title": "Write files in the workspace",
+      "criticality": "REQUIRED",
+      "provenance": "universal across the adapters on this estate",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "proc.exec",
+      "title": "Execute a shell command and observe its exit status",
+      "criticality": "REQUIRED",
+      "provenance": "universal across the adapters on this estate",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "sandbox.enforced",
+      "title": "OS-level sandbox actually confines writes",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "Without it, containment is verified POST-HOC by the caller instead of enforced by the runtime, so the WORKDIR must be scoped tightly and the written set checked afterwards. Proceeding is allowed; pretending the sandbox held is not.",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:44-50 - '--sandbox workspace-write is INERT on codex-cli 0.144.5 / Windows': -s, -c sandbox_mode and --full-auto all still print 'sandbox: read-only' and the write is auto-rejected 'blocked by policy'.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "stdin.prompt",
+      "title": "Accept the task prompt on stdin",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "Fall back to a runner script that owns the redirect. NOT usable when the dispatch transport detaches the child - see leak L-01.",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:33-38 (codex exec accepts '-' with the prompt on stdin) and :52-55 (longrun backgrounds its child, so the redirect never reaches it).",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "prompt.file_argument",
+      "title": "Accept the task prompt as a FILE path rather than inline text",
+      "criticality": "REQUIRED",
+      "provenance": "rules/common/cross-vendor-dispatch.md:34-40 - Windows CreateProcess caps the command line at 32,767 chars; an inline prompt produced payload_len=34472 -> os error 206 and killed both Codex runs that attempted real work. The Bash transport also truncates large heredocs (4,500 B OK / 13,650 B FAIL).",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "artifact.output_file",
+      "title": "Write the final result to a caller-named file (a real result channel)",
+      "criticality": "REQUIRED",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:68-73 - the -o file is the ONLY result channel; the '[codex] ...' progress stream must never be parsed as a result.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "schema.typed_output",
+      "title": "Constrain the final result to a caller-supplied JSON schema",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "Without it the dispatcher must validate the artifact itself; the AND-gate's third limb becomes caller-side. Never skip the limb.",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:60-61 - --output-schema is VOIDED when the user MCP inventory is active (codex issue #15451), so --ignore-user-config is mandatory for the typed path.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "session.resume",
+      "title": "Resume the previous thread to repair an invalid result",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "Without resume, a schema-invalid result costs a full re-dispatch instead of a delta prompt.",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:75-76 - 'codex exec resume --last' with a delta prompt. UNVERIFIED there: its interaction with --ephemeral is untested; the settling experiment is one resume against an --ephemeral thread.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "mcp.tools",
+      "title": "The vendor's MCP tool inventory is available during the run",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "MUTUALLY EXCLUSIVE with schema.typed_output on codex-cli, and the inventory is what blows the Windows arg limit. A unit needing MCP tools cannot also demand a typed output schema on that adapter - negotiation must report the conflict, not pick one silently.",
+      "provenance": "C:/Users/Prekzursil/.claude/agents/codex.md:60-61 and rules/common/cross-vendor-dispatch.md:42-47.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "review.independent_vendor",
+      "title": "Can serve as a genuinely cross-vendor independent reviewer",
+      "criticality": "REQUIRED",
+      "provenance": "platform/registry/VENDOR-REGISTRY.json + platform/lib/vendor_identity.py - resolved by canonical identity, not by string inequality. Only the 12 identities with establishes_distinctness=true qualify; a hosting plane or placeholder resolves to NOT-COMPUTABLE.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "interactive.owner_approval",
+      "title": "Can pause and ask the human owner for approval mid-run",
+      "criticality": "REQUIRED",
+      "provenance": "work-unit.schema.json owner_approval_required. A non-interactive runtime invoked with --dangerously-bypass-approvals-and-sandbox structurally cannot pause, so a unit with owner_approval_required=true must not be routed to it.",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "transport.detached_child",
+      "title": "The dispatch transport detaches the child process from the caller",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "Enables the >60s longrun path but forfeits stdin inheritance and requires an explicit completion barrier. See leaks L-01 and L-02.",
+      "provenance": "C:/Users/Prekzursil/.claude/AGENTS.md:59-64 (section 4a mandates longrun + run_in_background above 60s) vs rules/common/cross-vendor-dispatch.md:9 (bans run_in_background for a barrier-awaited dispatch).",
+      "verified_by_this_unit": false
+    },
+    {
+      "id": "subagent.spawn",
+      "title": "Can spawn further subagents of its own",
+      "criticality": "DEGRADABLE",
+      "degradation_note": "A unit whose plan fans out internally must be re-decomposed by the caller when this is absent.",
+      "provenance": "rules/common/cross-vendor-dispatch.md:24-26 - each Codex invocation is single-threaded and fresh-context; there is no cross-thread memory.",
+      "verified_by_this_unit": false
+    }
+  ]
+}

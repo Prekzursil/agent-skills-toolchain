@@ -1,0 +1,612 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0060",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0060 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the planted skip marker was detected and both executed-id sets are attached. Any other terminal state is FAILED:CNF-0060 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0060",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/CNF-0060/fixtures/suite/test_skip_surface.py",
+      "bytes": 1247,
+      "sha256": "813568379313021b9f1ed64edea7fbfd57ff50e2b6c14dad1e45fe64dbb66045",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0060/fixtures/suite/collection.json",
+      "bytes": 116,
+      "sha256": "7cd41e4c1c8e85edcfc9cda32a792dcc10a002427e6972da2f27b29a7ffaa71e",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0060/runner.py",
+      "bytes": 9358,
+      "sha256": "241746687311d1a9f6602d8e5493a7d5b60945e38569e003680b58be907176b8",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0060/skip_diff.py",
+      "bytes": 7870,
+      "sha256": "752f91222d9512e2a0bc3f1770603d98128a3f7fdda784a8de8fae546b2b9204",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0060/pytest_shim.py",
+      "bytes": 1248,
+      "sha256": "a8dc724f9fef35dd7a75e83085d4e35d19bb44821cc9ae5dbb3daaec149b05db",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Planting an unconditional skip on a failing test is detected as a newly skipped id that stopped executing, with the planted reason recorded.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0060/skip_diff.py:104",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/skip_diff.py",
+          "raw_output": "{\"executed_ids_after\": [\"test_skip_surface.py::test_another_pass\", \"test_skip_surface.py::test_stable_pass\", \"test_skip_surface.py::test_windows_named_pipe\", \"test_skip_surface.py::test_xfail_trailing_comma\"], \"executed_ids_before\": [\"test_skip_surface.py::test_another_pass\", \"test_skip_surface.py::test_planted_target\", \"test_skip_surface.py::test_stable_pass\", \"test_skip_surface.py::test_windows_named_pipe\", \"test_skip_surface.py::test_xfail_trailing_comma\"], \"fired\": true, \"identity_newly_skipped\": [], \"newly_skipped\": [\"test_skip_surface.py::test_planted_target\"], \"planted_id\": \"test_skip_surface.py::test_planted_target\", \"platform_conditional\": [\"test_skip_surface.py::test_posix_fork\"], \"stopped_executing\": [\"test_skip_surface.py::test_planted_target\"], \"unconditional\": [\"test_skip_surface.py::test_planted_target\", \"test_skip_surface.py::test_unconditional_skip\"]}",
+          "fingerprint": "b2ca432bc19ac376e3a0755aea49b75b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/CNF-0060/fixtures/suite/test_skip_surface.py",
+          "raw_output": "test_planted_target currently FAILS; plant_skip adds @pytest.mark.skip(reason=\"CNF-0060-planted\")",
+          "fingerprint": "13f424c54f65ad9d14d057d5f81a7e75",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Both executed-id sets are attached; passed count is unchanged while executed count drops; platform-conditional skips are disjoint from unconditional skips.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0060/runner.py:104",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/skip_diff.py # kinds + executed-vs-passed",
+          "raw_output": "executed 5->4 passed 3==3 uncond=['test_skip_surface.py::test_planted_target', 'test_skip_surface.py::test_unconditional_skip'] plat=['test_skip_surface.py::test_posix_fork']",
+          "fingerprint": "b775aac2a0491ec67817d41dd07f2fba",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "python3 -B command-center/p2-wave/probes/CNF-0060/emit.py validate_or_die(regression-delta)",
+          "raw_output": "schema errors: 0; garbage rejected",
+          "fingerprint": "d2d914ca237cbbe6c6ab1d37c9f0012b",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "planted-skip-control",
+      "name": "control: add a skip marker to one passing-or-failing test and confirm the diff detects it as newly skipped and no longer executed",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/skip_diff.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "planted test_skip_surface.py::test_planted_target newly_skipped=['test_skip_surface.py::test_planted_target'] stopped_executing=['test_skip_surface.py::test_planted_target'] executed 5\u21924"
+    },
+    {
+      "id": "platform-vs-unconditional",
+      "name": "a platform-conditional skip must be distinguished from an unconditional one",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/skip_diff.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "unconditional=['test_skip_surface.py::test_planted_target', 'test_skip_surface.py::test_unconditional_skip'] platform-conditional=['test_skip_surface.py::test_posix_fork'] kinds_distinct=True"
+    },
+    {
+      "id": "executed-not-passed",
+      "name": "the executed count must be compared, not the passed count, since skipped tests do not fail",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/skip_diff.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "passed 3==3 unchanged=True; executed 5\u21924 dropped=True"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "planted-skip-both-states",
+      "kind": "known-broken-fixture",
+      "description": "Plant an unconditional skip on a failing test. The detector must list it as newly skipped and no longer executed (bad state) and must not invent a skip when comparing the unplanted suite to itself (good state).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "newly_skipped=['test_skip_surface.py::test_planted_target'] stopped=['test_skip_surface.py::test_planted_target'] executed 5->4",
+      "good_state_output": "identity newly_skipped=[] executed_dropped=False"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0060-probe2-reviewer-control",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "unassigned",
+    "notes": "Named probe2 re-runs the planted-skip control on a separate temp copy and checks skip-kind buckets plus executed-vs-passed counts. It does not treat probe1's printed verdict as evidence."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0060/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0060"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft202012Validator over command-center/schema/regression-delta.schema.json (disk RefResolver, no network)",
+      "artifact_path": "command-center/confirmation/CNF-0060-skip-count-diff.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0060/emit.py",
+        "raw_output": "schema errors: 0; garbage documents rejected",
+        "fingerprint": "d74a351d05309373fada68932b455aa1",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:13Z",
+    "ended_at": "2026-08-25T00:59:13Z",
+    "duration_seconds": 0.003188
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Commit-to-commit skip/xfail/deselect id-set delta on the live repo suite was not measured on this worktree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "On a git checkout with pytest, collect skip/xfail/deselect ids at two commits (or against BASELINE per-test reports if those exist) and attach both executed-id sets."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "test-integrity-auditor",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "regression-delta",
+    "observations": [
+      {
+        "name": "executed_count_before",
+        "measured": 5,
+        "method": "stdlib-runner executed=True ids",
+        "anchor": "command-center/p2-wave/probes/CNF-0060/runner.py:235"
+      },
+      {
+        "name": "executed_count_after",
+        "measured": 4,
+        "method": "stdlib-runner executed=True ids",
+        "anchor": "command-center/p2-wave/probes/CNF-0060/runner.py:235"
+      },
+      {
+        "name": "passed_count_unchanged",
+        "measured": true,
+        "method": "counts.passed before vs after",
+        "anchor": "command-center/p2-wave/probes/CNF-0060/skip_diff.py:97"
+      },
+      {
+        "name": "planted_id",
+        "measured": "test_skip_surface.py::test_planted_target",
+        "method": "plant_skip + newly_disabled",
+        "anchor": "command-center/p2-wave/probes/CNF-0060/runner.py:253"
+      },
+      {
+        "name": "kinds_distinct",
+        "measured": true,
+        "method": "skip_kind buckets disjoint",
+        "anchor": "command-center/p2-wave/probes/CNF-0060/skip_diff.py:141"
+      }
+    ],
+    "control_ids": [
+      "planted-skip",
+      "platform-vs-unconditional",
+      "executed-not-passed"
+    ],
+    "title": "Skip, xfail and deselect count diff so a silently disabled test is caught",
+    "question": "Was a test silently disabled instead of fixed? Diff the skipped, xfailed, deselected and conditionally-excluded test id sets across the change, and answer: which tests stopped executing, and for each, is there a recorded justification? A green suite with fewer executed tests is a weaker suite, not a better one.",
+    "answer": "Live commit-to-commit skip delta is NOT-CHECKED (no git; baseline has aggregates only; pytest absent). The planted-skip control fired: test_skip_surface.py::test_planted_target flipped failed\u2192skipped with reason 'CNF-0060-planted'. Executed ids 5 \u2192 4 while passed count stayed 3 (passed_count_unchanged=True). A green suite with fewer executed tests is a weaker suite. Unconditional skips ['test_skip_surface.py::test_planted_target', 'test_skip_surface.py::test_unconditional_skip'] are distinct from platform-conditional skips ['test_skip_surface.py::test_posix_fork'].",
+    "before": {
+      "label": "fixture-before-plant",
+      "members": [
+        {
+          "id": "test_skip_surface.py::test_another_pass",
+          "outcome": "passed",
+          "executed": true
+        },
+        {
+          "id": "test_skip_surface.py::test_planted_target",
+          "outcome": "failed",
+          "diagnostic": "AssertionError: bug still present \u2014 skip would hide this",
+          "executed": true
+        },
+        {
+          "id": "test_skip_surface.py::test_posix_fork",
+          "outcome": "skipped",
+          "diagnostic": "posix-only fork semantics",
+          "skip_kind": "platform-conditional",
+          "skip_reason": "posix-only fork semantics",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_runtime_skip",
+          "outcome": "skipped",
+          "diagnostic": "runtime: extra dataset missing",
+          "skip_kind": "runtime-unconditional",
+          "skip_reason": "runtime: extra dataset missing",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_stable_pass",
+          "outcome": "passed",
+          "executed": true
+        },
+        {
+          "id": "test_skip_surface.py::test_unconditional_skip",
+          "outcome": "skipped",
+          "diagnostic": "ticket-123: parked flake, not a fix",
+          "skip_kind": "unconditional",
+          "skip_reason": "ticket-123: parked flake, not a fix",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_windows_named_pipe",
+          "outcome": "passed",
+          "executed": true,
+          "skipif_armed_but_false": "platform-conditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_xfail_trailing_comma",
+          "outcome": "xfailed",
+          "diagnostic": "bug-456: trailing comma still rejected: AssertionError: still broken",
+          "xfail_reason": "bug-456: trailing comma still rejected",
+          "executed": true
+        }
+      ],
+      "counts": {
+        "passed": 3,
+        "failed": 1,
+        "skipped": 4,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 8
+      },
+      "executed_ids": [
+        "test_skip_surface.py::test_another_pass",
+        "test_skip_surface.py::test_planted_target",
+        "test_skip_surface.py::test_stable_pass",
+        "test_skip_surface.py::test_windows_named_pipe",
+        "test_skip_surface.py::test_xfail_trailing_comma"
+      ],
+      "executed_count": 5,
+      "skipped_ids": [
+        "test_skip_surface.py::test_posix_fork",
+        "test_skip_surface.py::test_runtime_skip",
+        "test_skip_surface.py::test_unconditional_skip"
+      ],
+      "skipped_with_reasons": [
+        {
+          "id": "test_skip_surface.py::test_posix_fork",
+          "reason": "posix-only fork semantics",
+          "skip_kind": "platform-conditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_runtime_skip",
+          "reason": "runtime: extra dataset missing",
+          "skip_kind": "runtime-unconditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_unconditional_skip",
+          "reason": "ticket-123: parked flake, not a fix",
+          "skip_kind": "unconditional"
+        }
+      ],
+      "xfailed_ids": [
+        "test_skip_surface.py::test_xfail_trailing_comma"
+      ],
+      "deselected_ids": [
+        "test_skip_surface.py::test_deselected_slow"
+      ],
+      "deselected": [
+        {
+          "id": "test_skip_surface.py::test_deselected_slow",
+          "reason": "collection.ini -k 'not slow': deselected, not skipped"
+        }
+      ],
+      "by_skip_kind": {
+        "platform-conditional": [
+          "test_skip_surface.py::test_posix_fork"
+        ],
+        "runtime-unconditional": [
+          "test_skip_surface.py::test_runtime_skip"
+        ],
+        "unconditional": [
+          "test_skip_surface.py::test_unconditional_skip"
+        ]
+      }
+    },
+    "after": {
+      "label": "fixture-after-planted-skip",
+      "members": [
+        {
+          "id": "test_skip_surface.py::test_another_pass",
+          "outcome": "passed",
+          "executed": true
+        },
+        {
+          "id": "test_skip_surface.py::test_planted_target",
+          "outcome": "skipped",
+          "diagnostic": "CNF-0060-planted",
+          "skip_kind": "unconditional",
+          "skip_reason": "CNF-0060-planted",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_posix_fork",
+          "outcome": "skipped",
+          "diagnostic": "posix-only fork semantics",
+          "skip_kind": "platform-conditional",
+          "skip_reason": "posix-only fork semantics",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_runtime_skip",
+          "outcome": "skipped",
+          "diagnostic": "runtime: extra dataset missing",
+          "skip_kind": "runtime-unconditional",
+          "skip_reason": "runtime: extra dataset missing",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_stable_pass",
+          "outcome": "passed",
+          "executed": true
+        },
+        {
+          "id": "test_skip_surface.py::test_unconditional_skip",
+          "outcome": "skipped",
+          "diagnostic": "ticket-123: parked flake, not a fix",
+          "skip_kind": "unconditional",
+          "skip_reason": "ticket-123: parked flake, not a fix",
+          "executed": false
+        },
+        {
+          "id": "test_skip_surface.py::test_windows_named_pipe",
+          "outcome": "passed",
+          "executed": true,
+          "skipif_armed_but_false": "platform-conditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_xfail_trailing_comma",
+          "outcome": "xfailed",
+          "diagnostic": "bug-456: trailing comma still rejected: AssertionError: still broken",
+          "xfail_reason": "bug-456: trailing comma still rejected",
+          "executed": true
+        }
+      ],
+      "counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 5,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 8
+      },
+      "executed_ids": [
+        "test_skip_surface.py::test_another_pass",
+        "test_skip_surface.py::test_stable_pass",
+        "test_skip_surface.py::test_windows_named_pipe",
+        "test_skip_surface.py::test_xfail_trailing_comma"
+      ],
+      "executed_count": 4,
+      "skipped_ids": [
+        "test_skip_surface.py::test_planted_target",
+        "test_skip_surface.py::test_posix_fork",
+        "test_skip_surface.py::test_runtime_skip",
+        "test_skip_surface.py::test_unconditional_skip"
+      ],
+      "skipped_with_reasons": [
+        {
+          "id": "test_skip_surface.py::test_planted_target",
+          "reason": "CNF-0060-planted",
+          "skip_kind": "unconditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_posix_fork",
+          "reason": "posix-only fork semantics",
+          "skip_kind": "platform-conditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_runtime_skip",
+          "reason": "runtime: extra dataset missing",
+          "skip_kind": "runtime-unconditional"
+        },
+        {
+          "id": "test_skip_surface.py::test_unconditional_skip",
+          "reason": "ticket-123: parked flake, not a fix",
+          "skip_kind": "unconditional"
+        }
+      ],
+      "xfailed_ids": [
+        "test_skip_surface.py::test_xfail_trailing_comma"
+      ],
+      "deselected_ids": [
+        "test_skip_surface.py::test_deselected_slow"
+      ],
+      "deselected": [
+        {
+          "id": "test_skip_surface.py::test_deselected_slow",
+          "reason": "collection.ini -k 'not slow': deselected, not skipped"
+        }
+      ],
+      "by_skip_kind": {
+        "unconditional": [
+          "test_skip_surface.py::test_planted_target",
+          "test_skip_surface.py::test_unconditional_skip"
+        ],
+        "platform-conditional": [
+          "test_skip_surface.py::test_posix_fork"
+        ],
+        "runtime-unconditional": [
+          "test_skip_surface.py::test_runtime_skip"
+        ]
+      }
+    },
+    "executed_ids_before": [
+      "test_skip_surface.py::test_another_pass",
+      "test_skip_surface.py::test_planted_target",
+      "test_skip_surface.py::test_stable_pass",
+      "test_skip_surface.py::test_windows_named_pipe",
+      "test_skip_surface.py::test_xfail_trailing_comma"
+    ],
+    "executed_ids_after": [
+      "test_skip_surface.py::test_another_pass",
+      "test_skip_surface.py::test_stable_pass",
+      "test_skip_surface.py::test_windows_named_pipe",
+      "test_skip_surface.py::test_xfail_trailing_comma"
+    ],
+    "symmetric_difference": {
+      "only_in_before": [],
+      "only_in_after": [],
+      "flipped": [
+        {
+          "id": "test_skip_surface.py::test_planted_target",
+          "from": "failed",
+          "to": "skipped"
+        }
+      ],
+      "counts": {
+        "before_only": 0,
+        "after_only": 0,
+        "flipped": 1,
+        "flipped_to_pass": 0,
+        "flipped_to_fail": 0
+      }
+    },
+    "aggregate_counts": {
+      "before": {
+        "passed": 3,
+        "failed": 1,
+        "skipped": 4,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 8
+      },
+      "after": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 5,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 8
+      },
+      "unchanged": false,
+      "passed_unchanged_executed_dropped": true,
+      "note": "Passed count is the wrong instrument: skipping a failing test leaves passed unchanged (or a green suite looks better) while executed count drops."
+    },
+    "controls": {
+      "planted_skip": {
+        "constructed": true,
+        "fired": true,
+        "planted_id": "test_skip_surface.py::test_planted_target",
+        "planted_reason": "CNF-0060-planted",
+        "detected_in_newly_skipped": true,
+        "detected_in_stopped_executing": true,
+        "kinds_distinct": true,
+        "unconditional_skips": [
+          "test_skip_surface.py::test_planted_target",
+          "test_skip_surface.py::test_unconditional_skip"
+        ],
+        "platform_conditional_skips": [
+          "test_skip_surface.py::test_posix_fork"
+        ],
+        "disabled": {
+          "newly_skipped": [
+            "test_skip_surface.py::test_planted_target"
+          ],
+          "newly_xfailed": [],
+          "newly_deselected": [],
+          "stopped_executing": [
+            "test_skip_surface.py::test_planted_target"
+          ],
+          "justifications": [
+            {
+              "id": "test_skip_surface.py::test_planted_target",
+              "justification": "CNF-0060-planted",
+              "skip_kind": "unconditional",
+              "recorded": true
+            }
+          ],
+          "executed_count_before": 5,
+          "executed_count_after": 4,
+          "passed_count_before": 3,
+          "passed_count_after": 3,
+          "passed_count_unchanged": true,
+          "executed_count_dropped": true
+        },
+        "identity_silent": true,
+        "symmetric_difference": {
+          "only_in_before": [],
+          "only_in_after": [],
+          "flipped": [
+            {
+              "id": "test_skip_surface.py::test_planted_target",
+              "from": "failed",
+              "to": "skipped"
+            }
+          ],
+          "counts": {
+            "before_only": 0,
+            "after_only": 0,
+            "flipped": 1,
+            "flipped_to_pass": 0,
+            "flipped_to_fail": 0
+          }
+        },
+        "fixture": "command-center/p2-wave/probes/CNF-0060/fixtures/suite"
+      }
+    },
+    "live_repo_suite": {
+      "status": "NOT-CHECKED",
+      "reason": "This worktree has no .git, so a commit-to-commit skip/xfail/deselect id-set delta cannot be claimed. command-center/BASELINE-SNAPSHOT.json is present but records only aggregate skip/deselect counts, not per-test-id skip reasons. pytest is not installed, so the live tree cannot be re-collected into skip-reason reports. The planted-skip detector control on the fixture is the observation this unit records.",
+      "git_available": false,
+      "baseline_snapshot_present": true,
+      "pytest_importable": false
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "planted-skip-detector-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/probe1_planted_skip.py"
+      },
+      {
+        "id": "probe2",
+        "role": "reviewer-rerun-kinds-and-executed-count",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0060/probe2_reviewer_control.py"
+      }
+    ]
+  }
+}

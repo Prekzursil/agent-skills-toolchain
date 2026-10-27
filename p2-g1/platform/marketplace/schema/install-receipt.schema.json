@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/install-receipt.schema.json",
+  "title": "Install / update / remove / rollback receipt",
+  "description": "One receipt per lifecycle action (spec 10858). The receipt is the ROLLBACK SOURCE: `previous` records what was installed before, so rollback is a replay of recorded state rather than a re-resolution against a registry that may have changed underneath. It also records every GATE that was evaluated with its outcome -- an install that refuses must say which of the eleven gates refused, because a single opaque `failed` is what turns a security control into folklore.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "receipt_id", "action", "outcome", "name", "at", "gates"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "receipt_id": { "type": "string", "pattern": "^rcpt:[0-9a-f]{16}$" },
+    "action": { "enum": ["install", "update", "remove", "rollback"] },
+    "outcome": {
+      "enum": ["SUCCESS", "REFUSED", "FAILED"],
+      "description": "Terminal states only (AGENTS.md section 4). REFUSED is a policy decision and is the CORRECT outcome for a revoked or over-permissioned package; FAILED is an error. Collapsing them would make a working security control look like a bug."
+    },
+    "name": { "$ref": "common.schema.json#/$defs/package_name" },
+    "version": { "$ref": "common.schema.json#/$defs/semver" },
+    "previous": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "payload_digest"],
+      "properties": {
+        "version": { "$ref": "common.schema.json#/$defs/semver" },
+        "payload_digest": { "$ref": "common.schema.json#/$defs/sha256" }
+      }
+    },
+    "at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "payload_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+    "installed_files": { "type": "integer", "minimum": 0 },
+    "overrides_used": {
+      "type": "array",
+      "items": { "enum": ["allow-vulnerable", "allow-deprecated"] },
+      "uniqueItems": true,
+      "description": "An override that is not recorded is an override nobody can audit."
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gate", "outcome"],
+        "properties": {
+          "gate": {
+            "enum": [
+              "index-signature", "publisher-known", "manifest-signature", "revocation",
+              "permissions", "compatibility", "advisory", "conformance-score",
+              "payload-digest", "sbom", "license", "dependencies", "lockfile"
+            ]
+          },
+          "outcome": { "enum": ["PASS", "REFUSE", "WARN", "SKIP"] },
+          "detail": { "type": "string", "maxLength": 600 }
+        }
+      }
+    },
+    "refusal_code": {
+      "type": "string",
+      "pattern": "^MKT-[A-Z][0-9]{2}$",
+      "description": "Stable machine code for the refusing gate, so a caller can branch on WHY without parsing prose."
+    }
+  }
+}

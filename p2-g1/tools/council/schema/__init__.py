@@ -1,0 +1,1 @@
+"""CouncilSpec schema package."""

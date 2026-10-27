@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0173",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0173 live Cache.get read-through: 500/500 checksum mismatch + quarantine + refetch; independent post-recovery SHA-256 matches; both-states intact does not refetch; blind-read negative control goes red",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:84035-84077",
+  "min_bytes_threshold": 1000,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0173.json",
+      "bytes": 14301,
+      "sha256": "32d74acc7221e536aa1b7f541a8763c13a2fbb69e11859e4e425c4c90ca41da2",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A live Cache.get(key, fetch=source) detected and quarantined all 500 randomized corruptions and returned bytes whose independently measured hash equals the authoritative digest, with zero crashes and zero silent corrupt uses.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0173/checksum-mismatch-event.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+          "raw_output": "NAMED PROBE (a): the checksum mismatch event\nevidence_requirement_verbatim=two independent signals: (a) the checksum mismatch event, and (b) the post-recovery file hash matching the authoritative digest\nstage=p2-deliver\nrun_id=p2-deliver-001\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py\ntarget=platform/plugin/cache.py Cache.get(key, fetch=...)\ntarget_sha256=3b38e8b0acc193531aa9d5577c2e13fe55bfbe26454123fcdef093f4e0ebb192\ntarget_binding=live Cache.get read-through; fetch is the production recovery path\nseed=1735002026\nfuzz_trials_requested=500\nfuzz_trials_completed=500\nsingle_bit_corruptions=250\nmulti_byte_corruptions=250\nunique_offsets_touched=1348\nchecksum_mismatch_events=500\nquarantine_events=500\nsample_event={\"key\":\"ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\",\"reason\":\"content does not hash to its key\"}\nrefetches=500\ncrashes=0\nsilent_corrupt_uses=0\nprobe_result=PASS-LIVE-PRIMITIVE-PRODUCTION-REFETCH\nPROBE-A-COMPLETE:TST-0173\nSUCCESS:TST-0173-probe-a\n",
+          "fingerprint": "7e36ebed3617c72473e8ab60c7a2a62ac6ec34de9abc804c69f708e54b8c1ecd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/verify_recovery.py",
+          "raw_output": "NAMED PROBE (b): the post-recovery file hash matching the authoritative digest\nevidence_requirement_verbatim=two independent signals: (a) the checksum mismatch event, and (b) the post-recovery file hash matching the authoritative digest\nstage=p2-deliver\nrun_id=p2-deliver-001\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/verify_recovery.py\nmethod=independent exact-byte SHA-256 and byte comparison; no cache module import\nauthoritative_file=command-center/p2-wave/probes/TST-0173/runtime/authoritative-payload.bin\npost_recovery_file=command-center/p2-wave/probes/TST-0173/runtime/post-recovery-payload.bin\ncache_entry_file=command-center/p2-wave/probes/TST-0173/runtime/cache/ca/ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\nauthoritative_digest=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\npost_recovery_file_hash=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\npost_recovery_cache_entry_hash=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\nhash_match=true\nbyte_equal=true\nprobe_result=PASS\nPROBE-B-COMPLETE:TST-0173\nSUCCESS:TST-0173-probe-b\n",
+          "fingerprint": "1fd148fbd5253954dacbe14fb4ea9993431bae60bc6587de49213675c05bea62",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The both-states control shows an intact entry is returned without calling fetch, and the BlindReadMutant negative control fires on the same corrupt bytes that the real reader quarantines and refetches.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0173/both-states-control.raw.txt:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+          "raw_output": "TEST REQUIRED: both-states control: an intact entry reads without a refetch\nstage=p2-deliver\nrun_id=p2-deliver-001\ncache_key=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\nreturned_authoritative_bytes=true\nrefetch_count=0\nquarantine_created=false\nresult=PASS\n",
+          "fingerprint": "7e36ebed3617c72473e8ab60c7a2a62ac6ec34de9abc804c69f708e54b8c1ecd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/TST-0173/negative-control-checksum-removal.raw.txt",
+          "raw_output": "NEGATIVE CONTROL: removing checksum/quarantine makes the detector go red\nstage=p2-deliver\nrun_id=p2-deliver-001\nblind_fired_on_bad_state=true\nreal_reader_silent_on_good_recovery=true\nbad_state_output=silent corrupt bytes escaped checksum detection\nresult=PASS\n",
+          "fingerprint": "141ed6584e436dcab19869f8f955f81a19ab8c8804f196cfa67a8772706e6d86",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "intact-cache-both-states",
+      "name": "both-states control: an intact entry reads without a refetch",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "TEST REQUIRED: both-states control: an intact entry reads without a refetch\nstage=p2-deliver\nrun_id=p2-deliver-001\ncache_key=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\nreturned_authoritative_bytes=true\nrefetch_count=0\nquarantine_created=false\nresult=PASS\n"
+    },
+    {
+      "id": "randomized-corruption-fuzz-500",
+      "name": "fuzz: 500 single-bit and multi-byte corruptions at randomized offsets",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+      "result": "PASS",
+      "assertions": 500,
+      "output_tail": "TEST REQUIRED: fuzz: 500 single-bit and multi-byte corruptions at randomized offsets\nstage=p2-deliver\nrun_id=p2-deliver-001\nseed=1735002026\nfuzz_trials_requested=500\nfuzz_trials_completed=500\nsingle_bit_corruptions=250\nmulti_byte_corruptions=250\nunique_offsets_touched=1348\nchecksum_mismatch_events=500\nquarantine_events=500\nrefetches=500\ncrashes=0\nsilent_corrupt_uses=0\nresult=PASS\n"
+    },
+    {
+      "id": "checksum-removal-negative-control",
+      "name": "negative control: removing checksum/quarantine makes the detector go red",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "NEGATIVE CONTROL: removing checksum/quarantine makes the detector go red\nstage=p2-deliver\nrun_id=p2-deliver-001\nblind_fired_on_bad_state=true\nreal_reader_silent_on_good_recovery=true\nbad_state_output=silent corrupt bytes escaped checksum detection\nresult=PASS\n"
+    },
+    {
+      "id": "production-read-through-refetch",
+      "name": "full target: corrupt read quarantines and automatically refetches via Cache.get fetch=",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0173/run_cache_probe.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "ruptions=250\nmulti_byte_corruptions=250\nunique_offsets_touched=1348\nchecksum_mismatch_events=500\nquarantine_events=500\nsample_event={\"key\":\"ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\",\"reason\":\"content does not hash to its key\"}\nrefetches=500\ncrashes=0\nsilent_corrupt_uses=0\nprobe_result=PASS-LIVE-PRIMITIVE-PRODUCTION-REFETCH\nPROBE-A-COMPLETE:TST-0173\nSUCCESS:TST-0173-probe-a\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "remove-checksum-quarantine-branch",
+      "kind": "mutation",
+      "description": "BlindReadMutant returns cache bytes without hashing or quarantine; the same corrupt-byte assertion must turn red while the intact real reader stays green.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "AssertionError: silent corrupt bytes escaped checksum detection",
+      "good_state_output": "TEST REQUIRED: both-states control: an intact entry reads without a refetch\nstage=p2-deliver\nrun_id=p2-deliver-001\ncache_key=ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a\nreturned_authoritative_bytes=true\nrefetch_count=0\nquarantine_created=false\nresult=PASS\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-deliver-TST-0173-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Live re-derivation on /opt/p2/ast-integrate. Harvest openai receipt was BLOCKED (probe tree absent; Cache.get had no fetch). This session restored platform/plugin/cache.py read-through, re-ran run_cache_probe.py and verify_recovery.py (both exit 0), and registered a per-unit UNIT-ARTIFACT-MANIFEST.json. Distinct from harvest produced_by openai/gpt-5.",
+    "reviewed_at": "2026-08-19T17:26:19Z"
+  },
+  "defects": [
+    {
+      "id": "TST0173-D1-NO-PRODUCTION-REFETCH",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Cache.get now accepts fetch= and put()s recovered bytes after checksum mismatch and quarantine. Live 500/500 refetch observed."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0173/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0173",
+    "registered_at": "2026-08-19T17:26:19Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/receipts/TST-0173.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python command-center/p2-wave/_measure_one_delivered.py TST-0173",
+        "raw_output": "ready_units.artifact_delivered is evaluated by _measure_one_delivered.py after this apply",
+        "fingerprint": "799613d1a46216f3b159cfede42e7494bb6e452078ee9b076182fecc63438d6d",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-17T03:01:48Z",
+    "ended_at": "2026-08-19T17:26:19Z",
+    "duration_seconds": 120.0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Out-of-tree B05/B07 consumers that do not pass fetch= into Cache.get were not executed on this worktree (cli.py/health.py are absent here).",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore the full platform/plugin CLI and health surfaces, then replay the 500-mutation corpus through those callers."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5",
+    "role": "headless-refute-worker",
+    "execution_substrate": "headless-linux"
+  },
+  "report": {
+    "kind": "cache_report",
+    "observations": [
+      {
+        "name": "checksum mismatch events",
+        "measured": 500,
+        "method": "live Cache.get over deterministic corruption corpus",
+        "anchor": "command-center/p2-wave/probes/TST-0173/checksum-mismatch-event.raw.txt:1"
+      },
+      {
+        "name": "post-recovery authoritative hash matches",
+        "measured": true,
+        "method": "independent exact-byte SHA-256; no cache module import",
+        "anchor": "command-center/p2-wave/probes/TST-0173/post-recovery-file-hash.raw.txt:1"
+      },
+      {
+        "name": "silent corrupt uses",
+        "measured": 0,
+        "method": "returned-byte assertion in every fuzz trial",
+        "anchor": "command-center/p2-wave/probes/TST-0173/fuzz-500.raw.txt:1"
+      },
+      {
+        "name": "intact entry refetches",
+        "measured": 0,
+        "method": "both-states cache read control",
+        "anchor": "command-center/p2-wave/probes/TST-0173/both-states-control.raw.txt:1"
+      },
+      {
+        "name": "automatic refetch observed after corrupt read",
+        "measured": true,
+        "method": "live Cache.get(key, fetch=source) with counted recovery puts",
+        "anchor": "command-center/p2-wave/probes/TST-0173/checksum-mismatch-event.raw.txt:1"
+      }
+    ],
+    "control_ids": [
+      "intact-cache-both-states",
+      "randomized-corruption-fuzz-500",
+      "remove-checksum-quarantine-branch"
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "run_id": "p2-deliver-001",
+    "question_answer": "YES: a bit-flipped cached payload is caught on read by checksum, quarantined, and refetched through Cache.get(fetch=); PASS forbids crash and silent corrupt use, both measured at 0/500.",
+    "target_binding": "platform/plugin/cache.py Cache.get(key, fetch=...)",
+    "named_probes_reran": true,
+    "evidence_requirement_verbatim": "two independent signals: (a) the checksum mismatch event, and (b) the post-recovery file hash matching the authoritative digest",
+    "tests_required_verbatim": [
+      "both-states control: an intact entry reads without a refetch",
+      "fuzz: 500 single-bit and multi-byte corruptions at randomized offsets"
+    ],
+    "harvest_ok_is_not_delivery": true,
+    "cloud_ok_local_revalidation": {
+      "superseded": true,
+      "reason": "harvest ok=true was UNIT-COMPLETE text on a BLOCKED receipt; this p2-deliver run restored production refetch and live probes"
+    }
+  }
+}

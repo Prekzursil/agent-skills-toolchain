@@ -1,0 +1,670 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0041.json",
+   "bytes": 11874,
+   "sha256": "aea7933f74686b7a2b649ff094881161265a9fb727f53213d8b2cc66130263d6",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "RES-0041 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0041.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0041.json",
+     "raw_output": "bytes=11874 sha256=aea7933f74686b7a2b649ff094881161265a9fb727f53213d8b2cc66130263d6",
+     "fingerprint": "3192f3f568adc4a283b859df6e331365",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0041",
+     "raw_output": "schema-check",
+     "fingerprint": "82f5522c6668314fd0a88c1f03307f42",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0041 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0041",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0041",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "5f0f8378f18364a9101d7556538ce3ce",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0041",
+     "raw_output": "schema-valid",
+     "fingerprint": "ed1297887ba37869ce50706f57918955",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0041 in the receipt AND a ranked per-server token table plus a disable-and-remeasure delta matching the predicted drop",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0041.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0041",
+ "extensions": {
+  "legacy_root": {
+   "answer": "harness.mcp.schema-heavy dominates the ranked per-server token table. Eager total 2026 tokens. Disabling harness.mcp.schema-heavy drops the total by 1093 tokens, matching the predicted share 1093. Deferred-tool catalog stubs cost 528 tokens versus 2026 eager.",
+   "caveats": [
+    "This Linux worktree has no ~/.mcp.json; the live client catalog contained only the cursor namespace. Harness fixtures supply additional schema sets so disable-and-remeasure is a multi-server control rather than a 100% drop of a one-row fleet.",
+    "The deferred analogue matches Cursor GetDynamicTools truncation (200-char descriptions, schemas omitted) rather than a vendor-internal wire format we cannot dump from this session.",
+    "Tokenizer is the pinned regex-unigram used for ARC cost work on this tree, not a billed vendor tokenizer."
+   ],
+   "corpus": {
+    "description": "Live Cursor GetDynamicTools catalog on this Linux worktree exposed a single first-party namespace (`cursor`, 3 tools). Home ~/.mcp.json and project mcp.json are absent, so they are recorded as absent rather than invented. Ranking, domination, and the disable-and-remeasure control are run on a harness-installed schema fleet (ping, fs-lite, schema-heavy) plus the live cursor snapshot so the control is multi-server and the live client row is still present.",
+    "fleet_size": 4,
+    "home_mcp": {
+     "any_present": false,
+     "candidates": [
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/root/.mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/root/.cursor/mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/opt/p2/ast-integrate/.cursor/mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/opt/p2/ast-integrate/mcp.json"
+      }
+     ]
+    },
+    "live_client_namespaces": [
+     "cursor"
+    ]
+   },
+   "deferred_total": {
+    "bytes": 2493,
+    "mechanism": "Cursor GetDynamicTools catalog analogue: tool name plus description truncated at 200 characters, inputSchema omitted until first use.",
+    "servers": [
+     "harness.mcp.schema-heavy",
+     "live.cursor",
+     "harness.mcp.fs-lite",
+     "harness.mcp.ping"
+    ],
+    "tokens": 528
+   },
+   "deferred_vs_eager": {
+    "answer": "Eager exposure of all schema sets costs 2026 tokens (9180 bytes). The deferred catalog analogue costs 528 tokens (2493 bytes), saving 1498 tokens / 6687 bytes. Activating the dominating server harness.mcp.schema-heavy under deferred still costs 1322 tokens versus 2026 eager.",
+    "byte_savings": 6687,
+    "deferred_bytes": 2493,
+    "deferred_cheaper_bytes": true,
+    "deferred_cheaper_tokens": true,
+    "deferred_tokens": 528,
+    "eager_bytes": 9180,
+    "eager_tokens": 2026,
+    "first_use_activation": {
+     "activate_id": "harness.mcp.schema-heavy",
+     "deferred_plus_activated_tokens": 1322,
+     "eager_tokens": 2026,
+     "note": "Deferred + one activated full schema vs eager-all. Activating the dominating server's full set still costs less than exposing every server eagerly iff remaining deferred stubs plus that server's eager set stay below the eager total.",
+     "still_below_eager": true
+    },
+    "token_savings": 1498
+   },
+   "disable_and_remeasure": {
+    "baseline_bytes": 9180,
+    "baseline_tokens": 2026,
+    "bytes_match": true,
+    "disabled_server": "harness.mcp.schema-heavy",
+    "measured_drop_bytes": 4919,
+    "measured_drop_tokens": 1093,
+    "predicted_drop_bytes": 4919,
+    "predicted_drop_tokens": 1093,
+    "remeasured_bytes": 4261,
+    "remeasured_tokens": 933,
+    "tokens_match": true
+   },
+   "dominating_server": "harness.mcp.schema-heavy",
+   "eager_total": {
+    "bytes": 9180,
+    "servers": [
+     "harness.mcp.schema-heavy",
+     "live.cursor",
+     "harness.mcp.fs-lite",
+     "harness.mcp.ping"
+    ],
+    "tokens": 2026
+   },
+   "inputs_resolved": {
+    "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "Windows restore path not present on this Linux box",
+    "REGISTER.md": "absent on this worktree",
+    "home_mcp_json": {
+     "any_present": false,
+     "candidates": [
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/root/.mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/root/.cursor/mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/opt/p2/ast-integrate/.cursor/mcp.json"
+      },
+      {
+       "bytes": 0,
+       "exists": false,
+       "path": "/opt/p2/ast-integrate/mcp.json"
+      }
+     ]
+    },
+    "live_client_tool_inventory": "GetDynamicTools catalog: namespace cursor only"
+   },
+   "measured_at": "2026-08-25T00:55:50Z",
+   "measurement_commands": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0041/probe1_rank_disable.py",
+     "covers": "rank + disable-remeasure tokens",
+     "id": "probe1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0041/probe2_bytes_deferred.py",
+     "covers": "bytes + deferred-vs-eager",
+     "id": "probe2"
+    }
+   ],
+   "output_schema": "command-center/schema/measurement-run.schema.json",
+   "question": "How many tokens does each installed MCP server's tool schema set add to a turn, which servers dominate, and what is the measured cost of the deferred-tool mechanism versus eager exposure?",
+   "ranked_per_server_token_table": [
+    {
+     "bytes": 4919,
+     "chars_div_4": 1229,
+     "deferred_bytes": 1400,
+     "deferred_tokens": 299,
+     "eager_minus_deferred_tokens": 794,
+     "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/schema_heavy.json",
+     "id": "harness.mcp.schema-heavy",
+     "origin": "harness-fixture",
+     "rank": 1,
+     "share_of_eager_tokens": 0.539487,
+     "tokenizer_ne_chars_div_4": true,
+     "tokens": 1093,
+     "tool_count": 8,
+     "tool_names": [
+      "search_code",
+      "get_file_contents",
+      "list_commits",
+      "web_search",
+      "scrape_url",
+      "pack_repository",
+      "ask_wiki",
+      "list_issues"
+     ]
+    },
+    {
+     "bytes": 2991,
+     "chars_div_4": 747,
+     "deferred_bytes": 687,
+     "deferred_tokens": 138,
+     "eager_minus_deferred_tokens": 530,
+     "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/live/cursor.json",
+     "id": "live.cursor",
+     "origin": "live-client-GetDynamicTools",
+     "rank": 2,
+     "share_of_eager_tokens": 0.329714,
+     "tokenizer_ne_chars_div_4": true,
+     "tokens": 668,
+     "tool_count": 3,
+     "tool_names": [
+      "CreateGoal",
+      "GenerateImage",
+      "UpdateGoal"
+     ]
+    },
+    {
+     "bytes": 1090,
+     "chars_div_4": 272,
+     "deferred_bytes": 303,
+     "deferred_tokens": 67,
+     "eager_minus_deferred_tokens": 162,
+     "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/fs_lite.json",
+     "id": "harness.mcp.fs-lite",
+     "origin": "harness-fixture",
+     "rank": 3,
+     "share_of_eager_tokens": 0.113031,
+     "tokenizer_ne_chars_div_4": true,
+     "tokens": 229,
+     "tool_count": 3,
+     "tool_names": [
+      "list_dir",
+      "read_file",
+      "search"
+     ]
+    },
+    {
+     "bytes": 180,
+     "chars_div_4": 45,
+     "deferred_bytes": 103,
+     "deferred_tokens": 24,
+     "eager_minus_deferred_tokens": 12,
+     "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/ping.json",
+     "id": "harness.mcp.ping",
+     "origin": "harness-fixture",
+     "rank": 4,
+     "share_of_eager_tokens": 0.017769,
+     "tokenizer_ne_chars_div_4": true,
+     "tokens": 36,
+     "tool_count": 1,
+     "tool_names": [
+      "ping"
+     ]
+    }
+   ],
+   "receipt": "SUCCESS:RES-0041 in the receipt AND a ranked per-server token table plus a disable-and-remeasure delta matching the predicted drop",
+   "report_kind": "measurement-run",
+   "tokenizer": {
+    "id": "res-0041-gpt2-regex-unigram",
+    "module": "command-center/p2-wave/probes/RES-0041/tokenizer.py",
+    "not_chars_div_4": true,
+    "peer": "command-center/p2-wave/probes/ARC-0025/tokenizer.py",
+    "peer_algorithm": "identical regex unigram; distinct pin name for this unit",
+    "pin": "res-0041-gpt2-regex-unigram/v1",
+    "spec": "Unicode regex unigram: '(?:[sdmt]|ll|ve|re)| ?[^\\W\\d_]+| ?\\d+| ?[^\\s\\w]+|\\s+(?!\\S)|\\s+ with unmatched gaps kept as their own tokens. Each piece counts as 1. Not len(text)//4.",
+    "version": "v1"
+   },
+   "two_signal": {
+    "byte_rank_ids": [
+     "harness.mcp.schema-heavy",
+     "live.cursor",
+     "harness.mcp.fs-lite",
+     "harness.mcp.ping"
+    ],
+    "dominator_agrees": true,
+    "dominator_bytes": "harness.mcp.schema-heavy",
+    "dominator_tokens": "harness.mcp.schema-heavy",
+    "every_row_tokenizer_ne_chars_div_4": true,
+    "rank_ids_agree": true,
+    "signal_1": "tokenizer tokens (res-0041-gpt2-regex-unigram/v1) over canonical tools/list JSON",
+    "signal_2": "UTF-8 byte length of the same canonical JSON (independent field, not a re-run)",
+    "token_rank_ids": [
+     "harness.mcp.schema-heavy",
+     "live.cursor",
+     "harness.mcp.fs-lite",
+     "harness.mcp.ping"
+    ]
+   },
+   "worktree": "/opt/p2/ast-integrate"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0041",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0041/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0041"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0041.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0041.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "06e9d2c4025ce1fd1d2b36cddae53f9a",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "measurement-run",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 11874,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0041.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "harness.mcp.schema-heavy dominates the ranked per-server token table. Eager total 2026 tokens. Disabling harness.mcp.schema-heavy drops the total by 1093 tokens, matching the predicted share 1093. Deferred-tool catalog stubs cost 528 tokens versus 2026 eager.",
+ "caveats": [
+  "This Linux worktree has no ~/.mcp.json; the live client catalog contained only the cursor namespace. Harness fixtures supply additional schema sets so disable-and-remeasure is a multi-server control rather than a 100% drop of a one-row fleet.",
+  "The deferred analogue matches Cursor GetDynamicTools truncation (200-char descriptions, schemas omitted) rather than a vendor-internal wire format we cannot dump from this session.",
+  "Tokenizer is the pinned regex-unigram used for ARC cost work on this tree, not a billed vendor tokenizer."
+ ],
+ "corpus": {
+  "description": "Live Cursor GetDynamicTools catalog on this Linux worktree exposed a single first-party namespace (`cursor`, 3 tools). Home ~/.mcp.json and project mcp.json are absent, so they are recorded as absent rather than invented. Ranking, domination, and the disable-and-remeasure control are run on a harness-installed schema fleet (ping, fs-lite, schema-heavy) plus the live cursor snapshot so the control is multi-server and the live client row is still present.",
+  "fleet_size": 4,
+  "home_mcp": {
+   "any_present": false,
+   "candidates": [
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/root/.mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/root/.cursor/mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/opt/p2/ast-integrate/.cursor/mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/opt/p2/ast-integrate/mcp.json"
+    }
+   ]
+  },
+  "live_client_namespaces": [
+   "cursor"
+  ]
+ },
+ "deferred_total": {
+  "bytes": 2493,
+  "mechanism": "Cursor GetDynamicTools catalog analogue: tool name plus description truncated at 200 characters, inputSchema omitted until first use.",
+  "servers": [
+   "harness.mcp.schema-heavy",
+   "live.cursor",
+   "harness.mcp.fs-lite",
+   "harness.mcp.ping"
+  ],
+  "tokens": 528
+ },
+ "deferred_vs_eager": {
+  "answer": "Eager exposure of all schema sets costs 2026 tokens (9180 bytes). The deferred catalog analogue costs 528 tokens (2493 bytes), saving 1498 tokens / 6687 bytes. Activating the dominating server harness.mcp.schema-heavy under deferred still costs 1322 tokens versus 2026 eager.",
+  "byte_savings": 6687,
+  "deferred_bytes": 2493,
+  "deferred_cheaper_bytes": true,
+  "deferred_cheaper_tokens": true,
+  "deferred_tokens": 528,
+  "eager_bytes": 9180,
+  "eager_tokens": 2026,
+  "first_use_activation": {
+   "activate_id": "harness.mcp.schema-heavy",
+   "deferred_plus_activated_tokens": 1322,
+   "eager_tokens": 2026,
+   "note": "Deferred + one activated full schema vs eager-all. Activating the dominating server's full set still costs less than exposing every server eagerly iff remaining deferred stubs plus that server's eager set stay below the eager total.",
+   "still_below_eager": true
+  },
+  "token_savings": 1498
+ },
+ "disable_and_remeasure": {
+  "baseline_bytes": 9180,
+  "baseline_tokens": 2026,
+  "bytes_match": true,
+  "disabled_server": "harness.mcp.schema-heavy",
+  "measured_drop_bytes": 4919,
+  "measured_drop_tokens": 1093,
+  "predicted_drop_bytes": 4919,
+  "predicted_drop_tokens": 1093,
+  "remeasured_bytes": 4261,
+  "remeasured_tokens": 933,
+  "tokens_match": true
+ },
+ "dominating_server": "harness.mcp.schema-heavy",
+ "eager_total": {
+  "bytes": 9180,
+  "servers": [
+   "harness.mcp.schema-heavy",
+   "live.cursor",
+   "harness.mcp.fs-lite",
+   "harness.mcp.ping"
+  ],
+  "tokens": 2026
+ },
+ "inputs_resolved": {
+  "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "Windows restore path not present on this Linux box",
+  "REGISTER.md": "absent on this worktree",
+  "home_mcp_json": {
+   "any_present": false,
+   "candidates": [
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/root/.mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/root/.cursor/mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/opt/p2/ast-integrate/.cursor/mcp.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "/opt/p2/ast-integrate/mcp.json"
+    }
+   ]
+  },
+  "live_client_tool_inventory": "GetDynamicTools catalog: namespace cursor only"
+ },
+ "measured_at": "2026-08-25T00:55:50Z",
+ "measurement_commands": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0041/probe1_rank_disable.py",
+   "covers": "rank + disable-remeasure tokens",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0041/probe2_bytes_deferred.py",
+   "covers": "bytes + deferred-vs-eager",
+   "id": "probe2"
+  }
+ ],
+ "output_schema": "command-center/schema/measurement-run.schema.json",
+ "question": "How many tokens does each installed MCP server's tool schema set add to a turn, which servers dominate, and what is the measured cost of the deferred-tool mechanism versus eager exposure?",
+ "ranked_per_server_token_table": [
+  {
+   "bytes": 4919,
+   "chars_div_4": 1229,
+   "deferred_bytes": 1400,
+   "deferred_tokens": 299,
+   "eager_minus_deferred_tokens": 794,
+   "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/schema_heavy.json",
+   "id": "harness.mcp.schema-heavy",
+   "origin": "harness-fixture",
+   "rank": 1,
+   "share_of_eager_tokens": 0.539487,
+   "tokenizer_ne_chars_div_4": true,
+   "tokens": 1093,
+   "tool_count": 8,
+   "tool_names": [
+    "search_code",
+    "get_file_contents",
+    "list_commits",
+    "web_search",
+    "scrape_url",
+    "pack_repository",
+    "ask_wiki",
+    "list_issues"
+   ]
+  },
+  {
+   "bytes": 2991,
+   "chars_div_4": 747,
+   "deferred_bytes": 687,
+   "deferred_tokens": 138,
+   "eager_minus_deferred_tokens": 530,
+   "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/live/cursor.json",
+   "id": "live.cursor",
+   "origin": "live-client-GetDynamicTools",
+   "rank": 2,
+   "share_of_eager_tokens": 0.329714,
+   "tokenizer_ne_chars_div_4": true,
+   "tokens": 668,
+   "tool_count": 3,
+   "tool_names": [
+    "CreateGoal",
+    "GenerateImage",
+    "UpdateGoal"
+   ]
+  },
+  {
+   "bytes": 1090,
+   "chars_div_4": 272,
+   "deferred_bytes": 303,
+   "deferred_tokens": 67,
+   "eager_minus_deferred_tokens": 162,
+   "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/fs_lite.json",
+   "id": "harness.mcp.fs-lite",
+   "origin": "harness-fixture",
+   "rank": 3,
+   "share_of_eager_tokens": 0.113031,
+   "tokenizer_ne_chars_div_4": true,
+   "tokens": 229,
+   "tool_count": 3,
+   "tool_names": [
+    "list_dir",
+    "read_file",
+    "search"
+   ]
+  },
+  {
+   "bytes": 180,
+   "chars_div_4": 45,
+   "deferred_bytes": 103,
+   "deferred_tokens": 24,
+   "eager_minus_deferred_tokens": 12,
+   "fixture_path": "command-center/p2-wave/probes/RES-0041/fixtures/harness/ping.json",
+   "id": "harness.mcp.ping",
+   "origin": "harness-fixture",
+   "rank": 4,
+   "share_of_eager_tokens": 0.017769,
+   "tokenizer_ne_chars_div_4": true,
+   "tokens": 36,
+   "tool_count": 1,
+   "tool_names": [
+    "ping"
+   ]
+  }
+ ],
+ "receipt": "SUCCESS:RES-0041 in the receipt AND a ranked per-server token table plus a disable-and-remeasure delta matching the predicted drop",
+ "report_kind": "measurement-run",
+ "tokenizer": {
+  "id": "res-0041-gpt2-regex-unigram",
+  "module": "command-center/p2-wave/probes/RES-0041/tokenizer.py",
+  "not_chars_div_4": true,
+  "peer": "command-center/p2-wave/probes/ARC-0025/tokenizer.py",
+  "peer_algorithm": "identical regex unigram; distinct pin name for this unit",
+  "pin": "res-0041-gpt2-regex-unigram/v1",
+  "spec": "Unicode regex unigram: '(?:[sdmt]|ll|ve|re)| ?[^\\W\\d_]+| ?\\d+| ?[^\\s\\w]+|\\s+(?!\\S)|\\s+ with unmatched gaps kept as their own tokens. Each piece counts as 1. Not len(text)//4.",
+  "version": "v1"
+ },
+ "two_signal": {
+  "byte_rank_ids": [
+   "harness.mcp.schema-heavy",
+   "live.cursor",
+   "harness.mcp.fs-lite",
+   "harness.mcp.ping"
+  ],
+  "dominator_agrees": true,
+  "dominator_bytes": "harness.mcp.schema-heavy",
+  "dominator_tokens": "harness.mcp.schema-heavy",
+  "every_row_tokenizer_ne_chars_div_4": true,
+  "rank_ids_agree": true,
+  "signal_1": "tokenizer tokens (res-0041-gpt2-regex-unigram/v1) over canonical tools/list JSON",
+  "signal_2": "UTF-8 byte length of the same canonical JSON (independent field, not a re-run)",
+  "token_rank_ids": [
+   "harness.mcp.schema-heavy",
+   "live.cursor",
+   "harness.mcp.fs-lite",
+   "harness.mcp.ping"
+  ]
+ },
+ "worktree": "/opt/p2/ast-integrate"
+}

@@ -1,0 +1,98 @@
+{
+ "schema_version": 1,
+ "unit_id": "ARC-0015",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:ARC-0015",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0015]",
+ "min_bytes_threshold": 2048,
+ "artifacts": [
+  {
+   "path": "command-center/phase3/A2/TEST-PLAN.json",
+   "sha256": "5bd2f89ace09036ab5520e6722e73cd0e749763892d33bcc81439a3a6d47ecef",
+   "bytes": 16243,
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Two generate() runs over the live ARC-0010 registry are byte-identical across all 10 files; datetime.now() and dict-order injections turn the determinism test red.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:132",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+     "raw_output": "clean two_run_identical=True files=10 entries=10\nmutation_datetime_now fired_on_bad_state=True\nmutation_dict_order fired_on_bad_state=True\nnegative_controls silent_on_clean: clean_identical=True clean_full=True\narc0015_probe1 clean_identical=True datetime_fired=True dictorder_fired=True\nSUCCESS:ARC-0015-probe1 mutation controls both-states verified",
+     "fingerprint": "ARC-0015:probe1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+     "raw_output": "eol_invariant files=10 all_verdicts_match_after_lf_norm=True all_raw_bytes_differ=True\ncontent_mutation_control fired_on_bad_state=True (file=councils/catalog-councils.all.json)\ncontrol_silent_on_good_state=True\narc0015_probe2 files=10 eol_invariant=True git_archive_used=False\nSUCCESS:ARC-0015-probe2 CRLF/round-trip verdicts byte-local and platform-stable",
+     "fingerprint": "ARC-0015:probe2:verifier",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CRLF rewrites of every generated file preserve the LF-normalized verdict; a content mutation flips it; no VCS comparator is used.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0015/probe2_eol.py:1",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+     "raw_output": "eol_invariant files=10 all_verdicts_match_after_lf_norm=True all_raw_bytes_differ=True\ncontent_mutation_control fired_on_bad_state=True (file=councils/catalog-councils.all.json)\ncontrol_silent_on_good_state=True\narc0015_probe2 files=10 eol_invariant=True git_archive_used=False\nSUCCESS:ARC-0015-probe2 CRLF/round-trip verdicts byte-local and platform-stable",
+     "fingerprint": "ARC-0015:probe2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+     "raw_output": "clean two_run_identical=True files=10 entries=10\nmutation_datetime_now fired_on_bad_state=True\nmutation_dict_order fired_on_bad_state=True\nnegative_controls silent_on_clean: clean_identical=True clean_full=True\narc0015_probe1 clean_identical=True datetime_fired=True dictorder_fired=True\nSUCCESS:ARC-0015-probe1 mutation controls both-states verified",
+     "fingerprint": "ARC-0015:probe1:verifier",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-25T15:04:37Z",
+  "ended_at": "2026-10-25T15:04:51Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "max-3-fix-cycles-per-unit"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete and live-verified (_measure_one_delivered.py -> SUCCESS:delivered): artifact at output_path parses, carries the completion sentinel, both named probes exit 0, per-unit manifest row matches the CRLF-normalized sha256. state stays BLOCKED because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS and independent=true; only the independent reviewer closes. Not owner-gated; blanket build directive 2026-10-24 recorded as satisfied for the gate surface this unit carries.",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement"
+ },
+ "reviewer": {
+  "reviewer_id": "unassigned-independent-reviewer",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0015/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0015"
+ },
+ "produced_by": {
+  "model": "opus",
+  "role": "builder-shard-2-w2",
+  "vendor": "anthropic"
+ }
+}

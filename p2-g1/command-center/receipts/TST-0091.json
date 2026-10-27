@@ -1,0 +1,193 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8309,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0091/pipeline.py",
+   "role": "implementation",
+   "sha256": "a89bdb8f01d4eb89ff37abc6f27198c0c9d7eba7cbb4afd1ab11023807d74f2e"
+  },
+  {
+   "bytes": 10448,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0091/scenario.py",
+   "role": "supporting",
+   "sha256": "338f3e09a2a26c1b8ddbe45afb503f7fc7ca14ebeb78a82cb15b1ff4714afe49"
+  },
+  {
+   "bytes": 3221,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0091/probe1_barrier_resolves.py",
+   "role": "supporting",
+   "sha256": "cabadb3df83499dc1317038e8ee43556d84977f9d21082e450be78151ec09d84"
+  },
+  {
+   "bytes": 4643,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0091/probe2_timeout_attribution.py",
+   "role": "supporting",
+   "sha256": "ee0b0a3e5d9102ae7f588afc83a5fe410a20fedb10f8d73605d324a4f6f4cf43"
+  },
+  {
+   "bytes": 1138,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/fault-injection-receipt.schema.json",
+   "role": "supporting",
+   "sha256": "c4c394a910661a45108812156993597780479547f0afe20dbe3eeec918d42137"
+  }
+ ],
+ "both_states": {
+  "fixed_n_success": 11,
+  "fixed_n_timeout": 1,
+  "fixed_resolves": true,
+  "naive_blocks": true,
+  "naive_n_durable": 0,
+  "naive_zero_durable": true
+ },
+ "cohort": {
+  "barrier_resolved": true,
+  "fixed_wall_s": 0.2004786850002347,
+  "hung_unit_id": "unit-07",
+  "n": 12,
+  "n_failed": 0,
+  "n_success": 11,
+  "n_timeout": 1,
+  "timeout_classification": "timeout-0.2s",
+  "write_as_you_go": true
+ },
+ "completion_marker": "SUCCESS:TST-0091",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0091.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "note": "measure runs after this receipt is on disk",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0091/pipeline.py:per_unit_pipeline",
+   "claim": "A batch of N=12 with one deliberately hung unit: naive parallel() does not resolve within the watchdog and writes zero durable rows; the per-unit pipeline barrier resolves with 11 SUCCESS + 1 typed timeout classification.",
+   "measured": {
+    "fixed_n_success": 11,
+    "fixed_n_timeout": 1,
+    "fixed_resolved": true,
+    "fixed_wall_s": 0.2004786850002347,
+    "n": 12,
+    "naive_n_durable": 0,
+    "naive_resolved": false
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0091/scenario.py",
+   "claim": "The hung unit is classified timeout-0.2s and is present in the fan-in set (not silently dropped). Survivors are complete, attributed by unit_id, and durable on disk before the hung unit is classified (write-as-you-go).",
+   "measured": {
+    "all_attributed": true,
+    "classification": "timeout-0.2s",
+    "dropped": false,
+    "hung_id": "unit-07",
+    "n_survivors": 11,
+    "write_as_you_go": true
+   },
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_class": "one hung unit blocks a large batch",
+ "id": "TST-0091",
+ "injected_fault": {
+  "declared_timeout_s": 0.2,
+  "hung_unit_id": "unit-07",
+  "kind": "deliberately-hung-unit",
+  "n": 12,
+  "naive_watchdog_s": 0.55,
+  "survivor_sleep_s": 0.08,
+  "timeout_classification": "timeout-0.2s"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0091/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0091/probe1_barrier_resolves.py",
+   "id": "probe1",
+   "role": "both-states-barrier"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0091/probe2_timeout_attribution.py",
+   "id": "probe2",
+   "role": "timeout-attribution-reviewer"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "hung=unit-07 classification=timeout-0.2s",
+   "description": "all-healthy cohort: N SUCCESS, zero timeout classifications, wall under the negative budget; hung injection fires timeout",
+   "fired_on_bad_state": true,
+   "good_state_output": "n_success=12 n_timeout=0",
+   "id": "TST-0091-C1-ALL-HEALTHY",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+ "question_or_target": "Failure class :11317. Measured: parallel() has no per-agent timeout, so one hung agent deadlocks the whole phase - detected only by a write-freeze longer than 25 minutes. Target: per-unit timeouts and a per-work-unit pipeline so the barrier resolves on the survivors with the hung unit classified, not silently awaited.",
+ "report_kind": "fault-injection-receipt",
+ "residual_unknowns": [
+  {
+   "claim": "This unit measures the barrier contract on the SUT under probes/TST-0091/. Production parallel() call sites in operator workflows (WFA-0088 / IMP-0452) are not patched here.",
+   "settling_experiment": "WFA-0088 repair of live workflow parallel() call sites.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-runs classification, survivor attribution, and the all-healthy negative control, and recounts the ledger. It does not author the naive watchdog.",
+  "reviewer_id": "TST-0091-probe2-timeout-attribution",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0091",
+ "spec_anchor": "_USER-PROMPTS.md:11317",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0091/probe1_barrier_resolves.py",
+   "id": "test_barrier_resolves_despite_one_hung_unit",
+   "name": "test_barrier_resolves_despite_one_hung_unit",
+   "observable": "naive unresolved under 0.55s watchdog with 0 durable rows; per-unit pipeline resolved with 11 SUCCESS + 1 TIMEOUT in 0.2005s",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0091/probe2_timeout_attribution.py",
+   "id": "test_hung_unit_is_classified_timeout_not_silently_dropped",
+   "name": "test_hung_unit_is_classified_timeout_not_silently_dropped",
+   "observable": "unit-07 present with classification timeout-0.2s; mutant drop leaves 11",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0091/probe2_timeout_attribution.py",
+   "id": "test_survivor_results_are_complete_and_attributed",
+   "name": "test_survivor_results_are_complete_and_attributed",
+   "observable": "11 survivors SUCCESS, payload.unit_id matches, ledger durable before hung classified",
+   "result": "PASS"
+  }
+ ],
+ "title": "One hung unit must not block a large batch",
+ "ts": "2026-08-25T00:58:57Z",
+ "unit_id": "TST-0091"
+}

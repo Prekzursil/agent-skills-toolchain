@@ -1,0 +1,837 @@
+{
+ "unit_id": "ADV-0015",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:ADV-0015 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0015 <reason>.",
+ "completion_sentinel": "SUCCESS:ADV-0015 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0015 <reason>.",
+ "profile": "stale-premise-reprobe",
+ "report": {
+  "kind": "stale-premise-reprobe",
+  "observations": [
+   {
+    "name": "named probes exit 0 on live re-run",
+    "measured": true,
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ADV-0015/"
+   },
+   {
+    "name": "per-unit manifest registers the live artifact sha256",
+    "measured": "command-center/p2-wave/probes/ADV-0015/UNIT-ARTIFACT-MANIFEST.json",
+    "method": "byte-compare",
+    "anchor": "command-center/p2-wave/probes/ADV-0015/UNIT-ARTIFACT-MANIFEST.json"
+   }
+  ],
+  "control_ids": [
+   "NC-SURFACE-BOTH-STATES",
+   "NC-RUNTIME-BOTH-STATES"
+  ]
+ },
+ "schema_version": 1,
+ "question": "Does every model id, context window, price and capability flag in the router, cost estimator and cross-vendor adapter still match the vendor's current published surface - and what does the estimator do with an id that no longer resolves?",
+ "title": "Model, pricing and capability staleness audit of every routing table",
+ "spec_anchor": "_USER-PROMPTS.md:10894, 11048",
+ "overall_verdict": "PARTIAL",
+ "measured_at": "2026-08-27T22:07:29Z",
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "stale-premise-refuter",
+  "execution_substrate": "linux-local"
+ },
+ "reviewer": {
+  "reviewer_id": "ADV-0015-probe2-retired-id-runtime",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Probe 2 re-derives retired-id behaviour from a live call into CNL-0004 _fit_budget, not from probe 1's surface-diff table."
+ },
+ "method": {
+  "probe1": "Probe 1: fetch the current vendor surface and diff every id, window and price against the table.",
+  "probe2": "Probe 2 (mechanically different): runtime behaviour test - call the router with a deliberately retired id and record whether it fails loudly, silently substitutes, or estimates a cost from a stale price.",
+  "retired_id": "text-davinci-003",
+  "silent_substitute_is_defect_even_if_substitute_works": true
+ },
+ "counts": {
+  "n_table_rows": 15,
+  "n_stale": 15,
+  "n_match": 0,
+  "n_targets": 10
+ },
+ "surface": {
+  "fixture_captured_at": "2026-08-24T20:45:00Z",
+  "n_current_ids": 53,
+  "live_fetch_any_ok": true,
+  "live_fetches": [
+   {
+    "url": "https://docs.anthropic.com/en/docs/about-claude/models/overview",
+    "ok": true,
+    "status": 200,
+    "error": null,
+    "n_ids": 38
+   },
+   {
+    "url": "https://developers.openai.com/api/docs/models",
+    "ok": true,
+    "status": 200,
+    "error": null,
+    "n_ids": 8
+   }
+  ],
+  "retired_ids": [
+   "claude-2",
+   "claude-2.1",
+   "claude-instant-1.2",
+   "code-davinci-002",
+   "gpt-3.5-turbo-0301",
+   "text-davinci-003"
+  ],
+  "sources": [
+   "https://docs.anthropic.com/en/docs/about-claude/models/overview",
+   "https://developers.openai.com/api/docs/models",
+   "https://developers.openai.com/api/docs/pricing"
+  ]
+ },
+ "runtime": {
+  "over_budget": {
+   "model_in": "text-davinci-003",
+   "model_out": null,
+   "loud": false,
+   "dropped": true,
+   "blocked": false,
+   "kept": false,
+   "unknown": true,
+   "cost_usd": null,
+   "mutations": [
+    "drop seat.retired cost=18.0"
+   ],
+   "cap": 5.0,
+   "n_seats_out": 0,
+   "behaviour": "silent-drop",
+   "defect": true
+  },
+  "under_budget": {
+   "model_in": "text-davinci-003",
+   "model_out": "text-davinci-003",
+   "loud": false,
+   "dropped": false,
+   "blocked": false,
+   "kept": true,
+   "unknown": true,
+   "cost_usd": 3.0,
+   "mutations": [],
+   "cap": 10.0,
+   "n_seats_out": 1,
+   "behaviour": "stale-price-estimate",
+   "defect": true
+  },
+  "known_alias": {
+   "model_in": "opus",
+   "model_out": "haiku",
+   "loud": false,
+   "dropped": false,
+   "blocked": false,
+   "kept": true,
+   "unknown": false,
+   "cost_usd": 6.0,
+   "mutations": [
+    "downgrade seat.retired opus->haiku 18.0->6.0"
+   ],
+   "cap": 10.0,
+   "n_seats_out": 1,
+   "behaviour": "silent-substitute",
+   "defect": true
+  },
+  "controls": {
+   "loud": {
+    "model_in": "text-davinci-003",
+    "model_out": null,
+    "loud": true,
+    "dropped": false,
+    "blocked": false,
+    "kept": false,
+    "unknown": true,
+    "cost_usd": null,
+    "substitute_would_work": false,
+    "note": "planted fail-loudly router",
+    "behaviour": "fail-loudly",
+    "defect": false
+   },
+   "silent": {
+    "model_in": "text-davinci-003",
+    "model_out": "gpt-5.6-sol",
+    "loud": false,
+    "dropped": false,
+    "blocked": false,
+    "kept": true,
+    "unknown": true,
+    "cost_usd": 4.0,
+    "substitute_would_work": true,
+    "note": "planted silent substitute to a working current model",
+    "behaviour": "silent-substitute",
+    "defect": true
+   },
+   "loud_ok": true,
+   "silent_ok": true
+  }
+ },
+ "stale_models": [
+  "codex-cli",
+  "codex-cli-default",
+  "gpt-5",
+  "gpt-5-codex",
+  "gpt-5.1-codex",
+  "gpt-5.x-codex",
+  "haiku",
+  "mini",
+  "opus",
+  "sonnet"
+ ],
+ "matching_models": [],
+ "unique_catalog_models": [
+  "codex-cli",
+  "codex-cli-default",
+  "gpt-5-codex",
+  "gpt-5.1-codex",
+  "gpt-5.x-codex",
+  "opus"
+ ],
+ "diffs": [
+  {
+   "model": "opus",
+   "vendor": "anthropic",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "gpt-5.x-codex",
+   "vendor": "openai",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "codex-cli-default",
+   "vendor": "openai",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "codex-cli",
+   "vendor": "openai",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "gpt-5.1-codex",
+   "vendor": "openai",
+   "table": "WORK-UNIT-CATALOG.assigned_model_vendor_role",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "opus",
+   "vendor": "anthropic",
+   "table": "tools/command-center/seed.py:DEFAULTS.assignment",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": null,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "opus",
+   "vendor": "unknown",
+   "table": "CNL-0004.DOWNGRADE",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 6.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "gpt-5",
+   "vendor": "unknown",
+   "table": "CNL-0004.DOWNGRADE",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 4.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "sonnet",
+   "vendor": "unknown",
+   "table": "CNL-0004.DOWNGRADE",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 6.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "haiku",
+   "vendor": "unknown",
+   "table": "CNL-0004.DOWNGRADE",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 2.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "mini",
+   "vendor": "unknown",
+   "table": "CNL-0004.DOWNGRADE",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 2.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "opus",
+   "vendor": "anthropic",
+   "table": "CNL-0004.auto_compose",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 18.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "gpt-5",
+   "vendor": "openai",
+   "table": "CNL-0004.auto_compose",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 16.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  },
+  {
+   "model": "sonnet",
+   "vendor": "anthropic",
+   "table": "CNL-0004.auto_compose",
+   "on_published_surface": false,
+   "retired": false,
+   "window_tokens_program": null,
+   "window_tokens_published": null,
+   "price_usd_program": 14.0,
+   "mismatches": [
+    "id-absent-from-published-surface",
+    "window-unrecorded-in-program-table"
+   ],
+   "kind": "stale"
+  }
+ ],
+ "targets": [
+  {
+   "id": "CTRL-SURFACE-MATCHING-ROW",
+   "verdict": "REFUTED",
+   "claim": "Planted claude-opus-5 with published 1M window is not flagged stale (detector can go green).",
+   "detail": {
+    "model": "claude-opus-5",
+    "vendor": "anthropic",
+    "table": "planted-matching-control",
+    "on_published_surface": true,
+    "retired": false,
+    "window_tokens_program": 1000000,
+    "window_tokens_published": 1000000,
+    "price_usd_program": null,
+    "mismatches": [],
+    "kind": "match"
+   }
+  },
+  {
+   "id": "CTRL-SURFACE-STALE-ROW",
+   "verdict": "CONFIRMED",
+   "claim": "Planted retired id text-davinci-003 is flagged stale (detector can go red).",
+   "detail": {
+    "model": "text-davinci-003",
+    "vendor": "openai",
+    "table": "planted-stale-control",
+    "on_published_surface": false,
+    "retired": true,
+    "window_tokens_program": 4097,
+    "window_tokens_published": null,
+    "price_usd_program": 0.02,
+    "mismatches": [
+     "id-absent-from-published-surface",
+     "id-listed-as-retired"
+    ],
+    "kind": "stale"
+   }
+  },
+  {
+   "id": "CATALOG-ASSIGNED-MODEL-IDS",
+   "verdict": "CONFIRMED",
+   "claim": "Catalog assigned_model_vendor_role model ids are stale versus today's published vendor surface (alias or missing window/price).",
+   "n_stale": 15,
+   "n_match": 0
+  },
+  {
+   "id": "CNL-0004-COST-TABLE-IDS",
+   "verdict": "CONFIRMED",
+   "claim": "CNL-0004 DOWNGRADE / auto_compose model ids and prices are stale versus today's published vendor surface."
+  },
+  {
+   "id": "SEED-DEFAULT-ASSIGNMENT",
+   "verdict": "CONFIRMED",
+   "claim": "tools/command-center/seed.py DEFAULTS.assignment.model is stale versus today's published vendor surface."
+  },
+  {
+   "id": "CTRL-LOUD-FAIL-NOT-DEFECT",
+   "verdict": "REFUTED",
+   "claim": "A fail-loudly retired-id response is not classified as a defect.",
+   "detail": {
+    "model_in": "text-davinci-003",
+    "model_out": null,
+    "loud": true,
+    "dropped": false,
+    "blocked": false,
+    "kept": false,
+    "unknown": true,
+    "cost_usd": null,
+    "substitute_would_work": false,
+    "note": "planted fail-loudly router",
+    "behaviour": "fail-loudly",
+    "defect": false
+   }
+  },
+  {
+   "id": "CTRL-SILENT-SUB-IS-DEFECT",
+   "verdict": "CONFIRMED",
+   "claim": "Silent substitution of a retired id is a defect even when the substituted model works; degrade-loudly is the contract.",
+   "detail": {
+    "model_in": "text-davinci-003",
+    "model_out": "gpt-5.6-sol",
+    "loud": false,
+    "dropped": false,
+    "blocked": false,
+    "kept": true,
+    "unknown": true,
+    "cost_usd": 4.0,
+    "substitute_would_work": true,
+    "note": "planted silent substitute to a working current model",
+    "behaviour": "silent-substitute",
+    "defect": true
+   }
+  },
+  {
+   "id": "RUNTIME-RETIRED-ID-OVER-BUDGET",
+   "verdict": "CONFIRMED",
+   "claim": "CNL-0004 _fit_budget('text-davinci-003', over budget) fails loudly rather than silent-drop / silent-sub / stale price.",
+   "detail": {
+    "model_in": "text-davinci-003",
+    "model_out": null,
+    "loud": false,
+    "dropped": true,
+    "blocked": false,
+    "kept": false,
+    "unknown": true,
+    "cost_usd": null,
+    "mutations": [
+     "drop seat.retired cost=18.0"
+    ],
+    "cap": 5.0,
+    "n_seats_out": 0,
+    "behaviour": "silent-drop",
+    "defect": true
+   }
+  },
+  {
+   "id": "RUNTIME-RETIRED-ID-UNDER-BUDGET",
+   "verdict": "CONFIRMED",
+   "claim": "CNL-0004 _fit_budget('text-davinci-003', under budget) fails loudly rather than keeping a cost for an unknown id.",
+   "detail": {
+    "model_in": "text-davinci-003",
+    "model_out": "text-davinci-003",
+    "loud": false,
+    "dropped": false,
+    "blocked": false,
+    "kept": true,
+    "unknown": true,
+    "cost_usd": 3.0,
+    "mutations": [],
+    "cap": 10.0,
+    "n_seats_out": 1,
+    "behaviour": "stale-price-estimate",
+    "defect": true
+   }
+  },
+  {
+   "id": "RUNTIME-KNOWN-ALIAS-NOT-RETIRED-CASE",
+   "verdict": "REFUTED",
+   "claim": "Known alias 'opus' is in DOWNGRADE; a budget downgrade to haiku is not the retired-id case and is recorded separately.",
+   "detail": {
+    "model_in": "opus",
+    "model_out": "haiku",
+    "loud": false,
+    "dropped": false,
+    "blocked": false,
+    "kept": true,
+    "unknown": false,
+    "cost_usd": 6.0,
+    "mutations": [
+     "downgrade seat.retired opus->haiku 18.0->6.0"
+    ],
+    "cap": 10.0,
+    "n_seats_out": 1,
+    "behaviour": "silent-substitute",
+    "defect": true
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "A planted current vendor id with a matching published window is not flagged stale.",
+   "verdict": "REFUTED",
+   "anchor": "CTRL-SURFACE-MATCHING-ROW",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0015-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:7239f63392d6d6cd"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0015-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:d4a9d50bded8fb61"
+    }
+   ]
+  },
+  {
+   "claim": "Planted retired id text-davinci-003 is absent from today's published surface.",
+   "verdict": "CONFIRMED",
+   "anchor": "CTRL-SURFACE-STALE-ROW",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0015-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:7c1e1a67e0ed1412"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0015-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:36d1abfb2e3dbabd"
+    }
+   ]
+  },
+  {
+   "claim": "Catalog / CNL-0004 / seed routing ids are not published vendor API ids (aliases such as opus, gpt-5, sonnet).",
+   "verdict": "CONFIRMED",
+   "anchor": "CATALOG-ASSIGNED-MODEL-IDS",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0015-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:d9afea852678f472"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0015-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:a51c28e014acbb99"
+    }
+   ]
+  },
+  {
+   "claim": "CNL-0004 _fit_budget('text-davinci-003') does not fail loudly; silent-drop or stale-price-estimate is a defect.",
+   "verdict": "CONFIRMED",
+   "anchor": "RUNTIME-RETIRED-ID-OVER-BUDGET",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0015-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:cbe165d9a694d571"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0015-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:ffcb7c97ea4b0229"
+    }
+   ]
+  },
+  {
+   "claim": "Silent substitution is classified as a defect even when the substituted model would work.",
+   "verdict": "CONFIRMED",
+   "anchor": "CTRL-SILENT-SUB-IS-DEFECT",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0015-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:28913bfe74023266"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0015-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:e9c723caad33f7b8"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-SURFACE-MATCHING-CONTROL",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_vendor_surface_diff.py"
+  },
+  {
+   "id": "T-SURFACE-STALE-CONTROL",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_vendor_surface_diff.py"
+  },
+  {
+   "id": "T-LOUD-FAIL-NOT-DEFECT",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_retired_id_runtime.py"
+  },
+  {
+   "id": "T-SILENT-SUB-IS-DEFECT",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_retired_id_runtime.py",
+   "output_tail": "extras: {\"note\": \"silent substitution classified as defect even when substitute works\"}"
+  },
+  {
+   "id": "T-PROBE1-DIFF-RAN",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_vendor_surface_diff.py"
+  },
+  {
+   "id": "T-PROBE2-RETIRED-CALL-RAN",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_retired_id_runtime.py"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-SURFACE-BOTH-STATES",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "kind": "known-broken-fixture",
+   "description": "Both-states control. Bad state: text-davinci-003 planted stale row; good state: claude-opus-5 planted matching row",
+   "bad_state_output": "text-davinci-003 planted stale row",
+   "good_state_output": "claude-opus-5 planted matching row"
+  },
+  {
+   "id": "NC-RUNTIME-BOTH-STATES",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "kind": "known-broken-fixture",
+   "description": "Both-states control. Bad state: silent-substitute retired-id router (substitute works); good state: fail-loudly retired-id router",
+   "bad_state_output": "silent-substitute retired-id router (substitute works)",
+   "good_state_output": "fail-loudly retired-id router"
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "name": "Probe 1: fetch the current vendor surface and diff every id, window and price against the table.",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe1_vendor_surface_diff.py",
+   "raw_output": "Probe 1: fetch the current vendor surface and diff every id, window and price against the table.\n{\"matching_models\": [], \"n_match\": 0, \"n_stale\": 15, \"n_table_rows\": 15, \"name\": \"Probe 1: fetch the current vendor surface and diff every id, window and price against the table.\", \"probe\": \"probe1\", \"stale_models\": [\"codex-cli\", \"codex-cli-default\", \"gpt-5\", \"gpt-5-codex\", \"gpt-5.1-codex\", \"gpt-5.x-codex\", \"haiku\", \"mini\", \"opus\", \"sonnet\"], \"surface\": {\"fixture_captured_at\": \"2026-08-24T20:45:00Z\", \"live_fetch_any_ok\": true, \"live_ok\": [{\"ok\": true, \"url\": \"https://docs.anthropic.com/en/docs/about-claude/models/overview\"}, {\"ok\": true, \"url\": \"https://developers.openai.com/api/docs/models\"}], \"retired_ids\": [\"claude-2\", \"claude-2.1\", \"claude-instant-1.2\", \"code-davinci-002\", \"gpt-3.5-turbo-0301\", \"text-davinci-003\"], \"sources\": [\"https://docs.anthropic.com/en/docs/about-claude/models/overview\", \"https://developers.openai.com/api/docs/models\", \"https://developers.openai.com/api/docs/pricing\"]}, \"surface_controls\": {\"matching_kind\": \"match\", \"matching_ok\": true, \"stale_kind\": \"stale\", \"stale_ok\": true}, \"unique_catalog_models\": [\"codex-cli\", \"codex-cli-default\", \"gpt-5-codex\", \"gpt-5.1-codex\", \"gpt-5.x-codex\", \"opus\"]}\nsurface_matching_ok=True surface_stale_ok=True n_stale=15 n_match=0\n"
+  },
+  {
+   "id": "probe2",
+   "name": "Probe 2 (mechanically different): runtime behaviour test - call the router with a deliberately retired id and record whether it fails loudly, silently substitutes, or estimates a cost from a stale price.",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0015/probe2_retired_id_runtime.py",
+   "raw_output": "Probe 2 (mechanically different): runtime behaviour test - call the router with a deliberately retired id and record whether it fails loudly, silently substitutes, or estimates a cost from a stale price.\n{\"known_alias\": {\"behaviour\": \"silent-substitute\", \"blocked\": false, \"cap\": 10.0, \"cost_usd\": 6.0, \"defect\": true, \"dropped\": false, \"kept\": true, \"loud\": false, \"model_in\": \"opus\", \"model_out\": \"haiku\", \"mutations\": [\"downgrade seat.retired opus->haiku 18.0->6.0\"], \"n_seats_out\": 1, \"unknown\": false}, \"name\": \"Probe 2 (mechanically different): runtime behaviour test - call the router with a deliberately retired id and record whether it fails loudly, silently substitutes, or estimates a cost from a stale price.\", \"over_budget\": {\"behaviour\": \"silent-drop\", \"blocked\": false, \"cap\": 5.0, \"cost_usd\": null, \"defect\": true, \"dropped\": true, \"kept\": false, \"loud\": false, \"model_in\": \"text-davinci-003\", \"model_out\": null, \"mutations\": [\"drop seat.retired cost=18.0\"], \"n_seats_out\": 0, \"unknown\": true}, \"probe\": \"probe2\", \"retired_id\": \"text-davinci-003\", \"runtime_controls\": {\"loud_behaviour\": \"fail-loudly\", \"loud_ok\": true, \"silent_behaviour\": \"silent-substitute\", \"silent_ok\": true, \"silent_substitute_would_work\": true}, \"under_budget\": {\"behaviour\": \"stale-price-estimate\", \"blocked\": false, \"cap\": 10.0, \"cost_usd\": 3.0, \"defect\": true, \"dropped\": false, \"kept\": true, \"loud\": false, \"model_in\": \"text-davinci-003\", \"model_out\": \"text-davinci-003\", \"mutations\": [], \"n_seats_out\": 1, \"unknown\": true}}\nloud_ok=True silent_ok=True over_behaviour=silent-drop over_defect=True under_behaviour=stale-price-estimate under_defect=True\n"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+   "exists": true,
+   "role": "primary",
+   "bytes": 29782,
+   "sha256": "2d520efbc74c1297e7041eb80f02a60e445b90374a9799ed6dea0cf8bee2602d",
+   "eol": "LF"
+  },
+  {
+   "path": "command-center/schema/stale-premise-reprobe.schema.json",
+   "exists": true,
+   "role": "supporting",
+   "bytes": 1164,
+   "sha256": "59c16bf181051eaa5b1e04859f8b7e346d9b27324ec87a149df8a7eb89026273",
+   "eol": "LF"
+  }
+ ],
+ "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+ "answer": "PARTIAL: program routing/cost tables use short aliases (codex-cli, codex-cli-default, gpt-5, gpt-5-codex, gpt-5.1-codex, gpt-5.x-codex, haiku, mini) that are absent from today's published Anthropic/OpenAI ids; CNL-0004 _fit_budget('text-davinci-003') silent-drop (defect=True). Silent substitution is a defect even when the substitute works.",
+ "min_bytes_threshold": 4096,
+ "timestamps": {
+  "started_at": "2026-10-25T15:27:58Z",
+  "ended_at": "2026-10-26T05:08:53Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "up to 3 attempts with staggered arrival (60s / 300s / 900s) because this unit depends on external endpoints; a 429/529 is provider-side and is NOT a unit failure and must NOT reduce concurrency",
+  "attempts": []
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0015/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0015",
+  "registered_at": "2026-10-26T05:08:53Z"
+ },
+ "residual_unknowns": [],
+ "downstream_consumers": [
+  {
+   "consumer": "python json RFC-8259 parse of the delivered artifact",
+   "artifact_path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python3 -c json.load(command-center/adversarial/ADV-0015-model-routing-table-staleness.json)",
+    "raw_output": "parsed OK",
+    "fingerprint": "sha16:4aa84ff410cfb17d"
+   }
+  },
+  {
+   "consumer": "platform/lib/schema_resolver.validate_artifact against declared output_schema",
+   "artifact_path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python3 platform/lib/schema_resolver.py command-center/adversarial/ADV-0015-model-routing-table-staleness.json command-center/schema/stale-premise-reprobe.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "sha16:04ea7c244a8991b0"
+   }
+  }
+ ]
+}

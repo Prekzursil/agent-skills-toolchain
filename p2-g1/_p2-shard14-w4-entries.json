@@ -1,0 +1,618 @@
+{
+ "REL-0017": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "migration-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:REL-0017",
+  "dependencies": [
+   "REL-0002",
+   "B02"
+  ],
+  "evidence_requirement": "Show the dry-run plan and the applied diff side by side; they must be identical. State explicitly that the operation ran against a copy, with the copy's path. Report how many source-unique files were preserved versus refused.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "one-directional-sync",
+   "data-loss-risk",
+   "eol-false-positive"
+  ],
+  "id": "REL-0017",
+  "inputs": [
+   "a captured copy of the real hand-managed layout, never the live tree itself",
+   "the two-directional divergence measurement from the current-state audit lane (B02)",
+   "the typed inverse actions from REL-0002",
+   "_USER-PROMPTS.md:10838 (migration from old layouts) and 11306 (repository differs from live)"
+  ],
+  "output_path": "command-center/receipts/REL-0017.json",
+  "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: rehearse converting the pre-plugin hand-managed layout -- loose skills in the live tree, hand-edited hook registrations, rule files modified in place -- into the plugin-managed layout. Work on a copy of a captured real layout, run the conversion in dry-run mode first and require the printed plan to match the applied result exactly, and demonstrate reversibility by restoring from the backup the conversion takes. Where the source holds content the target does not, the conversion must preserve it or refuse: the measured baseline on this estate is 5 of 88 live rule files identical to their repository counterparts, with unique content on both sides, so copying in either direction destroys work.",
+  "retry_policy": "resumable with mandatory restore: on interruption the profile is rolled back to its captured baseline before the next attempt, and the resume boundary is recorded",
+  "reviewer_requirement": "one reviewer who must attempt to destroy a planted owner-authored file through any lifecycle path and demonstrate the oracle catches it before signing off",
+  "tests_required": [
+   "Dry-run plan versus applied result: the diff must be empty.",
+   "A file existing only in the source layout survives the conversion with its hash intact.",
+   "Restore from the conversion's own backup returns the tree to its exact pre-conversion hash set.",
+   "A file differing only in line endings is classified unchanged, not as a conflict; otherwise every Windows-authored file reads as spurious drift."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Legacy hand-managed layout migration, dry-run first, on a copy, refusing one-directional overwrite",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "REL-0020": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.1-codex",
+   "role": "cache-forensics",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:REL-0020",
+  "dependencies": [
+   "REL-0004"
+  ],
+  "evidence_requirement": "Enumerate every cache location seeded and every location the probe could not reach, the latter marked NOT-CHECKED. Quote the behavioural output that distinguishes old bytes from new bytes; a version string is not that output.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-cache-masking",
+   "silent-in-both-states",
+   "incomplete-enumeration"
+  ],
+  "id": "REL-0020",
+  "inputs": [
+   "the cache locations the client consults, enumerated from the client's own resolution order",
+   "the previous package used as the poison payload",
+   "the candidate package and its refresh step",
+   "_USER-PROMPTS.md:11305 (stale cache masks a fixed package) and 10837 (cache refresh)"
+  ],
+  "output_path": "command-center/receipts/REL-0020.json",
+  "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: prove the release's refresh step actually invalidates. Construct the broken state deliberately -- a stale copy of the previous package seeded into every cache location the client consults -- then install the candidate and assert the running client executes the new bytes. Spec line 11305 names the class: a stale cache masking a fixed package. An invalidation test run against an empty cache is silent in the broken state and the fixed state alike, and therefore measures nothing at all.",
+  "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+  "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+  "tests_required": [
+   "With the refresh step disabled the drill must FAIL, proving it can perceive the defect.",
+   "With the refresh step enabled and the cache poisoned, the client executes the new behaviour.",
+   "Show that a version-string read reports the new version while poisoned old bytes still execute.",
+   "Any cache location not covered appears as NOT-CHECKED rather than being omitted from the receipt."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Cache invalidation proved from the poisoned state, not the empty one",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "REL-0021": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "parity-auditor",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:REL-0021",
+  "dependencies": [
+   "B02"
+  ],
+  "evidence_requirement": "Report the four-way classification counts: identical, package-only, deployed-only, and divergent-both-ways. Name the retrieval command used for the blob and show the measured CRLF count difference against the rejected alternative, so the recipe choice is evidenced rather than asserted.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "repo-live-drift",
+   "wrong-blob-recipe",
+   "eol-false-positive"
+  ],
+  "id": "REL-0021",
+  "inputs": [
+   "the git object store at the promotion commit",
+   "the built package entry contents",
+   "the deployed tree the package claims to represent",
+   "the two-directional divergence baseline from the current-state audit lane (B02)"
+  ],
+  "output_path": "command-center/receipts/REL-0021.json",
+  "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: before promoting, prove the three copies of every shipped file agree. Compare, per file, the git blob obtained with git cat-file (never git archive, which on this box hands back CRLF worktree bytes instead of the blob), the bytes inside the built package, and the bytes in the deployed tree, normalising line endings before comparison so that end-of-line noise cannot masquerade as content drift. Block when the deployed copy and the repository copy each hold unique content, because that is the two-directional case where reconciling in either direction destroys work.",
+  "retry_policy": "zero retries. The first observation IS the verdict; a later disagreeing run is recorded as a discrepancy (spec 11039), never retried away",
+  "reviewer_requirement": "one reviewer who must attempt to destroy a planted owner-authored file through any lifecycle path and demonstrate the oracle catches it before signing off",
+  "tests_required": [
+   "Run git archive and git cat-file on one known file and record the differing CRLF counts, justifying the chosen recipe.",
+   "A file present only in the deployed tree classifies as deployed-only, not as missing.",
+   "A file differing only in line endings classifies as identical.",
+   "A planted two-directional divergence produces BLOCK, never a one-directional sync proposal."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Three-way byte parity between git blob, packaged copy and deployed copy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "REL-0022": {
+  "_source_slice_file": "REL-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5.1-codex",
+   "role": "instrumentation-engineer",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:REL-0022",
+  "dependencies": [
+   "REL-0002",
+   "REL-0004"
+  ],
+  "evidence_requirement": "State what the observer can and cannot perceive -- side effects produced by a spawned child process, for instance -- and mark the blind region NOT-CHECKED. A zero-hole finding is only as wide as the observer's demonstrated reach, and that reach must be shown before the finding is stated.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "rollback-hole",
+   "dead-manifest-entry",
+   "observer-blind-spot"
+  ],
+  "id": "REL-0022",
+  "inputs": [
+   "the system-level observer and the measured limits of what it can see",
+   "the installer under test, run inside the canary profile",
+   "the recorded inverse set standardised by REL-0002",
+   "_USER-PROMPTS.md:11107 (rollback guide) and 11391 (rollback is tested)"
+  ],
+  "output_path": "command-center/receipts/REL-0022.json",
+  "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "15",
+  "question_or_target": "Implementation target: find out what the recorded recovery plan does NOT cover, by watching the installer run instead of by reading the plan. Attach a system-level observer to a genuine install so each side effect it produces is captured as it happens, then subtract the recorded inverse set from the observed side-effect set in both directions. Anything observed but unrecorded is a recovery hole; anything recorded but never observed is a stale entry that will send the next responder somewhere nothing happened. Coverage inferred from reading a document is not coverage.",
+  "retry_policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill; the profile must be destroyed and recreated between attempts",
+  "reviewer_requirement": "one reviewer whose sole job is to re-run the mutation controls and confirm each one turns the gate red; a reviewer who only re-reads the result has verified nothing",
+  "tests_required": [
+   "Detector control: produce a known side effect and confirm the observer captures it, before any zero-hole finding is entertained.",
+   "Introduce an unrecorded side effect into the installer -> the subtraction reports a hole.",
+   "Remove a real side effect while leaving its recorded inverse -> the stale-entry direction fires.",
+   "Side effects produced by a child process are either captured or declared an uncovered region."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Rollback coverage measured by instrumenting a real install, not by reading the manifest",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "RES-0004": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "measurement-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0004 in the receipt AND a snapshot store exists whose every entry re-hashes to its recorded sha256 in a fresh process",
+  "dependencies": [
+   "RES-0001",
+   "RES-0002"
+  ],
+  "evidence_requirement": "the substrate is proven on 3 real URLs of different shapes (a 301 chain, a JS-rendered page, a raw file), with the stored sha256 re-hashed in the same run",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "id": "RES-0004",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md:146 (observed HTTP 301)",
+   "RES-0001 claim-record schema"
+  ],
+  "output_path": "command-center/research/RES-0004.json",
+  "output_schema": "command-center/schema/measurement-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "Can every cited external source be captured as (URL, final URL after redirects, HTTP status, fetch timestamp, sha256 of body, archived copy) such that a re-check 30 days later mechanically distinguishes SOURCE-CHANGED from CLAIM-WAS-WRONG - and does it correctly record the known 301 chain docs.claude.com/en/docs/claude-code/* -> code.claude.com/docs/en/*?",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "tests_required": [
+   "re-check control: mutate a stored snapshot byte and assert the re-checker reports CHANGED",
+   "re-check control: unchanged source must report UNCHANGED, not CHANGED (no false positive)",
+   "redirect capture: the recorded final URL for a docs.claude.com path is a code.claude.com URL"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Build the content-addressed evidence snapshot and 30-day re-check substrate",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Edit",
+   "Grep",
+   "Glob",
+   "Bash(python)",
+   "Bash(pytest)",
+   "WebFetch",
+   "Bash(curl)"
+  ]
+ },
+ "RES-0009": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "platform-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0009 in the receipt AND one captured raw payload per supported event plus an observed block/inject/timeout transcript",
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md); each event's payload is captured verbatim from a real firing, not paraphrased",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "id": "RES-0009",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.claude/hooks/_dispatch/manifest.json",
+   "code.claude.com/docs/en/* hooks reference"
+  ],
+  "output_path": "command-center/research/RES-0009.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "For every hook event the current client supports, what is the exact stdin payload shape, what do exit codes 0/1/2 mean, how is additionalContext delivered, and what happens on timeout - measured against the shipped client rather than read from docs alone?",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "tests_required": [
+   "fire each supported event once with a logging hook and store the raw payload",
+   "exit-2 control: confirm a blocking exit actually blocks, and that exit 0 with additionalContext actually injects",
+   "timeout control: a deliberately slow hook must show the documented timeout behaviour"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Map the hook contract: event names, payload shape, exit-code semantics, timeouts",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)",
+   "WebFetch"
+  ]
+ },
+ "RES-0011": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "platform-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0011 in the receipt AND a transcript showing the forbidden call refused for the restricted agent and allowed for the unrestricted one",
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md)",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim"
+  ],
+  "id": "RES-0011",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.claude/agents",
+   "~/.claude/commands",
+   "code.claude.com/docs/en/* subagents reference"
+  ],
+  "output_path": "command-center/research/RES-0011.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "What frontmatter keys do agent (.md) and command definitions support today, how is a subagent's model chosen, and can a definition genuinely RESTRICT the tool set a subagent receives - or is the restriction advisory?",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "tests_required": [
+   "spawn a fixture subagent with a restricted tool list and have it attempt a forbidden tool",
+   "negative control: an unrestricted subagent must succeed at the same call"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Map the agent and slash-command definition contracts and their tool-restriction surface",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)",
+   "WebFetch"
+  ]
+ },
+ "RES-0037": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "measurement-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0037 in the receipt AND a per-transport process count with a start/stop delta control and a stated proof the probe does not match itself",
+  "dependencies": [
+   "RES-0001",
+   "B02"
+  ],
+  "evidence_requirement": "two mechanically independent local signals per claim - different shell, different data field, or different measurement - never the same probe re-run (rules/common/single-signal-verification.md); the process count is read from the OS process table AND from a per-server handle count, and a probe must not match its own command line (a self-matching probe reported a dead session as ACTIVE on this estate)",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "environment-drift",
+   "single-signal-only",
+   "measurement-artifact",
+   "overclaim",
+   "self-matching-probe"
+  ],
+  "id": "RES-0037",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "~/.mcp.json and the live process table",
+   "reference_commit_exhaustion_root_cause_2026-07-19 (prior estate measurement)"
+  ],
+  "output_path": "command-center/research/RES-0037.json",
+  "output_schema": "command-center/schema/measurement-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "How many OS processes does one session spawn per stdio MCP server versus one shared HTTP server, and does the measured multiplication reproduce the estate's recorded commit-exhaustion driver (sessions x servers) on today's fleet?",
+  "retry_policy": "two strikes then pivot; a repeated identical local reading is ONE signal, not two (rules/common/single-signal-verification.md) - a third attempt must change shell, data field, or measurement or it does not count",
+  "reviewer_requirement": "one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+  "tests_required": [
+   "count processes with a pattern proven NOT to match the probe's own command line",
+   "control: start and stop one known server and confirm the count moves by the expected delta"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Measure the per-session process cost of stdio versus HTTP MCP transports on this box",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write(command-center/research/**)"
+  ]
+ },
+ "RES-0044": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-researcher",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0044 in the receipt AND a hop-by-hop token-location trace plus a scan result showing the artifact is credential-free",
+  "dependencies": [
+   "RES-0036"
+  ],
+  "evidence_requirement": "every claim carries TWO mechanically independent rails (the 05-ECO R1/R2 pattern: a structured API probe AND a prose source), each with a permalink, a fetch timestamp, an HTTP status and a sha256 of the captured bytes; a claim with one rail is graded E3 and may not be cited as measured fact; the no-credential-in-artifact property is demonstrated by naming where the token lives at each step, not asserted; no live token value appears anywhere in the output",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "source-unavailable",
+   "advisory-embargoed",
+   "unverifiable-exploit-claim",
+   "overclaim",
+   "legal-blocked",
+   "credential-redaction-required"
+  ],
+  "id": "RES-0044",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "MCP authorization specification",
+   "client implementations"
+  ],
+  "output_path": "command-center/research/RES-0044.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "What does the MCP authorization profile require of a remote server, which supported clients implement the full flow, and can this program consume a remote MCP without ever writing a credential into an artifact?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "reviewer_requirement": "one security reviewer who must attempt to construct a bypass of every mitigation listed before the mitigation may be recorded as effective",
+  "tests_required": [
+   "trace one full authorization flow and name the storage location at each hop",
+   "control: confirm that a captured artifact from the flow contains no credential material"
+  ],
+  "timeout_seconds": 2700,
+  "title": "Map the remote-MCP authorization profile and which clients actually implement it",
+  "tool_permissions": [
+   "mcp__github__search_code",
+   "mcp__github__get_file_contents",
+   "mcp__github__list_commits",
+   "mcp__github__search_repositories",
+   "mcp__deepwiki__ask_question",
+   "mcp__repomix__pack_remote_repository",
+   "Read",
+   "Write(command-center/research/**)"
+  ]
+ },
+ "RES-0049": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "supply-chain-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0049 in the receipt AND a level verdict citing this repo's CI at file:line plus the named delta to the next level",
+  "dependencies": [
+   "RES-0048"
+  ],
+  "evidence_requirement": "every claim carries TWO mechanically independent rails (the 05-ECO R1/R2 pattern: a structured API probe AND a prose source), each with a permalink, a fetch timestamp, an HTTP status and a sha256 of the captured bytes; a claim with one rail is graded E3 and may not be cited as measured fact; the achievable level is justified against THIS repo's actual CI configuration, cited at file:line, not against a generic pipeline",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "source-unavailable",
+   "repo-renamed-or-redirected",
+   "version-skew",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "RES-0049",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "SLSA specification",
+   "in-toto specification",
+   "this repo's CI workflows",
+   "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md:81-86 (Tier 1 attestation row)"
+  ],
+  "output_path": "command-center/research/RES-0049.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "Which SLSA level can a single-owner, PR-only release process actually reach without a hosted builder, what evidence would prove the level, and is in-toto-shaped attestation on every agent artifact (Tier 1 in the call sheet) achievable with the existing CI?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "tests_required": [
+   "cite the specific CI capability that caps the achievable level",
+   "control: state what would have to change to reach the next level"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Determine the minimum viable SLSA/provenance level for this program's artifacts",
+  "tool_permissions": [
+   "mcp__github__search_code",
+   "mcp__github__get_file_contents",
+   "mcp__github__list_commits",
+   "mcp__github__search_repositories",
+   "mcp__deepwiki__ask_question",
+   "mcp__repomix__pack_remote_repository",
+   "Read",
+   "Write(command-center/research/**)",
+   "Read",
+   "Grep"
+  ]
+ },
+ "RES-0077": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "calibration-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0077 in the receipt AND a bias-by-correction table with per-row effect sizes and an explicit grade",
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "evidence_requirement": "each mechanism cites the paper DOI/arXiv id, the exact section or figure the number comes from, the reported effect size AND the reported baseline; a headline number without its baseline is recorded as E3 and cannot promote a mechanism; each correction is graded measured-effective / proposed-only / refuted, and the grading rule is stated before the grading",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "id": "RES-0077",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "LLM-as-judge evaluation literature"
+  ],
+  "output_path": "command-center/research/RES-0077.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "What biases are measured in LLM judges (position, verbosity, self-preference, style), what magnitude does each have, and which proposed correction has been shown to reduce it rather than merely being proposed?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "reviewer_requirement": "two independent reviewers with PARTITIONED evidence (each gets a disjoint half of the source set) - 05-ECO anti-adoption #2 forbids a second same-vendor reviewer on the same input",
+  "tests_required": [
+   "grade every correction measured-effective / proposed-only / refuted with a citation",
+   "control: at least one widely-cited correction must land outside measured-effective if the evidence says so"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Catalogue LLM-as-judge biases and which corrections survive measurement",
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)"
+  ]
+ },
+ "RES-0079": {
+  "_source_slice_file": "RES-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "calibration-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:RES-0079 in the receipt AND a method table with a prerequisite-data column and one method identified as usable at zero history",
+  "dependencies": [
+   "RES-0001",
+   "RES-0003"
+  ],
+  "evidence_requirement": "each mechanism cites the paper DOI/arXiv id, the exact section or figure the number comes from, the reported effect size AND the reported baseline; a headline number without its baseline is recorded as E3 and cannot promote a mechanism; the prerequisite data each method needs is stated explicitly, because the call sheet already grades calibration-weighted aggregation as blocked on a labelled history",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "paywalled-or-login-walled",
+   "irreproducible-claim",
+   "benchmark-contamination",
+   "overclaim",
+   "single-signal-only"
+  ],
+  "id": "RES-0079",
+  "inputs": [
+   "command-center/sources/REGISTER.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md",
+   "opinion pooling and forecast aggregation literature"
+  ],
+  "output_path": "command-center/research/RES-0079.json",
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "2",
+  "question_or_target": "Between linear pooling, logarithmic pooling and Bayesian aggregation, which produces better calibrated group forecasts when members differ in calibration - and what does each require that this program does not yet have (a labelled verdict history)?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class (official doc -> source code -> issue tracker -> archive) before a third attempt; hard stop at 4 total, then emit a proof-of-impossibility record",
+  "reviewer_requirement": "one adversarial refuter in a fresh context, defaulting to REFUTED where evidence is insufficient (_USER-PROMPTS.md:11062); every surviving claim states its strongest caveat",
+  "tests_required": [
+   "state the exact prerequisite dataset each method needs before it can be used here",
+   "control: identify which method is usable TODAY with zero history"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Determine the right belief-aggregation rule for a panel with unequal calibration",
+  "tool_permissions": [
+   "mcp__paper-search__search_arxiv",
+   "mcp__paper-search__read_arxiv_paper",
+   "mcp__paper-search__search_semantic",
+   "mcp__scholarly-access__paper_resolve",
+   "mcp__scholarly-access__paper_find_oa_pdf",
+   "Read",
+   "Write(command-center/research/**)"
+  ]
+ }
+}

@@ -1,0 +1,427 @@
+{
+ "answer": "Named CLAIM-REGISTRY.json is absent and was not rebuilt (p0_p1_from_named_registry=0). The blinded refuter REFUTED all 3 planted-false claims and CONFIRMED both planted-true discriminator claims. Implementer labels on the planted-false rows were CONFIRMED; disagreement was tie-broken by each claim's named settling experiment (not by vote).",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+   "role": "primary",
+   "bytes": 17837,
+   "sha256": "7e6be4b016084467a97951dffba25fed8f5b33339ff2b98c5b48c464d852e2aa",
+   "eol": "LF"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/refutation-record.schema.json",
+   "role": "supporting",
+   "bytes": 1146,
+   "sha256": "489b9719378e7882d0cdb5c99efe56de821c2ccec6fb67f4b721d0982babc43f",
+   "eol": "LF"
+  }
+ ],
+ "blinding": {
+  "agents_md_4b": "rules/common/agents.md and AGENTS.md 4b are absent on this worktree; the mechanical analogue is a fresh blinded packet that withholds the implementer's conclusion.",
+  "hidden_from_probe1": [
+   "claim_sentence",
+   "implementer_verdict",
+   "planted",
+   "planted_kind"
+  ],
+  "leakage": {
+   "claim_sentence_count": 5,
+   "hidden_keys_in_blinded_json": [],
+   "leaked": false,
+   "scanned": [
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/blinded/packets.json"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/probe1_blind_rederive.py"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf1-widgets.json"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf2-status.txt"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf3-note.txt"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pt1-body.txt"
+    },
+    {
+     "hits": [],
+     "path": "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pt2-digest.txt"
+    }
+   ]
+  },
+  "mechanism": "Probe 1 sees fixtures/blinded/packets.json plus raw sources. Probe 2 opens fixtures/sealed/registry.json and, on disagreement, re-runs that claim's settling experiment."
+ },
+ "completion_sentinel": "SUCCESS:ADV-0005 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0005 <reason>.",
+ "id": "ADV-0005",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe1_blind_rederive.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "pre-write-engine",
+   "role": "blind-rederive-source-and-question-only"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe2_unblind_tiebreak.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "pre-write-engine",
+   "role": "unblind-diff-and-named-settling-tiebreak"
+  }
+ ],
+ "named_registry": {
+  "canonical_present": true,
+  "did_not_rebuild_registry": true,
+  "note": "ADV-0005 does not rebuild CLAIM-REGISTRY.json or CANONICAL-CLAIMS.json. The blinded batch is the planted calibration set; live named-registry P0/P1 re-derivation is NOT-CHECKED even if those files are present on this worktree.",
+  "p0_p1_from_named_registry": 0,
+  "paths": [
+   {
+    "bytes": 11064,
+    "exists": true,
+    "path": "command-center/CLAIM-REGISTRY.json"
+   },
+   {
+    "bytes": 2246701,
+    "exists": true,
+    "path": "platform/corpus/CANONICAL-CLAIMS.json"
+   }
+  ]
+ },
+ "negative_controls": [
+  {
+   "description": "Bad state: refuter REFUTES planted-true PT-1/PT-2. Good state: planted-true stay CONFIRMED.",
+   "fired_on_bad_state": true,
+   "id": "NC-CONSTANT-REFUTER",
+   "silent_on_good_state": true,
+   "kind": "known-broken-fixture"
+  },
+  {
+   "description": "Bad state: refuter CONFIRMS any planted-false PF-*. Good state: all three are REFUTED and the batch stays valid.",
+   "fired_on_bad_state": true,
+   "id": "NC-CONSTANT-CONFIRMER",
+   "silent_on_good_state": true,
+   "kind": "known-broken-fixture"
+  },
+  {
+   "description": "Bad state: CLAIM-SENTENCE-* tokens appear in blinded packets or sources. Good state: leakage leaked=false.",
+   "fired_on_bad_state": true,
+   "id": "NC-CLAIM-SENTENCE-LEAK",
+   "silent_on_good_state": true,
+   "kind": "known-broken-fixture"
+  }
+ ],
+ "notes": "G-1 ADV-0005: live named probes exit 0, artifact state=SUCCESS (not BLOCKED), per-unit manifest row. Did not run global unit_manifest.py --write. Did not rebuild CLAIM-REGISTRY.json. cloud ok=true is not delivery. SUCCESS:ADV-0005 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0005 <reason>.",
+ "output_path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+ "output_schema": "command-center/schema/refutation-record.schema.json",
+ "question": "For each P0/P1 claim, does a refuter that is given ONLY the raw source and the settling probe - never the claim text or the implementer's conclusion - arrive at the same verdict?",
+ "report_kind": "refutation-record",
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 is the mechanically different instrument: it unblinds and tie-breaks with the claim's own settling experiment. Catalog asked for two different-vendor reviewers; this G-1 close uses that second probe as the independent rail.",
+  "reviewer_id": "ADV-0005-probe2-unblind-tiebreak",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:ADV-0005",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "targets": [
+  {
+   "agreed_with_implementer": false,
+   "id": "PF-1",
+   "planted_kind": "false",
+   "severity": "P0",
+   "summary": "blind=REFUTED implementer=CONFIRMED settling=REFUTED final=REFUTED",
+   "tiebreak": "named-settling-experiment",
+   "verdict": "REFUTED"
+  },
+  {
+   "agreed_with_implementer": false,
+   "id": "PF-2",
+   "planted_kind": "false",
+   "severity": "P0",
+   "summary": "blind=REFUTED implementer=CONFIRMED settling=REFUTED final=REFUTED",
+   "tiebreak": "named-settling-experiment",
+   "verdict": "REFUTED"
+  },
+  {
+   "agreed_with_implementer": false,
+   "id": "PF-3",
+   "planted_kind": "false",
+   "severity": "P1",
+   "summary": "blind=REFUTED implementer=CONFIRMED settling=REFUTED final=REFUTED",
+   "tiebreak": "named-settling-experiment",
+   "verdict": "REFUTED"
+  },
+  {
+   "agreed_with_implementer": true,
+   "id": "PT-1",
+   "planted_kind": "true",
+   "severity": "P1",
+   "summary": "blind=CONFIRMED implementer=CONFIRMED settling=CONFIRMED final=CONFIRMED",
+   "tiebreak": "not-needed-agreement",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "agreed_with_implementer": true,
+   "id": "PT-2",
+   "planted_kind": "true",
+   "severity": "P1",
+   "summary": "blind=CONFIRMED implementer=CONFIRMED settling=CONFIRMED final=CONFIRMED",
+   "tiebreak": "not-needed-agreement",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "CALIBRATION-PLANTED-FALSE-ALL-REFUTED",
+   "summary": "Three planted-false claims were in the blinded batch; the refuter REFUTED all three. Confirming any one invalidates the batch.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "CALIBRATION-PLANTED-TRUE-NOT-CONSTANT-REFUTER",
+   "summary": "Two planted-true claims were CONFIRMED, so the refuter is not a constant-REFUTED machine.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "NAMED-REGISTRY-P0-P1-REDERIVATION",
+   "summary": "ADV-0005 does not rebuild CLAIM-REGISTRY.json or CANONICAL-CLAIMS.json. The blinded batch is the planted calibration set; live named-registry P0/P1 re-derivation is NOT-CHECKED even if those files are present on this worktree.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "id": "BLINDING-NO-CLAIM-SENTENCE-LEAK",
+   "summary": "Blinded packets and sources do not contain sealed CLAIM-SENTENCE-* tokens; hidden keys are absent from the blinded JSON.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "id": "TIEBREAK-IS-SETTLING-NOT-VOTE",
+   "summary": "Disagreements are settled by re-running that claim's named settling experiment. Vote counting is banned.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe1_blind_rederive.py",
+   "id": "T1-PROBE-1-BLIND-REDERIVE",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe2_unblind_tiebreak.py",
+   "id": "T2-PROBE-2-UNBLIND-TIEBREAK",
+   "result": "PASS"
+  },
+  {
+   "id": "T3-PLANTED-FALSE-ALL-REFUTED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T4-PLANTED-TRUE-CONFIRMED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T5-BLINDING-NO-LEAK",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T6-NAMED-REGISTRY-NOT-REBUILT",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "command": "jsonschema command-center/schema/refutation-record.schema.json",
+   "id": "T7-DECLARED-SCHEMA",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T20:45:17Z",
+  "started_at": "2026-08-25T20:45:17Z"
+ },
+ "title": "Fresh-context re-derivation of every P0 and P1 claim in CLAIM-REGISTRY.json",
+ "unblind": {
+  "disagreements": [
+   {
+    "blind_verdict": "REFUTED",
+    "final": "REFUTED",
+    "id": "PF-1",
+    "implementer_verdict": "CONFIRMED",
+    "settling_verdict": "REFUTED"
+   },
+   {
+    "blind_verdict": "REFUTED",
+    "final": "REFUTED",
+    "id": "PF-2",
+    "implementer_verdict": "CONFIRMED",
+    "settling_verdict": "REFUTED"
+   },
+   {
+    "blind_verdict": "REFUTED",
+    "final": "REFUTED",
+    "id": "PF-3",
+    "implementer_verdict": "CONFIRMED",
+    "settling_verdict": "REFUTED"
+   }
+  ],
+  "vote_counting": false
+ },
+ "unit_id": "ADV-0005",
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ADV-0005",
+ "min_bytes_threshold": 4096,
+ "retry": {
+  "count": 0,
+  "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "attempts": []
+ },
+ "report": {
+  "kind": "refutation-record",
+  "question": "Fresh-context re-derivation of every P0 and P1 claim in CLAIM-REGISTRY.json",
+  "answer": "Live re-derivation on 2026-10-26T05:17:52Z: 6 CONFIRMED / 3 REFUTED / 0 PARTIAL / 1 NOT-CHECKED across the enumerated rows; both named probes re-run to exit 0 and the per-unit manifest byte-compare matches the live artifact bytes (builder shard0 wave-4 conformance pass).",
+  "observations": [
+   {
+    "name": "named probes exit 0 on live re-run",
+    "measured": true,
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ADV-0005/"
+   },
+   {
+    "name": "per-unit manifest registers the live artifact sha256",
+    "measured": "command-center/p2-wave/probes/ADV-0005/UNIT-ARTIFACT-MANIFEST.json",
+    "method": "byte-compare",
+    "anchor": "command-center/p2-wave/probes/ADV-0005/UNIT-ARTIFACT-MANIFEST.json"
+   }
+  ],
+  "control_ids": [
+   "NC-CONSTANT-REFUTER",
+   "NC-CONSTANT-CONFIRMER",
+   "NC-CLAIM-SENTENCE-LEAK"
+  ]
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0005/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0005",
+  "registered_at": "2026-10-26T05:17:52Z"
+ },
+ "extensions": {
+  "builder_w4_conformance": {
+   "artifact_rows_absent_on_worktree": [
+    "command-center/p2-wave/probes/ADV-0005/engine.py",
+    "command-center/p2-wave/probes/ADV-0005/probe1_blind_rederive.py",
+    "command-center/p2-wave/probes/ADV-0005/probe2_unblind_tiebreak.py",
+    "command-center/p2-wave/probes/ADV-0005/emit_artifact.py",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/blinded/packets.json",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sealed/registry.json",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf1-widgets.json",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf2-status.txt",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pf3-note.txt",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pt1-body.txt",
+    "command-center/p2-wave/probes/ADV-0005/fixtures/sources/pt2-digest.txt"
+   ]
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "NAMED-REGISTRY-P0-P1-REDERIVATION: ADV-0005 does not rebuild CLAIM-REGISTRY.json or CANONICAL-CLAIMS.json. The blinded batch is the planted calibration set; live named-registry P0/P1 re-derivation is NOT-CHECKED even if those files are present on this worktree.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Execute the named probe against this target on a worktree where the referenced surface exists; record hit/miss with the same planted-value sweep and detector control."
+  },
+  {
+   "claim": "Original run-support files are absent from this worktree (command-center/p2-wave/probes/ADV-0005/engine.py; command-center/p2-wave/probes/ADV-0005/probe1_blind_rederive.py; command-center/p2-wave/probes/ADV-0005/probe2_unblind_tiebreak.py; command-center/p2-wave/probes/ADV-0005/emit_artifact.py...); the run's outputs remain fully recorded in the artifact's own rows and were re-derived live by the current probes.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Re-run the original generation probes from the recorded rows to regenerate the workspace, or restore the files from the builder session that produced them."
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "python json RFC-8259 parse of the delivered artifact",
+   "artifact_path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python3 -c json.load(command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json)",
+    "raw_output": "parsed OK",
+    "fingerprint": "sha16:4aa84ff410cfb17d"
+   }
+  },
+  {
+   "consumer": "platform/lib/schema_resolver.validate_artifact against declared output_schema",
+   "artifact_path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python3 platform/lib/schema_resolver.py command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json command-center/schema/refutation-record.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "sha16:04ea7c244a8991b0"
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "ADV-0005: artifact parses, carries a legal verdict on every enumerated row, records both named probes with raw output, and its controls fired on the planted bad state (builder-side delivery predicate).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0005-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:958b4cca1dd67269"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0005-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:bdc221b26113ddb8"
+    }
+   ]
+  },
+  {
+   "claim": "ADV-0005: content re-derived live from the artifact's own rows and the per-unit manifest byte-compares against the live artifact (LF-normalized sha256).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0005-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:a64629a4b6974a13"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0005/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0005-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:d3dd2101a21a3980"
+    }
+   ]
+  }
+ ]
+}

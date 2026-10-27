@@ -1,0 +1,68 @@
+{
+  "report_kind": "parser_report",
+  "closed_top_level": {
+    "accepted": ["name", "version", "description", "author", "license", "hooks", "skills", "commands", "agents", "mcpServers"]
+  },
+  "claims": [
+    {
+      "id": "E-strict-rejects-unknown",
+      "anchor": "command-center/p2-wave/probes/TST-0179/manifest_domain.py:parse_strict",
+      "claim": "The strict client parser rejects a plugin manifest carrying an unknown top-level field (telemetry) and the error names the field; the strictest-supported-client requirement (rejection) and the never-emit requirement are both checked.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-clean-accepted",
+      "anchor": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py:main",
+      "claim": "Both-states control: the same manifest without the unknown field is accepted by the strict parser.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-emitter-subset",
+      "anchor": "command-center/p2-wave/probes/TST-0179/manifest_domain.py:emit",
+      "claim": "Schema-diff signal: across 200 generated manifests the emitter's emitted field set is a subset of the strict accepted set, and the emitter refuses a forced foreign field at authoring time; the lenient parser (plain json.loads, no allowlist) demonstrably ACCEPTS the unknown field, proving the strict rejection is distinguishing behavior.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "lenient-parser-accepts-unknown",
+      "kind": "mutation",
+      "description": "The known-broken lenient parser accepts the poisoned manifest, so the strict parser's rejection is a real distinguishing behavior, not a tautology.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "lenient_accepts_unknown_field=true (poisoned manifest parses)",
+      "good_state_output": "strict parser raises StrictManifestError naming telemetry"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0179/manifest_domain.py",
+    "accepted_top_level": 10,
+    "strict_error": "StrictManifestError(message, field) - message names every unknown field",
+    "emitter": "emit() refuses any field outside ACCEPTED_TOP_LEVEL at authoring time"
+  },
+  "observations": [
+    {
+      "name": "unknown top-level field rejection",
+      "measured": "rejected, error names field telemetry",
+      "method": "strict parse of a poisoned manifest; error captured with .field",
+      "anchor": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py"
+    },
+    {
+      "name": "emitter-to-accepted schema diff over generated manifests",
+      "measured": "subset holds across 200/200 generated manifests; foreign field refused at emit",
+      "method": "random field-subset generation + emit + strict re-parse",
+      "anchor": "command-center/p2-wave/probes/TST-0179/probe2_emitter_subset.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The accepted-set pin is the probe-local closed allowlist the unit demands; a real client schema (plugin manifest spec) may pin a different field universe, in which case ACCEPTED_TOP_LEVEL is the only line to re-bind.",
+      "settling_experiment": "Re-bind ACCEPTED_TOP_LEVEL to the shipped manifest schema and re-run both probes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0179: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

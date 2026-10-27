@@ -1,0 +1,838 @@
+{
+ "schema_version": 1,
+ "unit_id": "SYN-0040",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:SYN-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every gate has both exit codes recorded and no gate is VALID without them. Any other terminal state is FAILED:SYN-0040 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "rules/common/single-signal-verification.md:57",
+ "min_bytes_threshold": 2048,
+ "profile": "detector-control",
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "detector-control-engineer",
+  "execution_substrate": "worktree-isolated"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/schema/detector-control.schema.json",
+   "bytes": 1103,
+   "sha256": "bf941281e8fe5fbb47fe2e32ba0299cae93c29256daacad3f6bbd4ef584f798b",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/gates.py",
+   "bytes": 12116,
+   "sha256": "12495ec705067fd7dd1d3f110f8f2cd48462d5958f4cb3f642157204f15d393d",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/matrix.py",
+   "bytes": 6058,
+   "sha256": "d47fc31513b91c4244dc90b3d4295498877c3f34eb039478fe208999ce1ab993",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/fixtures.py",
+   "bytes": 13826,
+   "sha256": "c1d9bd4a83da0b2aef522368123899547618197d1511a86e28176acf50dd9fbd",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/constants.py",
+   "bytes": 2148,
+   "sha256": "e28e35f72b5a727280ad4d01c45b77eb698b4f4582803da13e989d81e02102f4",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/schema_util.py",
+   "bytes": 2309,
+   "sha256": "3faae34d7f7d745062a0e6acbe932196affe6beb66fc89dbb31326c25726016f",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/probe1_every_row.py",
+   "bytes": 3830,
+   "sha256": "838b7604f02d6e1d219db357d17dc067b29783dceb8dde752f7b36638096eee3",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+   "bytes": 3124,
+   "sha256": "2c2d1770ece4a4e4b4ee0adcd678c989bcc6273a14cd925222478bc3f9f2334e",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Every SYN-0002 / SYN-0013 / SYN-0016..SYN-0021 / SYN-0030 gate is a matrix row with both exit codes recorded; none is VALID without them.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/SYN-0040/matrix.py:run_bucket",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c import-matrix-run_bucket",
+     "raw_output": "{\"counts\": {\"INVERTED\": 0, \"NOISY-IN-BOTH\": 0, \"NOT-CHECKED\": 0, \"SILENT-IN-BOTH\": 0, \"VALID\": 9, \"gates\": 9}, \"fingerprint\": {\"SYN-0002\": [1, 0, \"VALID\"], \"SYN-0013\": [1, 0, \"VALID\"], \"SYN-0016\": [1, 0, \"VALID\"], \"SYN-0017\": [1, 0, \"VALID\"], \"SYN-0018\": [1, 0, \"VALID\"], \"SYN-0019\": [1, 0, \"VALID\"], \"SYN-0020\": [1, 0, \"VALID\"], \"SYN-0021\": [1, 0, \"VALID\"], \"SYN-0030\": [1, 0, \"VALID\"]}}",
+     "fingerprint": "0a1097e730ca25e830985e7d538f5917b067c5f5323a99ea64dea4321390b5cb",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe1_every_row.py",
+     "raw_output": "pending-live-rerun",
+     "fingerprint": "e724f90afaa89891831e749c5e5972816edf8c49191f7ab323cd9b756a585856",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "A gate silent in both states is reported SILENT-IN-BOTH and fails the matrix; reverting one defect per gate turns that owning gate red.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/SYN-0040/matrix.py:matrix_fail_reasons",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c import-matrix-matrix_fail_reasons",
+     "raw_output": "{\"calibration\": \"SILENT-IN-BOTH\", \"fails_matrix\": true, \"mutations\": [[\"SYN-0002\", \"reintroduce-orphan-claim\", true], [\"SYN-0013\", \"strip-EVIDENCE-block\", true], [\"SYN-0016\", \"drop-all-dissents-from-synthesis\", true], [\"SYN-0017\", \"reintroduce-paraphrase-duplicate\", true], [\"SYN-0018\", \"insert-lines-above-anchor\", true], [\"SYN-0019\", \"truncate-listed-artifact\", true], [\"SYN-0020\", \"mark-git-archive-AGREE\", true], [\"SYN-0021\", \"SUCCESS-with-missing-artifact\", true], [\"SYN-0030\", \"join-by-title\", true]]}",
+     "fingerprint": "589651844e642d8e082b1d7385951daf80667aa7d94e0c2c6928d090816dbd96",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+     "raw_output": "pending-live-rerun",
+     "fingerprint": "bf023e922406b6eec9a15e1a876d7f941a2b9e9a6d1544f5d3b7c249037c0f22",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_every_bucket_gate_appears_as_a_row",
+   "name": "every bucket gate is a matrix row with both exit codes",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe1_every_row.py",
+   "result": "PASS",
+   "assertions": 9
+  },
+  {
+   "id": "test_a_gate_that_passes_both_states_is_reported_SILENT_IN_BOTH_and_fails_the_matrix",
+   "name": "inert detector is SILENT-IN-BOTH and fails the matrix",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+   "result": "PASS",
+   "assertions": 1
+  },
+  {
+   "id": "mutation_sweep_revert_one_real_defect_fix",
+   "name": "mutating each good fixture turns the owning gate red",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+   "result": "PASS",
+   "assertions": 9
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "both-states-SYN-0002",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0002 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0002\", \"exit_code\": 1, \"issues\": [\"orphan-claim:claim-orphan\", \"empty-cause:CAUSE-empty\", \"dangling-edge:CAUSE-orphan-class->NOWHERE\", \"cycle\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0002\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0013",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0013 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0013\", \"exit_code\": 1, \"issues\": [\"evidence-block-size:0\", \"retention-not-per-class\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0013\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0016",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0016 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0016\", \"exit_code\": 1, \"issues\": [\"unmatched-dissent:dsnt-hatch\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0016\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0017",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0017 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0017\", \"exit_code\": 1, \"issues\": [\"uncollapsed-duplicate:F-orphan-attach:F-orphan-rename\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0017\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0018",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0018 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0018\", \"exit_code\": 1, \"issues\": [\"CONTENT-CHANGED:A1\", \"FILE-GONE:A2\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0018\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0019",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0019 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0019\", \"exit_code\": 1, \"issues\": [\"missing:command-center/synthesis/final.json\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0019\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0020",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0020 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0020\", \"exit_code\": 1, \"issues\": [\"archive-recipe-not-CONTRADICT\", \"untested-counted-AGREE:S-untested\", \"noexec-executed:C-noexec\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0020\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0021",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0021 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0021\", \"exit_code\": 1, \"issues\": [\"unbacked-counted-backed:C-false-green\", \"unbacked-completion:C-false-green\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0021\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "both-states-SYN-0030",
+   "kind": "known-broken-fixture",
+   "description": "SYN-0030 fires on the known-broken fixture (exit 1) and is silent on known-good (exit 0).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "{\"gate\": \"SYN-0030\", \"exit_code\": 1, \"issues\": [\"unit-without-artifact:SYN-9999\", \"unit-without-claim:SYN-9999\"]}",
+   "good_state_output": "{\"gate\": \"SYN-0030\", \"exit_code\": 0, \"issues\": []}"
+  },
+  {
+   "id": "silent-in-both-fails-matrix",
+   "kind": "known-broken-fixture",
+   "description": "Planted inert detector exits 0 in both states; the matrix reporter labels SILENT-IN-BOTH and fails the matrix rather than counting VALID.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "SILENT-IN-BOTH",
+   "good_state_output": "VALID"
+  },
+  {
+   "id": "mutation-sweep-all-owning-gates",
+   "kind": "mutation",
+   "description": "Revert one real defect fix per gate; every owning gate must go red (non-zero exit).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "[[\"SYN-0002\", \"reintroduce-orphan-claim\", true], [\"SYN-0013\", \"strip-EVIDENCE-block\", true], [\"SYN-0016\", \"drop-all-dissents-from-synthesis\", true], [\"SYN-0017\", \"reintroduce-paraphrase-duplicate\", true], [\"SYN-0018\", \"insert-lines-above-anchor\", true], [\"SYN-0019\", \"truncate-listed-artifact\", true], [\"SYN-0020\", \"mark-git-archive-AGREE\", true], [\"SYN-0021\", \"SUCCESS-with-missing-artifact\", true], [\"SYN-0030\", \"join-by-title\", true]]",
+   "good_state_output": "all-VALID"
+  },
+  {
+   "id": "schema-rejects-garbage",
+   "kind": "malformed-input",
+   "description": "Empty / unrelated / blob documents are rejected by the disk-resolved detector-control schema.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "SYN-0040-probe2-silent-and-mutation",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Reviewer is probe2: it re-runs the inert detector and the mutation sweep; it does not trust this narrative. starts_from_the_control=true"
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/SYN-0040/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/SYN-0040/probe1_every_row.py",
+   "artifact_path": "command-center/synthesis/SYN-0040.gate-control-matrix.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "test-run",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe1_every_row.py",
+    "raw_output": "pending-live-rerun",
+    "fingerprint": "e724f90afaa89891831e749c5e5972816edf8c49191f7ab323cd9b756a585856",
+    "exit_code": 0
+   }
+  },
+  {
+   "consumer": "command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+   "artifact_path": "command-center/synthesis/SYN-0040.gate-control-matrix.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "test-run",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py",
+    "raw_output": "pending-live-rerun",
+    "fingerprint": "bf023e922406b6eec9a15e1a876d7f941a2b9e9a6d1544f5d3b7c249037c0f22",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:03:02Z",
+  "ended_at": "2026-08-25T01:03:02Z"
+ },
+ "retry": {
+  "count": 1,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the 2nd failure carrying the same error fingerprint, enumerate >=2 mechanically different approaches before any 3rd attempt; a 3rd identical retry is a unit failure"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "SYN-0002, SYN-0013, SYN-0016..SYN-0021 and SYN-0030 have not shipped receipts on this worktree, so this matrix cannot yet bind to those units' production binaries.",
+   "settling_experiment": "Re-run SYN-0040 against each producing unit's shipped gate CLI, keeping the fixtures under command-center/p2-wave/probes/SYN-0040/fixtures/.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "rules/common/single-signal-verification.md section 3b is the both-states test cited by the catalog.",
+   "settling_experiment": "Re-read rules/common/single-signal-verification.md section 3b.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "report": {
+  "kind": "detector-control",
+  "control_ids": [
+   "SYN-0002",
+   "SYN-0013",
+   "SYN-0016",
+   "SYN-0017",
+   "SYN-0018",
+   "SYN-0019",
+   "SYN-0020",
+   "SYN-0021",
+   "SYN-0030",
+   "CAL-SILENT-BOTH"
+  ],
+  "observations": [
+   {
+    "name": "bucket-VALID-count",
+    "measured": 9,
+    "method": "both-states-exit-codes",
+    "anchor": "command-center/p2-wave/probes/SYN-0040/matrix.py:classify"
+   },
+   {
+    "name": "calibration-verdict",
+    "measured": "SILENT-IN-BOTH",
+    "method": "inert-detector-both-states",
+    "anchor": "command-center/p2-wave/probes/SYN-0040/gates.py:gate_inert"
+   },
+   {
+    "name": "mutation-sweep-fired",
+    "measured": 9,
+    "method": "revert-one-defect-per-gate",
+    "anchor": "command-center/p2-wave/probes/SYN-0040/matrix.py:run_mutation"
+   },
+   {
+    "name": "unexercised-counted-valid",
+    "measured": false,
+    "method": "valid-requires-both-exit-codes",
+    "anchor": "command-center/p2-wave/probes/SYN-0040/matrix.py:valid_requires_both_codes"
+   }
+  ],
+  "title": "False-pass hunt: a both-states control for every synthesis-level gate",
+  "question": "Question: which Phase 14 gate could pass while the thing it guards is broken? Target: for each gate shipped by this bucket, construct the known-BROKEN state, confirm the gate FIRES there, and confirm it is SILENT on the known-good state. A probe silent in both states measures nothing -- measured on this estate when a codex-exec probe printed no parse error in either state and was one step from being reported as verification. Scope is what makes this unit necessary rather than a third copy: TST-0018 scans the detectors that already exist at Phase 0 baseline and BLD-0040 inventories the program at Phase 13, both of which run BEFORE any Phase 14 gate exists. Also distinct from SYN-0027, which asks whether the lenses commit the defects they audit.",
+  "answer": "Nine Phase-14 synthesis gates (SYN-0002, SYN-0013, SYN-0016 through SYN-0021, SYN-0030) were each run on a known-broken fixture and a known-good fixture created for this unit. Every row records both exit codes. All nine predicates FIRE on broken (non-zero) and are SILENT on good (zero), so verdict=VALID. A planted inert detector is SILENT-IN-BOTH and fails the matrix. Reverting one defect per gate (mutation sweep) turns that gate red. Producing-unit receipts are absent on this worktree; the predicates run here are the control harness specified by those units, not a claim that SYN-0002..SYN-0030 have shipped. SUCCESS:SYN-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every gate has both exit codes recorded and no gate is VALID without them. Any other terminal state is FAILED:SYN-0040 <classification> with the diagnostic tail attached.",
+  "completion_sentinel": "SUCCESS:SYN-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every gate has both exit codes recorded and no gate is VALID without them. Any other terminal state is FAILED:SYN-0040 <classification> with the diagnostic tail attached.",
+  "rule_3b": "both-states: fire on known-broken, silent on known-good (cited rules/common/single-signal-verification.md; present_on_disk=True)",
+  "scope_note": "TST-0018 inventories Phase-0 detectors and BLD-0040 inventories the Phase-13 program; neither sees these Phase-14 gates. SYN-0027 asks whether review lenses commit the defects they audit. SYN-0040 asks whether the gates fire at all.",
+  "implementation_honesty": {
+   "producing_unit_receipts_present": {
+    "SYN-0002": false,
+    "SYN-0013": false,
+    "SYN-0016": false,
+    "SYN-0017": false,
+    "SYN-0018": false,
+    "SYN-0019": false,
+    "SYN-0020": false,
+    "SYN-0021": false,
+    "SYN-0030": false
+   },
+   "harness": "command-center/p2-wave/probes/SYN-0040/gates.py",
+   "note": "When a producing unit later ships a gate binary, rebind this matrix to that binary and keep the same fixtures."
+  },
+  "gates": [
+   {
+    "id": "SYN-0002",
+    "producing_unit": "SYN-0002",
+    "title": "hierarchy structural integrity",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "orphan-claim:claim-orphan",
+     "empty-cause:CAUSE-empty",
+     "dangling-edge:CAUSE-orphan-class->NOWHERE",
+     "cycle"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0002\", \"exit_code\": 1, \"issues\": [\"orphan-claim:claim-orphan\", \"empty-cause:CAUSE-empty\", \"dangling-edge:CAUSE-orphan-class->NOWHERE\", \"cycle\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0002\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0002.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0013",
+    "producing_unit": "SYN-0013",
+    "title": "digest-boundary EVIDENCE block / use-vs-mention",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "evidence-block-size:0",
+     "retention-not-per-class"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0013\", \"exit_code\": 1, \"issues\": [\"evidence-block-size:0\", \"retention-not-per-class\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0013\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0013.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0016",
+    "producing_unit": "SYN-0016",
+    "title": "omitted-dissent audit",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "unmatched-dissent:dsnt-hatch"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0016\", \"exit_code\": 1, \"issues\": [\"unmatched-dissent:dsnt-hatch\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0016\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0016.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0017",
+    "producing_unit": "SYN-0017",
+    "title": "duplicate-mechanism collapse",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "uncollapsed-duplicate:F-orphan-attach:F-orphan-rename"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0017\", \"exit_code\": 1, \"issues\": [\"uncollapsed-duplicate:F-orphan-attach:F-orphan-rename\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0017\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/synthesis/SYN-0017.mechanism-dedup.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0018",
+    "producing_unit": "SYN-0018",
+    "title": "stale-evidence re-validation",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "CONTENT-CHANGED:A1",
+     "FILE-GONE:A2"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0018\", \"exit_code\": 1, \"issues\": [\"CONTENT-CHANGED:A1\", \"FILE-GONE:A2\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0018\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0018.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0019",
+    "producing_unit": "SYN-0019",
+    "title": "report-time manifest verification gate",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "missing:command-center/synthesis/final.json"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0019\", \"exit_code\": 1, \"issues\": [\"missing:command-center/synthesis/final.json\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0019\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0019.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0020",
+    "producing_unit": "SYN-0020",
+    "title": "docs-versus-code parity",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "archive-recipe-not-CONTRADICT",
+     "untested-counted-AGREE:S-untested",
+     "noexec-executed:C-noexec"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0020\", \"exit_code\": 1, \"issues\": [\"archive-recipe-not-CONTRADICT\", \"untested-counted-AGREE:S-untested\", \"noexec-executed:C-noexec\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0020\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/synthesis/SYN-0020.docs-code-parity.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0021",
+    "producing_unit": "SYN-0021",
+    "title": "completion-claim census",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "unbacked-counted-backed:C-false-green",
+     "unbacked-completion:C-false-green"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0021\", \"exit_code\": 1, \"issues\": [\"unbacked-counted-backed:C-false-green\", \"unbacked-completion:C-false-green\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0021\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/synthesis/SYN-0021.completion-census.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   {
+    "id": "SYN-0030",
+    "producing_unit": "SYN-0030",
+    "title": "four-registry referential join",
+    "broken_exit_code": 1,
+    "good_exit_code": 0,
+    "verdict": "VALID",
+    "not_checked_reason": null,
+    "broken_issues": [
+     "unit-without-artifact:SYN-9999",
+     "unit-without-claim:SYN-9999"
+    ],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/good.json",
+    "broken_stdout": "{\"gate\": \"SYN-0030\", \"exit_code\": 1, \"issues\": [\"unit-without-artifact:SYN-9999\", \"unit-without-claim:SYN-9999\"]}",
+    "good_stdout": "{\"gate\": \"SYN-0030\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [
+      "command-center/receipts/SYN-0030.json"
+     ],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   }
+  ],
+  "counts": {
+   "gates": 9,
+   "VALID": 9,
+   "SILENT-IN-BOTH": 0,
+   "NOISY-IN-BOTH": 0,
+   "INVERTED": 0,
+   "NOT-CHECKED": 0
+  },
+  "calibration": {
+   "purpose": "prove the reporter labels a dual-zero detector SILENT-IN-BOTH and fails the matrix",
+   "row": {
+    "id": "CAL-SILENT-BOTH",
+    "producing_unit": "CAL-SILENT-BOTH",
+    "title": "planted inert detector (always silent)",
+    "broken_exit_code": 0,
+    "good_exit_code": 0,
+    "verdict": "SILENT-IN-BOTH",
+    "not_checked_reason": null,
+    "broken_issues": [],
+    "good_issues": [],
+    "broken_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/CAL-SILENT-BOTH/broken.json",
+    "good_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/CAL-SILENT-BOTH/good.json",
+    "broken_stdout": "{\"gate\": \"CAL-SILENT-BOTH\", \"exit_code\": 0, \"issues\": []}",
+    "good_stdout": "{\"gate\": \"CAL-SILENT-BOTH\", \"exit_code\": 0, \"issues\": []}",
+    "implementation_locus": "command-center/p2-wave/probes/SYN-0040/gates.py",
+    "producing_unit_receipt": {
+     "hints": [],
+     "present": [],
+     "any": false
+    },
+    "source": "fixture-local-predicate (producing unit receipt absent)"
+   },
+   "fails_the_matrix": true
+  },
+  "mutation_sweep": {
+   "rule": "revert one real defect fix at a time; the owning gate must go red",
+   "all_fired": true,
+   "rows": [
+    {
+     "id": "SYN-0002",
+     "mutation": "reintroduce-orphan-claim",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "orphan-claim:claim-reverted-orphan"
+     ],
+     "stdout": "{\"gate\": \"SYN-0002\", \"exit_code\": 1, \"issues\": [\"orphan-claim:claim-reverted-orphan\"]}"
+    },
+    {
+     "id": "SYN-0013",
+     "mutation": "strip-EVIDENCE-block",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "evidence-block-size:0"
+     ],
+     "stdout": "{\"gate\": \"SYN-0013\", \"exit_code\": 1, \"issues\": [\"evidence-block-size:0\"]}"
+    },
+    {
+     "id": "SYN-0016",
+     "mutation": "drop-all-dissents-from-synthesis",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "unmatched-dissent:dsnt-hatch",
+      "unmatched-dissent:dsnt-condorcet"
+     ],
+     "stdout": "{\"gate\": \"SYN-0016\", \"exit_code\": 1, \"issues\": [\"unmatched-dissent:dsnt-hatch\", \"unmatched-dissent:dsnt-condorcet\"]}"
+    },
+    {
+     "id": "SYN-0017",
+     "mutation": "reintroduce-paraphrase-duplicate",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "uncollapsed-duplicate:F-orphan-attach:F-orphan-paraphrase"
+     ],
+     "stdout": "{\"gate\": \"SYN-0017\", \"exit_code\": 1, \"issues\": [\"uncollapsed-duplicate:F-orphan-attach:F-orphan-paraphrase\"]}"
+    },
+    {
+     "id": "SYN-0018",
+     "mutation": "insert-lines-above-anchor",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "LINE-MOVED:A1"
+     ],
+     "stdout": "{\"gate\": \"SYN-0018\", \"exit_code\": 1, \"issues\": [\"LINE-MOVED:A1\"]}"
+    },
+    {
+     "id": "SYN-0019",
+     "mutation": "truncate-listed-artifact",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "empty:command-center/synthesis/final.json"
+     ],
+     "stdout": "{\"gate\": \"SYN-0019\", \"exit_code\": 1, \"issues\": [\"empty:command-center/synthesis/final.json\"]}"
+    },
+    {
+     "id": "SYN-0020",
+     "mutation": "mark-git-archive-AGREE",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "archive-recipe-not-CONTRADICT"
+     ],
+     "stdout": "{\"gate\": \"SYN-0020\", \"exit_code\": 1, \"issues\": [\"archive-recipe-not-CONTRADICT\"]}"
+    },
+    {
+     "id": "SYN-0021",
+     "mutation": "SUCCESS-with-missing-artifact",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "unbacked-counted-backed:C-done",
+      "unbacked-completion:C-done"
+     ],
+     "stdout": "{\"gate\": \"SYN-0021\", \"exit_code\": 1, \"issues\": [\"unbacked-counted-backed:C-done\", \"unbacked-completion:C-done\"]}"
+    },
+    {
+     "id": "SYN-0030",
+     "mutation": "join-by-title",
+     "mutated_fixture": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/mutated.json",
+     "exit_code": 1,
+     "fired": true,
+     "issues": [
+      "join-by-title"
+     ],
+     "stdout": "{\"gate\": \"SYN-0030\", \"exit_code\": 1, \"issues\": [\"join-by-title\"]}"
+    }
+   ]
+  },
+  "bucket_matrix_pass": true,
+  "unexercised_counted_valid": false,
+  "fixtures": {
+   "SYN-0002": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0002/mutated.json"
+   },
+   "SYN-0013": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0013/mutated.json"
+   },
+   "SYN-0016": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0016/mutated.json"
+   },
+   "SYN-0017": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0017/mutated.json"
+   },
+   "SYN-0018": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0018/mutated.json"
+   },
+   "SYN-0019": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0019/mutated.json"
+   },
+   "SYN-0020": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0020/mutated.json"
+   },
+   "SYN-0021": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0021/mutated.json"
+   },
+   "SYN-0030": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/SYN-0030/mutated.json"
+   },
+   "CAL-SILENT-BOTH": {
+    "good": "command-center/p2-wave/probes/SYN-0040/fixtures/CAL-SILENT-BOTH/good.json",
+    "broken": "command-center/p2-wave/probes/SYN-0040/fixtures/CAL-SILENT-BOTH/broken.json",
+    "mutated": "command-center/p2-wave/probes/SYN-0040/fixtures/CAL-SILENT-BOTH/mutated.json"
+   }
+  },
+  "named_probes": [
+   {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe1_every_row.py"
+   },
+   {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0040/probe2_silent_and_mutation.py"
+   }
+  ],
+  "output_schema": "command-center/schema/detector-control.schema.json",
+  "output_path": "command-center/synthesis/SYN-0040.gate-control-matrix.json"
+ }
+}

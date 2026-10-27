@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file:///C:/Users/Prekzursil/source/ast-integrate/schema/rollback-contract.schema.json",
+  "title": "REL-0002 rollback contract",
+  "x-inv-path": "an inverse may never remove a path the installer did not create",
+  "x-inv-predate": "an inverse may never remove a command, skill or setting that pre-dated the install",
+  "type": "object",
+  "x-rel0002-invariants": true,
+  "additionalProperties": true,
+  "required": [
+    "contract_id",
+    "recorded_creation_set",
+    "predated_install_set",
+    "actions"
+  ],
+  "properties": {
+    "contract_id": { "type": "string", "minLength": 1 },
+    "schema_version": { "type": "integer" },
+    "recorded_creation_set": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "predated_install_set": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/action" }
+    },
+    "inventory_source": { "type": "object" }
+  },
+  "$defs": {
+    "action": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "action_type", "creates"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "action_type": { "type": "string", "minLength": 1 },
+        "target": { "type": "string" },
+        "creates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "capture_preexisting": { "type": "boolean" },
+        "post_inverse_invariant": { "type": "string" },
+        "irreversible": { "type": "boolean" },
+        "inverse": { "$ref": "#/$defs/inverse" }
+      },
+      "oneOf": [
+        { "required": ["inverse"] },
+        {
+          "required": ["irreversible"],
+          "properties": { "irreversible": { "const": true } }
+        }
+      ]
+    },
+    "inverse": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["kind", "target", "completeness"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 },
+        "completeness": { "type": "string", "enum": ["total", "partial"] },
+        "removes": { "type": "boolean" },
+        "residue": { "type": "string", "minLength": 1 }
+      },
+      "if": {
+        "properties": { "completeness": { "const": "partial" } },
+        "required": ["completeness"]
+      },
+      "then": {
+        "required": ["residue"],
+        "properties": {
+          "residue": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A partial inverse must be forced to declare its residue; omitting the residue field must fail."
+          }
+        }
+      }
+    }
+  },
+  "description": "Rollback contract invariants (must remain literal in this file): an inverse may never remove a path the installer did not create; an inverse may never remove a command, skill or setting that pre-dated the install."
+}

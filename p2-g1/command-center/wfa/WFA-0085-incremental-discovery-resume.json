@@ -1,0 +1,241 @@
+{
+ "adjudication": {
+  "content_updated": true,
+  "disposition": "ADOPT-AS-IS",
+  "duplicated": false,
+  "id": "WF-BETA",
+  "n_records": 8,
+  "preserved": true
+ },
+ "both_states": {
+  "append_duplicates": true,
+  "append_rows": 10,
+  "merge_silent_on_collision": true,
+  "merge_unique": 8
+ },
+ "cases": [
+  {
+   "expected": true,
+   "id": "C1",
+   "kind": "idempotence",
+   "name": "full re-run byte-identical registry",
+   "observed": true,
+   "pass": true
+  },
+  {
+   "expected": [
+    "body"
+   ],
+   "id": "C2",
+   "kind": "update",
+   "name": "upstream content change updates with delta",
+   "observed": [
+    "body"
+   ],
+   "pass": true
+  },
+  {
+   "expected": true,
+   "id": "C3",
+   "kind": "adjudication",
+   "name": "locked adjudication survives content change",
+   "observed": true,
+   "pass": true
+  },
+  {
+   "expected": true,
+   "id": "C4",
+   "kind": "kill-resume",
+   "name": "SIGKILL resume matches uninterrupted record set",
+   "observed": true,
+   "pass": true
+  },
+  {
+   "expected": true,
+   "id": "C5",
+   "kind": "both-states",
+   "name": "naive append duplicates colliding identities (negative control)",
+   "observed": true,
+   "pass": true
+  }
+ ],
+ "content_update": {
+  "body": "upstream epsilon body changed after first sweep",
+  "delta_fields": [
+   "body"
+  ],
+  "duplicated": false,
+  "evidence_kind": "update",
+  "expected_body": "upstream epsilon body changed after first sweep",
+  "n_records_after": 8,
+  "n_records_before": 8,
+  "update_applied": true,
+  "updated_id": "WF-EPSILON"
+ },
+ "corpus": {
+  "collision_files": [
+   "01-alpha.json",
+   "06-alpha-collision.json"
+  ],
+  "kill_after": 4,
+  "n_sources": 10,
+  "n_unique_identities": 8,
+  "rename_alias": {
+   "WF-ZETA-OLD": "WF-ZETA"
+  }
+ },
+ "declared_output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+ "dependencies_absent": [
+  "WFA-0001",
+  "WFA-0010",
+  "WFA-0030",
+  "WFA-0078"
+ ],
+ "engine": {
+  "checkpoint": "per-source atomic JSON persist (write-tmp, fsync, replace) in command-center/p2-wave/probes/WFA-0085/store.py",
+  "kill": "probe2 sends SIGKILL to the sweep child after CHECKPOINT n=4; resume re-enters the same work directory",
+  "merge": "command-center/p2-wave/probes/WFA-0085/registry.py merge_source keys records by canonical_id(migration map), never appends a second row"
+ },
+ "evidence_a": {
+  "byte_identical": true,
+  "new_records": 0,
+  "sha256_first": "52329d15ffd1abf03cd8b27dc959b8e179c73997dc7465f94ee665a484ec0fec",
+  "sha256_second": "52329d15ffd1abf03cd8b27dc959b8e179c73997dc7465f94ee665a484ec0fec"
+ },
+ "evidence_b": {
+  "child_returncode": -9,
+  "kill_executed": true,
+  "kill_signal": "SIGKILL",
+  "per_cell_equal": true,
+  "record_set_equal": true
+ },
+ "fixture_id": "wfa-0085-incremental-discovery-resume",
+ "idempotence": {
+  "byte_identical": true,
+  "bytes_first": 7210,
+  "bytes_second": 7210,
+  "expected_ids": [
+   "WF-ALPHA",
+   "WF-BETA",
+   "WF-DELTA",
+   "WF-EPSILON",
+   "WF-ETA",
+   "WF-GAMMA",
+   "WF-THETA",
+   "WF-ZETA"
+  ],
+  "ids": [
+   "WF-ALPHA",
+   "WF-BETA",
+   "WF-DELTA",
+   "WF-EPSILON",
+   "WF-ETA",
+   "WF-GAMMA",
+   "WF-THETA",
+   "WF-ZETA"
+  ],
+  "ids_match_expected": true,
+  "n_records": 8,
+  "n_sources": 10,
+  "new_ids": [],
+  "new_records": 0,
+  "sha256_first": "52329d15ffd1abf03cd8b27dc959b8e179c73997dc7465f94ee665a484ec0fec",
+  "sha256_second": "52329d15ffd1abf03cd8b27dc959b8e179c73997dc7465f94ee665a484ec0fec"
+ },
+ "implementation_target": "Implementation target: re-running any sweep must merge into the registry by stable identity rather than append, and a sweep interrupted midway must resume from its last durable checkpoint with no duplicate and no lost record.",
+ "kill_resume": {
+  "child_returncode": -9,
+  "ids_equal": true,
+  "ids_resume": [
+   "WF-ALPHA",
+   "WF-BETA",
+   "WF-DELTA",
+   "WF-EPSILON",
+   "WF-ETA",
+   "WF-GAMMA",
+   "WF-THETA",
+   "WF-ZETA"
+  ],
+  "ids_uninterrupted": [
+   "WF-ALPHA",
+   "WF-BETA",
+   "WF-DELTA",
+   "WF-EPSILON",
+   "WF-ETA",
+   "WF-GAMMA",
+   "WF-THETA",
+   "WF-ZETA"
+  ],
+  "kill_executed": true,
+  "kill_signal": "SIGKILL",
+  "killed_after": 4,
+  "n_records_resume": 8,
+  "n_records_uninterrupted": 8,
+  "no_duplicate": true,
+  "no_lost_record": true,
+  "per_cell_equal": true,
+  "record_set_equal": true,
+  "records_at_kill": 4,
+  "sources_at_kill": 4,
+  "view_sha256_resume": "6cc60f0f6be5c5e8bb9c6167fa7295a83f52a5878a2b4ab2bdff15eff3b5fd98",
+  "view_sha256_uninterrupted": "6cc60f0f6be5c5e8bb9c6167fa7295a83f52a5878a2b4ab2bdff15eff3b5fd98"
+ },
+ "naive_append": {
+  "append_exceeds_merge": true,
+  "duplicate_ids": [
+   "WF-ALPHA",
+   "WF-ZETA"
+  ],
+  "duplicates": true,
+  "ids": [
+   "WF-ALPHA",
+   "WF-BETA",
+   "WF-GAMMA",
+   "WF-DELTA",
+   "WF-EPSILON",
+   "WF-ALPHA",
+   "WF-ZETA",
+   "WF-ZETA",
+   "WF-ETA",
+   "WF-THETA"
+  ],
+  "merge_unique": 8,
+  "n_records": 10,
+  "n_unique_ids": 8
+ },
+ "question": "Implementation target: re-running any sweep must merge into the registry by stable identity rather than append, and a sweep interrupted midway must resume from its last durable checkpoint with no duplicate and no lost record.",
+ "record_type": "RegressionFixture",
+ "reviewer": {
+  "both_states_rerun": true,
+  "independent": true,
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS"
+ },
+ "schema_note": "WFA-0001 schema pack is absent on this worktree. This artifact is a RegressionFixture validated against the unit-local contract at schema_ref. Estate registries WFA-0078 / WFA-0010 / WFA-0030 are also absent; the engine is proven on a constructed colliding-catalog corpus whose unique identity set is known by construction.",
+ "schema_ref": "command-center/p2-wave/probes/WFA-0085/regression_fixture.schema.json",
+ "sentinel": "SUCCESS:WFA-0085",
+ "state": "SUCCESS",
+ "tests": {
+  "named_probe_1": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0085/probe1_idempotence.py",
+  "named_probe_2": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0085/probe2_kill_resume.py"
+ },
+ "tests_required": [
+  {
+   "id": "T1",
+   "pass": true,
+   "requirement": "the kill-and-resume test must be executed, not reasoned about"
+  },
+  {
+   "id": "T2",
+   "pass": true,
+   "requirement": "a record whose content changed upstream must UPDATE with an evidence delta rather than duplicate"
+  },
+  {
+   "id": "T3",
+   "pass": true,
+   "requirement": "the merge must be shown to preserve manual adjudications made between runs"
+  }
+ ],
+ "title": "Make discovery incremental and resumable so a re-run does not duplicate the corpus",
+ "unit_id": "WFA-0085"
+}

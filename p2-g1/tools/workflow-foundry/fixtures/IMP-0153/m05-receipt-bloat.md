@@ -1,0 +1,1 @@
+Bloating the receipt with unverifiable fields is a waste. Every asserted field the reviewer cannot re-derive is a liability, and the schema-valid-but-empty receipt is the canonical failure mode of this program.

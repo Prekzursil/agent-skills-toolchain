@@ -1,0 +1,141 @@
+{
+ "repo_lines": 587,
+ "live_lines": 354,
+ "common": 300,
+ "live_only": 54,
+ "repo_only": 287,
+ "two_directional": true,
+ "live_only_hunks": [
+  {
+   "section": "(frontmatter/preamble)",
+   "live_lines": "3-3",
+   "n": 1,
+   "text": [
+    "description: Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs orchestration script under ~/.claude/workflows that uses the injected agent/parallel/phase globals to fan out subagents). Covers the exact runtime API, the args-as-string gotcha, the banned Date.now() non-determinism, worktree isolation for file-mutating agents, one-level nesting, a schema on every fan-in, null-tolerant barriers via filter(Boolean), per-work-unit pipelines so one slow agent cannot deadlock the cohort, cache-cliff-aware fan-out, the typed Codex output-schema landmine when MCP tools are active, and the SDK context-editing / task-budgets / canUseTool notes. Also the map to the saved schema-typed gate Workflows plan-gate and design-gate and the mechanical plan-lint stage-0. Triggers include author a workflow, write a saved workflow, fan out subagents, my parallel workflow deadlocks, workflow returns empty, schema-typed reviewers, or codify a gate as a workflow. NOT for single ad-hoc Task subagents (spawn a Task directly) or for the metaswarm phase pipeline itself."
+   ]
+  },
+  {
+   "section": "(frontmatter/preamble)",
+   "live_lines": "5-5",
+   "n": 1,
+   "text": [
+    ""
+   ]
+  },
+  {
+   "section": "## 1. The runtime API (the whole surface)",
+   "live_lines": "24-26",
+   "n": 3,
+   "text": [
+    "A workflow file is NOT a plain ES module. The runner injects three globals \u2014",
+    "`agent`, `parallel`, `phase` \u2014 reads your `export const meta`, wraps the body so",
+    "top-level `await` and a trailing top-level `return` are legal, and executes it."
+   ]
+  },
+  {
+   "section": "## 1. The runtime API (the whole surface)",
+   "live_lines": "43-43",
+   "n": 1,
+   "text": [
+    "  effort: 'high',         // reasoning effort: 'low' | 'medium' | 'high' | 'xhigh'"
+   ]
+  },
+  {
+   "section": "## 2. args-as-string (the recorded gotcha)",
+   "live_lines": "64-64",
+   "n": 1,
+   "text": [
+    "## 2. args-as-string (the recorded gotcha)"
+   ]
+  },
+  {
+   "section": "## 2. args-as-string (the recorded gotcha)",
+   "live_lines": "66-72",
+   "n": 7,
+   "text": [
+    "A Workflow receives its invocation arguments as **one single string**, not a",
+    "parsed array or object. If you expect structured input, **parse it yourself**",
+    "inside the workflow, and design for the common case where there is no reliable",
+    "arg channel at all: **have the agents auto-discover their input from live files**",
+    "(Read/Glob) rather than relying on args being threaded in. The saved gate",
+    "Workflows do exactly this \u2014 they tell each reviewer where to find the plan/design",
+    "doc and let it locate + Read it. Do not assume `argv[1]` semantics."
+   ]
+  },
+  {
+   "section": "## 7. One-level nesting + a schema on EVERY fan-in",
+   "live_lines": "135-167",
+   "n": 33,
+   "text": [
+    "- **Schema on every fan-in \u2014 but ARTIFACT-FIRST, and keep the schema SMALL.**",
+    "  Every `agent()` that feeds an aggregation carries a `schema`, so you aggregate",
+    "  typed objects instead of re-parsing prose. But the schema must be a *pointer*,",
+    "  not the deliverable (see the artifact-first rule below).",
+    "  **Do NOT set `additionalProperties: false` on a fan-in schema.** It converts a",
+    "  cosmetic extra key into a hard, unrecoverable rejection, and it is the",
+    "  difference between \"one stray field ignored\" and \"5 retries burned, work lost\".",
+    "  Reserve it for tiny gate verdicts you fully control.",
+    "- **THE `{\"raw\": \u2026}` DOUBLE-ENCODE FAILURE \u2014 observed 2026-07-23 (`wf_950ea2e9-e82`).**",
+    "  A lens with 35 tool calls and genuinely good findings emitted",
+    "  `StructuredOutput({\"raw\": \"{\\\"lens\\\":\\\"\u2026\"})` \u2014 the whole object JSON-encoded",
+    "  into a single string field \u2014 five times, identically, then died:",
+    "  `StructuredOutput retry cap (5) exceeded \u2014 5 failed calls with no valid output`.",
+    "  This is a DIFFERENT mechanism from the over-broad-`required` case below: the",
+    "  model had all the data and simply serialised it one level too deep. Because",
+    "  `additionalProperties: false` + 6 `required` fields rejected `raw` outright, the",
+    "  retry surfaced no partial credit and the agent never self-corrected.",
+    "  Mitigations, in order of proven value:",
+    "  1. **Artifact-first** (below) \u2014 makes the failure survivable at all.",
+    "  2. Omit `additionalProperties: false`; keep `required` \u2264 4; drop `minItems`.",
+    "  3. Keep every schema **flat** \u2014 no arrays-of-objects in a fan-in schema; long",
+    "     prose belongs in the artifact, not in a string field.",
+    "  4. Say it explicitly in the prompt: *\"Return the object directly; never wrap it",
+    "     in a `raw` key; never place JSON inside a string field.\"*",
+    "  5. Last resort: `try { await agent(p,{schema}) } catch { await agent(p) }` and",
+    "     parse the text \u2014 a schemaless retry cannot hit the cap.",
+    "- **ARTIFACT-FIRST IS THE PRIMARY CONTRACT (fan-out-contract C1), not a",
+    "  belt-and-braces extra.** Any agent whose output matters MUST write its full",
+    "  deliverable to a pinned path as its FIRST action (skeleton with every section",
+    "  marked `UNKNOWN - not yet measured`), rewrite it at each milestone, and return",
+    "  only `{ok, path, headline}`. Then a schema rejection costs a pointer, never the",
+    "  work. Measured cost of ignoring this: 57 minutes of a 10-lens audit wave",
+    "  discarded on a serialisation shape (`wf_950ea2e9-e82`, 2026-07-23)."
+   ]
+  },
+  {
+   "section": "## Companion artifacts in this workspace",
+   "live_lines": "328-328",
+   "n": 1,
+   "text": [
+    "  session cut is not silently redone."
+   ]
+  },
+  {
+   "section": "## Quick checklist before saving a workflow",
+   "live_lines": "337-342",
+   "n": 6,
+   "text": [
+    "- [ ] a SMALL, FLAT `schema` on every `agent()` fan-in \u2014 `required` \u2264 4, no",
+    "      `additionalProperties: false`, no `minItems`, no arrays-of-objects",
+    "- [ ] artifact-first: every agent writes its deliverable to a pinned path FIRST",
+    "      and returns only `{ok, path, headline}` (a rejected digest must never lose work)",
+    "- [ ] every fan-in prompt says: return the object directly, never wrapped in `raw`,",
+    "      never JSON-inside-a-string"
+   ]
+  }
+ ],
+ "repo_only_by_section": {
+  "(frontmatter/preamble)": 1,
+  "## 1. The runtime API (the whole surface)": 46,
+  "## 2. `args` is delivered VERBATIM (corrected \u2014 the old \"one string\" rule was false)": 20,
+  "## 5b. Bound every fanned-out agent \u2014 design item H6 (SHIPPED)": 39,
+  "## 5c. Guard every budget loop on `budget.total`": 8,
+  "## 7. One-level nesting + a schema on EVERY fan-in": 5,
+  "## 13. Wire the resume manifest \u2014 the cross-session half of rule 6": 40,
+  "## Governed single-shot run": 35,
+  "## Lint your workflow": 42,
+  "## Author quick-wins (helper snippets)": 47,
+  "## Companion artifacts in this workspace": 2,
+  "## Quick checklist before saving a workflow": 2
+ }
+}

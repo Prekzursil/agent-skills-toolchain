@@ -1,0 +1,73 @@
+{
+  "name": "hello-skill",
+  "version": "1.0.0",
+  "channel": "stable",
+  "kind": "skill",
+  "summary": "The canonical fixture package: publishes, installs, verifies, and can be revoked.",
+  "description": "Used by the end-to-end proof: publish -> install -> verify signature + SBOM -> revoke -> install refuses. Keep it boring; its job is to be the control.",
+  "license": {
+    "spdx": "MIT",
+    "notice_required": false,
+    "aggregate_verified": true
+  },
+  "permissions": [
+    "fs:read:packages/hello-skill/**"
+  ],
+  "compatibility": {
+    "platforms": ["any"],
+    "clients": [
+      { "id": "claude-code", "range": ">=2.0.0" }
+    ]
+  },
+  "provenance": {
+    "source": "https://fixture.invalid/hello-skill",
+    "source_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "builder": "mkt-fixture/1.0.0",
+    "reproducible": true
+  },
+  "payload_files": ["LICENSE", "README.md", "hello.py"],
+  "file_licenses": {
+    "LICENSE": "MIT",
+    "README.md": "MIT",
+    "hello.py": "MIT"
+  },
+  "categories": ["docs"],
+  "tags": ["fixture", "hello", "example"],
+  "tests": "pytest platform/marketplace -k hello_skill",
+  "benchmark": {
+    "schema_version": "1.0.0",
+    "name": "hello-skill",
+    "version": "1.0.0",
+    "measurements": [
+      {
+        "metric": "install-wall-clock",
+        "unit": "ms",
+        "value_milli": 40000,
+        "samples": 5,
+        "command": "python -m mkt install hello-skill --range =1.0.0 --channel stable"
+      },
+      {
+        "metric": "payload-bytes",
+        "unit": "bytes",
+        "value_milli": 3000,
+        "samples": 1,
+        "command": "python -c \"import mkt.canon\" # sum of manifest payload[].bytes"
+      }
+    ],
+    "environment": {
+      "os": "win32",
+      "python": "3.14.6",
+      "captured_at": "2026-08-10T09:00:00Z"
+    },
+    "controls": {
+      "control_known_good": {
+        "description": "The unmodified package installs and all thirteen gates report an outcome.",
+        "passed": true
+      },
+      "control_known_broken": {
+        "description": "After revocation the identical install refuses with MKT-I04; the instrument fires in the broken state.",
+        "fired": true
+      }
+    }
+  }
+}

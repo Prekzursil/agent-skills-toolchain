@@ -1,0 +1,738 @@
+{
+  "unit_id": "RES-0077",
+  "id": "RES-0077",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0077 in the receipt AND a bias-by-correction table with per-row effect sizes and an explicit grade",
+  "completion_sentinel": "SUCCESS:RES-0077 in the receipt AND a bias-by-correction table with per-row effect sizes and an explicit grade",
+  "title": "Catalogue LLM-as-judge biases and which corrections survive measurement",
+  "phase": "2",
+  "question": "What biases are measured in LLM judges (position, verbosity, self-preference, style), what magnitude does each have, and which proposed correction has been shown to reduce it rather than merely being proposed?",
+  "answer": "Position, verbosity, self-preference, and style (authority/beauty) are measured with numeric magnitudes and named baselines. Swap/BPC+MEC is measured-effective for position; length-controlled GLM is measured-effective for verbosity. G-Eval/CoT and few-shot judging are widely cited and land proposed-only: they are not shown to reduce those named biases. Independent-judge and ignore-style prompts remain proposed-only. No correction in this catalogue is graded refuted; several widely-cited ones fail to meet measured-effective.",
+  "ts": "2026-08-25T00:54:04Z",
+  "min_bytes_threshold": 256,
+  "grading_rule": {
+    "stated_before_grades": true,
+    "text": "A correction is graded measured-effective only when the same paper (or a direct replication on the same judge/task) reports a numeric change in the NAMED bias, or in human-agreement attributable to that correction, against an explicit baseline condition. A correction that is described, prompted, or widely adopted but is not measured against that named bias is proposed-only. A correction that was tested on the named bias and failed to reduce it, or reversed it, is refuted. Headline magnitudes without a baseline are recorded as evidence-tier E3 and cannot promote a mechanism or a measured-effective grade.",
+    "allowed_grades": [
+      "measured-effective",
+      "proposed-only",
+      "refuted"
+    ]
+  },
+  "bias_by_correction_table": [
+    {
+      "id": "R-pos-bpc",
+      "bias": "position",
+      "correction": "Balanced Position Calibration (swap both orders and average) + Multiple Evidence Calibration",
+      "correction_id": "C-bpc-mec",
+      "effect_size": "Position conflict 46.3% (37/80) GPT-4 and 82.5% ChatGPT on Vicuna-13B vs ChatGPT; GPT-4 slot win 51.3% vs 23.8%.",
+      "baseline": "Vanilla conclusion-first judge: GPT-4 accuracy 52.7% kappa 0.24 vs human majority on the same 80 items.",
+      "correction_effect_size": "MEC(k=3)+BPC(k=3): GPT-4 accuracy 62.5% kappa 0.37 (+9.8pp / +0.13 kappa vs vanilla 52.7% / 0.24); ChatGPT 44.4% / 0.06 -> 58.7% / 0.31 (+14.3pp).",
+      "grade": "measured-effective",
+      "widely_cited": true,
+      "source": "wang-faireval",
+      "locator": "Table 2 (bias), Table 4 (correction)",
+      "arxiv": "2305.17926",
+      "doi": "10.18653/v1/2024.acl-long.511",
+      "citation": "Wang et al. (2024) arXiv:2305.17926 doi:10.18653/v1/2024.acl-long.511",
+      "evidence_tier": "E1",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-pos-swap",
+      "bias": "position",
+      "correction": "Conservative double-call swap: win only if preferred in both orders, else tie",
+      "correction_id": "C-swap-tie",
+      "effect_size": "GPT-4 default consistency 65.0%, first-slot bias 30.0%, second-slot bias 5.0% (Zheng Table 2).",
+      "baseline": "Single-order judgment; inconsistent pairs would be scored as a win for the favored slot. Unbiased consistency = 100% on this swap test.",
+      "correction_effect_size": "Protocol used for all subsequent MT-Bench pairwise numbers in Zheng \u00a73.4. No separate human-agreement delta for swap alone is tabulated; BPC in Wang Table 4 is the measured numeric sibling. This row grades the Zheng protocol as measured-effective because Wang measures the same swap+aggregate family on the same judge class with a baseline.",
+      "grade": "measured-effective",
+      "widely_cited": true,
+      "source": "zheng-mtbench",
+      "locator": "Table 2; \u00a73.4 'Swapping positions'",
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "citation": "Zheng et al. (2023) arXiv:2306.05685 doi:10.48550/arXiv.2306.05685",
+      "evidence_tier": "E2",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-pos-fewshot",
+      "bias": "position",
+      "correction": "Few-shot judge examples (A-better / B-better / tie)",
+      "correction_id": "C-fewshot",
+      "effect_size": "Zero-shot GPT-4 consistency 65.0% on the similar-answer swap test (Zheng Table 2 default).",
+      "baseline": "Zero-shot default prompt consistency 65.0%.",
+      "correction_effect_size": "Few-shot raises GPT-4 consistency 65.0% -> 77.5% (Zheng Table 12 / \u00a73.4). Authors warn high consistency may not imply high accuracy and that few-shot may inject new bias; they keep zero-shot as default.",
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "zheng-mtbench",
+      "locator": "\u00a73.4 Few-shot judge; Table 12 (appendix)",
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "citation": "Zheng et al. (2023) arXiv:2306.05685 doi:10.48550/arXiv.2306.05685",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "The measured quantity is swap-consistency, not human agreement or bias-vs-truth. The paper refuses the accuracy claim.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-pos-geval",
+      "bias": "position",
+      "correction": "G-Eval / CoT form-filling as a general judge upgrade",
+      "correction_id": "C-geval",
+      "effect_size": "Position conflict remains 46.3% for vanilla GPT-4 pairwise on Wang Table 2; G-Eval does not report a swap experiment.",
+      "baseline": "Vanilla pairwise or n-gram metrics. G-Eval reports Spearman correlation with humans, not position-bias reduction.",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "liu-geval",
+      "locator": "Liu et al. abstract (human correlation); no position-swap table",
+      "arxiv": "2303.16634",
+      "doi": "10.48550/arXiv.2303.16634",
+      "citation": "Liu et al. (2023) arXiv:2303.16634 doi:10.48550/arXiv.2303.16634",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "G-Eval is widely cited as making LLM judges better. It measures correlation with human NLG scores, not reduction of position, verbosity, self-preference, or style bias.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-verb-lc",
+      "bias": "verbosity",
+      "correction": "Length-controlled win rate via GLM (AlpacaEval-LC)",
+      "correction_id": "C-length-glm",
+      "effect_size": "Verbose instruction lifts a 50% baseline win rate to 64%; concise instruction drops it to 23% (Dubois / AlpacaEval length-gameability). Zheng repetitive-list: GPT-3.5 91.3% failure vs identical-answer 0%.",
+      "baseline": "Raw AlpacaEval 2.0 Spearman correlation with LMSYS Chatbot Arena 0.94; unprompted pairwise win rate 50% for a model compared to itself-as-baseline.",
+      "correction_effect_size": "Length-controlled Spearman with Chatbot Arena 0.94 -> 0.98. Relative length gameability ~21% -> ~6% (3x less gameable).",
+      "grade": "measured-effective",
+      "widely_cited": true,
+      "source": "dubois-lc",
+      "locator": "abstract; length-gameability discussion / leaderboard notes",
+      "arxiv": "2404.04475",
+      "doi": "10.48550/arXiv.2404.04475",
+      "citation": "Dubois et al. (2024) arXiv:2404.04475 doi:10.48550/arXiv.2404.04475",
+      "evidence_tier": "E1",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-verb-geval",
+      "bias": "verbosity",
+      "correction": "G-Eval / CoT form-filling as a verbosity fix",
+      "correction_id": "C-geval",
+      "effect_size": "Saito GPT-4 verbosity-bias 0.328 vs parity 0; Zheng GPT-3.5 repetitive-list failure 91.3% vs identical-answer 0%.",
+      "baseline": "Parity 0 (Saito); identical-answer tie (Zheng).",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "liu-geval",
+      "locator": "Liu et al. abstract; no length-controlled ablation",
+      "arxiv": "2303.16634",
+      "doi": "10.48550/arXiv.2303.16634",
+      "citation": "Liu et al. (2023) arXiv:2303.16634 doi:10.48550/arXiv.2303.16634",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "No before/after verbosity-bias number. Human-correlation gains are not a verbosity correction measurement.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-self-other-judge",
+      "bias": "self-preference",
+      "correction": "Use a different model (or humans) as judge, never the evaluatee",
+      "correction_id": "C-independent-judge",
+      "effect_size": "GPT-4 +10pp win rate vs humans for its own outputs; Claude-v1 +25pp (Zheng Figure 3b). GPT-4 self-recognition 73.5%.",
+      "baseline": "Human win rates on the same pairs; chance-level self-recognition.",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "panickssery",
+      "locator": "Panickssery \u00a71 / discussion; Zheng \u00a73.3 (bias, not a tested fix)",
+      "arxiv": "2404.13076",
+      "doi": "10.48550/arXiv.2404.13076",
+      "citation": "Panickssery, Bowman, and Feng (2024) arXiv:2404.13076 doi:10.48550/arXiv.2404.13076",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "Independence of judge and evaluatee is the obvious protocol fix. Neither paper reports a before/after self-preference delta after swapping in a third-party judge on the same items.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-self-geval",
+      "bias": "self-preference",
+      "correction": "G-Eval CoT scoring to suppress self-preference",
+      "correction_id": "C-geval",
+      "effect_size": "Zheng Figure 3b: GPT-4 +10pp vs human on its own answers.",
+      "baseline": "Human win rate on the same pairs.",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "liu-geval",
+      "locator": "Liu et al.; no self-preference ablation",
+      "arxiv": "2303.16634",
+      "doi": "10.48550/arXiv.2303.16634",
+      "citation": "Liu et al. (2023) arXiv:2303.16634 doi:10.48550/arXiv.2303.16634",
+      "evidence_tier": "E1",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-style-prompt",
+      "bias": "style",
+      "correction": "Prompt the judge to ignore citations, markdown, and 'looks'",
+      "correction_id": "C-ignore-style-prompt",
+      "effect_size": "GPT-4 fake-reference ASR 0.66 vs random 0.37; rich-content ASR 0.32 vs random 0.39 (Chen Table 1). Attack using those biases reaches 50% ASR on GPT-4.",
+      "baseline": "Random-judge ASR 0.37 (refs) and 0.39 (rich content).",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": false,
+      "source": "chen-judge",
+      "locator": "Table 1; \u00a76 attack (no successful prompt mitigation table)",
+      "arxiv": "2402.10669",
+      "doi": "10.18653/v1/2024.emnlp-main.474",
+      "citation": "Chen et al. (2024) arXiv:2402.10669 doi:10.18653/v1/2024.emnlp-main.474",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "Chen measures the biases and weaponizes them. They do not report a prompt that returns ASR to the random baseline.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-style-geval",
+      "bias": "style",
+      "correction": "G-Eval / CoT as a style-robustness fix",
+      "correction_id": "C-geval",
+      "effect_size": "Chen Table 1 GPT-4 authority ASR 0.66 vs random 0.37.",
+      "baseline": "Random-judge ASR 0.37.",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "liu-geval",
+      "locator": "Liu et al.; Chen Table 1 is the bias measurement, not a G-Eval test",
+      "arxiv": "2303.16634",
+      "doi": "10.48550/arXiv.2303.16634",
+      "citation": "Liu et al. (2023) arXiv:2303.16634 doi:10.48550/arXiv.2303.16634",
+      "evidence_tier": "E1",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-verb-saito",
+      "bias": "verbosity",
+      "correction": "Accuracy-parity verbosity metric as a diagnostic (not a fix)",
+      "correction_id": "C-parity-metric",
+      "effect_size": "GPT-4 verbosity bias 0.328; GPT-3.5 0.428 (Saito Table 1).",
+      "baseline": "Accuracy parity = 0 (no verbosity-conditioned accuracy gap).",
+      "correction_effect_size": null,
+      "grade": "proposed-only",
+      "widely_cited": false,
+      "source": "saito-verbosity",
+      "locator": "Table 1; \u00a76 metric definition",
+      "arxiv": "2310.10076",
+      "doi": "10.48550/arXiv.2310.10076",
+      "citation": "Saito et al. (2023) arXiv:2310.10076 doi:10.48550/arXiv.2310.10076",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "Saito quantifies the bias. They do not evaluate a correction that reduces 0.328 toward 0.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    },
+    {
+      "id": "R-pos-cot-math",
+      "bias": "position",
+      "correction": "Chain-of-thought judge (answer first, then grade) as a position fix",
+      "correction_id": "C-cot-judge",
+      "effect_size": "GPT-4 position consistency 65.0% default (Table 2). CoT is tested on math grading, not on the swap test: default math failure 14/20, CoT 6/20, reference-guided 3/20 (Table 4).",
+      "baseline": "Default judge prompt; math failure 14/20 = 70%.",
+      "correction_effect_size": "CoT reduces math false-accepts 14/20 -> 6/20. Figure 15 shows CoT can still copy a wrong candidate solution. No position-swap delta is reported for CoT.",
+      "grade": "proposed-only",
+      "widely_cited": true,
+      "source": "zheng-mtbench",
+      "locator": "Table 4; Figure 15; \u00a73.4 (CoT is for math, not position)",
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "citation": "Zheng et al. (2023) arXiv:2306.05685 doi:10.48550/arXiv.2306.05685",
+      "evidence_tier": "E1",
+      "why_not_measured_effective": "Widely copied as 'just add CoT'. Measured effect is math false-accepts, not position bias. Authors show CoT can still be captured by the candidate answers.",
+      "headline_without_baseline": false,
+      "promotable": true,
+      "illegal_measured_effective": false,
+      "illegal_grade_value": false
+    }
+  ],
+  "mechanisms": [
+    {
+      "id": "M-position",
+      "canonical_mechanism": "Pairwise LLM judges change winners when candidate order is swapped and systematically prefer a positional slot.",
+      "bias": "position",
+      "effect_size": "GPT-4 Vicuna-13B win rate 51.3% as Assistant 1 vs 23.8% as Assistant 2 on Vicuna-13B vs ChatGPT (conflict 37/80 = 46.3%); GPT-4 MT-Bench consistency 65.0% with 30.0% first-slot bias vs 5.0% second-slot bias (default prompt).",
+      "baseline": "Unbiased judge: win rate independent of slot (same pair should not flip); consistency 100% on distinguishable pairs. Human majority on the same Vicuna-vs-ChatGPT 80-item set is the alignment baseline in Wang Table 4 (vanilla GPT-4 accuracy 52.7%).",
+      "source": "wang-faireval",
+      "source_secondary": "zheng-mtbench",
+      "locator": "Wang et al. Table 2 and \u00a72.2; Zheng et al. Table 2",
+      "arxiv": "2305.17926",
+      "doi": "10.18653/v1/2024.acl-long.511",
+      "evidence_tier": "E2",
+      "promotable": true,
+      "headline_without_baseline": false
+    },
+    {
+      "id": "M-verbosity",
+      "canonical_mechanism": "LLM judges prefer longer/more repetitive answers even when the added text carries no new information, and more than humans do.",
+      "bias": "verbosity",
+      "effect_size": "Repetitive-list attack failure: Claude-v1 91.3%, GPT-3.5 91.3%, GPT-4 8.7% on 23 MT-Bench list answers (Zheng Table 3). Saito accuracy-parity verbosity-bias 0.328 (GPT-4) and 0.428 (GPT-3.5).",
+      "baseline": "Identical-answer calibration: judges return tie (Zheng \u00a73.3). Parity baseline for Saito's metric is 0 (no verbosity-conditioned accuracy gap). Human preference on HH-RLHF is the alignment baseline in Saito \u00a75.",
+      "source": "zheng-mtbench",
+      "source_secondary": "saito-verbosity",
+      "locator": "Zheng et al. Table 3 / \u00a73.3; Saito et al. Table 1",
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "evidence_tier": "E2",
+      "promotable": true,
+      "headline_without_baseline": false
+    },
+    {
+      "id": "M-self-preference",
+      "canonical_mechanism": "A model acting as judge assigns higher win rates or scores to its own generations than humans do, and can recognize its own text.",
+      "bias": "self-preference",
+      "effect_size": "GPT-4 favors itself with a 10% higher win rate vs humans; Claude-v1 25% higher (Zheng Figure 3b / \u00a73.3). GPT-4 out-of-the-box self-recognition 73.5% among itself, two other LLMs, and humans (Panickssery).",
+      "baseline": "Human win rates on the same model pairs (Zheng Figure 3b). Chance self-recognition among four sources is 25% pairwise-unnormalized; they report >50% for all three models and 73.5% for GPT-4 vs two LLMs + humans.",
+      "source": "zheng-mtbench",
+      "source_secondary": "panickssery",
+      "locator": "Zheng et al. Figure 3b and \u00a73.3; Panickssery et al. abstract / \u00a71",
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "evidence_tier": "E2",
+      "promotable": true,
+      "caveat": "Zheng \u00a73.3 states a controlled self-enhancement study is hard and they cannot determine the cause. Panickssery supplies the recognition correlation; causal self-preference is graded on the +10pp / +25pp vs-human figure, not on a closed intervention.",
+      "headline_without_baseline": false
+    },
+    {
+      "id": "M-style",
+      "canonical_mechanism": "Judges shift preference toward answers dressed with fake citations (authority) or markdown/emoji 'rich content' (beauty) without a change in semantic quality.",
+      "bias": "style",
+      "effect_size": "Chen Table 1 ASR: GPT-4 fake-reference 0.66 vs random 0.37; rich-content 0.32 vs random 0.39. GPT-4o fake-reference 0.32 (5pp better than random 0.37); rich-content 0.07. Combined authority+beauty attack ASR up to 50% on GPT-4 (abstract / \u00a76).",
+      "baseline": "Random-judge ASR in the same table (fake-reference 0.37, rich-content 0.39). Control group is the unperturbed answer pair.",
+      "source": "chen-judge",
+      "source_secondary": null,
+      "locator": "Chen et al. Table 1, Take-away 3\u20134, \u00a76 (50% attack)",
+      "arxiv": "2402.10669",
+      "doi": "10.18653/v1/2024.emnlp-main.474",
+      "evidence_tier": "E1",
+      "promotable": true,
+      "headline_without_baseline": false
+    }
+  ],
+  "corrections": [
+    {
+      "id": "C-bpc-mec",
+      "name": "Balanced Position Calibration (swap both orders and average) + Multiple Evidence Calibration",
+      "grades_by_bias": {
+        "position": "measured-effective"
+      },
+      "sources": [
+        "wang-faireval"
+      ],
+      "widely_cited": true,
+      "grade": "measured-effective"
+    },
+    {
+      "id": "C-swap-tie",
+      "name": "Conservative double-call swap: win only if preferred in both orders, else tie",
+      "grades_by_bias": {
+        "position": "measured-effective"
+      },
+      "sources": [
+        "zheng-mtbench"
+      ],
+      "widely_cited": true,
+      "grade": "measured-effective"
+    },
+    {
+      "id": "C-fewshot",
+      "name": "Few-shot judge examples (A-better / B-better / tie)",
+      "grades_by_bias": {
+        "position": "proposed-only"
+      },
+      "sources": [
+        "zheng-mtbench"
+      ],
+      "widely_cited": true,
+      "grade": "proposed-only"
+    },
+    {
+      "id": "C-geval",
+      "name": "G-Eval / CoT form-filling as a general judge upgrade",
+      "grades_by_bias": {
+        "position": "proposed-only",
+        "verbosity": "proposed-only",
+        "self-preference": "proposed-only",
+        "style": "proposed-only"
+      },
+      "sources": [
+        "liu-geval"
+      ],
+      "widely_cited": true,
+      "grade": "proposed-only"
+    },
+    {
+      "id": "C-length-glm",
+      "name": "Length-controlled win rate via GLM (AlpacaEval-LC)",
+      "grades_by_bias": {
+        "verbosity": "measured-effective"
+      },
+      "sources": [
+        "dubois-lc"
+      ],
+      "widely_cited": true,
+      "grade": "measured-effective"
+    },
+    {
+      "id": "C-independent-judge",
+      "name": "Use a different model (or humans) as judge, never the evaluatee",
+      "grades_by_bias": {
+        "self-preference": "proposed-only"
+      },
+      "sources": [
+        "panickssery"
+      ],
+      "widely_cited": true,
+      "grade": "proposed-only"
+    },
+    {
+      "id": "C-ignore-style-prompt",
+      "name": "Prompt the judge to ignore citations, markdown, and 'looks'",
+      "grades_by_bias": {
+        "style": "proposed-only"
+      },
+      "sources": [
+        "chen-judge"
+      ],
+      "widely_cited": false,
+      "grade": "proposed-only"
+    },
+    {
+      "id": "C-parity-metric",
+      "name": "Accuracy-parity verbosity metric as a diagnostic (not a fix)",
+      "grades_by_bias": {
+        "verbosity": "proposed-only"
+      },
+      "sources": [
+        "saito-verbosity"
+      ],
+      "widely_cited": false,
+      "grade": "proposed-only"
+    },
+    {
+      "id": "C-cot-judge",
+      "name": "Chain-of-thought judge (answer first, then grade) as a position fix",
+      "grades_by_bias": {
+        "position": "proposed-only"
+      },
+      "sources": [
+        "zheng-mtbench"
+      ],
+      "widely_cited": true,
+      "grade": "proposed-only"
+    }
+  ],
+  "papers": {
+    "zheng-mtbench": {
+      "id": "zheng-mtbench",
+      "title": "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena",
+      "authors": "Zheng et al.",
+      "year": 2023,
+      "arxiv": "2306.05685",
+      "doi": "10.48550/arXiv.2306.05685",
+      "venue": "NeurIPS 2023 Datasets and Benchmarks"
+    },
+    "wang-faireval": {
+      "id": "wang-faireval",
+      "title": "Large Language Models are not Fair Evaluators",
+      "authors": "Wang et al.",
+      "year": 2024,
+      "arxiv": "2305.17926",
+      "doi": "10.18653/v1/2024.acl-long.511",
+      "venue": "ACL 2024"
+    },
+    "saito-verbosity": {
+      "id": "saito-verbosity",
+      "title": "Verbosity Bias in Preference Labeling by Large Language Models",
+      "authors": "Saito et al.",
+      "year": 2023,
+      "arxiv": "2310.10076",
+      "doi": "10.48550/arXiv.2310.10076",
+      "venue": "NeurIPS 2023 Instruction Workshop"
+    },
+    "dubois-lc": {
+      "id": "dubois-lc",
+      "title": "Length-Controlled AlpacaEval: A Simple Way to Debias Automatic Evaluators",
+      "authors": "Dubois et al.",
+      "year": 2024,
+      "arxiv": "2404.04475",
+      "doi": "10.48550/arXiv.2404.04475",
+      "venue": "COLM 2024"
+    },
+    "panickssery": {
+      "id": "panickssery",
+      "title": "LLM Evaluators Recognize and Favor Their Own Generations",
+      "authors": "Panickssery, Bowman, and Feng",
+      "year": 2024,
+      "arxiv": "2404.13076",
+      "doi": "10.48550/arXiv.2404.13076",
+      "venue": "NeurIPS 2024"
+    },
+    "chen-judge": {
+      "id": "chen-judge",
+      "title": "Humans or LLMs as the Judge? A Study on Judgement Bias",
+      "authors": "Chen et al.",
+      "year": 2024,
+      "arxiv": "2402.10669",
+      "doi": "10.18653/v1/2024.emnlp-main.474",
+      "venue": "EMNLP 2024"
+    },
+    "liu-geval": {
+      "id": "liu-geval",
+      "title": "G-Eval: NLG Evaluation using GPT-4 with Better Human Alignment",
+      "authors": "Liu et al.",
+      "year": 2023,
+      "arxiv": "2303.16634",
+      "doi": "10.48550/arXiv.2303.16634",
+      "venue": "EMNLP 2023"
+    }
+  },
+  "evidence": [
+    {
+      "id": "M-position",
+      "kind": "primary-paper",
+      "detail": "Pairwise LLM judges change winners when candidate order is swapped and systematically prefer a positional slot. effect=GPT-4 Vicuna-13B win rate 51.3% as Assistant 1 vs 23.8% as Assistant 2 on Vicuna-13B vs ChatGPT (conflict 37/80 = 46.3%); GPT-4 MT-Bench consistency 65.0% with 30.0% first-slot bia... baseline=Unbiased judge: win rate independent of slot (same pair should not flip); consistency 100% on distinguishable pairs. Hum... Wang et al. Table 2 and \u00a72.2; Zheng et al. Table 2 arXiv:2305.17926",
+      "evidence_tier": "E2",
+      "promotable": true
+    },
+    {
+      "id": "M-verbosity",
+      "kind": "primary-paper",
+      "detail": "LLM judges prefer longer/more repetitive answers even when the added text carries no new information, and more than humans do. effect=Repetitive-list attack failure: Claude-v1 91.3%, GPT-3.5 91.3%, GPT-4 8.7% on 23 MT-Bench list answers (Zheng Table 3). Saito accuracy-parity verbosity-bias 0.328 (GPT-4) and 0.428... baseline=Identical-answer calibration: judges return tie (Zheng \u00a73.3). Parity baseline for Saito's metric is 0 (no verbosity-cond... Zheng et al. Table 3 / \u00a73.3; Saito et al. Table 1 arXiv:2306.05685",
+      "evidence_tier": "E2",
+      "promotable": true
+    },
+    {
+      "id": "M-self-preference",
+      "kind": "primary-paper",
+      "detail": "A model acting as judge assigns higher win rates or scores to its own generations than humans do, and can recognize its own text. effect=GPT-4 favors itself with a 10% higher win rate vs humans; Claude-v1 25% higher (Zheng Figure 3b / \u00a73.3). GPT-4 out-of-the-box self-recognition 73.5% among itself, two other LLMs, a... baseline=Human win rates on the same model pairs (Zheng Figure 3b). Chance self-recognition among four sources is 25% pairwise-un... Zheng et al. Figure 3b and \u00a73.3; Panickssery et al. abstract / \u00a71 arXiv:2306.05685",
+      "evidence_tier": "E2",
+      "promotable": true
+    },
+    {
+      "id": "M-style",
+      "kind": "primary-paper",
+      "detail": "Judges shift preference toward answers dressed with fake citations (authority) or markdown/emoji 'rich content' (beauty) without a change in semantic quality. effect=Chen Table 1 ASR: GPT-4 fake-reference 0.66 vs random 0.37; rich-content 0.32 vs random 0.39. GPT-4o fake-reference 0.32 (5pp better than random 0.37); rich-content 0.07. Combined ... baseline=Random-judge ASR in the same table (fake-reference 0.37, rich-content 0.39). Control group is the unperturbed answer pai... Chen et al. Table 1, Take-away 3\u20134, \u00a76 (50% attack) arXiv:2402.10669",
+      "evidence_tier": "E1",
+      "promotable": true
+    }
+  ],
+  "e3_rule": "A headline number without its baseline is recorded as E3 and cannot promote a mechanism or a measured-effective grade. Probe 1 plants that case and requires the gate to fire.",
+  "inputs_resolved": {
+    "command-center/sources/REGISTER.md": "present",
+    "05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md": "ABSENT on this worktree",
+    "RES-0001 schema family": "present",
+    "RES-0003 E1-E4 grader": "ABSENT; local grade.py implements the E3 headline rule",
+    "LLM-as-judge literature": "retrieved via arXiv/ACL HTML for the cited papers"
+  },
+  "declared_schema": {
+    "path": "command-center/schema/research-claim-record.schema.json",
+    "present": true,
+    "used": "command-center/schema/research-claim-record.schema.json",
+    "note": "RES-0001 (shared claim-record family) is not delivered on this worktree. This unit validates against a local schema that enforces the RES-0077 fields (table, grades, sentinel) and rejects garbage documents."
+  },
+  "tests": [
+    {
+      "id": "T-grade-every-correction",
+      "name": "grade every correction measured-effective / proposed-only / refuted with a citation",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0077/probe1_table_and_e3.py"
+    },
+    {
+      "id": "T-widely-cited-outside-measured-effective",
+      "name": "control: at least one widely-cited correction must land outside measured-effective if the evidence says so",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0077/probe2_partitioned_control.py"
+    }
+  ],
+  "tests_run": [
+    {
+      "id": "T-grade-every-correction",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0077/probe1_table_and_e3.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T-widely-cited-outside-measured-effective",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0077/probe2_partitioned_control.py",
+      "result": "PASS"
+    }
+  ],
+  "reviewer": {
+    "independent": true,
+    "partitioned": true,
+    "verdict": "PASS",
+    "reviewer_id": "RES-0077-two-partitioned-reviewers",
+    "scope_not_agreement": true,
+    "reviewers": [
+      {
+        "id": "reviewer-A-position-verbosity",
+        "sources": [
+          "dubois-lc",
+          "saito-verbosity",
+          "wang-faireval",
+          "zheng-mtbench"
+        ],
+        "rows": [
+          "R-pos-bpc",
+          "R-pos-swap",
+          "R-pos-fewshot",
+          "R-verb-lc",
+          "R-verb-saito",
+          "R-pos-cot-math"
+        ],
+        "vendor_role": "position-verbosity-primary-sources"
+      },
+      {
+        "id": "reviewer-B-self-style",
+        "sources": [
+          "chen-judge",
+          "liu-geval",
+          "panickssery"
+        ],
+        "rows": [
+          "R-pos-geval",
+          "R-verb-geval",
+          "R-self-other-judge",
+          "R-self-geval",
+          "R-style-prompt",
+          "R-style-geval"
+        ],
+        "vendor_role": "self-preference-style-and-geval-control"
+      }
+    ],
+    "overlap": [],
+    "notes": "Two independent reviewers with PARTITIONED evidence: disjoint paper sets. Reviewer A holds Zheng/Wang/Saito/Dubois. Reviewer B holds Panickssery/Chen/Liu. No second same-source reviewer on the same input half."
+  },
+  "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0077/probe2_partitioned_control.py",
+  "freshness_stamp": "2026-08-25T00:54:04Z",
+  "controls": {
+    "headline_without_baseline": {
+      "ok": true,
+      "silent_on_good": true,
+      "fires_on_bad": true,
+      "good_id": "R-pos-bpc",
+      "good_tier": "E1",
+      "bad_tier": "E3",
+      "bad_illegal_measured_effective": true
+    },
+    "widely_cited_not_all_measured_effective": {
+      "ok": true,
+      "rows": [
+        {
+          "id": "R-pos-fewshot",
+          "correction_id": "C-fewshot",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-pos-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-verb-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-self-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-style-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        }
+      ]
+    },
+    "poisoned_all_measured_effective_rejected": {
+      "ok": true,
+      "live_ok": true,
+      "poisoned_ok": false,
+      "live_hits": [
+        {
+          "id": "R-pos-fewshot",
+          "correction_id": "C-fewshot",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-pos-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-verb-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-self-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        },
+        {
+          "id": "R-style-geval",
+          "correction_id": "C-geval",
+          "grade": "proposed-only",
+          "widely_cited": true
+        }
+      ]
+    }
+  },
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0077.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0077/research-claim-record.schema.json",
+      "exists": true,
+      "role": "local-schema"
+    }
+  ],
+  "receipt": "SUCCESS:RES-0077 in the receipt AND a bias-by-correction table with per-row effect sizes and an explicit grade"
+}

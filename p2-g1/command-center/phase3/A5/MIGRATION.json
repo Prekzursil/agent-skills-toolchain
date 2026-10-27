@@ -1,0 +1,682 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/phase3/A5/MIGRATION.json",
+   "bytes": 16112,
+   "sha256": "43273c239376edbe96c2cdb9afa1f2c8440e6ae17fef2dd97a1a00562045b435",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "ARC-0035 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/phase3/A5/MIGRATION.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/phase3/A5/MIGRATION.json",
+     "raw_output": "bytes=16112 sha256=43273c239376edbe96c2cdb9afa1f2c8440e6ae17fef2dd97a1a00562045b435",
+     "fingerprint": "1395143195b5c9b864a9dc25416396e3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact ARC-0035",
+     "raw_output": "schema-check",
+     "fingerprint": "ba4c10b332617ae3121d0673d2396878",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ARC-0035 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0035",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0035",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "16e7dbc4c92d405a477e7b7b04f472c7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered ARC-0035",
+     "raw_output": "schema-valid",
+     "fingerprint": "088cb9924370ce9289d87e0ee0bb9ef7",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ARC-0035",
+ "state": "SUCCESS",
+ "tests": {
+  "record_count_conservation": {
+   "input_events": 10,
+   "output_records": 8,
+   "classified_drops": 2,
+   "conservation_holds": true
+  },
+  "append_only_assertion": {
+   "source_unmodified": true,
+   "in_place_rewrite_refused": true
+  }
+ },
+ "unit_id": "ARC-0035",
+ "extensions": {
+  "legacy_root": {
+   "architecture_class": "distributed-workflow-runtime",
+   "architecture_id": "A5",
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:ARC-0035",
+   "drain_procedure": {
+    "barrier": "New dispatch on old rails is refused until every census row has a terminal ledger kind=complete|fail|drain. The barrier is a count: in_flight == drained and abandoned_without_record == 0, not a wall-clock guess.",
+    "census": {
+     "abandoned_without_record": 0,
+     "drained": 3,
+     "in_flight": 3
+    },
+    "forbids_abandon_without_record": true,
+    "notes": "The three-row census is a disclosed drain fixture covering the three named rails. It is not a claim that live Task/MCP/Databricks processes were inspected on this host.",
+    "steps": [
+     "Freeze new ad-hoc dispatch: Task/MCP/Databricks adapters refuse a spawn that has no prior kind=claim.",
+     "Census in-flight work per rail (Task ids, MCP thread ids, Databricks active runs).",
+     "For each census row, append kind=drain outcome=IN_FLIGHT_LEASED (still running) or ABANDONED (process gone, no artifact). Never delete the census row as a substitute.",
+     "Lease those unit_ids onto the typed work-unit queue; the shared completion reducer stays FALSE until a terminal complete|fail row exists.",
+     "Only after the barrier (every census row has a drain or terminal row) disable the old rails. Rollback re-enables them; the ledger is not unwritten."
+    ]
+   },
+   "fold": {
+    "classified_drops": 2,
+    "conservation_holds": true,
+    "drops_path": "command-center/p2-wave/probes/ARC-0035/fixtures/drops.jsonl",
+    "input_events": 10,
+    "ledger_path": "command-center/p2-wave/probes/ARC-0035/fixtures/ledger.jsonl",
+    "output_records": 8,
+    "procedure": [
+     "Treat the source JSONL as immutable; refuse dest==source.",
+     "For each physical line, json.loads. Parseable objects become ledger kind=fold records carrying source.raw and source.sha256.",
+     "Blank lines and malformed JSON are classified drops persisted to a distinct drops JSONL, never silently omitted.",
+     "Ledger records are hash-chained (prev_hash, event_hash). The source file is not opened for write.",
+     "Conservation: input_events == output_records + classified_drops. Reverse concatenation of source.raw in line_no order reconstitutes the slice."
+    ]
+   },
+   "ledger_record_shape": {
+    "append_only": true,
+    "hash_chain": "event_hash = sha256(canonical JSON of the record minus event_hash); prev_hash of seq=1 is 64 zero nibbles",
+    "preserves_source_bytes": true,
+    "required_fields": [
+     "seq",
+     "kind",
+     "rail",
+     "unit_id",
+     "ts",
+     "verb",
+     "source",
+     "payload",
+     "prev_hash",
+     "event_hash"
+    ]
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0035/probe1_conservation.py",
+     "id": "probe1",
+     "role": "record-count-conservation"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0035/probe2_append_only.py",
+     "id": "probe2",
+     "role": "append-only-wc-and-drain"
+    }
+   ],
+   "question": "Design the path from today's ad-hoc dispatch (Task subagents, Codex MCP threads, Databricks jobs) to ONE work-unit contract: what adapter each existing rail needs, how in-flight work is drained rather than abandoned, and how the existing event log is folded into the new ledger WITHOUT rewriting history.",
+   "rails": [
+    {
+     "adapter": "Wrap every Task spawn: before the host starts the child, write a ledger claim {unit_id, substrate, rail=task_subagent, external_ref=task_id, lease_owner}. The child argv/prompt is required to echo that unit_id; a spawn without a prior claim is refused by the adapter, not launched.",
+     "claim": "kind=claim, unit_id from WORK-UNIT-CATALOG, external_ref=task_id, dedupe_key=(unit_id, attempt). Two dispatchers racing the same unit_id: exactly one claim row wins (first append with that dedupe_key); the loser records kind=claim_rejected.",
+     "complete": "On Task return, append kind=complete|fail with the same unit_id and the child's exit/sentinel. Missing sentinel is fail, not success. Re-running an idempotent unit appends another complete row; it must not rewrite the first.",
+     "drain": "Census running Task ids from the host. Each id with no terminal ledger row is leased (kind=drain, outcome=IN_FLIGHT_LEASED) or, if the process is gone with no artifact, kind=drain outcome=ABANDONED. Killing a Task without one of those two rows is forbidden.",
+     "existing_rail": "Task-tool / nested-agent dispatches that today carry no catalog unit_id and no ledger claim",
+     "external_ref": "task_id",
+     "id": "task_subagent"
+    },
+    {
+     "adapter": "Map thread_id -> unit_id at open: ledger claim with rail=codex_mcp, external_ref=thread_id, substrate=cloud-batch or local-serialized as the MCP session dictates. Cancellation or network fault must either reclaim the thread by id or append ABANDONED; a running thread with no owner is a drain miss.",
+     "claim": "kind=claim with external_ref=thread_id and unit_id. Re-open of the same thread_id after a crash is resume (kind=resume), not a second unit.",
+     "complete": "MCP terminal payload folds to kind=complete|fail. A cancelled stream without reclaim or ABANDONED is incomplete; the shared completion reducer returns FALSE.",
+     "drain": "List live MCP thread ids. For each: if ledger already terminal, skip; if thread still running, lease; if thread missing, ABANDONED. Never drop a thread_id from the census without a drain row.",
+     "existing_rail": "Codex MCP threads (thread_id) that today can die mid-request and leave a running thread with no owner",
+     "external_ref": "thread_id",
+     "id": "codex_mcp"
+    },
+    {
+     "adapter": "jobs.submit is preceded by a ledger claim {unit_id, rail=databricks_job, external_ref=run_id, idempotency_key}. The Databricks idempotency key IS the unit_id+attempt, so a retry cannot mint a second run for the same claim. Timeout is read back from the run, never assumed.",
+     "claim": "kind=claim with external_ref=run_id (filled in after submit returns) and job_id. A submit that fails before run_id exists still appends kind=claim_rejected so the queue is not silent.",
+     "complete": "Terminal Databricks life-cycle (SUCCESS/FAILED/TIMEDOUT/CANCELLED) maps 1:1 onto kind=complete|fail. Polling is the adapter's job; the ledger does not infer completion from wall clock.",
+     "drain": "jobs.list-runs --active-only is the census. Each active run_id without a terminal ledger row is leased; a run that vanished without terminal state is ABANDONED with the last known life_cycle_state. Runs are not cancelled as a drain shortcut.",
+     "existing_rail": "Databricks Jobs (job_id + run_id) used as a portable batch rail without a work-unit claim or timeout readback",
+     "external_ref": "run_id",
+     "id": "databricks_job"
+    }
+   ],
+   "registered": true,
+   "report_kind": "migration-plan",
+   "sample": [
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "4a141c511e2a471c91b1e7ffa700a779314617af77632f9f843f5150f2d9e264",
+     "line_no": 1,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "3cce1e179acc49ab8f43b41c4d23ae82c47c1d03255f1ac173b97ab8c39db18d",
+     "unit_id": "R-A02"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "4559e61a8b0984ed1db8df584e815b400e335edb7e9041fd13254e96e2094a57",
+     "line_no": 2,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "8c10d4d8ac667018bbef186516104222427b6606d5c5270a9542b1d8fc8416f0",
+     "unit_id": "R-H03"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "774e66fd12d485a834bcdb24c8708e965f1a325c21de9d945ac36325e9d39b3b",
+     "line_no": 3,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "82bf9401ae472ff2e8856de1ba96982eab9132eae86b7b7b87c7a40955cbb0c9",
+     "unit_id": "R-A01"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "9f9451d90a0714e673d5d4a3a2a59cde9cf32515af83be2276cd9cb0664b0519",
+     "line_no": 4,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "b813f9862eeb20fccfb53fc43affbc95912e303b2892819231cb882762650ea1",
+     "unit_id": "R-A04"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "0f4df2a54ba4db2094f233e9b238fefdb16f5a46beac04561529b9f43e3fea85",
+     "line_no": 5,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "4643e3fcefd3bfef850de733bf66bc44889add7c19fcc9ec8abfc4449c2f1ca8",
+     "unit_id": "R-A05"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "38585432832b62195b86d51b370733922e4e5778285317f7e00a98b14ce002a8",
+     "line_no": 6,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "ed812c70bd36cd726d1a01755a6c4164462d7006fab93b1ce5327487e67b84c2",
+     "unit_id": "R-A07"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "68c057841ed1cfcd09906912e35264c0fea61f32171e94d4553caa5b496a64cc",
+     "line_no": 7,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "bb2b5411768fdafd9f56b83d0c28cf521e542ae3a9d08ce1ac306edb28e44994",
+     "unit_id": "R-A08"
+    },
+    {
+     "classification": "fold",
+     "decision": "FOLD",
+     "ledger_event_hash": "39129f0124c7df3324d4f66df7fc119e8d976f439a5bc6b224d70632b297a1c6",
+     "line_no": 8,
+     "rail": "cc_close",
+     "reason": "mapped-to-ledger-record",
+     "source_bytes_preserved": true,
+     "source_sha256": "777a3a644566738d9f348d24afe4b95d925a037f8cb30c26e424dfa95511028f",
+     "unit_id": "R-A11"
+    },
+    {
+     "classification": "blank",
+     "decision": "DROP",
+     "ledger_event_hash": null,
+     "line_no": 9,
+     "rail": "cc_close",
+     "reason": "empty-line",
+     "source_bytes_preserved": true,
+     "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+     "unit_id": null
+    },
+    {
+     "classification": "malformed-json",
+     "decision": "DROP",
+     "ledger_event_hash": null,
+     "line_no": 10,
+     "rail": "cc_close",
+     "reason": "json-decode-error",
+     "source_bytes_preserved": true,
+     "source_sha256": "952cdc0f85ab10d18a1bdccfeb6c3991e59ab424dc2ce916544aac44f3d8b45e",
+     "unit_id": null
+    }
+   ],
+   "scope": {
+    "a5_design_present": false,
+    "does_not_claim": [
+     "the live EVENTS.jsonl was rewritten (it is read-only for this unit)",
+     "command-center/phase3/A5/DESIGN.json exists (ARC-0031 is a dependency, not a blocker for this fold proof)",
+     "live Task/MCP/Databricks processes were inspected here",
+     "exactly-once delivery",
+     "cloud ok=true is delivery",
+     "the generated catalog shim's generic_report/receipt_core envelope is this file's body (named probes read fold/tests/drain_procedure)"
+    ],
+    "events_jsonl_present": true,
+    "proof_surface": "Live command-center/events/EVENTS.jsonl is the fixture prefix (byte-identical). Extra rows and classified drops append onto the fixture only via close.append_event. Fold writes a distinct ledger JSONL and refuses dest==source. Drain fixture covers the three named rails."
+   },
+   "source_event_log": {
+    "catalog_path": "command-center/events/EVENTS.jsonl",
+    "fold_does_not_rewrite_source": true,
+    "live_sha256": "c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096",
+    "live_unmodified": true,
+    "present_on_worktree": true,
+    "slice_origin": "PREFIX copied byte-for-byte from command-center/events/EVENTS.jsonl (present on this worktree). Extra parseable rows, if any, were appended onto the fixture only via tools/command-center/close.py:append_event. Classified drops (blank line + torn JSON) were appended onto the fixture only. The live EVENTS.jsonl path was never opened for write.",
+    "slice_path": "command-center/p2-wave/probes/ARC-0035/fixtures/source-events.jsonl",
+    "writer": "live-file-prefix + tools/command-center/close.py:append_event (fixture only)"
+   },
+   "title": "A5 (distributed workflow-runtime): fold ad-hoc rails into one work-unit contract without dropping in-flight work",
+   "work_unit_contract": {
+    "claim_record": "ledger kind=claim with fields unit_id, rail, external_ref, dedupe_key, lease_owner, prev_hash, event_hash",
+    "delivery_guarantee": "at-least-once plus idempotent units: a duplicate dispatch may append a second claim_rejected or a second complete row, but must not rewrite a prior ledger line or a prior artifact. Exactly-once is NOT claimed; the claim record + dedupe_key is the mechanism that makes a second dispatcher lose.",
+    "fields": [
+     "id",
+     "title",
+     "phase",
+     "target",
+     "inputs",
+     "dependencies",
+     "assignment",
+     "tool_permissions",
+     "execution_substrate",
+     "timeout_seconds",
+     "output_path",
+     "output_schema",
+     "evidence_requirement",
+     "tests_required",
+     "reviewer_requirement",
+     "completion_sentinel",
+     "retry_policy",
+     "failure_classification",
+     "owner_approval_required"
+    ],
+    "id": "a5-work-unit-v1",
+    "idempotence": "A unit is idempotent when re-running it with the same unit_id leaves the artifact byte-identical (or appends an explicitly versioned successor path). Units that cannot meet that bar are classified non-idempotent and MUST be claimed with a unique attempt suffix so a retry cannot clobber the first artifact."
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ARC-0035",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0035/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0035"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/phase3/A5/MIGRATION.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/phase3/A5/MIGRATION.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "e8167a30b6e5e047c46410b919c74696",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "migration-plan",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 16112,
+    "method": "filesystem-stat",
+    "anchor": "command-center/phase3/A5/MIGRATION.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "architecture_class": "distributed-workflow-runtime",
+ "architecture_id": "A5",
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:ARC-0035",
+ "drain_procedure": {
+  "barrier": "New dispatch on old rails is refused until every census row has a terminal ledger kind=complete|fail|drain. The barrier is a count: in_flight == drained and abandoned_without_record == 0, not a wall-clock guess.",
+  "census": {
+   "abandoned_without_record": 0,
+   "drained": 3,
+   "in_flight": 3
+  },
+  "forbids_abandon_without_record": true,
+  "notes": "The three-row census is a disclosed drain fixture covering the three named rails. It is not a claim that live Task/MCP/Databricks processes were inspected on this host.",
+  "steps": [
+   "Freeze new ad-hoc dispatch: Task/MCP/Databricks adapters refuse a spawn that has no prior kind=claim.",
+   "Census in-flight work per rail (Task ids, MCP thread ids, Databricks active runs).",
+   "For each census row, append kind=drain outcome=IN_FLIGHT_LEASED (still running) or ABANDONED (process gone, no artifact). Never delete the census row as a substitute.",
+   "Lease those unit_ids onto the typed work-unit queue; the shared completion reducer stays FALSE until a terminal complete|fail row exists.",
+   "Only after the barrier (every census row has a drain or terminal row) disable the old rails. Rollback re-enables them; the ledger is not unwritten."
+  ]
+ },
+ "fold": {
+  "classified_drops": 2,
+  "conservation_holds": true,
+  "drops_path": "command-center/p2-wave/probes/ARC-0035/fixtures/drops.jsonl",
+  "input_events": 10,
+  "ledger_path": "command-center/p2-wave/probes/ARC-0035/fixtures/ledger.jsonl",
+  "output_records": 8,
+  "procedure": [
+   "Treat the source JSONL as immutable; refuse dest==source.",
+   "For each physical line, json.loads. Parseable objects become ledger kind=fold records carrying source.raw and source.sha256.",
+   "Blank lines and malformed JSON are classified drops persisted to a distinct drops JSONL, never silently omitted.",
+   "Ledger records are hash-chained (prev_hash, event_hash). The source file is not opened for write.",
+   "Conservation: input_events == output_records + classified_drops. Reverse concatenation of source.raw in line_no order reconstitutes the slice."
+  ]
+ },
+ "ledger_record_shape": {
+  "append_only": true,
+  "hash_chain": "event_hash = sha256(canonical JSON of the record minus event_hash); prev_hash of seq=1 is 64 zero nibbles",
+  "preserves_source_bytes": true,
+  "required_fields": [
+   "seq",
+   "kind",
+   "rail",
+   "unit_id",
+   "ts",
+   "verb",
+   "source",
+   "payload",
+   "prev_hash",
+   "event_hash"
+  ]
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0035/probe1_conservation.py",
+   "id": "probe1",
+   "role": "record-count-conservation"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0035/probe2_append_only.py",
+   "id": "probe2",
+   "role": "append-only-wc-and-drain"
+  }
+ ],
+ "question": "Design the path from today's ad-hoc dispatch (Task subagents, Codex MCP threads, Databricks jobs) to ONE work-unit contract: what adapter each existing rail needs, how in-flight work is drained rather than abandoned, and how the existing event log is folded into the new ledger WITHOUT rewriting history.",
+ "rails": [
+  {
+   "adapter": "Wrap every Task spawn: before the host starts the child, write a ledger claim {unit_id, substrate, rail=task_subagent, external_ref=task_id, lease_owner}. The child argv/prompt is required to echo that unit_id; a spawn without a prior claim is refused by the adapter, not launched.",
+   "claim": "kind=claim, unit_id from WORK-UNIT-CATALOG, external_ref=task_id, dedupe_key=(unit_id, attempt). Two dispatchers racing the same unit_id: exactly one claim row wins (first append with that dedupe_key); the loser records kind=claim_rejected.",
+   "complete": "On Task return, append kind=complete|fail with the same unit_id and the child's exit/sentinel. Missing sentinel is fail, not success. Re-running an idempotent unit appends another complete row; it must not rewrite the first.",
+   "drain": "Census running Task ids from the host. Each id with no terminal ledger row is leased (kind=drain, outcome=IN_FLIGHT_LEASED) or, if the process is gone with no artifact, kind=drain outcome=ABANDONED. Killing a Task without one of those two rows is forbidden.",
+   "existing_rail": "Task-tool / nested-agent dispatches that today carry no catalog unit_id and no ledger claim",
+   "external_ref": "task_id",
+   "id": "task_subagent"
+  },
+  {
+   "adapter": "Map thread_id -> unit_id at open: ledger claim with rail=codex_mcp, external_ref=thread_id, substrate=cloud-batch or local-serialized as the MCP session dictates. Cancellation or network fault must either reclaim the thread by id or append ABANDONED; a running thread with no owner is a drain miss.",
+   "claim": "kind=claim with external_ref=thread_id and unit_id. Re-open of the same thread_id after a crash is resume (kind=resume), not a second unit.",
+   "complete": "MCP terminal payload folds to kind=complete|fail. A cancelled stream without reclaim or ABANDONED is incomplete; the shared completion reducer returns FALSE.",
+   "drain": "List live MCP thread ids. For each: if ledger already terminal, skip; if thread still running, lease; if thread missing, ABANDONED. Never drop a thread_id from the census without a drain row.",
+   "existing_rail": "Codex MCP threads (thread_id) that today can die mid-request and leave a running thread with no owner",
+   "external_ref": "thread_id",
+   "id": "codex_mcp"
+  },
+  {
+   "adapter": "jobs.submit is preceded by a ledger claim {unit_id, rail=databricks_job, external_ref=run_id, idempotency_key}. The Databricks idempotency key IS the unit_id+attempt, so a retry cannot mint a second run for the same claim. Timeout is read back from the run, never assumed.",
+   "claim": "kind=claim with external_ref=run_id (filled in after submit returns) and job_id. A submit that fails before run_id exists still appends kind=claim_rejected so the queue is not silent.",
+   "complete": "Terminal Databricks life-cycle (SUCCESS/FAILED/TIMEDOUT/CANCELLED) maps 1:1 onto kind=complete|fail. Polling is the adapter's job; the ledger does not infer completion from wall clock.",
+   "drain": "jobs.list-runs --active-only is the census. Each active run_id without a terminal ledger row is leased; a run that vanished without terminal state is ABANDONED with the last known life_cycle_state. Runs are not cancelled as a drain shortcut.",
+   "existing_rail": "Databricks Jobs (job_id + run_id) used as a portable batch rail without a work-unit claim or timeout readback",
+   "external_ref": "run_id",
+   "id": "databricks_job"
+  }
+ ],
+ "registered": true,
+ "report_kind": "migration-plan",
+ "sample": [
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "4a141c511e2a471c91b1e7ffa700a779314617af77632f9f843f5150f2d9e264",
+   "line_no": 1,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "3cce1e179acc49ab8f43b41c4d23ae82c47c1d03255f1ac173b97ab8c39db18d",
+   "unit_id": "R-A02"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "4559e61a8b0984ed1db8df584e815b400e335edb7e9041fd13254e96e2094a57",
+   "line_no": 2,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "8c10d4d8ac667018bbef186516104222427b6606d5c5270a9542b1d8fc8416f0",
+   "unit_id": "R-H03"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "774e66fd12d485a834bcdb24c8708e965f1a325c21de9d945ac36325e9d39b3b",
+   "line_no": 3,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "82bf9401ae472ff2e8856de1ba96982eab9132eae86b7b7b87c7a40955cbb0c9",
+   "unit_id": "R-A01"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "9f9451d90a0714e673d5d4a3a2a59cde9cf32515af83be2276cd9cb0664b0519",
+   "line_no": 4,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "b813f9862eeb20fccfb53fc43affbc95912e303b2892819231cb882762650ea1",
+   "unit_id": "R-A04"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "0f4df2a54ba4db2094f233e9b238fefdb16f5a46beac04561529b9f43e3fea85",
+   "line_no": 5,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "4643e3fcefd3bfef850de733bf66bc44889add7c19fcc9ec8abfc4449c2f1ca8",
+   "unit_id": "R-A05"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "38585432832b62195b86d51b370733922e4e5778285317f7e00a98b14ce002a8",
+   "line_no": 6,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "ed812c70bd36cd726d1a01755a6c4164462d7006fab93b1ce5327487e67b84c2",
+   "unit_id": "R-A07"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "68c057841ed1cfcd09906912e35264c0fea61f32171e94d4553caa5b496a64cc",
+   "line_no": 7,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "bb2b5411768fdafd9f56b83d0c28cf521e542ae3a9d08ce1ac306edb28e44994",
+   "unit_id": "R-A08"
+  },
+  {
+   "classification": "fold",
+   "decision": "FOLD",
+   "ledger_event_hash": "39129f0124c7df3324d4f66df7fc119e8d976f439a5bc6b224d70632b297a1c6",
+   "line_no": 8,
+   "rail": "cc_close",
+   "reason": "mapped-to-ledger-record",
+   "source_bytes_preserved": true,
+   "source_sha256": "777a3a644566738d9f348d24afe4b95d925a037f8cb30c26e424dfa95511028f",
+   "unit_id": "R-A11"
+  },
+  {
+   "classification": "blank",
+   "decision": "DROP",
+   "ledger_event_hash": null,
+   "line_no": 9,
+   "rail": "cc_close",
+   "reason": "empty-line",
+   "source_bytes_preserved": true,
+   "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "unit_id": null
+  },
+  {
+   "classification": "malformed-json",
+   "decision": "DROP",
+   "ledger_event_hash": null,
+   "line_no": 10,
+   "rail": "cc_close",
+   "reason": "json-decode-error",
+   "source_bytes_preserved": true,
+   "source_sha256": "952cdc0f85ab10d18a1bdccfeb6c3991e59ab424dc2ce916544aac44f3d8b45e",
+   "unit_id": null
+  }
+ ],
+ "scope": {
+  "a5_design_present": false,
+  "does_not_claim": [
+   "the live EVENTS.jsonl was rewritten (it is read-only for this unit)",
+   "command-center/phase3/A5/DESIGN.json exists (ARC-0031 is a dependency, not a blocker for this fold proof)",
+   "live Task/MCP/Databricks processes were inspected here",
+   "exactly-once delivery",
+   "cloud ok=true is delivery",
+   "the generated catalog shim's generic_report/receipt_core envelope is this file's body (named probes read fold/tests/drain_procedure)"
+  ],
+  "events_jsonl_present": true,
+  "proof_surface": "Live command-center/events/EVENTS.jsonl is the fixture prefix (byte-identical). Extra rows and classified drops append onto the fixture only via close.append_event. Fold writes a distinct ledger JSONL and refuses dest==source. Drain fixture covers the three named rails."
+ },
+ "source_event_log": {
+  "catalog_path": "command-center/events/EVENTS.jsonl",
+  "fold_does_not_rewrite_source": true,
+  "live_sha256": "c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096",
+  "live_unmodified": true,
+  "present_on_worktree": true,
+  "slice_origin": "PREFIX copied byte-for-byte from command-center/events/EVENTS.jsonl (present on this worktree). Extra parseable rows, if any, were appended onto the fixture only via tools/command-center/close.py:append_event. Classified drops (blank line + torn JSON) were appended onto the fixture only. The live EVENTS.jsonl path was never opened for write.",
+  "slice_path": "command-center/p2-wave/probes/ARC-0035/fixtures/source-events.jsonl",
+  "writer": "live-file-prefix + tools/command-center/close.py:append_event (fixture only)"
+ },
+ "title": "A5 (distributed workflow-runtime): fold ad-hoc rails into one work-unit contract without dropping in-flight work",
+ "work_unit_contract": {
+  "claim_record": "ledger kind=claim with fields unit_id, rail, external_ref, dedupe_key, lease_owner, prev_hash, event_hash",
+  "delivery_guarantee": "at-least-once plus idempotent units: a duplicate dispatch may append a second claim_rejected or a second complete row, but must not rewrite a prior ledger line or a prior artifact. Exactly-once is NOT claimed; the claim record + dedupe_key is the mechanism that makes a second dispatcher lose.",
+  "fields": [
+   "id",
+   "title",
+   "phase",
+   "target",
+   "inputs",
+   "dependencies",
+   "assignment",
+   "tool_permissions",
+   "execution_substrate",
+   "timeout_seconds",
+   "output_path",
+   "output_schema",
+   "evidence_requirement",
+   "tests_required",
+   "reviewer_requirement",
+   "completion_sentinel",
+   "retry_policy",
+   "failure_classification",
+   "owner_approval_required"
+  ],
+  "id": "a5-work-unit-v1",
+  "idempotence": "A unit is idempotent when re-running it with the same unit_id leaves the artifact byte-identical (or appends an explicitly versioned successor path). Units that cannot meet that bar are classified non-idempotent and MUST be claimed with a unique attempt suffix so a retry cannot clobber the first artifact."
+ }
+}

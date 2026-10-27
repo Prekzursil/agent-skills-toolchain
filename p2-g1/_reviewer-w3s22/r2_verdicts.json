@@ -1,0 +1,56 @@
+{
+  "reviewer": "w3-shard22-independent-reviewer-20261026-r2",
+  "wave": 3,
+  "shard": 22,
+  "round": 2,
+  "date": "2026-10-26",
+  "method": {
+    "instrument": "_reviewer-w3s22/r2_verify.py (written fresh this round; not derived from builder or from close_shard22.py)",
+    "checks_per_unit": [
+      "CAT: catalog entry present, output_path + output_schema match contract",
+      "ART: artifact exists/non-empty/parses; SUCCESS requires reviewer.verdict=PASS + independent=true; BLOCKED requires classification=[reviewer-absent] + reviewer null",
+      "PROBE: every named probe re-run LIVE by this reviewer (3 rounds; TST-0174 probe1 got 10-round characterization x2 batteries), rc==0 + SUCCESS:<uid>- sentinel required",
+      "MAN: every UNIT-ARTIFACT-MANIFEST.json row re-hashed (CRLF->LF) against live bytes; receipt row must match CURRENT receipt bytes",
+      "SCHEMA: receipt validated against catalog output_schema $defs fragment via _p2lib/schema_resolver",
+      "GATE: platform/lib/receipt_schema_gate.py 12-condition predicate with --repo-root (all 12 must be ok; NOT-CHECKED blocks)",
+      "ADMIT: command-center/receipt_validate.py catalog-cross-ref admission ACCEPT"
+    ],
+    "mutation_control": "copy of TST-0175 receipt with reviewer.independent flipped false: gate REJECTS it on BOTH layer-1 schema (reviewer/independent: True was expected) AND condition 9 (reviewer not independent) -> receipt_core rule is live and double fail-closed",
+    "instrument_note": "first battery run (r2_run.log) used the gate CLI without --repo-root, so c2/c3 were NOT-CHECKED and all units reported GATE=False; that was an instrument bug, fixed before round 2; round-2 GATE=True reflects the gate run with on-disk artifact resolution"
+  },
+  "verdicts": {
+    "TST-0175": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live; manifest registers current receipt bytes", "receipt": "command-center/receipts/TST-0175.json"},
+    "TST-0176": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0176.json"},
+    "TST-0178": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0178.json"},
+    "TST-0179": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0179.json"},
+    "TST-0180": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0180.json"},
+    "TST-0181": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0181.json"},
+    "TST-0185": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0185.json"},
+    "TST-0188": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live (second-shell units re-verified via probe2 cross-shell design)", "receipt": "command-center/receipts/TST-0188.json"},
+    "TST-0190": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0190.json"},
+    "TST-0193": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0193.json"},
+    "TST-0194": {"verdict": "PASS", "disposition": "existing valid PASS closure confirmed; stays SUCCESS; all 7 checks TRUE live", "receipt": "command-center/receipts/TST-0194.json"},
+    "TST-0174": {
+      "verdict": "FAIL",
+      "receipt_unchanged": true,
+      "receipt": "command-center/receipts/TST-0174.json (state=BLOCKED, classification=[reviewer-absent], reviewer=null — NOT closed)",
+      "failing_checks": [
+        "PROBE: probe1_interleavings.py nondeterministically exits 1 — PermissionError [WinError 32] at the parent's DONE/<n>.A|n.B unlink racing the persistent writer_loop .touch() open handle (atomic_cache.py writer_loop); unlink(missing_ok=True) only tolerates FileNotFoundError. THIS reviewer's live tally today: 1 crash / 10 rounds in battery 1 (done\\563.A), 1 crash / 10 rounds in battery 2 (done\\825.A) — 2/20; prior reviewer round measured 5/11. Contract requires live probes re-run exit 0; ~10-45% crash rate is not exit-0 stable.",
+        "SCHEMA/ADMIT (moot while unclosed, but blocks any future closure): the builder BLOCKED receipt is schema-invalid — 38 admission errors; artifacts[] rows carry manifest-style keys (present/receipt_path/unit_id) and lack the required 'exists' field; receipt_validate.py REJECT:TST-0174 C2 schema-invalid (38)."
+      ],
+      "measured_layer_note": "The cache-atomicity PROPERTY ITSELF holds whenever the harness completes: good rounds report trials=1000, partial_reads=0, winners A/B only (e.g. A=527 B=473, OLD=0 UNKNOWN=0); probe2_mutation_temps 3/3 ok. The defect is intrinsic to the probe HARNESS cleanup IPC race, not to the measured layer — but the contract gate is on exit-0 stability, so the unit cannot be closed.",
+      "repair_hint": "Any of: (a) retry the DONE unlink briefly on PermissionError; (b) recreate the per-trial signal files under a fresh per-trial dir the parent deletes only after writers are stopped; (c) writers signal via close-handle-then-rename of the done flag; then rebuild the receipt in receipt-core shape (artifacts rows with exists/bytes/sha256/eol/role) and re-submit for closure."
+    }
+  },
+  "summary": {"pass": 11, "fail": 1, "total": 12},
+  "honesty_notes": [
+    "No receipt bytes were modified this round: the 11 PASS units already carry valid PASS closures from the wave-3 shard-22 independent reviewer and were CONFIRMED (re-verified live, manifests match current bytes); the FAIL unit's receipt is untouched.",
+    "Spot-read of probe sources (TST-0174 interleavings, TST-0175 both-states, TST-0188 static+second-shell) found genuine detectors: both-states design, mutation controls, fail-closed sentinels — no self-certifying probes detected.",
+    "First battery run reported 0/12 due to a reviewer-instrument bug (gate CLI without --repo-root); the false FAIL rows were discarded, the instrument fixed, and the full battery re-run. Round-2 results in r2_results.json are the verdicts of record."
+  ],
+  "artifacts": {
+    "results_of_record": "_reviewer-w3s22/r2_results.json",
+    "battery_logs": ["_reviewer-w3s22/r2_run.log", "_reviewer-w3s22/r2_run2.log"],
+    "instrument": "_reviewer-w3s22/r2_verify.py"
+  }
+}

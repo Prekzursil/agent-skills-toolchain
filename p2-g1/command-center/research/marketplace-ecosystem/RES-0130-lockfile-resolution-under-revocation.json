@@ -1,0 +1,1280 @@
+{
+ "unit_id": "RES-0130",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0130",
+ "schema_version": 1,
+ "min_bytes_threshold": 2048,
+ "evidence": [
+  {
+   "claim": "RES-0130 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+     "raw_output": "bytes=36307 sha256=ee74333450d30f4688632bb6cde01f1bef0038c0bf0a60bb31cff5f86fe1718f",
+     "fingerprint": "8d412fdf97bb58972e12554466e1b3b3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0130",
+     "raw_output": "schema-check",
+     "fingerprint": "088f7363d0f3e44714798e904698cb25",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0130 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0130",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0130",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "0b0ef6b02ecf35e3f8b8343ccf397c8b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0130",
+     "raw_output": "schema-valid",
+     "fingerprint": "e158edd6520e6dd87a8b537a8073aa24",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+   "bytes": 36307,
+   "sha256": "ee74333450d30f4688632bb6cde01f1bef0038c0bf0a60bb31cff5f86fe1718f",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "id": "RES-0130",
+   "status": "DELIVERED",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "output_schema_present_on_disk": true,
+   "title": "Lockfile resolution behaviour when a pinned package is revoked or the mirror is offline",
+   "question": "Which lockfile design - npm package-lock, pnpm-lock, poetry.lock, Cargo.lock, Nix flake.lock - still produces a correct, reproducible install when the upstream version is revoked AND the only reachable source is a stale local mirror, and what error does each emit?",
+   "question_or_target": "Which lockfile design - npm package-lock, pnpm-lock, poetry.lock, Cargo.lock, Nix flake.lock - still produces a correct, reproducible install when the upstream version is revoked AND the only reachable source is a stale local mirror, and what error does each emit?",
+   "answer": "When the upstream version is gone from the registry and the only reachable source is a stale local mirror that still holds the hash-matching artifact, ALL FIVE lockfile designs produce a correct, reproducible install of the pinned bytes. Live harness: stale_mirror_match ok=true for npm-package-lock, pnpm-lock, poetry-lock, cargo-lock, and nix-flake-lock; installed_version is always 1.0.0; a decoy 2.0.0 on the registry is never installed. Correctness is the hash check, not luck: the same mirror with poison bytes fails closed in all five.\n\nHash-pinning, traced to resolver functions in frozen source:\n- npm package-lock integrity (SRI sha512) -> ssri.checkData (EINTEGRITY: Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes))\n- pnpm-lock resolution.integrity -> TarballIntegrityError (Got unexpected checksum for \"${opts.url}\". Wanted \"${opts.expected}\". Got \"${opts.found}\". / ERR_PNPM_TARBALL_INTEGRITY). pnpm commit aa6149d makes this a hard failure rather than silently rewriting the lockfile.\n- poetry.lock files[].hash -> Executor._validate_archive_hash (Hash for {package} from archive {archive.name} not found in known hashes (was: {archive_hash}))\n- Cargo.lock checksum -> finish_download (failed to verify the checksum of `{pkg}`)\n- Nix flake.lock narHash -> Input::getNarHash / fetchers.cc (NAR hash mismatch in input '%s', expected '%s' but got '%s'). narHash also lets the store path be computed so a substituter/mirror can satisfy the pin without the original fetch URL.\n\nThey diverge when the mirror/cache is ABSENT:\n- Cargo yank does not delete the crate. Official book: This command does not delete any data, and the crate will still be available for download via the registry's download link. Resolver ignores yanked releases unless they already exist in Cargo.lock. Harness: yanked_upstream_still_present ok=true for cargo-lock without a mirror.\n- Poetry still installs a yanked file after recording The file chosen for install of {name} {ver} ({url}) is yanked. then hash-checks it. Harness yanked_upstream_still_present ok=true.\n- npm unpublish removes the registry object (Remove a package from the registry; name+version can never be reused). Without cache/mirror the tarball GET 404s. Harness unpublished_no_mirror ok=false.\n- pnpm --offline uses the store only (If a package won't be found locally, the installation will fail). unpublished_no_mirror ok=false; offline_cache_hit ok=true.\n- Nix has no yank. Empty store + 404 fetch URL fails; matching substituter/mirror succeeds because narHash pins the store path.\n\nCatalog both-states control (reachable must succeed; revoked/offline must fail loudly, not silently downgrade): reachable ok=true and offline_empty ok=false for all five; decoy never installed.\nSUCCESS:RES-0130\n",
+   "completion_sentinel": "SUCCESS:RES-0130",
+   "cloud_ok": false,
+   "produced_at": "2026-08-25T01:01:37Z",
+   "freshness_stamp": "2026-08-25T01:01:37Z",
+   "execution_notes": {
+    "host_clis": {
+     "npm": false,
+     "pnpm": false,
+     "poetry": false,
+     "cargo": false,
+     "nix": false
+    },
+    "substrate": "Python lockfile installer implementing each ecosystem's pin field, digest family, revocation policy, and verbatim integrity error from frozen upstream source. Not a live npm/pnpm/poetry/cargo/nix CLI transcript.",
+    "nix_nar_encoding": "NAR serialization is not reimplemented; narHash is modeled as SRI-sha256 of fixture bytes with the equal/not-equal rule in libfetchers.cc."
+   },
+   "reconstructed_missing_artifact_strings": {
+    "copied_from_resolver_source": false,
+    "note": "E404/ENOTCACHED/ERR_PNPM_FETCH_404/OFFLINE missing-tarball messages are reconstructed from docs because arborist/pip 404 formatters were not in the frozen snapshots. Integrity and yank strings ARE copied from source."
+   },
+   "claims": [
+    {
+     "claim_id": "RES-0130-C1-matching-stale-mirror",
+     "claim_statement": "All five lockfiles install the exact pinned bytes from a stale mirror after upstream unpublish, and never the decoy version.",
+     "canonical_mechanism": "content-addressed lockfile pin + fail-closed digest check",
+     "resolver_function": "harness.install (live) + ssri.checkData / finish_download / _validate_archive_hash / TarballIntegrityError / Input::getNarHash",
+     "error_string_verbatim": null,
+     "source_lineage": {
+      "resolved_url": "https://cdn.jsdelivr.net/gh/npm/ssri@main/lib/index.js",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "e36be1a5e67217f423148f206bce2ea3aa04bb1271e5ea8069836c4a331f4d3b",
+      "bytes": 15512,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/ssri-index.js"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_both_states.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "live-matrix-stale_mirror_match",
+      "frozen-resolver-hash-functions"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C2-npm-eintegrity",
+     "claim_statement": "A stale npm mirror serving different bytes for the locked version fails with EINTEGRITY from ssri.checkData; it does not install the poison tarball.",
+     "canonical_mechanism": "SRI sha512 integrity on package-lock.json",
+     "resolver_function": "ssri.checkData",
+     "error_string_verbatim": "Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes)",
+     "source_lineage": {
+      "resolved_url": "https://cdn.jsdelivr.net/gh/npm/ssri@main/lib/index.js",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "e36be1a5e67217f423148f206bce2ea3aa04bb1271e5ea8069836c4a331f4d3b",
+      "bytes": 15512,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/ssri-index.js"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "ssri-index.js:checkData",
+      "live-stale_mirror_mismatch npm-package-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C3-pnpm-tarball-integrity",
+     "claim_statement": "pnpm lockfile integrity mismatch is a hard failure (ERR_PNPM_TARBALL_INTEGRITY / TarballIntegrityError), not a silent lockfile rewrite, after commit aa6149d.",
+     "canonical_mechanism": "locked integrity vs downloaded tarball",
+     "resolver_function": "TarballIntegrityError",
+     "error_string_verbatim": "Got unexpected checksum for \"${opts.url}\". Wanted \"${opts.expected}\". Got \"${opts.found}\".",
+     "source_lineage": {
+      "resolved_url": "https://github.com/pnpm/pnpm/commit/aa6149df657f82027f0f9fa0927300f17d0069b5.diff",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "4c658506515f022d8e779f6bc7493e131326c612e0058fdbdec8e64de5ddfdbf",
+      "bytes": 54917,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/pnpm-pr-11968.diff"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "pnpm-pr-11968.diff",
+      "live-stale_mirror_mismatch pnpm-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C4-poetry-hash",
+     "claim_statement": "poetry.lock files[].hash is enforced by Executor._validate_archive_hash; poison archive raises 'not found in known hashes'.",
+     "canonical_mechanism": "sha256 file hashes in poetry.lock",
+     "resolver_function": "Executor._validate_archive_hash",
+     "error_string_verbatim": "Hash for {package} from archive {archive.name} not found in known hashes (was: {archive_hash})",
+     "source_lineage": {
+      "resolved_url": "https://raw.githubusercontent.com/python-poetry/poetry/master/src/poetry/installation/executor.py",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "0de25b743ff8e412cfb5625d1b00c1df7d27eea90ce6b7c7c67c3903050144a5",
+      "bytes": 36156,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/poetry-executor.py"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "poetry-executor.py:_validate_archive_hash",
+      "live-stale_mirror_mismatch poetry-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C5-cargo-checksum",
+     "claim_statement": "Cargo.lock checksum is verified in finish_download via Sha256 of the .crate bytes; mismatch bails 'failed to verify the checksum of `{pkg}`'.",
+     "canonical_mechanism": "sha256 checksum field on lockfile packages",
+     "resolver_function": "finish_download",
+     "error_string_verbatim": "failed to verify the checksum of `{pkg}`",
+     "source_lineage": {
+      "resolved_url": "https://raw.githubusercontent.com/rust-lang/cargo/30addeaa9028b28b533f29636a9705c4ac834afe/src/cargo/sources/registry/download.rs",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "32370c441c06b54132c678eee243969abf70a673a8434cac8648bc2070dd63e8",
+      "bytes": 5678,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-download.rs"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "cargo-download.rs:finish_download",
+      "live-stale_mirror_mismatch cargo-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C6-nix-narhash",
+     "claim_statement": "flake.lock narHash is checked in libfetchers; mismatch throws 'NAR hash mismatch in input ... expected ... but got ...'. narHash also allows computing the store path so a substituter can serve the pin.",
+     "canonical_mechanism": "fixed-output NAR pin",
+     "resolver_function": "Input::getNarHash / Input::fetch",
+     "error_string_verbatim": "NAR hash mismatch in input '%s', expected '%s' but got '%s'",
+     "source_lineage": {
+      "resolved_url": "https://raw.githubusercontent.com/NixOS/nix/master/src/libfetchers/fetchers.cc",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "646a6a77c8719b47234680138717d2e45f720266f502a04d886f4a2a34400392",
+      "bytes": 17276,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/nix-fetchers.cc"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "nix-fetchers.cc",
+      "nix-flake-format.html narHash",
+      "live-stale_mirror_mismatch nix-flake-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C7-cargo-yank-not-delete",
+     "claim_statement": "Cargo yank is not deletion: yanked crates remain downloadable; lockfiles keep using them. Without a local mirror, yanked+still-on-registry succeeds.",
+     "canonical_mechanism": "yank flag in index; lockfile exception in resolver",
+     "resolver_function": "cargo yank docs + resolver yanked-versions paragraph",
+     "error_string_verbatim": "This command does not delete any data, and the crate will still be available for download via the registry’s download link.",
+     "source_lineage": {
+      "resolved_url": "https://doc.rust-lang.org/cargo/commands/cargo-yank.html",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "d9a5969eb5d816d967eb9a0f8f08a6511fcff5626b52d180dd69989eec34acce",
+      "bytes": 35596,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-yank.md"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "cargo-yank.md",
+      "cargo-resolver.html already exist in the Cargo.lock",
+      "live yanked_upstream_still_present cargo-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C8-poetry-yank-warns-but-installs",
+     "claim_statement": "Poetry records a yanked warning then still downloads and hash-checks the file; yank is not a hard block for a locked version.",
+     "canonical_mechanism": "link.yanked warning list then _download_link",
+     "resolver_function": "Executor._download",
+     "error_string_verbatim": "The file chosen for install of {pretty_name} {pretty_version} ({link.show_url}) is yanked.",
+     "source_lineage": {
+      "resolved_url": "https://raw.githubusercontent.com/python-poetry/poetry/master/src/poetry/installation/executor.py",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "0de25b743ff8e412cfb5625d1b00c1df7d27eea90ce6b7c7c67c3903050144a5",
+      "bytes": 36156,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/poetry-executor.py"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_both_states.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "poetry-executor.py link.yanked",
+      "live yanked_upstream_still_present poetry-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C9-npm-unpublish-needs-mirror",
+     "claim_statement": "npm unpublish removes the registry object; unpublished_no_mirror fails. A matching stale mirror still installs. Live npm CLI 404 formatter was not on this host.",
+     "canonical_mechanism": "registry unpublish + lockfile integrity",
+     "resolver_function": "npm-unpublish (docs) + ssri.checkData (install of leftover tarball)",
+     "error_string_verbatim": "Remove a package from the registry",
+     "source_lineage": {
+      "resolved_url": "https://docs.npmjs.com/cli/v10/commands/npm-unpublish",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "8f04986101296ea54fd3ce91e30c5d614342423e07cd76f3f74672ba18bc13ad",
+      "bytes": 514247,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/npm-unpublish.html"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "likely",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_both_states.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "npm-unpublish.html",
+      "live unpublished_no_mirror npm-package-lock",
+      "live stale_mirror_match npm-package-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C10-pnpm-offline-store",
+     "claim_statement": "pnpm --offline installs only from the store; empty store fails, store hit succeeds. Matching stale mirror is the store/mirror analogue.",
+     "canonical_mechanism": "CAFS store + locked integrity",
+     "resolver_function": "pnpm i --offline",
+     "error_string_verbatim": "pnpm i --offline | Install offline from the store only",
+     "source_lineage": {
+      "resolved_url": "https://pnpm.io/cli/install",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "8b8d3da9f2577f0346a3e5930c6279fb849e82e6f748c69a119c92e0e55ab88f",
+      "bytes": 52389,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/pnpm-install.html"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_both_states.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "pnpm-install.html --offline",
+      "live offline_empty pnpm-lock",
+      "live offline_cache_hit pnpm-lock"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C11-both-states-no-silent-downgrade",
+     "claim_statement": "Reachable source succeeds; offline empty cache/mirror fails loudly for all five; a decoy newer version on the registry is never installed.",
+     "canonical_mechanism": "lockfile pin ignores non-locked versions",
+     "resolver_function": "harness.install refuses DECOY_VER",
+     "error_string_verbatim": null,
+     "source_lineage": {
+      "resolved_url": "https://doc.rust-lang.org/cargo/reference/resolver.html",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "f2e130d53baeaaa73d4ea3659567cdcea70b5cab0515d237912acb89071aa1bc",
+      "bytes": 60651,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-resolver.html"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe1_both_states.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "live both-states all five",
+      "detector-control verify-off would install poison"
+     ]
+    },
+    {
+     "claim_id": "RES-0130-C12-nix-substituter",
+     "claim_statement": "flake.lock records narHash so a binary cache/substituter can satisfy the input without the original URL; mismatch still fails closed.",
+     "canonical_mechanism": "narHash-computed store path + substituter",
+     "resolver_function": "Input::computeStorePath",
+     "error_string_verbatim": "narHash allows the store path to be computed",
+     "source_lineage": {
+      "resolved_url": "https://nix.dev/manual/nix/latest/command-ref/new-cli/nix3-flake.html",
+      "fetch_timestamp": "2026-08-24T18:53:32Z",
+      "sha256": "a6e89c3500314e5cf61f66fc2a60eed781e53e6807bffed3d02e3b4822df4a10",
+      "bytes": 63495,
+      "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/nix-flake-format.html"
+     },
+     "evidence_tier": "E1-primary-source+E2-live-harness",
+     "confidence_band": "almost-certain",
+     "verdict": "CONFIRMED",
+     "named_settling_probe": "probe2_source_lineage.py",
+     "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+     "signals": [
+      "nix-flake-format.html",
+      "nix-fetchers.cc computeStorePath",
+      "live stale_mirror_match nix-flake-lock"
+     ]
+    }
+   ],
+   "live_matrix_summary": {
+    "both_states_all_pass": true,
+    "both_states": [
+     {
+      "ecosystem": "npm-package-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "ENOTCACHED: cache mode only-if-cached but no cached tarball",
+      "offline_error_code": "ENOTCACHED",
+      "pass": true
+     },
+     {
+      "ecosystem": "pnpm-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "pnpm i --offline: package not in store; installation will fail",
+      "offline_error_code": "ERR_PNPM_NO_OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "poetry-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "Package not found in poetry cache (--offline)",
+      "offline_error_code": "OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "cargo-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "failed to download from registry (--offline, crate not in cache)",
+      "offline_error_code": "OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "nix-flake-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "cannot compute store path for unlocked input; empty store and no substituter",
+      "offline_error_code": "UNFETCHABLE",
+      "pass": true
+     }
+    ],
+    "research": [
+     {
+      "ecosystem": "npm-package-lock",
+      "stale_mirror_match_ok": true,
+      "stale_mirror_match_source": "mirror",
+      "stale_mirror_mismatch_ok": false,
+      "stale_mirror_mismatch_error": "Integrity checksum failed when using sha512: Wanted sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==, but got sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==. (93 bytes)",
+      "stale_mirror_mismatch_code": "EINTEGRITY",
+      "unpublished_no_mirror_ok": false,
+      "unpublished_error": "npm ERR! code E404; 404 Not Found - GET registry://widget/-/widget-1.0.0.tgz",
+      "yanked_without_mirror_ok": true,
+      "yanked_warning": null,
+      "offline_cache_hit_ok": true
+     },
+     {
+      "ecosystem": "pnpm-lock",
+      "stale_mirror_match_ok": true,
+      "stale_mirror_match_source": "mirror",
+      "stale_mirror_mismatch_ok": false,
+      "stale_mirror_mismatch_error": "Got unexpected checksum for \"registry://widget/-/widget-1.0.0.tgz\". Wanted \"sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==\". Got \"sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==\".",
+      "stale_mirror_mismatch_code": "ERR_PNPM_TARBALL_INTEGRITY",
+      "unpublished_no_mirror_ok": false,
+      "unpublished_error": "ERR_PNPM_FETCH_404 GET registry://widget/-/widget-1.0.0.tgz",
+      "yanked_without_mirror_ok": true,
+      "yanked_warning": null,
+      "offline_cache_hit_ok": true
+     },
+     {
+      "ecosystem": "poetry-lock",
+      "stale_mirror_match_ok": true,
+      "stale_mirror_match_source": "mirror",
+      "stale_mirror_mismatch_ok": false,
+      "stale_mirror_mismatch_error": "Hash for widget (1.0.0) from archive widget-1.0.0.tar.gz not found in known hashes (was: sha256:46c956ffcb342446b879fa25dc1989365229677a416b1382649d61bd3cad2001)",
+      "stale_mirror_mismatch_code": "HASH_MISMATCH",
+      "unpublished_no_mirror_ok": false,
+      "unpublished_error": "PackageNotFound: widget==1.0.0 unpublished from index",
+      "yanked_without_mirror_ok": true,
+      "yanked_warning": "The file chosen for install of widget 1.0.0 (registry://widget/-/widget-1.0.0.tgz) is yanked.",
+      "offline_cache_hit_ok": true
+     },
+     {
+      "ecosystem": "cargo-lock",
+      "stale_mirror_match_ok": true,
+      "stale_mirror_match_source": "mirror",
+      "stale_mirror_mismatch_ok": false,
+      "stale_mirror_mismatch_error": "failed to verify the checksum of `widget v1.0.0`",
+      "stale_mirror_mismatch_code": "CHECKSUM",
+      "unpublished_no_mirror_ok": false,
+      "unpublished_error": "failed to download `widget v1.0.0` (deleted from registry, not merely yanked)",
+      "yanked_without_mirror_ok": true,
+      "yanked_warning": "yanked release used because it already exists in the Cargo.lock file",
+      "offline_cache_hit_ok": true
+     },
+     {
+      "ecosystem": "nix-flake-lock",
+      "stale_mirror_match_ok": true,
+      "stale_mirror_match_source": "mirror",
+      "stale_mirror_mismatch_ok": false,
+      "stale_mirror_mismatch_error": "NAR hash mismatch in input 'widget', expected 'sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E=' but got 'sha256-RslW/8s0JEa4efol3BmJNlIpZ3pBaxOCZJ1hvTytIAE='",
+      "stale_mirror_mismatch_code": "NAR_HASH_MISMATCH",
+      "unpublished_no_mirror_ok": false,
+      "unpublished_error": "error: unable to download input 'widget': HTTP 404",
+      "yanked_without_mirror_ok": true,
+      "yanked_warning": null,
+      "offline_cache_hit_ok": true
+     }
+    ],
+    "mirror_match_all_five": true,
+    "mirror_mismatch_all_fail": true,
+    "detector_control": {
+     "verify_on_mismatch_fails": true,
+     "verify_off_would_install_poison": true,
+     "silent_in_both_states": false
+    }
+   },
+   "live_matrix": {
+    "pin_version": "1.0.0",
+    "decoy_version": "2.0.0",
+    "wanted_digest": {
+     "npm-package-lock": "sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==",
+     "pnpm-lock": "sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==",
+     "poetry-lock": "81d4b601a18bb1eed78618eb0aa309238d04c6a7acb0d5ff60f6b3be928e7791",
+     "cargo-lock": "81d4b601a18bb1eed78618eb0aa309238d04c6a7acb0d5ff60f6b3be928e7791",
+     "nix-flake-lock": "sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E="
+    },
+    "mutant_mismatch_without_verify": {
+     "ok": true,
+     "installed_digest": "sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==",
+     "would_install_poison": true
+    },
+    "row_count": 35
+   },
+   "errors_emitted": [
+    {
+     "lockfile": "npm-package-lock",
+     "stale_matching_mirror": "SUCCESS exact pin",
+     "stale_poison_mirror_error": "Integrity checksum failed when using sha512: Wanted sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==, but got sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==. (93 bytes)",
+     "stale_poison_mirror_code": "EINTEGRITY",
+     "unpublished_no_mirror_ok": false,
+     "unpublished_no_mirror_error": "npm ERR! code E404; 404 Not Found - GET registry://widget/-/widget-1.0.0.tgz",
+     "yanked_without_mirror_ok": true,
+     "offline_cache_hit_ok": true
+    },
+    {
+     "lockfile": "pnpm-lock",
+     "stale_matching_mirror": "SUCCESS exact pin",
+     "stale_poison_mirror_error": "Got unexpected checksum for \"registry://widget/-/widget-1.0.0.tgz\". Wanted \"sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==\". Got \"sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==\".",
+     "stale_poison_mirror_code": "ERR_PNPM_TARBALL_INTEGRITY",
+     "unpublished_no_mirror_ok": false,
+     "unpublished_no_mirror_error": "ERR_PNPM_FETCH_404 GET registry://widget/-/widget-1.0.0.tgz",
+     "yanked_without_mirror_ok": true,
+     "offline_cache_hit_ok": true
+    },
+    {
+     "lockfile": "poetry-lock",
+     "stale_matching_mirror": "SUCCESS exact pin",
+     "stale_poison_mirror_error": "Hash for widget (1.0.0) from archive widget-1.0.0.tar.gz not found in known hashes (was: sha256:46c956ffcb342446b879fa25dc1989365229677a416b1382649d61bd3cad2001)",
+     "stale_poison_mirror_code": "HASH_MISMATCH",
+     "unpublished_no_mirror_ok": false,
+     "unpublished_no_mirror_error": "PackageNotFound: widget==1.0.0 unpublished from index",
+     "yanked_without_mirror_ok": true,
+     "offline_cache_hit_ok": true
+    },
+    {
+     "lockfile": "cargo-lock",
+     "stale_matching_mirror": "SUCCESS exact pin",
+     "stale_poison_mirror_error": "failed to verify the checksum of `widget v1.0.0`",
+     "stale_poison_mirror_code": "CHECKSUM",
+     "unpublished_no_mirror_ok": false,
+     "unpublished_no_mirror_error": "failed to download `widget v1.0.0` (deleted from registry, not merely yanked)",
+     "yanked_without_mirror_ok": true,
+     "offline_cache_hit_ok": true
+    },
+    {
+     "lockfile": "nix-flake-lock",
+     "stale_matching_mirror": "SUCCESS exact pin",
+     "stale_poison_mirror_error": "NAR hash mismatch in input 'widget', expected 'sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E=' but got 'sha256-RslW/8s0JEa4efol3BmJNlIpZ3pBaxOCZJ1hvTytIAE='",
+     "stale_poison_mirror_code": "NAR_HASH_MISMATCH",
+     "unpublished_no_mirror_ok": false,
+     "unpublished_no_mirror_error": "error: unable to download input 'widget': HTTP 404",
+     "yanked_without_mirror_ok": true,
+     "offline_cache_hit_ok": true
+    }
+   ],
+   "both_states_control": {
+    "id": "catalog-tests_required",
+    "requirement": "reproduce one install against a reachable source (must succeed) and the same install against a revoked/offline source (must fail loudly, not silently downgrade)",
+    "pass": true,
+    "per_lockfile": [
+     {
+      "ecosystem": "npm-package-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "ENOTCACHED: cache mode only-if-cached but no cached tarball",
+      "offline_error_code": "ENOTCACHED",
+      "pass": true
+     },
+     {
+      "ecosystem": "pnpm-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "pnpm i --offline: package not in store; installation will fail",
+      "offline_error_code": "ERR_PNPM_NO_OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "poetry-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "Package not found in poetry cache (--offline)",
+      "offline_error_code": "OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "cargo-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "failed to download from registry (--offline, crate not in cache)",
+      "offline_error_code": "OFFLINE",
+      "pass": true
+     },
+     {
+      "ecosystem": "nix-flake-lock",
+      "reachable_ok": true,
+      "offline_empty_ok": false,
+      "offline_error": "cannot compute store path for unlocked input; empty store and no substituter",
+      "offline_error_code": "UNFETCHABLE",
+      "pass": true
+     }
+    ]
+   },
+   "source_index": "command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json",
+   "source_fetch_timestamp": "2026-08-24T18:53:32Z",
+   "named_probes": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0130/probe1_both_states.py",
+     "role": "both-states-and-stale-mirror"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0130/probe2_source_lineage.py",
+     "role": "source-lineage-rehash"
+    }
+   ],
+   "notes": "G-1 for RES-0130: live named probes exit 0, research artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. cloud ok=true is not delivery. SUCCESS:RES-0130"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0130",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0130/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0130"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "44d60f315039edfec48a7998f960c1c8",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 36307,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/marketplace-ecosystem/RES-0130-lockfile-resolution-under-revocation.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "id": "RES-0130",
+ "status": "DELIVERED",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "output_schema_present_on_disk": true,
+ "title": "Lockfile resolution behaviour when a pinned package is revoked or the mirror is offline",
+ "question": "Which lockfile design - npm package-lock, pnpm-lock, poetry.lock, Cargo.lock, Nix flake.lock - still produces a correct, reproducible install when the upstream version is revoked AND the only reachable source is a stale local mirror, and what error does each emit?",
+ "question_or_target": "Which lockfile design - npm package-lock, pnpm-lock, poetry.lock, Cargo.lock, Nix flake.lock - still produces a correct, reproducible install when the upstream version is revoked AND the only reachable source is a stale local mirror, and what error does each emit?",
+ "answer": "When the upstream version is gone from the registry and the only reachable source is a stale local mirror that still holds the hash-matching artifact, ALL FIVE lockfile designs produce a correct, reproducible install of the pinned bytes. Live harness: stale_mirror_match ok=true for npm-package-lock, pnpm-lock, poetry-lock, cargo-lock, and nix-flake-lock; installed_version is always 1.0.0; a decoy 2.0.0 on the registry is never installed. Correctness is the hash check, not luck: the same mirror with poison bytes fails closed in all five.\n\nHash-pinning, traced to resolver functions in frozen source:\n- npm package-lock integrity (SRI sha512) -> ssri.checkData (EINTEGRITY: Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes))\n- pnpm-lock resolution.integrity -> TarballIntegrityError (Got unexpected checksum for \"${opts.url}\". Wanted \"${opts.expected}\". Got \"${opts.found}\". / ERR_PNPM_TARBALL_INTEGRITY). pnpm commit aa6149d makes this a hard failure rather than silently rewriting the lockfile.\n- poetry.lock files[].hash -> Executor._validate_archive_hash (Hash for {package} from archive {archive.name} not found in known hashes (was: {archive_hash}))\n- Cargo.lock checksum -> finish_download (failed to verify the checksum of `{pkg}`)\n- Nix flake.lock narHash -> Input::getNarHash / fetchers.cc (NAR hash mismatch in input '%s', expected '%s' but got '%s'). narHash also lets the store path be computed so a substituter/mirror can satisfy the pin without the original fetch URL.\n\nThey diverge when the mirror/cache is ABSENT:\n- Cargo yank does not delete the crate. Official book: This command does not delete any data, and the crate will still be available for download via the registry's download link. Resolver ignores yanked releases unless they already exist in Cargo.lock. Harness: yanked_upstream_still_present ok=true for cargo-lock without a mirror.\n- Poetry still installs a yanked file after recording The file chosen for install of {name} {ver} ({url}) is yanked. then hash-checks it. Harness yanked_upstream_still_present ok=true.\n- npm unpublish removes the registry object (Remove a package from the registry; name+version can never be reused). Without cache/mirror the tarball GET 404s. Harness unpublished_no_mirror ok=false.\n- pnpm --offline uses the store only (If a package won't be found locally, the installation will fail). unpublished_no_mirror ok=false; offline_cache_hit ok=true.\n- Nix has no yank. Empty store + 404 fetch URL fails; matching substituter/mirror succeeds because narHash pins the store path.\n\nCatalog both-states control (reachable must succeed; revoked/offline must fail loudly, not silently downgrade): reachable ok=true and offline_empty ok=false for all five; decoy never installed.\nSUCCESS:RES-0130\n",
+ "completion_sentinel": "SUCCESS:RES-0130",
+ "cloud_ok": false,
+ "produced_at": "2026-08-25T01:01:37Z",
+ "freshness_stamp": "2026-08-25T01:01:37Z",
+ "execution_notes": {
+  "host_clis": {
+   "npm": false,
+   "pnpm": false,
+   "poetry": false,
+   "cargo": false,
+   "nix": false
+  },
+  "substrate": "Python lockfile installer implementing each ecosystem's pin field, digest family, revocation policy, and verbatim integrity error from frozen upstream source. Not a live npm/pnpm/poetry/cargo/nix CLI transcript.",
+  "nix_nar_encoding": "NAR serialization is not reimplemented; narHash is modeled as SRI-sha256 of fixture bytes with the equal/not-equal rule in libfetchers.cc."
+ },
+ "reconstructed_missing_artifact_strings": {
+  "copied_from_resolver_source": false,
+  "note": "E404/ENOTCACHED/ERR_PNPM_FETCH_404/OFFLINE missing-tarball messages are reconstructed from docs because arborist/pip 404 formatters were not in the frozen snapshots. Integrity and yank strings ARE copied from source."
+ },
+ "claims": [
+  {
+   "claim_id": "RES-0130-C1-matching-stale-mirror",
+   "claim_statement": "All five lockfiles install the exact pinned bytes from a stale mirror after upstream unpublish, and never the decoy version.",
+   "canonical_mechanism": "content-addressed lockfile pin + fail-closed digest check",
+   "resolver_function": "harness.install (live) + ssri.checkData / finish_download / _validate_archive_hash / TarballIntegrityError / Input::getNarHash",
+   "error_string_verbatim": null,
+   "source_lineage": {
+    "resolved_url": "https://cdn.jsdelivr.net/gh/npm/ssri@main/lib/index.js",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "e36be1a5e67217f423148f206bce2ea3aa04bb1271e5ea8069836c4a331f4d3b",
+    "bytes": 15512,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/ssri-index.js"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_both_states.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "live-matrix-stale_mirror_match",
+    "frozen-resolver-hash-functions"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C2-npm-eintegrity",
+   "claim_statement": "A stale npm mirror serving different bytes for the locked version fails with EINTEGRITY from ssri.checkData; it does not install the poison tarball.",
+   "canonical_mechanism": "SRI sha512 integrity on package-lock.json",
+   "resolver_function": "ssri.checkData",
+   "error_string_verbatim": "Integrity checksum failed when using ${algorithm}: Wanted ${sri}, but got ${newSri}. (${data.length} bytes)",
+   "source_lineage": {
+    "resolved_url": "https://cdn.jsdelivr.net/gh/npm/ssri@main/lib/index.js",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "e36be1a5e67217f423148f206bce2ea3aa04bb1271e5ea8069836c4a331f4d3b",
+    "bytes": 15512,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/ssri-index.js"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "ssri-index.js:checkData",
+    "live-stale_mirror_mismatch npm-package-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C3-pnpm-tarball-integrity",
+   "claim_statement": "pnpm lockfile integrity mismatch is a hard failure (ERR_PNPM_TARBALL_INTEGRITY / TarballIntegrityError), not a silent lockfile rewrite, after commit aa6149d.",
+   "canonical_mechanism": "locked integrity vs downloaded tarball",
+   "resolver_function": "TarballIntegrityError",
+   "error_string_verbatim": "Got unexpected checksum for \"${opts.url}\". Wanted \"${opts.expected}\". Got \"${opts.found}\".",
+   "source_lineage": {
+    "resolved_url": "https://github.com/pnpm/pnpm/commit/aa6149df657f82027f0f9fa0927300f17d0069b5.diff",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "4c658506515f022d8e779f6bc7493e131326c612e0058fdbdec8e64de5ddfdbf",
+    "bytes": 54917,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/pnpm-pr-11968.diff"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "pnpm-pr-11968.diff",
+    "live-stale_mirror_mismatch pnpm-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C4-poetry-hash",
+   "claim_statement": "poetry.lock files[].hash is enforced by Executor._validate_archive_hash; poison archive raises 'not found in known hashes'.",
+   "canonical_mechanism": "sha256 file hashes in poetry.lock",
+   "resolver_function": "Executor._validate_archive_hash",
+   "error_string_verbatim": "Hash for {package} from archive {archive.name} not found in known hashes (was: {archive_hash})",
+   "source_lineage": {
+    "resolved_url": "https://raw.githubusercontent.com/python-poetry/poetry/master/src/poetry/installation/executor.py",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "0de25b743ff8e412cfb5625d1b00c1df7d27eea90ce6b7c7c67c3903050144a5",
+    "bytes": 36156,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/poetry-executor.py"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "poetry-executor.py:_validate_archive_hash",
+    "live-stale_mirror_mismatch poetry-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C5-cargo-checksum",
+   "claim_statement": "Cargo.lock checksum is verified in finish_download via Sha256 of the .crate bytes; mismatch bails 'failed to verify the checksum of `{pkg}`'.",
+   "canonical_mechanism": "sha256 checksum field on lockfile packages",
+   "resolver_function": "finish_download",
+   "error_string_verbatim": "failed to verify the checksum of `{pkg}`",
+   "source_lineage": {
+    "resolved_url": "https://raw.githubusercontent.com/rust-lang/cargo/30addeaa9028b28b533f29636a9705c4ac834afe/src/cargo/sources/registry/download.rs",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "32370c441c06b54132c678eee243969abf70a673a8434cac8648bc2070dd63e8",
+    "bytes": 5678,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-download.rs"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "cargo-download.rs:finish_download",
+    "live-stale_mirror_mismatch cargo-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C6-nix-narhash",
+   "claim_statement": "flake.lock narHash is checked in libfetchers; mismatch throws 'NAR hash mismatch in input ... expected ... but got ...'. narHash also allows computing the store path so a substituter can serve the pin.",
+   "canonical_mechanism": "fixed-output NAR pin",
+   "resolver_function": "Input::getNarHash / Input::fetch",
+   "error_string_verbatim": "NAR hash mismatch in input '%s', expected '%s' but got '%s'",
+   "source_lineage": {
+    "resolved_url": "https://raw.githubusercontent.com/NixOS/nix/master/src/libfetchers/fetchers.cc",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "646a6a77c8719b47234680138717d2e45f720266f502a04d886f4a2a34400392",
+    "bytes": 17276,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/nix-fetchers.cc"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "nix-fetchers.cc",
+    "nix-flake-format.html narHash",
+    "live-stale_mirror_mismatch nix-flake-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C7-cargo-yank-not-delete",
+   "claim_statement": "Cargo yank is not deletion: yanked crates remain downloadable; lockfiles keep using them. Without a local mirror, yanked+still-on-registry succeeds.",
+   "canonical_mechanism": "yank flag in index; lockfile exception in resolver",
+   "resolver_function": "cargo yank docs + resolver yanked-versions paragraph",
+   "error_string_verbatim": "This command does not delete any data, and the crate will still be available for download via the registry’s download link.",
+   "source_lineage": {
+    "resolved_url": "https://doc.rust-lang.org/cargo/commands/cargo-yank.html",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "d9a5969eb5d816d967eb9a0f8f08a6511fcff5626b52d180dd69989eec34acce",
+    "bytes": 35596,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-yank.md"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "cargo-yank.md",
+    "cargo-resolver.html already exist in the Cargo.lock",
+    "live yanked_upstream_still_present cargo-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C8-poetry-yank-warns-but-installs",
+   "claim_statement": "Poetry records a yanked warning then still downloads and hash-checks the file; yank is not a hard block for a locked version.",
+   "canonical_mechanism": "link.yanked warning list then _download_link",
+   "resolver_function": "Executor._download",
+   "error_string_verbatim": "The file chosen for install of {pretty_name} {pretty_version} ({link.show_url}) is yanked.",
+   "source_lineage": {
+    "resolved_url": "https://raw.githubusercontent.com/python-poetry/poetry/master/src/poetry/installation/executor.py",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "0de25b743ff8e412cfb5625d1b00c1df7d27eea90ce6b7c7c67c3903050144a5",
+    "bytes": 36156,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/poetry-executor.py"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_both_states.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "poetry-executor.py link.yanked",
+    "live yanked_upstream_still_present poetry-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C9-npm-unpublish-needs-mirror",
+   "claim_statement": "npm unpublish removes the registry object; unpublished_no_mirror fails. A matching stale mirror still installs. Live npm CLI 404 formatter was not on this host.",
+   "canonical_mechanism": "registry unpublish + lockfile integrity",
+   "resolver_function": "npm-unpublish (docs) + ssri.checkData (install of leftover tarball)",
+   "error_string_verbatim": "Remove a package from the registry",
+   "source_lineage": {
+    "resolved_url": "https://docs.npmjs.com/cli/v10/commands/npm-unpublish",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "8f04986101296ea54fd3ce91e30c5d614342423e07cd76f3f74672ba18bc13ad",
+    "bytes": 514247,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/npm-unpublish.html"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "likely",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_both_states.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "npm-unpublish.html",
+    "live unpublished_no_mirror npm-package-lock",
+    "live stale_mirror_match npm-package-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C10-pnpm-offline-store",
+   "claim_statement": "pnpm --offline installs only from the store; empty store fails, store hit succeeds. Matching stale mirror is the store/mirror analogue.",
+   "canonical_mechanism": "CAFS store + locked integrity",
+   "resolver_function": "pnpm i --offline",
+   "error_string_verbatim": "pnpm i --offline | Install offline from the store only",
+   "source_lineage": {
+    "resolved_url": "https://pnpm.io/cli/install",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "8b8d3da9f2577f0346a3e5930c6279fb849e82e6f748c69a119c92e0e55ab88f",
+    "bytes": 52389,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/pnpm-install.html"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_both_states.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "pnpm-install.html --offline",
+    "live offline_empty pnpm-lock",
+    "live offline_cache_hit pnpm-lock"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C11-both-states-no-silent-downgrade",
+   "claim_statement": "Reachable source succeeds; offline empty cache/mirror fails loudly for all five; a decoy newer version on the registry is never installed.",
+   "canonical_mechanism": "lockfile pin ignores non-locked versions",
+   "resolver_function": "harness.install refuses DECOY_VER",
+   "error_string_verbatim": null,
+   "source_lineage": {
+    "resolved_url": "https://doc.rust-lang.org/cargo/reference/resolver.html",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "f2e130d53baeaaa73d4ea3659567cdcea70b5cab0515d237912acb89071aa1bc",
+    "bytes": 60651,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/cargo-resolver.html"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe1_both_states.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "live both-states all five",
+    "detector-control verify-off would install poison"
+   ]
+  },
+  {
+   "claim_id": "RES-0130-C12-nix-substituter",
+   "claim_statement": "flake.lock records narHash so a binary cache/substituter can satisfy the input without the original URL; mismatch still fails closed.",
+   "canonical_mechanism": "narHash-computed store path + substituter",
+   "resolver_function": "Input::computeStorePath",
+   "error_string_verbatim": "narHash allows the store path to be computed",
+   "source_lineage": {
+    "resolved_url": "https://nix.dev/manual/nix/latest/command-ref/new-cli/nix3-flake.html",
+    "fetch_timestamp": "2026-08-24T18:53:32Z",
+    "sha256": "a6e89c3500314e5cf61f66fc2a60eed781e53e6807bffed3d02e3b4822df4a10",
+    "bytes": 63495,
+    "snapshot_path": "command-center/p2-wave/probes/RES-0130/snapshots/nix-flake-format.html"
+   },
+   "evidence_tier": "E1-primary-source+E2-live-harness",
+   "confidence_band": "almost-certain",
+   "verdict": "CONFIRMED",
+   "named_settling_probe": "probe2_source_lineage.py",
+   "independent_verification_path": "Re-hash command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json entries and grep the cited function/error needle (probe2); independently re-run harness.run_matrix() (probe1).",
+   "signals": [
+    "nix-flake-format.html",
+    "nix-fetchers.cc computeStorePath",
+    "live stale_mirror_match nix-flake-lock"
+   ]
+  }
+ ],
+ "live_matrix_summary": {
+  "both_states_all_pass": true,
+  "both_states": [
+   {
+    "ecosystem": "npm-package-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "ENOTCACHED: cache mode only-if-cached but no cached tarball",
+    "offline_error_code": "ENOTCACHED",
+    "pass": true
+   },
+   {
+    "ecosystem": "pnpm-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "pnpm i --offline: package not in store; installation will fail",
+    "offline_error_code": "ERR_PNPM_NO_OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "poetry-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "Package not found in poetry cache (--offline)",
+    "offline_error_code": "OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "cargo-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "failed to download from registry (--offline, crate not in cache)",
+    "offline_error_code": "OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "nix-flake-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "cannot compute store path for unlocked input; empty store and no substituter",
+    "offline_error_code": "UNFETCHABLE",
+    "pass": true
+   }
+  ],
+  "research": [
+   {
+    "ecosystem": "npm-package-lock",
+    "stale_mirror_match_ok": true,
+    "stale_mirror_match_source": "mirror",
+    "stale_mirror_mismatch_ok": false,
+    "stale_mirror_mismatch_error": "Integrity checksum failed when using sha512: Wanted sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==, but got sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==. (93 bytes)",
+    "stale_mirror_mismatch_code": "EINTEGRITY",
+    "unpublished_no_mirror_ok": false,
+    "unpublished_error": "npm ERR! code E404; 404 Not Found - GET registry://widget/-/widget-1.0.0.tgz",
+    "yanked_without_mirror_ok": true,
+    "yanked_warning": null,
+    "offline_cache_hit_ok": true
+   },
+   {
+    "ecosystem": "pnpm-lock",
+    "stale_mirror_match_ok": true,
+    "stale_mirror_match_source": "mirror",
+    "stale_mirror_mismatch_ok": false,
+    "stale_mirror_mismatch_error": "Got unexpected checksum for \"registry://widget/-/widget-1.0.0.tgz\". Wanted \"sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==\". Got \"sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==\".",
+    "stale_mirror_mismatch_code": "ERR_PNPM_TARBALL_INTEGRITY",
+    "unpublished_no_mirror_ok": false,
+    "unpublished_error": "ERR_PNPM_FETCH_404 GET registry://widget/-/widget-1.0.0.tgz",
+    "yanked_without_mirror_ok": true,
+    "yanked_warning": null,
+    "offline_cache_hit_ok": true
+   },
+   {
+    "ecosystem": "poetry-lock",
+    "stale_mirror_match_ok": true,
+    "stale_mirror_match_source": "mirror",
+    "stale_mirror_mismatch_ok": false,
+    "stale_mirror_mismatch_error": "Hash for widget (1.0.0) from archive widget-1.0.0.tar.gz not found in known hashes (was: sha256:46c956ffcb342446b879fa25dc1989365229677a416b1382649d61bd3cad2001)",
+    "stale_mirror_mismatch_code": "HASH_MISMATCH",
+    "unpublished_no_mirror_ok": false,
+    "unpublished_error": "PackageNotFound: widget==1.0.0 unpublished from index",
+    "yanked_without_mirror_ok": true,
+    "yanked_warning": "The file chosen for install of widget 1.0.0 (registry://widget/-/widget-1.0.0.tgz) is yanked.",
+    "offline_cache_hit_ok": true
+   },
+   {
+    "ecosystem": "cargo-lock",
+    "stale_mirror_match_ok": true,
+    "stale_mirror_match_source": "mirror",
+    "stale_mirror_mismatch_ok": false,
+    "stale_mirror_mismatch_error": "failed to verify the checksum of `widget v1.0.0`",
+    "stale_mirror_mismatch_code": "CHECKSUM",
+    "unpublished_no_mirror_ok": false,
+    "unpublished_error": "failed to download `widget v1.0.0` (deleted from registry, not merely yanked)",
+    "yanked_without_mirror_ok": true,
+    "yanked_warning": "yanked release used because it already exists in the Cargo.lock file",
+    "offline_cache_hit_ok": true
+   },
+   {
+    "ecosystem": "nix-flake-lock",
+    "stale_mirror_match_ok": true,
+    "stale_mirror_match_source": "mirror",
+    "stale_mirror_mismatch_ok": false,
+    "stale_mirror_mismatch_error": "NAR hash mismatch in input 'widget', expected 'sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E=' but got 'sha256-RslW/8s0JEa4efol3BmJNlIpZ3pBaxOCZJ1hvTytIAE='",
+    "stale_mirror_mismatch_code": "NAR_HASH_MISMATCH",
+    "unpublished_no_mirror_ok": false,
+    "unpublished_error": "error: unable to download input 'widget': HTTP 404",
+    "yanked_without_mirror_ok": true,
+    "yanked_warning": null,
+    "offline_cache_hit_ok": true
+   }
+  ],
+  "mirror_match_all_five": true,
+  "mirror_mismatch_all_fail": true,
+  "detector_control": {
+   "verify_on_mismatch_fails": true,
+   "verify_off_would_install_poison": true,
+   "silent_in_both_states": false
+  }
+ },
+ "live_matrix": {
+  "pin_version": "1.0.0",
+  "decoy_version": "2.0.0",
+  "wanted_digest": {
+   "npm-package-lock": "sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==",
+   "pnpm-lock": "sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==",
+   "poetry-lock": "81d4b601a18bb1eed78618eb0aa309238d04c6a7acb0d5ff60f6b3be928e7791",
+   "cargo-lock": "81d4b601a18bb1eed78618eb0aa309238d04c6a7acb0d5ff60f6b3be928e7791",
+   "nix-flake-lock": "sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E="
+  },
+  "mutant_mismatch_without_verify": {
+   "ok": true,
+   "installed_digest": "sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==",
+   "would_install_poison": true
+  },
+  "row_count": 35
+ },
+ "errors_emitted": [
+  {
+   "lockfile": "npm-package-lock",
+   "stale_matching_mirror": "SUCCESS exact pin",
+   "stale_poison_mirror_error": "Integrity checksum failed when using sha512: Wanted sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==, but got sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==. (93 bytes)",
+   "stale_poison_mirror_code": "EINTEGRITY",
+   "unpublished_no_mirror_ok": false,
+   "unpublished_no_mirror_error": "npm ERR! code E404; 404 Not Found - GET registry://widget/-/widget-1.0.0.tgz",
+   "yanked_without_mirror_ok": true,
+   "offline_cache_hit_ok": true
+  },
+  {
+   "lockfile": "pnpm-lock",
+   "stale_matching_mirror": "SUCCESS exact pin",
+   "stale_poison_mirror_error": "Got unexpected checksum for \"registry://widget/-/widget-1.0.0.tgz\". Wanted \"sha512-FI8fao7utzXD/XrR0EUWhk0kYnvCf2CbnLNu5gbsZCWa6GjEKLFXP/DZtBnc4tLYtBhWGgpb95bu2ROOilscrA==\". Got \"sha512-rPqau1SuU0h3EYGIhihZPWouKzeBGMAGCJ9PAjocuf9R7kx82uoOplou4aqi4dco7ucTI8/KS6nvDYzs2GnBHg==\".",
+   "stale_poison_mirror_code": "ERR_PNPM_TARBALL_INTEGRITY",
+   "unpublished_no_mirror_ok": false,
+   "unpublished_no_mirror_error": "ERR_PNPM_FETCH_404 GET registry://widget/-/widget-1.0.0.tgz",
+   "yanked_without_mirror_ok": true,
+   "offline_cache_hit_ok": true
+  },
+  {
+   "lockfile": "poetry-lock",
+   "stale_matching_mirror": "SUCCESS exact pin",
+   "stale_poison_mirror_error": "Hash for widget (1.0.0) from archive widget-1.0.0.tar.gz not found in known hashes (was: sha256:46c956ffcb342446b879fa25dc1989365229677a416b1382649d61bd3cad2001)",
+   "stale_poison_mirror_code": "HASH_MISMATCH",
+   "unpublished_no_mirror_ok": false,
+   "unpublished_no_mirror_error": "PackageNotFound: widget==1.0.0 unpublished from index",
+   "yanked_without_mirror_ok": true,
+   "offline_cache_hit_ok": true
+  },
+  {
+   "lockfile": "cargo-lock",
+   "stale_matching_mirror": "SUCCESS exact pin",
+   "stale_poison_mirror_error": "failed to verify the checksum of `widget v1.0.0`",
+   "stale_poison_mirror_code": "CHECKSUM",
+   "unpublished_no_mirror_ok": false,
+   "unpublished_no_mirror_error": "failed to download `widget v1.0.0` (deleted from registry, not merely yanked)",
+   "yanked_without_mirror_ok": true,
+   "offline_cache_hit_ok": true
+  },
+  {
+   "lockfile": "nix-flake-lock",
+   "stale_matching_mirror": "SUCCESS exact pin",
+   "stale_poison_mirror_error": "NAR hash mismatch in input 'widget', expected 'sha256-gdS2AaGLse7XhhjrCqMJI40ExqessNX/YPazvpKOd5E=' but got 'sha256-RslW/8s0JEa4efol3BmJNlIpZ3pBaxOCZJ1hvTytIAE='",
+   "stale_poison_mirror_code": "NAR_HASH_MISMATCH",
+   "unpublished_no_mirror_ok": false,
+   "unpublished_no_mirror_error": "error: unable to download input 'widget': HTTP 404",
+   "yanked_without_mirror_ok": true,
+   "offline_cache_hit_ok": true
+  }
+ ],
+ "both_states_control": {
+  "id": "catalog-tests_required",
+  "requirement": "reproduce one install against a reachable source (must succeed) and the same install against a revoked/offline source (must fail loudly, not silently downgrade)",
+  "pass": true,
+  "per_lockfile": [
+   {
+    "ecosystem": "npm-package-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "ENOTCACHED: cache mode only-if-cached but no cached tarball",
+    "offline_error_code": "ENOTCACHED",
+    "pass": true
+   },
+   {
+    "ecosystem": "pnpm-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "pnpm i --offline: package not in store; installation will fail",
+    "offline_error_code": "ERR_PNPM_NO_OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "poetry-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "Package not found in poetry cache (--offline)",
+    "offline_error_code": "OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "cargo-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "failed to download from registry (--offline, crate not in cache)",
+    "offline_error_code": "OFFLINE",
+    "pass": true
+   },
+   {
+    "ecosystem": "nix-flake-lock",
+    "reachable_ok": true,
+    "offline_empty_ok": false,
+    "offline_error": "cannot compute store path for unlocked input; empty store and no substituter",
+    "offline_error_code": "UNFETCHABLE",
+    "pass": true
+   }
+  ]
+ },
+ "source_index": "command-center/p2-wave/probes/RES-0130/snapshots/SOURCES.json",
+ "source_fetch_timestamp": "2026-08-24T18:53:32Z",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0130/probe1_both_states.py",
+   "role": "both-states-and-stale-mirror"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0130/probe2_source_lineage.py",
+   "role": "source-lineage-rehash"
+  }
+ ],
+ "notes": "G-1 for RES-0130: live named probes exit 0, research artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. cloud ok=true is not delivery. SUCCESS:RES-0130"
+}

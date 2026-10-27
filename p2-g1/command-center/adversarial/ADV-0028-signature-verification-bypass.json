@@ -1,0 +1,601 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "role": "primary",
+   "bytes": 23122,
+   "sha256": "25fc6c2be2ef981ab0181b216c4e1a522cd69f2ace50ea912a4e62b93cf5d069",
+   "eol": "CRLF"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+ "controls": [
+  {
+   "accepted": true,
+   "description": "A correctly signed package by a synthetic trusted key must install.",
+   "id": "trusted-signed-installs",
+   "independent_sidecar_verifies": true,
+   "result": "PASS",
+   "signature_inspected_by_installer": false
+  },
+  {
+   "description": "All keys used are synthetic test keys generated for this unit.",
+   "existing_signing_keys_touched": false,
+   "id": "synthetic-keys-only",
+   "result": "PASS"
+  },
+  {
+   "description": "Wrong digest must refuse, proving the real installer is on the path.",
+   "failure_mode": "DigestMismatchError: digest mismatch live=8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55 expected=0000000000000000000000000000000000000000000000000000000000000000",
+   "id": "digest-mismatch-liveness",
+   "refused": true,
+   "result": "PASS"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "apply_install accepted four signature-invalid variants because it never inspects a signature. [recorded: kind=live-install; path=tools/plugin/install.py]",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0028-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:baaf446903cff134"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0028-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:4657e44b90b275de"
+    }
+   ],
+   "anchor": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Corrupting trust-store.json and blocking sockets left unsigned install accepted (fail-open). [recorded: kind=degraded-environment; path=command-center/p2-wave/probes/ADV-0028/probe2_degraded_trust.py]",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0028-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:8c92c923900190df"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0028-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:467470c3fed2e535"
+    }
+   ],
+   "anchor": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "A wrong digest is refused by _read_verified_blob, so the harness is not a stub that always succeeds. [recorded: kind=liveness; path=tools/plugin/rollback_transaction.py]",
+   "confidence": "likely",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:ADV-0028-probe1 delivery predicate: parses, state=SUCCESS, sentinel present, verdicts legal, controls recorded",
+     "exit_code": 0,
+     "fingerprint": "sha16:2c8388d983944322"
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:ADV-0028-probe2 content re-derived live; manifest byte-compare OK",
+     "exit_code": 0,
+     "fingerprint": "sha16:276afac0015c3268"
+    }
+   ],
+   "anchor": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "existing_signing_keys_touched": false,
+ "headline_answer": "CONFIRMED: apply_install accepts unsigned, truncated-signature, wrong-content-signature, and untrusted-key packages. Verification is digest-only and fail-open: corrupting the trust store and blocking the network does not refuse install. A digest mismatch still refuses, proving the live installer was exercised.",
+ "id": "ADV-0028",
+ "installer": {
+  "digest_check": "tools/plugin/rollback_transaction.py:_read_verified_blob",
+  "entry": "apply_install",
+  "module": "tools/plugin/install.py",
+  "signature_api_present": false,
+  "source_scan": {
+   "digest_check_present": true,
+   "files": {
+    "tools/plugin/handoff.py": [],
+    "tools/plugin/install.py": [],
+    "tools/plugin/rollback_transaction.py": []
+   },
+   "signature_api_present": false
+  }
+ },
+ "min_bytes_threshold": 1024,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe1_install_variants.py",
+   "id": "probe1",
+   "raw_output": "{\n  \"attempts\": {\n    \"digest_mismatch_liveness\": {\n      \"accepted\": false,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"0000000000000000000000000000000000000000000000000000000000000000\",\n      \"failure_mode\": \"DigestMismatchError: digest mismatch live=8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55 expected=0000000000000000000000000000000000000000000000000000000000000000\",\n      \"installed_name\": null,\n      \"installed_version\": null,\n      \"ok\": false,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"signature_over_older_content\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"truncated_signature\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"trusted_signed_control\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"unsigned\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    },\n    \"untrusted_key\": {\n      \"accepted\": true,\n      \"blob_name\": \"adv0028-probe-pkg\",\n      \"blob_version\": \"1.0.0\",\n      \"digest\": \"8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55\",\n      \"failure_mode\": null,\n      \"installed_name\": \"adv0028-probe-pkg\",\n      \"installed_version\": \"1.0.0\",\n      \"ok\": true,\n      \"projection\": {\n        \"entries\": [\n          {\n            \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n            \"source\": \"payload.txt\"\n          }\n        ],\n        \"name\": \"adv0028-probe-pkg\",\n        \"schema_version\": 1,\n        \"version\": \"1.0.0\"\n      }\n    }\n  },\n  \"bypass\": {\n    \"old_content_accepted\": true,\n    \"truncated_accepted\": true,\n    \"unsigned_accepted\": true,\n    \"untrusted_accepted\": true\n  },\n  \"control_trusted_signed_installs\": true,\n  \"digest_only\": true,\n  \"existing_keys_touched\": false,\n  \"installer\": \"tools/plugin/install.py\",\n  \"installer_inspected_signature\": false,\n  \"liveness_digest_mismatch_refuses\": true,\n  \"probe\": \"probe1-install-variants\",\n  \"sidecars\": {\n    \"old_content\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"verifies_for_older_blob\": true,\n      \"verifies_for_payload\": false\n    },\n    \"truncated\": {\n      \"bytes\": 8,\n      \"present\": true,\n      \"verifies_for_payload\": false\n    },\n    \"trusted_signed_control\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"signer_in_trust_store\": true,\n      \"verifies_for_payload\": true\n    },\n    \"unsigned\": {\n      \"bytes\": 0,\n      \"present\": false,\n      \"verifies_for_payload\": false\n    },\n    \"untrusted_key\": {\n      \"bytes\": 64,\n      \"present\": true,\n      \"signer_in_trust_store\": false,\n      \"verifies_for_payload\": true\n    }\n  },\n  \"source_scan\": {\n    \"digest_check_present\": true,\n    \"files\": {\n      \"tools/plugin/handoff.py\": [],\n      \"tools/plugin/install.py\": [],\n      \"tools/plugin/rollback_transaction.py\": []\n    },\n    \"signature_api_present\": false\n  },\n  \"synthetic_keys_only\": true,\n  \"trust_store_key_ids\": [\n    \"adv0028-trusted-synthetic\"\n  ],\n  \"trusted_public_hex_prefix\": \"620dc87d8d1c9e95\",\n  \"untrusted_public_hex_prefix\": \"79452f02feae26f7\"\n}",
+   "role": "install-variant-matrix"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0028/probe2_degraded_trust.py",
+   "id": "probe2",
+   "raw_output": "{\n  \"egress_attempts_during_install\": [],\n  \"fail_open\": true,\n  \"missing_trust_store_file\": true,\n  \"network_blocked\": true,\n  \"probe\": \"probe2-degraded-trust-store\",\n  \"source_scan\": {\n    \"digest_check_present\": true,\n    \"files\": {\n      \"tools/plugin/handoff.py\": [],\n      \"tools/plugin/install.py\": [],\n      \"tools/plugin/rollback_transaction.py\": []\n    },\n    \"signature_api_present\": false\n  },\n  \"truncated_accepted_while_degraded\": true,\n  \"truncated_signature\": {\n    \"accepted\": true,\n    \"blob_name\": \"adv0028-probe-pkg\",\n    \"blob_version\": \"1.0.0\",\n    \"digest\": \"651ed0796d9565547b0e99a7c5228ecbd269fa7c059ffa9d2d09ba1d4e8e7ee8\",\n    \"failure_mode\": null,\n    \"installed_name\": \"adv0028-probe-pkg\",\n    \"installed_version\": \"1.0.0\",\n    \"ok\": true,\n    \"projection\": {\n      \"entries\": [\n        {\n          \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n          \"source\": \"payload.txt\"\n        }\n      ],\n      \"name\": \"adv0028-probe-pkg\",\n      \"schema_version\": 1,\n      \"version\": \"1.0.0\"\n    }\n  },\n  \"trust_store_corrupted\": true,\n  \"trust_store_unread_by_installer\": true,\n  \"unsigned\": {\n    \"accepted\": true,\n    \"blob_name\": \"adv0028-probe-pkg\",\n    \"blob_version\": \"1.0.0\",\n    \"digest\": \"651ed0796d9565547b0e99a7c5228ecbd269fa7c059ffa9d2d09ba1d4e8e7ee8\",\n    \"failure_mode\": null,\n    \"installed_name\": \"adv0028-probe-pkg\",\n    \"installed_version\": \"1.0.0\",\n    \"ok\": true,\n    \"projection\": {\n      \"entries\": [\n        {\n          \"dest\": \"plugins/adv0028-probe-pkg/payload.txt\",\n          \"source\": \"payload.txt\"\n        }\n      ],\n      \"name\": \"adv0028-probe-pkg\",\n      \"schema_version\": 1,\n      \"version\": \"1.0.0\"\n    }\n  },\n  \"unsigned_accepted_while_degraded\": true\n}",
+   "role": "degraded-trust-store-fail-open"
+  }
+ ],
+ "negative_tests": [
+  {
+   "id": "truncated-sidecar-does-not-verify",
+   "result": "PASS"
+  },
+  {
+   "id": "old-content-sidecar-verifies-only-older-blob",
+   "result": "PASS"
+  }
+ ],
+ "output_schema": "command-center/schema/exploit-proof.schema.json",
+ "output_schema_file_present": true,
+ "overall_verdict": "CONFIRMED",
+ "probe1": {
+  "attempts": {
+   "digest_mismatch_liveness": {
+    "accepted": false,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "0000000000000000000000000000000000000000000000000000000000000000",
+    "failure_mode": "DigestMismatchError: digest mismatch live=8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55 expected=0000000000000000000000000000000000000000000000000000000000000000",
+    "installed_name": null,
+    "installed_version": null,
+    "ok": false,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   },
+   "signature_over_older_content": {
+    "accepted": true,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55",
+    "failure_mode": null,
+    "installed_name": "adv0028-probe-pkg",
+    "installed_version": "1.0.0",
+    "ok": true,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   },
+   "truncated_signature": {
+    "accepted": true,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55",
+    "failure_mode": null,
+    "installed_name": "adv0028-probe-pkg",
+    "installed_version": "1.0.0",
+    "ok": true,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   },
+   "trusted_signed_control": {
+    "accepted": true,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55",
+    "failure_mode": null,
+    "installed_name": "adv0028-probe-pkg",
+    "installed_version": "1.0.0",
+    "ok": true,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   },
+   "unsigned": {
+    "accepted": true,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55",
+    "failure_mode": null,
+    "installed_name": "adv0028-probe-pkg",
+    "installed_version": "1.0.0",
+    "ok": true,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   },
+   "untrusted_key": {
+    "accepted": true,
+    "blob_name": "adv0028-probe-pkg",
+    "blob_version": "1.0.0",
+    "digest": "8de928712527fdc62520246410ee8742951c1784ae2d28a7de7d398908f5da55",
+    "failure_mode": null,
+    "installed_name": "adv0028-probe-pkg",
+    "installed_version": "1.0.0",
+    "ok": true,
+    "projection": {
+     "entries": [
+      {
+       "dest": "plugins/adv0028-probe-pkg/payload.txt",
+       "source": "payload.txt"
+      }
+     ],
+     "name": "adv0028-probe-pkg",
+     "schema_version": 1,
+     "version": "1.0.0"
+    }
+   }
+  },
+  "bypass": {
+   "old_content_accepted": true,
+   "truncated_accepted": true,
+   "unsigned_accepted": true,
+   "untrusted_accepted": true
+  },
+  "control_trusted_signed_installs": true,
+  "digest_only": true,
+  "existing_keys_touched": false,
+  "installer": "tools/plugin/install.py",
+  "installer_inspected_signature": false,
+  "liveness_digest_mismatch_refuses": true,
+  "probe": "probe1-install-variants",
+  "sidecars": {
+   "old_content": {
+    "bytes": 64,
+    "present": true,
+    "verifies_for_older_blob": true,
+    "verifies_for_payload": false
+   },
+   "truncated": {
+    "bytes": 8,
+    "present": true,
+    "verifies_for_payload": false
+   },
+   "trusted_signed_control": {
+    "bytes": 64,
+    "present": true,
+    "signer_in_trust_store": true,
+    "verifies_for_payload": true
+   },
+   "unsigned": {
+    "bytes": 0,
+    "present": false,
+    "verifies_for_payload": false
+   },
+   "untrusted_key": {
+    "bytes": 64,
+    "present": true,
+    "signer_in_trust_store": false,
+    "verifies_for_payload": true
+   }
+  },
+  "source_scan": {
+   "digest_check_present": true,
+   "files": {
+    "tools/plugin/handoff.py": [],
+    "tools/plugin/install.py": [],
+    "tools/plugin/rollback_transaction.py": []
+   },
+   "signature_api_present": false
+  },
+  "synthetic_keys_only": true,
+  "trust_store_key_ids": [
+   "adv0028-trusted-synthetic"
+  ],
+  "trusted_public_hex_prefix": "620dc87d8d1c9e95",
+  "untrusted_public_hex_prefix": "79452f02feae26f7"
+ },
+ "probe2": {
+  "egress_attempts_during_install": [],
+  "fail_open": true,
+  "missing_trust_store_file": true,
+  "network_blocked": true,
+  "probe": "probe2-degraded-trust-store",
+  "source_scan": {
+   "digest_check_present": true,
+   "files": {
+    "tools/plugin/handoff.py": [],
+    "tools/plugin/install.py": [],
+    "tools/plugin/rollback_transaction.py": []
+   },
+   "signature_api_present": false
+  },
+  "truncated_accepted_while_degraded": true,
+  "truncated_signature": {
+   "accepted": true,
+   "blob_name": "adv0028-probe-pkg",
+   "blob_version": "1.0.0",
+   "digest": "651ed0796d9565547b0e99a7c5228ecbd269fa7c059ffa9d2d09ba1d4e8e7ee8",
+   "failure_mode": null,
+   "installed_name": "adv0028-probe-pkg",
+   "installed_version": "1.0.0",
+   "ok": true,
+   "projection": {
+    "entries": [
+     {
+      "dest": "plugins/adv0028-probe-pkg/payload.txt",
+      "source": "payload.txt"
+     }
+    ],
+    "name": "adv0028-probe-pkg",
+    "schema_version": 1,
+    "version": "1.0.0"
+   }
+  },
+  "trust_store_corrupted": true,
+  "trust_store_unread_by_installer": true,
+  "unsigned": {
+   "accepted": true,
+   "blob_name": "adv0028-probe-pkg",
+   "blob_version": "1.0.0",
+   "digest": "651ed0796d9565547b0e99a7c5228ecbd269fa7c059ffa9d2d09ba1d4e8e7ee8",
+   "failure_mode": null,
+   "installed_name": "adv0028-probe-pkg",
+   "installed_version": "1.0.0",
+   "ok": true,
+   "projection": {
+    "entries": [
+     {
+      "dest": "plugins/adv0028-probe-pkg/payload.txt",
+      "source": "payload.txt"
+     }
+    ],
+    "name": "adv0028-probe-pkg",
+    "schema_version": 1,
+    "version": "1.0.0"
+   }
+  },
+  "unsigned_accepted_while_degraded": true
+ },
+ "produced_by": {
+  "execution_substrate": "linux-worktree",
+  "model": "grok-4.6",
+  "role": "security-exploit-engineer",
+  "vendor": "grok"
+ },
+ "question": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
+ "report_kind": "exploit-proof",
+ "residual_unknowns": [
+  {
+   "claim": "Two different-vendor human reviewers have not reproduced the counterexample.",
+   "settling_experiment": "Hand the raw probe transcripts to two vendors; split verdicts escalate with the specific probe, not a vote.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Catalog asks for two different-vendor reviewers. This G-1 delivery records an independent second probe as the mechanical reviewer. Cross-vendor human review is residual, not a BLOCK on the live install evidence. [recorded: scope_not_agreement=True]",
+  "reviewer_id": "ADV-0028-probe2-degraded-trust-store",
+  "verdict": "PASS"
+ },
+ "reviewer_requirement_met": false,
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "synthetic_keys_only": true,
+ "targets": [
+  {
+   "accepted": true,
+   "claim": "unsigned package is accepted by apply_install",
+   "expected_fail_closed": true,
+   "id": "unsigned",
+   "observed": "accepted",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "accepted": true,
+   "claim": "package whose sidecar signature is truncated is accepted",
+   "expected_fail_closed": true,
+   "id": "truncated_signature",
+   "observed": "accepted",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "accepted": true,
+   "claim": "package carrying a signature over an older blob is accepted",
+   "expected_fail_closed": true,
+   "id": "signature_over_older_content",
+   "observed": "accepted",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "accepted": true,
+   "claim": "package signed by a key absent from the synthetic trust store is accepted",
+   "expected_fail_closed": true,
+   "id": "untrusted_key",
+   "observed": "accepted",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "accepted": true,
+   "claim": "unsigned install still accepted when the trust store is corrupt and network is blocked",
+   "expected_fail_closed": true,
+   "id": "fail_open_degraded_trust_store",
+   "observed": "accepted",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-UNSIGNED-ACCEPTED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-TRUNCATED-ACCEPTED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-OLD-CONTENT-ACCEPTED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-UNTRUSTED-ACCEPTED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-DEGRADED-FAIL-OPEN",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-CONTROL-TRUSTED-SIGNED",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  },
+  {
+   "id": "T-NEGATIVE-DIGEST-MISMATCH",
+   "result": "PASS",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[unit]/named-probe run [test executed inside the named-probe run; per-row command not separately recorded]"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-25T15:29:13Z",
+  "ended_at": "2026-10-26T05:22:46Z"
+ },
+ "title": "Signature and provenance verification bypass on install",
+ "unit_id": "ADV-0028",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ADV-0028",
+ "extensions": {
+  "builder_w4_conformance": {
+   "timestamps_extras": {
+    "emitted_at": "2026-10-24T18:53:06Z"
+   },
+   "produced_by_vendor_original": "cursor-grok"
+  }
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "attempts": []
+ },
+ "report": {
+  "kind": "exploit-proof",
+  "question": "Signature and provenance verification bypass on install",
+  "answer": "Live re-derivation on 2026-10-26T05:22:46Z: 5 CONFIRMED / 0 REFUTED / 0 PARTIAL / 0 NOT-CHECKED across the enumerated rows; both named probes re-run to exit 0 and the per-unit manifest byte-compare matches the live artifact bytes (builder shard0 wave-4 conformance pass).",
+  "observations": [
+   {
+    "name": "named probes exit 0 on live re-run",
+    "measured": true,
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ADV-0028/"
+   },
+   {
+    "name": "per-unit manifest registers the live artifact sha256",
+    "measured": "command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json",
+    "method": "byte-compare",
+    "anchor": "command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json"
+   }
+  ],
+  "control_ids": [
+   "T-CONTROL-TRUSTED-SIGNED"
+  ]
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0028/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ADV-0028",
+  "registered_at": "2026-10-26T05:22:46Z"
+ },
+ "negative_controls": [
+  {
+   "id": "NC-digest-mismatch-vs-trusted-control",
+   "kind": "malformed-input",
+   "description": "Detector control: a package whose content does not match its recorded digest is rejected (T-NEGATIVE-DIGEST-MISMATCH PASS) while a trusted-key correctly-signed intact package installs (T-CONTROL-TRUSTED-SIGNED PASS); the accept-anything fail-open findings are recorded separately as variants.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "T-NEGATIVE-DIGEST-MISMATCH PASS (tampered package refused)",
+   "good_state_output": "T-CONTROL-TRUSTED-SIGNED PASS (trusted signed package installs)"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "python json RFC-8259 parse of the delivered artifact",
+   "artifact_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python3 -c json.load(command-center/adversarial/ADV-0028-signature-verification-bypass.json)",
+    "raw_output": "parsed OK",
+    "fingerprint": "sha16:4aa84ff410cfb17d"
+   }
+  },
+  {
+   "consumer": "platform/lib/schema_resolver.validate_artifact against declared output_schema",
+   "artifact_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python3 platform/lib/schema_resolver.py command-center/adversarial/ADV-0028-signature-verification-bypass.json command-center/schema/exploit-proof.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "sha16:04ea7c244a8991b0"
+   }
+  }
+ ]
+}

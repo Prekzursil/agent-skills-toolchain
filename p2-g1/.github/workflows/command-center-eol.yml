@@ -1,0 +1,35 @@
+# IMP-0441: EOL gate on CI. The command-center gates hash text files;
+# a checkout with CRLF must not silently break them. Runs the shipped
+# eol_policy check plus both real gates on a clean LF checkout (Linux) and
+# a CRLF-materialised sibling (Windows working-tree byte form).
+name: command-center-eol
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".gitattributes"
+      - "tools/command-center/eol_policy.py"
+      - "tools/command-center/validate.py"
+      - "tools/command-center/render.py"
+
+jobs:
+  eol-gate:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # .gitattributes eol=lf forces an LF working tree even on Windows,
+      # so both platforms hash the same bytes the gates recorded.
+      - name: EOL attribute policy
+        run: python -B tools/command-center/eol_policy.py --check
+
+      - name: Dual-platform gate proof
+        run: python -B tools/command-center/eol_policy.py --dual-platform

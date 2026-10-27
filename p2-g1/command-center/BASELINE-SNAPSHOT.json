@@ -1,0 +1,379 @@
+{
+  "_skeleton_warning": "This file was written FIRST as a skeleton with every field 'UNKNOWN - not yet measured', then rewritten as measurements landed. No field below still reads UNKNOWN; every value carries the command that produced it.",
+  "schema_version": "1.0.0",
+  "artifact": "BASELINE-SNAPSHOT",
+  "purpose": "Prompt Two Phase 0 freeze. Durable rollback anchor + proof-of-change baseline for all later phases.",
+  "captured_at_utc": "2026-08-09T14:45Z to 2026-08-09T15:35Z (measurement window, not an instant)",
+  "captured_by": "ground/baseline subagent",
+  "host": "DESKTOP-A60S9GP",
+  "python": "3.14.6",
+
+  "COVERAGE": {
+    "measured": [
+      "repo HEAD/branch/dirty/worktrees",
+      "local+remote branches and merge status vs origin/main",
+      "plugin + marketplace state",
+      "live harness tree file counts and total bytes",
+      "live-vs-repo per-file divergence (sha256, EOL-aware)",
+      "hook dispatch manifest registration count",
+      "python test baseline across 28 CI-declared suites"
+    ],
+    "NOT_measured": [
+      "32 of the 60 quality.yml test-python steps (non-pytest gates, isolated-venv py3.12 trees, vendored trees) - see test_baseline.not_checked_reason",
+      "node/npm test surface (fanout-schema lint, skill validation) - out of unit scope",
+      "whether the live-vs-repo divergence direction is live-ahead or repo-ahead per file (counts only)"
+    ]
+  },
+
+  "FREEZE_INTEGRITY_WARNING": {
+    "verdict": "THE TREE WAS NOT FROZEN DURING THIS SNAPSHOT",
+    "evidence": "At the first probe (git status --porcelain | wc -l) the count was 0. Minutes later `git status --porcelain --untracked-files=no` reported ' M agent-self/harness/install.py' and ~20 new untracked paths from concurrent sibling agents. A test suite measured '4 failed, 831 passed' at 15:05Z and '835 passed' at 15:12Z with no action by this unit - a sibling's TDD red phase captured mid-flight.",
+    "consequence": "Only the COMMITTED state (HEAD sha 53c37c6c) is a stable rollback anchor. Every working-tree measurement in this file is timestamped and must be treated as VOLATILE. Later phases proving 'we changed something' must diff against the SHA, not against these working-tree numbers.",
+    "confidence": "almost-certain (90-99%) - two independent observations, both direct command output"
+  },
+
+  "detector_control": {
+    "_purpose": "Honesty rule 6. An enumeration count is not authoritative until the enumerator is proven to (a) find a known-present file, (b) NOT find a known-absent sentinel, and (c) FIRE when that sentinel IS present (the both-states test - a probe silent in both states measures nothing).",
+    "enumerator": "command-center/_baseline_probe.py :: enumerate_tree()",
+    "known_present_probe": "enumerate_tree(C:/Users/Prekzursil/.claude/hooks) must contain '_dispatch/manifest.json'",
+    "known_present_found": true,
+    "known_present_size_bytes": 11219,
+    "known_present_corroboration": "independent `ls -la` of the same path reported 11219 bytes - different tool, same value",
+    "known_absent_sentinel": "__CONTROL-SHOULD-NOT-EXIST__.md",
+    "known_absent_hits": [],
+    "known_absent_ok": true,
+    "both_states_probe": "same enumerate_tree() run over a temp dir seeded with sub/deep/__CONTROL-SHOULD-NOT-EXIST__.md",
+    "both_states_fired": true,
+    "both_states_seen": ["sub/deep/__CONTROL-SHOULD-NOT-EXIST__.md"],
+    "verdict": "PASS (3/3)",
+    "detector_defect_found_and_fixed": {
+      "symptom": "ValueError: path is on mount '\\\\.\\NUL', start on mount 'C:'",
+      "cause": "os.path.relpath() on a file literally named NUL - Windows resolves the reserved stem to a device, so the file has no drive mount. The FIRST version of this enumerator CRASHED and produced zero counts.",
+      "fix": "relpath computed by prefix-stripping the DIRECTORY (a normal path) + filename; size/read via the \\\\?\\ extended-length prefix",
+      "note": "This is the briefed Windows-reserved-device-name class, hit for real. Had the crash been swallowed, every count in this file would have been 0 and would have read as 'trees are empty'."
+    }
+  },
+
+  "repo": {
+    "path": "C:/Users/Prekzursil/source/ast-integrate",
+    "remote_origin": "https://github.com/Prekzursil/agent-skills-toolchain.git",
+    "head_sha": "53c37c6cfb3e7bd1a48edbe604e1ea06a77b50b1",
+    "head_sha_short": "53c37c6c",
+    "branch": "main",
+    "dirty_file_count_at_freeze": 0,
+    "dirty_file_count_at_freeze_note": "measured BEFORE this unit wrote anything; `git status --porcelain | wc -l` -> 0",
+    "dirty_during_unit": {
+      "tracked_modified": ["agent-self/harness/install.py"],
+      "attribution": "concurrent sibling agent, NOT this unit",
+      "untracked_by_this_unit": [
+        "command-center/BASELINE-SNAPSHOT.json",
+        "command-center/BASELINE-SNAPSHOT.md",
+        "command-center/_baseline_probe.py",
+        "command-center/_baseline_probe_out.json",
+        "command-center/_baseline_tests.py",
+        "command-center/_baseline_tests_out.json",
+        "command-center/_baseline_tests_console.log"
+      ],
+      "untracked_by_siblings_observed": [
+        "command-center/PROMPT-ONE-FLOOR-AUDIT.md",
+        "command-center/COMPLETION-GATES.json",
+        "command-center/OPTION-ID-RESOLUTION.json",
+        "command-center/OPTION-ID-RESOLUTION.md",
+        "agent-self/harness/tests/test_deploy_command_center.py",
+        ".probe_extract.py", ".probe_lines.py", ".probe_lines2.py", ".probe_vgraph.py",
+        "_probe2.py", "_probe_questions.py", ".wt-triage/ (7 files)"
+      ]
+    },
+    "worktree_list": [
+      "C:/Users/Prekzursil/source/agent-skills-toolchain  64340915 [fix/mcp-health-agentmail-fbmessenger]",
+      "C:/Users/Prekzursil/source/ast-harness-reconcile   4bcc65ec [chore/enshrine-runtime-config]",
+      "C:/Users/Prekzursil/source/ast-integrate           53c37c6c [main]",
+      "C:/Users/Prekzursil/source/ast-statusline-capture  24c1be78 [chore/statusline-gotchas-and-goal-short-20260724]",
+      "D:/ckwt/cookie-bridge-skill                        efe7d75f [feat/cookie-bridge-skill-20260724]",
+      "D:/inc1-wt/ast-increment1                          03e495bb [feat/variant4-increment1-dbx-monitor-20260721]"
+    ],
+    "worktree_count": 6,
+    "commands": {
+      "head_sha": "git rev-parse HEAD",
+      "branch": "git rev-parse --abbrev-ref HEAD",
+      "dirty": "git status --porcelain | wc -l",
+      "dirty_tracked_only": "git status --porcelain --untracked-files=no",
+      "worktrees": "git worktree list"
+    }
+  },
+
+  "branches": {
+    "local_count": 57,
+    "remote_count": 96,
+    "remote_count_note": "excludes the bare 'origin' HEAD pseudo-ref",
+    "local_merged_into_origin_main": ["harness/upgrade-2026-07-17", "main"],
+    "local_merged_count": 2,
+    "local_not_merged_count": 55,
+    "remote_merged_into_origin_main": [
+      "origin/chore/wu4-enforcement-scaffold-port",
+      "origin/docs/figma-mcp-ratelimit-fix",
+      "origin/feat/cloud-hub-mcp",
+      "origin/feat/drug-discovery-stack",
+      "origin/feat/fb-reels-uploader-tool",
+      "origin/feat/memory-spool-autoreplay",
+      "origin/feat/optimal-agentic-workspace",
+      "origin/feat/ralph-orchestrator-integration",
+      "origin/feat/research-harness-m16",
+      "origin/feat/social-hub-mcp",
+      "origin/fix/stub-ledger-false-positive",
+      "origin/harness/upgrade-2026-07-17",
+      "origin/main"
+    ],
+    "remote_merged_count": 13,
+    "remote_not_merged_count": 83,
+    "DELETION_WARNING": "ancestry-merged is NOT a delete authorisation on this estate. This repo squash-merges, so a fully-landed branch still reports as NOT merged. 83 remote branches report not-merged; an unknown subset of those are actually landed. Use PR-MERGED state or byte-level content comparison before deleting any branch.",
+    "commands": {
+      "local": "git branch --format='%(refname:short)'",
+      "remote": "git branch -r --format='%(refname:short)'",
+      "merged": "git branch [-r] --merged origin/main --format='%(refname:short)'",
+      "not_merged": "git branch [-r] --no-merged origin/main --format='%(refname:short)'"
+    }
+  },
+
+  "plugins": {
+    "command": "claude plugin list",
+    "exit_code": 0,
+    "total_entries": 98,
+    "enabled": 9,
+    "disabled": 88,
+    "failed_to_load": 1,
+    "reconciliation": "9 + 88 + 1 = 98 - every entry accounted for. The initial parse found only 97 (enabled+disabled); the residual led to the third status string, which a two-bucket detector would have silently dropped.",
+    "enabled_list": [
+      "claude-reflect@claude-reflect-marketplace",
+      "codex@openai-codex",
+      "hookify@claude-plugins-official",
+      "metaswarm@metaswarm-marketplace",
+      "modern-web-guidance@googlechrome",
+      "ralph-loop@claude-plugins-official",
+      "remember@claude-plugins-official",
+      "skill-creator@claude-plugins-official",
+      "superpowers@claude-plugins-official"
+    ],
+    "failed_to_load_list": ["qodo-skills@claude-plugins-official (v0.6.1, user scope)"],
+    "agentbridge_state": "agentbridge@agentbridge v0.1.30, scope user, DISABLED - independently reconfirms the briefed retirement via a different probe run",
+    "all_scopes_observed": ["user"],
+    "marketplaces_observed": ["claude-plugins-official", "claude-reflect-marketplace", "metaswarm-marketplace", "openai-codex", "googlechrome", "agentbridge"]
+  },
+
+  "live_harness_trees": {
+    "command": "command-center/_baseline_probe.py :: enumerate_tree() (os.walk, excluding __pycache__/.git/.pytest_cache/.ruff_cache/node_modules)",
+    "skills": {
+      "live_path": "C:/Users/Prekzursil/.agents/skills",
+      "live_file_count": 14585,
+      "live_total_bytes": 266412606,
+      "repo_path": "C:/Users/Prekzursil/source/ast-integrate/skills",
+      "repo_file_count": 1721,
+      "repo_total_bytes": 11183177
+    },
+    "hooks": {
+      "live_path": "C:/Users/Prekzursil/.claude/hooks",
+      "live_file_count": 314,
+      "live_total_bytes": 5529522,
+      "repo_path": "C:/Users/Prekzursil/source/ast-integrate/hooks",
+      "repo_file_count": 293,
+      "repo_total_bytes": 5251537
+    },
+    "rules": {
+      "live_path": "C:/Users/Prekzursil/.claude/rules",
+      "live_file_count": 88,
+      "live_total_bytes": 220620,
+      "repo_path": "C:/Users/Prekzursil/source/ast-integrate/rules",
+      "repo_file_count": 88,
+      "repo_total_bytes": 255496
+    }
+  },
+
+  "live_vs_repo_diff": {
+    "method": "sha256 of both copies per shared relative path; on mismatch, re-compare after normalising CRLF->LF to separate EOL-only drift from real content drift. NO DEPLOY WAS PERFORMED.",
+    "deploy_transform_check": "scripts/sync-rules.ps1:67 is a plain `Copy-Item -Force` with no content transform, so a rules content difference is REAL drift, not a deploy artifact.",
+    "skills": {
+      "identical": 1336,
+      "differing_total": 252,
+      "differing_content": 127,
+      "differing_eol_only": 125,
+      "live_only": 12997,
+      "repo_only": 133,
+      "live_only_dominated_by": [["crypto-ctf", 12786], ["microsoft-foundry", 172], ["workflow-monitor", 33]],
+      "live_only_note": "crypto-ctf alone is 344 MB / 12786 files live and only SKILL.md in the repo - a deliberately uncommitted payload, not drift to reconcile. Excluding crypto-ctf+microsoft-foundry, live_only falls to ~39 files.",
+      "repo_only_dominated_by": [["codex-databricks-fanout", 67], ["cookie-bridge", 19], ["design-system", 10], ["browser-rail", 8]]
+    },
+    "hooks": {
+      "identical": 140,
+      "differing_total": 126,
+      "differing_content": 49,
+      "differing_eol_only": 77,
+      "live_only": 48,
+      "repo_only": 27,
+      "content_differing_sample": ["README.md", "_dispatch/dispatch.py", "_dispatch/manifest.json", "_dispatch/test_wiring.py", "_shared/test_use_vs_mention.py", "_shared/transcript_tail.py"]
+    },
+    "rules": {
+      "identical": 5,
+      "differing_total": 83,
+      "differing_content": 28,
+      "differing_eol_only": 55,
+      "live_only": 0,
+      "repo_only": 0,
+      "headline": "Only 5 of 88 rules files are byte-identical. 28 differ in real content, and the drift is TWO-DIRECTIONAL.",
+      "content_differing_full": [
+        {"path": "README.md", "live": 4351, "repo": 8827},
+        {"path": "common/agents.md", "live": 317, "repo": 2064},
+        {"path": "common/bash-hud-and-terminal-emit.md", "live": 7461, "repo": 7496},
+        {"path": "common/ci-hygiene.md", "live": 4439, "repo": 8254},
+        {"path": "common/code-review.md", "live": 3929, "repo": 5593},
+        {"path": "common/coding-style.md", "live": 1662, "repo": 2730},
+        {"path": "common/cross-vendor-dispatch.md", "live": 4200, "repo": 6468},
+        {"path": "common/development-workflow.md", "live": 2357, "repo": 3014},
+        {"path": "common/fan-out-contract.md", "live": 10787, "repo": 11291},
+        {"path": "common/git-workflow.md", "live": 722, "repo": 1565},
+        {"path": "common/harness-vcs-hygiene.md", "live": 2149, "repo": 3142},
+        {"path": "common/hooks.md", "live": 849, "repo": 4848},
+        {"path": "common/owner-ops-authorization.md", "live": 11011, "repo": 10010},
+        {"path": "common/patterns.md", "live": 1282, "repo": 1657},
+        {"path": "common/performance.md", "live": 2109, "repo": 1931},
+        {"path": "common/security.md", "live": 1768, "repo": 1671},
+        {"path": "common/static-analyzer.md", "live": 820, "repo": 1639},
+        {"path": "common/testing.md", "live": 1154, "repo": 2292},
+        {"path": "common/windows-shell.md", "live": 16617, "repo": 18586},
+        {"path": "dart/patterns.md", "live": 7080, "repo": 7246},
+        {"path": "java/testing.md", "live": 3508, "repo": 3874},
+        {"path": "perl/patterns.md", "live": 1465, "repo": 1705},
+        {"path": "php/coding-style.md", "live": 1385, "repo": 1770},
+        {"path": "python/security.md", "live": 524, "repo": 994},
+        {"path": "rust/hooks.md", "live": 406, "repo": 973},
+        {"path": "typescript/coding-style.md", "live": 4291, "repo": 4816},
+        {"path": "typescript/hooks.md", "live": 561, "repo": 1309},
+        {"path": "web/hooks.md", "live": 2605, "repo": 5830}
+      ],
+      "direction_note": "25 of 28 are repo-larger; 3 are live-larger (owner-ops-authorization +1001, performance +178, security +97). Two-directional divergence means neither side is a superset - a one-directional sync in EITHER direction would destroy content. WHICH side is authoritative per file is UNVERIFIED (settling experiment: `git log -1 --format=%cI -- rules/<path>` vs the live file mtime, per file, plus a content read of the 3 live-larger files)."
+    },
+    "junk_file_found": {
+      "path": "C:/Users/Prekzursil/.agents/skills/workflow-monitor/NUL",
+      "bytes": 409,
+      "mtime": "2026-07-26 08:47",
+      "how_found": "the enumerator crash, then confirmed independently by `ls -la '//?/C:/Users/Prekzursil/.agents/skills/workflow-monitor/'`",
+      "significance": "a Windows reserved device name as a real file; it breaks naive os.path.relpath-based tooling. Live-only (absent from the repo)."
+    }
+  },
+
+  "hook_dispatch_manifest": {
+    "path": "C:/Users/Prekzursil/.claude/hooks/_dispatch/manifest.json",
+    "bytes": 11219,
+    "version": 1,
+    "hooks_root": "C:/Users/Prekzursil/.claude/hooks",
+    "registration_count": 25,
+    "by_event": {"SessionStart": 6, "Stop": 9, "PostToolUse": 5, "PreToolUse": 5},
+    "registrations": {
+      "SessionStart": ["bg-registry/reconcile", "memory-spool/replay", "memory-spool/flush_check", "heartbeat", "open-loops/resurface", "background-digest/reader"],
+      "Stop": ["bg-registry/done_marker", "heartbeat", "wire-check", "git-hygiene", "honest-signal", "stub-ledger/report", "forge/todo-surfacer", "journey-coverage", "dark-surface"],
+      "PostToolUse": ["memory-spool/flush_check", "tool-result-sentinel", "claim-guard/ledger-write", "stub-ledger/record", "edit-validate/record"],
+      "PreToolUse": ["bg-registry/register", "memory-spool/spool", "dup-guard", "monitor-autolaunch", "codex-monitor-autolaunch"]
+    },
+    "counting_note": "A first pass reported 4 - it counted the top-level `events` keys, not the per-event `checks` lists. The real leaf count is 25. Recorded here because an unreconciled 4-vs-25 is exactly the kind of number that gets cited as authoritative.",
+    "command": "python -c \"import json; d=json.load(open(r'C:\\Users\\Prekzursil\\.claude\\hooks\\_dispatch\\manifest.json')); print(sum(len(v['checks']) for v in d['events'].values()))\"",
+    "note": "This is the LIVE manifest. It is one of the 49 content-differing hooks files vs the repo copy - the repo's manifest may register a different set."
+  },
+
+  "test_baseline": {
+    "runner": "command-center/_baseline_tests.py",
+    "runner_command": "python command-center/_baseline_tests.py",
+    "total_seconds": 512.4,
+    "suites_attempted": 28,
+    "DISCLOSED_DEVIATION_FROM_CI": "CI runs each suite with the venv `pytest` CONSOLE SCRIPT after `pip install -e`. This runner used `python -m pytest` and performed NO installs (installing would mutate the shared interpreter). `-m pytest` prepends CWD to sys.path, so it is a BROKEN DETECTOR for packaging/import-path regressions. It measures TEST OUTCOMES only, NOT CI's packaging gate.",
+    "not_checked_reason": "quality.yml's test-python job declares 60 steps. 28 were run here. The other 32 are non-pytest gates (validate.py/render.py/lint), isolated-venv py3.12 trees (wearables, abbyy-finereader-ocr-mcp, omniaudit-mcp), or require editable installs. Those are NOT-CHECKED, not passing.",
+    "verdict_tally": {"PASS": 21, "FAIL": 4, "NOT-CHECKED": 3},
+    "aggregate_counts_verbatim": {"passed": 5326, "failed": 8, "error": 4, "skipped": 2, "deselected": 1},
+    "green_suites_verbatim": [
+      "mcp-manager: 335 passed in 11.33s",
+      "scholarly-access-mcp: 145 passed in 12.18s",
+      "taskwatch_monitor: 407 passed in 6.72s",
+      "monitorcore: 1147 passed in 18.40s",
+      "wfmon-adapter: 16 passed in 1.52s",
+      "mcpctl: 191 passed in 2.03s",
+      "stdin-server: 28 passed in 4.01s",
+      "harness-drift: 31 passed in 2.12s",
+      "agentspec: 582 passed, 1 deselected, 2 warnings in 3.10s",
+      "cmd-rewrite-hooks: 9 passed in 3.29s",
+      "search-expansion: 105 passed in 1.67s",
+      "program-b-register: 27 passed in 2.30s",
+      "plugin-cache-reaper: 45 passed in 1.35s",
+      "emit-hook-manifest: 22 passed in 1.63s",
+      "rules-scope: 2 passed in 0.90s",
+      "plan-lint-stage0: 93 passed in 7.66s",
+      "codex-dbx-fanout: 234 passed in 4.49s",
+      "workflow-authoring-lint: 103 passed in 1.76s",
+      "git-hygiene: 34 passed in 64.56s",
+      "harness-corpus: 12 passed, 1 skipped in 1.81s",
+      "cloud-hub: 325 passed in 21.33s"
+    ],
+    "failures_triaged": [
+      {
+        "suite": "command-center",
+        "verbatim": "3 failed, 45 passed in 2.36s",
+        "failed": [
+          "tools/command-center/tests/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog",
+          "tools/command-center/tests/test_validate.py::test_real_catalog_is_clean",
+          "tools/command-center/tests/test_validate.py::test_cli_exit_zero_on_the_real_tree"
+        ],
+        "error_verbatim": "REACH-6 -: register snapshot sha256 1a404a91d819 != recorded 8b3e44cc3813 / FAILED:cc-validate violations=1",
+        "root_cause": "WINDOWS CRLF ARTIFACT - NOT a CI failure and NOT a real regression.",
+        "proof": "git cat-file -p HEAD:command-center/sources/REGISTER.md -> 56931 bytes, 0 CRLF, sha256 8b3e44cc3813b46c5c1458dffa1a7cae0a05d04fbcce2afd341adc67b293f9ae == the recorded provenance.register_sha256 EXACTLY. The working-tree copy is 57235 bytes with 304 CRLF pairs, sha256 1a404a91d819... 57235-56931 = 304 = the CRLF count, so the delta is pure EOL expansion.",
+        "why_it_happens": "core.autocrlf=true and .gitattributes has no `*.md eol=lf` rule (`git check-attr text eol -- command-center/sources/REGISTER.md` -> both 'unspecified'), so every .md checks out CRLF on Windows. tools/command-center/validate.py:217 hashes the WORKING-TREE bytes (snapshot.read_bytes()), not the blob.",
+        "residual_real_defect": "REACH-6 is unrunnable on ANY Windows checkout with default autocrlf. CI stays green because Linux checks out LF. Severity: portability of the gate, not correctness of the data. Fix options: add `*.md eol=lf` to .gitattributes, or normalise CRLF before hashing in validate.py.",
+        "verdict": "REFUTED as a repo regression; CONFIRMED as a Windows-portability defect in the gate"
+      },
+      {
+        "suite": "agent-self-harness",
+        "verbatim_at_1505Z": "4 failed, 831 passed in 71.51s",
+        "verbatim_at_1512Z": "835 passed in 66.22s",
+        "root_cause": "A concurrent SIBLING agent's TDD red phase, captured mid-flight. It modified agent-self/harness/install.py and added agent-self/harness/tests/test_deploy_command_center.py while this runner was executing. Same 835-test total, 4 flipped red->green with no action by this unit.",
+        "verdict": "REFUTED as a baseline failure - transient, sibling-induced"
+      },
+      {
+        "suite": "ci-tests-all",
+        "verbatim": "1 failed, 557 passed, 1 skipped in 127.35s",
+        "failed": ["ci/tests/test_check_skill_dual_write.py::test_strict_parity_keeps_distinct_invalid_utf8_path_bytes_distinct"],
+        "error_verbatim": "UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte  (at os.fsdecode(b\"\\xff\"), <frozen os>:871)",
+        "root_cause": "POSIX-only test. It builds filenames from raw bytes 0xff/0xfe, which os.fsdecode surrogate-escapes on Linux but rejects on this Windows interpreter. Fails in the fixture setup line, before touching any repo logic.",
+        "verdict": "REFUTED as a repo regression; Windows-only, expected green on the ubuntu-latest CI runner (confidence: likely, 55-80% - not executed on Linux by this unit)"
+      },
+      {
+        "suite": "hooks-regression",
+        "verbatim_first_run": "no tests ran in 16.18s (exit 3, INTERNALERROR> SystemExit: 0)",
+        "root_cause": "RUNNER MIS-INVOCATION by this unit, not a repo failure. CI passes `--ignore=hooks/memory-guard/test_scan.py --ignore=hooks/cmd-rewrite`; memory-guard exits at module level so pytest cannot collect it. Omitting the ignores produced the INTERNALERROR.",
+        "rerun_with_ci_flags_verbatim": "1 failed, 1229 passed, 8 skipped, 10 xfailed in 297.51s",
+        "residual_failure": "hooks/iatrogenics/test_gate.py::TestCounterMechanics::test_counter_auto_clears_after_ttl - assert not fired(out) / assert not True",
+        "residual_triage": "FLAKY (order- or load-dependent), not deterministic: re-run in isolation 3/3 PASS while the box was under concurrent load from sibling agents. Settling experiment: run the full `hooks/` suite 5x with the CI ignores and record the failure rate; if it recurs, bisect with `-p no:randomly` and by running the immediately-preceding test in the same process to find the state leak.",
+        "verdict": "PARTIAL - the suite is 1229-green with CI's flags; one TTL test is an order/load-dependent flake"
+      }
+    ],
+    "not_checked_suites": [
+      {"suite": "mcpapply", "exit": 4, "reason": "ImportError while loading conftest / ModuleNotFoundError - needs `pip install -e ../mcpctl` then `pip install -e .[dev]`. CI's own comment documents that this is exactly the state the bare install produces."},
+      {"suite": "agentrail", "exit": 4, "reason": "same - needs editable install"},
+      {"suite": "crcp", "exit": 2, "reason": "4 collection errors: tests/test_envelope_v11.py, test_event_key_idempotent.py, test_redact.py, test_sse_classify.py - needs editable install"}
+    ],
+    "HEADLINE": "5326 tests pass. ZERO of the 8 counted failures survive triage as a real regression on main @ 53c37c6c: 3 are a Windows CRLF artifact, 4 were a sibling's transient red phase, 1 is a POSIX-only test. The residual is one order/load-dependent flake plus a genuine Windows-portability defect in the command-center REACH-6 gate."
+  },
+
+  "rollback_instructions": {
+    "primary_anchor": "git -C C:/Users/Prekzursil/source/ast-integrate reset --hard 53c37c6cfb3e7bd1a48edbe604e1ea06a77b50b1",
+    "WARNING": "DO NOT run that command while sibling agents are active - it would destroy their uncommitted work (a tracked modification to agent-self/harness/install.py and ~20 untracked files were live during this snapshot). Prefer `git stash` per-agent, or branch-and-revert.",
+    "safer_anchor": "git -C <repo> diff 53c37c6c --stat  then revert only the paths your phase touched",
+    "live_harness_trees_are_NOT_covered": "The three live trees (~/.agents/skills, ~/.claude/hooks, ~/.claude/rules) are NOT under version control and this snapshot records only counts, sizes and per-file divergence - NOT contents. There is no rollback for a live-tree edit from this artifact. To make one, copy the trees to a dated backup dir before any deploy.",
+    "reproduce_this_snapshot": "python command-center/_baseline_probe.py  and  python command-center/_baseline_tests.py"
+  },
+
+  "artifacts_written": [
+    "command-center/BASELINE-SNAPSHOT.json (this file)",
+    "command-center/BASELINE-SNAPSHOT.md (human-readable twin)",
+    "command-center/_baseline_probe.py (enumerator + detector control, re-runnable)",
+    "command-center/_baseline_probe_out.json (full per-file divergence lists, 1.38 MB)",
+    "command-center/_baseline_tests.py (test-baseline runner, re-runnable)",
+    "command-center/_baseline_tests_out.json (per-suite verbatim tails)",
+    "command-center/_baseline_tests_console.log (runner console output)"
+  ]
+}

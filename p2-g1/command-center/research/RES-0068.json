@@ -1,0 +1,1004 @@
+{
+ "unit_id": "RES-0068",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0068",
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "evidence": [
+  {
+   "claim": "RES-0068 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0068.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0068.json",
+     "raw_output": "bytes=25150 sha256=cdfb0366eb0b205e282e149eccb6ab036336d1f4a8ff367da393df391a2f0932",
+     "fingerprint": "33c109c61a01cde3385bbbcff6715b5f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0068",
+     "raw_output": "schema-check",
+     "fingerprint": "a1a767b4aa1925c58c40c3b5f1b12cc4",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0068 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0068",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0068",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "d32082ae8a465a0f6462fabd41929910",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0068",
+     "raw_output": "schema-valid",
+     "fingerprint": "8d15f6576dd98ffb9947626c7139b1c6",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0068.json",
+   "bytes": 25150,
+   "sha256": "cdfb0366eb0b205e282e149eccb6ab036336d1f4a8ff367da393df391a2f0932",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "min_bytes_threshold": 256,
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:RES-0068 in the receipt AND quoted barrier policies per engine plus a named engine exhibiting the local no-timeout pathology",
+   "title": "Extract dynamic fan-out and barrier semantics under partial failure",
+   "question_or_target": "How do existing engines express map-over-unknown-N with a barrier, and specifically what happens at the barrier when K of N children fail — the exact case where this estate measured a fan-in deadlock from one hung agent?",
+   "canonical_mechanism": "Map-N is Map/expand/withItems/chord-header/WhenAll/concurrent activities. Barriers are map-run completion, trigger_rule, failFast, chord body, or Task.WhenAll. Default K-of-N is almost always K=N except AWS Distributed Map, which exposes an explicit tolerated-failure budget defaulting to zero. The local no-timeout pathology is named on Celery: task_time_limit defaults to 'No time limit', so a hung chord header never unlocks.",
+   "named_engine_exhibiting_local_no_timeout_pathology": "Celery",
+   "named_engine_record": {
+    "engine": "Celery",
+    "claim_id": "RES-0068-C-CELERY-CHORD",
+    "quote": "Default: No time limit.",
+    "why_this_matches_local_pathology": "Estate finding: parallel() has no per-agent timeout, so one hung agent deadlocks the phase. Celery documents Default: No time limit on task_time_limit and a chord body that waits for every header result — a hung header task is the same fan-in deadlock.",
+    "secondary_match": "Apache Airflow default_task_execution_timeout empty/None",
+    "contrast_engine": "Temporal (must set Start-To-Close or Schedule-To-Close)"
+   },
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "freshness_stamp": "2026-08-25T00:53:39Z",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0068/probe1_quotes.py",
+   "claims": [
+    {
+     "claim_id": "RES-0068-C-AWS-MAP",
+     "engine": "AWS Step Functions (Distributed Map)",
+     "canonical_mechanism": "Map-over-unknown-N is the Map state (Distributed mode). The barrier is Map Run completion. K-of-N is ToleratedFailureCount / ToleratedFailurePercentage; both default to zero, so any child failure fails the map.",
+     "quoted_barrier_policy": "Its default value is zero, which means the Map State will fail if any",
+     "k_of_n_on_child_failure": "Default K=N (zero tolerated failures). Raising ToleratedFailureCount allows N-K failures before the map fails with States.ExceedToleratedFailureThreshold.",
+     "per_child_timeout": "Child executions may set TimeoutSeconds; timed-out items count toward the tolerated-failure budget.",
+     "matches_local_no_timeout_pathology": false,
+     "evidence_tier": "E2",
+     "confidence_band": "high (80-90%)",
+     "named_settling_probe": "probe1_quotes.py",
+     "strongest_caveat": "Inline Map historically lacked the same tolerated-failure fields; quotes here are Distributed Map plus the ASL spec.",
+     "source_lineage": [
+      {
+       "snapshot": "aws_asl_spec.html",
+       "permalink": "https://states-language.net/spec.html",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "6e9e38b319bcc2ed8f4f55972943ef1e13f648e0d4049423f3a5c9d75fce90e7",
+       "bytes": 203470,
+       "quote": "Its default value is zero, which means the Map State will fail if any",
+       "rail_kind": "R1-structured-spec"
+      },
+      {
+       "snapshot": "aws_sfn_map_distributed.html",
+       "permalink": "https://docs.aws.amazon.com/step-functions/latest/dg/state-map-distributed.html",
+       "fetch_timestamp": "2026-08-24T18:51:14Z",
+       "http_status": 200,
+       "sha256": "14e7cddfc1a5c138b4f81be70d9b449881cdba454136b45eee16bba970f94f93",
+       "bytes": 56352,
+       "quote": "The default percentage value is zero, which means that the workflow fails if any one of its",
+       "rail_kind": "R2-prose"
+      }
+     ],
+     "grader": {
+      "ok_rails": 2,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    },
+    {
+     "claim_id": "RES-0068-C-CELERY-CHORD",
+     "engine": "Celery (chord = group header + callback barrier)",
+     "canonical_mechanism": "Map-over-unknown-N is a chord header group. The barrier is the chord body, which runs only after every header task has returned. Any header exception fails the callback with ChordError; remaining header tasks still run.",
+     "quoted_barrier_policy": "The chord callback result will transition to the failure state, and the error is set",
+     "k_of_n_on_child_failure": "Default is all-or-fail for the callback (K=N successes). Header members are not cancelled on first failure; the body still goes to FAILURE/ChordError.",
+     "per_child_timeout": "task_time_limit Default: No time limit. A hung header task never unlocks the chord — the local no-timeout fan-in deadlock.",
+     "matches_local_no_timeout_pathology": true,
+     "evidence_tier": "E2",
+     "confidence_band": "very high (90-95%)",
+     "named_settling_probe": "probe1_quotes.py",
+     "strongest_caveat": "A result backend is required for chords; without it the unlock path is a different failure mode than a hung child.",
+     "source_lineage": [
+      {
+       "snapshot": "gh_celery_canvas_rst.json",
+       "permalink": "https://api.github.com/repos/celery/celery/contents/docs/userguide/canvas.rst",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "9a0083bfad1d32d2122869f0eb97e39a7504174a717c3dce36d587920e2e1430",
+       "bytes": 58087,
+       "quote": "The chord callback result will transition to the failure state, and the error is set",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "celery_canvas_txt",
+       "permalink": "https://docs.celeryq.dev/en/stable/_sources/userguide/canvas.rst.txt",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "5f500edaf3de091f0190648a45a7d26c0675373ac7f5c357f0124268b2776385",
+       "bytes": 40735,
+       "quote": "The chord callback result will transition to the failure state, and the error is set",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "gh_celery_config_rst.json",
+       "permalink": "https://api.github.com/repos/celery/celery/contents/docs/userguide/configuration.rst",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "8305d7dea2edf6c7c73dc8f2a371e53e7e7af59281f44ced6990e83dcc85bfcb",
+       "bytes": 177033,
+       "quote": "Default: No time limit.",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "celery_config_txt",
+       "permalink": "https://docs.celeryq.dev/en/stable/_sources/userguide/configuration.rst.txt",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "6870ab70b7ecd67217fe7c39ea80b9073b6deb2bce55304812f6dd6553ee92db",
+       "bytes": 120747,
+       "quote": "Default: No time limit.",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "gh_celery_defaults.json",
+       "permalink": "https://api.github.com/repos/celery/celery/contents/celery/app/defaults.py",
+       "fetch_timestamp": "2026-08-24T18:51:17Z",
+       "http_status": 200,
+       "sha256": "10ac5c61c66db73621d116487870f30e0fa72b40b0624794c60827a8d9c17feb",
+       "bytes": 23760,
+       "quote": "time_limit=Option(",
+       "rail_kind": "R1-api"
+      }
+     ],
+     "grader": {
+      "ok_rails": 5,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    },
+    {
+     "claim_id": "RES-0068-C-AIRFLOW-EXPAND",
+     "engine": "Apache Airflow (expand / dynamic task mapping)",
+     "canonical_mechanism": "Map-over-unknown-N is mapped task expansion (expand()). The barrier is the downstream task's trigger_rule over mapped indexes. Default all_success requires every upstream mapped index to succeed before the reduce/join runs.",
+     "quoted_barrier_policy": "* ``all_success`` (default): All upstream tasks have succeeded",
+     "k_of_n_on_child_failure": "Default all_success: any mapped-index failure blocks the join. all_done waits for terminal states including failures; one_failed fires on the first failure without waiting.",
+     "per_child_timeout": "default_task_execution_timeout empty/None: operators are never timed out by default — a hung mapped index holds the DAG run.",
+     "matches_local_no_timeout_pathology": true,
+     "evidence_tier": "E2",
+     "confidence_band": "high (80-90%)",
+     "named_settling_probe": "probe1_quotes.py",
+     "strongest_caveat": "Cluster policy or DAG default_args can install a timeout; the shipped config default remains empty.",
+     "source_lineage": [
+      {
+       "snapshot": "airflow_dags_gh.json",
+       "permalink": "https://api.github.com/repos/apache/airflow/contents/airflow-core/docs/core-concepts/dags.rst",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "ee5c77a6db9335abc0f92348fa823da282b9448b2a3e76ec46aa8cf0d4075e63",
+       "bytes": 57954,
+       "quote": "* ``all_success`` (default): All upstream tasks have succeeded",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "airflow_trigger_rules.md",
+       "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/dags.rst",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "b0301bf79542460c5d24967e45e0e9cd81ce8dae284a53ad6ce3468912de97a4",
+       "bytes": 41389,
+       "quote": "* ``all_success`` (default): All upstream tasks have succeeded",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "gh_airflow_config_yml.json",
+       "permalink": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "4f0ac00310e7c97261606adca105a4a4e8edccbc705b504be3801750719e1e4f",
+       "bytes": 199513,
+       "quote": "meaning that the operators are never timed out by default.",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "airflow_config_yml",
+       "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "78e8dd041920b53ac6bd2d1bc76c0d0600a2215706af25b5f265d58f8699a4df",
+       "bytes": 144081,
+       "quote": "meaning that the operators are never timed out by default.",
+       "rail_kind": "R2-prose"
+      }
+     ],
+     "grader": {
+      "ok_rails": 4,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    },
+    {
+     "claim_id": "RES-0068-C-ARGO-WITHITEMS",
+     "engine": "Argo Workflows (withItems / withParam + failFast)",
+     "canonical_mechanism": "Map-over-unknown-N is withItems/withParam template expansion. The barrier is template/DAG completion. Template failFast fails the template when any child pod has failed. DAG failFast defaults true: stop scheduling new nodes on first failure, then wait for in-flight nodes before failing the DAG.",
+     "quoted_barrier_policy": "FailFast, if specified, will fail this template if any of its child pods has failed",
+     "k_of_n_on_child_failure": "Default DAG failFast=true is fail-fast, not K-of-N. failFast=false runs every branch to completion. There is no native 'succeed if K of N children succeed' counter analogous to Step Functions.",
+     "per_child_timeout": "activeDeadlineSeconds is optional; unset means no template-level deadline.",
+     "matches_local_no_timeout_pathology": false,
+     "evidence_tier": "E2",
+     "confidence_band": "high (80-90%)",
+     "named_settling_probe": "probe1_quotes.py",
+     "strongest_caveat": "Optional per-pod deadlines exist but are not required; Celery's documented 'No time limit' is the named local-pathology match.",
+     "source_lineage": [
+      {
+       "snapshot": "gh_argo_workflow_types.json",
+       "permalink": "https://api.github.com/repos/argoproj/argo-workflows/contents/pkg/apis/workflow/v1alpha1/workflow_types.go",
+       "fetch_timestamp": "2026-08-24T18:51:17Z",
+       "http_status": 200,
+       "sha256": "d1cc81a3716c8749ddeb07eb596468b36b08bd90f23c60d423a92428ecc265bc",
+       "bytes": 238323,
+       "quote": "FailFast, if specified, will fail this template if any of its child pods has failed",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "gh_argo_workflow_types.json",
+       "permalink": "https://api.github.com/repos/argoproj/argo-workflows/contents/pkg/apis/workflow/v1alpha1/workflow_types.go",
+       "fetch_timestamp": "2026-08-24T18:51:17Z",
+       "http_status": 200,
+       "sha256": "d1cc81a3716c8749ddeb07eb596468b36b08bd90f23c60d423a92428ecc265bc",
+       "bytes": 238323,
+       "quote": "FailFast flag default is true",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "argo_fields.md",
+       "permalink": "https://raw.githubusercontent.com/argoproj/argo-workflows/main/docs/fields.md",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "1c457b125ecb9f11f5e4dca6299b36494ef183943b6ad12ff6edc9086a1e0fde",
+       "bytes": 600028,
+       "quote": "FailFast, if specified, will fail this template if any of its child pods has failed",
+       "rail_kind": "R2-prose"
+      }
+     ],
+     "grader": {
+      "ok_rails": 3,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    },
+    {
+     "claim_id": "RES-0068-C-TEMPORAL-CONTRAST",
+     "engine": "Temporal (concurrent activities / workflow Promise join)",
+     "canonical_mechanism": "Map-over-unknown-N is N concurrent activity invocations joined by the workflow. Contrast with the local pathology: an Activity Execution MUST set Start-To-Close or Schedule-To-Close. Default Schedule-To-Close is infinity, but the docs still require one of the two fields.",
+     "quoted_barrier_policy": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+     "k_of_n_on_child_failure": "Join semantics live in workflow code (all vs allSettled). A failed activity raises into the workflow; the platform does not define a K-of-N map barrier.",
+     "per_child_timeout": "Required Start-To-Close or Schedule-To-Close — Temporal is the contrast engine, not the no-timeout pathology.",
+     "matches_local_no_timeout_pathology": false,
+     "contrast_engine": true,
+     "evidence_tier": "E2",
+     "confidence_band": "high (80-90%)",
+     "named_settling_probe": "probe2_reviewer.py",
+     "strongest_caveat": "An author can still set a huge Schedule-To-Close; the documented requirement to set a timeout field is the contrast.",
+     "source_lineage": [
+      {
+       "snapshot": "temporal_activity_failures.html",
+       "permalink": "https://docs.temporal.io/encyclopedia/detecting-activity-failures",
+       "fetch_timestamp": "2026-08-24T18:51:14Z",
+       "http_status": 200,
+       "sha256": "a1c6bba893b1f85a86a3a63aba6b423f108a2a8f6915be6f8c87b24edf4b0a93",
+       "bytes": 71226,
+       "quote": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "temporal_activity_failures.html",
+       "permalink": "https://docs.temporal.io/encyclopedia/detecting-activity-failures",
+       "fetch_timestamp": "2026-08-24T18:51:14Z",
+       "http_status": 200,
+       "sha256": "a1c6bba893b1f85a86a3a63aba6b423f108a2a8f6915be6f8c87b24edf4b0a93",
+       "bytes": 71226,
+       "quote": "The default Schedule-To-Close Timeout is ∞ (infinity).",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "gh_temporal_activity.json",
+       "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/activity.py",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "49c406b7225e21d3d21eb0499a042c357233e150062120fa7be9f83e2382d8bb",
+       "bytes": 31644,
+       "quote": "start_to_close_timeout: timedelta | None",
+       "rail_kind": "R1-api"
+      }
+     ],
+     "grader": {
+      "ok_rails": 3,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    },
+    {
+     "claim_id": "RES-0068-C-DURABLE-WHENALL",
+     "engine": "Azure Durable Functions / Durable Task (fan-out/fan-in)",
+     "canonical_mechanism": "Map-over-unknown-N is firing one activity per item without await, then Task.WhenAll as the barrier. WhenAll completes only after every work item completes; a faulted child faults WhenAll.",
+     "quoted_barrier_policy": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+     "k_of_n_on_child_failure": "Task.WhenAll is all-success: one failed activity fails the join. There is no built-in tolerated-failure percentage.",
+     "per_child_timeout": "No required per-activity timeout in the fan-out sample; orchestration/activity timeouts are optional host settings.",
+     "matches_local_no_timeout_pathology": false,
+     "evidence_tier": "E2",
+     "confidence_band": "high (80-90%)",
+     "named_settling_probe": "probe1_quotes.py",
+     "strongest_caveat": "The quoted page is the official fan-out sample, not a spec clause forbidding WhenAny.",
+     "source_lineage": [
+      {
+       "snapshot": "gh_durable_common.json",
+       "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-fan-in-fan-out.md",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "3d7b6170027c7fa195346a5380dde6c85a69e65a2d42553f3ce8073fa0c6d2c4",
+       "bytes": 54664,
+       "quote": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+       "rail_kind": "R1-api"
+      },
+      {
+       "snapshot": "durable_fanout_common.md",
+       "permalink": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-fan-in-fan-out.md",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "352ddd36aa4b8764a580e244987a945f2001d6fd0ad618e5b94f641e57ade1de",
+       "bytes": 38853,
+       "quote": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+       "rail_kind": "R2-prose"
+      },
+      {
+       "snapshot": "durable_fanout_pattern.html",
+       "permalink": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-cloud-backup",
+       "fetch_timestamp": "2026-08-25T00:53:39Z",
+       "http_status": 200,
+       "sha256": "941548bbe3e0a8a3f72c9a6cec7d06e9fbb3842e11c224cc5ab002a893653b3b",
+       "bytes": 113925,
+       "quote": "Task.WhenAll",
+       "rail_kind": "R2-prose"
+      }
+     ],
+     "grader": {
+      "ok_rails": 3,
+      "tier": "E2",
+      "citable_as_measured_fact": true,
+      "problems": []
+     }
+    }
+   ],
+   "engines": [
+    {
+     "engine": "AWS Step Functions (Distributed Map)",
+     "quoted_barrier_policy": "Its default value is zero, which means the Map State will fail if any",
+     "k_of_n": "Default K=N (zero tolerated failures). Raising ToleratedFailureCount allows N-K failures before the map fails with States.ExceedToleratedFailureThreshold.",
+     "no_timeout_pathology": false,
+     "claim_id": "RES-0068-C-AWS-MAP"
+    },
+    {
+     "engine": "Celery (chord = group header + callback barrier)",
+     "quoted_barrier_policy": "The chord callback result will transition to the failure state, and the error is set",
+     "k_of_n": "Default is all-or-fail for the callback (K=N successes). Header members are not cancelled on first failure; the body still goes to FAILURE/ChordError.",
+     "no_timeout_pathology": true,
+     "claim_id": "RES-0068-C-CELERY-CHORD"
+    },
+    {
+     "engine": "Apache Airflow (expand / dynamic task mapping)",
+     "quoted_barrier_policy": "* ``all_success`` (default): All upstream tasks have succeeded",
+     "k_of_n": "Default all_success: any mapped-index failure blocks the join. all_done waits for terminal states including failures; one_failed fires on the first failure without waiting.",
+     "no_timeout_pathology": true,
+     "claim_id": "RES-0068-C-AIRFLOW-EXPAND"
+    },
+    {
+     "engine": "Argo Workflows (withItems / withParam + failFast)",
+     "quoted_barrier_policy": "FailFast, if specified, will fail this template if any of its child pods has failed",
+     "k_of_n": "Default DAG failFast=true is fail-fast, not K-of-N. failFast=false runs every branch to completion. There is no native 'succeed if K of N children succeed' counter analogous to Step Functions.",
+     "no_timeout_pathology": false,
+     "claim_id": "RES-0068-C-ARGO-WITHITEMS"
+    },
+    {
+     "engine": "Temporal (concurrent activities / workflow Promise join)",
+     "quoted_barrier_policy": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+     "k_of_n": "Join semantics live in workflow code (all vs allSettled). A failed activity raises into the workflow; the platform does not define a K-of-N map barrier.",
+     "no_timeout_pathology": false,
+     "claim_id": "RES-0068-C-TEMPORAL-CONTRAST"
+    },
+    {
+     "engine": "Azure Durable Functions / Durable Task (fan-out/fan-in)",
+     "quoted_barrier_policy": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+     "k_of_n": "Task.WhenAll is all-success: one failed activity fails the join. There is no built-in tolerated-failure percentage.",
+     "no_timeout_pathology": false,
+     "claim_id": "RES-0068-C-DURABLE-WHENALL"
+    }
+   ],
+   "contradiction_support_edges": [
+    {
+     "type": "contrast",
+     "from": "RES-0068-C-CELERY-CHORD",
+     "to": "RES-0068-C-TEMPORAL-CONTRAST",
+     "note": "Celery default no time limit vs Temporal required activity timeout."
+    },
+    {
+     "type": "support",
+     "from": "RES-0068-C-AWS-MAP",
+     "to": "RES-0068-C-AIRFLOW-EXPAND",
+     "note": "Both default to fail-the-join on any child failure; AWS uniquely names a numeric tolerated-failure threshold."
+    }
+   ],
+   "tests_required_coverage": {
+    "quote_each_engine_barrier_policy": true,
+    "named_engine_no_per_child_timeout": "Celery"
+   },
+   "tests_run": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0068/probe1_quotes.py",
+     "result": "PASS"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0068/probe2_reviewer.py",
+     "result": "PASS"
+    }
+   ],
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "schema_note": "Declared catalog schema is not present on this worktree; record fields follow RES-0001 (claim id, canonical mechanism, source lineage, evidence tier, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256)."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0068",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0068.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0068/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0068"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0068.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0068.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "3c82867b7f891d5222866d891dc14442",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 25150,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0068.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:RES-0068 in the receipt AND quoted barrier policies per engine plus a named engine exhibiting the local no-timeout pathology",
+ "title": "Extract dynamic fan-out and barrier semantics under partial failure",
+ "question_or_target": "How do existing engines express map-over-unknown-N with a barrier, and specifically what happens at the barrier when K of N children fail — the exact case where this estate measured a fan-in deadlock from one hung agent?",
+ "canonical_mechanism": "Map-N is Map/expand/withItems/chord-header/WhenAll/concurrent activities. Barriers are map-run completion, trigger_rule, failFast, chord body, or Task.WhenAll. Default K-of-N is almost always K=N except AWS Distributed Map, which exposes an explicit tolerated-failure budget defaulting to zero. The local no-timeout pathology is named on Celery: task_time_limit defaults to 'No time limit', so a hung chord header never unlocks.",
+ "named_engine_exhibiting_local_no_timeout_pathology": "Celery",
+ "named_engine_record": {
+  "engine": "Celery",
+  "claim_id": "RES-0068-C-CELERY-CHORD",
+  "quote": "Default: No time limit.",
+  "why_this_matches_local_pathology": "Estate finding: parallel() has no per-agent timeout, so one hung agent deadlocks the phase. Celery documents Default: No time limit on task_time_limit and a chord body that waits for every header result — a hung header task is the same fan-in deadlock.",
+  "secondary_match": "Apache Airflow default_task_execution_timeout empty/None",
+  "contrast_engine": "Temporal (must set Start-To-Close or Schedule-To-Close)"
+ },
+ "evidence_tier": "E2",
+ "confidence_band": "high (80-90%)",
+ "freshness_stamp": "2026-08-25T00:53:39Z",
+ "named_settling_probe": "command-center/p2-wave/probes/RES-0068/probe1_quotes.py",
+ "claims": [
+  {
+   "claim_id": "RES-0068-C-AWS-MAP",
+   "engine": "AWS Step Functions (Distributed Map)",
+   "canonical_mechanism": "Map-over-unknown-N is the Map state (Distributed mode). The barrier is Map Run completion. K-of-N is ToleratedFailureCount / ToleratedFailurePercentage; both default to zero, so any child failure fails the map.",
+   "quoted_barrier_policy": "Its default value is zero, which means the Map State will fail if any",
+   "k_of_n_on_child_failure": "Default K=N (zero tolerated failures). Raising ToleratedFailureCount allows N-K failures before the map fails with States.ExceedToleratedFailureThreshold.",
+   "per_child_timeout": "Child executions may set TimeoutSeconds; timed-out items count toward the tolerated-failure budget.",
+   "matches_local_no_timeout_pathology": false,
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "named_settling_probe": "probe1_quotes.py",
+   "strongest_caveat": "Inline Map historically lacked the same tolerated-failure fields; quotes here are Distributed Map plus the ASL spec.",
+   "source_lineage": [
+    {
+     "snapshot": "aws_asl_spec.html",
+     "permalink": "https://states-language.net/spec.html",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "6e9e38b319bcc2ed8f4f55972943ef1e13f648e0d4049423f3a5c9d75fce90e7",
+     "bytes": 203470,
+     "quote": "Its default value is zero, which means the Map State will fail if any",
+     "rail_kind": "R1-structured-spec"
+    },
+    {
+     "snapshot": "aws_sfn_map_distributed.html",
+     "permalink": "https://docs.aws.amazon.com/step-functions/latest/dg/state-map-distributed.html",
+     "fetch_timestamp": "2026-08-24T18:51:14Z",
+     "http_status": 200,
+     "sha256": "14e7cddfc1a5c138b4f81be70d9b449881cdba454136b45eee16bba970f94f93",
+     "bytes": 56352,
+     "quote": "The default percentage value is zero, which means that the workflow fails if any one of its",
+     "rail_kind": "R2-prose"
+    }
+   ],
+   "grader": {
+    "ok_rails": 2,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  },
+  {
+   "claim_id": "RES-0068-C-CELERY-CHORD",
+   "engine": "Celery (chord = group header + callback barrier)",
+   "canonical_mechanism": "Map-over-unknown-N is a chord header group. The barrier is the chord body, which runs only after every header task has returned. Any header exception fails the callback with ChordError; remaining header tasks still run.",
+   "quoted_barrier_policy": "The chord callback result will transition to the failure state, and the error is set",
+   "k_of_n_on_child_failure": "Default is all-or-fail for the callback (K=N successes). Header members are not cancelled on first failure; the body still goes to FAILURE/ChordError.",
+   "per_child_timeout": "task_time_limit Default: No time limit. A hung header task never unlocks the chord — the local no-timeout fan-in deadlock.",
+   "matches_local_no_timeout_pathology": true,
+   "evidence_tier": "E2",
+   "confidence_band": "very high (90-95%)",
+   "named_settling_probe": "probe1_quotes.py",
+   "strongest_caveat": "A result backend is required for chords; without it the unlock path is a different failure mode than a hung child.",
+   "source_lineage": [
+    {
+     "snapshot": "gh_celery_canvas_rst.json",
+     "permalink": "https://api.github.com/repos/celery/celery/contents/docs/userguide/canvas.rst",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "9a0083bfad1d32d2122869f0eb97e39a7504174a717c3dce36d587920e2e1430",
+     "bytes": 58087,
+     "quote": "The chord callback result will transition to the failure state, and the error is set",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "celery_canvas_txt",
+     "permalink": "https://docs.celeryq.dev/en/stable/_sources/userguide/canvas.rst.txt",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "5f500edaf3de091f0190648a45a7d26c0675373ac7f5c357f0124268b2776385",
+     "bytes": 40735,
+     "quote": "The chord callback result will transition to the failure state, and the error is set",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "gh_celery_config_rst.json",
+     "permalink": "https://api.github.com/repos/celery/celery/contents/docs/userguide/configuration.rst",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "8305d7dea2edf6c7c73dc8f2a371e53e7e7af59281f44ced6990e83dcc85bfcb",
+     "bytes": 177033,
+     "quote": "Default: No time limit.",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "celery_config_txt",
+     "permalink": "https://docs.celeryq.dev/en/stable/_sources/userguide/configuration.rst.txt",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "6870ab70b7ecd67217fe7c39ea80b9073b6deb2bce55304812f6dd6553ee92db",
+     "bytes": 120747,
+     "quote": "Default: No time limit.",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "gh_celery_defaults.json",
+     "permalink": "https://api.github.com/repos/celery/celery/contents/celery/app/defaults.py",
+     "fetch_timestamp": "2026-08-24T18:51:17Z",
+     "http_status": 200,
+     "sha256": "10ac5c61c66db73621d116487870f30e0fa72b40b0624794c60827a8d9c17feb",
+     "bytes": 23760,
+     "quote": "time_limit=Option(",
+     "rail_kind": "R1-api"
+    }
+   ],
+   "grader": {
+    "ok_rails": 5,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  },
+  {
+   "claim_id": "RES-0068-C-AIRFLOW-EXPAND",
+   "engine": "Apache Airflow (expand / dynamic task mapping)",
+   "canonical_mechanism": "Map-over-unknown-N is mapped task expansion (expand()). The barrier is the downstream task's trigger_rule over mapped indexes. Default all_success requires every upstream mapped index to succeed before the reduce/join runs.",
+   "quoted_barrier_policy": "* ``all_success`` (default): All upstream tasks have succeeded",
+   "k_of_n_on_child_failure": "Default all_success: any mapped-index failure blocks the join. all_done waits for terminal states including failures; one_failed fires on the first failure without waiting.",
+   "per_child_timeout": "default_task_execution_timeout empty/None: operators are never timed out by default — a hung mapped index holds the DAG run.",
+   "matches_local_no_timeout_pathology": true,
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "named_settling_probe": "probe1_quotes.py",
+   "strongest_caveat": "Cluster policy or DAG default_args can install a timeout; the shipped config default remains empty.",
+   "source_lineage": [
+    {
+     "snapshot": "airflow_dags_gh.json",
+     "permalink": "https://api.github.com/repos/apache/airflow/contents/airflow-core/docs/core-concepts/dags.rst",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "ee5c77a6db9335abc0f92348fa823da282b9448b2a3e76ec46aa8cf0d4075e63",
+     "bytes": 57954,
+     "quote": "* ``all_success`` (default): All upstream tasks have succeeded",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "airflow_trigger_rules.md",
+     "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/docs/core-concepts/dags.rst",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "b0301bf79542460c5d24967e45e0e9cd81ce8dae284a53ad6ce3468912de97a4",
+     "bytes": 41389,
+     "quote": "* ``all_success`` (default): All upstream tasks have succeeded",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "gh_airflow_config_yml.json",
+     "permalink": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/config_templates/config.yml",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "4f0ac00310e7c97261606adca105a4a4e8edccbc705b504be3801750719e1e4f",
+     "bytes": 199513,
+     "quote": "meaning that the operators are never timed out by default.",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "airflow_config_yml",
+     "permalink": "https://raw.githubusercontent.com/apache/airflow/main/airflow-core/src/airflow/config_templates/config.yml",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "78e8dd041920b53ac6bd2d1bc76c0d0600a2215706af25b5f265d58f8699a4df",
+     "bytes": 144081,
+     "quote": "meaning that the operators are never timed out by default.",
+     "rail_kind": "R2-prose"
+    }
+   ],
+   "grader": {
+    "ok_rails": 4,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  },
+  {
+   "claim_id": "RES-0068-C-ARGO-WITHITEMS",
+   "engine": "Argo Workflows (withItems / withParam + failFast)",
+   "canonical_mechanism": "Map-over-unknown-N is withItems/withParam template expansion. The barrier is template/DAG completion. Template failFast fails the template when any child pod has failed. DAG failFast defaults true: stop scheduling new nodes on first failure, then wait for in-flight nodes before failing the DAG.",
+   "quoted_barrier_policy": "FailFast, if specified, will fail this template if any of its child pods has failed",
+   "k_of_n_on_child_failure": "Default DAG failFast=true is fail-fast, not K-of-N. failFast=false runs every branch to completion. There is no native 'succeed if K of N children succeed' counter analogous to Step Functions.",
+   "per_child_timeout": "activeDeadlineSeconds is optional; unset means no template-level deadline.",
+   "matches_local_no_timeout_pathology": false,
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "named_settling_probe": "probe1_quotes.py",
+   "strongest_caveat": "Optional per-pod deadlines exist but are not required; Celery's documented 'No time limit' is the named local-pathology match.",
+   "source_lineage": [
+    {
+     "snapshot": "gh_argo_workflow_types.json",
+     "permalink": "https://api.github.com/repos/argoproj/argo-workflows/contents/pkg/apis/workflow/v1alpha1/workflow_types.go",
+     "fetch_timestamp": "2026-08-24T18:51:17Z",
+     "http_status": 200,
+     "sha256": "d1cc81a3716c8749ddeb07eb596468b36b08bd90f23c60d423a92428ecc265bc",
+     "bytes": 238323,
+     "quote": "FailFast, if specified, will fail this template if any of its child pods has failed",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "gh_argo_workflow_types.json",
+     "permalink": "https://api.github.com/repos/argoproj/argo-workflows/contents/pkg/apis/workflow/v1alpha1/workflow_types.go",
+     "fetch_timestamp": "2026-08-24T18:51:17Z",
+     "http_status": 200,
+     "sha256": "d1cc81a3716c8749ddeb07eb596468b36b08bd90f23c60d423a92428ecc265bc",
+     "bytes": 238323,
+     "quote": "FailFast flag default is true",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "argo_fields.md",
+     "permalink": "https://raw.githubusercontent.com/argoproj/argo-workflows/main/docs/fields.md",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "1c457b125ecb9f11f5e4dca6299b36494ef183943b6ad12ff6edc9086a1e0fde",
+     "bytes": 600028,
+     "quote": "FailFast, if specified, will fail this template if any of its child pods has failed",
+     "rail_kind": "R2-prose"
+    }
+   ],
+   "grader": {
+    "ok_rails": 3,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  },
+  {
+   "claim_id": "RES-0068-C-TEMPORAL-CONTRAST",
+   "engine": "Temporal (concurrent activities / workflow Promise join)",
+   "canonical_mechanism": "Map-over-unknown-N is N concurrent activity invocations joined by the workflow. Contrast with the local pathology: an Activity Execution MUST set Start-To-Close or Schedule-To-Close. Default Schedule-To-Close is infinity, but the docs still require one of the two fields.",
+   "quoted_barrier_policy": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+   "k_of_n_on_child_failure": "Join semantics live in workflow code (all vs allSettled). A failed activity raises into the workflow; the platform does not define a K-of-N map barrier.",
+   "per_child_timeout": "Required Start-To-Close or Schedule-To-Close — Temporal is the contrast engine, not the no-timeout pathology.",
+   "matches_local_no_timeout_pathology": false,
+   "contrast_engine": true,
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "named_settling_probe": "probe2_reviewer.py",
+   "strongest_caveat": "An author can still set a huge Schedule-To-Close; the documented requirement to set a timeout field is the contrast.",
+   "source_lineage": [
+    {
+     "snapshot": "temporal_activity_failures.html",
+     "permalink": "https://docs.temporal.io/encyclopedia/detecting-activity-failures",
+     "fetch_timestamp": "2026-08-24T18:51:14Z",
+     "http_status": 200,
+     "sha256": "a1c6bba893b1f85a86a3a63aba6b423f108a2a8f6915be6f8c87b24edf4b0a93",
+     "bytes": 71226,
+     "quote": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "temporal_activity_failures.html",
+     "permalink": "https://docs.temporal.io/encyclopedia/detecting-activity-failures",
+     "fetch_timestamp": "2026-08-24T18:51:14Z",
+     "http_status": 200,
+     "sha256": "a1c6bba893b1f85a86a3a63aba6b423f108a2a8f6915be6f8c87b24edf4b0a93",
+     "bytes": 71226,
+     "quote": "The default Schedule-To-Close Timeout is ∞ (infinity).",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "gh_temporal_activity.json",
+     "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/activity.py",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "49c406b7225e21d3d21eb0499a042c357233e150062120fa7be9f83e2382d8bb",
+     "bytes": 31644,
+     "quote": "start_to_close_timeout: timedelta | None",
+     "rail_kind": "R1-api"
+    }
+   ],
+   "grader": {
+    "ok_rails": 3,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  },
+  {
+   "claim_id": "RES-0068-C-DURABLE-WHENALL",
+   "engine": "Azure Durable Functions / Durable Task (fan-out/fan-in)",
+   "canonical_mechanism": "Map-over-unknown-N is firing one activity per item without await, then Task.WhenAll as the barrier. WhenAll completes only after every work item completes; a faulted child faults WhenAll.",
+   "quoted_barrier_policy": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+   "k_of_n_on_child_failure": "Task.WhenAll is all-success: one failed activity fails the join. There is no built-in tolerated-failure percentage.",
+   "per_child_timeout": "No required per-activity timeout in the fan-out sample; orchestration/activity timeouts are optional host settings.",
+   "matches_local_no_timeout_pathology": false,
+   "evidence_tier": "E2",
+   "confidence_band": "high (80-90%)",
+   "named_settling_probe": "probe1_quotes.py",
+   "strongest_caveat": "The quoted page is the official fan-out sample, not a spec clause forbidding WhenAny.",
+   "source_lineage": [
+    {
+     "snapshot": "gh_durable_common.json",
+     "permalink": "https://api.github.com/repos/MicrosoftDocs/azure-docs/contents/articles/durable-task/common/durable-task-fan-in-fan-out.md",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "3d7b6170027c7fa195346a5380dde6c85a69e65a2d42553f3ce8073fa0c6d2c4",
+     "bytes": 54664,
+     "quote": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+     "rail_kind": "R1-api"
+    },
+    {
+     "snapshot": "durable_fanout_common.md",
+     "permalink": "https://raw.githubusercontent.com/MicrosoftDocs/azure-docs/main/articles/durable-task/common/durable-task-fan-in-fan-out.md",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "352ddd36aa4b8764a580e244987a945f2001d6fd0ad618e5b94f641e57ade1de",
+     "bytes": 38853,
+     "quote": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+     "rail_kind": "R2-prose"
+    },
+    {
+     "snapshot": "durable_fanout_pattern.html",
+     "permalink": "https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-cloud-backup",
+     "fetch_timestamp": "2026-08-25T00:53:39Z",
+     "http_status": 200,
+     "sha256": "941548bbe3e0a8a3f72c9a6cec7d06e9fbb3842e11c224cc5ab002a893653b3b",
+     "bytes": 113925,
+     "quote": "Task.WhenAll",
+     "rail_kind": "R2-prose"
+    }
+   ],
+   "grader": {
+    "ok_rails": 3,
+    "tier": "E2",
+    "citable_as_measured_fact": true,
+    "problems": []
+   }
+  }
+ ],
+ "engines": [
+  {
+   "engine": "AWS Step Functions (Distributed Map)",
+   "quoted_barrier_policy": "Its default value is zero, which means the Map State will fail if any",
+   "k_of_n": "Default K=N (zero tolerated failures). Raising ToleratedFailureCount allows N-K failures before the map fails with States.ExceedToleratedFailureThreshold.",
+   "no_timeout_pathology": false,
+   "claim_id": "RES-0068-C-AWS-MAP"
+  },
+  {
+   "engine": "Celery (chord = group header + callback barrier)",
+   "quoted_barrier_policy": "The chord callback result will transition to the failure state, and the error is set",
+   "k_of_n": "Default is all-or-fail for the callback (K=N successes). Header members are not cancelled on first failure; the body still goes to FAILURE/ChordError.",
+   "no_timeout_pathology": true,
+   "claim_id": "RES-0068-C-CELERY-CHORD"
+  },
+  {
+   "engine": "Apache Airflow (expand / dynamic task mapping)",
+   "quoted_barrier_policy": "* ``all_success`` (default): All upstream tasks have succeeded",
+   "k_of_n": "Default all_success: any mapped-index failure blocks the join. all_done waits for terminal states including failures; one_failed fires on the first failure without waiting.",
+   "no_timeout_pathology": true,
+   "claim_id": "RES-0068-C-AIRFLOW-EXPAND"
+  },
+  {
+   "engine": "Argo Workflows (withItems / withParam + failFast)",
+   "quoted_barrier_policy": "FailFast, if specified, will fail this template if any of its child pods has failed",
+   "k_of_n": "Default DAG failFast=true is fail-fast, not K-of-N. failFast=false runs every branch to completion. There is no native 'succeed if K of N children succeed' counter analogous to Step Functions.",
+   "no_timeout_pathology": false,
+   "claim_id": "RES-0068-C-ARGO-WITHITEMS"
+  },
+  {
+   "engine": "Temporal (concurrent activities / workflow Promise join)",
+   "quoted_barrier_policy": "An Activity Execution must have either this timeout (Start-To-Close) or the",
+   "k_of_n": "Join semantics live in workflow code (all vs allSettled). A failed activity raises into the workflow; the platform does not define a K-of-N map barrier.",
+   "no_timeout_pathology": false,
+   "claim_id": "RES-0068-C-TEMPORAL-CONTRAST"
+  },
+  {
+   "engine": "Azure Durable Functions / Durable Task (fan-out/fan-in)",
+   "quoted_barrier_policy": "When the orchestrator passes the task array to `Task.WhenAll`, it returns a task that doesn't complete until all copy operations complete.",
+   "k_of_n": "Task.WhenAll is all-success: one failed activity fails the join. There is no built-in tolerated-failure percentage.",
+   "no_timeout_pathology": false,
+   "claim_id": "RES-0068-C-DURABLE-WHENALL"
+  }
+ ],
+ "contradiction_support_edges": [
+  {
+   "type": "contrast",
+   "from": "RES-0068-C-CELERY-CHORD",
+   "to": "RES-0068-C-TEMPORAL-CONTRAST",
+   "note": "Celery default no time limit vs Temporal required activity timeout."
+  },
+  {
+   "type": "support",
+   "from": "RES-0068-C-AWS-MAP",
+   "to": "RES-0068-C-AIRFLOW-EXPAND",
+   "note": "Both default to fail-the-join on any child failure; AWS uniquely names a numeric tolerated-failure threshold."
+  }
+ ],
+ "tests_required_coverage": {
+  "quote_each_engine_barrier_policy": true,
+  "named_engine_no_per_child_timeout": "Celery"
+ },
+ "tests_run": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0068/probe1_quotes.py",
+   "result": "PASS"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0068/probe2_reviewer.py",
+   "result": "PASS"
+  }
+ ],
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "schema_note": "Declared catalog schema is not present on this worktree; record fields follow RES-0001 (claim id, canonical mechanism, source lineage, evidence tier, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256)."
+}

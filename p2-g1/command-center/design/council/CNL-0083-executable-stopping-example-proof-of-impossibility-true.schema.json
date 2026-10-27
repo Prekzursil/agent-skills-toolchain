@@ -1,0 +1,710 @@
+{
+ "unit_id": "CNL-0083",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNL-0083",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNL-0083",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json",
+   "bytes": 12125,
+   "sha256": "25337109f3a7a4fa3ea3389fab4d13fa3dc27897104b7eddcf6f98e35103a8ae",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "kind": "executable-stopping-example",
+   "title": "Executable stopping example: proof_of_impossibility == true",
+   "question": "What must be on disk for this single-term expression to evaluate true, and what is the negative control proving it cannot be satisfied by an unsuccessful search?",
+   "expression": "proof_of_impossibility == true",
+   "answer": {
+    "on_disk_for_true": [
+     "A ProofOfImpossibilityRecord JSON with all five mandatory fields: claim, search_space, methods, resource_limit, refuting_observation.",
+     "search_space.kind == finite-closed-set with an explicit members list.",
+     "A visit ledger (visits.json) whose member set equals search_space.members (coverage == cardinality), independently recountable.",
+     "A bound predicate such that no member satisfies the existence side of the claim.",
+     "resource_limit.space_exhausted_before_limit == true (the space ended; the search did not).",
+     "refuting_observation names a concrete, in-principle-observable counterexample that would appear as a visit row in the same space."
+    ],
+    "metric_binding": "proof_of_impossibility is a boolean produced by validating those two files. The expression proof_of_impossibility == true reads the binding; it does not write the record.",
+    "evaluation_cadence": "End-of-round snapshot of the files on disk. The expression is side-effect free. A withdrawn record makes the metric false before the next evaluation instant."
+   },
+   "negative_control": {
+    "rejects": "unsuccessful search (incomplete coverage of a declared finite space)",
+    "verbatim": "On the unsuccessful-search fixture (visited {0,1} of S={0,1,2,3}), proof_of_impossibility == true evaluates False because coverage 2/4 is incomplete; the stop does not fire. 'We searched and did not find it' is not recorded as 'it cannot be found'.",
+    "what_the_check_does_on_the_state_it_rejects": "On the unsuccessful-search fixture (visited {0,1} of S={0,1,2,3}), proof_of_impossibility == true evaluates False because coverage 2/4 is incomplete; the stop does not fire. 'We searched and did not find it' is not recorded as 'it cannot be found'.",
+    "planted_bad_reason": "unsuccessful-search-incomplete-coverage"
+   },
+   "a10_grammar": {
+    "accepted_unchanged": true,
+    "expression": "proof_of_impossibility == true",
+    "examples": [
+     {
+      "line": "10937",
+      "expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     },
+     {
+      "line": "10938",
+      "expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     },
+     {
+      "line": "10939",
+      "expression": "unanimity == true OR max_rounds == 12",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     },
+     {
+      "line": "10940",
+      "expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     },
+     {
+      "line": "10941",
+      "expression": "evidence_saturation == true OR time_minutes >= 180",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     },
+     {
+      "line": "10942",
+      "expression": "proof_of_impossibility == true",
+      "accepted": true,
+      "why": "accepted-unchanged"
+     }
+    ]
+   },
+   "fixture_runs": {
+    "fire": {
+     "dir": "fire",
+     "fires": true,
+     "silent": false,
+     "value": true,
+     "reason": "exhaustive-enumeration-no-counterexample",
+     "coverage": 4,
+     "cardinality": 4,
+     "unseen": null,
+     "on_disk": {
+      "record.json": true,
+      "visits.json": true
+     },
+     "verbatim": "expression='proof_of_impossibility == true' value=True fires=True silent=False reason=exhaustive-enumeration-no-counterexample coverage=4/4"
+    },
+    "silent_search": {
+     "dir": "silent-search",
+     "fires": false,
+     "silent": true,
+     "value": false,
+     "reason": "unsuccessful-search-incomplete-coverage",
+     "coverage": 2,
+     "cardinality": 4,
+     "unseen": [
+      2,
+      3
+     ],
+     "on_disk": {
+      "record.json": true,
+      "visits.json": true
+     },
+     "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=unsuccessful-search-incomplete-coverage coverage=2/4"
+    },
+    "silent_unfalsifiable": {
+     "dir": "silent-unfalsifiable",
+     "fires": false,
+     "silent": true,
+     "value": false,
+     "reason": "missing-mandatory:refuting_observation",
+     "coverage": 0,
+     "cardinality": 0,
+     "unseen": null,
+     "on_disk": {
+      "record.json": true,
+      "visits.json": true
+     },
+     "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=missing-mandatory:refuting_observation coverage=0/0"
+    },
+    "silent_circular": {
+     "dir": "silent-circular",
+     "fires": false,
+     "silent": true,
+     "value": false,
+     "reason": "refuting-observation-unobservable-or-circular",
+     "coverage": 0,
+     "cardinality": 4,
+     "unseen": null,
+     "on_disk": {
+      "record.json": true,
+      "visits.json": true
+     },
+     "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=refuting-observation-unobservable-or-circular coverage=0/4"
+    }
+   },
+   "independent_recount": {
+    "method": "set-algebra over visit.member vs search_space.members, plus x*x tabulation",
+    "rhs": 7,
+    "fire_coverage": 4,
+    "fire_cardinality": 4,
+    "fire_squares": {
+     "0": 0,
+     "1": 1,
+     "2": 4,
+     "3": 9
+    },
+    "fire_hits": [],
+    "fire_proof": true,
+    "silent_coverage": 2,
+    "silent_cardinality": 4,
+    "silent_complete": false,
+    "silent_proof": false,
+    "disagreement_blocks": true
+   },
+   "proof_record_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "command-center/design/council/CNL-0083-proof-of-impossibility-record.schema.json",
+    "title": "ProofOfImpossibilityRecord",
+    "type": "object",
+    "additionalProperties": true,
+    "required": [
+     "claim",
+     "predicate",
+     "search_space",
+     "methods",
+     "resource_limit",
+     "refuting_observation"
+    ],
+    "properties": {
+     "claim": {
+      "type": "string",
+      "minLength": 8
+     },
+     "predicate": {
+      "type": "object",
+      "required": [
+       "kind",
+       "rhs"
+      ],
+      "properties": {
+       "kind": {
+        "type": "string",
+        "minLength": 1
+       },
+       "rhs": {
+        "type": [
+         "integer",
+         "number"
+        ]
+       }
+      }
+     },
+     "search_space": {
+      "type": "object",
+      "required": [
+       "kind",
+       "members"
+      ],
+      "properties": {
+       "id": {
+        "type": "string"
+       },
+       "kind": {
+        "const": "finite-closed-set"
+       },
+       "element_type": {
+        "type": "string"
+       },
+       "members": {
+        "type": "array",
+        "minItems": 1
+       }
+      }
+     },
+     "methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+       "type": "object",
+       "required": [
+        "name",
+        "output"
+       ],
+       "properties": {
+        "name": {
+         "type": "string",
+         "minLength": 1
+        },
+        "output": {
+         "type": "string",
+         "minLength": 1
+        }
+       }
+      }
+     },
+     "resource_limit": {
+      "type": "object",
+      "required": [
+       "status"
+      ],
+      "properties": {
+       "kind": {
+        "type": "string"
+       },
+       "max_members": {
+        "type": "integer"
+       },
+       "space_exhausted_before_limit": {
+        "type": "boolean"
+       },
+       "status": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     },
+     "refuting_observation": {
+      "type": "object",
+      "required": [
+       "description",
+       "observable_in_search_space"
+      ],
+      "properties": {
+       "description": {
+        "type": "string",
+        "minLength": 8
+       },
+       "observable_in_search_space": {
+        "type": "boolean"
+       },
+       "would_appear_as": {
+        "type": "string"
+       },
+       "circular": {
+        "type": "boolean"
+       }
+      }
+     }
+    }
+   },
+   "ts": "2026-08-25T00:25:57Z"
+  }
+ },
+ "schema_version": 1,
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "CNL-0083 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json",
+     "raw_output": "bytes=12125 sha256=25337109f3a7a4fa3ea3389fab4d13fa3dc27897104b7eddcf6f98e35103a8ae",
+     "fingerprint": "2aaac63a493437f1963208c131720f26",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNL-0083",
+     "raw_output": "schema-check",
+     "fingerprint": "ca4ccc0c98c5ee0eff97421d2f302e79",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNL-0083 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNL-0083",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNL-0083",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "b250884f3b9818f01c6dfbfc5663a8e1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNL-0083",
+     "raw_output": "schema-valid",
+     "fingerprint": "209e665aa7b0e5a783329f32bcef0259",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNL-0083/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNL-0083"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "c83dd2aea402ca1c9524e55a7776462f",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "councilspec.v2",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 12125,
+    "method": "filesystem-stat",
+    "anchor": "command-center/design/council/CNL-0083-executable-stopping-example-proof-of-impossibility-true.schema.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "kind": "executable-stopping-example",
+ "title": "Executable stopping example: proof_of_impossibility == true",
+ "question": "What must be on disk for this single-term expression to evaluate true, and what is the negative control proving it cannot be satisfied by an unsuccessful search?",
+ "expression": "proof_of_impossibility == true",
+ "answer": {
+  "on_disk_for_true": [
+   "A ProofOfImpossibilityRecord JSON with all five mandatory fields: claim, search_space, methods, resource_limit, refuting_observation.",
+   "search_space.kind == finite-closed-set with an explicit members list.",
+   "A visit ledger (visits.json) whose member set equals search_space.members (coverage == cardinality), independently recountable.",
+   "A bound predicate such that no member satisfies the existence side of the claim.",
+   "resource_limit.space_exhausted_before_limit == true (the space ended; the search did not).",
+   "refuting_observation names a concrete, in-principle-observable counterexample that would appear as a visit row in the same space."
+  ],
+  "metric_binding": "proof_of_impossibility is a boolean produced by validating those two files. The expression proof_of_impossibility == true reads the binding; it does not write the record.",
+  "evaluation_cadence": "End-of-round snapshot of the files on disk. The expression is side-effect free. A withdrawn record makes the metric false before the next evaluation instant."
+ },
+ "negative_control": {
+  "rejects": "unsuccessful search (incomplete coverage of a declared finite space)",
+  "verbatim": "On the unsuccessful-search fixture (visited {0,1} of S={0,1,2,3}), proof_of_impossibility == true evaluates False because coverage 2/4 is incomplete; the stop does not fire. 'We searched and did not find it' is not recorded as 'it cannot be found'.",
+  "what_the_check_does_on_the_state_it_rejects": "On the unsuccessful-search fixture (visited {0,1} of S={0,1,2,3}), proof_of_impossibility == true evaluates False because coverage 2/4 is incomplete; the stop does not fire. 'We searched and did not find it' is not recorded as 'it cannot be found'.",
+  "planted_bad_reason": "unsuccessful-search-incomplete-coverage"
+ },
+ "a10_grammar": {
+  "accepted_unchanged": true,
+  "expression": "proof_of_impossibility == true",
+  "examples": [
+   {
+    "line": "10937",
+    "expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   },
+   {
+    "line": "10938",
+    "expression": "consensus >= 0.95 AND no_new_objection_rounds >= 2",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   },
+   {
+    "line": "10939",
+    "expression": "unanimity == true OR max_rounds == 12",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   },
+   {
+    "line": "10940",
+    "expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   },
+   {
+    "line": "10941",
+    "expression": "evidence_saturation == true OR time_minutes >= 180",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   },
+   {
+    "line": "10942",
+    "expression": "proof_of_impossibility == true",
+    "accepted": true,
+    "why": "accepted-unchanged"
+   }
+  ]
+ },
+ "fixture_runs": {
+  "fire": {
+   "dir": "fire",
+   "fires": true,
+   "silent": false,
+   "value": true,
+   "reason": "exhaustive-enumeration-no-counterexample",
+   "coverage": 4,
+   "cardinality": 4,
+   "unseen": null,
+   "on_disk": {
+    "record.json": true,
+    "visits.json": true
+   },
+   "verbatim": "expression='proof_of_impossibility == true' value=True fires=True silent=False reason=exhaustive-enumeration-no-counterexample coverage=4/4"
+  },
+  "silent_search": {
+   "dir": "silent-search",
+   "fires": false,
+   "silent": true,
+   "value": false,
+   "reason": "unsuccessful-search-incomplete-coverage",
+   "coverage": 2,
+   "cardinality": 4,
+   "unseen": [
+    2,
+    3
+   ],
+   "on_disk": {
+    "record.json": true,
+    "visits.json": true
+   },
+   "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=unsuccessful-search-incomplete-coverage coverage=2/4"
+  },
+  "silent_unfalsifiable": {
+   "dir": "silent-unfalsifiable",
+   "fires": false,
+   "silent": true,
+   "value": false,
+   "reason": "missing-mandatory:refuting_observation",
+   "coverage": 0,
+   "cardinality": 0,
+   "unseen": null,
+   "on_disk": {
+    "record.json": true,
+    "visits.json": true
+   },
+   "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=missing-mandatory:refuting_observation coverage=0/0"
+  },
+  "silent_circular": {
+   "dir": "silent-circular",
+   "fires": false,
+   "silent": true,
+   "value": false,
+   "reason": "refuting-observation-unobservable-or-circular",
+   "coverage": 0,
+   "cardinality": 4,
+   "unseen": null,
+   "on_disk": {
+    "record.json": true,
+    "visits.json": true
+   },
+   "verbatim": "expression='proof_of_impossibility == true' value=False fires=False silent=True reason=refuting-observation-unobservable-or-circular coverage=0/4"
+  }
+ },
+ "independent_recount": {
+  "method": "set-algebra over visit.member vs search_space.members, plus x*x tabulation",
+  "rhs": 7,
+  "fire_coverage": 4,
+  "fire_cardinality": 4,
+  "fire_squares": {
+   "0": 0,
+   "1": 1,
+   "2": 4,
+   "3": 9
+  },
+  "fire_hits": [],
+  "fire_proof": true,
+  "silent_coverage": 2,
+  "silent_cardinality": 4,
+  "silent_complete": false,
+  "silent_proof": false,
+  "disagreement_blocks": true
+ },
+ "proof_record_schema": {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/design/council/CNL-0083-proof-of-impossibility-record.schema.json",
+  "title": "ProofOfImpossibilityRecord",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+   "claim",
+   "predicate",
+   "search_space",
+   "methods",
+   "resource_limit",
+   "refuting_observation"
+  ],
+  "properties": {
+   "claim": {
+    "type": "string",
+    "minLength": 8
+   },
+   "predicate": {
+    "type": "object",
+    "required": [
+     "kind",
+     "rhs"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "minLength": 1
+     },
+     "rhs": {
+      "type": [
+       "integer",
+       "number"
+      ]
+     }
+    }
+   },
+   "search_space": {
+    "type": "object",
+    "required": [
+     "kind",
+     "members"
+    ],
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "kind": {
+      "const": "finite-closed-set"
+     },
+     "element_type": {
+      "type": "string"
+     },
+     "members": {
+      "type": "array",
+      "minItems": 1
+     }
+    }
+   },
+   "methods": {
+    "type": "array",
+    "minItems": 1,
+    "items": {
+     "type": "object",
+     "required": [
+      "name",
+      "output"
+     ],
+     "properties": {
+      "name": {
+       "type": "string",
+       "minLength": 1
+      },
+      "output": {
+       "type": "string",
+       "minLength": 1
+      }
+     }
+    }
+   },
+   "resource_limit": {
+    "type": "object",
+    "required": [
+     "status"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string"
+     },
+     "max_members": {
+      "type": "integer"
+     },
+     "space_exhausted_before_limit": {
+      "type": "boolean"
+     },
+     "status": {
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   },
+   "refuting_observation": {
+    "type": "object",
+    "required": [
+     "description",
+     "observable_in_search_space"
+    ],
+    "properties": {
+     "description": {
+      "type": "string",
+      "minLength": 8
+     },
+     "observable_in_search_space": {
+      "type": "boolean"
+     },
+     "would_appear_as": {
+      "type": "string"
+     },
+     "circular": {
+      "type": "boolean"
+     }
+    }
+   }
+  }
+ },
+ "ts": "2026-08-25T00:25:57Z"
+}

@@ -1,0 +1,778 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0386.json",
+   "bytes": 15199,
+   "sha256": "0f0eaf5aa1a6a109fd409de85727f30b4e9f05004ecef8296642342f558d56cf",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "IMP-0386 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0386.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0386.json",
+     "raw_output": "bytes=15199 sha256=0f0eaf5aa1a6a109fd409de85727f30b4e9f05004ecef8296642342f558d56cf",
+     "fingerprint": "4ea2c8bd6d9344cd603504d80cb1ec8a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0386",
+     "raw_output": "schema-check",
+     "fingerprint": "afa81b4b40d703fd3f685d0d5b73ff0c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0386 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0386",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0386",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "63750eb85f14f8a7cc743ed858c8e5c7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0386",
+     "raw_output": "schema-valid",
+     "fingerprint": "1727fe44b6104da5932aa0255b61e6ee",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SENTINEL:IMP-0386:CAPABILITY-RECORD-NORMALIZED",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0386.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "IMP-0386",
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SENTINEL:IMP-0386:CAPABILITY-RECORD-NORMALIZED",
+   "finding": {
+    "answer": "All four formats lose information. Distinctive native drops: skill_md.allowed-tools (and compatibility, metadata); plugin_json.hooks (and author, homepage, repository, skills, commands); workflow_header.stages (and stopping); mcp_tool.inputSchema (and annotations). The largest semantic loss is MCP tool inputSchema — the entire JSON Schema argument contract has no CapabilityRecord destination. Planted extras ['planted_extra_skill', 'planted_extra_plugin', 'planted_extra_workflow', 'planted_extra_mcp'] are also registered, not copied.",
+    "formats_that_lose_information": [
+     "skill_md",
+     "plugin_json",
+     "workflow_header",
+     "mcp_tool"
+    ],
+    "headline_field": "inputSchema",
+    "headline_format": "mcp_tool",
+    "headline_why": "MCP tool JSON-Schema carries the entire argument contract in inputSchema; CapabilityRecord has no destination for a JSON Schema, so the field is registered rather than copied."
+   },
+   "fixtures": {
+    "mcp_tool": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json",
+    "plugin_json": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json",
+    "skill_md": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md",
+    "workflow_header": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py"
+   },
+   "inputs_note": {
+    "IMP-0385_receipt": "command-center/receipts/IMP-0385.json is absent on this worktree; mapping is proven on four in-tree fixtures rather than on a missing capability-index.",
+    "capability_index": "not present; not required to prove the mapping"
+   },
+   "lossless_keymap": {
+    "mcp_tool": {
+     "description": "description",
+     "name": "name"
+    },
+    "plugin_json": {
+     "description": "description",
+     "keywords": "keywords",
+     "name": "name",
+     "version": "version"
+    },
+    "skill_md": {
+     "description": "description",
+     "license": "license",
+     "name": "name",
+     "paths": "paths",
+     "version": "version"
+    },
+    "workflow_header": {
+     "description": "description",
+     "id": "id",
+     "name": "name",
+     "version": "version"
+    }
+   },
+   "lossy_field_register": [
+    {
+     "dropped_count": 4,
+     "dropped_keys": [
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:12",
+       "reason": "native skill_md key has no CapabilityRecord destination",
+       "source_key": "allowed-tools"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:8",
+       "reason": "native skill_md key has no CapabilityRecord destination",
+       "source_key": "compatibility"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:9",
+       "reason": "native skill_md key has no CapabilityRecord destination",
+       "source_key": "metadata"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:13",
+       "reason": "planted extra; no CapabilityRecord destination",
+       "source_key": "planted_extra_skill"
+      }
+     ],
+     "source_format": "skill_md",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md"
+    },
+    {
+     "dropped_count": 7,
+     "dropped_keys": [
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:6",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "author"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:10",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "commands"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:7",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "homepage"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:11",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "hooks"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:12",
+       "reason": "planted extra; no CapabilityRecord destination",
+       "source_key": "planted_extra_plugin"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:8",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "repository"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:9",
+       "reason": "native plugin_json key has no CapabilityRecord destination",
+       "source_key": "skills"
+      }
+     ],
+     "source_format": "plugin_json",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json"
+    },
+    {
+     "dropped_count": 3,
+     "dropped_keys": [
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:10",
+       "reason": "planted extra; no CapabilityRecord destination",
+       "source_key": "planted_extra_workflow"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:8",
+       "reason": "native workflow_header key has no CapabilityRecord destination",
+       "source_key": "stages"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:9",
+       "reason": "native workflow_header key has no CapabilityRecord destination",
+       "source_key": "stopping"
+      }
+     ],
+     "source_format": "workflow_header",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py"
+    },
+    {
+     "dropped_count": 3,
+     "dropped_keys": [
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:11",
+       "reason": "native mcp_tool key has no CapabilityRecord destination",
+       "source_key": "annotations"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:4",
+       "reason": "MCP tool JSON-Schema argument contract has no CapabilityRecord destination",
+       "source_key": "inputSchema"
+      },
+      {
+       "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:14",
+       "reason": "planted extra; no CapabilityRecord destination",
+       "source_key": "planted_extra_mcp"
+      }
+     ],
+     "source_format": "mcp_tool",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json"
+    }
+   ],
+   "lossy_field_register_summary": [
+    {
+     "count": 4,
+     "dropped_keys": [
+      "allowed-tools",
+      "compatibility",
+      "metadata",
+      "planted_extra_skill"
+     ],
+     "locators": [
+      "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:12",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:8",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:9",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:13"
+     ],
+     "source_format": "skill_md"
+    },
+    {
+     "count": 7,
+     "dropped_keys": [
+      "author",
+      "commands",
+      "homepage",
+      "hooks",
+      "planted_extra_plugin",
+      "repository",
+      "skills"
+     ],
+     "locators": [
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:6",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:10",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:7",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:11",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:12",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:8",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:9"
+     ],
+     "source_format": "plugin_json"
+    },
+    {
+     "count": 3,
+     "dropped_keys": [
+      "planted_extra_workflow",
+      "stages",
+      "stopping"
+     ],
+     "locators": [
+      "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:10",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:8",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:9"
+     ],
+     "source_format": "workflow_header"
+    },
+    {
+     "count": 3,
+     "dropped_keys": [
+      "annotations",
+      "inputSchema",
+      "planted_extra_mcp"
+     ],
+     "locators": [
+      "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:11",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:4",
+      "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:14"
+     ],
+     "source_format": "mcp_tool"
+    }
+   ],
+   "native_unmapped_keys": {
+    "mcp_tool": [
+     "inputSchema",
+     "annotations"
+    ],
+    "plugin_json": [
+     "author",
+     "homepage",
+     "repository",
+     "skills",
+     "commands",
+     "hooks"
+    ],
+    "skill_md": [
+     "compatibility",
+     "metadata",
+     "allowed-tools"
+    ],
+    "workflow_header": [
+     "stages",
+     "stopping"
+    ]
+   },
+   "normalizer": "tools/router/normalize.py",
+   "notes": "G-1 IMP-0386: four-format normalizer, lossy-field register with file:line locators, lossless round-trip plus planted-key negative control. Did not run global unit_manifest.py --write.",
+   "planted_keys": {
+    "mcp_tool": "planted_extra_mcp",
+    "plugin_json": "planted_extra_plugin",
+    "skill_md": "planted_extra_skill",
+    "workflow_header": "planted_extra_workflow"
+   },
+   "question": "Which of the four descriptor formats loses information in the mapping onto CapabilityRecord, and exactly which field is dropped?",
+   "records": [
+    {
+     "capability_id": "catalog-router-skill",
+     "description": "Route catalog-class questions. Do not use for live plugin install.",
+     "license": "MIT",
+     "name": "catalog-router-skill",
+     "paths": [
+      "command-center/**"
+     ],
+     "source_format": "skill_md",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md",
+     "version": "1.2.0"
+    },
+    {
+     "capability_id": "harness-router",
+     "description": "Plugin that packages the capability router. Not an MCP server.",
+     "keywords": [
+      "router",
+      "capability"
+     ],
+     "name": "harness-router",
+     "source_format": "plugin_json",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json",
+     "version": "1.0.0"
+    },
+    {
+     "capability_id": "wf.catalog-class.discovery-only",
+     "description": "Discover catalog-class workflows without executing them.",
+     "id": "wf.catalog-class.discovery-only",
+     "name": "catalog-discovery",
+     "source_format": "workflow_header",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py",
+     "version": "0.4.0"
+    },
+    {
+     "capability_id": "get_weather",
+     "description": "Look up weather for a location. Do not use for geocoding.",
+     "name": "get_weather",
+     "source_format": "mcp_tool",
+     "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json"
+    }
+   ],
+   "schema_input_path": "schema/capability-record.schema.json",
+   "schema_path": "command-center/schema/capability-record.schema.json",
+   "title": "Heterogeneous descriptor normalizer into one CapabilityRecord",
+   "ts": "2026-08-25T00:59:50Z"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0386",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0386/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0386"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0386.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0386.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "05941df3f23d72fa97cfcdf5c5f87ade",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "capability-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 15199,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0386.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SENTINEL:IMP-0386:CAPABILITY-RECORD-NORMALIZED",
+ "finding": {
+  "answer": "All four formats lose information. Distinctive native drops: skill_md.allowed-tools (and compatibility, metadata); plugin_json.hooks (and author, homepage, repository, skills, commands); workflow_header.stages (and stopping); mcp_tool.inputSchema (and annotations). The largest semantic loss is MCP tool inputSchema — the entire JSON Schema argument contract has no CapabilityRecord destination. Planted extras ['planted_extra_skill', 'planted_extra_plugin', 'planted_extra_workflow', 'planted_extra_mcp'] are also registered, not copied.",
+  "formats_that_lose_information": [
+   "skill_md",
+   "plugin_json",
+   "workflow_header",
+   "mcp_tool"
+  ],
+  "headline_field": "inputSchema",
+  "headline_format": "mcp_tool",
+  "headline_why": "MCP tool JSON-Schema carries the entire argument contract in inputSchema; CapabilityRecord has no destination for a JSON Schema, so the field is registered rather than copied."
+ },
+ "fixtures": {
+  "mcp_tool": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json",
+  "plugin_json": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json",
+  "skill_md": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md",
+  "workflow_header": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py"
+ },
+ "inputs_note": {
+  "IMP-0385_receipt": "command-center/receipts/IMP-0385.json is absent on this worktree; mapping is proven on four in-tree fixtures rather than on a missing capability-index.",
+  "capability_index": "not present; not required to prove the mapping"
+ },
+ "lossless_keymap": {
+  "mcp_tool": {
+   "description": "description",
+   "name": "name"
+  },
+  "plugin_json": {
+   "description": "description",
+   "keywords": "keywords",
+   "name": "name",
+   "version": "version"
+  },
+  "skill_md": {
+   "description": "description",
+   "license": "license",
+   "name": "name",
+   "paths": "paths",
+   "version": "version"
+  },
+  "workflow_header": {
+   "description": "description",
+   "id": "id",
+   "name": "name",
+   "version": "version"
+  }
+ },
+ "lossy_field_register": [
+  {
+   "dropped_count": 4,
+   "dropped_keys": [
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:12",
+     "reason": "native skill_md key has no CapabilityRecord destination",
+     "source_key": "allowed-tools"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:8",
+     "reason": "native skill_md key has no CapabilityRecord destination",
+     "source_key": "compatibility"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:9",
+     "reason": "native skill_md key has no CapabilityRecord destination",
+     "source_key": "metadata"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:13",
+     "reason": "planted extra; no CapabilityRecord destination",
+     "source_key": "planted_extra_skill"
+    }
+   ],
+   "source_format": "skill_md",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md"
+  },
+  {
+   "dropped_count": 7,
+   "dropped_keys": [
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:6",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "author"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:10",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "commands"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:7",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "homepage"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:11",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "hooks"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:12",
+     "reason": "planted extra; no CapabilityRecord destination",
+     "source_key": "planted_extra_plugin"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:8",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "repository"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:9",
+     "reason": "native plugin_json key has no CapabilityRecord destination",
+     "source_key": "skills"
+    }
+   ],
+   "source_format": "plugin_json",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json"
+  },
+  {
+   "dropped_count": 3,
+   "dropped_keys": [
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:10",
+     "reason": "planted extra; no CapabilityRecord destination",
+     "source_key": "planted_extra_workflow"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:8",
+     "reason": "native workflow_header key has no CapabilityRecord destination",
+     "source_key": "stages"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:9",
+     "reason": "native workflow_header key has no CapabilityRecord destination",
+     "source_key": "stopping"
+    }
+   ],
+   "source_format": "workflow_header",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py"
+  },
+  {
+   "dropped_count": 3,
+   "dropped_keys": [
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:11",
+     "reason": "native mcp_tool key has no CapabilityRecord destination",
+     "source_key": "annotations"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:4",
+     "reason": "MCP tool JSON-Schema argument contract has no CapabilityRecord destination",
+     "source_key": "inputSchema"
+    },
+    {
+     "locator": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:14",
+     "reason": "planted extra; no CapabilityRecord destination",
+     "source_key": "planted_extra_mcp"
+    }
+   ],
+   "source_format": "mcp_tool",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json"
+  }
+ ],
+ "lossy_field_register_summary": [
+  {
+   "count": 4,
+   "dropped_keys": [
+    "allowed-tools",
+    "compatibility",
+    "metadata",
+    "planted_extra_skill"
+   ],
+   "locators": [
+    "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:12",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:8",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:9",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md:13"
+   ],
+   "source_format": "skill_md"
+  },
+  {
+   "count": 7,
+   "dropped_keys": [
+    "author",
+    "commands",
+    "homepage",
+    "hooks",
+    "planted_extra_plugin",
+    "repository",
+    "skills"
+   ],
+   "locators": [
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:6",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:10",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:7",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:11",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:12",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:8",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json:9"
+   ],
+   "source_format": "plugin_json"
+  },
+  {
+   "count": 3,
+   "dropped_keys": [
+    "planted_extra_workflow",
+    "stages",
+    "stopping"
+   ],
+   "locators": [
+    "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:10",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:8",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py:9"
+   ],
+   "source_format": "workflow_header"
+  },
+  {
+   "count": 3,
+   "dropped_keys": [
+    "annotations",
+    "inputSchema",
+    "planted_extra_mcp"
+   ],
+   "locators": [
+    "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:11",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:4",
+    "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json:14"
+   ],
+   "source_format": "mcp_tool"
+  }
+ ],
+ "native_unmapped_keys": {
+  "mcp_tool": [
+   "inputSchema",
+   "annotations"
+  ],
+  "plugin_json": [
+   "author",
+   "homepage",
+   "repository",
+   "skills",
+   "commands",
+   "hooks"
+  ],
+  "skill_md": [
+   "compatibility",
+   "metadata",
+   "allowed-tools"
+  ],
+  "workflow_header": [
+   "stages",
+   "stopping"
+  ]
+ },
+ "normalizer": "tools/router/normalize.py",
+ "notes": "G-1 IMP-0386: four-format normalizer, lossy-field register with file:line locators, lossless round-trip plus planted-key negative control. Did not run global unit_manifest.py --write.",
+ "planted_keys": {
+  "mcp_tool": "planted_extra_mcp",
+  "plugin_json": "planted_extra_plugin",
+  "skill_md": "planted_extra_skill",
+  "workflow_header": "planted_extra_workflow"
+ },
+ "question": "Which of the four descriptor formats loses information in the mapping onto CapabilityRecord, and exactly which field is dropped?",
+ "records": [
+  {
+   "capability_id": "catalog-router-skill",
+   "description": "Route catalog-class questions. Do not use for live plugin install.",
+   "license": "MIT",
+   "name": "catalog-router-skill",
+   "paths": [
+    "command-center/**"
+   ],
+   "source_format": "skill_md",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/skill/SKILL.md",
+   "version": "1.2.0"
+  },
+  {
+   "capability_id": "harness-router",
+   "description": "Plugin that packages the capability router. Not an MCP server.",
+   "keywords": [
+    "router",
+    "capability"
+   ],
+   "name": "harness-router",
+   "source_format": "plugin_json",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/plugin/plugin.json",
+   "version": "1.0.0"
+  },
+  {
+   "capability_id": "wf.catalog-class.discovery-only",
+   "description": "Discover catalog-class workflows without executing them.",
+   "id": "wf.catalog-class.discovery-only",
+   "name": "catalog-discovery",
+   "source_format": "workflow_header",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/workflow/catalog_discovery.py",
+   "version": "0.4.0"
+  },
+  {
+   "capability_id": "get_weather",
+   "description": "Look up weather for a location. Do not use for geocoding.",
+   "name": "get_weather",
+   "source_format": "mcp_tool",
+   "source_path": "command-center/p2-wave/probes/IMP-0386/fixtures/mcp/get_weather.json"
+  }
+ ],
+ "schema_input_path": "schema/capability-record.schema.json",
+ "schema_path": "command-center/schema/capability-record.schema.json",
+ "title": "Heterogeneous descriptor normalizer into one CapabilityRecord",
+ "ts": "2026-08-25T00:59:50Z"
+}

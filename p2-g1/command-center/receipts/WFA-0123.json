@@ -1,0 +1,165 @@
+{
+ "schema_version": 1,
+ "unit_id": "WFA-0123",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:WFA-0123 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified this session); SUCCESS withheld: reviewer-absent - receipt_core forbids state=SUCCESS without reviewer.verdict=PASS and independent=true; only the independent reviewer closes",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0123",
+ "min_bytes_threshold": 1024,
+ "timestamps": {
+  "started_at": "2026-10-26T21:47:27Z",
+  "ended_at": "2026-10-26T21:47:27Z"
+ },
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "vendor": "anthropic",
+  "model": "opus",
+  "role": "builder"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "shard22 wave-4 builder: prior builder died mid-flight; artifact content verified against the live contract, not rebuilt; probes fail-closed, max 3 fix cycles per unit"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side delivery chain is complete and green this session (artifact parses, state=SUCCESS in artifact, schema-valid under the blessed resolver, sentinel present, evidence source+verifier pairs legal, both-states controls recorded, tests PASS, manifest sha matches live). receipt_core forbids flipping the receipt to state=SUCCESS without reviewer.verdict=PASS and independent=true; the independent closure is a fresh-context reviewer's job.",
+  "blocked_on": "one independent adversarial reviewer in a fresh context who did not author the unit; reviewer must re-run the unit's own both-states control before signing PASS"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0123-candidate-floor-proof.json",
+   "bytes": 18251,
+   "sha256": "0ef23e58ffd861232b3a19ce198bc4a0d341edb316056ad978e1ba3455bf3a3f",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0123/probe1_delivery_predicate.py",
+   "bytes": 7864,
+   "sha256": "09f69060d9b28dd358f4ce671ebbb5eb16d71aa5651eb8d0783fc962c30d2335",
+   "exists": true,
+   "eol": "LF",
+   "role": "control"
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0123/UNIT-ARTIFACT-MANIFEST.json",
+   "bytes": 2532,
+   "sha256": "ea5543d9eb22df5a209c45203eb8a065673ef81a48419c7e6953b86f22199eb9",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/WFA-0123/SUBAGENT-RETURN.json",
+   "bytes": 2610,
+   "sha256": "930be0ce4a2295bf798e2a865fdc251ac4442a87b1d3c8c1673f55af030114c4",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0123 delivered: both named probes re-ran green live this session",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0123/",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0123/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:WFA-0123-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live, both qualifiers reproduce live 9->0 and planted 7->2",
+     "fingerprint": "260383f0e2f4c55e921774c1a104b102",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0123/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:WFA-0123-probe2 inline three-way AND reproduces live 9->0 and planted 7->2; shortfall routed not massaged; live mutant control + manifest byte-compare OK",
+     "fingerprint": "7d0f429890fd2708801d53339b9a43ca",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0123 manifest registered with a live CRLF-normalized sha256 row matching the on-disk artifact (0ef23e58ffd86123...)",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0123/UNIT-ARTIFACT-MANIFEST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "read command-center/p2-wave/probes/WFA-0123/UNIT-ARTIFACT-MANIFEST.json artifacts[] rows",
+     "raw_output": "primary row sha256=0ef23e58ffd861232b3a19ce198bc4a0d341edb316056ad978e1ba3455bf3a3f bytes=18251 present=true (matches _measure_one_delivered.py digest_file)",
+     "fingerprint": "d3d744688ac4cfc2718b3c7f4e14a1cd",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py WFA-0123",
+     "raw_output": "measure re-hashes the live artifact with CRLF->LF normalization and requires an exact manifest row match",
+     "fingerprint": "505d00d789fb88b09489702095a4553f",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-WFA-0123-measure",
+   "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py WFA-0123",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-WFA-0123-probe2-both-states",
+   "kind": "mutation",
+   "description": "probe2's live both-states control: the re-derivation stays silent on the intact artifact and fires on a mutated headline value (re-run on every probe execution)",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review",
+  "verdict": "NOT-REVIEWED",
+  "independent": false
+ },
+ "defects": [],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0123/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0123",
+  "registered_at": "2026-10-26T21:47:27Z"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "artifact_path": "command-center/wfa/WFA-0123-candidate-floor-proof.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py WFA-0123",
+    "raw_output": "SUCCESS:delivered WFA-0123 (live re-run this session)",
+    "fingerprint": "16866bb2eb89989e8aa9c9c2536bee64",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "notes": "shard22 wave-4 builder (resume) 2026-10-26: builder-side chain completed on the live contract. prior builder attempt died mid-flight after writing the artifact content but before any probe dir existed; the three-way AND was re-run live under BOTH recorded qualifier methods (Jaccard+SPDX, difflib+header-prefix) and a third inline token-subset implementation - all reproduce the recorded numbers exactly (live 9 raw -> 0 qualified, floor 160 NOT cleared, shortfall 160 routed; planted both-states 7 -> 2). envelope completed; receipt BLOCKED/reviewer-absent (catalog reviewer_requirement is cross-vendor: one openai Codex verifier + one Claude adversarial reviewer); only the independent reviewer closes.",
+ "extensions": {
+  "builder": "shard22 wave-4 builder 2026-10-26",
+  "owner_gate": "none: catalog owner_approval_required=false",
+  "probe_scripts_sha_note": "probe1/probe2 rows in artifacts are presence markers; authoritative probe hashes live in the per-unit UNIT-ARTIFACT-MANIFEST.json rows"
+ }
+}

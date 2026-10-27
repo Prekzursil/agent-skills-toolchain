@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -u
+export AST_INTEGRATE_ROOT="$HOME/p2-g1"
+cd "$HOME/p2-g1" || exit 2
+ids='ARC-0082 AUD-0024 CC-0006 CNF-0183 IMP-0019 IMP-0034 IMP-0037 IMP-0045 IMP-0050 IMP-0046 IMP-0055 IMP-0069 IMP-0067 IMP-0082 IMP-0090 IMP-0099 IMP-0091 IMP-0105 IMP-0120 IMP-0121 IMP-0135 IMP-0144 IMP-0149 IMP-0165 IMP-0229 IMP-0265 IMP-0269 IMP-0290 IMP-0302 IMP-0317 IMP-0320 IMP-0353 IMP-0387 IMP-0396 IMP-0401 IMP-0403 IMP-0410 IMP-0420 IMP-0432 REL-0002 RES-0060 RES-0125 TST-0001 TST-0018 TST-0031 TST-0055 TST-0115 TST-0164 TST-0210 TST-0256 TST-0305 WFA-0031'
+ok=0
+fail=0
+for id in $ids; do
+  echo "==== ${id}"
+  if python3 command-center/p2-wave/_measure_one_delivered.py "${id}"; then
+    ok=$((ok + 1))
+  else
+    fail=$((fail + 1))
+  fi
+done
+echo "SUMMARY ok=${ok} fail=${fail}"

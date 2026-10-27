@@ -1,0 +1,284 @@
+{
+ "answer": "Three scripted runs that look stuck from outside take three different actions: productive_disagreement -> continue_preserve_dissent (dissent preserved, no escalation); genuine_deadlock -> escalate_named_proposition naming P-CUTOVER; stalled_runtime -> operational_failure for seat delta (not a deliberation outcome). A single generic escalation did not fire. Owner packet Q-CUTOVER is one foundation-level question with a recommendation and a stated default; two-question, compound, and already-settled packets are refused. Same-seed traces hash to 832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a; seed 8 diverges. Frozen clock and fixed pid do not move the production DAG; leak flags do. SUCCESS:TST-0290",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0290.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/stopping/deadlock.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/stopping/__init__.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/stopping/schema/deadlock-classification.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/stopping/tests/test_deadlock.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/owner_ask.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/simulate.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0290/measure.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0290/probe1_three_way_actions.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0290/probe2_owner_packet.py",
+   "role": "supporting"
+  }
+ ],
+ "claim_under_test": "Productive disagreement, genuine deadlock, and a stalled runtime must be classified apart and must trigger three distinct actions. Owner intervention asks one foundation-level question with a recommendation and a stated default.",
+ "completion_sentinel": "SUCCESS:TST-0290",
+ "evidence": [
+  {
+   "anchor": "tools/council/stopping/deadlock.py:run_three_way",
+   "claim": "productive=continue_preserve_dissent deadlock=escalate_named_proposition stalled=operational_failure generic_escalation=False proposition=P-CUTOVER",
+   "detail": "productive=continue_preserve_dissent deadlock=escalate_named_proposition stalled=operational_failure generic_escalation=False proposition=P-CUTOVER",
+   "kind": "three-way-scripted-runs",
+   "path": "tools/council/stopping/deadlock.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/owner_ask.py:check_packet",
+   "claim": "Q-CUTOVER question_count=1 recommendation and default present; two-question, compound, and settled packets refused.",
+   "detail": "Q-CUTOVER question_count=1 recommendation and default present; two-question, compound, and settled packets refused.",
+   "kind": "owner-intervention-packet",
+   "path": "tools/council/owner_ask.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/simulate.py:three_cast_bundle",
+   "claim": "seed=7 run_a=832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a run_b=832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a identical=true; seed=8 diverges",
+   "detail": "seed=7 run_a=832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a run_b=832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a identical=true; seed=8 diverges",
+   "kind": "trace-hash-comparison",
+   "path": "tools/council/simulate.py",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "fixed_pid": {
+  "applied": true,
+  "live_hash": "832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a",
+  "pid": 4242,
+  "trace_unchanged": true
+ },
+ "frozen_clock": {
+  "applied": true,
+  "clock_ns": 1700000000000000000,
+  "frozen_hash": "832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a",
+  "trace_unchanged": true,
+  "wall_hash": "832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a"
+ },
+ "id": "TST-0290",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe1_three_way_actions.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "role": "three-way"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe2_owner_packet.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "role": "owner-reviewer"
+  }
+ ],
+ "nondeterminism_sources": [
+  {
+   "how_found": "Injected FrozenClock vs shifted clock_ns with leak_clock=True; hashes 27539dda8132 vs 9913b440a1f6 (differ=True).",
+   "leaks_into_production_dag": false,
+   "site": "simulate.leak_clock appends leak-clock:{clock_ns} and moves DynamicFanOut",
+   "source": "wall-clock"
+  },
+  {
+   "how_found": "Injected FixedPid(1) vs FixedPid(3) with leak_pid=True; orders differ; hashes differ=True.",
+   "leaks_into_production_dag": false,
+   "site": "simulate.leak_pid reorders due-seat turn nodes",
+   "source": "pid"
+  },
+  {
+   "how_found": "Seed 7 hash 832eb4c201b0 vs seed 8 hash da459a68306f (diverges=True).",
+   "leaks_into_production_dag": true,
+   "site": "DynamicFanOut dyn-replace cardinality = 2 + (seed % 3)",
+   "source": "seed"
+  }
+ ],
+ "notes": "G-1 for TST-0290: live named probes exit 0, receipt state=SUCCESS with SUCCESS:TST-0290, per-unit UNIT-ARTIFACT-MANIFEST row. Did not run global unit_manifest.py --write. Cloud ok=true is not delivery. TST-0257/TST-0263/IMP-0310/IMP-0366 are catalog dependencies not delivered here; this unit ships the three-way policy and a scripted persona runner, not the full B07 kernel. SUCCESS:TST-0290",
+ "question": "Implementation target: implement and test the :10762 deadlock, escalation, replacement and owner-intervention policies. Distinguish three states that look identical from outside - productive disagreement, genuine deadlock, and a stalled runtime - and require different handling for each. Escalating a productive disagreement destroys the dissent the council exists to surface; treating a stalled runtime as disagreement burns the whole budget.",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "TST-0257 (byte-reproducible CouncilSpec simulator) and TST-0263 (information-gain stop) are catalog dependencies and are not delivered on this worktree.",
+   "settling_experiment": "After those units land, replay the three casts through the kernel simulator and re-run probe1 against that transcript.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "method": "Probe 2 re-runs the three scripted casts, requires three distinct actions, checks the owner packet both-states control (legal packet vs two-question / compound / settled), and injects clock and pid leaks. This is a detector control, not a re-read of probe 1's conclusion.",
+  "reviewer_id": "TST-0290-probe2-owner-packet",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0290",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe1_three_way_actions.py",
+   "exit_code": 0,
+   "id": "productive-disagreement-no-escalation",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe1_three_way_actions.py",
+   "exit_code": 0,
+   "id": "genuine-deadlock-named-proposition",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe1_three_way_actions.py",
+   "exit_code": 0,
+   "id": "stalled-runtime-operational-failure",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0290/probe2_owner_packet.py",
+   "exit_code": 0,
+   "id": "owner-intervention-one-question",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/council/stopping/tests/test_deadlock.py",
+   "exit_code": 0,
+   "id": "unit-tests",
+   "result": "PASS"
+  }
+ ],
+ "three_way": {
+  "distinct_actions": true,
+  "generic_escalation": false,
+  "rows": [
+   {
+    "action": "continue_preserve_dissent",
+    "cast_id": "cast-productive-disagreement",
+    "escalated": false,
+    "kind": "productive_disagreement",
+    "name": "productive",
+    "proposition_id": "P-CUTOVER",
+    "rung": null,
+    "seat_id": null,
+    "title": "Split votes, new counterexample every round"
+   },
+   {
+    "action": "escalate_named_proposition",
+    "cast_id": "cast-genuine-deadlock",
+    "escalated": true,
+    "kind": "genuine_deadlock",
+    "name": "deadlock",
+    "proposition_id": "P-CUTOVER",
+    "rung": "replacement",
+    "seat_id": "alpha",
+    "title": "All seats return; same votes and claims every round"
+   },
+   {
+    "action": "operational_failure",
+    "cast_id": "cast-stalled-runtime",
+    "escalated": false,
+    "kind": "stalled_runtime",
+    "name": "stalled",
+    "proposition_id": null,
+    "rung": null,
+    "seat_id": "delta",
+    "title": "Seat delta is due every round and never returns"
+   }
+  ]
+ },
+ "timestamps": {
+  "ended_at": "2026-08-25T01:12:06Z",
+  "started_at": "2026-08-25T01:12:06Z"
+ },
+ "title": "Deadlock detection, escalation, and the owner-intervention path",
+ "trace_hash_comparison": {
+  "barrier_resolution": [
+   "join",
+   "join",
+   "join"
+  ],
+  "different_seed": {
+   "diverges": true,
+   "seed": 8,
+   "sha256": "da459a68306ff486ea1a1e62fa82ba560793bbd4735b2d522ee9056559843f6c"
+  },
+  "fan_out_cardinalities": [
+   {
+    "cardinality": 3,
+    "id": "static-seats",
+    "kind": "FanOut"
+   },
+   {
+    "cardinality": 3,
+    "id": "dyn-replace",
+    "kind": "DynamicFanOut"
+   },
+   {
+    "cardinality": 4,
+    "id": "static-seats",
+    "kind": "FanOut"
+   }
+  ],
+  "identical": true,
+  "node_order": [
+   "turn:alpha",
+   "turn:beta",
+   "turn:gamma",
+   "DynamicFanOut:dyn-replace:3",
+   "Barrier:join",
+   "turn:alpha",
+   "turn:beta",
+   "turn:gamma",
+   "DynamicFanOut:dyn-replace:3",
+   "Barrier:join",
+   "turn:alpha",
+   "turn:beta",
+   "turn:gamma",
+   "turn:delta",
+   "DynamicFanOut:dyn-replace:3",
+   "Barrier:join"
+  ],
+  "run_a_sha256": "832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a",
+  "run_b_sha256": "832eb4c201b04c21a8c3f4ce236515a4d9a0aec7846101604c72bbe9eaf77e0a",
+  "seed": 7
+ },
+ "unit_id": "TST-0290"
+}

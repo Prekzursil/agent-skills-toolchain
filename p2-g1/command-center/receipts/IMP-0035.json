@@ -1,0 +1,233 @@
+{
+  "artifacts": [
+    {
+      "path": "tools/plugin/eol_hash.py",
+      "bytes": 1616,
+      "sha256": "e93e71a9730d3a447d9a20174bb4ee4d0f5795df3f33f48546eb1b4692510010",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "tools/plugin/tests/test_eol_normalised_hash.py",
+      "bytes": 3226,
+      "sha256": "03c187cc725b1ddf95ce29f2fd0ad57bad87dfdbf26f6908e7556cd64c8665dd",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0035/probe1_hash_classes.py",
+      "bytes": 2455,
+      "sha256": "b070f903233122e37e8e2933282ed9b20e564966b6d2a27b024c15dc32561035",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0035/probe2_eol_arithmetic.py",
+      "bytes": 3665,
+      "sha256": "49573d5466f852030007fc4d41a37689da18017840bcbc82f8c92c7aa9e9d156",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0035",
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "consumer": "tools/plugin/tests/test_eol_normalised_hash.py",
+      "artifact_path": "tools/plugin/eol_hash.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/receipt_validate.py command-center/receipts/IMP-0035.json",
+        "raw_output": "REJECT:IMP-0035 C2 schema-invalid (8): downstream_consumers/0: 'probe' is a required property",
+        "fingerprint": "25e07d989bac47f5c34366facf1e6f36695703a7af3ff2ee36835b418387c4da",
+        "exit_code": 1
+      }
+    }
+  ],
+  "estate_finding_F6": {
+    "cited": "55 EOL-only differences of 88 rules files",
+    "reason": "No live ~/.claude/rules vs repo rules/ pair is present on /opt/p2/ast-integrate. The primitive that would classify those 55 as IDENTICAL-MODULO-EOL is what this unit ships.",
+    "reproduced_on_this_worktree": false
+  },
+  "evidence": [
+    {
+      "claim": "For a CRLF/LF pair of the same logical file b'alpha\\nbeta\\ngamma\\n', raw sha256 differs (4fdbc441ea7b vs c8dba6894524) while normalised sha256 matches (4fdbc441ea7b). classify_pair returns IDENTICAL-MODULO-EOL.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/eol_hash.py:bytes_for_hash",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "sha256(lf) vs sha256(crlf) vs sha256(bytes_for_hash(.))",
+          "raw_output": "{\"checks\": {\"arithmetic_identity\": true, \"changed_diverged\": true, \"class_modulo\": true, \"cr_norm_match\": true, \"identical\": true, \"mixed_norm_match\": true, \"norm_match\": true, \"raw_differ\": true}, \"delta\": 3, \"newline_count\": 3, \"norm_lf\": \"4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996\", \"pass\": true, \"probe\": \"probe1-eol-classes\", \"raw_crlf\": \"c8dba68945249de9b4faed72b89e041e3df77ffff885122599e6c2f7c65a68b2\", \"raw_lf\": \"4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996\", \"unit_id\": \"IMP-0035\"}",
+          "fingerprint": "14a05b883088c3b4ceb227fc7c5910fa95bd198d4da1a0d385d116967f142726",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B tools/plugin/tests/test_eol_normalised_hash.py",
+          "raw_output": "PASS crlf-lf-raw-differ\nPASS crlf-lf-normalised-match\nPASS crlf-lf-class-modulo-eol\nPASS crlf-arithmetic-identity\nPASS cr-only-raw-differ\nPASS cr-only-normalised-match\nPASS cr-only-class-modulo-eol\nPASS arithmetic-identity\nPASS identical-class\nPASS one-char-change-diverges\nPASS one-char-change-crlf-diverges\nPASS png-looks-binary\nPASS png-raw-eq-policy\nPASS png-class-identical\nPASS png-naive-rewrite-corrupts\nPASS png-naive-not-normalised\nPASS mixed-folds-to-lf",
+          "fingerprint": "a9ea37b169963cd9d0723f8305b6f064248175661840ec926fa0bf6098f09845",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Byte-length delta equals line count exactly: len(crlf)-len(lf)=3, lf.count('\\n')=3, crlf.count('\\r\\n')=0. This arithmetic identity is computed without hashing and is the control that the difference is EOL and nothing else.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/eol_hash.py:_lf_normalise",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "len(crlf)-len(lf) == lf.count('\\n') == crlf.count('\\r\\n')",
+          "raw_output": "{\"checks\": {\"arithmetic_identity\": true, \"changed_diverged\": true, \"class_modulo\": true, \"cr_norm_match\": true, \"identical\": true, \"mixed_norm_match\": true, \"norm_match\": true, \"raw_differ\": true}, \"delta\": 3, \"newline_count\": 3, \"norm_lf\": \"4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996\", \"pass\": true, \"probe\": \"probe1-eol-classes\", \"raw_crlf\": \"c8dba68945249de9b4faed72b89e041e3df77ffff885122599e6c2f7c65a68b2\", \"raw_lf\": \"4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996\", \"unit_id\": \"IMP-0035\"}",
+          "fingerprint": "26dcd1a854a5a8723c5850d394f6172887e7b2fc2d5835974eb501a43c202b77",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PNG raw==policy and naive rewrite differs",
+          "raw_output": "{\"ast_proof\": {\"binary_check\": true, \"norm_call\": true, \"order_ok\": true}, \"checks\": {\"arithmetic_identity\": true, \"ast_binary_precedes\": true, \"looks_binary_png\": true, \"modulo_class\": true, \"naive_corrupts\": true, \"png_policy_eq_raw\": true}, \"delta\": 3, \"pass\": true, \"png_naive\": \"208d0b1cf7276ac9a851f296be159422e2f20ccedafd43a16378dd1bb31ce8b2\", \"png_policy\": \"ebf4f635a17d10d6eb46ba680b70142419aa3220f228001a036d311a22ee9d2a\", \"png_raw\": \"ebf4f635a17d10d6eb46ba680b70142419aa3220f228001a036d311a22ee9d2a\", \"probe\": \"probe2-eol-arithmetic\", \"unit_id\": \"IMP-0035\"}",
+          "fingerprint": "0b0f08863a91c762d756a10fa0bf8d7af836e737ec5e771e41a1fc34cadbf408",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Binary detection precedes normalisation: a 1x1 PNG (signature contains CRLF) hashes identically raw and normalised (2e9b06dc65a4); a naive replace corrupts it (f35a4ba4bd12). looks_binary(png) is true.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/eol_hash.py:looks_binary",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PNG raw==policy and naive rewrite differs",
+          "raw_output": "{\"ast_proof\": {\"binary_check\": true, \"norm_call\": true, \"order_ok\": true}, \"checks\": {\"arithmetic_identity\": true, \"ast_binary_precedes\": true, \"looks_binary_png\": true, \"modulo_class\": true, \"naive_corrupts\": true, \"png_policy_eq_raw\": true}, \"delta\": 3, \"pass\": true, \"png_naive\": \"208d0b1cf7276ac9a851f296be159422e2f20ccedafd43a16378dd1bb31ce8b2\", \"png_policy\": \"ebf4f635a17d10d6eb46ba680b70142419aa3220f228001a036d311a22ee9d2a\", \"png_raw\": \"ebf4f635a17d10d6eb46ba680b70142419aa3220f228001a036d311a22ee9d2a\", \"probe\": \"probe2-eol-arithmetic\", \"unit_id\": \"IMP-0035\"}",
+          "fingerprint": "0b0f08863a91c762d756a10fa0bf8d7af836e737ec5e771e41a1fc34cadbf408",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B tools/plugin/tests/test_eol_normalised_hash.py",
+          "raw_output": "PASS crlf-lf-raw-differ\nPASS crlf-lf-normalised-match\nPASS crlf-lf-class-modulo-eol\nPASS crlf-arithmetic-identity\nPASS cr-only-raw-differ\nPASS cr-only-normalised-match\nPASS cr-only-class-modulo-eol\nPASS arithmetic-identity\nPASS identical-class\nPASS one-char-change-diverges\nPASS one-char-change-crlf-diverges\nPASS png-looks-binary\nPASS png-raw-eq-policy\nPASS png-class-identical\nPASS png-naive-rewrite-corrupts\nPASS png-naive-not-normalised\nPASS mixed-folds-to-lf",
+          "fingerprint": "a9ea37b169963cd9d0723f8305b6f064248175661840ec926fa0bf6098f09845",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "implementation": {
+    "binary_detection_precedes_normalisation": true,
+    "bytes": 1994,
+    "classes": [
+      "IDENTICAL",
+      "IDENTICAL-MODULO-EOL",
+      "DIVERGED"
+    ],
+    "module": "tools/plugin/eol_hash.py",
+    "notes": "This Linux worktree does not carry the originating box's ~/.claude/rules vs repo rules/ pair (the 55 EOL-only of 88 finding). The primitive is proved on planted CRLF/LF, CR, mixed, one-character-change, and PNG fixtures. REPO-AHEAD / LIVE-AHEAD classification is IMP-0034, which depends on this unit.",
+    "public_api": [
+      "looks_binary",
+      "bytes_for_hash",
+      "sha256_raw",
+      "sha256_normalised",
+      "classify_pair"
+    ],
+    "sha256": "e00e9c1c7de728a7d9c5b2759b1977d66d599f05324f59674d6eb958e011862f"
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0035/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "entry_id": "IMP-0035"
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "changed class=DIVERGED norm_differ=True",
+      "description": "A one-character content change must still differ after normalisation, including when the changed side is CRLF.",
+      "fired_on_bad_state": true,
+      "good_state_output": "EOL-only class=IDENTICAL-MODULO-EOL",
+      "id": "IMP0035-C1-one-character-change",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "naive=f35a4ba4bd12a5f9",
+      "description": "Naive CRLF rewrite must change the PNG; the primitive must not. A probe silent in both states measures nothing. ; original-kind: both-states",
+      "fired_on_bad_state": true,
+      "good_state_output": "policy=2e9b06dc65a4dec8",
+      "id": "IMP0035-C2-png-naive-rewrite",
+      "kind": "other",
+      "silent_on_good_state": true
+    }
+  ],
+  "question_or_target": "Implement the comparison primitive used by every drift and integrity check: hash content after normalising line endings, and report EOL-only differences as a distinct class rather than as content drift.",
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "IMP-0035-probe2-eol-arithmetic",
+    "verdict": "PASS",
+    "notes": "finding=bytes_for_hash: if looks_binary(data): return data; else _lf_normalise. PNG both-states control passed.; requirement=Reviewer must confirm binary detection precedes normalisation, or normalisation corrupts binary comparisons."
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0035",
+  "signal_1_raw_vs_normalised": {
+    "class": "IDENTICAL-MODULO-EOL",
+    "cr_only_class": "IDENTICAL-MODULO-EOL",
+    "crlf_bytes": 20,
+    "lf_bytes": 17,
+    "mixed_class": "IDENTICAL-MODULO-EOL",
+    "normalised_match": true,
+    "normalised_sha256": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996",
+    "raw_differ": true,
+    "raw_sha256_crlf": "c8dba68945249de9b4faed72b89e041e3df77ffff885122599e6c2f7c65a68b2",
+    "raw_sha256_lf": "4fdbc441ea7b546100e086ac1e4fc5ae6749b7314311c99db05be450eca12996"
+  },
+  "signal_2_arithmetic_identity": {
+    "crlf_pairs": 3,
+    "delta": 3,
+    "identity_holds": true,
+    "method": "len and count; no sha256",
+    "newline_count": 3
+  },
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0035; tools/command-center/validate.py:217-229 (LF-normalise before hash); catalog input rules/common/windows-shell.md#8b (not present as a live file on this worktree)",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "test_eol_normalised_hash",
+      "command": "python3 -B tools/plugin/tests/test_eol_normalised_hash.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:55:38Z",
+    "started_at": "2026-08-25T00:55:38Z"
+  },
+  "title": "EOL-normalised content hashing to eliminate phantom drift",
+  "unit_id": "IMP-0035",
+  "id": "IMP-0035",
+  "residual_unknowns": [],
+  "extensions": {
+    "timestamps_extra": {
+      "rerun_at": "2026-10-24T00:00:00Z"
+    }
+  }
+}

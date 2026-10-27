@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0067",
+  "state": "SUCCESS",
+  "title": "Environment-variable scope: the value a child process SEES, not the value that was written",
+  "question": "Measured on this estate: `setx` writes the persistent store but misses the already-running session, so a tool reads the OLD value while the writer believes it succeeded - and the same class re-appeared as a config key written at the wrong SCOPE (root instead of per-project) that was inert while looking correct. Target: every test that depends on an environment variable or a scoped config key asserts the value OBSERVED BY THE CHILD PROCESS that consumes it, never the value the setter wrote. Which scope does each consumer actually read? (Shell-script line endings are owned by TST-0192 in slice TST-2.)",
+  "sentinel": "SUCCESS:TST-0067",
+  "completion_sentinel": "SUCCESS:TST-0067",
+  "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0067 question_or_target",
+  "min_bytes_threshold": 2048,
+  "produced_at": "2026-08-25T01:00:31Z",
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:31Z",
+    "ended_at": "2026-08-25T01:00:31Z"
+  },
+  "platform": {
+    "system": "Linux",
+    "release": "6.8.0-136-generic",
+    "python": "3.12.3",
+    "setx_present": false,
+    "pwsh_present": false,
+    "powershell_present": false,
+    "bash_present": true
+  },
+  "setx_analog": {
+    "windows_setx_invoked": false,
+    "reason": "This worktree is Linux; `setx` and PowerShell 7 are absent. The measured analog is a persistent JSON store write that does not mutate the already-running process environment.",
+    "class": "persistent-write-misses-already-running-session"
+  },
+  "which_scope_each_consumer_reads": [
+    {
+      "name": "env-child",
+      "reads": "process environment at spawn (os.environ and /proc/pid/environ)",
+      "does_not_read": "persistent store file; root settings.json"
+    },
+    {
+      "name": "project-settings-child",
+      "reads": "TST0067_SCOPE_FILE (project/settings.json)",
+      "does_not_read": "root/settings.json unless that path is handed over"
+    },
+    {
+      "name": "setter",
+      "reads": "the file it just wrote",
+      "does_not_read": "the consumer process; agreement with itself is not evidence"
+    }
+  ],
+  "consumer_observation_pairs": {
+    "persistent_miss": {
+      "variable": "TST0067_CONSUMER_VAR",
+      "value_written": "session-new-value",
+      "setter_self_read": "session-new-value",
+      "parent_os_environ": null,
+      "consumer_userspace": null,
+      "consumer_kernel": null,
+      "consumer_pid": 48560,
+      "same_run": true
+    },
+    "session_hit": {
+      "variable": "TST0067_CONSUMER_VAR",
+      "value_written": "session-new-value",
+      "consumer_userspace": "session-new-value",
+      "consumer_kernel": "session-new-value",
+      "consumer_pid": 48571,
+      "parent_os_environ_unchanged": true,
+      "same_run": true
+    },
+    "wrong_scope_inert": {
+      "key": "planted.mcp.enabled",
+      "value_written_at_root": "root-scope-write-inert",
+      "setter_self_read_root": "root-scope-write-inert",
+      "consumer_scope_file_parent": "project",
+      "consumer_scope_value": "session-old-value",
+      "consumer_pid": 48586,
+      "same_run": true
+    },
+    "correct_scope_live": {
+      "key": "planted.mcp.enabled",
+      "value_written_at_project": "project-scope-write-live",
+      "setter_self_read_project": "project-scope-write-live",
+      "consumer_scope_value": "project-scope-write-live",
+      "consumer_pid": 48587,
+      "same_run": true
+    }
+  },
+  "constants": {
+    "ENV_KEY": "TST0067_CONSUMER_VAR",
+    "CONFIG_KEY": "planted.mcp.enabled",
+    "OLD": "session-old-value",
+    "NEW": "session-new-value",
+    "ROOT_WRITE": "root-scope-write-inert",
+    "PROJECT_WRITE": "project-scope-write-live"
+  },
+  "evidence": [
+    {
+      "claim": "A persistent-store write of NEW is visible to the setter self-read and invisible to a child spawned from the same session. Two consumer signals (os.environ and /proc/pid/environ) agree on unset.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:measure_persistent_miss_and_session_hit",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "child-process-json",
+          "command": "observe_child userspace os.environ",
+          "raw_output": "{\"consumer_userspace\": null, \"setter_self_read\": \"session-new-value\", \"written\": \"session-new-value\"}"
+        },
+        {
+          "role": "verifier",
+          "method": "procfs",
+          "command": "read /proc/<pid>/environ while child alive",
+          "raw_output": "{\"consumer_kernel\": null, \"signals_agree\": true}"
+        }
+      ]
+    },
+    {
+      "claim": "When NEW is placed in the child environment at spawn, the child process observes NEW on both signals in that same session. The parent process environment is not mutated.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:session_hit",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "child-process-json",
+          "command": "observe_child with env overlay",
+          "raw_output": "{\"consumer_userspace\": \"session-new-value\", \"written\": \"session-new-value\"}"
+        },
+        {
+          "role": "verifier",
+          "method": "procfs",
+          "command": "read /proc/<pid>/environ while child alive",
+          "raw_output": "{\"consumer_kernel\": \"session-new-value\", \"signals_agree\": true}"
+        }
+      ]
+    },
+    {
+      "claim": "A config key written at root scope is inert for a consumer that opens project/settings.json. The same key written at project scope is observed. Setter self-read of the root file would false-green the write.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:measure_wrong_scope_inert",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "child-process-json",
+          "command": "observe_child TST0067_SCOPE_FILE=project/settings.json",
+          "raw_output": "{\"after_project\": \"project-scope-write-live\", \"after_root\": \"session-old-value\"}"
+        },
+        {
+          "role": "verifier",
+          "method": "detector-control",
+          "command": "measure_detector_control",
+          "raw_output": "{\"persistent_setter_false_green\": true, \"scope_setter_false_green\": true}"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_child_process_observes_the_new_value_in_the_same_session",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0067/probe1_child_session.py",
+      "result": "PASS",
+      "requirement": "child process observes NEW after session-visible injection; both os.environ and /proc environ agree"
+    },
+    {
+      "id": "test_a_write_at_the_wrong_scope_is_detected_as_inert",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0067/probe2_wrong_scope_detector.py",
+      "result": "PASS",
+      "requirement": "root-scope write does not change the project consumer; the inert write is detected by consumer observation"
+    },
+    {
+      "id": "test_probe_reads_from_the_consumer_not_from_the_setter",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0067/probe2_wrong_scope_detector.py",
+      "result": "PASS",
+      "requirement": "detector control: setter-self-agreement would pass the inert writes; consumer observation does not"
+    }
+  ],
+  "tests_required_record": [
+    "test_child_process_observes_the_new_value_in_the_same_session",
+    "test_a_write_at_the_wrong_scope_is_detected_as_inert",
+    "test_probe_reads_from_the_consumer_not_from_the_setter (detector control)"
+  ],
+  "evidence_requirement": "for each variable and scoped key, the value read back FROM THE CONSUMER PROCESS alongside the value written, in the same run; agreement of the writer with itself is not evidence",
+  "negative_controls": [
+    {
+      "id": "setter-self-agreement-false-green-persistent",
+      "kind": "known-broken-fixture",
+      "description": "Setter self-read of the persistent store equals NEW while the session child still sees unset.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "setter-self-agreement-false-green-wrong-scope",
+      "kind": "known-broken-fixture",
+      "description": "Setter self-read of root settings equals the root write while the project consumer still sees OLD.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0067-rederive-from-proc-environ-and-scope-file",
+    "independent": true,
+    "fresh_context": true,
+    "starts_from": "live child os.environ JSON plus /proc/<pid>/environ, not the setter persistent-store or root-settings self-read",
+    "verdict": "PASS",
+    "derived": {
+      "session_child_saw_new": true,
+      "persistent_child_missed": true,
+      "setter_self_read_is_new": true,
+      "root_write_inert": true,
+      "project_write_live": true,
+      "setter_false_green_persistent": true,
+      "setter_false_green_scope": true
+    }
+  },
+  "reviewer_verdict": "PASS",
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot; this delivery did not strike"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0067/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/TST-0067/probe1_child_session.py",
+      "artifact_path": "command-center/receipts/TST-0067.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/TST-0067/probe2_wrong_scope_detector.py",
+      "artifact_path": "command-center/receipts/TST-0067.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Windows `setx` itself and a PowerShell 7 vs Git Bash re-run were not executed; those binaries are absent here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run probe1 and probe2 on a Windows host with setx and pwsh 7, capturing the same writer/consumer pairs."
+    },
+    {
+      "claim": "Shell-script line endings are owned by TST-0192 and were not measured in this unit.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "TST-0192 on this worktree."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/TST-0067/consumer.py",
+      "bytes": 2013,
+      "sha256": "caf78423d79f8cebd2f661e347e510e842f44aaa6c208e0291890145e0a19d4c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0067/harness.py",
+      "bytes": 14608,
+      "sha256": "352be74d58cee9913ef79aec03833ec3f8a407e527de58587e9a1bff66ed6df0",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0067/scenario.py",
+      "bytes": 1950,
+      "sha256": "515d01343a18e9e511a1bc8add8f9e4a74faa197e71dccfd51bd347ca267c32c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0067/probe1_child_session.py",
+      "bytes": 2337,
+      "sha256": "840c36e7596bdac542194b98a1c8c04dcc746f40c442dd95be156e6e8aad43f8",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0067/probe2_wrong_scope_detector.py",
+      "bytes": 3406,
+      "sha256": "7fa1dc3b16e9764943f8a39c7557e4ed83ca58ca2a848d6cc3f2554e24d6742b",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "report": {
+    "kind": "test-receipt",
+    "control_ids": [
+      "setter-self-agreement-false-green-persistent",
+      "setter-self-agreement-false-green-wrong-scope"
+    ],
+    "observations": [
+      {
+        "name": "session_child_os_environ",
+        "measured": "session-new-value",
+        "method": "child-process-json",
+        "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:observe_child"
+      },
+      {
+        "name": "session_child_proc_environ",
+        "measured": "session-new-value",
+        "method": "procfs",
+        "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:read_proc_environ"
+      },
+      {
+        "name": "persistent_store_misses_session_child",
+        "measured": true,
+        "method": "child-process-json",
+        "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:measure_persistent_miss_and_session_hit"
+      },
+      {
+        "name": "root_scope_write_inert_for_project_consumer",
+        "measured": true,
+        "method": "child-process-json",
+        "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:measure_wrong_scope_inert"
+      },
+      {
+        "name": "project_scope_write_observed",
+        "measured": "project-scope-write-live",
+        "method": "child-process-json",
+        "anchor": "command-center/p2-wave/probes/TST-0067/harness.py:measure_wrong_scope_inert"
+      }
+    ],
+    "which_scope_each_consumer_reads": [
+      {
+        "name": "env-child",
+        "reads": "process environment at spawn (os.environ and /proc/pid/environ)",
+        "does_not_read": "persistent store file; root settings.json"
+      },
+      {
+        "name": "project-settings-child",
+        "reads": "TST0067_SCOPE_FILE (project/settings.json)",
+        "does_not_read": "root/settings.json unless that path is handed over"
+      },
+      {
+        "name": "setter",
+        "reads": "the file it just wrote",
+        "does_not_read": "the consumer process; agreement with itself is not evidence"
+      }
+    ],
+    "consumer_observation_pairs": {
+      "persistent_miss": {
+        "variable": "TST0067_CONSUMER_VAR",
+        "value_written": "session-new-value",
+        "setter_self_read": "session-new-value",
+        "parent_os_environ": null,
+        "consumer_userspace": null,
+        "consumer_kernel": null,
+        "consumer_pid": 48560,
+        "same_run": true
+      },
+      "session_hit": {
+        "variable": "TST0067_CONSUMER_VAR",
+        "value_written": "session-new-value",
+        "consumer_userspace": "session-new-value",
+        "consumer_kernel": "session-new-value",
+        "consumer_pid": 48571,
+        "parent_os_environ_unchanged": true,
+        "same_run": true
+      },
+      "wrong_scope_inert": {
+        "key": "planted.mcp.enabled",
+        "value_written_at_root": "root-scope-write-inert",
+        "setter_self_read_root": "root-scope-write-inert",
+        "consumer_scope_file_parent": "project",
+        "consumer_scope_value": "session-old-value",
+        "consumer_pid": 48586,
+        "same_run": true
+      },
+      "correct_scope_live": {
+        "key": "planted.mcp.enabled",
+        "value_written_at_project": "project-scope-write-live",
+        "setter_self_read_project": "project-scope-write-live",
+        "consumer_scope_value": "project-scope-write-live",
+        "consumer_pid": 48587,
+        "same_run": true
+      }
+    }
+  },
+  "schema_note": "Catalog output_schema is command-center/schema/test-receipt.schema.json (shim present on this worktree). G-1 delivery is parse + sentinel + live named probes + per-unit manifest sha, not jsonschema."
+}

@@ -1,0 +1,413 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1037,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/session-registry.schema.json",
+      "role": "supporting",
+      "sha256": "785df9491fe0a1d59345417bc9995e5f785ca751637689730b3c24cfba123cef"
+    },
+    {
+      "bytes": 19401,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0407/discover.py",
+      "role": "supporting",
+      "sha256": "82b5bd8e572efa7375b41df60337509e72313dbc148b638a7ea7158a5806dd31"
+    },
+    {
+      "bytes": 5950,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0407/scenario.py",
+      "role": "supporting",
+      "sha256": "b01ff88e19010a0a8a339b6fcfddad364d37e8a8b8acc26cdffdf69c8ee9c706"
+    },
+    {
+      "bytes": 6313,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0407/probe1_self_match.py",
+      "role": "supporting",
+      "sha256": "0e073001c74845ece3e5e7e652cd095ce86712b7099af0774c34e07d2b19f930"
+    },
+    {
+      "bytes": 6345,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+      "role": "supporting",
+      "sha256": "0b87f8da17ec780ab8e0acc18fd0f2c0689d2e5271a541d53344691a166453c6"
+    },
+    {
+      "bytes": 27298,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0407/emit_registry.py",
+      "role": "supporting",
+      "sha256": "65a44fb15e9d8c617ab4d06c6ff6d7b465c9bb421459338357a4e07d9218ae2f"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0407.json",
+      "consumer": "jsonschema Draft202012Validator disk-ref store",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "Draft202012Validator(command-center/schema/session-registry.schema.json) with disk $ref store",
+        "exit_code": 0,
+        "fingerprint": "d0d6200cc5b40f627ea321342dacb6a2",
+        "method": "schema-validate",
+        "raw_output": "iter_errors empty; garbage objects rejected",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0407/discover.py:self_match_reasons",
+      "claim": "A process whose cmdline matches the search needle and whose CreationDate equals probe runtime is excluded, and that exclusion is recorded. Both states: exclude_self=True drops the row; exclude_self=False keeps it. Demonstrated on the fixture snapshot and on a live /proc decoy.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe1_self_match.py",
+          "exit_code": 0,
+          "fingerprint": "c67e57d731085b16075b63179fca691c",
+          "method": "process-table",
+          "raw_output": "{\"creation_date_tell\": true, \"excluded_on\": true, \"exclusion_reasons\": [{\"cmdline\": \"python3 /tmp/discover-probe.py --search claude --dump\", \"pid\": 9999, \"reasons\": [\"creation-date-equals-probe-runtime\"], \"start_time\": \"2026-08-25T01:00:31Z\"}], \"present_off\": true, \"process_count_off\": 4, \"process_count_on\": 3, \"self_pid\": 9999, \"surface\": \"fixture-snapshot\"}\n{\"decoy_pid\": 87110, \"excluded_on\": true, \"exclusion_reasons\": [{\"cmdline\": \"/usr/bin/python3 -B /tmp/imp0407-decoy-md7242ct/decoy.py --search claude self-match-decoy\", \"pid\": 87110, \"reasons\": [\"creation-date-equals-probe-runtime\"], \"start_time\": \"2026-08-25T01:00:31Z\"}], \"present_off\": true, \"probe_pid\": 87107, \"surface\": \"live-/proc\"}\nfixture_self_excluded=True live_decoy_excluded=True both_states=True\nSUCCESS:IMP-0407-probe1 self-match exclusion demonstrated",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/IMP-0407/discover.py:self_match_reasons",
+          "exit_code": 0,
+          "fingerprint": "5d94f9869f608ea7e4f7292914f45a2e",
+          "method": "file-read",
+          "raw_output": "creation-date-equals-probe-runtime in exclusions=True count=1",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+      "claim": "A Claude session started 60s earlier is present in the registry; an absent id is not. Independent glob walkers recover the same Claude and Codex ids. On-disk, process-table, and registry counts are reported with every disagreement named (on-disk claude session 22222222-2222-4222-8222-222222222222 cwd=/work/claude-stale has no matching process after self-exclusion; process pid=4300 vendor=claude cmdline='claude --orphan-no-disk' has no on-disk session).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+          "exit_code": 0,
+          "fingerprint": "b5f33c02ce4608a86718450f91dbabdc",
+          "method": "command",
+          "raw_output": "{\"absent_id_found\": false, \"disagreement_kinds\": [\"ON_DISK_WITHOUT_PROCESS\", \"PROCESS_WITHOUT_ON_DISK\"], \"disagreements_named\": [\"on-disk claude session 22222222-2222-4222-8222-222222222222 cwd=/work/claude-stale has no matching process after self-exclusion\", \"process pid=4300 vendor=claude cmdline='claude --orphan-no-disk' has no on-disk session\"], \"independent_claude_ids\": [\"11111111-1111-4111-8111-111111111111\", \"22222222-2222-4222-8222-222222222222\"], \"independent_codex_ids\": [\"sess-codex-live\"], \"known_present_claude\": \"11111111-1111-4111-8111-111111111111\", \"known_present_codex\": \"sess-codex-live\", \"on_disk_count\": 3, \"process_table_count\": 3, \"registry_count\": 3, \"started_seconds_before_probe\": 60.412, \"subagent_excluded\": true}\nSUCCESS:IMP-0407-probe2 known-present and three-column reconciliation",
+          "role": "source"
+        },
+        {
+          "command": "independent Path.glob on projects/*/*.jsonl and threads/*.json (not enumerate_claude)",
+          "exit_code": 0,
+          "fingerprint": "30ab3693086a62d2c0abfd19b983ae1f",
+          "method": "static-analysis",
+          "raw_output": "on_disk=3 process_table=3 registry=3 kinds=['ON_DISK_WITHOUT_PROCESS', 'PROCESS_WITHOUT_ON_DISK']",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "status": "DELIVERED"
+  },
+  "manifest_registration": {
+    "entry_id": "IMP-0407",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0407/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "self pid present with exclude_self=False",
+      "description": "Snapshot pid 9999 and a live /proc decoy whose cmdline contains the search needle and whose start time equals probe runtime must appear when exclude_self=False and must be absent when exclude_self=True.",
+      "fired_on_bad_state": true,
+      "good_state_output": "self pid excluded with creation-date tell",
+      "id": "NC-SELF-MATCH",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "absent id not in registry",
+      "description": "Session id 00000000-0000-4000-8000-000000000000 must not appear; the 60s-old known-present Claude id must.",
+      "fired_on_bad_state": true,
+      "good_state_output": "known-present 11111111-1111-4111-8111-111111111111 in registry",
+      "id": "NC-ABSENT-ID",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "iter_errors nonempty on garbage objects",
+      "description": "Disk-resolved session-registry schema must reject {}, a SUCCESS stub, and an unrelated blob, and accept this receipt.",
+      "fired_on_bad_state": true,
+      "good_state_output": "iter_errors empty on this receipt",
+      "id": "NC-SCHEMA-GARBAGE",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "grok-4.6",
+    "role": "systems-implementer",
+    "vendor": "xai"
+  },
+  "report": {
+    "answer": "Fixture estate: Claude on-disk=2, Codex on-disk=1, process-table(after self-exclusion)=3, registry=3. Disagreements named: on-disk claude session 22222222-2222-4222-8222-222222222222 cwd=/work/claude-stale has no matching process after self-exclusion; process pid=4300 vendor=claude cmdline='claude --orphan-no-disk' has no on-disk session. Live host: claude_home_exists=False codex_home_exists=False claude_on_disk=0 codex_on_disk=0. SENTINEL:IMP-0407:SESSION-REGISTRY-RECONCILED",
+    "control_ids": [
+      "NC-SELF-MATCH",
+      "NC-ABSENT-ID",
+      "NC-SCHEMA-GARBAGE"
+    ],
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "this host had a live ~/.claude or $CODEX_HOME estate",
+      "Cursor agent processes are Claude or Codex sessions"
+    ],
+    "estate": {
+      "known_present": {
+        "claude": {
+          "cwd": "/work/claude-live",
+          "session_id": "11111111-1111-4111-8111-111111111111",
+          "start_time": "2026-08-25T00:59:31Z",
+          "started_seconds_before_probe": 60
+        },
+        "codex": {
+          "cwd": "/work/codex-live",
+          "session_id": "sess-codex-live",
+          "start_time": "2026-08-25T00:59:31Z",
+          "started_seconds_before_probe": 60
+        }
+      },
+      "orphan_pid": 4300,
+      "path": "command-center/p2-wave/probes/IMP-0407/fixtures/estate",
+      "self_pid": 9999,
+      "stale_claude": "22222222-2222-4222-8222-222222222222"
+    },
+    "kind": "session-registry",
+    "known_present": {
+      "also_present": {
+        "cwd": "/work/codex-live",
+        "session_id": "sess-codex-live",
+        "start_time": "2026-08-25T00:59:31Z",
+        "started_seconds_before_probe": 60
+      },
+      "found": true,
+      "session_id": "11111111-1111-4111-8111-111111111111",
+      "started_seconds_before_probe": 60,
+      "vendor": "claude"
+    },
+    "live_host": {
+      "claude_home": "/root/.claude",
+      "claude_home_exists": false,
+      "claude_on_disk": 0,
+      "codex_home": "/root/.codex",
+      "codex_home_exists": false,
+      "codex_on_disk": 0,
+      "declared_blind_spot": "This Linux worktree has no ~/.claude or ~/.codex. Cursor agent processes are not Claude/Codex vendor sessions and are not counted as such. Fixture estate is the measured proof surface.",
+      "disagreements": [],
+      "exclusions": [],
+      "process_table_count": 0,
+      "registry_count": 0
+    },
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe1_self_match.py",
+        "id": "probe1",
+        "role": "self-match-exclusion"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+        "id": "probe2",
+        "role": "known-present-and-reconciliation"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/discover.py:enumerate_claude",
+        "measured": 2,
+        "method": "file-read",
+        "name": "claude_on_disk"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/discover.py:enumerate_codex",
+        "measured": 1,
+        "method": "file-read",
+        "name": "codex_on_disk"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/fixtures/estate/process_snapshot.json",
+        "measured": 3,
+        "method": "process-table",
+        "name": "process_table_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/discover.py:reconcile",
+        "measured": 3,
+        "method": "command",
+        "name": "registry_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/probe1_self_match.py",
+        "measured": true,
+        "method": "process-table",
+        "name": "self_match_excluded"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+        "measured": true,
+        "method": "test-run",
+        "name": "known_present_found"
+      }
+    ],
+    "question": "Implement session discovery that enumerates every live agent session from on-disk state (Claude projects transcripts, Codex thread state) into one session registry with vendor, session id, cwd and start time. Exact question: how many sessions does each vendor's own state directory report, and do the two enumerations disagree with the process table?",
+    "reconciliation": {
+      "by_vendor": {
+        "claude": {
+          "on_disk": 2,
+          "process_table": 2,
+          "registry": 2
+        },
+        "codex": {
+          "on_disk": 1,
+          "process_table": 1,
+          "registry": 1
+        }
+      },
+      "disagreements": [
+        {
+          "id": "disk-without-process:claude:22222222-2222-4222-8222-222222222222",
+          "kind": "ON_DISK_WITHOUT_PROCESS",
+          "named": "on-disk claude session 22222222-2222-4222-8222-222222222222 cwd=/work/claude-stale has no matching process after self-exclusion",
+          "session_id": "22222222-2222-4222-8222-222222222222",
+          "vendor": "claude"
+        },
+        {
+          "id": "process-without-disk:claude:4300",
+          "kind": "PROCESS_WITHOUT_ON_DISK",
+          "named": "process pid=4300 vendor=claude cmdline='claude --orphan-no-disk' has no on-disk session",
+          "pid": 4300,
+          "vendor": "claude"
+        }
+      ],
+      "on_disk_count": 3,
+      "process_table_count": 3,
+      "registry_count": 3
+    },
+    "self_match_exclusion": {
+      "creation_date_tell": true,
+      "demonstrated": true,
+      "excluded": [
+        {
+          "cmdline": "python3 /tmp/discover-probe.py --search claude --dump",
+          "pid": 9999,
+          "reasons": [
+            "creation-date-equals-probe-runtime"
+          ],
+          "start_time": "2026-08-25T01:00:31Z"
+        }
+      ],
+      "probe": {
+        "pid": 87105,
+        "ppid": 87104,
+        "started_at": "2026-08-25T01:00:31Z"
+      }
+    },
+    "sessions": [
+      {
+        "artifact_dir": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/claude_home/projects/-work-claude-live",
+        "cwd": "/work/claude-live",
+        "in_process_table": true,
+        "on_disk": true,
+        "pid": 4242,
+        "session_id": "11111111-1111-4111-8111-111111111111",
+        "source": "both",
+        "start_time": "2026-08-25T00:59:31Z",
+        "transcript_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/claude_home/projects/-work-claude-live/11111111-1111-4111-8111-111111111111.jsonl",
+        "vendor": "claude"
+      },
+      {
+        "artifact_dir": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/claude_home/projects/-work-claude-stale",
+        "cwd": "/work/claude-stale",
+        "in_process_table": false,
+        "on_disk": true,
+        "pid": null,
+        "session_id": "22222222-2222-4222-8222-222222222222",
+        "source": "on-disk",
+        "start_time": "2026-08-25T00:00:31Z",
+        "transcript_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/claude_home/projects/-work-claude-stale/22222222-2222-4222-8222-222222222222.jsonl",
+        "vendor": "claude"
+      },
+      {
+        "artifact_dir": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/codex_home/sessions/2026/08/25",
+        "cwd": "/work/codex-live",
+        "in_process_table": true,
+        "on_disk": true,
+        "pid": 4243,
+        "session_id": "sess-codex-live",
+        "source": "both",
+        "start_time": "2026-08-25T00:59:31Z",
+        "transcript_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0407/fixtures/estate/codex_home/sessions/2026/08/25/rollout-2026-08-25T00-59-31-aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee.jsonl",
+        "vendor": "codex"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live ~/.claude and $CODEX_HOME on this Linux worktree are absent (claude_home_exists=False, codex_home_exists=False). Cursor agent processes are not counted as Claude or Codex sessions. The fixture estate is the measured proof surface.",
+      "settling_experiment": "Point discover() at a host that has a live Claude projects tree and a CODEX_HOME sessions tree, and re-run the three-column reconciliation against that estate.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "max 2 attempts, backoff 30s/120s; two-strikes pivot to a single-source registry with a declared blind spot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe1 re-enumerates the process table (fixture snapshot plus live /proc decoy) with exclude_self on and off. Probe2 re-enumerates on-disk state with an independent glob walker. Catalog scoring by a second human reviewer is independent of G-1 probe-green.",
+    "reviewed_at": "2026-08-25T01:00:31Z",
+    "reviewer_id": "IMP-0407-probe2-independent-disk-walk",
+    "vendor": "anthropic",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0407:SESSION-REGISTRY-RECONCILED",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0407",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe1_self_match.py",
+      "id": "probe1-self-match",
+      "name": "self-match exclusion CreationDate-equals-probe-runtime",
+      "output_tail": "SUCCESS:IMP-0407-probe1 self-match exclusion demonstrated",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0407/probe2_known_present.py",
+      "id": "probe2-known-present",
+      "name": "known-present and three-column reconciliation",
+      "output_tail": "SUCCESS:IMP-0407-probe2 known-present and three-column reconciliation",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:00:31Z",
+    "started_at": "2026-08-25T01:00:31Z"
+  },
+  "unit_id": "IMP-0407"
+}

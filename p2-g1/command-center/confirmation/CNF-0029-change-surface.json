@@ -1,0 +1,575 @@
+{
+  "artifacts": [
+    {
+      "bytes": 18287,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/confirmation/CNF-0029-change-surface.json",
+      "role": "primary",
+      "sha256": "6335c6ce48d3c61f400aae9d547558c9c5387affcc55226c493d64219cbd429e"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0029-change-surface.json",
+      "consumer": "command-center/p2-wave/probes/CNF-0029/probe1_three_dot_two_dot.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0029/probe1_three_dot_two_dot.py",
+        "exit_code": 0,
+        "fingerprint": "consumer:probe1",
+        "method": "test-run",
+        "raw_output": "consumer reads artifact branches and live-recomputes surfaces",
+        "role": "verifier"
+      },
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/confirmation/CNF-0029-change-surface.json",
+      "consumer": "command-center/p2-wave/probes/CNF-0029/probe2_would_revert.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0029/probe2_would_revert.py",
+        "exit_code": 0,
+        "fingerprint": "consumer:probe2",
+        "method": "test-run",
+        "raw_output": "consumer re-derives would-revert then reads artifact conclusion",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0029/change_surface.py:surface_from_spec",
+      "claim": "Three-dot and two-dot surfaces are both recorded per branch; the freshly-branched control is empty; two-dot deletions exceed three-dot on the stale fixture.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "git diff --numstat main...feature/stale ; git diff --numstat main..feature/stale",
+          "exit_code": 0,
+          "fingerprint": "git:three-dot-two-dot-numstat",
+          "method": "command",
+          "raw_output": "{\"fresh_three_empty\": true, \"fresh_two_empty\": true, \"three_dot\": {\"added\": [\"feature-new.txt\"], \"changed\": [\"author-intent.txt\"], \"deletions\": 5, \"empty\": false, \"file_count\": 3, \"insertions\": 2, \"removed\": [\"obsolete.txt\"], \"spec\": \"main...feature/stale\"}, \"two_dot\": {\"added\": [\"feature-new.txt\"], \"changed\": [\"author-intent.txt\"], \"deletions\": 133, \"empty\": false, \"file_count\": 19, \"insertions\": 2, \"removed\": [\"obsolete.txt\", \"post-fork/gained-00.txt\", \"post-fork/gained-01.txt\", \"post-fork/gained-02.txt\", \"post-fork/gained-03.txt\", \"post-fork/gained-04.txt\", \"post-fork/gained-05.txt\", \"post-fork/gained-06.txt\", \"post-fork/gained-07.txt\", \"post-fork/gained-08.txt\", \"post-fork/gained-09.txt\", \"post-fork/gained-10.txt\", \"post-fork/gained-11.txt\", \"post-fork/gained-12.txt\", \"post-fork/gained-13.txt\", \"post-fork/gained-14.txt\", \"post-fork/gained-15.txt\"], \"spec\": \"main..feature/stale\"}}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0029/probe1_three_dot_two_dot.py",
+          "exit_code": 0,
+          "fingerprint": "probe1:three-dot-two-dot",
+          "method": "schema-validate",
+          "raw_output": "stale three-dot files=3 deletions=5 two-dot files=19 deletions=133 control empty=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0029/change_surface.py:would_revert_paths",
+      "claim": "Any deletion of a path the integration branch gained after the merge-base is flagged as would-revert and listed by path; the author-described deletion obsolete.txt is not in that list.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "git ls-tree -r --name-only <integration> minus merge-base minus branch",
+          "exit_code": 0,
+          "fingerprint": "git:ls-tree-would-revert",
+          "method": "command",
+          "raw_output": "{\"author_deletion_excluded\": \"obsolete.txt\", \"merge_base_sha\": \"87609290b597396e73f555fba5c1c7a71e1a023a\", \"would_revert\": [\"post-fork/gained-00.txt\", \"post-fork/gained-01.txt\", \"post-fork/gained-02.txt\", \"post-fork/gained-03.txt\", \"post-fork/gained-04.txt\", \"post-fork/gained-05.txt\", \"post-fork/gained-06.txt\", \"post-fork/gained-07.txt\", \"post-fork/gained-08.txt\", \"post-fork/gained-09.txt\", \"post-fork/gained-10.txt\", \"post-fork/gained-11.txt\", \"post-fork/gained-12.txt\", \"post-fork/gained-13.txt\", \"post-fork/gained-14.txt\", \"post-fork/gained-15.txt\"]}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0029/probe2_would_revert.py",
+          "exit_code": 0,
+          "fingerprint": "probe2:would-revert-ls-tree",
+          "method": "static-analysis",
+          "raw_output": "would-revert=16 merge-base=87609290b597396e73f555fba5c1c7a71e1a023a author-deletion-excluded=obsolete.txt",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0029",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0029/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "feature/stale three-dot files=3 two-dot files=19",
+      "description": "A freshly branched HEAD must show an empty three-dot and two-dot surface; the stale fixture must not.",
+      "fired_on_bad_state": true,
+      "good_state_output": "feature/fresh three-dot files=0 two-dot files=0",
+      "id": "fresh-HEAD-empty-surface",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "post-fork/gained-00.txt post-fork/gained-01.txt post-fork/gained-02.txt post-fork/gained-03.txt post-fork/gained-04.txt post-fork/gained-05.txt post-fork/gained-06.txt post-fork/gained-07.txt post-fork/gained-08.txt post-fork/gained-09.txt post-fork/gained-10.txt post-fork/gained-11.txt post-fork/gained-12.txt post-fork/gained-13.txt post-fork/gained-14.txt post-fork/gained-15.txt",
+      "description": "obsolete.txt is an author-described deletion on the feature branch; the would-revert detector must not classify it as a post-fork revert.",
+      "fired_on_bad_state": true,
+      "good_state_output": "obsolete.txt not in would-revert",
+      "id": "author-delete-not-would-revert",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "opus",
+    "role": "change-surface-auditor",
+    "vendor": "anthropic"
+  },
+  "report": {
+    "answer": "On the three-dot commit-to-commit surface the stale branch proposes 3 files and 5 deletions, matching the author description (edit author-intent.txt, add feature-new.txt, delete obsolete.txt). Two-dot reports 19 files and 133 deletions because it treats 16 paths the integration branch gained after merge-base 87609290b597396e73f555fba5c1c7a71e1a023a as deletions (would-revert). A dirty working tree adds further two-dot paths not in either commit range. A freshly branched HEAD returns an empty three-dot and empty two-dot surface, so the comparison is not inventing changes. SUCCESS:CNF-0029 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the three-dot and two-dot surfaces are recorded per branch and the freshly-branched control returned empty. Any other terminal state is FAILED:CNF-0029 <classification> with the diagnostic tail attached.",
+    "branches": [
+      {
+        "author_description": "Update author-intent.txt, add feature-new.txt, and delete obsolete.txt. Do not touch files the integration branch added after this branch forked.",
+        "branch_sha": "85f23ed73f08decef1a577aed292f42d75393a45",
+        "deletion_count_three_dot": 5,
+        "deletion_count_two_dot": 133,
+        "integration_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+        "merge_base_sha": "87609290b597396e73f555fba5c1c7a71e1a023a",
+        "name": "feature/stale",
+        "role": "stale-candidate",
+        "stale_branch_would_revert": true,
+        "three_dot": {
+          "added": [
+            "feature-new.txt"
+          ],
+          "changed": [
+            "author-intent.txt"
+          ],
+          "deletions": 5,
+          "empty": false,
+          "file_count": 3,
+          "insertions": 2,
+          "removed": [
+            "obsolete.txt"
+          ],
+          "spec": "main...feature/stale"
+        },
+        "two_dot": {
+          "added": [
+            "feature-new.txt"
+          ],
+          "changed": [
+            "author-intent.txt"
+          ],
+          "deletions": 133,
+          "empty": false,
+          "file_count": 19,
+          "insertions": 2,
+          "removed": [
+            "obsolete.txt",
+            "post-fork/gained-00.txt",
+            "post-fork/gained-01.txt",
+            "post-fork/gained-02.txt",
+            "post-fork/gained-03.txt",
+            "post-fork/gained-04.txt",
+            "post-fork/gained-05.txt",
+            "post-fork/gained-06.txt",
+            "post-fork/gained-07.txt",
+            "post-fork/gained-08.txt",
+            "post-fork/gained-09.txt",
+            "post-fork/gained-10.txt",
+            "post-fork/gained-11.txt",
+            "post-fork/gained-12.txt",
+            "post-fork/gained-13.txt",
+            "post-fork/gained-14.txt",
+            "post-fork/gained-15.txt"
+          ],
+          "spec": "main..feature/stale"
+        },
+        "two_dot_worktree": {
+          "added": [
+            "feature-new.txt"
+          ],
+          "changed": [
+            "author-intent.txt",
+            "keep.txt"
+          ],
+          "deletions": 133,
+          "empty": false,
+          "file_count": 20,
+          "insertions": 3,
+          "removed": [
+            "obsolete.txt",
+            "post-fork/gained-00.txt",
+            "post-fork/gained-01.txt",
+            "post-fork/gained-02.txt",
+            "post-fork/gained-03.txt",
+            "post-fork/gained-04.txt",
+            "post-fork/gained-05.txt",
+            "post-fork/gained-06.txt",
+            "post-fork/gained-07.txt",
+            "post-fork/gained-08.txt",
+            "post-fork/gained-09.txt",
+            "post-fork/gained-10.txt",
+            "post-fork/gained-11.txt",
+            "post-fork/gained-12.txt",
+            "post-fork/gained-13.txt",
+            "post-fork/gained-14.txt",
+            "post-fork/gained-15.txt"
+          ],
+          "spec": "main"
+        },
+        "worktree_noise_paths": [
+          "keep.txt"
+        ],
+        "would_revert": [
+          "post-fork/gained-00.txt",
+          "post-fork/gained-01.txt",
+          "post-fork/gained-02.txt",
+          "post-fork/gained-03.txt",
+          "post-fork/gained-04.txt",
+          "post-fork/gained-05.txt",
+          "post-fork/gained-06.txt",
+          "post-fork/gained-07.txt",
+          "post-fork/gained-08.txt",
+          "post-fork/gained-09.txt",
+          "post-fork/gained-10.txt",
+          "post-fork/gained-11.txt",
+          "post-fork/gained-12.txt",
+          "post-fork/gained-13.txt",
+          "post-fork/gained-14.txt",
+          "post-fork/gained-15.txt"
+        ],
+        "would_revert_count": 16
+      },
+      {
+        "author_description": "no commits; branched from integration HEAD",
+        "branch_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+        "control_empty": true,
+        "deletion_count_three_dot": 0,
+        "deletion_count_two_dot": 0,
+        "integration_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+        "merge_base_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+        "name": "feature/fresh",
+        "role": "freshly-branched-control",
+        "stale_branch_would_revert": false,
+        "three_dot": {
+          "added": [],
+          "changed": [],
+          "deletions": 0,
+          "empty": true,
+          "file_count": 0,
+          "insertions": 0,
+          "removed": [],
+          "spec": "main...feature/fresh"
+        },
+        "two_dot": {
+          "added": [],
+          "changed": [],
+          "deletions": 0,
+          "empty": true,
+          "file_count": 0,
+          "insertions": 0,
+          "removed": [],
+          "spec": "main..feature/fresh"
+        },
+        "would_revert": [],
+        "would_revert_count": 0
+      }
+    ],
+    "claim_under_test": "The three-dot commit-to-commit surface is the change a branch would propose. The two-dot tree compare against a stale branch silently proposes deleting paths the integration branch gained after the merge-base, and a dirty working tree makes two-dot disagree further.",
+    "cloud_ok": false,
+    "comparison": {
+      "integration_branch": "main",
+      "left": "integration branch main (fixture)",
+      "method": "three-dot commit-to-commit vs two-dot commits vs two-dot worktree",
+      "right": "candidate branches feature/stale and feature/fresh (fixture)"
+    },
+    "completion_sentinel": "SUCCESS:CNF-0029 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the three-dot and two-dot surfaces are recorded per branch and the freshly-branched control returned empty. Any other terminal state is FAILED:CNF-0029 <classification> with the diagnostic tail attached.",
+    "control": {
+      "branch": "feature/fresh",
+      "merge_base_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+      "proves_comparison_does_not_invent_changes": true,
+      "three_dot_empty": true,
+      "two_dot_empty": true
+    },
+    "control_ids": [
+      "fresh-HEAD-empty-surface",
+      "author-delete-not-would-revert",
+      "worktree-noise-on-two-dot"
+    ],
+    "delta": {
+      "added": [
+        "feature-new.txt"
+      ],
+      "changed": [
+        "author-intent.txt"
+      ],
+      "removed": [
+        "obsolete.txt"
+      ],
+      "summary": "stale three-dot files=3 deletions=5; two-dot files=19 deletions=133; would-revert=16; fresh control empty; worktree extra=['keep.txt']",
+      "three_dot_matches_author_description": true,
+      "two_dot_matches_author_description": false,
+      "unchanged_count_can_hide_flips": true
+    },
+    "historical_incident": {
+      "deletions": 316222,
+      "files": 1188,
+      "note": "Measured leftover feature branch against main. Fixture reproduces the same two-dot mass-deletion class at smaller scale; it does not re-quote those counts as this run's file_count."
+    },
+    "host_worktree": {
+      "is_git_repo": false,
+      "note": "Host tree is not a git repository on this Linux worktree; candidate branches are the isolated fixture (never staged into a shared index).",
+      "path": "/opt/p2/ast-integrate"
+    },
+    "kind": "regression-delta",
+    "observations": [
+      {
+        "anchor": "git diff --numstat main...feature/stale",
+        "measured": 3,
+        "method": "git-diff-three-dot-numstat",
+        "name": "stale-three-dot-file-count"
+      },
+      {
+        "anchor": "git diff --numstat main...feature/stale",
+        "measured": 5,
+        "method": "git-diff-three-dot-numstat",
+        "name": "stale-three-dot-deletions"
+      },
+      {
+        "anchor": "git diff --numstat main..feature/stale",
+        "measured": 19,
+        "method": "git-diff-two-dot-numstat",
+        "name": "stale-two-dot-file-count"
+      },
+      {
+        "anchor": "git diff --numstat main..feature/stale",
+        "measured": 133,
+        "method": "git-diff-two-dot-numstat",
+        "name": "stale-two-dot-deletions"
+      },
+      {
+        "anchor": "merge-base 87609290b597396e73f555fba5c1c7a71e1a023a",
+        "measured": 16,
+        "method": "ls-tree-set-difference",
+        "name": "would-revert-count"
+      },
+      {
+        "anchor": "git diff --numstat main...feature/fresh",
+        "measured": true,
+        "method": "git-diff-three-dot-numstat",
+        "name": "fresh-three-dot-empty"
+      }
+    ],
+    "output_path": "command-center/confirmation/CNF-0029-change-surface.json",
+    "output_schema": "command-center/schema/regression-delta.schema.json",
+    "question": "Does the change a branch would actually propose match the change its author describes? Compute the commit-to-commit surface with the three-dot range against the integration branch and answer: how many files and deletions does the branch propose, does it propose reverting work the base already has, and does the two-dot diff give a different answer because it folds in working-tree noise? A stale branch can silently propose mass deletion, measured once at 1188 files and 316222 deletions.",
+    "title": "Change-surface confirmation on the three-dot commit range, not the working-tree diff",
+    "windows_shell_8d": {
+      "declared_input": "rules/common/windows-shell.md section 8d",
+      "host_path_present": true,
+      "rule_applied": "Proposal surface is the three-dot commit-to-commit range against the integration branch; two-dot and working-tree diffs are recorded separately and must not be treated as the proposal."
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Host /opt/p2/ast-integrate is not a git checkout, so live origin/main...HEAD cannot be measured here; the isolated fixture reproduces the 8d class.",
+      "settling_experiment": "Re-run change_surface.measure_branch against a real leftover feature branch once this tree has .git and origin/main.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Named probe2 rebuilds the isolated fixture and re-derives would-revert from ls-tree set difference BEFORE reading this receipt's conclusion. Self-review of emit.py does not count.",
+    "reviewer_id": "CNF-0029-probe2-would-revert",
+    "vendor": "openai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0029 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both the three-dot and two-dot surfaces are recorded per branch and the freshly-branched control returned empty. Any other terminal state is FAILED:CNF-0029 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "rules/common/windows-shell.md:8d; command-center/WORK-UNIT-CATALOG.json:CNF-0029",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "git diff --numstat integration...branch AND git diff --numstat integration..branch",
+      "id": "three-dot-and-two-dot-both-recorded",
+      "name": "three-dot and two-dot surfaces both computed",
+      "result": "PASS"
+    },
+    {
+      "command": "ls-tree(integration) - ls-tree(merge-base) - ls-tree(branch)",
+      "id": "would-revert-paths-base-gained-after-merge-base",
+      "name": "deletions of paths the base gained after merge-base are listed",
+      "result": "PASS"
+    },
+    {
+      "command": "git diff --numstat main...feature/fresh AND git diff --numstat main..feature/fresh",
+      "id": "freshly-branched-HEAD-empty-surface",
+      "name": "freshly branched HEAD shows an empty surface",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:56:53Z",
+    "started_at": "2026-08-25T00:56:53Z"
+  },
+  "unit_id": "CNF-0029",
+  "branches": [
+    {
+      "author_description": "Update author-intent.txt, add feature-new.txt, and delete obsolete.txt. Do not touch files the integration branch added after this branch forked.",
+      "branch_sha": "85f23ed73f08decef1a577aed292f42d75393a45",
+      "deletion_count_three_dot": 5,
+      "deletion_count_two_dot": 133,
+      "integration_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+      "merge_base_sha": "87609290b597396e73f555fba5c1c7a71e1a023a",
+      "name": "feature/stale",
+      "role": "stale-candidate",
+      "stale_branch_would_revert": true,
+      "three_dot": {
+        "added": [
+          "feature-new.txt"
+        ],
+        "changed": [
+          "author-intent.txt"
+        ],
+        "deletions": 5,
+        "empty": false,
+        "file_count": 3,
+        "insertions": 2,
+        "removed": [
+          "obsolete.txt"
+        ],
+        "spec": "main...feature/stale"
+      },
+      "two_dot": {
+        "added": [
+          "feature-new.txt"
+        ],
+        "changed": [
+          "author-intent.txt"
+        ],
+        "deletions": 133,
+        "empty": false,
+        "file_count": 19,
+        "insertions": 2,
+        "removed": [
+          "obsolete.txt",
+          "post-fork/gained-00.txt",
+          "post-fork/gained-01.txt",
+          "post-fork/gained-02.txt",
+          "post-fork/gained-03.txt",
+          "post-fork/gained-04.txt",
+          "post-fork/gained-05.txt",
+          "post-fork/gained-06.txt",
+          "post-fork/gained-07.txt",
+          "post-fork/gained-08.txt",
+          "post-fork/gained-09.txt",
+          "post-fork/gained-10.txt",
+          "post-fork/gained-11.txt",
+          "post-fork/gained-12.txt",
+          "post-fork/gained-13.txt",
+          "post-fork/gained-14.txt",
+          "post-fork/gained-15.txt"
+        ],
+        "spec": "main..feature/stale"
+      },
+      "two_dot_worktree": {
+        "added": [
+          "feature-new.txt"
+        ],
+        "changed": [
+          "author-intent.txt",
+          "keep.txt"
+        ],
+        "deletions": 133,
+        "empty": false,
+        "file_count": 20,
+        "insertions": 3,
+        "removed": [
+          "obsolete.txt",
+          "post-fork/gained-00.txt",
+          "post-fork/gained-01.txt",
+          "post-fork/gained-02.txt",
+          "post-fork/gained-03.txt",
+          "post-fork/gained-04.txt",
+          "post-fork/gained-05.txt",
+          "post-fork/gained-06.txt",
+          "post-fork/gained-07.txt",
+          "post-fork/gained-08.txt",
+          "post-fork/gained-09.txt",
+          "post-fork/gained-10.txt",
+          "post-fork/gained-11.txt",
+          "post-fork/gained-12.txt",
+          "post-fork/gained-13.txt",
+          "post-fork/gained-14.txt",
+          "post-fork/gained-15.txt"
+        ],
+        "spec": "main"
+      },
+      "worktree_noise_paths": [
+        "keep.txt"
+      ],
+      "would_revert": [
+        "post-fork/gained-00.txt",
+        "post-fork/gained-01.txt",
+        "post-fork/gained-02.txt",
+        "post-fork/gained-03.txt",
+        "post-fork/gained-04.txt",
+        "post-fork/gained-05.txt",
+        "post-fork/gained-06.txt",
+        "post-fork/gained-07.txt",
+        "post-fork/gained-08.txt",
+        "post-fork/gained-09.txt",
+        "post-fork/gained-10.txt",
+        "post-fork/gained-11.txt",
+        "post-fork/gained-12.txt",
+        "post-fork/gained-13.txt",
+        "post-fork/gained-14.txt",
+        "post-fork/gained-15.txt"
+      ],
+      "would_revert_count": 16
+    },
+    {
+      "author_description": "no commits; branched from integration HEAD",
+      "branch_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+      "control_empty": true,
+      "deletion_count_three_dot": 0,
+      "deletion_count_two_dot": 0,
+      "integration_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+      "merge_base_sha": "56d4aaab3262f87427585e222238e2e4d7de0678",
+      "name": "feature/fresh",
+      "role": "freshly-branched-control",
+      "stale_branch_would_revert": false,
+      "three_dot": {
+        "added": [],
+        "changed": [],
+        "deletions": 0,
+        "empty": true,
+        "file_count": 0,
+        "insertions": 0,
+        "removed": [],
+        "spec": "main...feature/fresh"
+      },
+      "two_dot": {
+        "added": [],
+        "changed": [],
+        "deletions": 0,
+        "empty": true,
+        "file_count": 0,
+        "insertions": 0,
+        "removed": [],
+        "spec": "main..feature/fresh"
+      },
+      "would_revert": [],
+      "would_revert_count": 0
+    }
+  ]
+}

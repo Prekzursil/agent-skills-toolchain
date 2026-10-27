@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "e1-hundred-idea-brainstorm",
+  "preset": "hundred_idea_brainstorm",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Generate at least 100 materially distinct mechanisms for cutting agent-harness context cost.",
+    "risk_tier": "low",
+    "desired_output": "idea_set",
+    "success_criteria": [
+      "100 unique ideas after deduplication",
+      "completeness score at or above 0.90 against the option-space checklist"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": { "citation_required": false, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["expertise_ranked", "model_diverse", "vendor_diverse"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "elastic",
+      "min": 4,
+      "max": 12,
+      "elastic": { "scale_on": ["idea_starvation", "low_confidence"], "step": 2, "cooldown_rounds": 1 }
+    },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 3, "max_share_per_vendor": 0.6 },
+    "roster": [
+      {
+        "participant_id": "ideator-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["agent harnesses", "context engineering"],
+        "role": "proposer",
+        "authority": "contributor",
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "ideator-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["systems performance"],
+        "role": "proposer",
+        "authority": "contributor",
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "dedup-judge",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["taxonomy", "deduplication"],
+        "role": "verifier",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": false }
+      }
+    ],
+    "role_templates": ["proposer", "critic", "synthesizer", "custom:wildcard_generator"],
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": ["position_similarity", "prompt"],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 5 },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-pass", "independent": true, "anonymous": true },
+      {
+        "kind": "brainstorm",
+        "stage_id": "diverge",
+        "rounds": 6,
+        "quotas": { "ideas_per_participant": 12, "novel_ideas_per_round": 4 },
+        "exit_when": {
+          "any_of": [
+            { "metric": "unique_ideas", "op": ">=", "value": 100 },
+            { "metric": "no_new_idea_rounds", "op": ">=", "value": 3 }
+          ]
+        }
+      },
+      { "kind": "nominal_group", "stage_id": "cluster", "rounds": 2 },
+      { "kind": "synthesis", "stage_id": "converge" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 3, "max": 12, "divergence_before_convergence": true },
+    "obligations": { "declare_confidence": true },
+    "critique_intensity": "standard"
+  },
+  "budgets": { "effort": "high", "time_minutes": 120, "turns": 40, "min_engagement_turns": 3 },
+  "targets": {
+    "unique_ideas": 100,
+    "categories": 12,
+    "novelty_ratio": 0.6,
+    "coverage_score": 0.9,
+    "dedup": { "enabled": true, "max_similarity": 0.85, "trivial_variant_policy": "merge" }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": { "min": 0, "max": 5 },
+    "evidence_gate": { "reject_evidence_free_majority": true }
+  },
+  "consensus": { "minority_report": "optional", "measure": "agreement_index" },
+  "stopping": {
+    "source_expression": "unique_ideas >= 100 AND completeness_score >= 0.90",
+    "expression": {
+      "all_of": [
+        { "metric": "unique_ideas", "op": ">=", "value": 100 },
+        { "metric": "completeness_score", "op": ">=", "value": 0.9 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 3 },
+    "hard_caps": { "max_rounds": 12, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": { "allowed": ["decision", "no_decision", "dissent"] },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 3, "repetition_similarity": 0.9 },
+    "resolution": ["rotate_roles", "recruit_independent_critic", "narrow_scope"]
+  },
+  "anti_failure": {
+    "controls": ["idea_count_gaming", "duplicate_novelty", "echo_chamber", "premature_convergence"],
+    "fast_unanimity_response": ["forced_dissent", "recruit_independent_critic"]
+  },
+  "outputs": { "required": ["idea_ledger", "option_cards", "transcript", "final_recommendation"] },
+  "audit": { "transcript": true, "replay": true, "determinism": "seeded" },
+  "metadata": {
+    "title": "100-idea brainstorm",
+    "spec_citations": ["_USER-PROMPTS.md:10937", "_USER-PROMPTS.md:11202"],
+    "notes": "Spec example 1 of 6: unique_ideas >= 100 AND completeness_score >= 0.90"
+  }
+}

@@ -1,0 +1,146 @@
+FAILED:ADV-0027 matrix did not pass; not emitting SUCCESS
+{
+  "pass": false,
+  "platform": {
+    "system": "Windows",
+    "release": "11",
+    "python": "3.14.6"
+  },
+  "nested": {
+    "label": "nested-dotdot",
+    "ok": false,
+    "error": "TRAVERSAL:pkg/../../nested-escape.beacon",
+    "rejected": true,
+    "written": [],
+    "inside": [],
+    "outside_new": [],
+    "escaped": false
+  },
+  "device_nul": {
+    "label": "device-nul",
+    "ok": false,
+    "error": "DEVICE_NAME:NUL",
+    "rejected": true,
+    "written": [],
+    "inside": [],
+    "outside_new": [],
+    "escaped": false
+  },
+  "ratio_observed": 333333.3333333333,
+  "ratio_file_size": 2000000,
+  "ratio_compress_size": 6,
+  "naive_tar_extractall_landed_outside": false,
+  "naive_tar_extractall_refused_by_stdlib_filter": true,
+  "naive_beacon_bytes": 0,
+  "naive_import_fail_closed": true,
+  "targets": [
+    {
+      "id": "T1-relative-traversal",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "TRAVERSAL:../escape.beacon",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T2-absolute-path",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "ABSOLUTE:C:/Users/PREKZU~1/AppData/Local/Temp/adv0027-matrix-czi0ezv6/abs.beacon",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T3-external-symlink",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "SYMLINK:link",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T4-hardlink",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "HARDLINK:linked.txt",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T5-device-name",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "DEVICE_NAME:CON",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T6-compression-ratio",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "RATIO:bomb.bin",
+      "lands": "nowhere"
+    },
+    {
+      "id": "T1b-nested-dotdot-pre-normalize-bypass",
+      "verdict": "REFUTED",
+      "import_ok": false,
+      "escaped": false,
+      "written": [],
+      "outside_new": [],
+      "rejected": true,
+      "error": "TRAVERSAL:pkg/../../nested-escape.beacon",
+      "lands": "nowhere",
+      "note": "pkg/../../escape bypasses startswith('..'); post-normpath rejects it."
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CONTROL-BENIGN-ARCHIVE",
+      "result": "FAIL",
+      "written": [
+        "pkg/manifest.json",
+        "pkg/payload.txt"
+      ]
+    },
+    {
+      "id": "T-DEVICE-NAME-EXPLICIT",
+      "result": "PASS",
+      "handling": "EXPLICIT-REJECT",
+      "crash": false,
+      "platform": "Windows",
+      "note": "Linux will create a regular file named CON; an unhandled open is not a crash here. The import path rejects DEVICE_NAME before any create, which is distinct from a successful traversal."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-NAIVE-TAR-EXTRACTALL",
+      "fired_on_bad_state": false,
+      "silent_on_good_state": false,
+      "refused_by_stdlib_data_filter": true,
+      "note": "stdlib tarfile.extractall writes ../ outside dest; import path does not. On python >= 3.14 the default 'data' filter refuses the ../ member outright - the naive bad state is unrepresentable there and this control records that world instead of firing."
+    }
+  ],
+  "sandbox_cleaned": true,
+  "host_pid": 95604
+}
+REBUILD ADV-0027 rc=1

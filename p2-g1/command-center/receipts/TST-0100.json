@@ -1,0 +1,329 @@
+{
+  "unit_id": "TST-0100",
+  "id": "TST-0100",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0100",
+  "completion_sentinel": "SUCCESS:TST-0100",
+  "kind": "worktree-origin-guard",
+  "title": "A worktree pointing at the wrong repository",
+  "question": "Before any write, a guard resolves the worktree's origin URL and refuses when it is not the pinned repository. A write into a scratch clone of a different repository must be impossible; a write into the pinned origin must be permitted. Origin is resolved by git command, not by path string.",
+  "seeded_failure_class": {
+    "id": "FC-11321",
+    "name": "worktree points to the wrong repository",
+    "spec": 11321
+  },
+  "output_path": "command-center/receipts/TST-0100.json",
+  "output_schema": "command-center/schema/detector-control.schema.json",
+  "output_schema_on_disk": true,
+  "catalog_output_schema": {
+    "declared": "command-center/schema/detector-control.schema.json",
+    "emit_validation": "unit-local-contract",
+    "shim_ref": "https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/detector-control",
+    "reason": "The declared path is a generated $ref shim. jsonschema 4.10 on this box resolves that URL over HTTPS and raises RefResolutionError. G-1 does not consult output_schema. No ADV rebuild into a receipt_core additionalProperties shell."
+  },
+  "produced_at": "2026-08-25T00:44:53Z",
+  "timestamps": {
+    "started_at": "2026-08-25T00:44:53Z",
+    "ended_at": "2026-08-25T00:44:53Z"
+  },
+  "answer": "guard.py resolves origin with `git -C <worktree> remote get-url origin` and compares the normalized URL to pinned-origin.txt. A scratch clone of a different repository is refused and the target file is not created. A scratch clone whose origin is the pin is permitted. A worktree with no origin is refused (never default-allow). A directory whose path looks like the pin but whose origin is foreign is refused; an unrelated path whose origin is the pin is permitted \u2014 so the verdict is the git command, not the path string.",
+  "controls": [
+    {
+      "id": "foreign-worktree-write",
+      "expected": "FIRED",
+      "observed": "FIRED",
+      "exit_code": 1,
+      "fixture": "scratch-clone-foreign-origin",
+      "findings_count": 1,
+      "reason": "origin-mismatch",
+      "origin": "https://github.com/other-owner/foreign-worktree.git"
+    },
+    {
+      "id": "pinned-worktree-write",
+      "expected": "SILENT",
+      "observed": "SILENT",
+      "exit_code": 0,
+      "fixture": "scratch-clone-pinned-origin",
+      "findings_count": 0,
+      "reason": "origin-matches-pin",
+      "origin": "https://github.com/program/ast-integrate.git"
+    },
+    {
+      "id": "missing-origin-default-allow",
+      "expected": "FIRED",
+      "observed": "FIRED",
+      "exit_code": 1,
+      "fixture": "scratch-repo-no-origin",
+      "findings_count": 1,
+      "reason": "missing-origin"
+    },
+    {
+      "id": "path-decoy-foreign-origin",
+      "expected": "FIRED",
+      "observed": "FIRED",
+      "exit_code": 1,
+      "fixture": "path-looks-like-pin-origin-is-foreign",
+      "findings_count": 1,
+      "reason": "origin-mismatch",
+      "origin": "https://github.com/other-owner/foreign-worktree.git"
+    }
+  ],
+  "counts": [
+    {
+      "id": "foreign-refused",
+      "numerator": 1,
+      "denominator": 1,
+      "label": "foreign worktree writes refused and file absent",
+      "fixture": "scratch-clone-foreign-origin"
+    },
+    {
+      "id": "pinned-permitted",
+      "numerator": 1,
+      "denominator": 1,
+      "label": "pinned worktree writes permitted and file present",
+      "fixture": "scratch-clone-pinned-origin"
+    },
+    {
+      "id": "path-decoy-refused",
+      "numerator": 1,
+      "denominator": 1,
+      "label": "path-string decoy with foreign origin refused",
+      "fixture": "path-looks-like-pin"
+    },
+    {
+      "id": "unrelated-path-pin-permitted",
+      "numerator": 1,
+      "denominator": 1,
+      "label": "unrelated path with pinned origin permitted",
+      "fixture": "unrelated-path"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_write_to_a_foreign_worktree_is_refused",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py"
+    },
+    {
+      "id": "test_write_to_the_pinned_worktree_is_permitted",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py"
+    },
+    {
+      "id": "test_guard_resolves_origin_by_command_not_by_path_string",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe2_origin_by_command.py"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0100-probe2-origin-by-command",
+    "verdict": "PASS",
+    "independent": true,
+    "re_ran_detector_control": true,
+    "windows_powershell_rerun": "NOT-CHECKED",
+    "windows_powershell_reason": "pwsh is not present on this Linux worktree. Origin is resolved with git -C \u2026 remote get-url origin, which is the same command on Windows Git; this unit does not claim a live PowerShell rerun."
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0100.json",
+      "exists": true,
+      "role": "primary",
+      "bytes": 15240,
+      "sha256": "5a92a1c968e685226b33bb8b4a8eb48bd9530dbe69bf4f1cc4c6540acedf289b"
+    },
+    {
+      "path": "command-center/schema/detector-control.schema.json",
+      "exists": true,
+      "role": "output-schema",
+      "bytes": 1103,
+      "sha256": "bf941281e8fe5fbb47fe2e32ba0299cae93c29256daacad3f6bbd4ef584f798b"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0100/guard.py",
+      "exists": true,
+      "role": "guard",
+      "bytes": 5885,
+      "sha256": "562adfa4b8d29e88169f5b69121cc09a441e0716e16a48a3392935f4e0671fc1"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0100/pinned-origin.txt",
+      "exists": true,
+      "role": "pin",
+      "bytes": 45,
+      "sha256": "81f838ecadad268bb795f314cbf2c0bd7764413e13aacd570a87204f2f1268fa"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py",
+      "exists": true,
+      "role": "probe",
+      "bytes": 5101,
+      "sha256": "5630bec43986e64f8424705c4de28de1f84394e3a66fe2430ed6c44f4aca0a60"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0100/probe2_origin_by_command.py",
+      "exists": true,
+      "role": "probe",
+      "bytes": 4805,
+      "sha256": "b8f30581e1c2463ec365886deff5b16709e1fb1d9ace19bf9650a4dd1cc5138e"
+    }
+  ],
+  "evidence": {
+    "two_independent_signals": true,
+    "signal_1": {
+      "claim": "guard refuses a write in a scratch clone of a different repository and permits it when origin is the pin",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py",
+      "exit_code": 0,
+      "verdict": "CONFIRMED",
+      "raw_output_tail": "{\n  \"fail\": [],\n  \"foreign_origin\": \"https://github.com/other-owner/foreign-worktree.git\",\n  \"pass\": true,\n  \"pinned_origin\": \"https://github.com/program/ast-integrate.git\",\n  \"probe\": \"probe1-foreign-and-pinned\",\n  \"rows\": [\n    {\n      \"allowed\": false,\n      \"command\": [\n        \"git\",\n        \"-C\",\n        \"/tmp/tst0100-p1-cwpphkoq/foreign\",\n        \"remote\",\n        \"get-url\",\n        \"origin\"\n      ],\n      \"file_exists\": false,\n      \"id\": \"foreign\",\n      \"origin\": \"https://github.com/other-owner/foreign-worktree.git\",\n      \"path\": \"/tmp/tst0100-p1-cwpphkoq/foreign\",\n      \"reason\": \"origin-mismatch\",\n      \"wrote\": false\n    },\n    {\n      \"allowed\": true,\n      \"command\": [\n        \"git\",\n        \"-C\",\n        \"/tmp/tst0100-p1-cwpphkoq/pinned\",\n        \"remote\",\n        \"get-url\",\n        \"origin\"\n      ],\n      \"file_exists\": true,\n      \"id\": \"pinned\",\n      \"origin\": \"https://github.com/program/ast-integrate.git\",\n      \"path\": \"/tmp/tst0100-p1-cwpphkoq/pinned\",\n      \"reason\": \"origin-matches-pin\",\n      \"wrote\": true\n    },\n    {\n      \"allowed\": false,\n      \"command\": [\n        \"git\",\n        \"-C\",\n        \"/tmp/tst0100-p1-cwpphkoq/no-origin\",\n        \"remote\",\n        \"get-url\",\n        \"origin\"\n      ],\n      \"file_exists\": false,\n      \"git_exit\": 2,\n      \"id\": \"missing-origin\",\n      \"origin\": null,\n      \"path\": \"/tmp/tst0100-p1-cwpphkoq/no-origin\",\n      \"reason\": \"missing-origin\",\n      \"wrote\": false\n    },\n    {\n      \"allowed\": true,\n      \"id\": \"alt-url-form\",\n      \"origin\": \"https://github.com/program/ast-integrate\",\n      \"path\": \"/tmp/tst0100-p1-cwpphkoq/alt-url-form\",\n      \"reason\": \"origin-matches-pin\",\n      \"wrote\": true\n    }\n  ],\n  \"unit_id\": \"TST-0100\"\n}\nforeign_refused=True pinned_permitted=True missing_origin_refused=True alt_url_form_permitted=True\nSUCCESS:TST-0100-probe1 foreign refused, pinned permitted"
+    },
+    "signal_2": {
+      "claim": "origin is resolved by git remote get-url, not by comparing the worktree path string to the pin",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe2_origin_by_command.py",
+      "exit_code": 0,
+      "verdict": "CONFIRMED",
+      "raw_output_tail": "{\n  \"decoy\": {\n    \"allowed\": false,\n    \"command\": [\n      \"git\",\n      \"-C\",\n      \"/tmp/tst0100-p2-n9gxzv6u/https:/github.com/program/ast-integrate\",\n      \"remote\",\n      \"get-url\",\n      \"origin\"\n    ],\n    \"file_exists\": false,\n    \"origin\": \"https://github.com/other-owner/foreign-worktree.git\",\n    \"path\": \"/tmp/tst0100-p2-n9gxzv6u/https:/github.com/program/ast-integrate\",\n    \"reason\": \"origin-mismatch\",\n    \"wrote\": false\n  },\n  \"decoy_path_contains_pin_token\": true,\n  \"fail\": [],\n  \"independent\": true,\n  \"pass\": true,\n  \"probe\": \"probe2-origin-by-command\",\n  \"re_ran_detector_control\": true,\n  \"reviewer_id\": \"TST-0100-probe2-origin-by-command\",\n  \"unit_id\": \"TST-0100\",\n  \"unrelated_path_contains_pin_token\": false,\n  \"unrelated_path_pinned_origin\": {\n    \"allowed\": true,\n    \"command\": [\n      \"git\",\n      \"-C\",\n      \"/tmp/tst0100-p2-n9gxzv6u/box-unrelated-9f3a\",\n      \"remote\",\n      \"get-url\",\n      \"origin\"\n    ],\n    \"file_exists\": true,\n    \"origin\": \"https://github.com/program/ast-integrate.git\",\n    \"path\": \"/tmp/tst0100-p2-n9gxzv6u/box-unrelated-9f3a\",\n    \"reason\": \"origin-matches-pin\",\n    \"wrote\": true\n  }\n}\npath_decoy_refused=True unrelated_path_with_pin_permitted=True origin_resolved_by_git_remote_get_url=True\nSUCCESS:TST-0100-probe2 origin by command, not path string"
+    },
+    "per_worktree": {
+      "foreign": {
+        "allowed": false,
+        "command": [
+          "git",
+          "-C",
+          "/tmp/tst0100-p1-cwpphkoq/foreign",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        "file_exists": false,
+        "id": "foreign",
+        "origin": "https://github.com/other-owner/foreign-worktree.git",
+        "path": "/tmp/tst0100-p1-cwpphkoq/foreign",
+        "reason": "origin-mismatch",
+        "wrote": false
+      },
+      "pinned": {
+        "allowed": true,
+        "command": [
+          "git",
+          "-C",
+          "/tmp/tst0100-p1-cwpphkoq/pinned",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        "file_exists": true,
+        "id": "pinned",
+        "origin": "https://github.com/program/ast-integrate.git",
+        "path": "/tmp/tst0100-p1-cwpphkoq/pinned",
+        "reason": "origin-matches-pin",
+        "wrote": true
+      },
+      "missing_origin": {
+        "allowed": false,
+        "command": [
+          "git",
+          "-C",
+          "/tmp/tst0100-p1-cwpphkoq/no-origin",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        "file_exists": false,
+        "git_exit": 2,
+        "id": "missing-origin",
+        "origin": null,
+        "path": "/tmp/tst0100-p1-cwpphkoq/no-origin",
+        "reason": "missing-origin",
+        "wrote": false
+      },
+      "path_decoy": {
+        "allowed": false,
+        "command": [
+          "git",
+          "-C",
+          "/tmp/tst0100-p2-n9gxzv6u/https:/github.com/program/ast-integrate",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        "file_exists": false,
+        "origin": "https://github.com/other-owner/foreign-worktree.git",
+        "path": "/tmp/tst0100-p2-n9gxzv6u/https:/github.com/program/ast-integrate",
+        "reason": "origin-mismatch",
+        "wrote": false
+      },
+      "unrelated_path_pinned_origin": {
+        "allowed": true,
+        "command": [
+          "git",
+          "-C",
+          "/tmp/tst0100-p2-n9gxzv6u/box-unrelated-9f3a",
+          "remote",
+          "get-url",
+          "origin"
+        ],
+        "file_exists": true,
+        "origin": "https://github.com/program/ast-integrate.git",
+        "path": "/tmp/tst0100-p2-n9gxzv6u/box-unrelated-9f3a",
+        "reason": "origin-matches-pin",
+        "wrote": true
+      }
+    }
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "foreign-and-pinned-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py"
+    },
+    {
+      "id": "probe2",
+      "role": "origin-by-command-not-path",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe2_origin_by_command.py"
+    }
+  ],
+  "report": {
+    "kind": "detector-control",
+    "observations": [
+      {
+        "name": "foreign-worktree-write-refused",
+        "measured": true,
+        "method": "guarded_write on scratch clone with foreign origin",
+        "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py"
+      },
+      {
+        "name": "pinned-worktree-write-permitted",
+        "measured": true,
+        "method": "guarded_write on scratch clone with pinned origin",
+        "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe1_foreign_and_pinned.py"
+      },
+      {
+        "name": "path-decoy-refused-unrelated-path-permitted",
+        "measured": true,
+        "method": "git -C <worktree> remote get-url origin, not path string",
+        "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0100/probe2_origin_by_command.py"
+      }
+    ],
+    "control_ids": [
+      "foreign-worktree-write",
+      "pinned-worktree-write",
+      "missing-origin-default-allow",
+      "path-decoy-foreign-origin"
+    ]
+  },
+  "cloud_ok": false,
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "IMP-0432 production wiring into every agent write path",
+      "a live PowerShell 7 re-run on Windows"
+    ]
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "fault-injection-engineer",
+    "execution_substrate": "linux-worktree-isolated"
+  }
+}

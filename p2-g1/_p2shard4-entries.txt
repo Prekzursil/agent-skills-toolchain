@@ -1,0 +1,514 @@
+====================================================================================================
+{
+ "_source_slice_file": "BLD-1.json",
+ "assigned_model_vendor_role": {
+  "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+  "model": "opus",
+  "role": "permission-analyst",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:BLD-0052",
+ "dependencies": [
+  "B07",
+  "B09",
+  "B10"
+ ],
+ "evidence_requirement": "A guard counts as ARMED only when it is proven to fire in the SHIPPED configuration, not merely present in the repository - the estate has measured a guard armed in the repo and absent from the live deployed config, and the deployed config is what runs. Every entry states its blast radius in concrete terms (which files, which branch, whose work).",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "data-loss-risk",
+  "detector-failure",
+  "credential-exposure"
+ ],
+ "id": "BLD-0052",
+ "inputs": [
+  "every destructive call site reachable from agent tooling (filesystem, git, cloud, package, process)",
+  "the shipped guard configuration: hooks, approval gates, allowlists, dry-run defaults",
+  "the concurrency model (which agents share a working tree, an index, or a live tree)"
+ ],
+ "output_path": "command-center/receipts/BLD-0052.json",
+ "output_schema": "command-center/schema/irreversible-capability-inventory.schema.json",
+ "owner_approval_required": false,
+ "phase": "13",
+ "question_or_target": "Question: which irreversible operation is reachable by the program's OWN agents, and what actually stops a confused or misaligned one from performing it? Enumerate every irreversible reachable action - file or directory deletion, git history rewrite, force-push, branch or worktree removal, credential write or unset, cloud spend, remote repository creation, package publication, live-tree overwrite, shared-service kill - and for each record the guard (approval gate, allowlist, hook, dry-run default, or nothing), whether that guard is ARMED in the shipped configuration, and the blast radius if it fires wrongly. This is the insider actor the estate has already been bitten by: file-disjoint parallel agents share ONE git index, so a broad staging command sweeps a sibling's work.  SCOPE BOUNDARY: TST-0099, TST-0345 and ADV-0123 test the shared-git-index contamination case specifically. This unit contributes the full irreversible-capability inventory, in which that case is one row.  [Phase 13 question answered: what threat actor was not modeled]",
+ "retry_policy": "No retry of a destructive probe outside the 
+====================================================================================================
+{
+ "_source_slice_file": "BLD-1.json",
+ "assigned_model_vendor_role": {
+  "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+  "model": "opus",
+  "role": "reliability-engineer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:BLD-0057",
+ "dependencies": [
+  "B07",
+  "B08"
+ ],
+ "evidence_requirement": "Two independent signals are required for any ceiling claim: the commit-charge counter AND the process/handle count, plus the OS low-memory event if it fires. A single memory reading is not a ceiling. Do not freeze the owner's machine: ramp with an abort threshold well below the measured freeze point.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "resource-exhaustion",
+  "single-signal",
+  "data-loss-risk"
+ ],
+ "id": "BLD-0057",
+ "inputs": [
+  "the TST-0103 commit-exhaustion guard receipt (consumed, not re-derived)",
+  "the runner's concurrency controls and any memory guard",
+  "live process, handle and commit-charge counters (read-only)",
+  "the MCP server inventory and its per-session spawn behaviour"
+ ],
+ "output_path": "command-center/receipts/BLD-0057.json",
+ "output_schema": "command-center/schema/scale-model.schema.json",
+ "owner_approval_required": false,
+ "phase": "13",
+ "question_or_target": "Question: at what concurrency does THIS box stop, and does the program stop first? Model process count, handle count and system commit charge under the program's fan-out, establish the safe concurrency ceiling, and verify the guard that enforces it. The estate's measured freeze root cause is COMMIT exhaustion (RAM plus pagefile), not RAM OOM - Task Manager hides it - driven by per-session stdio MCP process multiplication. SCOPE BOUNDARY: TST-0103 is the load TEST that asserts the guard sheds load before process creation fails; this unit consumes that receipt and contributes the SCALE MODEL - the numeric ceiling for this box and whether the program's own scheduler bound sits below it at 10x.  [Phase 13 question answered: what would break at 10x scale]",
+ "retry_policy": "No retry above the abort threshold. A second ramp failure is reported with the measured ceiling, never re-attempted at a higher load.",
+ "reviewer_requirement": "One independent reviewer who repeats the ramp at a lower ceiling and confirms the guard trip point is reproducible.",
+ "tests_required": [
+  "Ramp: increase concurrency until the guard trips and assert the guard trips BEFORE the box degrades.",
+  "Control: the guard mus
+====================================================================================================
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "security-reviewer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0011",
+ "dependencies": [],
+ "evidence_requirement": "A zero-finding result is only publishable with a detector control attached. On any real finding, quantify the blast radius (which commits, which index entries, which downstream consumers), recommend rotation explicitly, and hand it back to the owner - performing the rotation is the banned action, saying it is needed is not.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "detector-failure",
+  "uncontrolled-silence",
+  "owner-blocked"
+ ],
+ "id": "CC-0011",
+ "inputs": [
+  "command-center/ (all artifacts, events, sources, receipts)",
+  "the rollback backup set named in command-center/ROLLBACK-MANIFEST.md",
+  "the 1.49 MB harness-restore corpus at ~/.claude/harness-restore-20260806",
+  "AGENTS.md section 9 (credential non-negotiables)"
+ ],
+ "output_path": "command-center/receipts/CC-0011.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "0",
+ "question_or_target": "Question: has any credential, token, cookie, private key or decrypted secret entered the program corpus, the command-center tree, or the rollback backups? Spec requires rollback backups be created without copying secrets into the program corpus (:10659) and seeds 'credentials or decrypted secrets enter an artifact bundle' as a regression class (:11345). READ-ONLY diagnosis only: report variable name, scope, byte length and whether a whoami probe still authenticates. Never print a value beyond a zero-entropy prefix. Never rotate, revoke or unset anything - the owner handles credential lifecycle personally.",
+ "retry_policy": "Two strikes then pivot to a different scanner engine; never widen the pattern set to force a hit.",
+ "reviewer_requirement": "One independent security reviewer plus explicit confirmation in the receipt that no credential was modified, rotated or unset by this unit.",
+ "tests_required": [
+  "Detector control: a planted synthetic token in a scratch file must be found.",
+  "False-positive control: a bare zero-entropy prefix with no secret body must NOT fire.",
+  "Known-clean sentinel: a file with no secrets must score 0 hits.",
+  "Historical scope: the scan must cover committed history for the command-center tree, not only the working tree - deleting a le
+====================================================================================================
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "schema-author",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0017",
+ "dependencies": [
+  "CC-0012"
+ ],
+ "evidence_requirement": "State explicitly that this schema is PROVISIONAL and name the Phase-4 unit that supersedes it. The schedule claim (224 units released, critical path 11 -> 10) must be recomputed from the edge list after the change, not restated from the phase graph's prior text.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "overclaim",
+  "dependency-blocked",
+  "detector-failure"
+ ],
+ "id": "CC-0017",
+ "inputs": [
+  "_USER-PROMPTS.md:10662-10679 (Phase 1 record fields)",
+  "command-center/CLAIM-REGISTRY.json (existing records to migrate)",
+  "command-center/PHASE-GRAPH.json CONTESTED-1 (the 1->2 edge)",
+  "the CC-0012 freeze and migration rules"
+ ],
+ "output_path": "command-center/receipts/CC-0017.json",
+ "output_schema": "command-center/schema/claim-record.schema.json",
+ "owner_approval_required": false,
+ "phase": "1",
+ "question_or_target": "Implementation target: implement the Phase-1 canonical claim record (stable claim id, canonical mechanism, duplicate-of edges, support edges, contradiction edges, source lineage, confidence, verification status, implementation impact, exact settling probe) as an explicitly PROVISIONAL schema versioned for later Phase-4 formalization. This is the single highest-value schedule lever identified in the phase graph: the 1->2 edge is HARD only because the claim-record schema currently sits in Phase 4, and pulling it forward makes that edge SOFT, releasing bucket B03's 224 research units to start immediately and shortening the critical path from 11 nodes to 10.",
+ "retry_policy": "Two strikes then pivot to a minimal record with explicit extension points; do not grow the schema a third time to accommodate an outlier record.",
+ "reviewer_requirement": "Two reviewers: one cross-vendor on the schema, and one who independently re-derives whether the 1->2 edge really becomes SOFT rather than accepting the author's schedule claim.",
+ "tests_required": [
+  "A claim record with no settling probe must be rejected - the spec makes the exact settling probe mandatory.",
+  "A duplicate-of cycle must be rejected.",
+  "A contradiction edge pointing at a nonexistent claim id must be rejected.",
+  "Round-trip: migrate three real records from the existing CLAIM-REGISTRY.json and read t
+====================================================================================================
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "corpus-normalizer",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0022",
+ "dependencies": [
+  "CC-0021"
+ ],
+ "evidence_requirement": "Record the superseded wording rather than deleting it - a retired claim that vanishes cannot be audited, and on this estate a superseded note must carry a superseded_by pointer while the replacement carries valid_as_of.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "overclaim",
+  "detector-failure",
+  "uncontrolled-silence"
+ ],
+ "id": "CC-0022",
+ "inputs": [
+  "17-DECISION-LOG.md (44 KB, line 175, zero MECH tokens)",
+  "_fb02_apply.py and its 2026-08-07 18:41 substitution record",
+  "the CC-0021 namespace resolver",
+  "this program's pinned brief, which inherited the stale statement"
+ ],
+ "output_path": "command-center/receipts/CC-0022.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "owner_approval_required": false,
+ "phase": "1",
+ "question_or_target": "Implementation target: 17-DECISION-LOG.md contains ZERO 'MECH' tokens across 44 KB, and line 175 still states the 31-way option-id collision in the present tense and marks it 'Queued as P2-09', although the re-prefix was applied on 2026-08-07 at 18:41 and the literal collision count is now 0. Any agent pinning ground truth from the decision log therefore inherits a fixed problem as an open one - which is exactly what happened to this program's own pinned brief. Reconcile the log to the MECH-NN namespace and ship a staleness sentinel that fails when a log entry asserts a state a live probe contradicts.",
+ "retry_policy": "Two strikes then pivot; if automated tense detection misfires twice, restrict the sentinel to entries carrying an explicit machine-checkable assertion.",
+ "reviewer_requirement": "One independent reviewer who confirms no decision content was altered, only its id namespace and its stale tense.",
+ "tests_required": [
+  "The sentinel must FIRE on today's line 175 before the fix and be SILENT after - a probe silent in both states measures nothing.",
+  "A second planted stale entry must also fire, proving the sentinel is not hardcoded to line 175.",
+  "A currently-true entry must not fire.",
+  "The reconcile must not change any decision's meaning: a diff review must show only namespace and tense edits."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Reconcile the decision log and add a sentinel that f
+====================================================================================================
+{
+ "_source_slice_file": "CC-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "requirements-analyst",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CC-0024",
+ "dependencies": [
+  "CC-0008",
+  "CC-0019"
+ ],
+ "evidence_requirement": "Every requirement record must cite its spec line. Coverage may only be reported after the extractor has passed its floor-recall control, because a coverage percentage computed by a detector that missed requirements is a confident wrong number, not a partial one.",
+ "execution_substrate": "cloud-batch",
+ "failure_classification": [
+  "detector-failure",
+  "overclaim",
+  "uncontrolled-silence"
+ ],
+ "id": "CC-0024",
+ "inputs": [
+  "_USER-PROMPTS.md:10473-11437 (the Prompt Two spec)",
+  "the merged catalog produced by CC-0008",
+  "command-center/PROMPT-ONE-FLOOR-AUDIT.json (the Prompt One floor precedent)",
+  "_USER-PROMPTS.md:11066-11082 (Phase 13 blind-spot questions)"
+ ],
+ "output_path": "command-center/receipts/CC-0024.json",
+ "output_schema": "command-center/schema/requirement-record.schema.json",
+ "owner_approval_required": false,
+ "phase": "1",
+ "question_or_target": "Question, asked by Phase 13 at _USER-PROMPTS.md:11073 but only answerable if Phase 1 makes it mechanical: which owner requirements silently disappeared? Implementation target: extract every imperative and every numeric floor from _USER-PROMPTS.md:10473-11437 into machine-readable requirement records, and bind each to the work unit or units that satisfy it, so an unbound requirement surfaces as a measured gap rather than an omission nobody notices. The nine numeric floors that must be extracted before any coverage number is reported are 2048 work units, 160 workflow candidates, 96 blueprints, 40 flagship workflows, 48 council protocols, 64 presets, 100-idea brainstorm targets, 36 test layers and 21 stopping conditions.",
+ "retry_policy": "Two strikes then pivot from imperative-verb matching to sentence-level classification with a labelled control set; never lower the floor-recall bar to make the extractor pass.",
+ "reviewer_requirement": "One independent reviewer who extracts the numeric floors by hand from the spec text and compares against the extractor's set.",
+ "tests_required": [
+  "Floor-recall control: all nine named numeric floors must be extracted before any coverage percentage is emitted.",
+  "Deletion control: remove one known requirement from a scratch copy of the spec and confirm the matrix reports it unbound.",
+ 
+====================================================================================================
+{
+ "_source_slice_file": "CNF-1.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "source-diversity-auditor",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0063 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every sampled claim carries either a genuinely independent second source or an explicit single-sourced label. Any other terminal state is FAILED:CNF-0063 <classification> with the diagnostic tail attached.",
+ "dependencies": [
+  "CNF-0003",
+  "CNF-0062",
+  "B03"
+ ],
+ "evidence_requirement": "per claim: the second source with its publisher, plus the lineage trace showing the two are not the same origin",
+ "execution_substrate": "cloud-batch",
+ "failure_classification": [
+  "single-sourced-claim",
+  "circular-citation",
+  "republication-counted-twice"
+ ],
+ "id": "CNF-0063",
+ "inputs": [
+  "the sampled claim list from CNF-0003",
+  "the recorded source lineage per claim",
+  "publisher and organisation metadata for each source"
+ ],
+ "output_path": "command-center/confirmation/CNF-0063-source-corroboration.json",
+ "output_schema": "command-center/schema/citation-audit.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Is each material claim supported by more than one independent source, or does the whole chain trace back to a single origin? For the sampled claims, find a corroborating source from a DIFFERENT publisher and organisation, and answer: how many claims are single-sourced, and how many of the apparent multiple sources are actually republications of one origin?",
+ "retry_policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is never retried, it is filed",
+ "reviewer_requirement": "two independent reviewers who do not see each other's verdict until both are filed; a disagreement escalates to raw-source adjudication, never to a majority vote",
+ "tests_required": [
+  "circular citation must be detected by tracing origin, not by counting distinct URLs",
+  "a claim whose second source cites the first is single-sourced and must be labelled as such"
+ ],
+ "timeout_seconds": 10800,
+ "title": "Independent-source corroboration from a different publisher for sampled claims",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash",
+  "WebFetch",
+  "mcp__search-hub__web_search_exa",
+  "mcp__search-hub__tavily_search"
+ ]
+}
+====================================================================================================
+{
+ "_source_slice_file": "CNF-1.json",
+ "assigned_model_vendor_role": {
+  "model": "gpt-5-codex",
+  "role": "integrity-auditor",
+  "vendor": "openai"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0120 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every item carries one of the three states with the distinguishing evidence, and the planted unlabelled item was caught. Any other terminal state is FAILED:CNF-0120 <classification> with the diagnostic tail attached.",
+ "dependencies": [
+  "CNF-0014",
+  "CNF-0118",
+  "B08"
+ ],
+ "evidence_requirement": "the three-state classification per item with the evidence that distinguishes absent from empty from zero",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "not-checked-folded-into-pass",
+  "absent-read-as-empty",
+  "detector-failure"
+ ],
+ "id": "CNF-0120",
+ "inputs": [
+  "the full confirmation corpus and gate outputs",
+  "the claim inventory that defines what should have been checked",
+  "the three-state distinction: absent, empty, genuinely zero"
+ ],
+ "output_path": "command-center/confirmation/CNF-0120-not-checked-integrity.json",
+ "output_schema": "command-center/schema/confirmation-audit.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Was anything unmeasured quietly counted as a pass? Audit every confirmation and every gate output for items with no probe, and answer: how many are correctly recorded as NOT-CHECKED, how many are absent entirely, and how many were folded into a pass? An absent directory, an empty result set and a genuine zero are three different states and must not be merged.",
+ "retry_policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away",
+ "reviewer_requirement": "one reviewer whose only job is to re-run the DETECTOR CONTROL and confirm the probe fires on the known-broken fixture; a reviewer who only re-reads the result has verified nothing",
+ "tests_required": [
+  "an absent artifact directory must never be reported as evidence of nothing to check",
+  "a gate whose enforcement command cannot run must emit NOT-CHECKED, not a silent pass",
+  "control: plant one item with no probe and confirm it lands in the folded-into-pass bucket if unlabelled"
+ ],
+ "timeout_seconds": 5400,
+ "title": "NOT-CHECKED integrity audit across the whole confirmation corpus",
+ "tool_permissions":
+====================================================================================================
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "confirmation-architect",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0135",
+ "dependencies": [
+  "CNF-0129"
+ ],
+ "evidence_requirement": "Every adjudicated disagreement must cite the test id, its pre-registration timestamp, and the verbatim result. A disagreement closed without a pre-registered test is itself a defect and must be listed as such.",
+ "execution_substrate": "worktree-isolated",
+ "failure_classification": [
+  "overclaim",
+  "detector-failure",
+  "contamination"
+ ],
+ "id": "CNF-0135",
+ "inputs": [
+  "command-center/CLAIM-REGISTRY.json",
+  "CNF-0129 confirmation-record schema (discrepancies[])",
+  "_USER-PROMPTS.md:11039 (record discrepancies)",
+  "AGENTS.md sections 4b and 7"
+ ],
+ "output_path": "command-center/receipts/CNF-0135.json",
+ "output_schema": "command-center/schema/discrepancy-ledger.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Implementation target: when a confirmer and an implementer disagree, resolve by an EXECUTABLE test that both sides accept in advance, never by seniority, vote or rhetoric. The protocol must record which side revised its position and on what new evidence, per AGENTS.md section 7 (concede only to a new falsifiable argument, and say so explicitly).",
+ "retry_policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt (AGENTS.md 4b).",
+ "reviewer_requirement": "One reviewer who replays two closed disagreements from the ledger and checks the test predated the close.",
+ "tests_required": [
+  "Simulation: a disagreement where the implementer is right must close with the confirmer revising, and vice versa.",
+  "Guard: an attempt to close a disagreement with no test id must be rejected by the ledger schema.",
+  "Both-states: the protocol must be able to end in IRREDUCIBLE (no test can settle it) and that outcome must be representable.",
+  "Anti-sycophancy: a simulated authority-toned push with no new evidence must NOT flip a verdict."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Executable tiebreak protocol for confirmer-versus-implementer disagreement",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Edit",
+  "Bash"
+ ]
+}
+====================================================================================================
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "statistical-sampler",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0141",
+ "dependencies": [
+  "CNF-0138",
+  "CNF-0140"
+ ],
+ "evidence_requirement": "Report the achieved sample-size saving AND the error rates at which the rule stops, with the operating-characteristic curve. State the guard's implementation path:line.",
+ "execution_substrate": "worktree-isolated",
+ "failure_classification": [
+  "sampling-invalid",
+  "overclaim",
+  "detector-failure"
+ ],
+ "id": "CNF-0141",
+ "inputs": [
+  "CNF-0138 thresholds and power inputs",
+  "CNF-0140 census ledger",
+  "CNF-0137 sampling frame"
+ ],
+ "output_path": "command-center/receipts/CNF-0141.json",
+ "output_schema": "command-center/schema/sampling-plan.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Implementation target: a curtailed/sequential sampling rule (bounded SPRT-style) that stops drawing from a stratum once the class is decisively good or decisively bad, with a hard guard that early stopping can never reduce the exhaustive P0/P1 census of CNF-0140. Efficiency may only be bought from the low-severity strata.",
+ "retry_policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame, and record that the frame was frozen at a stated commit.",
+ "reviewer_requirement": "One reviewer who runs the Monte-Carlo control with a different seed and compares operating characteristics.",
+ "tests_required": [
+  "Guard test: attempt to early-stop a P0 stratum -> must be refused.",
+  "Both-states: a decisively bad class stops early with the correct decision; a borderline class runs to full n.",
+  "Monte-Carlo control: simulated streams at known defect rates must produce the advertised error rates within tolerance.",
+  "Bound: the rule must never exceed the fixed-n sample size (no unbounded sequential draw)."
+ ],
+ "timeout_seconds": 5400,
+ "title": "Bounded sequential sampling that can stop early without ever shrinking the P0/P1 census",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Write",
+  "Edit",
+  "Bash"
+ ]
+}
+====================================================================================================
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "opus",
+  "role": "statistical-sampler",
+  "vendor": "anthropic"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0144",
+ "dependencies": [
+  "CNF-0137",
+  "B09"
+ ],
+ "evidence_requirement": "Report the correlation coefficient with its n and p-value, plus the cost distribution of drawn versus completed claims. A claim of 'no bias' must cite the interval, not the point estimate.",
+ "execution_substrate": "local-parallel",
+ "failure_classification": [
+  "sampling-invalid",
+  "overclaim",
+  "detector-failure"
+ ],
+ "id": "CNF-0144",
+ "inputs": [
+  "CNF-0137 sampling frame",
+  "confirmation records with their measured durations",
+  "command-center/events/EVENTS.jsonl (dispatch and completion timestamps)"
+ ],
+ "output_path": "command-center/receipts/CNF-0144.json",
+ "output_schema": "command-center/schema/sampling-plan.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: does the realised sample over-represent claims that were CHEAP to confirm? Correlate each drawn claim's confirmation cost (wall-clock, substrate, tool count) against its probability of being drawn and completed, and re-weight or re-draw if the correlation is material. A sample that quietly skips the expensive claims measures the easy half of the program.",
+ "retry_policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame, and record that the frame was frozen at a stated commit.",
+ "reviewer_requirement": "One reviewer who recomputes the correlation from the raw duration table.",
+ "tests_required": [
+  "Planted control: artificially drop the 20 percent most expensive completions and confirm the probe fires.",
+  "Both-states: on an unbiased synthetic sample the probe must be silent.",
+  "Cost measurement independence: durations must come from the event log, not from the confirmer's self-report.",
+  "Re-weighting must be shown to change at least one published stratum rate, or it is inert."
+ ],
+ "timeout_seconds": 3600,
+ "title": "Probe the sample for convenience bias toward cheaply confirmable claims",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}
+====================================================================================================
+{
+ "_source_slice_file": "CNF-2.json",
+ "assigned_model_vendor_role": {
+  "model": "gpt-5-codex",
+  "role": "cross-vendor-confirmer",
+  "vendor": "openai"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0157",
+ "dependencies": [
+  "B07",
+  "CNF-0146"
+ ],
+ "evidence_requirement": "Per cell: the client version string, the observed behaviour, and the artifact that proves it. A client that is not installed must be reported NOT-CHECKED with the install prerequisite named, never folded into a pass.",
+ "execution_substrate": "local-serialized",
+ "failure_classification": [
+  "environment-dependent",
+  "green-not-live",
+  "blocked-external",
+  "detector-failure"
+ ],
+ "id": "CNF-0157",
+ "inputs": [
+  "the supported-client list from the compatibility matrix",
+  "the plugin package and its adapter layer",
+  "_USER-PROMPTS.md:10965-10983 (cross-vendor coordination), 11330 (router fails to select an installed skill)"
+ ],
+ "output_path": "command-center/receipts/CNF-0157.json",
+ "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+ "owner_approval_required": false,
+ "phase": "11",
+ "question_or_target": "Question: do the plugin, hook, skill and MCP-adapter claims hold under every supported client, reproduced by someone who did not build the adapters? Run the client matrix and record, per claim and per client, whether the behaviour reproduces, degrades loudly, or fails silently. Spec:10983 forbids pretending full interchangeability - a silent degradation is the defect.",
+ "retry_policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run, because a re-run of a broken detector reproduces its silence. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED.",
+ "reviewer_requirement": "One reviewer who repeats two cells on a different machine state.",
+ "tests_required": [
+  "Known-broken control: disable one adapter and confirm the matrix turns red for exactly that client.",
+  "Loud-degradation test: force an unsupported capability and assert the failure is explicit, not silent.",
+  "Both-states: a fully supported capability must be green in every installed client.",
+  "Version capture: assert each client version is read from the client itself, not from documentation."
+ ],
+ "timeout_seconds": 10800,
+ "title": "Cross-client reproduction of plugin, hook and skill claims by a non-author",
+ "tool_permissions": [
+  "Read",
+  "Grep",
+  "Glob",
+  "Bash"
+ ]
+}

@@ -1,0 +1,586 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0094",
+  "state": "SUCCESS",
+  "aggregation_rule": {
+    "quoted": "ABSTENTION: a ballot marked ABSTENTION is excluded from the Brier denominator; its weight is not redistributed to other voters. DELEGATION: a delegated ballot is scored once, under the delegate's row in WEIGHTS, never twice. WEIGHTS: weighted Brier = sum(w_i * (p_i - outcome_i)^2) / sum(w_i) over scored (non-abstaining) ballots; unweighted Brier uses w_i = 1.",
+    "source": "recompute.py scoring semantics (score_run), quoted verbatim on the published report"
+  },
+  "weighted_vote_counted_as_unweighted": {
+    "fired": true,
+    "classification": "arithmetic-error",
+    "note": "estate-run fixture: weights vary and weighted != unweighted; publishing the unweighted Brier as the estate score fires the detector, publishing the weighted Brier stays silent (probe2_weight_and_rule.py both-states)"
+  },
+  "sentinel": "SUCCESS:CNF-0094 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the synthetic hand-computed control matched, validating the recomputation before it was applied to real runs. Any other terminal state is FAILED:CNF-0094 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0094",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/calibration-report.schema.json",
+      "bytes": 1111,
+      "sha256": "af8be92e66df89f65cbe84a64faac3a0fdc60e4a55f3c4826cda7469cfae4eff",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0094/recompute.py",
+      "bytes": 15422,
+      "sha256": "8ae2d303579a896ac8c5d39bab1fcff6a9d782445684d8af62d9dc0c4f8d381c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0094/fixtures/synthetic-control.json",
+      "bytes": 1098,
+      "sha256": "cab8f5b1add43eb3058d6037b04d038282217d68ad44629d4fb9511fb3059af9",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0094/fixtures/hand_computed.json",
+      "bytes": 1119,
+      "sha256": "f17fbfdabf3e6551890c989008d566ad944114a1db50a3eb2cae56f87b0bc718",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0094/fixtures/estate-run.json",
+      "bytes": 1110,
+      "sha256": "8e5717101acc9de5f9244db168ad7a42289489b98d7f4bc6e4d4821edaac7a70",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Recomputed synthetic-control Brier/accuracy/mean-p/counts equal the independently stored hand-computed fractions (weighted Brier 201/850).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0094/fixtures/hand_computed.json:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0094'); import recompute as R; from pathlib import Path; h=json.loads(Path('command-center/p2-wave/probes/CNF-0094/fixtures/hand_computed.json').read_text()); s=R.score_run(R.load_run(Path('command-center/p2-wave/probes/CNF-0094/fixtures/synthetic-control.json'))); print(R.compare_to_hand(s,h)['matched'])\"",
+          "raw_output": "matched=True brier_weighted=201/850 brier_unweighted=7/20 scored_n=5",
+          "fingerprint": "cnf0094-src-score-run",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/CNF-0094/fixtures/hand_computed.json",
+          "raw_output": "brier_weighted=201/850 brier_unweighted=7/20 scored_n=5",
+          "fingerprint": "cnf0094-ver-hand-fixture",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A published Brier equal to the unweighted figure, while claiming weighted aggregation on a run whose weights vary, is classified arithmetic-error; the same detector is silent on the correctly weighted figure.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0094/recompute.py:328",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0094/probe2_weight_and_rule.py",
+          "raw_output": "{\"classification\": \"arithmetic-error\", \"fired\": true, \"published_brier\": \"663/2000\", \"published_equals_unweighted\": true, \"published_equals_weighted\": false, \"recomputed_unweighted\": \"663/2000\", \"recomputed_weighted\": \"271/2000\", \"weighted_differs_from_unweighted\": true, \"weights_vary\": true}",
+          "fingerprint": "cnf0094-src-weight-hunt",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/CNF-0094/recompute.py:153",
+          "raw_output": "ABSTENTION excluded from Brier denominator; DELEGATION transfers weight; WEIGHTS use w_i*(p-o)^2",
+          "fingerprint": "cnf0094-ver-quoted-rule",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "No production per-round vote ledger or published council calibration report was present to recompute against.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0094/emit.py:PRODUCTION_CANDIDATES",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "tools/council/calibration/report.py",
+          "raw_output": "declared_production_present=1 production_raw_vote_ledger_present=False",
+          "fingerprint": "cnf0094-src-prod-census",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "tools/council/vote/tally.py",
+          "raw_output": "absent on this worktree",
+          "fingerprint": "cnf0094-ver-tally-absent",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1_synthetic_control",
+      "name": "synthetic hand-computed control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0094/probe1_synthetic_control.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2_weight_and_rule",
+      "name": "weighted-as-unweighted detector and quoted rule",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0094/probe2_weight_and_rule.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CNF-0094-NC-unweighted-as-weighted",
+      "kind": "known-broken-fixture",
+      "description": "Estate fixture published Brier equals unweighted while claiming weighted aggregation; detector must fire.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"classification\": \"arithmetic-error\", \"fired\": true, \"published_brier\": \"663/2000\", \"published_equals_unweighted\": true, \"published_equals_weighted\": false, \"recomputed_unweighted\": \"663/2000\", \"recomputed_weighted\": \"271/2000\", \"weighted_differs_from_unweighted\": true, \"weights_vary\": true}",
+      "good_state_output": "{\"classification\": \"not-this-error\", \"fired\": false, \"published_brier\": \"271/2000\", \"published_equals_unweighted\": false, \"published_equals_weighted\": true, \"recomputed_unweighted\": \"663/2000\", \"recomputed_weighted\": \"271/2000\", \"weighted_differs_from_unweighted\": true, \"weights_vary\": true}"
+    },
+    {
+      "id": "CNF-0094-NC-undeclared-rule",
+      "kind": "absent-input",
+      "description": "A published object with no aggregation-rule quote of >=40 chars is classified undeclared-aggregation-rule.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"classification\": \"undeclared-aggregation-rule\", \"quote_len\": 0, \"reason\": \"published report does not quote an abstention/weight/delegation rule of >=40 chars\", \"undeclared\": true}",
+      "good_state_output": "quoted rule accepted"
+    },
+    {
+      "id": "CNF-0094-NC-schema-garbage",
+      "kind": "malformed-input",
+      "description": "Empty object, unit_id-only SUCCESS stub, and {n:-1} must be rejected by the physical calibration-report schema.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "schema rejected garbage",
+      "good_state_output": "live artifact schema-valid"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0094-probe1-hand-computed-arithmetic",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 1 reloads the hand-computed fractions from a fixture the engine does not write. Probe 2 uses a different mechanism (weighted-vs-unweighted detector + undeclared-rule + schema mutant)."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0094/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0094"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/confirmation/CNF-0094-council-calibration-recompute.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B platform/lib/schema_resolver.py command-center/confirmation/CNF-0094-council-calibration-recompute.json command-center/schema/calibration-report.schema.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "cnf0094-consumer-schema",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:31Z",
+    "ended_at": "2026-08-25T00:58:31Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Production council calibration numbers were not compared because no raw vote ledger or published report exists on this worktree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When tools/council/calibration/report.py and a per-round vote ledger land, re-run these probes against those files."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "nested-fanin-engineer",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "calibration-report",
+    "observations": [
+      {
+        "name": "synthetic-hand-computed-brier-weighted",
+        "measured": "201/850",
+        "method": "exact-Fraction from raw ballots vs independently stored hand_computed.json",
+        "anchor": "command-center/p2-wave/probes/CNF-0094/fixtures/hand_computed.json"
+      },
+      {
+        "name": "synthetic-control-matched",
+        "measured": true,
+        "method": "exact-Fraction equality on Brier/accuracy/mean-p/counts",
+        "anchor": "command-center/p2-wave/probes/CNF-0094/recompute.py:250"
+      },
+      {
+        "name": "weighted-vote-counted-as-unweighted-fired",
+        "measured": true,
+        "method": "planted unweighted Brier published as weighted on estate-run.json",
+        "anchor": "command-center/p2-wave/probes/CNF-0094/recompute.py:328"
+      },
+      {
+        "name": "production-scored-n",
+        "measured": 0,
+        "method": "census of declared production vote/calibration paths",
+        "anchor": "command-center/p2-wave/probes/CNF-0094/emit.py:PRODUCTION_CANDIDATES"
+      }
+    ],
+    "control_ids": [
+      "CNF-0094-C1-synthetic-hand-computed",
+      "CNF-0094-C2-weighted-as-unweighted",
+      "CNF-0094-C3-undeclared-aggregation-rule"
+    ],
+    "aggregation_rule": {
+      "quoted": "ABSTENTION: a ballot with choice=abstain is excluded from the Brier denominator and from weighted accuracy; it increments abstention_count and keeps its raw weight in the abstention bucket. It does not add weight to any option. DELEGATION: a ballot with choice=delegate transfers its entire raw weight to the named seat in the same round. The delegator's stated confidence is not an independently scored prediction. Weight follows the chain to a terminal aye/nay/abstain ballot. A cycle or a missing target excludes that weight (cycle_or_unresolved_weight) rather than silently dropping it. If the terminal abstains, the whole incoming chain is counted as abstention, not as a scored prediction. WEIGHTS: the Brier score is sum_i w_i*(p_i-o_i)^2 / sum_i w_i over scored (non-abstain, non-delegator, non-excluded) terminals, where p_i is the terminal's stated confidence in its own choice and o_i is 1 if that choice equals the round's resolved_outcome else 0. Treating every scored ballot as w_i=1 when any raw w_i!=1 is the arithmetic error 'a weighted vote counted as unweighted'.",
+      "source": "command-center/p2-wave/probes/CNF-0094/recompute.py:DECLARED_AGGREGATION_RULE",
+      "undeclared": false
+    },
+    "synthetic_control": {
+      "matched": true,
+      "tolerance": "exact-Fraction-equality",
+      "hand_computed": {
+        "brier_weighted": "201/850",
+        "brier_unweighted": "7/20",
+        "weighted_accuracy": "13/17",
+        "mean_confidence_weighted": "61/85",
+        "scored_n": 5,
+        "scored_weight": "17/2",
+        "abstention_count": 2,
+        "delegated_count": 1,
+        "delegated_weight": "3/2",
+        "worked": [
+          "R1 resolved=aye. D delegates 1.5 onto A so A scored weight=3.5 p=4/5 o=1 err=(1/5)^2=1/25 contrib=(7/2)*(1/25)=7/50. B weight=1 p=9/10 o=0 err=81/100. Abstain C weight=1 excluded from Brier. R1 sum w*err=7/50+81/100=19/20; sum w=9/2.",
+          "R2 resolved=aye. A w=2 p=3/5 o=1 err=4/25 contrib=8/25. B w=1 p=1/2 o=1 err=1/4. C w=1 p=7/10 o=0 err=49/100. D abstains. R2 sum w*err=8/25+1/4+49/100=53/50; sum w=4.",
+          "Pooled Brier weighted=(19/20+53/50)/(9/2+4)=(201/100)/(17/2)=201/850.",
+          "Unweighted five scored terminals: errs 1/25 + 81/100 + 4/25 + 1/4 + 49/100 = 7/4; /5 = 7/20.",
+          "Weighted accuracy: correct weight 3.5+2+1=13/2 over 17/2 = 13/17.",
+          "Mean confidence weighted: (3.5*0.8 + 1*0.9 + 2*0.6 + 1*0.5 + 1*0.7)=61/10 over 17/2 = 61/85."
+        ]
+      },
+      "recomputed": {
+        "brier_weighted": 0.23647058823529413,
+        "brier_weighted_fraction": "201/850",
+        "brier_unweighted": 0.35,
+        "brier_unweighted_fraction": "7/20",
+        "weighted_accuracy": 0.7647058823529411,
+        "weighted_accuracy_fraction": "13/17",
+        "mean_confidence_weighted": 0.7176470588235294,
+        "mean_confidence_weighted_fraction": "61/85",
+        "scored_n": 5,
+        "scored_weight": 8.5,
+        "scored_weight_fraction": "17/2",
+        "abstention_count": 2,
+        "abstention_weight": 2.5,
+        "delegated_count": 1,
+        "delegated_weight": 1.5,
+        "excluded_count": 0,
+        "excluded_weight": 0.0,
+        "raw_weight": 11.0,
+        "weight_conserved": true
+      },
+      "field_rows": [
+        {
+          "field": "brier_weighted",
+          "hand_computed": "201/850",
+          "hand_computed_float": 0.23647058823529413,
+          "recomputed": "201/850",
+          "recomputed_float": 0.23647058823529413,
+          "match": true
+        },
+        {
+          "field": "brier_unweighted",
+          "hand_computed": "7/20",
+          "hand_computed_float": 0.35,
+          "recomputed": "7/20",
+          "recomputed_float": 0.35,
+          "match": true
+        },
+        {
+          "field": "weighted_accuracy",
+          "hand_computed": "13/17",
+          "hand_computed_float": 0.7647058823529411,
+          "recomputed": "13/17",
+          "recomputed_float": 0.7647058823529411,
+          "match": true
+        },
+        {
+          "field": "mean_confidence_weighted",
+          "hand_computed": "61/85",
+          "hand_computed_float": 0.7176470588235294,
+          "recomputed": "61/85",
+          "recomputed_float": 0.7176470588235294,
+          "match": true
+        },
+        {
+          "field": "scored_n",
+          "hand_computed": 5,
+          "recomputed": 5,
+          "match": true
+        },
+        {
+          "field": "scored_weight",
+          "hand_computed": "17/2",
+          "hand_computed_float": 8.5,
+          "recomputed": "17/2",
+          "recomputed_float": 8.5,
+          "match": true
+        },
+        {
+          "field": "abstention_count",
+          "hand_computed": 2,
+          "recomputed": 2,
+          "match": true
+        },
+        {
+          "field": "delegated_count",
+          "hand_computed": 1,
+          "recomputed": 1,
+          "match": true
+        },
+        {
+          "field": "delegated_weight",
+          "hand_computed": "3/2",
+          "hand_computed_float": 1.5,
+          "recomputed": "3/2",
+          "recomputed_float": 1.5,
+          "match": true
+        }
+      ]
+    },
+    "weighted_vote_counted_as_unweighted": {
+      "fired": true,
+      "weights_vary": true,
+      "weighted_differs_from_unweighted": true,
+      "published_equals_unweighted": true,
+      "published_equals_weighted": false,
+      "published_brier": "663/2000",
+      "recomputed_weighted": "271/2000",
+      "recomputed_unweighted": "663/2000",
+      "classification": "arithmetic-error"
+    },
+    "weighted_as_unweighted_negative_control": {
+      "fired": false,
+      "weights_vary": true,
+      "weighted_differs_from_unweighted": true,
+      "published_equals_unweighted": false,
+      "published_equals_weighted": true,
+      "published_brier": "271/2000",
+      "recomputed_weighted": "271/2000",
+      "recomputed_unweighted": "663/2000",
+      "classification": "not-this-error"
+    },
+    "undeclared_rule_control": {
+      "undeclared": true,
+      "classification": "undeclared-aggregation-rule",
+      "reason": "published report does not quote an abstention/weight/delegation rule of >=40 chars",
+      "quote_len": 0
+    },
+    "n": 10,
+    "insufficient_data": true,
+    "insufficient_data_reason": "production scored n=0 (no raw vote ledger); synthetic control n=5; estate fixture n=5",
+    "scores": {
+      "brier_score": null,
+      "brier_weighted": 0.23647058823529413,
+      "brier_unweighted": 0.35,
+      "weighted_accuracy": 0.7647058823529411,
+      "mean_confidence": 0.7176470588235294,
+      "production_brier": null
+    },
+    "estate_recomputed": {
+      "brier_weighted": 0.1355,
+      "brier_weighted_fraction": "271/2000",
+      "brier_unweighted": 0.3315,
+      "brier_unweighted_fraction": "663/2000",
+      "weighted_accuracy": 0.8666666666666667,
+      "weighted_accuracy_fraction": "13/15",
+      "mean_confidence_weighted": 0.8233333333333334,
+      "mean_confidence_weighted_fraction": "247/300",
+      "scored_n": 5,
+      "scored_weight": 15.0,
+      "scored_weight_fraction": "15",
+      "abstention_count": 2,
+      "abstention_weight": 3.0,
+      "delegated_count": 1,
+      "delegated_weight": 2.0,
+      "excluded_count": 0,
+      "excluded_weight": 0.0,
+      "raw_weight": 18.0,
+      "weight_conserved": true
+    },
+    "reliability_diagram": [
+      {
+        "bin": "[0.0,0.6)",
+        "n": 1.0,
+        "n_fraction": "1",
+        "mean_predicted": 0.5,
+        "observed_rate": 1.0
+      },
+      {
+        "bin": "[0.6,0.8)",
+        "n": 3.0,
+        "n_fraction": "3",
+        "mean_predicted": 0.6333333333333333,
+        "observed_rate": 0.6666666666666666
+      },
+      {
+        "bin": "[0.8,1.0]",
+        "n": 4.5,
+        "n_fraction": "9/2",
+        "mean_predicted": 0.8222222222222222,
+        "observed_rate": 0.7777777777777778
+      }
+    ],
+    "published_side_by_side": [
+      {
+        "field": "production_published_brier",
+        "published": null,
+        "recomputed": null,
+        "match": null
+      },
+      {
+        "field": "estate_fixture_brier_weighted",
+        "published": "663/2000",
+        "recomputed": "271/2000",
+        "match": false
+      },
+      {
+        "field": "estate_fixture_brier_unweighted",
+        "published": "663/2000",
+        "recomputed": "663/2000",
+        "match": true
+      }
+    ],
+    "answers": {
+      "recomputed_numbers_match_published_production": null,
+      "abstentions_counted_as_declared": "engine excludes abstain from the Brier denominator as quoted; no production report existed to compare",
+      "delegated_votes_counted_as_declared": "engine transfers weight to the terminal seat and does not score the delegator's confidence; no production report existed",
+      "weighted_votes_counted_as_declared": "engine uses weighted Brier; a published unweighted figure claiming to be weighted is classified arithmetic-error"
+    }
+  },
+  "extensions": {
+    "question": "Is the calibration report arithmetic correct? Recompute it from the raw per-round votes and stated confidences rather than from the report itself, and answer: do the recomputed numbers match, and does the report count abstentions, delegated votes and weighted votes the way its own specification says?",
+    "application_order": [
+      "synthetic_hand_computed_control",
+      "production_tree_census",
+      "estate_fixture_after_control"
+    ],
+    "applied_to_real_runs": true,
+    "real_runs": {
+      "production_vote_records_found": 0,
+      "production_published_reports_found": 0,
+      "production_n": 0,
+      "estate_fixture_applied": true,
+      "census": {
+        "declared_production_paths": [
+          {
+            "path": "command-center/confirmation/CNF-0069-band-calibration.json",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "command-center/confirmation/CNF-0094-council-calibration-recompute.json",
+            "present": true,
+            "bytes": 25025
+          },
+          {
+            "path": "command-center/receipts/IMP-0329.json",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "command-center/adversarial/ADV-0129-refuter-calibration.json",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "command-center/synthesis/SYN-0035.calibration-report.json",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "tools/council/calibration/report.py",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "tools/council/vote/tally.py",
+            "present": false,
+            "bytes": 0
+          },
+          {
+            "path": "tools/council/vote/weights.py",
+            "present": false,
+            "bytes": 0
+          }
+        ],
+        "declared_production_present": 1,
+        "other_vote_or_calibration_json": [
+          "command-center/p2-wave/probes/CNL-0023/vote-weight.schema.json",
+          "command-center/p2-wave/probes/CNF-0119/fixtures/d8/votes.json",
+          "command-center/p2-wave/probes/CNL-0100/fixtures/carrier-vote_rationale.json",
+          "command-center/p2-wave/probes/CNL-0089/fixtures/clean-substance-one-filler-then-vote.json",
+          "command-center/p2-wave/probes/IMP-0263/fixtures/ballots.json",
+          "platform/council/presets/C-X51-mega-calibration-tournament-30.councilspec.json",
+          "platform/council/protocols/p36-calibration-tournament.councilspec.json",
+          "command-center/confirmation/CNF-0094-council-calibration-recompute.json",
+          "command-center/schema/calibration-report.schema.json",
+          "command-center/p2-wave/probes/IMP-0329/generated/calibration-store.json",
+          "command-center/p2-wave/probes/TST-0270/fixtures/calibration_set.json",
+          "command-center/research/evidence-quality/RES-0152-confidence-band-calibration-set.json"
+        ],
+        "production_raw_vote_ledger_present": false,
+        "production_published_council_calibration_present": false,
+        "note": "IMP-0329 tools/council/calibration/report.py is absent on this worktree, as are IMP-0302 tally.py and IMP-0318 weights.py. No production per-round vote ledger was found. Application after the control is therefore a census of those absences plus an independent estate fixture, not a silent claim that a missing report matched."
+      }
+    },
+    "findings": [
+      {
+        "id": "F1",
+        "classification": "undeclared-aggregation-rule",
+        "scope": "production",
+        "detail": "IMP-0329 tools/council/calibration/report.py is absent on this worktree, as are IMP-0302 tally.py and IMP-0318 weights.py. No production per-round vote ledger was found. Application after the control is therefore a census of those absences plus an independent estate fixture, not a silent claim that a missing report matched."
+      },
+      {
+        "id": "F2",
+        "classification": "arithmetic-error",
+        "scope": "estate-fixture",
+        "detail": "A published figure equal to the unweighted Brier, while claiming weighted aggregation and while weights vary, is classified arithmetic-error. Detector fired=True weighted=271/2000 unweighted=663/2000."
+      },
+      {
+        "id": "F3",
+        "classification": "not-overclaim",
+        "scope": "production",
+        "detail": "No production published council calibration numbers were compared as matching. The control matched; production application is a census of absence."
+      }
+    ],
+    "cloud_ok": false,
+    "quoted_rule_line": 18
+  }
+}

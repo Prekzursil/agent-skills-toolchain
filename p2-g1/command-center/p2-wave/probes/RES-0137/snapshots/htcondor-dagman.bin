@@ -1,0 +1,1259 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="readthedocs-addons-api-version" content="1"><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAGMan Introduction &mdash; HTCondor Manual 25.13.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/htcondor-manual.css?v=0a1bb2d1" />
+
+  
+    <link rel="shortcut icon" href="../_static/logo.svg"/>
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2c147562"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=fa70f278"></script>
+      <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+      <script type="module">import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.5.0/dist/mermaid.esm.min.mjs";
+
+
+
+
+
+const initStyles = () => {
+    const defaultStyle = document.createElement('style');
+    defaultStyle.textContent = `pre.mermaid {
+    /* Same as .mermaid-container > pre */
+    display: block;
+    width: 100%;
+}
+
+pre.mermaid > svg {
+    /* Same as .mermaid-container > pre > svg */
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}`;
+    document.head.appendChild(defaultStyle);
+
+    const fullscreenStyle = document.createElement('style');
+    fullscreenStyle.textContent = `.mermaid-container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+}
+
+.mermaid-container > pre {
+    display: block;
+    width: 100%;
+}
+
+.mermaid-container > pre > svg {
+    height: 500px;
+    width: 100%;
+    max-width: 100% !important;
+}
+
+.mermaid-fullscreen-btn {
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: #333;
+}
+
+.mermaid-fullscreen-btn:hover {
+    opacity: 100% !important;
+    background: rgba(255, 255, 255, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-btn.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-btn.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal {
+    display: none;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 95vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.98);
+    z-index: 9999;
+    padding: 20px;
+    overflow: auto;
+}
+
+.mermaid-fullscreen-modal.dark-theme {
+    background: rgba(0, 0, 0, 0.98);
+}
+
+.mermaid-fullscreen-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen {
+    position: relative;
+    width: 95vw;
+    height: 90vh;
+    max-width: 95vw;
+    max-height: 90vh;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen.dark-theme {
+    background: #1a1a1a;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+}
+
+.mermaid-container-fullscreen pre.mermaid {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mermaid-container-fullscreen .mermaid svg {
+    height: 100% !important;
+    width: 100% !important;
+    cursor: grab;
+}
+
+.mermaid-fullscreen-close {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+    font-size: 24px;
+    line-height: 1;
+    color: #333;
+}
+
+.mermaid-fullscreen-close:hover {
+    background: white;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+}
+
+.mermaid-fullscreen-close.dark-theme {
+    background: rgba(50, 50, 50, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.mermaid-fullscreen-close.dark-theme:hover {
+    background: rgba(60, 60, 60, 1);
+    box-shadow: 0 6px 16px rgba(255, 255, 255, 0.2);
+}
+
+.mermaid-fullscreen-modal .mermaid-fullscreen-btn {
+    display: none !important;
+}`;
+    document.head.appendChild(fullscreenStyle);
+}
+
+// Detect if page has dark background
+const isDarkTheme = () => {
+    // We use a set of heuristics:
+    // 1. Check for common dark mode classes or attributes
+    // 2. Check computed background color brightness
+    if (document.documentElement.classList.contains('dark') ||
+        document.documentElement.getAttribute('data-theme') === 'dark' ||
+        document.body.classList.contains('dark') ||
+        document.body.getAttribute('data-theme') === 'dark') {
+        // console.log("Dark theme detected via class/attribute");
+        return true;
+    }
+    if (document.documentElement.classList.contains('light') ||
+        document.documentElement.getAttribute('data-theme') === 'light' ||
+        document.body.classList.contains('light') ||
+        document.body.getAttribute('data-theme') === 'light') {
+        // console.log("Light theme detected via class/attribute");
+        return false;
+    }
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        // console.log("Dark theme detected via prefers-color-scheme");
+        return true;
+    }
+    const bgColor = window.getComputedStyle(document.body).backgroundColor;
+    const match = bgColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+        // console.log("Background color brightness:", brightness);
+        return brightness < 128;
+    }
+    // console.log("No dark or light theme detected, defaulting to light theme");
+    return false;
+};
+
+let darkTheme = isDarkTheme();
+let modal = null;
+let modalContent = null;
+let previousScrollOffset = [window.scrollX, window.scrollY];
+
+const runMermaid = async (rerun) => {
+    console.log("Running mermaid diagrams, rerun =", rerun);
+    // clear all existing mermaid charts
+    let all_mermaids = document.querySelectorAll(".mermaid");
+
+    if (rerun) {
+        all_mermaids.forEach((el) => {
+            if(!el.hasAttribute("data-original-code")) {
+                // store original code
+                // console.log(`Storing original code for first run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+            if(el.getAttribute("data-processed") === "true") {
+                // remove and restore original
+                el.removeAttribute("data-processed");
+                // console.log(`Restoring original code for re-run: `, el.getAttribute('data-original-code'));
+                el.innerHTML = el.getAttribute('data-original-code');
+            } else {
+                // store original code
+                // console.log(`Storing original code for re-run: `, el.innerHTML);
+                el.setAttribute('data-original-code', el.innerHTML);
+            }
+        });
+        await mermaid.run();
+    }
+
+    all_mermaids = document.querySelectorAll(".mermaid");
+    const mermaids_processed = document.querySelectorAll(".mermaid[data-processed='true']");
+
+    if ("False" === "True") {
+        const mermaids_to_add_zoom = -1 === -1 ? all_mermaids.length : -1;
+        if(mermaids_to_add_zoom > 0) {
+            var svgs = d3.selectAll("");
+            if(all_mermaids.length !== mermaids_processed.length) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else if(svgs.size() !== mermaids_to_add_zoom) {
+                setTimeout(() => runMermaid(false), 200);
+                return;
+            } else {
+                svgs.each(function() {
+                    var svg = d3.select(this);
+                    svg.html("<g class='wrapper'>" + svg.html() + "</g>");
+                    var inner = svg.select("g");
+                    var zoom = d3.zoom().on("zoom", function(event) {
+                        inner.attr("transform", event.transform);
+                    });
+                    svg.call(zoom);
+                });
+            }
+        }
+    } else if(all_mermaids.length !== mermaids_processed.length) {
+        // Wait for mermaid to process all diagrams
+        setTimeout(() => runMermaid(false), 200);
+        return;
+    }
+
+    // Stop here if not adding fullscreen capability
+    if ("True" !== "True") return;
+
+    if (modal !== null ) {
+        // Destroy existing modal
+        modal.remove();
+        modal = null;
+        modalContent = null;
+    }
+
+    modal = document.createElement('div');
+    modal.className = 'mermaid-fullscreen-modal' + (darkTheme ? ' dark-theme' : '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Fullscreen diagram viewer');
+    modal.innerHTML = `
+        <button class="mermaid-fullscreen-close${darkTheme ? ' dark-theme' : ''}" aria-label="Close fullscreen">✕</button>
+        <div class="mermaid-container-fullscreen${darkTheme ? ' dark-theme' : ''}"></div>
+    `;
+    document.body.appendChild(modal);
+
+    modalContent = modal.querySelector('.mermaid-container-fullscreen');
+    const closeBtn = modal.querySelector('.mermaid-fullscreen-close');
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modalContent.innerHTML = '';
+        document.body.style.overflow = ''
+        window.scrollTo({left: previousScrollOffset[0], top: previousScrollOffset[1], behavior: 'instant'});
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    document.querySelectorAll('.mermaid').forEach((mermaidDiv) => {
+        if (mermaidDiv.parentNode.classList.contains('mermaid-container') ||
+            mermaidDiv.closest('.mermaid-fullscreen-modal')) {
+            // Already processed, adjust button class if needed
+            const existingBtn = mermaidDiv.parentNode.querySelector('.mermaid-fullscreen-btn');
+            if (existingBtn) {
+                existingBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+            }
+            return;
+        }
+
+        const container = document.createElement('div');
+        container.className = 'mermaid-container';
+        mermaidDiv.parentNode.insertBefore(container, mermaidDiv);
+        container.appendChild(mermaidDiv);
+
+        const fullscreenBtn = document.createElement('button');
+        fullscreenBtn.className = 'mermaid-fullscreen-btn' + (darkTheme ? ' dark-theme' : '');
+        fullscreenBtn.setAttribute('aria-label', 'View diagram in fullscreen');
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.style.opacity = '50%';
+
+        // Calculate dynamic position based on diagram's margin and padding
+        const diagramStyle = window.getComputedStyle(mermaidDiv);
+        const marginTop = parseFloat(diagramStyle.marginTop) || 0;
+        const marginRight = parseFloat(diagramStyle.marginRight) || 0;
+        const paddingTop = parseFloat(diagramStyle.paddingTop) || 0;
+        const paddingRight = parseFloat(diagramStyle.paddingRight) || 0;
+        fullscreenBtn.style.top = `${marginTop + paddingTop + 4}px`;
+        fullscreenBtn.style.right = `${marginRight + paddingRight + 4}px`;
+
+        fullscreenBtn.addEventListener('click', () => {
+            previousScrollOffset = [window.scroll, window.scrollY];
+            const clone = mermaidDiv.cloneNode(true);
+            modalContent.innerHTML = '';
+            modalContent.appendChild(clone);
+
+            const svg = clone.querySelector('svg');
+            if (svg) {
+                svg.removeAttribute('width');
+                svg.removeAttribute('height');
+                svg.style.width = '100%';
+                svg.style.height = 'auto';
+                svg.style.maxWidth = '100%';
+                svg.style.sdisplay = 'block';
+
+                if ("False" === "True") {
+                    setTimeout(() => {
+                        const g = svg.querySelector('g');
+                        if (g) {
+                            var svgD3 = d3.select(svg);
+                            svgD3.html("<g class='wrapper'>" + svgD3.html() + "</g>");
+                            var inner = svgD3.select("g");
+                            var zoom = d3.zoom().on("zoom", function(event) {
+                                inner.attr("transform", event.transform);
+                            });
+                            svgD3.call(zoom);
+                        }
+                    }, 100);
+                }
+            }
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+        container.appendChild(fullscreenBtn);
+    });
+};
+
+const load = async () => {
+    initStyles();
+
+    await runMermaid(true);
+
+    const reRunIfThemeChanges = async () => {
+        const newDarkTheme = isDarkTheme();
+        if (newDarkTheme !== darkTheme) {
+            darkTheme = newDarkTheme;
+            console.log("Theme change detected, re-running mermaid with", darkTheme ? "dark" : "default", "theme");
+            await mermaid.initialize(
+                {...JSON.parse(
+                    `{"startOnLoad": false}`
+                ),
+                ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+                }
+            );
+            await runMermaid(true);
+        }
+    };
+
+    // Update theme classes when theme changes
+    const themeObserver = new MutationObserver(reRunIfThemeChanges);
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+    themeObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme']
+    });
+};
+
+
+
+
+
+console.log("Initializing mermaid with", darkTheme ? "dark" : "default", "theme");
+mermaid.initialize(
+    {...JSON.parse(
+        `{"startOnLoad": false}`
+    ),
+    ...{ darkMode: darkTheme, theme: darkTheme ? 'dark' : 'default' },
+    }
+);
+
+window.addEventListener("load", load);
+window.runMermaid = runMermaid;</script>
+      <script src="../_static/js/anchor-ref.js?v=b235d8b5"></script>
+    <script src="../_static/js/theme.js"></script>
+    <script src="../_static/js/versions.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Running and Managing DAGMan" href="dagman-interaction.html" />
+    <link rel="prev" title="DAGMan Workflows" href="index.html" /> 
+<script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="htcondor" /><meta name="readthedocs-version-slug" content="latest" /><meta name="readthedocs-resolver-filename" content="/automated-workflows/dagman-introduction.html" /><meta name="readthedocs-http-status" content="200" /></head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            HTCondor Manual
+          </a>
+              <div class="switch-menus">
+                <div class="version-switch"></div>
+                <div class="language-switch"></div>
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Quick start guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../users-manual/quick-start-guide.html">Users’ Quick Start Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-htcondor/index.html">Downloading and Installing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview/index.html">Overview</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference Manuals</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../users-manual/index.html">Users’ Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../admin-manual/index.html">Administrators’ Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../classads/index.html">ClassAds</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">DAGMan Workflows</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">DAGMan Introduction</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#describing-workflows-with-dagman">Describing Workflows with DAGMan</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#example-diamond-dag">Example: Diamond DAG</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#job">JOB</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parent-child-relationships">PARENT/CHILD Relationships</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#weak-dependencies">Weak Dependencies</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#scripts">Scripts</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#script-types">Script Types</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#defer-retries">DEFER retries</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#debug-file">DEBUG file</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scripts-as-part-of-a-dag-workflow">Scripts as part of a DAG workflow</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#examples-that-use-pre-or-post-scripts">Examples that use PRE or POST scripts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#special-script-argument-macros">Special Script Argument Macros</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#node-submit-descriptions">Node Submit Descriptions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#inline-submit-descriptions">Inline Submit Descriptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#submit-description-command">SUBMIT-DESCRIPTION command</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#external-file-descriptions">External File Descriptions</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dagman-specific-information-macros">DAGMan Specific Information Macros</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-interaction.html">Running and Managing DAGMan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-completion.html">DAGMan Completion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-using-other-dags.html">Composing Workflows from DAGs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-advance-functionality.html">Advanced DAGMan Functionality</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-information-files.html">Informational Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dagman-reference.html">Quick Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/python-bindings/index.html">Python Bindings</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Additional Docs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../cloud-computing/index.html">Cloud Computing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../grid-computing/index.html">Grid Computing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../platform-specific/index.html">Platform-Specific Information</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq/index.html">Recipes, Examples, and Other Answers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../version-history/index.html">Version History and Release Notes</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference, Glossary and Index</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../man-pages/index.html">Commands Reference (man pages)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../classad-attributes/index.html">ClassAd Attributes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../codes-other-values/index.html">Codes and Other Needed Values</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../codes-other-values/glossary.html">Glossary</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">HTCondor Manual</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">DAGMan Workflows</a></li>
+      <li class="breadcrumb-item active">DAGMan Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/htcondor/htcondor/blob/main/docs/automated-workflows/dagman-introduction.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="dagman-introduction">
+<span id="dagman-workflows"></span><h1>DAGMan Introduction<a class="headerlink" href="#dagman-introduction" title="Link to this heading"></a></h1>
+<p><span class="target" id="index-0"></span> 
+<span class="target" id="index-1"></span> 
+<span class="target" id="index-2"></span> 
+<span class="target" id="index-3"></span> </p>
+<p><span class="target" id="index-4"></span> </p>
+<section id="describing-workflows-with-dagman">
+<h2>Describing Workflows with DAGMan<a class="headerlink" href="#describing-workflows-with-dagman" title="Link to this heading"></a></h2>
+<p>A DAGMan workflow is described in a <strong>DAG description file</strong>. This file specifies
+the nodes of the DAG as well as the dependencies that order them.</p>
+<p>A <strong>node</strong> within a DAG represents a unit of work. It contains the following:</p>
+<ul class="simple">
+<li><p><strong>List of Jobs</strong>: A collection of one or more HTCondor jobs, defined
+in a single submit description.</p></li>
+<li><p><strong>PRE Script</strong> (optional): A script that runs before the list of jobs is submitted.
+Typically used to verify that all inputs are valid.</p></li>
+<li><p><strong>POST Script</strong> (optional): A script that runs after the list of jobs finishes.
+Typically used to verify outputs and clean up temporary files.</p></li>
+</ul>
+<p>The following diagram illustrates the elements of a node – every
+node must contain a list of jobs, with an optional pre and an optional
+post script.</p>
+<pre align="center" class="mermaid align-center">
+        flowchart LR
+ Start((Start)) --&gt; JOBS
+ Start --&gt; PRE[Pre-Script]
+ subgraph DAG Node
+ PRE --&gt; JOBS[List of Jobs]
+ JOBS --&gt; POST[Post-Script]
+ end
+ JOBS --&gt; End((End))
+ POST --&gt; End((End))
+    </pre><p>An <strong>edge</strong> in DAGMan describes a dependency between two nodes. DAG edges are
+directional; each has a <strong>parent</strong> and a <strong>child</strong>, where the parent node must
+finish running before the child starts. Any node can have an unlimited number
+of parents and children.</p>
+<section id="example-diamond-dag">
+<h3>Example: Diamond DAG<a class="headerlink" href="#example-diamond-dag" title="Link to this heading"></a></h3>
+<aside class="sidebar">
+<p class="sidebar-title">Diamond DAG</p>
+<pre align="center" class="mermaid align-center">
+        flowchart TD
+ A --&gt; B &amp; C
+ B &amp; C --&gt; D
+    </pre></aside>
+<p>A simple diamond-shaped DAG, as shown on the right, will be used in examples. This
+four-node DAG is described as follows in the DAG description file:</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG description file</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond.dag</span>
+
+<span class="k">JOB</span> A A.sub
+<span class="k">JOB</span> B B.sub
+<span class="k">JOB</span> C C.sub
+<span class="k">JOB</span> D D.sub
+<span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="job">
+<span id="dagman-job"></span><h2>JOB<a class="headerlink" href="#job" title="Link to this heading"></a></h2>
+<p>The <a id="JOB-Usage-5" class="dag-cmd" href="../automated-workflows/dagman-reference.html#JOB">JOB</a> command specifies a list of one or more HTCondor jobs that
+become the core of a node in the DAG. The syntax used for each <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#JOB">JOB</a>
+command is:</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">JOB</span> NodeName SubmitDescription <span class="k">[DIR</span> directory] <span class="k">[NOOP]</span> <span class="k">[DONE]</span>
+</pre></div>
+</div>
+<p>A <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#JOB">JOB</a> entry maps a <em>NodeName</em> to an HTCondor submit description.
+The <em>NodeName</em> uniquely identifies a node within the DAG description file and in
+output messages, and must be unique within the DAG.</p>
+<p>The values defined for <em>NodeName</em> and <em>SubmitDescription</em> are case
+sensitive, as file names in a file system are case sensitive. The
+<em>NodeName</em> can be any string that contains no white space, except for the
+words <em>PARENT</em> and <em>CHILD</em> (in upper, lower, or mixed case). <em>NodeName</em>
+also cannot contain special characters (<code class="docutils literal notranslate"><span class="pre">.</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">+</span></code>) which are reserved
+for system use.</p>
+<p>The optional <em>DIR</em> keyword specifies a working directory for this node,
+from which the HTCondor jobs will be submitted, and from which a <em>PRE</em>
+and/or <em>POST</em> script will be run. If a relative directory is specified,
+it is relative to the current working directory as the DAG is submitted.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A DAG containing <em>DIR</em> specifications cannot be run in conjunction with
+the <em>-usedagdir</em> command-line argument to <a class="tool" href="../man-pages/condor_submit_dag.html">condor_submit_dag</a>.</p>
+</div>
+<p>The optional <em>NOOP</em> keyword identifies a no-operation node, meaning the
+list of jobs will not be submitted to HTCondor. DAGMan will still execute
+any PRE and/or POST scripts associated with the node. Marking a node
+with <em>NOOP</em> is useful for debugging complex DAG structures without
+changing the flow of the DAG.</p>
+<p>The optional <em>DONE</em> keyword identifies a node as already
+completed, meaning neither the list of jobs nor scripts will be
+executed. This is mainly used by Rescue DAGs generated by DAGMan
+itself in the event of a failure to complete the workflow.</p>
+</section>
+<section id="parent-child-relationships">
+<span id="dag-node-dependencies"></span><h2>PARENT/CHILD Relationships<a class="headerlink" href="#parent-child-relationships" title="Link to this heading"></a></h2>
+<p><span class="target" id="index-6"></span> 
+The <a id="PARENT/CHILD-Usage-7" class="dag-cmd" href="../automated-workflows/dagman-reference.html#PARENT/CHILD">PARENT/CHILD</a> command specifies the dependencies within the DAG.
+Nodes are parents and/or children of other nodes within the DAG. By default, a parent
+node must be completed successfully before any of its children may be started, and a
+child node may only be started once all of its parents have successfully completed.
+This default (<em>strong</em>) behavior can be relaxed per-dependency with the optional
+<em>WEAK</em> keyword; see <a class="reference internal" href="#dag-weak-dependencies"><span class="std std-ref">Weak Dependencies</span></a> below.</p>
+<p>The syntax used for each dependency (<a class="dag-cmd" href="../automated-workflows/dagman-reference.html#PARENT/CHILD">PARENT/CHILD</a>) command is</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="err">[WEAK]</span> <span class="err">PARENT</span> <span class="err">ParentNodeName</span> <span class="err">[ParentNodeName2</span> <span class="err">...</span> <span class="err">]</span> <span class="err">CHILD</span> <span class="err">ChildNodeName</span> <span class="err">[ChildNodeName2</span> <span class="err">...</span> <span class="err">]</span>
+</pre></div>
+</div>
+<aside class="sidebar">
+<p class="sidebar-title">Creating Multiple Dependencies for Nodes</p>
+<p>Multiple node dependencies can easily be made in a single line
+as shown below:</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Example DAG description declaring multiple node dependencies</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">PARENT</span> <span class="s">p1</span> <span class="s">p2</span> <span class="k">CHILD</span> <span class="s">c1</span> <span class="s">c2</span>
+</pre></div>
+</div>
+</div>
+<pre align="center" class="mermaid align-center">
+        flowchart TD
+ p1 &amp; p2 --&gt; c1 &amp; c2
+    </pre></aside>
+<p>The <em>PARENT</em> keyword is followed by one or more <em>ParentNodeName(s)</em>. The
+<em>CHILD</em> keyword is followed by one or more <em>ChildNodeName(s)</em>. Each child
+node depends on every parent node within the line. A single line in the
+input file can specify the dependencies from one or more parents to one
+or more children. The diamond-shaped DAG example may specify the
+dependencies with</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG description for node dependencies</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+<p>An alternative specification for the diamond-shaped DAG may specify some
+or all of the dependencies on separate lines:</p>
+<div class="literal-block-wrapper docutils container" id="id4">
+<div class="code-block-caption"><span class="caption-text">Alternate example Diamond DAG description for node dependencies</span><a class="headerlink" href="#id4" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="k">CHILD</span> <span class="s">D</span>
+<span class="k">PARENT</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+<section id="weak-dependencies">
+<span id="dag-weak-dependencies"></span><h3>Weak Dependencies<a class="headerlink" href="#weak-dependencies" title="Link to this heading"></a></h3>
+<p><span class="target" id="index-8"></span> 
+By default, a dependency is <em>strong</em>: a child node can only run once every
+one of its parents has <strong>completed successfully</strong>. Prefixing a dependency
+declaration with the optional <em>WEAK</em> keyword relaxes this: a child of a
+weak dependency only requires that its parent has <strong>finished executing</strong>,
+regardless of whether that parent succeeded or failed.</p>
+<div class="literal-block-wrapper docutils container" id="id5">
+<div class="code-block-caption"><span class="caption-text">Example DAG description declaring a weak dependency</span><a class="headerlink" href="#id5" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="err">WEAK</span> <span class="err">PARENT</span> <span class="err">A</span> <span class="err">CHILD</span> <span class="err">B</span>
+</pre></div>
+</div>
+</div>
+<pre align="center" class="mermaid align-center">
+        flowchart TD
+ A -.-&gt; B
+    </pre><p>If <em>A</em> fails in the example above, <em>B</em> still runs normally instead of being
+marked <code class="docutils literal notranslate"><span class="pre">FUTILE</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Weak dependencies are <strong>not transitive</strong>. If a node with only weak
+children itself never executes – for example, because one of <em>its own</em>
+parents failed via a <em>strong</em> dependency – its children are still
+marked <code class="docutils literal notranslate"><span class="pre">FUTILE</span></code>, even though the dependency on it is weak. A node that
+never ran cannot satisfy any dependency, weak or strong, of its own
+children. Only the node immediately upstream of a failure benefits from
+the weak relaxation.</p>
+</div>
+<p>If the same <em>PARENT</em>/<em>CHILD</em> pair is declared more than once with different
+strengths, the <em>strong</em> declaration always wins, regardless of the order the
+two declarations appear in the DAG file.</p>
+<p>A node that fails but whose only children are reached via weak dependencies
+is still reported and counted as a failed node for the current run. However,
+because it already executed and therefore satisfied every one of its weak
+children, a Rescue DAG generated afterward marks that node as <code class="docutils literal notranslate"><span class="pre">DONE</span></code>
+instead of leaving it to be re-run.</p>
+<aside class="sidebar">
+<p class="sidebar-title">Script Execution Times Based on Type</p>
+<ul class="simple">
+<li><p>PRE : Executes before the node’s associated jobs are submitted</p></li>
+<li><p>POST : Executes once all of the node’s associated jobs exit the
+<em>condor_schedd</em> queue.</p></li>
+<li><p>HOLD : Executes when any job associated with the node goes into
+the held state.</p></li>
+</ul>
+</aside>
+</section>
+</section>
+<section id="scripts">
+<span id="dag-node-scripts"></span><h2>Scripts<a class="headerlink" href="#scripts" title="Link to this heading"></a></h2>
+<p>The optional <a id="SCRIPT-Usage-9" class="dag-cmd" href="../automated-workflows/dagman-reference.html#SCRIPT">SCRIPT</a> command specifies processing to be done relative
+to the execution of the node’s associated jobs, depending on the script type. All scripts
+run on the Access Point and not the Execution Points where the actual jobs are
+likely to run.</p>
+<p><span class="target" id="index-10"></span> </p>
+<section id="script-types">
+<h3>Script Types<a class="headerlink" href="#script-types" title="Link to this heading"></a></h3>
+<p><span class="target" id="index-11"></span> 
+<span class="target" id="index-12"></span> 
+<span class="target" id="index-13"></span> 
+Processing done before the list of jobs is submitted is called a <em>PRE</em> script. Processing
+done after the list of jobs completes execution is called a <em>POST</em> script. The <em>PRE</em>
+and <em>POST</em> scripts are considered part of the DAG node structure. Additionally,
+there is a <em>HOLD</em> script that runs when any job associated with the node goes into
+the held state; it is not considered part of the DAG workflow and is run on a
+best-effort basis. If it does not complete successfully, it has no effect on the
+overall workflow and no error is reported.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The script executable does not have to be a shell script (Unix) or batch file
+(Windows), but should be lightweight since it runs directly on the AP.</p>
+</div>
+<p>The syntax used for <em>SCRIPT</em> commands is</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># PRE-Script</span>
+<span class="k">SCRIPT</span> [<span class="k">DEFER</span> <span class="s">status</span> <span class="s">time</span>] [<span class="k">DEBUG</span> <span class="s">filename</span> <span class="s">type</span>] <span class="k">PRE</span> &lt;<span class="s">NodeName</span> | <span class="vm">ALL_NODES</span>&gt; <span class="s">ExecutableName</span> [<span class="s">arguments</span>]
+<span class="c1"># POST-Script</span>
+<span class="k">SCRIPT</span> [<span class="k">DEFER</span> <span class="s">status</span> <span class="s">time</span>] [<span class="k">DEBUG</span> <span class="s">filename</span> <span class="s">type</span>] <span class="k">POST</span> &lt;<span class="s">NodeName</span> | <span class="vm">ALL_NODES</span>&gt; <span class="s">ExecutableName</span> [<span class="s">arguments</span>]
+<span class="c1"># HOLD-Script</span>
+<span class="k">SCRIPT</span> [<span class="k">DEFER</span> <span class="s">status</span> <span class="s">time</span>] [<span class="k">DEBUG</span> <span class="s">filename</span> <span class="s">type</span>] <span class="k">HOLD</span> &lt;<span class="s">NodeName</span> | <span class="vm">ALL_NODES</span>&gt; <span class="s">ExecutableName</span> [<span class="s">arguments</span>]
+</pre></div>
+</div>
+<p>The <em>NodeName</em> identifies the node to which the script is attached. The <em>ExecutableName</em>
+specifies the executable (e.g., shell script or batch file) to be executed and may not
+contain spaces. The optional <em>arguments</em> are command line arguments to the script,
+including delimiting spaces. Both <em>ExecutableName</em> and optional <em>arguments</em> are case sensitive.</p>
+<p>Scripts are commonly used to do simple tasks such as the following:</p>
+<ul class="simple">
+<li><p>PRE: Verify inputs for a node’s jobs that are produced by a parent node.</p></li>
+<li><p>POST: Turn an execution failure of the list of jobs into a successful node
+completion so the DAG doesn’t fail given specific exit codes.</p></li>
+<li><p>HOLD: Notify the user of a held job via email.</p></li>
+</ul>
+</section>
+<section id="defer-retries">
+<h3>DEFER retries<a class="headerlink" href="#defer-retries" title="Link to this heading"></a></h3>
+<p>The optional <em>DEFER</em> keyword causes a retry of only the script if the
+execution of the script exits with the exit code given by <em>status</em>. The
+retry occurs after at least <em>time</em> seconds, rather than being considered
+failed. While waiting for the retry, the script does not count against a
+<em>maxpre</em> or <em>maxpost</em> limit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The ordering of the <em>DEFER</em> keyword within the <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#SCRIPT">SCRIPT</a> specification is
+fixed. It must come directly after the <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#SCRIPT">SCRIPT</a> keyword; this is done to
+avoid backward compatibility issues for any DAG with a <em>NodeName</em> of DEFER.</p>
+</div>
+</section>
+<section id="debug-file">
+<span id="script-debugging"></span><h3>DEBUG file<a class="headerlink" href="#debug-file" title="Link to this heading"></a></h3>
+<p>The optional <em>DEBUG</em> keyword will capture a script’s specified standard
+output streams (<strong>STDOUT</strong> and/or <strong>STDERR</strong>) and write them to a specified
+debug file. This keyword is followed by two pieces of information:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li><p><em>Filename</em>: File to write captured output into.</p></li>
+<li><dl class="simple">
+<dt><em>Type</em>: Type of output to capture. Takes one of the following options:</dt><dd><ol class="arabic simple">
+<li><p><strong>STDOUT</strong></p></li>
+<li><p><strong>STDERR</strong></p></li>
+<li><p><strong>ALL</strong> (Both STDOUT &amp; STDERR)</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+</ol>
+</div></blockquote>
+<p>This keyword is fixed to appear prior to the script type (PRE, POST, HOLD)
+and after any declared <em>DEFER</em> retries.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>DAGMan will create the specified debug file if it does not already
+exist. Otherwise, the debug file is appended to.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It is safe to have multiple scripts write to the same file, as
+DAGMan captures all of the scripts’ output and writes everything
+at one time. This write also includes a dividing banner with
+useful information regarding that script’s execution.</p>
+</div>
+</section>
+<section id="scripts-as-part-of-a-dag-workflow">
+<h3>Scripts as part of a DAG workflow<a class="headerlink" href="#scripts-as-part-of-a-dag-workflow" title="Link to this heading"></a></h3>
+<p>Scripts are executed on the access point; the access point is not
+necessarily the same machine upon which the node’s jobs are run. Further,
+a single cluster of HTCondor jobs may be spread across several machines.</p>
+<p>If the PRE script fails, then the HTCondor jobs associated with the node
+are not submitted, and the POST script is not run either (by default). However,
+if the list of jobs is submitted, and there is a POST script, the POST script is always
+run once the list of jobs finishes. The behavior when the PRE script fails may be
+changed to run the POST script by setting configuration variable
+<a class="macro" href="../admin-manual/configuration/dagman.html#DAGMAN_ALWAYS_RUN_POST">DAGMAN_ALWAYS_RUN_POST</a> to <code class="docutils literal notranslate"><span class="pre">True</span></code> or by passing the <strong>-AlwaysRunPost</strong>
+argument to <a class="tool" href="../man-pages/condor_submit_dag.html">condor_submit_dag</a>.</p>
+</section>
+<section id="examples-that-use-pre-or-post-scripts">
+<h3>Examples that use PRE or POST scripts<a class="headerlink" href="#examples-that-use-pre-or-post-scripts" title="Link to this heading"></a></h3>
+<p>Examples using the diamond-shaped DAG. The first example uses a PRE script
+to expand a compressed file needed as input for the associated HTCondor jobs
+of nodes B and C. The DAG description file:</p>
+<div class="literal-block-wrapper docutils container" id="id6">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG description using PRE Scripts</span><a class="headerlink" href="#id6" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond.dag</span>
+
+<span class="k">JOB</span>  A  A.sub
+<span class="k">JOB</span>  B  B.sub
+<span class="k">JOB</span>  C  C.sub
+<span class="k">JOB</span>  D  D.sub
+<span class="k">SCRIPT</span> <span class="k">PRE</span>  <span class="s">B</span>  <span class="s">pre.sh</span> <span class="s">$NODE</span> <span class="s">.gz</span>
+<span class="k">SCRIPT</span> <span class="k">PRE</span>  <span class="s">C</span>  <span class="s">pre.sh</span> <span class="s">$NODE</span> <span class="s">.gz</span>
+<span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+<p>The script <code class="docutils literal notranslate"><span class="pre">pre.sh</span></code> uses its command line arguments to form the file
+name of the compressed file. The script contains</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/sh</span>
+gunzip<span class="w"> </span><span class="si">${</span><span class="nv">1</span><span class="si">}${</span><span class="nv">2</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>Therefore, the PRE script invokes</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>gunzip<span class="w"> </span>B.gz
+</pre></div>
+</div>
+<p>for node B, which uncompresses file <code class="docutils literal notranslate"><span class="pre">B.gz</span></code>, placing the result in file <code class="docutils literal notranslate"><span class="pre">B</span></code>.</p>
+<p>This second example uses the <code class="docutils literal notranslate"><span class="pre">$RETURN</span></code> macro. The DAG description file contains
+the POST script specification:</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">SCRIPT</span> <span class="k">POST</span> <span class="s">A</span> <span class="s">stage-out</span> <span class="s">job_status</span> <span class="s">$RETURN</span>
+</pre></div>
+</div>
+<p>If the first non-successful HTCondor job of node A exits with the value -1,
+the POST script is invoked as</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>stage-out<span class="w"> </span>job_status<span class="w"> </span>-1
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>DAGMan script macros must be declared individually with surrounding spaces
+to be replaced. Providing a script argument such as <code class="docutils literal notranslate"><span class="pre">job_status=$RETURN</span></code>
+will not substitute the <code class="docutils literal notranslate"><span class="pre">$RETURN</span></code> macro and pass along the entire string.</p>
+</div>
+</section>
+<section id="special-script-argument-macros">
+<span id="dag-script-macros"></span><h3>Special Script Argument Macros<a class="headerlink" href="#special-script-argument-macros" title="Link to this heading"></a></h3>
+<p>DAGMan provides the following macros to be used for node script arguments.
+These macros may only be used as individual command-line arguments
+surrounded by spaces:</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td rowspan="4"><p>All Scripts</p></td>
+<td><p>$NODE</p></td>
+<td><p>$NODE_COUNT</p></td>
+<td><p>$QUEUED_COUNT</p></td>
+</tr>
+<tr class="row-even"><td><p>$DONE_COUNT</p></td>
+<td><p>$FAILED_COUNT</p></td>
+<td><p>$FUTILE_COUNT</p></td>
+</tr>
+<tr class="row-odd"><td><p>$DAGID</p></td>
+<td><p>$DAG_STATUS</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>$RETRY</p></td>
+<td><p>$MAX_RETRIES</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td rowspan="4"><p>POST Scripts</p></td>
+<td><p>$JOBID</p></td>
+<td><p>$CLUSTERID</p></td>
+<td><p>$JOB_COUNT</p></td>
+</tr>
+<tr class="row-even"><td><p>$RETURN</p></td>
+<td><p>$SUCCESS</p></td>
+<td><p>$PRE_SCRIPT_RETURN</p></td>
+</tr>
+<tr class="row-odd"><td><p>$EXIT_CODES</p></td>
+<td><p>$EXIT_CODE_COUNTS</p></td>
+<td><p>$EXIT_CODE_LIST</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>$JOB_ABORT_COUNT</p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><span class="target" id="index-14"></span> </p>
+<p>The special macros for all scripts:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">$NODE</span></code> evaluates to the (case sensitive) string defined for <em>NodeName</em>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$RETRY</span></code> evaluates to an integer value set to 0 the first time a node
+is run, and is incremented each time the node is retried. See <a class="reference internal" href="dagman-completion.html#dag-node-success"><span class="std std-ref">Node Success/Failure</span></a>
+for the description of how to cause nodes to be retried.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$MAX_RETRIES</span></code> evaluates to an integer value set to the maximum
+number of retries for the node. Defaults to 0 if retries aren’t
+specified for a node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$DAGID</span></code> is the node’s associated <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGManJobId">DAGManJobId</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$DAG_STATUS</span></code> is the status of the DAG that is recorded in the DAGMan
+scheduler universe job’s ClassAd as <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAG_Status">DAG_Status</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The macro <code class="docutils literal notranslate"><span class="pre">$DAG_STATUS</span></code> value and definition is unrelated to the attribute named
+<code class="docutils literal notranslate"><span class="pre">DagStatus</span></code> as defined in the node status file.</p>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$NODE_COUNT</span></code> is the total number of nodes within the DAG (including
+the <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#FINAL">FINAL</a> node).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$QUEUED_COUNT</span></code> is the current number of nodes running jobs in the DAG.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$DONE_COUNT</span></code> is the current number of nodes that have completed successfully in the DAG.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$FAILED_COUNT</span></code> is the current number of nodes that have failed in the DAG.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$FUTILE_COUNT</span></code> is the current number of nodes that will never run in the DAG.</p></li>
+</ul>
+<p>Macros for POST Scripts only:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">$CLUSTERID</span></code> is the node’s associated list of jobs <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ClusterId">ClusterId</a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$JOBID</span></code> evaluates to a representation of the HTCondor job ID [ClusterId.ProcId]
+of the node job. For nodes with multiple jobs in the same cluster, the
+<a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ProcId">ProcId</a> value is the one of the last job within the cluster.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$JOB_COUNT</span></code> evaluates to the total number of jobs associated with the node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$JOB_ABORT_COUNT</span></code> is the number of jobs associated with the node that
+exited the queue with an abort event.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$SUCCESS</span></code> evaluates to <code class="docutils literal notranslate"><span class="pre">True</span></code> or <code class="docutils literal notranslate"><span class="pre">False</span></code> representing whether the node
+has been successful up to this point (PRE script and list of jobs succeeded).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$RETURN</span></code> variable evaluates to the return value of the HTCondor job
+if there is a single job within a cluster. With multiple jobs within the
+same cluster, the value will be 0 if all jobs within the cluster are
+successful. Otherwise, the value is the exit value of the first job in
+the cluster to write a terminate event.</p>
+<ul>
+<li><p>A job that dies due to a signal is reported with a <code class="docutils literal notranslate"><span class="pre">$RETURN</span></code> value
+representing the additive inverse of the signal number. For example,
+SIGKILL (signal 9) is reported as -9.</p></li>
+<li><p>A job whose batch system submission fails is reported as -1001.</p></li>
+<li><p>A job that is externally removed from the batch system queue (by something
+other than <a class="tool" href="../man-pages/condor_dagman.html">condor_dagman</a>) is reported as -1002.</p></li>
+<li><p>If the node’s jobs were skipped because of failure of the PRE script,
+the value of <code class="docutils literal notranslate"><span class="pre">$RETURN</span></code> will be -1004.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$EXIT_CODES</span></code> is an ordered, comma-separated list of <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ExitCode">ExitCode</a>s returned
+by the jobs associated with the node.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$EXIT_CODE_LIST</span></code> is a comma-separated list of each job’s <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ExitCode">ExitCode</a> ordered by
+job <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ProcId">ProcId</a>'s. Removed jobs will have no value in their position.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$EXIT_CODE_COUNTS</span></code> is an ordered, comma-separated list of the number of jobs associated
+with the node that exited with a particular <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#ExitCode">ExitCode</a>. The information
+is passed as <code class="docutils literal notranslate"><span class="pre">{ExitCode}:{Count}</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$PRE_SCRIPT_RETURN</span></code> variable evaluates to the return value of the
+PRE script of a node, if there is one. If there is no PRE script, this
+value will be -1.</p></li>
+</ul>
+<aside class="sidebar">
+<p class="sidebar-title">Example Diamond DAG Using Inline Descriptions</p>
+<div class="literal-block-wrapper docutils container" id="id7">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG description using inline submit descriptions</span><a class="headerlink" href="#id7" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond.dag</span>
+
+<span class="c1"># Job A using personal inline</span>
+<span class="c1"># submit description</span>
+<span class="k">JOB</span> A <span class="k">{</span>
+    <span class="nb">executable</span>   <span class="o">=</span> <span class="s">/path/diamond.exe</span>
+    <span class="nb">output</span>       <span class="o">=</span> <span class="s">diamond.out.$(cluster)</span>
+    <span class="nb">error</span>        <span class="o">=</span> <span class="s">diamond.err.$(cluster)</span>
+    <span class="nb">log</span>          <span class="o">=</span> <span class="s">diamond_condor.log</span>
+<span class="k">}</span>
+
+<span class="k">JOB</span> B B.sub
+<span class="k">JOB</span> C C.sub
+<span class="k">JOB</span> D D.sub
+
+<span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id8">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG using inline SUBMIT-DESCRIPTION command</span><a class="headerlink" href="#id8" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond.dag</span>
+
+<span class="c1"># Shared submit description</span>
+<span class="k">SUBMIT-DESCRIPTION</span> DiamondDesc <span class="k">{</span>
+    <span class="nb">executable</span>   <span class="o">=</span> <span class="s">/path/diamond.exe</span>
+    <span class="nb">output</span>       <span class="o">=</span> <span class="s">diamond.out.$(cluster)</span>
+    <span class="nb">error</span>        <span class="o">=</span> <span class="s">diamond.err.$(cluster)</span>
+    <span class="nb">log</span>          <span class="o">=</span> <span class="s">diamond_condor.log</span>
+
+    <span class="nb">request_cpus</span>   <span class="o">=</span> <span class="s">1</span>
+    <span class="nb">request_memory</span> <span class="o">=</span> <span class="s">1024M</span>
+    <span class="nb">request_disk</span>   <span class="o">=</span> <span class="s">10240K</span>
+<span class="k">}</span>
+
+<span class="k">JOB</span> A DiamondDesc
+<span class="k">JOB</span> B DiamondDesc
+<span class="k">JOB</span> C DiamondDesc
+<span class="k">JOB</span> D DiamondDesc
+
+<span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+</aside>
+</section>
+</section>
+<section id="node-submit-descriptions">
+<h2>Node Submit Descriptions<a class="headerlink" href="#node-submit-descriptions" title="Link to this heading"></a></h2>
+<section id="inline-submit-descriptions">
+<h3>Inline Submit Descriptions<a class="headerlink" href="#inline-submit-descriptions" title="Link to this heading"></a></h3>
+<p>Instead of using a submit description file, you can alternatively include an
+inline submit description directly inside the <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file. An inline submit
+description should be wrapped in <code class="docutils literal notranslate"><span class="pre">{</span></code> and <code class="docutils literal notranslate"><span class="pre">}</span></code> braces, with each argument
+appearing on a separate line, just like the contents of a regular submit file.</p>
+<p>This can be helpful when trying to manage lots of submit descriptions, so they
+can all be described in the same file instead of between many files.</p>
+</section>
+<section id="submit-description-command">
+<span id="dag-submit-description-cmd"></span><h3>SUBMIT-DESCRIPTION command<a class="headerlink" href="#submit-description-command" title="Link to this heading"></a></h3>
+<p>In addition to declaring inline submit descriptions as part of a node, they
+can be declared independently of nodes using the <a id="SUBMIT-DESCRIPTION-Usage-15" class="dag-cmd" href="../automated-workflows/dagman-reference.html#SUBMIT-DESCRIPTION">SUBMIT-DESCRIPTION</a> command.
+This can be helpful to reduce the size and improve the readability of a <code class="docutils literal notranslate"><span class="pre">.dag</span></code> file when
+many nodes share the same submit description.</p>
+<p>A <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#SUBMIT-DESCRIPTION">SUBMIT-DESCRIPTION</a> can be defined using the following syntax:</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">SUBMIT-DESCRIPTION</span> DescriptionName <span class="k">{</span>
+    # submit attributes go here
+<span class="k">}</span>
+</pre></div>
+</div>
+<p>An independently declared submit description must have a unique name that is
+not used by any of the nodes. It can then be linked to a node as follows:</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">JOB</span> NodeName DescriptionName
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Both <a class="dag-cmd" href="../automated-workflows/dagman-reference.html#SUBMIT-DESCRIPTION">SUBMIT-DESCRIPTION</a> and node inline submit description can use <code class="docutils literal notranslate"><span class="pre">&#64;=&lt;tag&gt;</span></code>
+to specify a custom end tag, instead of using braces (<code class="docutils literal notranslate"><span class="pre">{}</span></code>), which can then be referenced
+as <code class="docutils literal notranslate"><span class="pre">&#64;&lt;tag&gt;</span></code>.</p>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="k">SUBMIT-DESCRIPTION</span> SharedDescription <span class="k">@=DescEnd</span>
+    # Inline submit description
+<span class="k">@DescEnd</span>
+</pre></div>
+</div>
+</div>
+<aside class="sidebar">
+<p class="sidebar-title">Example Diamond DAG Using External Submit File</p>
+<div class="literal-block-wrapper docutils container" id="id9">
+<div class="code-block-caption"><span class="caption-text">Example external job submit description</span><a class="headerlink" href="#id9" title="Link to this code"></a></div>
+<div class="highlight-condor-submit notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond_job.sub</span>
+
+<span class="nb">executable</span>   <span class="o">=</span> <span class="s">/path/diamond.exe</span>
+<span class="nb">output</span>       <span class="o">=</span> <span class="s">diamond.out.$(cluster)</span>
+<span class="nb">error</span>        <span class="o">=</span> <span class="s">diamond.err.$(cluster)</span>
+<span class="nb">log</span>          <span class="o">=</span> <span class="s">diamond_condor.log</span>
+<span class="nb">request_cpus</span>   <span class="o">=</span> <span class="s">1</span>
+<span class="nb">request_memory</span> <span class="o">=</span> <span class="s">1024M</span>
+<span class="nb">request_disk</span>   <span class="o">=</span> <span class="s">10240K</span>
+
+<span class="k">queue</span>
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper docutils container" id="id10">
+<div class="code-block-caption"><span class="caption-text">Example Diamond DAG using external job submit description</span><a class="headerlink" href="#id10" title="Link to this code"></a></div>
+<div class="highlight-condor-dagman notranslate"><div class="highlight"><pre><span></span><span class="c1"># File name: diamond.dag</span>
+
+<span class="k">JOB</span>  A  diamond_job.sub
+<span class="k">JOB</span>  B  diamond_job.sub
+<span class="k">JOB</span>  C  diamond_job.sub
+<span class="k">JOB</span>  D  diamond_job.sub
+<span class="k">PARENT</span> <span class="s">A</span> <span class="k">CHILD</span> <span class="s">B</span> <span class="s">C</span>
+<span class="k">PARENT</span> <span class="s">B</span> <span class="s">C</span> <span class="k">CHILD</span> <span class="s">D</span>
+</pre></div>
+</div>
+</div>
+</aside>
+<p><span class="target" id="index-16"></span> </p>
+</section>
+<section id="external-file-descriptions">
+<h3>External File Descriptions<a class="headerlink" href="#external-file-descriptions" title="Link to this heading"></a></h3>
+<p>Each node in a DAG may use a submit description file like one that a user might
+use to submit via <a class="tool" href="../man-pages/condor_submit.html">condor_submit</a>.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>condor_submit<span class="w"> </span>submit_file.sub
+</pre></div>
+</div>
+<p>A key limitation is that each HTCondor submit description file must submit
+jobs described by a submit description containing a single <a class="subcom" href="../man-pages/htcondor-jdl.html#queue">queue</a>
+statement. Multiple <a class="subcom" href="../man-pages/htcondor-jdl.html#queue">queue</a> statements are not permitted.</p>
+<p>DAGMan does allow the submission of one or more jobs when submitting a node’s
+submit description described in an external file. However, it is recommended that a
+node contain only a single job in a cluster, because DAGMan treats the
+entire list of jobs associated with a single node as one entity, meaning that
+one job failure will result in the entire list of jobs being considered failed.
+Once declared as failed, the remaining jobs associated with the node will be
+removed from the queue.</p>
+<p>Since each node uses the same HTCondor submit description file, each node within
+the DAG runs the same list of jobs, but the <code class="docutils literal notranslate"><span class="pre">$(Cluster)</span></code>
+macro produces unique file names for each of the node’s outputs because each node
+has its own cluster of jobs.</p>
+</section>
+<section id="dagman-specific-information-macros">
+<h3>DAGMan Specific Information Macros<a class="headerlink" href="#dagman-specific-information-macros" title="Link to this heading"></a></h3>
+<p>When submitting jobs on behalf of the user, DAGMan will create custom
+submit description macros that can be utilized. The following macros are
+referable by the job submit description:</p>
+<ul class="simple">
+<li><p><strong>JOB</strong>: The node name to which these jobs belong.</p></li>
+<li><p><strong>RETRY</strong>: The current retry attempt number. First execution is 0.</p></li>
+<li><p><strong>DAGManJobId</strong>: The jobs’ associated <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGManJobId">DAGManJobId</a>.</p></li>
+<li><p><strong>DAG_STATUS</strong>: The current DAG status as described by <a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAG_Status">DAG_Status</a>
+(Intended for Final Node)</p></li>
+<li><p><strong>FAILED_COUNT</strong>: The current number of failed nodes in the DAG
+(Intended for Final node).</p></li>
+<li><p><strong>DAG_PARENT_NAMES</strong>: Comma-separated list of node names that are parents
+of the node to which these jobs belong.</p></li>
+</ul>
+<p>DAGMan will also add the following information to the jobs ClassAd:</p>
+<ul class="simple">
+<li><p><a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGManJobId">DAGManJobId</a>: Job-Id of the DAGMan job that submitted these jobs.</p></li>
+<li><p><a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGNodeName">DAGNodeName</a>: The node name to which these jobs belong.</p></li>
+<li><p><a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGManNodeRetry">DAGManNodeRetry</a>: The node’s current retry number. First execution is 0.
+This is only included if <a class="macro" href="../admin-manual/configuration/dagman.html#DAGMAN_NODE_RECORD_INFO">DAGMAN_NODE_RECORD_INFO</a> includes <code class="docutils literal notranslate"><span class="pre">Retry</span></code>.</p></li>
+<li><p><a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGParentNodeNames">DAGParentNodeNames</a>: List of parent node names.</p></li>
+<li><p><a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAG_Status">DAG_Status</a>: Current DAG status (Intended for Final Node).</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Depending on the number of parent nodes a node has, the attribute
+<a class="ad-attr" href="../classad-attributes/job-classad-attributes.html#DAGParentNodeNames">DAGParentNodeNames</a> and submit macro <strong>DAG_PARENT_NAMES</strong>
+may not be set.</p>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="DAGMan Workflows" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dagman-interaction.html" class="btn btn-neutral float-right" title="Running and Managing DAGMan" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 1990-2026, Center for High Throughput Computing, Computer Sciences Department, University of Wisconsin-Madison, Madison, WI, US. Licensed under the Apache License, Version 2.0..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

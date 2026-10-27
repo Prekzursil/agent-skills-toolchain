@@ -1,0 +1,944 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "code-to-canvas-mirror-round-trip",
+  "name": "Code-to-canvas mirror round-trip with a declared lossy boundary",
+  "description": "Lift a running UI back onto the design canvas with an EXPLICIT account of what survives the round-trip and what is lost. Three transposer paths are mutually exclusive and selected by intent - a component-system path, a live-screen MCP path, and an audit-only DOM path - so the choice is recorded rather than implicit. The gate that makes the mirror useful instead of misleading is the loss declaration: DTCG tokens and code-connected components survive, while state, routing, data and logic do not, and a mirror presented as complete is a false record. Because this pushes UI content to a third-party service, a sensitive-content screen and an owner egress checkpoint run before any transpose.",
+  "version": "1.0.0",
+  "kind": "subworkflow",
+  "categories": [
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "bp-ux-04",
+    "figma",
+    "lossy-boundary",
+    "egress-checkpoint",
+    "transpose"
+  ],
+  "flagship": false,
+  "params": {
+    "app_target": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The running or built UI to mirror."
+    },
+    "path": {
+      "type": "enum",
+      "enum": [
+        "story",
+        "mcp",
+        "html"
+      ],
+      "required": true,
+      "description": "story = component-system loop; mcp = live/localhost screens; html = audit-only DOM record. Mutually exclusive by design."
+    },
+    "token_source": {
+      "type": "path",
+      "required": true,
+      "description": "The DTCG token file. Tokens are the part that actually survives the round-trip."
+    },
+    "transpose_count": {
+      "type": "integer",
+      "default": 1,
+      "minimum": 1,
+      "maximum": 200,
+      "description": "How many screens or components to transpose. Checked against the seat quota BEFORE any call."
+    },
+    "declare_losses": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cannot be disabled in practice: the loss-declaration gate is blocking, so a false 'complete mirror' cannot be produced."
+    }
+  },
+  "roles": {
+    "path-selector": {
+      "description": "Chooses the transposer path from intent and records why, so the choice is auditable.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "egress-screener": {
+      "description": "Screens the on-screen content for sensitive data BEFORE anything leaves the machine.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "mcp__playwright__browser_take_screenshot",
+        "Write(command-center/design/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "transposer": {
+      "description": "Performs the transpose on the selected path and records the token mapping.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__generate_figma_design",
+        "mcp__figma__get_screenshot",
+        "mcp__figma__whoami"
+      ]
+    },
+    "fidelity-checker": {
+      "description": "Compares the canvas against a live screenshot and bounds the claim, since the transpose is not deterministic.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "mcp__figma__get_screenshot",
+        "mcp__playwright__browser_take_screenshot",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "owner": {
+      "description": "The human owner - the only role that may authorise pushing UI content to a third-party service.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Write(command-center/design/**)",
+      "mcp__figma__generate_figma_design",
+      "mcp__figma__get_screenshot",
+      "mcp__figma__whoami",
+      "mcp__playwright__browser_take_screenshot"
+    ],
+    "network": "full",
+    "deny": [
+      "Bash",
+      "Bash:git",
+      "Edit",
+      "Write(app/**)",
+      "Write(src/**)"
+    ],
+    "require_owner_approval": [
+      "mcp__figma__generate_figma_design"
+    ],
+    "write_paths": [
+      "command-center/design/code-to-canvas/**"
+    ],
+    "forbid_write_paths": [
+      "app/**",
+      "src/**"
+    ],
+    "source_policy": {
+      "allow_domains": [
+        "figma.com",
+        "api.figma.com"
+      ],
+      "deny_domains": [],
+      "offline_only": false,
+      "require_provenance": true,
+      "paywalled": "record-as-not-checked",
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "quota-sufficient": {
+      "predicate": "custom-expression",
+      "expression": "figma_seat_quota_remaining >= transpose_count",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "no-sensitive-content-on-screen": {
+      "predicate": "custom-expression",
+      "expression": "sensitive_content_detected == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "loss-declared": {
+      "predicate": "custom-expression",
+      "expression": "lost_list_declared == true AND survived_list_declared == true AND mirror_claimed_complete == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "choose-path",
+      "title": "S0 - choose the transposer path by intent and record why",
+      "kind": "task",
+      "role": "path-selector",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8001",
+        "title": "Select one of the three transposer paths and record the rationale",
+        "phase": "2B",
+        "question_or_target": "Pick exactly one path from the intent - component system, live screen, or audit-only DOM record - and record why, because each path loses different things and the loss declaration depends on which was used.",
+        "inputs": [
+          "params.app_target",
+          "params.path",
+          "params.token_source"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "path-selector",
+          "basis": "matching intent to the right lossy path is the decision this stage exists for"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/design/code-to-canvas/path-selection.json",
+        "output_schema": "command-center/schema/decision-record.schema.json",
+        "evidence_requirement": "the chosen path, the intent it serves, and the loss profile that path implies",
+        "tests_required": [
+          "exactly one path is selected; two selected paths is a contradiction, not a fallback",
+          "the recorded loss profile differs between the three paths, so the choice is load-bearing"
+        ],
+        "reviewer_requirement": "the fidelity-checker, which scores against the loss profile this stage declared",
+        "completion_sentinel": "SUCCESS:UX-8001 emitted only when one path is selected with its intent and loss profile recorded; otherwise FAILED:UX-8001 <reason>",
+        "retry_policy": "two strikes then default to the audit-only html path, which loses the most but risks the least",
+        "failure_classification": [
+          "path-ambiguous",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "intent-to-path selection with a per-path loss profile recorded up front"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/path-selection.json",
+          "schema_ref": "command-center/schema/decision-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8001",
+          "consumers": [
+            "quota-precheck",
+            "transpose-story",
+            "transpose-mcp",
+            "transpose-html"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "quota-precheck",
+      "title": "Seat quota is checked BEFORE a bulk transpose, not discovered during one",
+      "kind": "gate",
+      "depends_on": [
+        "choose-path"
+      ],
+      "gate_ref": "quota-sufficient"
+    },
+    {
+      "id": "sensitive-content-screen",
+      "title": "Screen the on-screen content before anything leaves the machine",
+      "kind": "task",
+      "depends_on": [
+        "quota-precheck"
+      ],
+      "role": "egress-screener",
+      "timeout_seconds": 1200,
+      "tool_permissions": [
+        "Read",
+        "mcp__playwright__browser_take_screenshot",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8002",
+        "title": "Screen every surface to be transposed for sensitive on-screen content",
+        "phase": "2B",
+        "question_or_target": "Inspect what is actually rendered - tokens in a debug panel, a real customer name, a live URL with a key - and veto the egress if anything sensitive would leave the machine.",
+        "inputs": [
+          "params.app_target",
+          "command-center/design/code-to-canvas/path-selection.json"
+        ],
+        "dependencies": [
+          "UX-8001"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "egress-screener",
+          "basis": "recognising a secret rendered in a UI is judgement; a pattern match over a screenshot is not enough"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__playwright__browser_take_screenshot",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/design/code-to-canvas/egress-screen.json",
+        "output_schema": "command-center/schema/secret-egress-map.schema.json",
+        "evidence_requirement": "per-surface screening verdict naming what was inspected, with any detected item described by CLASS and location only - never the value itself",
+        "tests_required": [
+          "a surface rendering a token-like string is VETOED and the value is not recorded in the artifact",
+          "a clean surface passes, so the screen is not a blanket refusal"
+        ],
+        "reviewer_requirement": "the owner at the egress checkpoint, who sees the classes found and not the values",
+        "completion_sentinel": "SUCCESS:UX-8002 emitted only when every surface has a screening verdict and no artifact contains a detected secret value; otherwise FAILED:UX-8002 <reason>",
+        "retry_policy": "two strikes then veto: an unscreenable surface must not be transposed",
+        "failure_classification": [
+          "sensitive-content-detected",
+          "surface-unreachable",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "pre-egress on-screen sensitive-content screen that records classes, never values"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/egress-screen.json",
+          "schema_ref": "command-center/schema/secret-egress-map.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8002",
+          "consumers": [
+            "sensitive-gate",
+            "egress-approval"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sensitive-gate",
+      "title": "Nothing sensitive leaves the machine",
+      "kind": "gate",
+      "depends_on": [
+        "sensitive-content-screen"
+      ],
+      "gate_ref": "no-sensitive-content-on-screen"
+    },
+    {
+      "id": "egress-approval",
+      "title": "Owner authorisation for third-party egress",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "sensitive-gate"
+      ],
+      "prompt": "This will push N screens of UI content to Figma, a third-party service. The screening pass found the following CLASSES of content (values withheld). Authorise the egress, reduce the scope, or cancel?",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "authorise",
+        "reduce-scope",
+        "cancel"
+      ],
+      "decision_artifact": {
+        "path": "command-center/design/code-to-canvas/egress-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "transpose-story",
+          "transpose-mcp",
+          "transpose-html"
+        ]
+      }
+    },
+    {
+      "id": "transpose-story",
+      "title": "S1a - component-system path (story.to.design)",
+      "kind": "task",
+      "depends_on": [
+        "egress-approval"
+      ],
+      "role": "transposer",
+      "when": "path == story",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__generate_figma_design",
+        "mcp__figma__whoami"
+      ],
+      "work_unit": {
+        "id": "UX-8003",
+        "title": "Transpose the component system onto the canvas and map DTCG tokens",
+        "phase": "2B",
+        "question_or_target": "Mirror the component library with its DTCG token bindings intact, and record which components arrived code-connected, because a code-connected component is the other thing that survives.",
+        "inputs": [
+          "params.token_source",
+          "command-center/design/code-to-canvas/path-selection.json",
+          "command-center/design/code-to-canvas/egress-decision.json"
+        ],
+        "dependencies": [
+          "UX-8001",
+          "UX-8002"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "transposer",
+          "basis": "mapping a code component to a canvas component requires understanding both"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)",
+          "mcp__figma__generate_figma_design",
+          "mcp__figma__whoami"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/design/code-to-canvas/transpose-story.json",
+        "output_schema": "command-center/schema/parity-matrix.schema.json",
+        "evidence_requirement": "a per-component row naming the canvas node, the token bindings that carried across, and any binding that did not",
+        "tests_required": [
+          "a token-driven component has its DTCG tokens present on the canvas side",
+          "a component whose props encode logic is recorded in the lost list, not silently flattened"
+        ],
+        "reviewer_requirement": "the fidelity-checker",
+        "completion_sentinel": "SUCCESS:UX-8003 emitted only when every requested component has a canvas node or an explicit failure row; otherwise FAILED:UX-8003 <reason>",
+        "retry_policy": "two strikes then reduce scope to the components that fit the remaining quota",
+        "failure_classification": [
+          "quota-exhausted",
+          "transpose-partial",
+          "binding-lost"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "component-system transpose preserving DTCG token bindings"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/transpose-story.json",
+          "schema_ref": "command-center/schema/parity-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8003",
+          "consumers": [
+            "declare-loss",
+            "check-fidelity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transpose-mcp",
+      "title": "S1b - live-screen path (Figma MCP generate_figma_design)",
+      "kind": "task",
+      "depends_on": [
+        "egress-approval"
+      ],
+      "role": "transposer",
+      "when": "path == mcp",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__generate_figma_design",
+        "mcp__figma__whoami"
+      ],
+      "work_unit": {
+        "id": "UX-8004",
+        "title": "Transpose live or localhost screens onto the canvas",
+        "phase": "2B",
+        "question_or_target": "Mirror the rendered screens as canvas frames and record which layout decisions were heuristic, because a heuristic layout is not a faithful record and the fidelity check must know where to look.",
+        "inputs": [
+          "params.app_target",
+          "command-center/design/code-to-canvas/path-selection.json",
+          "command-center/design/code-to-canvas/egress-decision.json"
+        ],
+        "dependencies": [
+          "UX-8001",
+          "UX-8002"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "transposer",
+          "basis": "judging which parts of a rendered screen the transposer guessed at is the value this stage adds"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)",
+          "mcp__figma__generate_figma_design",
+          "mcp__figma__whoami"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/design/code-to-canvas/transpose-mcp.json",
+        "output_schema": "command-center/schema/parity-matrix.schema.json",
+        "evidence_requirement": "per-screen canvas node ids plus a list of layout decisions marked heuristic rather than derived",
+        "tests_required": [
+          "a screen with conditional logic names that logic in the lost list",
+          "heuristic layout regions are flagged so the fidelity check can weight them separately"
+        ],
+        "reviewer_requirement": "the fidelity-checker",
+        "completion_sentinel": "SUCCESS:UX-8004 emitted only when every requested screen has a canvas node or an explicit failure row; otherwise FAILED:UX-8004 <reason>",
+        "retry_policy": "two strikes then reduce scope to the screens that fit the remaining quota",
+        "failure_classification": [
+          "quota-exhausted",
+          "transpose-partial",
+          "layout-heuristic-unmarked"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "live-screen transpose with heuristic-region marking",
+        "not_a_duplicate_because": "the story path mirrors a COMPONENT SYSTEM and preserves token bindings; this mirrors RENDERED SCREENS and loses the component identity entirely"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/transpose-mcp.json",
+          "schema_ref": "command-center/schema/parity-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8004",
+          "consumers": [
+            "declare-loss",
+            "check-fidelity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "transpose-html",
+      "title": "S1c - audit-only DOM record (html.to.design)",
+      "kind": "task",
+      "depends_on": [
+        "egress-approval"
+      ],
+      "role": "transposer",
+      "when": "path == html",
+      "timeout_seconds": 2400,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__whoami"
+      ],
+      "work_unit": {
+        "id": "UX-8005",
+        "title": "Produce an audit-only DOM record on the canvas",
+        "phase": "2B",
+        "question_or_target": "Capture a DOM-faithful record intended for audit rather than for editing, and mark it explicitly as non-editable so nobody iterates on a record that cannot round-trip back.",
+        "inputs": [
+          "params.app_target",
+          "command-center/design/code-to-canvas/path-selection.json",
+          "command-center/design/code-to-canvas/egress-decision.json"
+        ],
+        "dependencies": [
+          "UX-8001",
+          "UX-8002"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "transposer",
+          "basis": "marking the artifact's intended use is the whole point of this path"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)",
+          "mcp__figma__whoami"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/design/code-to-canvas/transpose-html.json",
+        "output_schema": "command-center/schema/parity-matrix.schema.json",
+        "evidence_requirement": "the DOM snapshot provenance plus an explicit audit-only marker on every produced canvas artifact",
+        "tests_required": [
+          "the output is marked audit-only and not editable",
+          "no token mapping is claimed on this path, because the DOM record does not carry DTCG bindings"
+        ],
+        "reviewer_requirement": "the fidelity-checker",
+        "completion_sentinel": "SUCCESS:UX-8005 emitted only when the record exists and carries the audit-only marker; otherwise FAILED:UX-8005 <reason>",
+        "retry_policy": "two strikes then report the DOM capture as unavailable rather than producing an unmarked artifact",
+        "failure_classification": [
+          "transpose-partial",
+          "marker-missing"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "audit-only DOM record explicitly marked non-editable",
+        "not_a_duplicate_because": "the other two paths produce EDITABLE canvas material; this one deliberately produces a record and says so, which changes what the loss declaration must claim"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/transpose-html.json",
+          "schema_ref": "command-center/schema/parity-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8005",
+          "consumers": [
+            "declare-loss",
+            "check-fidelity"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "declare-loss",
+      "title": "S2 - DECLARE what was lost; a mirror presented as complete is a false record",
+      "kind": "gate",
+      "depends_on": [
+        "transpose-story",
+        "transpose-mcp",
+        "transpose-html"
+      ],
+      "gate_ref": "loss-declared",
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/loss-declaration.json",
+          "schema_ref": "command-center/schema/digest-loss-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "consumers": [
+            "check-fidelity",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "check-fidelity",
+      "title": "S3 - bound the claim against a live screenshot",
+      "kind": "task",
+      "depends_on": [
+        "declare-loss"
+      ],
+      "role": "fidelity-checker",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "mcp__figma__get_screenshot",
+        "mcp__playwright__browser_take_screenshot",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8006",
+        "title": "Score mirror fidelity against a live screenshot and bound the claim",
+        "phase": "2B",
+        "question_or_target": "Compare the canvas render against a live screenshot at matched dimensions and report a bounded fidelity score, since the transpose uses layout heuristics and no exact claim is available.",
+        "inputs": [
+          "command-center/design/code-to-canvas/loss-declaration.json",
+          "params.app_target"
+        ],
+        "dependencies": [
+          "UX-8003",
+          "UX-8004",
+          "UX-8005"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "fidelity-checker",
+          "basis": "deciding whether a visual difference matters is judgement a pixel diff cannot make"
+        },
+        "tool_permissions": [
+          "Read",
+          "mcp__figma__get_screenshot",
+          "mcp__playwright__browser_take_screenshot",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/code-to-canvas/fidelity-report.json",
+        "output_schema": "command-center/schema/similarity-report.schema.json",
+        "evidence_requirement": "both images at matched dimensions, a per-region difference score, and a statement of which regions were marked heuristic by the transposer",
+        "tests_required": [
+          "regions the transposer marked heuristic are scored separately from derived regions",
+          "a fidelity claim is never reported as exact - the transpose is not deterministic and the report says so"
+        ],
+        "reviewer_requirement": "one independent reviewer in a fresh context who re-renders both images",
+        "completion_sentinel": "SUCCESS:UX-8006 emitted only when a bounded fidelity score exists with heuristic regions separated; otherwise FAILED:UX-8006 <reason>",
+        "retry_policy": "two strikes then report fidelity as NOT-CHECKED rather than as a number nobody measured",
+        "failure_classification": [
+          "capture-parameter-mismatch",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "matched-dimension screenshot comparison with heuristic regions scored separately"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/code-to-canvas/fidelity-report.json",
+          "schema_ref": "command-center/schema/similarity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8006",
+          "consumers": [
+            "command-center/MANIFEST.json",
+            "design-studio-eight-gate-loop"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "transposed-and-fidelity-checked",
+      "expression": "transpose_complete == true AND fidelity_checked == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "lost_list_declared == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "quota-exhausted-partial-with-boundary",
+      "expression": "figma_seat_quota_remaining <= 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "sensitive-content-cancels-egress",
+      "expression": "sensitive_content_detected == true",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": [
+      "transpose-partial",
+      "capture-parameter-mismatch"
+    ],
+    "no_retry_on": [
+      "quota-exhausted",
+      "sensitive-content-detected"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "egress-approval"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "quota-exhausted",
+      "sensitive-content-detected",
+      "transpose-partial",
+      "overclaim"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "egress-approval",
+    "quarantine_path": "command-center/design/code-to-canvas/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/design/code-to-canvas/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/design/code-to-canvas/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy",
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "process-id"
+    ]
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/design/code-to-canvas/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__figma__generate_figma_design",
+      "mcp__figma__get_screenshot",
+      "mcp__playwright__browser_take_screenshot",
+      "Write(command-center/design/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 1.2,
+      "max": 6.0
+    },
+    "wallclock_seconds": {
+      "expected": 2400,
+      "max": 10800
+    },
+    "tokens": {
+      "expected": 180000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "pushes UI content to Figma, a third-party service; reversal means deleting the Figma file, and the content has already left the machine, which is why the egress checkpoint is blocking",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/design/code-to-canvas/export/code-to-canvas-mirror-round-trip.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-UX-04",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/transpose-to-figma",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/figma",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/transpose-to-figma@current"
+    ]
+  },
+  "outputs": {
+    "loss_declaration": {
+      "path": "command-center/design/code-to-canvas/loss-declaration.json",
+      "schema_ref": "command-center/schema/digest-loss-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "fidelity_report": {
+      "path": "command-center/design/code-to-canvas/fidelity-report.json",
+      "schema_ref": "command-center/schema/similarity-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-UX-04",
+      "card_index_in_library": 80,
+      "family": "D15-ux",
+      "primary_category": "product-design-and-strategy",
+      "mechanism_signature": [
+        "three-mutually-exclusive-transposer-paths",
+        "seat-quota-precheck-before-bulk",
+        "pre-egress-sensitive-content-screen",
+        "blocking-lost-and-survived-declaration",
+        "matched-dimension-fidelity-bound"
+      ],
+      "why_not_deterministic": "The transposers use layout heuristics, so two runs produce different canvas geometry; the screenshot comparison bounds the claim instead of a hash.",
+      "worked_example": {
+        "scenario": "Mirror four WebCoder screens onto the canvas for a design record. One screen renders a conditional admin panel and a debug drawer showing a bearer token.",
+        "params": {
+          "app_target": "webcoder@localhost:4321",
+          "path": "mcp",
+          "token_source": "design/tokens.dtcg.json",
+          "transpose_count": 4,
+          "declare_losses": true
+        },
+        "expected_trace": [
+          "choose-path -> mcp selected (live screens, not a component system); loss profile recorded",
+          "quota-precheck -> 37 seat operations remaining >= 4, PASS",
+          "sensitive-content-screen -> the debug drawer renders a bearer-token-CLASS string; the artifact records the class and location, never the value",
+          "sensitive-gate -> FAILS, on_fail escalate-to-human. The egress does NOT happen with the token on screen",
+          "after the drawer is closed and the screen re-run: sensitive-gate PASS -> egress-approval -> owner authorises",
+          "transpose-mcp -> 4 canvas frames; 11 layout regions marked heuristic",
+          "declare-loss -> survived: DTCG spacing and colour tokens; lost: the admin panel's render condition, routing, all state and data. mirror_claimed_complete == false",
+          "check-fidelity -> 0.82 overall, 0.61 across the heuristic regions, reported as bounded and not exact"
+        ],
+        "expected_terminal_state": "SUCCESS:UX-8006 with an explicit lost[] naming the conditional logic"
+      },
+      "unverified": "UNVERIFIED fidelity scoring on this estate's own apps; settling experiment = transpose one screen and score mirror fidelity against the live screenshot, then check whether the heuristic-region split predicts where a designer actually notices the difference.",
+      "distinct_from": {
+        "bp-ux-05": "that routes design INTAKE before code exists; this mirrors code that already exists back to the canvas",
+        "bp-ux-01": "that is the pipeline that calls this as G2; this is one edge of it and is deliberately a subworkflow",
+        "bp-ux-02": "no rubric, no scoring, no cap - the output here is a canvas record plus a loss declaration"
+      },
+      "flagship_test": null,
+      "flagship_rationale": "NOT flagship: end-to-end coverage needs a live Figma seat and a running app, neither available to a test in this repo. The blocking loss-declaration gate, the egress checkpoint and the mutual exclusivity of the three paths ARE asserted by test_bp7_slice.py."
+    }
+  }
+}

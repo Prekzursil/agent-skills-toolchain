@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "artifact": "COMPLETION-GATES.json",
+  "title": "The TWO different completion gates of Prompt Two, kept separate on purpose",
+  "status": "MEASURED",
+  "generated": "2026-08-09",
+  "generated_by": "lane ground/dep-graph",
+  "coverage": "Both gates extracted verbatim and individually numbered: unit predicate 12/12, program stopping rule 21/21. State assessment: 21/21 conditions assigned a verdict (0 TRUE, 14 FALSE, 7 NOT-CHECKED). Counts recomputed mechanically by .probe_selfcheck.py, which caught and corrected three hand-counting errors in an earlier draft of this file.",
+
+  "why_this_file_exists": "These two gates are frequently conflated. They are different objects with different scopes, different condition counts and different consumers. The UNIT predicate answers 'is this ONE work unit done?' and runs at EVERY fan-in. The PROGRAM stopping rule answers 'may the whole program stop?' and runs once. Program condition 21 embeds the unit predicate, which is the only place they touch.",
+
+  "source_spec": {
+    "path": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md",
+    "line_numbering": "LF-only (sed/grep/CI compatible). Path.read_text() inflates these numbers by up to 166 because the file carries 166 BARE CR bytes that universal-newline translation converts into line breaks.",
+    "extraction_probe": "data.split(b'\\n') then regex '^(\\\\d+)\\\\.\\\\s+(.*)$' from each section header. Detector control: a known-present anchor returned a hit and a known-absent anchor returned [] before any count was trusted."
+  },
+
+  "gate_a_unit_completion_predicate": {
+    "name": "One completion predicate everywhere",
+    "scope": "ONE work unit",
+    "spec_section_line": 10627,
+    "spec_header_line": 10631,
+    "spec_line_range": "10631-10644",
+    "condition_count": 12,
+    "quantifier": "ALL applicable conditions must hold",
+    "used_at": "every fan-in - local runners, cloud dispatchers, monitors, harvesters, workflow fan-in, cross-vendor adapters, and final synthesis (spec line 10648). One SHARED reducer, not a reimplementation per caller.",
+    "hard_rules": [
+      "Exit code zero alone is never success (spec line 10646).",
+      "A plausible digest is not a receipt (spec line 10646).",
+      "A file path in text is not proof the file exists (spec line 10646)."
+    ],
+    "conditions": [
+      {"n": 1, "spec_line": 10633, "text": "process/task reached a valid terminal state"},
+      {"n": 2, "spec_line": 10634, "text": "expected artifact exists"},
+      {"n": 3, "spec_line": 10635, "text": "artifact is non-empty and exceeds a meaningful minimum size"},
+      {"n": 4, "spec_line": 10636, "text": "artifact parses against its schema"},
+      {"n": 5, "spec_line": 10637, "text": "required sentinel is present"},
+      {"n": 6, "spec_line": 10638, "text": "required evidence anchors exist"},
+      {"n": 7, "spec_line": 10639, "text": "required tests ran and passed"},
+      {"n": 8, "spec_line": 10640, "text": "negative controls or mutations fail as expected"},
+      {"n": 9, "spec_line": 10641, "text": "independent reviewer status is PASS"},
+      {"n": 10, "spec_line": 10642, "text": "no unresolved P0/P1 defect is attached"},
+      {"n": 11, "spec_line": 10643, "text": "output was registered in the artifact manifest"},
+      {"n": 12, "spec_line": 10644, "text": "downstream consumers can read it"}
+    ],
+    "implementation_state": "NOT-CHECKED. No shared reducer implementing these 12 conditions was located in the repo by this lane. Settling experiment: grep the tree for a single function consumed by all seven named call sites; if each call site has its own check, that is the seeded failure class 'two completion predicates disagree' (spec line 11314) already live.",
+    "note_condition_10": "Condition 10 requires a P0/P1 severity on defects. Measured: command-center/CLAIM-REGISTRY.json holds 10 claims and NONE carries a severity field. This condition is therefore not currently computable for those claims."
+  },
+
+  "gate_b_program_stopping_rule": {
+    "name": "Completion and stopping rule",
+    "scope": "the WHOLE program",
+    "spec_section_line": 11372,
+    "spec_header_line": 11376,
+    "spec_line_range": "11378-11398",
+    "condition_count": 21,
+    "quantifier": "ALL of the following must be true",
+    "preamble": "'Infinite' does not mean looping forever. Continue until evidence-based convergence (spec line 11374).",
+    "failure_protocol": "If something cannot be completed, do not hand-wave. Produce a TWO-SIGNAL proof of the blocker, preserve partial artifacts, state the exact missing prerequisite, and continue all independent work that remains possible (spec line 11400).",
+    "assessment_basis": "main @53c37c6c, working tree clean of tracked changes, measured 2026-08-09.",
+    "assessment_legend": {
+      "TRUE": "measured and satisfied",
+      "FALSE": "measured and not satisfied",
+      "NOT-CHECKED": "no probe was run by this lane; a settling experiment is named"
+    },
+    "assessment_tally": {"TRUE": 0, "FALSE": 14, "NOT-CHECKED": 7},
+    "conditions": [
+      {
+        "n": 1, "spec_line": 11378,
+        "text": "every selected option is implemented, explicitly superseded, or explicitly rejected with owner-approved reasoning",
+        "state": "FALSE",
+        "evidence": "Blocked by BLK-1/F-B-02: 31 option IDs resolve to two unrelated meanings and 7 resolve to ABSENT, so 'every selected option' has no well-defined extension. Independently, `python tools/command-center/validate.py` reports items=103 open=69 closed=34 - 69 items carry no final disposition.",
+        "blocker": "BLK-1"
+      },
+      {
+        "n": 2, "spec_line": 11379,
+        "text": "all contracted artifacts exist and pass schema/manifest checks",
+        "state": "FALSE",
+        "evidence": "`python tools/command-center/validate.py` -> 'FAILED:cc-validate violations=1', exit 1, violation 'REACH-6 -: register snapshot sha256 1a404a91d819 != recorded 8b3e44cc3813'. Existence is partly satisfied (ARTIFACT-MANIFEST.json lists 14 artifacts) but the schema/manifest CHECK is red.",
+        "blocker": "BLK-3"
+      },
+      {
+        "n": 3, "spec_line": 11380,
+        "text": "all P0/P1 defects are closed or proven externally blocked",
+        "state": "NOT-CHECKED",
+        "evidence": "Not computable as recorded: all 10 claims in command-center/CLAIM-REGISTRY.json have severity=None. There is no P0/P1 field to filter on. Note one claim, CC-9, is already REFUTED.",
+        "settling_experiment": "Add the severity field mandated by the Phase 4 claim schema to CLAIM-REGISTRY.json, backfill the 10 existing claims, then recount open P0/P1. Until then this condition cannot be evaluated either way."
+      },
+      {
+        "n": 4, "spec_line": 11381,
+        "text": "no required test is red",
+        "state": "FALSE",
+        "evidence": "tools/command-center/validate.py exits 1, and it is a REQUIRED CI step at .github/workflows/quality.yml:402. A required gate is currently red.",
+        "blocker": "BLK-3"
+      },
+      {
+        "n": 5, "spec_line": 11382,
+        "text": "mutation and negative-control coverage demonstrate detector validity",
+        "state": "NOT-CHECKED",
+        "evidence": "No program-wide mutation/negative-control census was run. One data point in the positive direction: this lane ran a both-states control on the V-GRAPH detector (silent on the committed graph, fires on a graph with one added key) - that single detector is valid. That is 1 detector, not coverage.",
+        "settling_experiment": "Enumerate every gate in .github/workflows/quality.yml and tools/command-center/, and for each revert the defect it claims to catch; require the gate to go red. Any gate that stays green is an unprotected behavior."
+      },
+      {
+        "n": 6, "spec_line": 11383,
+        "text": "clean install, update, rollback, and uninstall pass",
+        "state": "FALSE",
+        "evidence": "Phase 5 (which produces the install/update/repair/rollback/uninstall commands) has not started; it is hard-gated on Phase 4, which is hard-gated on Phase 3. There is no install tooling to test.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 7, "spec_line": 11384,
+        "text": "cross-platform and cross-client matrices meet the selected support contract",
+        "state": "NOT-CHECKED",
+        "evidence": "The 'selected support contract' is itself a Phase 4 deliverable (compatibility matrix, spec line 10818) and does not exist. No matrix was located.",
+        "settling_experiment": "Once Phase 4 emits the compatibility matrix contract, run the Phase 10 cross-platform (layer 9) and cross-client (layer 10) suites against it."
+      },
+      {
+        "n": 8, "spec_line": 11385,
+        "text": "benchmark results show the intended improvement without material regression",
+        "state": "FALSE",
+        "evidence": "There is no comparator. Phase 0 must 'capture benchmark baselines before changing behavior' (spec line 10656) and Phase 0 has not completed. A sibling lane has command-center/BASELINE-SNAPSHOT.{json,md} untracked and in flight.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 9, "spec_line": 11386,
+        "text": "independent confirmers pass",
+        "state": "FALSE",
+        "evidence": "Phase 11 has not started (hard-gated on Phase 10, itself gated on all six implementation phases). Zero confirmer runs exist.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 10, "spec_line": 11387,
+        "text": "adversarial refuters cannot produce an unresolved load-bearing counterexample",
+        "state": "FALSE",
+        "evidence": "Phase 12's 14 refuter tracks have not run. Additionally CC-9 in CLAIM-REGISTRY.json is already REFUTED and open, which is an existing unresolved refutation.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 11, "spec_line": 11388,
+        "text": "security, privacy, legal, and supply-chain gates pass",
+        "state": "NOT-CHECKED",
+        "evidence": "This lane did not run semgrep/bandit/trivy/gitleaks/osv. Pinned ground truth records 0 open Dependabot alerts as of today, which is one supply-chain signal but not the full gate set. Note a stored-green CI run DECAYS: osv-scanner queries a live advisory DB, so last week's green is not today's control.",
+        "settling_experiment": "Run the repo's own security gate set from .github/workflows/quality.yml on HEAD today and record each exit code."
+      },
+      {
+        "n": 12, "spec_line": 11389,
+        "text": "docs and code agree",
+        "state": "NOT-CHECKED",
+        "evidence": "No docs/code parity sweep was run by this lane. One local observation in the disagreeing direction: PROGRAM-CHARTER.md:38 describes DEPENDENCY-GRAPH.json as 'fully derived; never hand-edited', which is accurate - but the same charter's file list is what a reader would use to conclude the phase graph belongs in that file, which it cannot (see PHASE-GRAPH.json.relationship_to_dependency_graph_json).",
+        "settling_experiment": "Run `python tools/command-center/render.py --check` (already a CI step at quality.yml:403) plus a docs-vs-code sweep over the 13 ledger files."
+      },
+      {
+        "n": 13, "spec_line": 11390,
+        "text": "release/canary succeeds",
+        "state": "FALSE",
+        "evidence": "Not merely unstarted - currently UNDEFINED. Owner decision binds release mode to PR-ONLY, and under PR-ONLY no canary channel exists, so this condition can never become TRUE as written.",
+        "blocker": "BLK-2",
+        "owner_decision_needed": "Redefine for PR-ONLY (recommended: 'a merged PR plus a local clean-install/upgrade/rollback rehearsal succeeds') or mark explicitly N/A. Left as-is, the program's own stopping rule is unsatisfiable."
+      },
+      {
+        "n": 14, "spec_line": 11391,
+        "text": "rollback is tested",
+        "state": "NOT-CHECKED",
+        "evidence": "command-center/ROLLBACK-MANIFEST.md exists (3,103 bytes) and documents rollback procedures, but a document is not a test. No executed rollback test was located.",
+        "settling_experiment": "Execute the ROLLBACK-MANIFEST.md procedures against a scratch clone and record the terminal state. Phase 10 layer 7 (rollback tests) is the durable home."
+      },
+      {
+        "n": 15, "spec_line": 11392,
+        "text": "every residual unknown has a named settling experiment and an owner-visible impact statement",
+        "state": "NOT-CHECKED",
+        "evidence": "command-center/UNKNOWNS-REGISTER.md exists (5,316 bytes) but this lane did not audit whether EVERY entry carries both a named settling experiment and an impact statement.",
+        "settling_experiment": "Parse UNKNOWNS-REGISTER.md and assert both fields are non-empty for every row; fail closed on an empty walk."
+      },
+      {
+        "n": 16, "spec_line": 11393,
+        "text": "at least 160 workflow candidates/mechanisms have been researched and classified with provenance/license records",
+        "state": "FALSE",
+        "evidence": "No candidate registry exists. Searched for *candidate*registr* across the tree: zero hits. command-center/sources/ contains only overlay.json and REGISTER.md, which is the Prompt-One source register, not a workflow candidate registry. Phase 2A has not started.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 17, "spec_line": 11394,
+        "text": "at least 96 materially distinct workflow blueprints are executable under the selected quality tiers",
+        "state": "FALSE",
+        "evidence": "No workflow blueprint library exists. The directories named 'workflows' in the tree are .github/workflows (CI), agent-self/config/workflows, docs/workflows and skill fixtures - none is a set of 96 typed, executable blueprints. 'The selected quality tiers' is also undefined pending BLK-1.",
+        "blocker": "phase-order + BLK-1",
+        "note": "Beware double-counting: the >=96 floor is stated twice (Phase 2B line 10744 and Phase 7 line 10898). It is ONE set of 96."
+      },
+      {
+        "n": 18, "spec_line": 11395,
+        "text": "the workflow scout/forge, merge maps, benchmark tournament, and lineage/decomposition tests pass",
+        "state": "FALSE",
+        "evidence": "workflow-scout and workflow-forge are Phase 7 deliverables (spec line 10913) and do not exist. No merge map or tournament harness was located.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 19, "spec_line": 11396,
+        "text": "the universal council runtime, at least 48 protocols, 64 presets, anti-sycophancy controls, dissent preservation, Boolean stopping expressions, and council-of-councils tests pass",
+        "state": "FALSE",
+        "evidence": "Measured: skills/council/ contains exactly 1 file (SKILL.md). A prompt skill is not a runtime with 48 protocol blueprints and 64 editable presets. Phases 2C and 7A have not started.",
+        "blocker": "phase-order",
+        "note": "The 48/64 floor is also stated twice (Phase 2C line 10765 and Phase 7A line 10946). It is ONE set."
+      },
+      {
+        "n": 20, "spec_line": 11397,
+        "text": "the final synthesis has been meta-reviewed",
+        "state": "FALSE",
+        "evidence": "Phase 14 has not started; it is hard-gated on Phases 11, 12 and 13, none of which have started. No synthesis artifact exists to meta-review.",
+        "blocker": "phase-order"
+      },
+      {
+        "n": 21, "spec_line": 11398,
+        "text": "the shared completion predicate returns true for the program",
+        "state": "FALSE",
+        "evidence": "This condition is the conjunction of gate A applied program-wide. It is FALSE by construction while conditions 1, 2, 4, 6, 8, 9, 10, 13, 16, 17, 18, 19 and 20 are FALSE. Separately, gate A's own implementation state is NOT-CHECKED - no shared reducer was located - so even the evaluator does not demonstrably exist.",
+        "blocker": "BLK-1, BLK-2, BLK-3, phase-order"
+      }
+    ]
+  },
+
+  "conflation_warnings": [
+    "Gate A has 12 conditions and is per-unit; gate B has 21 and is per-program. Citing '12 conditions' for program completion or '21' for a work unit is the conflation this file exists to prevent.",
+    "They intersect at exactly ONE point: gate B condition 21 invokes gate A. Nowhere else does a gate-A condition imply a gate-B condition or vice versa.",
+    "Gate A condition 7 ('required tests ran and passed') is NOT gate B condition 4 ('no required test is red'). A unit can pass its own tests while a program-required gate is red - which is the state today.",
+    "Gate A condition 10 ('no unresolved P0/P1 defect is ATTACHED' - to this unit) is NOT gate B condition 3 ('ALL P0/P1 defects are closed' - program-wide)."
+  ]
+}

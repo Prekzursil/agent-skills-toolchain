@@ -1,0 +1,1038 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0046.json",
+   "bytes": 26763,
+   "sha256": "051083d7c5ca0056c9fcd39c82ad9ff2346f335d17532ef8fae2f66e0598c15b",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0046 in the receipt AND a candidate table with a daemon-liability column and an explicit corroborate-or-refute verdict on the existing Tier-2 grade",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0046.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0046",
+ "extensions": {
+  "legacy_root": {
+   "any_candidate_beats_native_lazy_activation": false,
+   "candidate_table": [
+    {
+     "beats_native_lazy_activation": false,
+     "beats_native_process_axis": false,
+     "daemon_liability": "none-client-local",
+     "evidence_claim_ids": [
+      "C-NATIVE-DEFERRED"
+     ],
+     "id": "native-deferred-tool",
+     "is_baseline": true,
+     "name": "Native deferred-tool / progressive discovery",
+     "operational_cost": "no extra daemon; implementation lives in the host/API (defer_loading / search_tools)",
+     "repo": "modelcontextprotocol/modelcontextprotocol",
+     "requires_persistent_daemon": false,
+     "solves_lazy_tool_activation": true,
+     "solves_session_server_multiplication": "partial",
+     "solves_session_server_multiplication_note": "MCP client best-practices document connecting a server only when needed and disconnecting afterwards; this is per-session lazy connect, not a shared process pool",
+     "stars": 9043,
+     "when_daemon_dies": "There is no shared gateway daemon. Ending the client session drops that session's tools only. Other sessions are unaffected."
+    },
+    {
+     "beats_native_lazy_activation": false,
+     "beats_native_process_axis": false,
+     "daemon_liability": "yes-gateway-process-plus-docker-daemon",
+     "evidence_claim_ids": [
+      "C-DOCKER-GATEWAY"
+     ],
+     "id": "docker-mcp-gateway",
+     "is_baseline": false,
+     "name": "Docker MCP Gateway",
+     "operational_cost": "self-healing tax: Docker daemon + gateway process + container lifecycle; Desktop 4.59+ or DOCKER_MCP_IN_CONTAINER bypass",
+     "repo": "docker/mcp-gateway",
+     "requires_persistent_daemon": true,
+     "solves_lazy_tool_activation": "partial: dynamic discovery from running servers; not equivalent to defer_loading (schemas of running servers still surface unless the client also defers)",
+     "solves_session_server_multiplication": true,
+     "solves_session_server_multiplication_note": "yes on sse/streaming: one gateway can service multiple clients; servers are started on demand as containers",
+     "stars": 1539,
+     "when_daemon_dies": "docker mcp gateway run exiting drops the unified tool surface for every client attached to that gateway (stdio: one client; sse/streaming: all attached clients). Lazy-started server containers lose their supervisor; leftover containers are an orphan-tax, not a degraded client path."
+    },
+    {
+     "beats_native_lazy_activation": false,
+     "beats_native_process_axis": false,
+     "daemon_liability": "yes-http-app-plus-postgres-plus-optional-redis",
+     "evidence_claim_ids": [
+      "C-CONTEXTFORGE-FEDERATION"
+     ],
+     "id": "ibm-contextforge",
+     "is_baseline": false,
+     "name": "IBM ContextForge MCP Gateway",
+     "operational_cost": "self-healing tax: app replicas + PostgreSQL + Redis + (often) Nginx; Redis failure required an explicit degraded fallback",
+     "repo": "IBM/mcp-context-forge",
+     "requires_persistent_daemon": true,
+     "solves_lazy_tool_activation": "partial: centralized discovery/registry; not client defer_loading",
+     "solves_session_server_multiplication": true,
+     "solves_session_server_multiplication_note": "one HTTP/SSE/stdio wrapper endpoint federates many MCP/A2A/REST backends; multi-cluster Redis-backed federation is optional",
+     "stars": 4361,
+     "when_daemon_dies": "The federated endpoint is gone until the gateway (and its store) restart. Redis outage is a separate failure: PR 4074 added a circuit breaker and in-memory cache fallback, which is degraded mode for cache, not a replacement for the gateway process itself."
+    },
+    {
+     "beats_native_lazy_activation": false,
+     "beats_native_process_axis": false,
+     "daemon_liability": "yes-when-listening-on-a-port",
+     "evidence_claim_ids": [
+      "C-TRANSPORT-BRIDGES"
+     ],
+     "id": "sparfenyuk-mcp-proxy",
+     "is_baseline": false,
+     "name": "sparfenyuk/mcp-proxy",
+     "operational_cost": "one extra process per bridge; no self-heal documented",
+     "repo": "sparfenyuk/mcp-proxy",
+     "requires_persistent_daemon": true,
+     "solves_lazy_tool_activation": false,
+     "solves_session_server_multiplication": false,
+     "solves_session_server_multiplication_note": "transport switch, not a fleet multiplexer. named-server mode can expose several stdio servers under /servers/<name>/ but still spawns a stdio child per named server behind one proxy",
+     "stars": 2726,
+     "when_daemon_dies": "stdio-to-SSE client mode: that one session's bridge dies. SSE-to-stdio / named-server mode: the listen port dies and every client using it loses the spawned stdio child(ren)."
+    },
+    {
+     "beats_native_lazy_activation": false,
+     "beats_native_process_axis": false,
+     "daemon_liability": "yes-when-listening-on-a-port",
+     "evidence_claim_ids": [
+      "C-TRANSPORT-BRIDGES"
+     ],
+     "id": "supercorp-supergateway",
+     "is_baseline": false,
+     "name": "supercorp-ai/supergateway",
+     "operational_cost": "one extra npx/docker process per wrapped server",
+     "repo": "supercorp-ai/supergateway",
+     "requires_persistent_daemon": true,
+     "solves_lazy_tool_activation": false,
+     "solves_session_server_multiplication": false,
+     "stars": 2818,
+     "when_daemon_dies": "The stdio-to-SSE/WS/HTTP listener dies; clients lose that one wrapped server. No multi-server federation."
+    }
+   ],
+   "claims": [
+    {
+     "claim": "The native baseline for lazy tool activation is client/API deferred loading (Anthropic defer_loading / tool-search, MCP progressive discovery with search_tools) plus list_changed, not a gateway daemon. The same MCP client guide also describes lazy server connect.",
+     "evidence_grade": "E1",
+     "id": "C-NATIVE-DEFERRED",
+     "rails": [
+      {
+       "bytes": 7554,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-api-mcp-spec-repo",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-mcp-spec-repo.json",
+       "permalink": "https://api.github.com/repos/modelcontextprotocol/modelcontextprotocol",
+       "sha256": "3510fed237370fe7ce0e4f53c751866b20a0b693fe36eb8722abe83ec1c79001"
+      },
+      {
+       "bytes": 489238,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-mcp-client-best-practices",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-client-best-practices.html",
+       "permalink": "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+       "sha256": "37ddd4add694d42a5742cb6816ce7b3882a5ed6c793c0b6f5b3ec57f7399eda3"
+      },
+      {
+       "bytes": 245052,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-anthropic-advanced-tool-use",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-anthropic-advanced-tool-use.html",
+       "permalink": "https://www.anthropic.com/engineering/advanced-tool-use",
+       "sha256": "8ad09f4748361dc16dff04daafc76e1ec9537f6b3374d867ad95e4177e2e38ec"
+      },
+      {
+       "bytes": 656348,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-mcp-spec-tools-2025-11-25",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-spec-tools-2025-11-25.html",
+       "permalink": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+       "sha256": "5eb93f78d41ee5cdf1f7fb07047b89bc15d24764e90bbb93b2313fa0ff6ebc21"
+      }
+     ],
+     "strongest_caveat": "Native lazy-server-connect is a host implementation pattern. A client that ignores the guide and eagerly spawns every stdio server still pays sessions x servers. That is a client defect, not a reason to federate gateways first.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "Docker MCP Gateway is a persistent CLI/gateway process that unifies many containerized MCP servers, can serve multiple clients on sse/streaming, and lazy-starts a server container when a tool is needed.",
+     "evidence_grade": "E1",
+     "id": "C-DOCKER-GATEWAY",
+     "rails": [
+      {
+       "bytes": 6161,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-api-docker-mcp-gateway",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-docker-mcp-gateway.json",
+       "permalink": "https://api.github.com/repos/docker/mcp-gateway",
+       "sha256": "7fd5ed46a7a8c7592f56d0b560e808321a2732d9ecb99162082f077f9768e21d"
+      },
+      {
+       "bytes": 11813,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-docker-mcp-gateway-readme",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-readme.md",
+       "permalink": "https://raw.githubusercontent.com/docker/mcp-gateway/main/README.md",
+       "sha256": "f4da99dc742a72d221850989bd0bb112fc5f763f22f83a5ccd0120d1987899b6"
+      },
+      {
+       "bytes": 522759,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-docker-mcp-gateway-docs",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-docs.html",
+       "permalink": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/mcp-gateway/",
+       "sha256": "460eb28b41524fe37212b8c56b93ca2d08a32f3afae3e889aa3a5e1610adc504"
+      }
+     ],
+     "strongest_caveat": "Lazy container start is still a daemon-supervised start. Docs do not show a client-side degraded path when the gateway process is dead.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "ContextForge is a persistent registry/proxy that federates MCP/A2A/REST backends, optionally with Redis-backed multi-cluster federation. Its own Redis-outage work added circuit-breaker plus in-memory fallback, which is degraded-mode for a dependency, not proof that federation should be the first architecture.",
+     "evidence_grade": "E1",
+     "id": "C-CONTEXTFORGE-FEDERATION",
+     "rails": [
+      {
+       "bytes": 6721,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-api-ibm-mcp-context-forge",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-ibm-mcp-context-forge.json",
+       "permalink": "https://api.github.com/repos/IBM/mcp-context-forge",
+       "sha256": "a152ff679a48777f7981e7fcedfd30ecf3b4f189fce21e66908ebdd9f993bea4"
+      },
+      {
+       "bytes": 43751,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-ibm-contextforge-readme",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-contextforge-readme.md",
+       "permalink": "https://raw.githubusercontent.com/IBM/mcp-context-forge/main/README.md",
+       "sha256": "0acc6c7efc080d91dc3287f63461c3a74aacbfa8b3295d484b552890bfa4ad09"
+      },
+      {
+       "bytes": 597873,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-ibm-pr-4074",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-pr-4074.html",
+       "permalink": "https://github.com/IBM/mcp-context-forge/pull/4074",
+       "sha256": "2c689cab73105b0924865d525f4b4be4e237853854217ea47c0e124f9b61f9a1"
+      }
+     ],
+     "strongest_caveat": "PR 4074's fallback covers Redis cache hangs, not a dead gateway replica or a lost Postgres. Multi-node session recovery remains a separate unfinished class in upstream issues.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "mcp-proxy and supergateway are transport bridges (stdio <-> SSE/Streamable HTTP). They do not implement native deferred-tool activation. They add a process. named-server mode on mcp-proxy can front several stdio children but still spawns those children.",
+     "evidence_grade": "E1",
+     "id": "C-TRANSPORT-BRIDGES",
+     "rails": [
+      {
+       "bytes": 5363,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-api-sparfenyuk-mcp-proxy",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-sparfenyuk-mcp-proxy.json",
+       "permalink": "https://api.github.com/repos/sparfenyuk/mcp-proxy",
+       "sha256": "96c815807355f45800dc1571f12c38e290500e614fe14b44a56b1355ba8799f2"
+      },
+      {
+       "bytes": 21214,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-sparfenyuk-mcp-proxy-readme",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-sparfenyuk-mcp-proxy-readme.md",
+       "permalink": "https://raw.githubusercontent.com/sparfenyuk/mcp-proxy/main/README.md",
+       "sha256": "ddd94ef53de3ee6a254675c933c05515d61e02457364bb530766ae59a4bdbb88"
+      },
+      {
+       "bytes": 6591,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-api-supercorp-supergateway",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-supercorp-supergateway.json",
+       "permalink": "https://api.github.com/repos/supercorp-ai/supergateway",
+       "sha256": "a046f8ec4c7069854617656fddc16e5fd95ea4c9be78bcd79c6f4f991c5f23f7"
+      },
+      {
+       "bytes": 11381,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-supergateway-readme",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-supergateway-readme.md",
+       "permalink": "https://raw.githubusercontent.com/supercorp-ai/supergateway/main/README.md",
+       "sha256": "32de230d87c086d900f21a703500bf44dd8f89c40d94f7b9f3945bdf2e552112"
+      }
+     ],
+     "strongest_caveat": "A transport bridge can be a prerequisite for putting an HTTP gateway in front of a stdio-only server. That is an adapter cost, not a lazy-activation win over the native mechanism.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "The recorded 05-ECO Tier-2 grade on gateway federation ('supervisor + degraded-mode fallback first') is CORROBORATED: every multiplexing candidate is a daemon with a self-healing tax; ContextForge had to add degraded Redis fallback; native deferred-tool already covers lazy activation without federation. No two-railed candidate beats the native mechanism on the lazy-activation axis.",
+     "evidence_grade": "E1",
+     "id": "C-TIER2-VERDICT",
+     "rails": [
+      {
+       "bytes": 597873,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-ibm-pr-4074",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-pr-4074.html",
+       "permalink": "https://github.com/IBM/mcp-context-forge/pull/4074",
+       "sha256": "2c689cab73105b0924865d525f4b4be4e237853854217ea47c0e124f9b61f9a1"
+      },
+      {
+       "bytes": 489238,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-mcp-client-best-practices",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-client-best-practices.html",
+       "permalink": "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+       "sha256": "37ddd4add694d42a5742cb6816ce7b3882a5ed6c793c0b6f5b3ec57f7399eda3"
+      },
+      {
+       "bytes": 522759,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "prose-docker-mcp-gateway-docs",
+       "kind": "prose-source",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-docs.html",
+       "permalink": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/mcp-gateway/",
+       "sha256": "460eb28b41524fe37212b8c56b93ca2d08a32f3afae3e889aa3a5e1610adc504"
+      },
+      {
+       "bytes": 56362,
+       "fetch_timestamp": "2026-08-24T18:55:57Z",
+       "http_status": 200,
+       "id": "gh-search-mcp-gateway-repos",
+       "kind": "structured-api",
+       "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-search-mcp-gateway-repos.json",
+       "permalink": "https://api.github.com/search/repositories?q=mcp+gateway+in:name&sort=stars&order=desc&per_page=10",
+       "sha256": "c575c4e4a1b80bcaf326004084da70fbde948812792853b447d6258094b2ae84"
+      }
+     ],
+     "strongest_caveat": "RES-0037 (live sessions x servers process count on this box) is absent. This corroboration is from public prior-art rails, not a local process-table measurement. A later local count could change the operational-cost magnitudes, not the daemon-liability polarity.",
+     "verdict": "CORROBORATE"
+    }
+   ],
+   "comparison_baseline": "native-deferred-tool",
+   "comparison_baseline_not": "doing-nothing",
+   "completion_sentinel": "SUCCESS:RES-0046 in the receipt AND a candidate table with a daemon-liability column and an explicit corroborate-or-refute verdict on the existing Tier-2 grade",
+   "daemon_liability_column": "daemon_liability",
+   "emitted_at": "2026-08-25T01:00:34Z",
+   "inputs_status": {
+    "05-ECO_call_sheet": {
+     "note": "Windows-path input not on this Linux worktree",
+     "path": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md",
+     "present": false
+    },
+    "REGISTER.md": {
+     "path": "command-center/sources/REGISTER.md",
+     "present": true
+    },
+    "RES-0037": {
+     "note": "dependency artifact absent; no local sessions-x-servers count is cited as measured fact",
+     "path": "command-center/research/RES-0037.json",
+     "present": true
+    }
+   },
+   "native_mechanism": "Anthropic defer_loading / tool-search plus MCP progressive discovery (search_tools, lazy server connect, notifications/tools/list_changed)",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "phase": "2",
+   "question": "Which existing MCP gateways or proxies solve per-session server multiplication and lazy tool activation, what does each cost operationally (a daemon is a liability with a self-healing tax), and does any of them beat the client's native deferred-tool mechanism?",
+   "residual_caveat": "This is a public-docs/API survey with frozen byte hashes, not a live process census. RES-0037 is absent. 05-ECO source files are absent; the Tier-2 prescription is taken from the catalog unit text and then corroborated or refuted against independent rails.",
+   "schema_on_disk": true,
+   "search_api": {
+    "hits_not_two_railed_e3": [
+     {
+      "description": "Enterprise-ready MCP Gateway & Registry that centralizes AI development tools with secure OAuth authentication, dynamic tool discovery, and unified access for both autonomous AI agents and AI coding assistants. Transform scattered MCP server chaos into governed, auditable tool access with Keycloak/Entra integration.",
+      "evidence_grade": "E3",
+      "full_name": "agentic-community/mcp-gateway-registry",
+      "html_url": "https://github.com/agentic-community/mcp-gateway-registry",
+      "stargazers_count": 872,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "MCP Gateway is a reverse proxy and management layer for MCP servers, enabling scalable, session-aware stateful routing and lifecycle management of MCP servers in Kubernetes environments.",
+      "evidence_grade": "E3",
+      "full_name": "microsoft/mcp-gateway",
+      "html_url": "https://github.com/microsoft/mcp-gateway",
+      "stargazers_count": 798,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "A plugin-based gateway that orchestrates other MCPs and allows developers to build upon it enterprise-grade agents.",
+      "evidence_grade": "E3",
+      "full_name": "lasso-security/mcp-gateway",
+      "html_url": "https://github.com/lasso-security/mcp-gateway",
+      "stargazers_count": 386,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": null,
+      "evidence_grade": "E3",
+      "full_name": "agiletec-inc/airis-mcp-gateway",
+      "html_url": "https://github.com/agiletec-inc/airis-mcp-gateway",
+      "stargazers_count": 170,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "A list of MCP gateways",
+      "evidence_grade": "E3",
+      "full_name": "e2b-dev/awesome-mcp-gateways",
+      "html_url": "https://github.com/e2b-dev/awesome-mcp-gateways",
+      "stargazers_count": 168,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "Unify multiple MCP Servers & Skills into a single gateway — with proxy forwarding, authentication, and a management API. Typical use: expose local stdio servers as remote MCP endpoints, then use them in any web-based AI chat via a browser extension. 将多个 MCP Server 与 Skill 统一接入单一网关，提供转发、认证与管理 API。 典型用途：将本地 stdio 服务暴露为远程 MCP 端点，配合插件在网页 AI 聊天中直接调用。",
+      "evidence_grade": "E3",
+      "full_name": "aiguicai/MCP-Gateway",
+      "html_url": "https://github.com/aiguicai/MCP-Gateway",
+      "stargazers_count": 153,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "A gateway demo for MCP SSE Server",
+      "evidence_grade": "E3",
+      "full_name": "lightconetech/mcp-gateway",
+      "html_url": "https://github.com/lightconetech/mcp-gateway",
+      "stargazers_count": 151,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "A flexible gateway server that bridges Model Context Protocol (MCP) STDIO servers to MCP HTTP+SSE and REST API, enabling multi-instance MCP servers to be exposed over HTTP.",
+      "evidence_grade": "E3",
+      "full_name": "acehoss/mcp-gateway",
+      "html_url": "https://github.com/acehoss/mcp-gateway",
+      "stargazers_count": 133,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     },
+     {
+      "description": "An envoy-based MCP Gateway that integrates with Istio and policy attachment mechanisms for authN, authZ, rate limiting and more.",
+      "evidence_grade": "E3",
+      "full_name": "Kuadrant/mcp-gateway",
+      "html_url": "https://github.com/Kuadrant/mcp-gateway",
+      "stargazers_count": 97,
+      "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+     }
+    ],
+    "incomplete_results": false,
+    "rail_id": "gh-search-mcp-gateway-repos",
+    "total_count": 1301
+   },
+   "tier2_grade_under_test": {
+    "grade": "Tier 2",
+    "not": "RESTATE",
+    "prescription": "supervisor + degraded-mode fallback first",
+    "rationale": "Public two-rail prior art shows multiplexing gateways are daemons with a self-healing tax; ContextForge needed circuit-breaker plus in-memory fallback when Redis died; native deferred-tool already covers lazy activation. Supervisor + degraded-mode fallback therefore comes first. Gateway federation is not the first architecture.",
+    "source": "catalog evidence_requirement for RES-0046 quoting the 05-ECO call sheet (the call-sheet file itself is absent on this worktree)",
+    "verdict": "CORROBORATE"
+   },
+   "title": "Survey MCP gateway, proxy and lazy-activation prior art for the fleet-bloat pathology"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0046",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0046 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0046.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0046.json",
+     "raw_output": "bytes=26763 sha256=051083d7c5ca0056c9fcd39c82ad9ff2346f335d17532ef8fae2f66e0598c15b",
+     "fingerprint": "476b786440bc805011602ce8c6ab109a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0046",
+     "raw_output": "schema-check",
+     "fingerprint": "a75d48f74e237f3e1860e3c9f8eb14f0",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0046 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0046",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0046",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "ea6399476256b9e0896aef7a85527a6d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0046",
+     "raw_output": "schema-valid",
+     "fingerprint": "c65cafd70155075d487d4da336848ee8",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0046/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0046"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0046.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0046.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "bb61f9469b5b5585078968f07b5123cf",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 26763,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0046.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "any_candidate_beats_native_lazy_activation": false,
+ "candidate_table": [
+  {
+   "beats_native_lazy_activation": false,
+   "beats_native_process_axis": false,
+   "daemon_liability": "none-client-local",
+   "evidence_claim_ids": [
+    "C-NATIVE-DEFERRED"
+   ],
+   "id": "native-deferred-tool",
+   "is_baseline": true,
+   "name": "Native deferred-tool / progressive discovery",
+   "operational_cost": "no extra daemon; implementation lives in the host/API (defer_loading / search_tools)",
+   "repo": "modelcontextprotocol/modelcontextprotocol",
+   "requires_persistent_daemon": false,
+   "solves_lazy_tool_activation": true,
+   "solves_session_server_multiplication": "partial",
+   "solves_session_server_multiplication_note": "MCP client best-practices document connecting a server only when needed and disconnecting afterwards; this is per-session lazy connect, not a shared process pool",
+   "stars": 9043,
+   "when_daemon_dies": "There is no shared gateway daemon. Ending the client session drops that session's tools only. Other sessions are unaffected."
+  },
+  {
+   "beats_native_lazy_activation": false,
+   "beats_native_process_axis": false,
+   "daemon_liability": "yes-gateway-process-plus-docker-daemon",
+   "evidence_claim_ids": [
+    "C-DOCKER-GATEWAY"
+   ],
+   "id": "docker-mcp-gateway",
+   "is_baseline": false,
+   "name": "Docker MCP Gateway",
+   "operational_cost": "self-healing tax: Docker daemon + gateway process + container lifecycle; Desktop 4.59+ or DOCKER_MCP_IN_CONTAINER bypass",
+   "repo": "docker/mcp-gateway",
+   "requires_persistent_daemon": true,
+   "solves_lazy_tool_activation": "partial: dynamic discovery from running servers; not equivalent to defer_loading (schemas of running servers still surface unless the client also defers)",
+   "solves_session_server_multiplication": true,
+   "solves_session_server_multiplication_note": "yes on sse/streaming: one gateway can service multiple clients; servers are started on demand as containers",
+   "stars": 1539,
+   "when_daemon_dies": "docker mcp gateway run exiting drops the unified tool surface for every client attached to that gateway (stdio: one client; sse/streaming: all attached clients). Lazy-started server containers lose their supervisor; leftover containers are an orphan-tax, not a degraded client path."
+  },
+  {
+   "beats_native_lazy_activation": false,
+   "beats_native_process_axis": false,
+   "daemon_liability": "yes-http-app-plus-postgres-plus-optional-redis",
+   "evidence_claim_ids": [
+    "C-CONTEXTFORGE-FEDERATION"
+   ],
+   "id": "ibm-contextforge",
+   "is_baseline": false,
+   "name": "IBM ContextForge MCP Gateway",
+   "operational_cost": "self-healing tax: app replicas + PostgreSQL + Redis + (often) Nginx; Redis failure required an explicit degraded fallback",
+   "repo": "IBM/mcp-context-forge",
+   "requires_persistent_daemon": true,
+   "solves_lazy_tool_activation": "partial: centralized discovery/registry; not client defer_loading",
+   "solves_session_server_multiplication": true,
+   "solves_session_server_multiplication_note": "one HTTP/SSE/stdio wrapper endpoint federates many MCP/A2A/REST backends; multi-cluster Redis-backed federation is optional",
+   "stars": 4361,
+   "when_daemon_dies": "The federated endpoint is gone until the gateway (and its store) restart. Redis outage is a separate failure: PR 4074 added a circuit breaker and in-memory cache fallback, which is degraded mode for cache, not a replacement for the gateway process itself."
+  },
+  {
+   "beats_native_lazy_activation": false,
+   "beats_native_process_axis": false,
+   "daemon_liability": "yes-when-listening-on-a-port",
+   "evidence_claim_ids": [
+    "C-TRANSPORT-BRIDGES"
+   ],
+   "id": "sparfenyuk-mcp-proxy",
+   "is_baseline": false,
+   "name": "sparfenyuk/mcp-proxy",
+   "operational_cost": "one extra process per bridge; no self-heal documented",
+   "repo": "sparfenyuk/mcp-proxy",
+   "requires_persistent_daemon": true,
+   "solves_lazy_tool_activation": false,
+   "solves_session_server_multiplication": false,
+   "solves_session_server_multiplication_note": "transport switch, not a fleet multiplexer. named-server mode can expose several stdio servers under /servers/<name>/ but still spawns a stdio child per named server behind one proxy",
+   "stars": 2726,
+   "when_daemon_dies": "stdio-to-SSE client mode: that one session's bridge dies. SSE-to-stdio / named-server mode: the listen port dies and every client using it loses the spawned stdio child(ren)."
+  },
+  {
+   "beats_native_lazy_activation": false,
+   "beats_native_process_axis": false,
+   "daemon_liability": "yes-when-listening-on-a-port",
+   "evidence_claim_ids": [
+    "C-TRANSPORT-BRIDGES"
+   ],
+   "id": "supercorp-supergateway",
+   "is_baseline": false,
+   "name": "supercorp-ai/supergateway",
+   "operational_cost": "one extra npx/docker process per wrapped server",
+   "repo": "supercorp-ai/supergateway",
+   "requires_persistent_daemon": true,
+   "solves_lazy_tool_activation": false,
+   "solves_session_server_multiplication": false,
+   "stars": 2818,
+   "when_daemon_dies": "The stdio-to-SSE/WS/HTTP listener dies; clients lose that one wrapped server. No multi-server federation."
+  }
+ ],
+ "claims": [
+  {
+   "claim": "The native baseline for lazy tool activation is client/API deferred loading (Anthropic defer_loading / tool-search, MCP progressive discovery with search_tools) plus list_changed, not a gateway daemon. The same MCP client guide also describes lazy server connect.",
+   "evidence_grade": "E1",
+   "id": "C-NATIVE-DEFERRED",
+   "rails": [
+    {
+     "bytes": 7554,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-api-mcp-spec-repo",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-mcp-spec-repo.json",
+     "permalink": "https://api.github.com/repos/modelcontextprotocol/modelcontextprotocol",
+     "sha256": "3510fed237370fe7ce0e4f53c751866b20a0b693fe36eb8722abe83ec1c79001"
+    },
+    {
+     "bytes": 489238,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-mcp-client-best-practices",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-client-best-practices.html",
+     "permalink": "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+     "sha256": "37ddd4add694d42a5742cb6816ce7b3882a5ed6c793c0b6f5b3ec57f7399eda3"
+    },
+    {
+     "bytes": 245052,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-anthropic-advanced-tool-use",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-anthropic-advanced-tool-use.html",
+     "permalink": "https://www.anthropic.com/engineering/advanced-tool-use",
+     "sha256": "8ad09f4748361dc16dff04daafc76e1ec9537f6b3374d867ad95e4177e2e38ec"
+    },
+    {
+     "bytes": 656348,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-mcp-spec-tools-2025-11-25",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-spec-tools-2025-11-25.html",
+     "permalink": "https://modelcontextprotocol.io/specification/2025-11-25/server/tools",
+     "sha256": "5eb93f78d41ee5cdf1f7fb07047b89bc15d24764e90bbb93b2313fa0ff6ebc21"
+    }
+   ],
+   "strongest_caveat": "Native lazy-server-connect is a host implementation pattern. A client that ignores the guide and eagerly spawns every stdio server still pays sessions x servers. That is a client defect, not a reason to federate gateways first.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Docker MCP Gateway is a persistent CLI/gateway process that unifies many containerized MCP servers, can serve multiple clients on sse/streaming, and lazy-starts a server container when a tool is needed.",
+   "evidence_grade": "E1",
+   "id": "C-DOCKER-GATEWAY",
+   "rails": [
+    {
+     "bytes": 6161,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-api-docker-mcp-gateway",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-docker-mcp-gateway.json",
+     "permalink": "https://api.github.com/repos/docker/mcp-gateway",
+     "sha256": "7fd5ed46a7a8c7592f56d0b560e808321a2732d9ecb99162082f077f9768e21d"
+    },
+    {
+     "bytes": 11813,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-docker-mcp-gateway-readme",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-readme.md",
+     "permalink": "https://raw.githubusercontent.com/docker/mcp-gateway/main/README.md",
+     "sha256": "f4da99dc742a72d221850989bd0bb112fc5f763f22f83a5ccd0120d1987899b6"
+    },
+    {
+     "bytes": 522759,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-docker-mcp-gateway-docs",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-docs.html",
+     "permalink": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/mcp-gateway/",
+     "sha256": "460eb28b41524fe37212b8c56b93ca2d08a32f3afae3e889aa3a5e1610adc504"
+    }
+   ],
+   "strongest_caveat": "Lazy container start is still a daemon-supervised start. Docs do not show a client-side degraded path when the gateway process is dead.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "ContextForge is a persistent registry/proxy that federates MCP/A2A/REST backends, optionally with Redis-backed multi-cluster federation. Its own Redis-outage work added circuit-breaker plus in-memory fallback, which is degraded-mode for a dependency, not proof that federation should be the first architecture.",
+   "evidence_grade": "E1",
+   "id": "C-CONTEXTFORGE-FEDERATION",
+   "rails": [
+    {
+     "bytes": 6721,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-api-ibm-mcp-context-forge",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-ibm-mcp-context-forge.json",
+     "permalink": "https://api.github.com/repos/IBM/mcp-context-forge",
+     "sha256": "a152ff679a48777f7981e7fcedfd30ecf3b4f189fce21e66908ebdd9f993bea4"
+    },
+    {
+     "bytes": 43751,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-ibm-contextforge-readme",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-contextforge-readme.md",
+     "permalink": "https://raw.githubusercontent.com/IBM/mcp-context-forge/main/README.md",
+     "sha256": "0acc6c7efc080d91dc3287f63461c3a74aacbfa8b3295d484b552890bfa4ad09"
+    },
+    {
+     "bytes": 597873,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-ibm-pr-4074",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-pr-4074.html",
+     "permalink": "https://github.com/IBM/mcp-context-forge/pull/4074",
+     "sha256": "2c689cab73105b0924865d525f4b4be4e237853854217ea47c0e124f9b61f9a1"
+    }
+   ],
+   "strongest_caveat": "PR 4074's fallback covers Redis cache hangs, not a dead gateway replica or a lost Postgres. Multi-node session recovery remains a separate unfinished class in upstream issues.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "mcp-proxy and supergateway are transport bridges (stdio <-> SSE/Streamable HTTP). They do not implement native deferred-tool activation. They add a process. named-server mode on mcp-proxy can front several stdio children but still spawns those children.",
+   "evidence_grade": "E1",
+   "id": "C-TRANSPORT-BRIDGES",
+   "rails": [
+    {
+     "bytes": 5363,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-api-sparfenyuk-mcp-proxy",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-sparfenyuk-mcp-proxy.json",
+     "permalink": "https://api.github.com/repos/sparfenyuk/mcp-proxy",
+     "sha256": "96c815807355f45800dc1571f12c38e290500e614fe14b44a56b1355ba8799f2"
+    },
+    {
+     "bytes": 21214,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-sparfenyuk-mcp-proxy-readme",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-sparfenyuk-mcp-proxy-readme.md",
+     "permalink": "https://raw.githubusercontent.com/sparfenyuk/mcp-proxy/main/README.md",
+     "sha256": "ddd94ef53de3ee6a254675c933c05515d61e02457364bb530766ae59a4bdbb88"
+    },
+    {
+     "bytes": 6591,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-api-supercorp-supergateway",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-api-supercorp-supergateway.json",
+     "permalink": "https://api.github.com/repos/supercorp-ai/supergateway",
+     "sha256": "a046f8ec4c7069854617656fddc16e5fd95ea4c9be78bcd79c6f4f991c5f23f7"
+    },
+    {
+     "bytes": 11381,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-supergateway-readme",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-supergateway-readme.md",
+     "permalink": "https://raw.githubusercontent.com/supercorp-ai/supergateway/main/README.md",
+     "sha256": "32de230d87c086d900f21a703500bf44dd8f89c40d94f7b9f3945bdf2e552112"
+    }
+   ],
+   "strongest_caveat": "A transport bridge can be a prerequisite for putting an HTTP gateway in front of a stdio-only server. That is an adapter cost, not a lazy-activation win over the native mechanism.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "The recorded 05-ECO Tier-2 grade on gateway federation ('supervisor + degraded-mode fallback first') is CORROBORATED: every multiplexing candidate is a daemon with a self-healing tax; ContextForge had to add degraded Redis fallback; native deferred-tool already covers lazy activation without federation. No two-railed candidate beats the native mechanism on the lazy-activation axis.",
+   "evidence_grade": "E1",
+   "id": "C-TIER2-VERDICT",
+   "rails": [
+    {
+     "bytes": 597873,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-ibm-pr-4074",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-ibm-pr-4074.html",
+     "permalink": "https://github.com/IBM/mcp-context-forge/pull/4074",
+     "sha256": "2c689cab73105b0924865d525f4b4be4e237853854217ea47c0e124f9b61f9a1"
+    },
+    {
+     "bytes": 489238,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-mcp-client-best-practices",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-mcp-client-best-practices.html",
+     "permalink": "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+     "sha256": "37ddd4add694d42a5742cb6816ce7b3882a5ed6c793c0b6f5b3ec57f7399eda3"
+    },
+    {
+     "bytes": 522759,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "prose-docker-mcp-gateway-docs",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/prose-docker-mcp-gateway-docs.html",
+     "permalink": "https://docs.docker.com/ai/mcp-catalog-and-toolkit/mcp-gateway/",
+     "sha256": "460eb28b41524fe37212b8c56b93ca2d08a32f3afae3e889aa3a5e1610adc504"
+    },
+    {
+     "bytes": 56362,
+     "fetch_timestamp": "2026-08-24T18:55:57Z",
+     "http_status": 200,
+     "id": "gh-search-mcp-gateway-repos",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0046/captures/raw/gh-search-mcp-gateway-repos.json",
+     "permalink": "https://api.github.com/search/repositories?q=mcp+gateway+in:name&sort=stars&order=desc&per_page=10",
+     "sha256": "c575c4e4a1b80bcaf326004084da70fbde948812792853b447d6258094b2ae84"
+    }
+   ],
+   "strongest_caveat": "RES-0037 (live sessions x servers process count on this box) is absent. This corroboration is from public prior-art rails, not a local process-table measurement. A later local count could change the operational-cost magnitudes, not the daemon-liability polarity.",
+   "verdict": "CORROBORATE"
+  }
+ ],
+ "comparison_baseline": "native-deferred-tool",
+ "comparison_baseline_not": "doing-nothing",
+ "completion_sentinel": "SUCCESS:RES-0046 in the receipt AND a candidate table with a daemon-liability column and an explicit corroborate-or-refute verdict on the existing Tier-2 grade",
+ "daemon_liability_column": "daemon_liability",
+ "emitted_at": "2026-08-25T01:00:34Z",
+ "inputs_status": {
+  "05-ECO_call_sheet": {
+   "note": "Windows-path input not on this Linux worktree",
+   "path": "C:/Users/Prekzursil/.claude/platform-redesign-2026-07-19/05-ECO-frontier-orchestration.md",
+   "present": false
+  },
+  "REGISTER.md": {
+   "path": "command-center/sources/REGISTER.md",
+   "present": true
+  },
+  "RES-0037": {
+   "note": "dependency artifact absent; no local sessions-x-servers count is cited as measured fact",
+   "path": "command-center/research/RES-0037.json",
+   "present": true
+  }
+ },
+ "native_mechanism": "Anthropic defer_loading / tool-search plus MCP progressive discovery (search_tools, lazy server connect, notifications/tools/list_changed)",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "phase": "2",
+ "question": "Which existing MCP gateways or proxies solve per-session server multiplication and lazy tool activation, what does each cost operationally (a daemon is a liability with a self-healing tax), and does any of them beat the client's native deferred-tool mechanism?",
+ "residual_caveat": "This is a public-docs/API survey with frozen byte hashes, not a live process census. RES-0037 is absent. 05-ECO source files are absent; the Tier-2 prescription is taken from the catalog unit text and then corroborated or refuted against independent rails.",
+ "schema_on_disk": true,
+ "search_api": {
+  "hits_not_two_railed_e3": [
+   {
+    "description": "Enterprise-ready MCP Gateway & Registry that centralizes AI development tools with secure OAuth authentication, dynamic tool discovery, and unified access for both autonomous AI agents and AI coding assistants. Transform scattered MCP server chaos into governed, auditable tool access with Keycloak/Entra integration.",
+    "evidence_grade": "E3",
+    "full_name": "agentic-community/mcp-gateway-registry",
+    "html_url": "https://github.com/agentic-community/mcp-gateway-registry",
+    "stargazers_count": 872,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "MCP Gateway is a reverse proxy and management layer for MCP servers, enabling scalable, session-aware stateful routing and lifecycle management of MCP servers in Kubernetes environments.",
+    "evidence_grade": "E3",
+    "full_name": "microsoft/mcp-gateway",
+    "html_url": "https://github.com/microsoft/mcp-gateway",
+    "stargazers_count": 798,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "A plugin-based gateway that orchestrates other MCPs and allows developers to build upon it enterprise-grade agents.",
+    "evidence_grade": "E3",
+    "full_name": "lasso-security/mcp-gateway",
+    "html_url": "https://github.com/lasso-security/mcp-gateway",
+    "stargazers_count": 386,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": null,
+    "evidence_grade": "E3",
+    "full_name": "agiletec-inc/airis-mcp-gateway",
+    "html_url": "https://github.com/agiletec-inc/airis-mcp-gateway",
+    "stargazers_count": 170,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "A list of MCP gateways",
+    "evidence_grade": "E3",
+    "full_name": "e2b-dev/awesome-mcp-gateways",
+    "html_url": "https://github.com/e2b-dev/awesome-mcp-gateways",
+    "stargazers_count": 168,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "Unify multiple MCP Servers & Skills into a single gateway — with proxy forwarding, authentication, and a management API. Typical use: expose local stdio servers as remote MCP endpoints, then use them in any web-based AI chat via a browser extension. 将多个 MCP Server 与 Skill 统一接入单一网关，提供转发、认证与管理 API。 典型用途：将本地 stdio 服务暴露为远程 MCP 端点，配合插件在网页 AI 聊天中直接调用。",
+    "evidence_grade": "E3",
+    "full_name": "aiguicai/MCP-Gateway",
+    "html_url": "https://github.com/aiguicai/MCP-Gateway",
+    "stargazers_count": 153,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "A gateway demo for MCP SSE Server",
+    "evidence_grade": "E3",
+    "full_name": "lightconetech/mcp-gateway",
+    "html_url": "https://github.com/lightconetech/mcp-gateway",
+    "stargazers_count": 151,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "A flexible gateway server that bridges Model Context Protocol (MCP) STDIO servers to MCP HTTP+SSE and REST API, enabling multi-instance MCP servers to be exposed over HTTP.",
+    "evidence_grade": "E3",
+    "full_name": "acehoss/mcp-gateway",
+    "html_url": "https://github.com/acehoss/mcp-gateway",
+    "stargazers_count": 133,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   },
+   {
+    "description": "An envoy-based MCP Gateway that integrates with Istio and policy attachment mechanisms for authN, authZ, rate limiting and more.",
+    "evidence_grade": "E3",
+    "full_name": "Kuadrant/mcp-gateway",
+    "html_url": "https://github.com/Kuadrant/mcp-gateway",
+    "stargazers_count": 97,
+    "why_not_measured": "single structured-api hit from the search rail; no independent prose capture in this unit, so not cited as measured fact"
+   }
+  ],
+  "incomplete_results": false,
+  "rail_id": "gh-search-mcp-gateway-repos",
+  "total_count": 1301
+ },
+ "tier2_grade_under_test": {
+  "grade": "Tier 2",
+  "not": "RESTATE",
+  "prescription": "supervisor + degraded-mode fallback first",
+  "rationale": "Public two-rail prior art shows multiplexing gateways are daemons with a self-healing tax; ContextForge needed circuit-breaker plus in-memory fallback when Redis died; native deferred-tool already covers lazy activation. Supervisor + degraded-mode fallback therefore comes first. Gateway federation is not the first architecture.",
+  "source": "catalog evidence_requirement for RES-0046 quoting the 05-ECO call sheet (the call-sheet file itself is absent on this worktree)",
+  "verdict": "CORROBORATE"
+ },
+ "title": "Survey MCP gateway, proxy and lazy-activation prior art for the fleet-bloat pathology"
+}

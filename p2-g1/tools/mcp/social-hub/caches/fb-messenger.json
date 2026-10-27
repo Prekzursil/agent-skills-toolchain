@@ -1,0 +1,1404 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {
+        "listChanged": false
+      },
+      "resources": {
+        "subscribe": false,
+        "listChanged": false
+      },
+      "tools": {
+        "listChanged": false
+      }
+    },
+    "serverInfo": {
+      "name": "fb-messenger",
+      "version": "1.27.2"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "whoami",
+        "description": "Confirm which Facebook account the configured cookies belong to.",
+        "inputSchema": {
+          "properties": {},
+          "title": "whoamiArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "whoamiOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "list_threads",
+        "description": "List recent Messenger threads (groups/rooms/pages) with id, name, type.",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "default": 10,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "title": "list_threadsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "list_threadsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "read_thread",
+        "description": "Read the most recent messages from a thread (group/room/page) by id.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "limit": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "thread_id"
+          ],
+          "title": "read_threadArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "read_threadOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "search_messages",
+        "description": "Search for messages containing `text` within a group thread.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id",
+            "text"
+          ],
+          "title": "search_messagesArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "search_messagesOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "thread_info",
+        "description": "Get details for one or more threads by id.",
+        "inputSchema": {
+          "properties": {
+            "thread_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Thread Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "thread_ids"
+          ],
+          "title": "thread_infoArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "thread_infoOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_send_message",
+        "description": "Send a text message to a NON-E2EE thread (group/room/page).\n\nOptionally reply to an existing message by id. Returns the sent\nmessage id. Does NOT work on personal 1:1 DMs (E2EE) - use fb_dm_send.\n",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "reply_to_message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Reply To Message"
+            }
+          },
+          "required": [
+            "thread_id",
+            "text"
+          ],
+          "title": "fb_send_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_send_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_send_file",
+        "description": "Send local files (paths) and/or remote files (urls) to a non-E2EE\nthread, optionally with a text caption. At least one of file_path or\nfile_url is required.\n",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "file_path": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "File Path"
+            },
+            "file_url": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "File Url"
+            },
+            "text": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Text"
+            }
+          },
+          "required": [
+            "thread_id"
+          ],
+          "title": "fb_send_fileArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_send_fileOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_react_to_message",
+        "description": "React to a message in a non-E2EE thread with an emoji (e.g. '❤️').",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "message_id": {
+              "title": "Message Id",
+              "type": "string"
+            },
+            "emoji": {
+              "title": "Emoji",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id",
+            "message_id",
+            "emoji"
+          ],
+          "title": "fb_react_to_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_react_to_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_unsend_message",
+        "description": "Unsend (remove for everyone) one of YOUR messages in a non-E2EE thread.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "message_id": {
+              "title": "Message Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id",
+            "message_id"
+          ],
+          "title": "fb_unsend_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_unsend_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_forward_message",
+        "description": "Forward a message to another non-E2EE thread.",
+        "inputSchema": {
+          "properties": {
+            "message_id": {
+              "title": "Message Id",
+              "type": "string"
+            },
+            "to_thread_id": {
+              "title": "To Thread Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "message_id",
+            "to_thread_id"
+          ],
+          "title": "fb_forward_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_forward_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_mark_read",
+        "description": "Mark a non-E2EE thread as read.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id"
+          ],
+          "title": "fb_mark_readArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_mark_readOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_send_typing",
+        "description": "Send (or clear) a typing indicator in a non-E2EE thread.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "is_typing": {
+              "default": true,
+              "title": "Is Typing",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "thread_id"
+          ],
+          "title": "fb_send_typingArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_send_typingOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_create_group",
+        "description": "Create a new group thread with the given user ids. Returns thread id.",
+        "inputSchema": {
+          "properties": {
+            "participant_ids": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Participant Ids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "participant_ids"
+          ],
+          "title": "fb_create_groupArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_create_groupOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_graph_token_info",
+        "description": "Verify the configured Page token: returns /me plus (if FB_APP_ID and\nFB_APP_SECRET are set) a debug_token scope/expiry report. Use this to\nconfirm T1 setup before posting.",
+        "inputSchema": {
+          "properties": {},
+          "title": "fb_graph_token_infoArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_graph_token_infoOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_post",
+        "description": "Publish a text (and optional link) post to your Page feed. Returns the\nnew post id. Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "link": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Link"
+            }
+          },
+          "required": [
+            "message"
+          ],
+          "title": "fb_page_postArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_postOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_schedule_post",
+        "description": "Schedule a Page feed post. scheduled_publish_time is a UNIX timestamp\nbetween 10 minutes and 75 days out. Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "scheduled_publish_time": {
+              "title": "Scheduled Publish Time",
+              "type": "integer"
+            },
+            "link": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Link"
+            }
+          },
+          "required": [
+            "message",
+            "scheduled_publish_time"
+          ],
+          "title": "fb_page_schedule_postArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_schedule_postOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_upload_photo",
+        "description": "Upload a photo to the Page (image_url OR image_path). published=False\nstages it (e.g. for a story). Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "image_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Image Url"
+            },
+            "image_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Image Path"
+            },
+            "caption": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Caption"
+            },
+            "published": {
+              "default": true,
+              "title": "Published",
+              "type": "boolean"
+            }
+          },
+          "title": "fb_page_upload_photoArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_upload_photoOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_upload_video",
+        "description": "Upload a standard (non-Reel) video to the Page feed (video_url OR\nvideo_path). Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "video_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Url"
+            },
+            "video_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Path"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            }
+          },
+          "title": "fb_page_upload_videoArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_upload_videoOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_upload_reel",
+        "description": "Publish a Facebook Reel to the Page (3-phase upload). Provide video_url\nOR video_path. Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "video_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Url"
+            },
+            "video_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Path"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            }
+          },
+          "title": "fb_page_upload_reelArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_upload_reelOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_upload_story",
+        "description": "Publish a Page Story. Photo story: staged photo -> /photo_stories.\nVideo story: 3-phase -> /video_stories. Needs pages_manage_posts.",
+        "inputSchema": {
+          "properties": {
+            "image_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Image Url"
+            },
+            "image_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Image Path"
+            },
+            "video_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Url"
+            },
+            "video_path": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Path"
+            }
+          },
+          "title": "fb_page_upload_storyArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_upload_storyOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_read_posts",
+        "description": "Read recent posts from your Page feed. Needs pages_read_engagement.",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "default": 25,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "title": "fb_page_read_postsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_read_postsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_read_comments",
+        "description": "Read comments on a post/photo/video by object id. Needs\npages_read_engagement.",
+        "inputSchema": {
+          "properties": {
+            "object_id": {
+              "title": "Object Id",
+              "type": "string"
+            },
+            "limit": {
+              "default": 25,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "object_id"
+          ],
+          "title": "fb_page_read_commentsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_read_commentsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_moderate",
+        "description": "Moderate a Page comment. action = reply | hide | unhide | delete |\nlike | unlike. 'reply' requires `message`. Needs\npages_manage_engagement.",
+        "inputSchema": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "comment_id": {
+              "title": "Comment Id",
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Message"
+            }
+          },
+          "required": [
+            "action",
+            "comment_id"
+          ],
+          "title": "fb_page_moderateArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_moderateOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_insights",
+        "description": "Read Page insights. metric = comma-separated metric names (e.g.\n'page_impressions,page_post_engagements'); period = day|week|days_28.\nNeeds read_insights.",
+        "inputSchema": {
+          "properties": {
+            "metric": {
+              "title": "Metric",
+              "type": "string"
+            },
+            "period": {
+              "default": "day",
+              "title": "Period",
+              "type": "string"
+            },
+            "since": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Since"
+            },
+            "until": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Until"
+            }
+          },
+          "required": [
+            "metric"
+          ],
+          "title": "fb_page_insightsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_insightsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_page_message",
+        "description": "Send a Messenger message FROM the Page to a user (Send API). Only valid\nwithin 24h of a user-initiated message (messaging_type=RESPONSE). Needs\npages_messaging.",
+        "inputSchema": {
+          "properties": {
+            "recipient_id": {
+              "title": "Recipient Id",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "recipient_id",
+            "text"
+          ],
+          "title": "fb_page_messageArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_page_messageOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "ig_graph_publish",
+        "description": "Publish to the linked professional Instagram account (2-phase: create\ncontainer -> publish). media_type = IMAGE | REELS. image_url/video_url\nMUST be publicly reachable (IG Graph cannot take local files). Needs\ninstagram_content_publish.",
+        "inputSchema": {
+          "properties": {
+            "caption": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Caption"
+            },
+            "image_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Image Url"
+            },
+            "video_url": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Video Url"
+            },
+            "media_type": {
+              "default": "IMAGE",
+              "title": "Media Type",
+              "type": "string"
+            }
+          },
+          "title": "ig_graph_publishArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "ig_graph_publishOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "ig_graph_insights",
+        "description": "Read Instagram insights. If ig_media_id is given, reads media-level\ninsights; otherwise account-level for FB_IG_USER_ID. metric =\ncomma-separated. Needs instagram_manage_insights.",
+        "inputSchema": {
+          "properties": {
+            "metric": {
+              "title": "Metric",
+              "type": "string"
+            },
+            "period": {
+              "default": "day",
+              "title": "Period",
+              "type": "string"
+            },
+            "ig_media_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Ig Media Id"
+            }
+          },
+          "required": [
+            "metric"
+          ],
+          "title": "ig_graph_insightsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "ig_graph_insightsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "ig_graph_moderate_comments",
+        "description": "Moderate an Instagram comment. action = reply | hide | unhide | delete.\n'reply' requires `message`. Needs instagram_manage_comments.",
+        "inputSchema": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "comment_id": {
+              "title": "Comment Id",
+              "type": "string"
+            },
+            "message": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Message"
+            }
+          },
+          "required": [
+            "action",
+            "comment_id"
+          ],
+          "title": "ig_graph_moderate_commentsArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "ig_graph_moderate_commentsOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_dm_status",
+        "description": "Report whether the E2EE 1:1 DM backend is installed and configured.\nHonest diagnostic - does not send anything.",
+        "inputSchema": {
+          "properties": {},
+          "title": "fb_dm_statusArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_dm_statusOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_dm_list",
+        "description": "List recent personal 1:1 E2EE Messenger DM threads.",
+        "inputSchema": {
+          "properties": {
+            "limit": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "title": "fb_dm_listArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_dm_listOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_dm_read",
+        "description": "Read recent messages from a personal 1:1 E2EE DM thread by id.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "limit": {
+              "default": 20,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "thread_id"
+          ],
+          "title": "fb_dm_readArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_dm_readOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_dm_send",
+        "description": "Send a text message to a personal 1:1 E2EE DM thread. NEVER reports\nsuccess unless the backend confirms the send.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id",
+            "text"
+          ],
+          "title": "fb_dm_sendArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_dm_sendOutput",
+          "type": "object"
+        }
+      },
+      {
+        "name": "fb_dm_react",
+        "description": "React to a message in a personal 1:1 E2EE DM thread with an emoji.",
+        "inputSchema": {
+          "properties": {
+            "thread_id": {
+              "title": "Thread Id",
+              "type": "string"
+            },
+            "message_id": {
+              "title": "Message Id",
+              "type": "string"
+            },
+            "emoji": {
+              "title": "Emoji",
+              "type": "string"
+            }
+          },
+          "required": [
+            "thread_id",
+            "message_id",
+            "emoji"
+          ],
+          "title": "fb_dm_reactArguments",
+          "type": "object"
+        },
+        "outputSchema": {
+          "properties": {
+            "result": {
+              "title": "Result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "result"
+          ],
+          "title": "fb_dm_reactOutput",
+          "type": "object"
+        }
+      }
+    ]
+  }
+}

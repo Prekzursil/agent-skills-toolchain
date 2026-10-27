@@ -1,0 +1,709 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1113,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/conformance-report.schema.json",
+      "role": "supporting",
+      "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190"
+    },
+    {
+      "bytes": 7932,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ARC-0103/negotiate.py",
+      "role": "supporting",
+      "sha256": "dc3b3785f2bf8712a2ce87e4d090d9bab62c2cd8454730d970a6377ac9b02115"
+    },
+    {
+      "bytes": 22297,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ARC-0103/golden.py",
+      "role": "supporting",
+      "sha256": "ad3f36831c7a6137df67c06919710df37f9fb3a4da2fb995963709407a009d87"
+    },
+    {
+      "bytes": 3879,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+      "role": "supporting",
+      "sha256": "1c13a801f0b9556b5b574ab47c91865ebbb2f8f617bc119b87a8667336833dc0"
+    },
+    {
+      "bytes": 5405,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+      "role": "supporting",
+      "sha256": "0554c40a72019c089d717a72fc7de113c9949a93f77b0278351bb435007bc86b"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/phase4/conformance/ARC-0103.json",
+      "consumer": "command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+        "exit_code": 0,
+        "fingerprint": "0bc4f847e497c15df11702bc15043ffc2683278261d5b903bf7d45b833f74fac",
+        "method": "test-run",
+        "raw_output": "catalog_cells=4 (1,1)=EXERCISED-ACCEPT (1,2)=EXERCISED-ACCEPT (2,1)=EXERCISED-REFUSE (2,2)=EXERCISED-ACCEPT not_checked=0 inferred=0 live_match=True\nSUCCESS:ARC-0103-probe1 skew matrix completeness",
+        "role": "verifier"
+      },
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/phase4/conformance/ARC-0103.json",
+      "consumer": "command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+        "exit_code": 0,
+        "fingerprint": "b0cd8fdc2e00eea187be7dc7bfa3878f96220096de0ca0eca88152cf8856a707",
+        "method": "test-run",
+        "raw_output": "refuse_loud=True producer_fields=10 consumed_fields=7 dropped_work_units=2007 field_count_delta=3 previous_schema_accept=True planted_refuse=True\nSUCCESS:ARC-0103-probe2 loud-refusal field-count control",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:catalog_skew_matrix",
+      "claim": "Every (producer, consumer) pair in the catalog supported range {1,2} is exercised or NOT-CHECKED; (1,2) ACCEPTS the previous-schema projection and (2,1) REFUSES loudly. No cell is inferred.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c import-golden-catalog_skew_matrix",
+          "exit_code": 0,
+          "fingerprint": "634ae79dfa721be5e808612464574b85c7b552a122203e921432fb3db9b78e7b",
+          "method": "static-analysis",
+          "raw_output": "live catalog schema_version=2 catalog.py SCHEMA_VERSION=1 cells=(1, 2)=EXERCISED-ACCEPT (2, 1)=EXERCISED-REFUSE",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+          "exit_code": 0,
+          "fingerprint": "0bc4f847e497c15df11702bc15043ffc2683278261d5b903bf7d45b833f74fac",
+          "method": "test-run",
+          "raw_output": "catalog_cells=4 (1,1)=EXERCISED-ACCEPT (1,2)=EXERCISED-ACCEPT (2,1)=EXERCISED-REFUSE (2,2)=EXERCISED-ACCEPT not_checked=0 inferred=0 live_match=True\nSUCCESS:ARC-0103-probe1 skew matrix completeness",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:loud_refusal_control",
+      "claim": "An incompatible pair raises VersionRefusal with producer vs consumer field counts; a silent key-subset read of the live v2 catalog drops work_units. CRLF is not classified as data.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c import-golden-loud_refusal_control",
+          "exit_code": 0,
+          "fingerprint": "ee78d5f7773feb1439ed143916b0f115681551d5172c3bc2a0fc7ad4319101c3",
+          "method": "static-analysis",
+          "raw_output": "refuse_loud=True producer_fields=10 consumed_fields=7 dropped_work_units=2007",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+          "exit_code": 0,
+          "fingerprint": "b0cd8fdc2e00eea187be7dc7bfa3878f96220096de0ca0eca88152cf8856a707",
+          "method": "test-run",
+          "raw_output": "refuse_loud=True producer_fields=10 consumed_fields=7 dropped_work_units=2007 field_count_delta=3 previous_schema_accept=True planted_refuse=True\nSUCCESS:ARC-0103-probe2 loud-refusal field-count control",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/ARC-0103/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "data_divergence",
+      "description": "Planted identical / CRLF-only / data-divergence triples: CRLF must classify crlf-only, not data-divergence.",
+      "fired_on_bad_state": true,
+      "good_state_output": "identical",
+      "id": "encoding-crlf-vs-data",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "REFUSE",
+      "description": "schema_version=3 toy vs consumer 1 must REFUSE; a silent subset read shrinks the field count.",
+      "fired_on_bad_state": true,
+      "good_state_output": "ACCEPT",
+      "id": "planted-incompatible-toy",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Empty / unrelated / blob documents are rejected by the resolved conformance-report schema.",
+      "fired_on_bad_state": true,
+      "id": "schema-rejects-garbage",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "test-engineer",
+    "vendor": "xai"
+  },
+  "profile": "phase4-conformance",
+  "report": {
+    "adjudication": {
+      "artifact_wrong": 2,
+      "classified": 5,
+      "computed_not_asserted": true,
+      "failing_records": 5,
+      "schema_wrong": 3,
+      "unexplained": 0
+    },
+    "adv_rebuild_circle": false,
+    "answer": "Version lives at /schema_version as an integer. Compatibility is producer <= consumer; producer > consumer is a loud VersionRefusal with field counts, not a subset read. Live catalog is schema_version=2; catalog.py SCHEMA_VERSION=1. A v1 silent read of the live file would keep 7 of 10 top-level fields and drop 2007 work_units. Previous-schema (v1 projection of preserved items) read by a v2 consumer ACCEPTS. Frozen ARC-0092/0093/0095 contracts are absent (schema-wrong). SUCCESS:ARC-0103",
+    "artifacts": [
+      {
+        "exists": true,
+        "path": "command-center/phase4/conformance/ARC-0103.json",
+        "role": "primary"
+      },
+      {
+        "exists": true,
+        "path": "command-center/schema/conformance-report.schema.json",
+        "role": "output-schema"
+      },
+      {
+        "exists": true,
+        "path": "command-center/p2-wave/probes/ARC-0103/negotiate.py",
+        "role": "negotiator"
+      }
+    ],
+    "contracts": [
+      {
+        "id": "ARC-0092",
+        "kind": "versioning-rules",
+        "path": "command-center/phase4/contracts/ARC-0092.json",
+        "present": false
+      },
+      {
+        "id": "ARC-0093",
+        "kind": "migration-record",
+        "path": "command-center/phase4/contracts/ARC-0093.json",
+        "present": false
+      },
+      {
+        "id": "ARC-0095",
+        "kind": "compatibility-matrix",
+        "path": "command-center/phase4/contracts/ARC-0095.json",
+        "present": false
+      }
+    ],
+    "control_ids": [
+      "skew-matrix-completeness",
+      "loud-refusal-field-counts",
+      "encoding-crlf-vs-data"
+    ],
+    "corpus": [
+      {
+        "bytes": 5384719,
+        "contract_id": "ARC-0092",
+        "name": "work-unit-catalogue",
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "present": true,
+        "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+      },
+      {
+        "bytes": 9081,
+        "contract_id": "ARC-0092",
+        "name": "catalog-consumer",
+        "path": "tools/command-center/catalog.py",
+        "present": true,
+        "sha256": "e0bb0f4d448810db51b5d3794c620e0438eea9644143e81b06502ea7e5f6def5"
+      },
+      {
+        "bytes": 10655,
+        "contract_id": "ARC-0093",
+        "name": "catalog-v1-producer",
+        "path": "tools/command-center/seed.py",
+        "present": true,
+        "sha256": "2f4c76df5a0897c0d0f59f47a8d4104472be86bd436ffc2ab751fbf4ed04d09d"
+      },
+      {
+        "bytes": 2595,
+        "contract_id": "ARC-0095",
+        "name": "unit-artifact-manifest",
+        "path": "command-center/p2-wave/probes/ARC-0112/UNIT-ARTIFACT-MANIFEST.json",
+        "present": true,
+        "sha256": "16aa05748094d81ec079f3f597b1f688cb3bbb9f2fe0a57c0d5a45360a59e1ff"
+      },
+      {
+        "bytes": 3103,
+        "contract_id": "ARC-0092",
+        "name": "a2-registry",
+        "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+        "present": true,
+        "sha256": "0bd1ed8e6ed4a7a2e970a2d14bd93cf37a0d6c31f35f9451341f1400e95cdcf6"
+      }
+    ],
+    "encoding_control": {
+      "crlf_not_misread_as_data": true,
+      "git_available": false,
+      "git_note": "lf-normalized-worktree-stand-in",
+      "live_catalog": {
+        "blob_bytes": 5284323,
+        "blob_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+        "blob_source": "lf-normalized-worktree-stand-in",
+        "crlf_only": true,
+        "data_divergence": false,
+        "git_available": false,
+        "kind": "crlf-only",
+        "lf_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "present": true,
+        "worktree_bytes": 5384719,
+        "worktree_sha256": "912a0b9965706c4d92cb66cd277c1369fb35c3464d6a7a3490d3486619b5d756"
+      },
+      "live_surface_ok": true,
+      "planted_both_states": {
+        "crlf_only": "crlf-only",
+        "data_divergence": "data-divergence",
+        "identical": "identical"
+      },
+      "surfaces": [
+        {
+          "name": "working-tree",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "sha256": "912a0b9965706c4d92cb66cd277c1369fb35c3464d6a7a3490d3486619b5d756"
+        },
+        {
+          "name": "git-blob-or-lf-stand-in",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+          "source": "lf-normalized-worktree-stand-in"
+        }
+      ]
+    },
+    "evidence_requirement": "Negotiation is exercised with a real version-skewed pair (an artifact written under the previous schema, read by the current consumer) and the outcome is recorded per pair.",
+    "failures": [
+      {
+        "artifact_path": "command-center/phase4/contracts/ARC-0092.json",
+        "citation": "command-center/phase4/contracts/ARC-0092.json:absent",
+        "contract_id": "ARC-0092",
+        "direction": "schema-wrong",
+        "encoding": "none",
+        "id": "F-CONTRACT-ABSENT-ARC-0092",
+        "present": false,
+        "reason": "Frozen versioning-rules contract command-center/phase4/contracts/ARC-0092.json is absent. Negotiation still runs from the live catalog convention (root integer schema_version), seed.py v1 keys, and catalog.py SCHEMA_VERSION; the JSON Schema itself is not on disk.",
+        "record_id": "ARC-0092"
+      },
+      {
+        "artifact_path": "command-center/phase4/contracts/ARC-0093.json",
+        "citation": "command-center/phase4/contracts/ARC-0093.json:absent",
+        "contract_id": "ARC-0093",
+        "direction": "schema-wrong",
+        "encoding": "none",
+        "id": "F-CONTRACT-ABSENT-ARC-0093",
+        "present": false,
+        "reason": "Frozen migration-record contract command-center/phase4/contracts/ARC-0093.json is absent. Negotiation still runs from the live catalog convention (root integer schema_version), seed.py v1 keys, and catalog.py SCHEMA_VERSION; the JSON Schema itself is not on disk.",
+        "record_id": "ARC-0093"
+      },
+      {
+        "artifact_path": "command-center/phase4/contracts/ARC-0095.json",
+        "citation": "command-center/phase4/contracts/ARC-0095.json:absent",
+        "contract_id": "ARC-0095",
+        "direction": "schema-wrong",
+        "encoding": "none",
+        "id": "F-CONTRACT-ABSENT-ARC-0095",
+        "present": false,
+        "reason": "Frozen compatibility-matrix contract command-center/phase4/contracts/ARC-0095.json is absent. Negotiation still runs from the live catalog convention (root integer schema_version), seed.py v1 keys, and catalog.py SCHEMA_VERSION; the JSON Schema itself is not on disk.",
+        "record_id": "ARC-0095"
+      },
+      {
+        "artifact_path": "tools/command-center/catalog.py",
+        "citation": "tools/command-center/catalog.py:SCHEMA_VERSION",
+        "contract_id": "ARC-0092",
+        "direction": "artifact-wrong",
+        "encoding": "none",
+        "id": "F-LIVE-CONSUMER-SCHEMA-VERSION-SKEW",
+        "live_consumer_version": 1,
+        "live_producer_version": 2,
+        "reason": "Live catalog command-center/WORK-UNIT-CATALOG.json carries schema_version=2; in-tree consumer tools/command-center/catalog.py still assigns SCHEMA_VERSION=1. That is a forward-incompatible pair: a v1 reader of a v2 document.",
+        "record_id": "SCHEMA_VERSION"
+      },
+      {
+        "artifact_path": "tools/command-center/catalog.py",
+        "citation": "tools/command-center/catalog.py:load",
+        "contract_id": "ARC-0103",
+        "direction": "artifact-wrong",
+        "encoding": "none",
+        "id": "F-LOAD-HAS-NO-LOUD-REFUSAL",
+        "reason": "catalog.load() returns the document without negotiating schema_version against SCHEMA_VERSION. items() then reads only the items array, which is a silent partial read of a v2 catalog (work_units are dropped).",
+        "record_id": "load"
+      }
+    ],
+    "kind": "conformance-report",
+    "live_versions": {
+      "catalog_py_SCHEMA_VERSION": 1,
+      "catalog_schema_version": 2,
+      "items": 103,
+      "top_level_fields": 10,
+      "work_units": 2007
+    },
+    "loud_refusal_control": {
+      "accepts_previous_on_current": true,
+      "field_count_delta": 3,
+      "live_pair": {
+        "consumer_stamp": 1,
+        "consumer_stamp_path": "tools/command-center/catalog.py",
+        "consumer_version": 1,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 7,
+          "consumer_version": 1,
+          "dropped_count": 3,
+          "dropped_fields": [
+            "tool_policy",
+            "work_units",
+            "work_units_meta"
+          ],
+          "loud": true,
+          "producer_field_count": 10,
+          "producer_version": 2,
+          "reason": "producer schema_version 2 is newer than consumer 1; a silent subset read would drop 3 field(s)",
+          "status": "REFUSE",
+          "version_path": "/schema_version"
+        },
+        "producer_path": "command-center/WORK-UNIT-CATALOG.json",
+        "producer_version": 2,
+        "silent_partial_read": {
+          "consumed_field_count": 7,
+          "consumed_items": 103,
+          "consumed_work_units": 0,
+          "dropped_top_level": [
+            "tool_policy",
+            "work_units",
+            "work_units_meta"
+          ],
+          "producer_field_count": 10,
+          "producer_items": 103,
+          "producer_work_units": 2007
+        }
+      },
+      "planted_incompatible": {
+        "negotiation": {
+          "artifact_class": "planted",
+          "consumer_field_count": 2,
+          "consumer_version": 1,
+          "dropped_count": 2,
+          "dropped_fields": [
+            "drop_a",
+            "drop_b"
+          ],
+          "loud": true,
+          "producer_field_count": 4,
+          "producer_version": 3,
+          "reason": "producer schema_version 3 is newer than consumer 1; a silent subset read would drop 2 field(s)",
+          "status": "REFUSE",
+          "version_path": "/schema_version"
+        },
+        "producer_field_count": 4,
+        "silent_field_count": 2
+      },
+      "previous_schema_current_consumer": {
+        "consumer_version": 2,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 10,
+          "consumer_version": 2,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 7,
+          "producer_version": 1,
+          "reason": "compatible: producer 1 <= consumer 2 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 1
+      },
+      "raises_on_incompatible": true,
+      "silent_drops_work_units": true,
+      "work_units_would_drop": 2007
+    },
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:catalog_skew_matrix",
+        "measured": "EXERCISED-ACCEPT",
+        "method": "negotiate-v1-projection-current-consumer",
+        "name": "catalog-cell-1-2-previous-schema"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:catalog_skew_matrix",
+        "measured": "EXERCISED-REFUSE",
+        "method": "negotiate-live-v2-v1-consumer",
+        "name": "catalog-cell-2-1-forward-incompatible"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:loud_refusal_control",
+        "measured": 2007,
+        "method": "field-count-compare",
+        "name": "silent-partial-read-work-units-dropped"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0103/golden.py:encoding_control",
+        "measured": true,
+        "method": "planted-byte-triple",
+        "name": "encoding-crlf-not-misread-as-data"
+      }
+    ],
+    "question": "When a producer at schema version N writes an artifact a consumer at version M reads, what happens? Specify and test the negotiation: the version field's location, the compatibility rule, the explicit refusal path when versions are incompatible, and the requirement that refusal is LOUD rather than a silent partial read.",
+    "required_fix": null,
+    "reviewer": {
+      "independent": true,
+      "reviewer_id": "ARC-0103-probe2-loud-refusal",
+      "scope_not_agreement": true,
+      "verdict": "PASS"
+    },
+    "sentinel": "SUCCESS:ARC-0103",
+    "skew_matrix": [
+      {
+        "artifact_class": "work-unit-catalog",
+        "consumer_version": 1,
+        "evidence": "v1-projection of live catalog (seed.py keys, schema_version=1)",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 7,
+          "consumer_version": 1,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 7,
+          "producer_version": 1,
+          "reason": "compatible: producer 1 <= consumer 1 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 1,
+        "source": "command-center/WORK-UNIT-CATALOG.json",
+        "status": "EXERCISED-ACCEPT"
+      },
+      {
+        "artifact_class": "work-unit-catalog",
+        "consumer_version": 2,
+        "evidence": "previous schema read by current consumer (required evidence pair)",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 10,
+          "consumer_version": 2,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 7,
+          "producer_version": 1,
+          "reason": "compatible: producer 1 <= consumer 2 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 1,
+        "source": "command-center/WORK-UNIT-CATALOG.json",
+        "status": "EXERCISED-ACCEPT"
+      },
+      {
+        "artifact_class": "work-unit-catalog",
+        "consumer_version": 2,
+        "evidence": "live WORK-UNIT-CATALOG.json schema_version=2",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 10,
+          "consumer_version": 2,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 10,
+          "producer_version": 2,
+          "reason": "compatible: producer 2 <= consumer 2 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 2,
+        "source": "command-center/WORK-UNIT-CATALOG.json",
+        "status": "EXERCISED-ACCEPT"
+      },
+      {
+        "artifact_class": "work-unit-catalog",
+        "consumer_version": 1,
+        "evidence": "live v2 catalog read by v1 consumer (catalog.py SCHEMA_VERSION)",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "work-unit-catalog",
+          "consumer_field_count": 7,
+          "consumer_version": 1,
+          "dropped_count": 3,
+          "dropped_fields": [
+            "tool_policy",
+            "work_units",
+            "work_units_meta"
+          ],
+          "loud": true,
+          "producer_field_count": 10,
+          "producer_version": 2,
+          "reason": "producer schema_version 2 is newer than consumer 1; a silent subset read would drop 3 field(s)",
+          "status": "REFUSE",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 2,
+        "source": "command-center/WORK-UNIT-CATALOG.json",
+        "status": "EXERCISED-REFUSE"
+      },
+      {
+        "artifact_class": "unit-artifact-manifest",
+        "consumer_version": 1,
+        "evidence": "live command-center/p2-wave/probes/ARC-0112/UNIT-ARTIFACT-MANIFEST.json schema_version=1 read by consumer 1",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "unit-artifact-manifest",
+          "consumer_field_count": 8,
+          "consumer_version": 1,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 8,
+          "producer_version": 1,
+          "reason": "compatible: producer 1 <= consumer 1 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 1,
+        "source": "command-center/p2-wave/probes/ARC-0112/UNIT-ARTIFACT-MANIFEST.json",
+        "status": "EXERCISED-ACCEPT"
+      },
+      {
+        "artifact_class": "a2-registry",
+        "consumer_version": 1,
+        "evidence": "live command-center/p2-wave/probes/ARC-0010/registry.json schema_version=1 read by consumer 1",
+        "inferred": false,
+        "negotiation": {
+          "artifact_class": "a2-registry",
+          "consumer_field_count": 4,
+          "consumer_version": 1,
+          "dropped_count": 0,
+          "dropped_fields": [],
+          "loud": false,
+          "producer_field_count": 4,
+          "producer_version": 1,
+          "reason": "compatible: producer 1 <= consumer 1 at /schema_version",
+          "status": "ACCEPT",
+          "version_path": "/schema_version"
+        },
+        "producer_version": 1,
+        "source": "command-center/p2-wave/probes/ARC-0010/registry.json",
+        "status": "EXERCISED-ACCEPT"
+      }
+    ],
+    "spec": {
+      "catalog_v1_keys": [
+        "contract",
+        "defaults",
+        "items",
+        "owner_questions",
+        "provenance",
+        "schema_version",
+        "terminal_dispositions"
+      ],
+      "catalog_v1_source": "tools/command-center/seed.py:188-207",
+      "compatibility_rule": "integer schema_version: ACCEPT iff producer <= consumer; REFUSE if producer > consumer, if the field is missing, or if it is not an integer. Untested pairs are NOT-CHECKED, never inferred ACCEPT.",
+      "refusal": "VersionRefusal is raised with producer/consumer versions and field counts. Partial key-subset returns are forbidden.",
+      "supported_range": {
+        "a2-registry": [
+          1
+        ],
+        "unit-artifact-manifest": [
+          1
+        ],
+        "work-unit-catalog": [
+          1,
+          2
+        ]
+      },
+      "version_field": {
+        "location": "document root",
+        "name": "schema_version",
+        "path": "/schema_version",
+        "type": "integer"
+      }
+    },
+    "state": "SUCCESS",
+    "tests": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+        "id": "skew-matrix",
+        "result": "PASS"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+        "id": "loud-refusal-control",
+        "result": "PASS"
+      }
+    ],
+    "tests_required": [
+      "Skew matrix: every (producer version, consumer version) pair in the supported range is exercised or explicitly marked NOT-CHECKED",
+      "Loud-refusal control: an incompatible pair must raise, not silently drop fields, asserted by comparing field counts"
+    ],
+    "title": "Schema version negotiation between components at different versions",
+    "unit_id": "ARC-0103",
+    "verdict": "NEGOTIATION-SPECIFIED-AND-TESTED"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Frozen ARC-0092/0093/0095 contract JSON files are absent on this worktree; negotiation is specified from the live catalog convention instead.",
+      "settling_experiment": "Re-run after those contract units write command-center/phase4/contracts/ARC-0092.json, ARC-0093.json, and ARC-0095.json.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 1,
+    "policy": "retry once after fixing validator input; a second schema-invalid result closes the unit FAILED"
+  },
+  "reviewer": {
+    "independent": true,
+    "notes": "Probe 2 re-runs live negotiation and field-count controls; it does not re-author negotiate.py.",
+    "reviewer_id": "ARC-0103-probe2-loud-refusal",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:ARC-0103",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0103] question_or_target / tests_required",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe1_skew_matrix.py",
+      "id": "skew-matrix",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0103/probe2_loud_refusal.py",
+      "id": "loud-refusal-control",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:56:23Z",
+    "started_at": "2026-08-25T00:56:22Z"
+  },
+  "unit_id": "ARC-0103"
+}

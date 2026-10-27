@@ -1,0 +1,115 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverInfo": {
+      "name": "fb-reels",
+      "version": "0.1.0"
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "fb_upload_reel",
+        "description": "Upload ONE local vertical video to Facebook as a Reel. Long-running: returns a jobId immediately; poll fb_reels_status(jobId). Requires the browser profile to be logged into Facebook once (see the tool docs).",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Absolute path to the .mp4 to upload as a Reel"
+            },
+            "audience": {
+              "description": "Reel audience (default public)",
+              "type": "string",
+              "enum": [
+                "public",
+                "friends",
+                "onlyme"
+              ]
+            }
+          },
+          "required": [
+            "file"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "fb_upload_reels_from_folder",
+        "description": "Upload every *.mp4 in a folder to Facebook as Reels, in filename order, one per post, resuming from .fb-posted.json. Long-running: returns a jobId immediately; poll fb_reels_status(jobId).",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "folder": {
+              "type": "string",
+              "description": "Folder containing the .mp4 clips to upload"
+            },
+            "start": {
+              "description": "1-based index of the first clip (default 1)",
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "limit": {
+              "description": "Max clips to upload this run (default all)",
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "delaySec": {
+              "description": "Pause between posts, anti-spam (default 20)",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "audience": {
+              "description": "Reel audience (default public)",
+              "type": "string",
+              "enum": [
+                "public",
+                "friends",
+                "onlyme"
+              ]
+            },
+            "headless": {
+              "description": "Run without a window (default true; needs a prior login)",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "folder"
+          ]
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "fb_reels_status",
+        "description": "Read the status of a Reels upload job (or list recent jobs if jobId is omitted). Reflects the in-memory job plus the on-disk .fb-posted.json resume ledger.",
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "jobId": {
+              "description": "The jobId returned by an upload tool; omit to list recent jobs",
+              "type": "string"
+            }
+          }
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  }
+}

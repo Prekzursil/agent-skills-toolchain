@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/signature.schema.json",
+  "title": "Detached Ed25519 signature",
+  "description": "A signature is over the CANONICAL form (mkt.canon: sorted keys, no whitespace, floats forbidden) of the signed document with its own `signature` key removed, prefixed by a domain-separation tag. The tag is mandatory and part of the signed bytes: without it an index signature could be replayed as a manifest signature over the same byte string.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["algorithm", "domain", "key_id", "public_key", "signed_digest", "signature"],
+  "properties": {
+    "algorithm": { "const": "ed25519" },
+    "domain": {
+      "enum": ["mkt.manifest.v1", "mkt.index.v1", "mkt.revocation.v1", "mkt.advisory.v1", "mkt.bundle.v1", "mkt.lockfile.v1"],
+      "description": "Domain-separation tag. Closed set -- an unrecognised domain must fail verification rather than be treated as generic."
+    },
+    "key_id": { "type": "string", "pattern": "^key:[0-9a-f]{16}$" },
+    "public_key": { "$ref": "common.schema.json#/$defs/ed25519_public_key" },
+    "signed_digest": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "sha256 of the exact bytes that were signed. Recorded so a verification failure can be attributed: digest mismatch means the document changed, digest match with signature mismatch means the key or the signature is wrong. Without it every failure looks the same."
+    },
+    "signature": { "$ref": "common.schema.json#/$defs/ed25519_signature" },
+    "signed_at": { "$ref": "common.schema.json#/$defs/iso8601" }
+  }
+}

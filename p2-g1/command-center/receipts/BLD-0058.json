@@ -1,0 +1,223 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "Catalog n=2007; 10x=20070. A simultaneous burst at 10x against the measured fixture bucket produced 19570 HTTP 429s and 500 successes (vacuous-control rejected). The same 20070 arrivals staggered at 400.0 rpm (fixture 500 rpm minus 20% interactive reserve) produced 0 429s. Independent burst-counting re-derived the ceiling as 500 rpm, matching the tighter public OpenAI gpt-4o Tier-1 RPM floor and binding before Anthropic Start 1000 rpm among checked RPM rows. The two subscription remaining balances (Anthropic monthly spend, OpenAI monthly usage) are NOT-CHECKED — live remaining was not read and is not defaulted, so they are not ranked as non-binding. A FIFO batch of 17 queued jobs already exceeds the 2000ms interactive SLA; 10x burst queues 19570 jobs and waits 2348400ms. Synthetic HTTP 529 is class VENDOR_OVERLOAD: concurrency 8 stayed 8 (naive control dropped to 7). HTTP 429 is class OUR_ARRIVAL_RATE. SUCCESS:BLD-0058",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/BLD-0058.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/scale-model.schema.json",
+   "role": "schema"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/BLD-0058/sim.py",
+   "role": "instrument"
+  }
+ ],
+ "binding_constraint": {
+  "id": "fixture-vendor-rpm-measured",
+  "numeric_value": 500,
+  "reason": "Among RPM rows that are DOCUMENTED or MEASURED, the smaller ceiling binds first; MEASURED wins ties. NOT-CHECKED subscription remaining is excluded so it cannot be assumed not to bind in production.",
+  "status": "MEASURED",
+  "unit": "rpm"
+ },
+ "cloud_ok": false,
+ "error_classes": [
+  {
+   "class": "OUR_ARRIVAL_RATE",
+   "http_status": 429,
+   "observed_in": "10x burst arm",
+   "scheduler_response": "stagger-and-backoff; do-not-mark-unit-failed"
+  },
+  {
+   "class": "VENDOR_OVERLOAD",
+   "concurrency_after_correct": 8,
+   "concurrency_after_naive_control": 7,
+   "concurrency_before": 8,
+   "http_status": 529,
+   "scheduler_response": "keep-concurrency; do-not-self-throttle"
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0058/sim.py:both_states_10x",
+   "claim": "10x burst produces 429s; 10x stagger produces none.",
+   "id": "E1",
+   "kind": "both-states-429",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0058/sim.py:correct_adjust_concurrency",
+   "claim": "Synthetic 529 does not reduce scheduler concurrency.",
+   "id": "E2",
+   "kind": "529-concurrency",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0058/quotas.py:quota_rows",
+   "claim": "Unreadable subscription remaining is NOT-CHECKED with null numeric_value.",
+   "id": "E3",
+   "kind": "not-checked-quota",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0058/observe.py:observed_burst_capacity",
+   "claim": "Binding fixture RPM re-derived from burst success count, not from docs tables.",
+   "id": "E4",
+   "kind": "independent-rpm",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "BLD-0058",
+ "kind": "scale-model",
+ "live_vendor_storm": false,
+ "question": "What arrival schedule avoids a 429 storm at ten times fan-out, and which quota binds first? Model per-vendor rate limits and the two independent subscription budgets, compute a staggered arrival schedule, and identify the point at which a batch would starve interactive work. A quota that cannot be measured is reported NOT-CHECKED, never assumed.",
+ "quotas": [
+  {
+   "id": "anthropic-start-rpm-documented",
+   "kind": "requests_per_minute",
+   "note": "Start-tier Messages RPM on the public table. Not this-org remaining.",
+   "numeric_value": 1000,
+   "source": "https://platform.claude.com/docs/en/api/rate-limits",
+   "status": "DOCUMENTED",
+   "unit": "rpm",
+   "vendor": "anthropic"
+  },
+  {
+   "id": "openai-tier1-gpt4o-rpm-documented",
+   "kind": "requests_per_minute",
+   "note": "Public gpt-4o Tier-1 RPM floor. Not this-org remaining.",
+   "numeric_value": 500,
+   "source": "https://platform.openai.com/docs/guides/rate-limits",
+   "status": "DOCUMENTED",
+   "unit": "rpm",
+   "vendor": "openai"
+  },
+  {
+   "id": "fixture-vendor-rpm-measured",
+   "kind": "requests_per_minute",
+   "note": "Counted as burst successes against the in-process token bucket.",
+   "numeric_value": 500,
+   "source": "command-center/p2-wave/probes/BLD-0058/observe.py",
+   "status": "MEASURED",
+   "unit": "rpm",
+   "vendor": "simulated-vendor"
+  },
+  {
+   "documented_cap_status": "DOCUMENTED",
+   "documented_cap_usd": 500,
+   "id": "anthropic-monthly-spend-remaining",
+   "kind": "subscription_remaining_usd",
+   "note": "Live remaining spend is unread. Documented Start cap is $500/month but remaining is not the cap.",
+   "numeric_value": null,
+   "source": null,
+   "status": "NOT-CHECKED",
+   "unit": "usd",
+   "vendor": "anthropic"
+  },
+  {
+   "documented_cap_status": "DOCUMENTED",
+   "documented_cap_usd": 100,
+   "id": "openai-monthly-usage-remaining",
+   "kind": "subscription_remaining_usd",
+   "note": "Live remaining usage is unread. Documented Tier-1 monthly cap is $100 but remaining is not the cap.",
+   "numeric_value": null,
+   "source": null,
+   "status": "NOT-CHECKED",
+   "unit": "usd",
+   "vendor": "openai"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "independent-reviewer-shard7-w2-claude-opus-fresh",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "claude-code",
+  "notes": "Independent reviewer closure (wave-2 shard 7). Re-verified off disk, trusting nothing from the builder runlog: artifact at the catalog output_path exists/non-empty/parses-as-JSON/not-self-blocked; every probe script under command-center/p2-wave/probes/BLD-0058/ re-executed live by this reviewer, all exit 0; UNIT-ARTIFACT-MANIFEST sha256 recomputed (CRLF->LF normalized) matches the live artifact and every registered row matches live disk; canonical output_schema validation re-run (schema_resolver.validate_artifact). residual C2 drift: envelope keys absent; receipt self-artifact rows lack bytes/sha256; role 'schema' outside enum. C2 schema drift for a known catalog id is the receipt_gate census class (admitted, visible, non-gating), recorded here rather than folded into green. Reviewed 2026-10-26T00:24:06Z.",
+  "reviewed_at": "2026-10-26T00:24:06Z"
+ },
+ "reviewer_measurement": {
+  "method": "burst-success-count-at-t0",
+  "observed_rpm": 500,
+  "probe_n": 20070,
+  "reads_documented_tables": false,
+  "stagger_confirm": {
+   "n": 1500,
+   "observed_rpm": 500,
+   "stagger_200": 1500,
+   "stagger_429": 0
+  }
+ },
+ "scale": {
+  "baseline_n": 2007,
+  "baseline_source": "command-center/WORK-UNIT-CATALOG.json work_units length",
+  "factor": 10,
+  "scaled_n": 20070
+ },
+ "schedule": {
+  "admit_rpm": 400.0,
+  "both_states": {
+   "admit_rpm": 400.0,
+   "burst_200": 500,
+   "burst_429": 19570,
+   "n_10x": 20070,
+   "rpm": 500,
+   "stagger_200": 20070,
+   "stagger_429": 0,
+   "vacuous": false
+  },
+  "interactive_reserve_fraction": 0.2,
+  "interval_ms": 150.0,
+  "makespan_ms_at_10x": 3010350,
+  "stagger_policy": "token-bucket admit at fixture_rpm*(1-interactive_reserve); one arrival per interval_ms; no live-vendor burst"
+ },
+ "sentinel": "SUCCESS:BLD-0058",
+ "starvation": {
+  "analytic": true,
+  "behind_10x_burst": {
+   "interactive_wait_ms": 2348400.0,
+   "n_batch": 20070,
+   "queued_ahead_of_interactive": 19570,
+   "served_at_t0": 500,
+   "starves_sla": true
+  },
+  "pending_jobs_that_break_sla": 17,
+  "rpm": 500,
+  "sla_ms": 2000,
+  "wait_ms_at_threshold": 2040.0000000000002,
+  "with_reserve_interactive_wait_ms": 0.0
+ },
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "The 429/200 counts are against an in-process token bucket, not a live Anthropic or OpenAI endpoint. Live remaining subscription balances are NOT-CHECKED; if either remaining balance is already near zero, spend would bind before RPM. The fixture RPM equals the public OpenAI Tier-1 gpt-4o floor by construction of the bucket size, but the reviewer number is a counted burst, not a copied constant from the OpenAI table.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/probe1_both_states.py",
+   "id": "probe1-both-states-429-529-not-checked",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/probe2_observed_throughput.py",
+   "id": "probe2-observed-throughput-reviewer",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "generated_at": "2026-09-02T00:13:26Z"
+ },
+ "ts": "2026-09-02T00:13:26Z",
+ "unit_id": "BLD-0058",
+ "prior_reviewers": [
+  {
+   "independent": true,
+   "method": "burst-success-count-at-t0",
+   "reads_documented_tables": false,
+   "reviewer_id": "BLD-0058-probe2-observed-throughput",
+   "verdict": "PASS"
+  }
+ ]
+}

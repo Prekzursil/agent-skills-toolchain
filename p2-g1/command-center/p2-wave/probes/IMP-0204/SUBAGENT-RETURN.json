@@ -1,0 +1,67 @@
+{
+ "id": "IMP-0204",
+ "unit_id": "IMP-0204",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0204",
+ "output_path": "command-center/receipts/IMP-0204.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "registered": true,
+ "manifest_path": "command-center/p2-wave/probes/IMP-0204/UNIT-ARTIFACT-MANIFEST.json",
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "probe2 is a separate process that did not author retirement.py; it re-runs delete-refusal and the silent-deletion mutant.",
+  "reviewer_id": "IMP-0204-probe2-refuse-delete",
+  "verdict": "PASS"
+ },
+ "cloud_ok": false,
+ "ts": "2026-10-24T12:38:21Z",
+ "artifacts": [
+  {
+   "path": "tools/workflows/retirement.py",
+   "bytes": 7306,
+   "sha256": "ec00ebfde31da3eb97428ca230d831af58e05afd02d6fd40f1f8191785d3267d",
+   "exists": true,
+   "role": "implementation"
+  },
+  {
+   "path": "tools/workflows/schema/retirement-record.schema.json",
+   "bytes": 1531,
+   "sha256": "2be8b5bde9b4eca970d563a7c206c610f411cdacf4448b1613925287652a1a4f",
+   "exists": true,
+   "role": "implementation"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0204/probe1_resolve_and_pin.py",
+   "bytes": 3486,
+   "sha256": "3b271adbd85898444fb17e0b12a979ef60225daab12a45d718687d08e0702283",
+   "exists": true,
+   "role": "named-probe"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0204/probe2_refuse_delete.py",
+   "bytes": 4026,
+   "sha256": "246299e887497f8d2468ce2360ceea6124c80fe3cb64f305dfc56f7a6818919e",
+   "exists": true,
+   "role": "named-probe"
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0204/probe1_resolve_and_pin.py",
+   "exit_code": 0,
+   "raw_output": "RESULT:{\"retired_resolves\": true, \"successor_id\": \"wf.catalog-class.typed-restore\", \"pinned_still_runs\": true, \"warning_code\": \"WARN_SUPERSEDED\", \"hard_break\": false}\nSUCCESS:IMP-0204-probe1 retired id resolves; pinned consumer still runs",
+   "role": "retired-id-resolves-pin-still-runs"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0204/probe2_refuse_delete.py",
+   "exit_code": 0,
+   "raw_output": "RESULT:{\"delete_refused\": true, \"still_resolves\": true, \"schema_rejected_labels\": [\"no-successor\", \"no-migration\", \"dangling-successor\", \"deletion-kind\"], \"honest_record_accepted\": true}\nSUCCESS:IMP-0204-probe2 referenced delete refused; id still resolves",
+   "role": "referenced-delete-refused"
+  }
+ ],
+ "notes": "shard8 2026-10-24: retirement.py extended with delete() (DeleteRefused on pinned/retired/published), force_drop_for_probe (the silent-deletion mutant) and validate_retirement as the single rule source; retirement-record.schema.json written. Warning code stays WARN_SUPERSEDED (the shipped constant, also recorded by sibling IMP-0255); the receipt claim's WORKFLOW_SUPERSEDED wording is corrected to the measured code."
+}

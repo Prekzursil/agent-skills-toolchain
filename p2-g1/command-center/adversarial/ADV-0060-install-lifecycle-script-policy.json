@@ -1,0 +1,617 @@
+{
+  "unit_id": "ADV-0060",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0060 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0060 <reason>.",
+  "completion_sentinel": "SUCCESS:ADV-0060 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0060 <reason>.",
+  "schema_version": 1,
+  "profile": "exploit-proof",
+  "report_kind": "exploit-proof",
+  "overall_verdict": "PARTIAL",
+  "question": "Can a package cause code to run during install, update or uninstall - through a lifecycle script, a postinstall hook, an auto-loaded config or a build step - and is that execution sandboxed or refused?",
+  "title": "Install-time script execution policy for packages",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10836",
+  "measured_at": "2026-10-24T19:10:31Z",
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "supply-chain-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "reviewer": {
+    "reviewer_id": "ADV-0060-probe2-invocation-site-join",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Probe 2 re-derives invocation points from AST of pipeline sources and a live subprocess.run trace, not from probe 1's beacon table or from a prose summary of this report."
+  },
+  "method": {
+    "probe1": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.",
+    "probe2": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.",
+    "installer": "tools/marketplace/install.py:install_package",
+    "beacon_token": "ADV-0060-BEACON",
+    "declared_policy": "scripts.postinstall is not implicit; sandbox requires owner gate"
+  },
+  "controls": {
+    "detector_ok": true,
+    "implicit_ok": true,
+    "naive_ok": true,
+    "gated_ok": true,
+    "ignored_script_names_ok": true,
+    "plugin_layout_ok": true,
+    "plugin_post_implicit_ok": true,
+    "both_states": true,
+    "all_ok": true
+  },
+  "arms": {
+    "direct": {
+      "returncode": 0,
+      "cwd_beacon": true,
+      "host_beacon": true
+    },
+    "implicit": {
+      "arm": "implicit",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": true,
+      "script_rel": "scripts/postinstall.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "naive": {
+      "arm": "naive",
+      "handling": "naive-host",
+      "executed": true,
+      "execution_location": "host",
+      "dest_beacon": true,
+      "sandbox_beacon": false,
+      "leaked_beacon": true,
+      "subprocess_calls": 1,
+      "script_present": true,
+      "script_rel": "scripts/postinstall.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": true,
+      "host_beacon": false
+    },
+    "gated": {
+      "arm": "gated",
+      "handling": "sandbox-gated",
+      "executed": true,
+      "execution_location": "sandbox",
+      "dest_beacon": false,
+      "sandbox_beacon": true,
+      "leaked_beacon": false,
+      "subprocess_calls": 1,
+      "script_present": true,
+      "script_rel": "scripts/postinstall.py",
+      "owner_gate_accepted": true,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "preinstall": {
+      "arm": "preinstall",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": true,
+      "script_rel": "scripts/preinstall.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "build": {
+      "arm": "build",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": true,
+      "script_rel": "scripts/build.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "uninstall_plant": {
+      "arm": "uninstall-plant",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": true,
+      "script_rel": "scripts/uninstall.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "autoload": {
+      "arm": "autoload",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": false,
+      "script_rel": "",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "noscript": {
+      "arm": "noscript",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": false,
+      "script_rel": "",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "plugin_shaped": {
+      "arm": "plugin-shaped",
+      "handling": "refused-implicit",
+      "executed": false,
+      "execution_location": "none",
+      "dest_beacon": false,
+      "sandbox_beacon": false,
+      "leaked_beacon": false,
+      "subprocess_calls": 0,
+      "script_present": true,
+      "script_rel": "scripts/postinstall.py",
+      "owner_gate_accepted": false,
+      "returncode": 0,
+      "cwd_beacon": false,
+      "host_beacon": false
+    },
+    "plugin_layout": {
+      "hook_moved": true,
+      "beacon_before": false,
+      "beacon_after": false,
+      "command_field_preserved": true,
+      "executed_hook_command": false
+    }
+  },
+  "invocation_sites": [
+    {
+      "path": "tools/marketplace/install.py",
+      "lineno": 229,
+      "call": "subprocess.run",
+      "present": true
+    },
+    {
+      "path": "tools/marketplace/install.py",
+      "lineno": 247,
+      "call": "subprocess.run",
+      "present": true
+    },
+    {
+      "path": "tools/plugin/longrun.py",
+      "lineno": 61,
+      "call": "subprocess.run",
+      "present": true
+    },
+    {
+      "path": "tools/plugin/longrun.py",
+      "lineno": 74,
+      "call": "run",
+      "present": true
+    },
+    {
+      "path": "tools/plugin/heartbeat.py",
+      "lineno": 68,
+      "call": "subprocess.Popen",
+      "present": true
+    }
+  ],
+  "source_hashes": {
+    "tools/marketplace/install.py": "307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811",
+    "tools/plugin/longrun.py": "cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a",
+    "tools/plugin/heartbeat.py": "6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe",
+    "tools/plugin/legacy_layout_steps.py": "705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510"
+  },
+  "targets": [
+    {
+      "id": "T1-plugin-lifecycle-script",
+      "target_id": "T1-plugin-lifecycle-script",
+      "verdict": "REFUTED",
+      "claim": "Plugin helpers on this tree honour a package-declared lifecycle script and execute it during install/update/uninstall."
+    },
+    {
+      "id": "T2-plugin-postinstall",
+      "target_id": "T2-plugin-postinstall",
+      "verdict": "REFUTED",
+      "claim": "A plugin-shaped package with scripts.postinstall runs that script on the default marketplace install path."
+    },
+    {
+      "id": "T3-auto-loaded-config-during-lifecycle",
+      "target_id": "T3-auto-loaded-config-during-lifecycle",
+      "verdict": "REFUTED",
+      "claim": "sitecustomize.py / plugin.json planted in the payload is imported or executed during install without an explicit script field."
+    },
+    {
+      "id": "T4-build-step",
+      "target_id": "T4-build-step",
+      "verdict": "REFUTED",
+      "claim": "scripts.build is invoked by the marketplace installer."
+    },
+    {
+      "id": "T5-uninstall-hook",
+      "target_id": "T5-uninstall-hook",
+      "verdict": "NOT-CHECKED",
+      "claim": "An uninstall pipeline honours scripts.uninstall and runs it."
+    },
+    {
+      "id": "T6-marketplace-payload-execution",
+      "target_id": "T6-marketplace-payload-execution",
+      "verdict": "REFUTED",
+      "claim": "Marketplace install executes package payload code on the default (no owner gate) path."
+    },
+    {
+      "id": "T7-package-triggered-external-command",
+      "target_id": "T7-package-triggered-external-command",
+      "verdict": "CONFIRMED",
+      "claim": "A package can cause subprocess.run of its postinstall script when the owner gate plus sandbox is granted, or via the naive host control."
+    },
+    {
+      "id": "T8-lifecycle-command-sandbox",
+      "target_id": "T8-lifecycle-command-sandbox",
+      "verdict": "CONFIRMED",
+      "claim": "When the installer does run a package script on the owner-gated path, the beacon stays inside the sandbox and host-marker env is stripped."
+    },
+    {
+      "id": "T9-host-automatic-hook-enforcement",
+      "target_id": "T9-host-automatic-hook-enforcement",
+      "verdict": "NOT-CHECKED",
+      "claim": "A Claude/Cursor host automatically executes plugin hook commands declared in copied hook JSON."
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Direct beacon subprocess writes cwd and host markers.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "control:direct-beacon",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe1_beacon.py",
+          "raw_output": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.\n{\n  \"arms\": {\n    \"autoload\": {\n      \"arm\": \"autoload\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": false,\n      \"script_rel\": \"\",\n      \"subprocess_calls\": 0\n    },\n    \"build\": {\n      \"arm\": \"build\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/build.py\",\n      \"subprocess_calls\": 0\n    },\n    \"direct\": {\n      \"cwd_beacon\": true,\n      \"host_beacon\": true,\n      \"returncode\": 0\n    },\n    \"gated\": {\n      \"arm\": \"gated\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": true,\n      \"execution_location\": \"sandbox\",\n      \"handling\": \"sandbox-gated\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": true,\n      \"returncode\": 0,\n      \"sandbox_beacon\": true,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"implicit\": {\n      \"arm\": \"implicit\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"naive\": {\n      \"arm\": \"naive\",\n      \"cwd_beacon\": true,\n      \"dest_beacon\": true,\n      \"executed\": true,\n      \"execution_location\": \"host\",\n      \"handling\": \"naive-host\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": true,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"plugin_layout\": {\n      \"beacon_after\": false,\n      \"beacon_before\": false,\n      \"command_field_preserved\": true,\n      \"executed_hook_command\": false,\n      \"hook_moved\": true\n    },\n    \"plugin_shaped\": {\n      \"arm\": \"plugin-shaped\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"preinstall\": {\n      \"arm\": \"preinstall\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/preinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"uninstall_plant\": {\n      \"arm\": \"uninstall-plant\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/uninstall.py\",\n      \"subprocess_calls\": 0\n    }\n  },\n  \"controls\": {\n    \"all_ok\": true,\n    \"both_states\": true,\n    \"detector_ok\": true,\n    \"gated_ok\": true,\n    \"ignored_script_names_ok\": true,\n    \"implicit_ok\": true,\n    \"naive_ok\": true,\n    \"plugin_layout_ok\": true,\n    \"plugin_post_implicit_ok\": true\n  },\n  \"method\": \"disposable-sandbox-beacon-fixture\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"probe\": \"probe1-beacon-install\",\n  \"uninstall_api_present\": false,\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ndirect cwd=True host=True\nimplicit executed=False beacon=False calls=0\nnaive executed=True beacon=True calls=1\ngated loc=sandbox sandbox_beacon=True dest_beacon=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe1 beacon-install\n",
+          "fingerprint": "c960708d570b"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+          "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+          "fingerprint": "0e4ed22b07fe"
+        }
+      ]
+    },
+    {
+      "claim": "Default marketplace install refuses scripts.postinstall: no subprocess, no dest beacon, no leaked host marker.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "arm:implicit",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe1_beacon.py",
+          "raw_output": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.\n{\n  \"arms\": {\n    \"autoload\": {\n      \"arm\": \"autoload\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": false,\n      \"script_rel\": \"\",\n      \"subprocess_calls\": 0\n    },\n    \"build\": {\n      \"arm\": \"build\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/build.py\",\n      \"subprocess_calls\": 0\n    },\n    \"direct\": {\n      \"cwd_beacon\": true,\n      \"host_beacon\": true,\n      \"returncode\": 0\n    },\n    \"gated\": {\n      \"arm\": \"gated\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": true,\n      \"execution_location\": \"sandbox\",\n      \"handling\": \"sandbox-gated\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": true,\n      \"returncode\": 0,\n      \"sandbox_beacon\": true,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"implicit\": {\n      \"arm\": \"implicit\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"naive\": {\n      \"arm\": \"naive\",\n      \"cwd_beacon\": true,\n      \"dest_beacon\": true,\n      \"executed\": true,\n      \"execution_location\": \"host\",\n      \"handling\": \"naive-host\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": true,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"plugin_layout\": {\n      \"beacon_after\": false,\n      \"beacon_before\": false,\n      \"command_field_preserved\": true,\n      \"executed_hook_command\": false,\n      \"hook_moved\": true\n    },\n    \"plugin_shaped\": {\n      \"arm\": \"plugin-shaped\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"preinstall\": {\n      \"arm\": \"preinstall\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/preinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"uninstall_plant\": {\n      \"arm\": \"uninstall-plant\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/uninstall.py\",\n      \"subprocess_calls\": 0\n    }\n  },\n  \"controls\": {\n    \"all_ok\": true,\n    \"both_states\": true,\n    \"detector_ok\": true,\n    \"gated_ok\": true,\n    \"ignored_script_names_ok\": true,\n    \"implicit_ok\": true,\n    \"naive_ok\": true,\n    \"plugin_layout_ok\": true,\n    \"plugin_post_implicit_ok\": true\n  },\n  \"method\": \"disposable-sandbox-beacon-fixture\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"probe\": \"probe1-beacon-install\",\n  \"uninstall_api_present\": false,\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ndirect cwd=True host=True\nimplicit executed=False beacon=False calls=0\nnaive executed=True beacon=True calls=1\ngated loc=sandbox sandbox_beacon=True dest_beacon=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe1 beacon-install\n",
+          "fingerprint": "c960708d570b"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+          "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+          "fingerprint": "0e4ed22b07fe"
+        }
+      ]
+    },
+    {
+      "claim": "Owner-gated sandbox runs postinstall inside sandbox_root; dest and host stay unmarked; host-marker env is stripped so the beacon cannot escape through the environment; subprocess.run is traced.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "arm:gated",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe1_beacon.py",
+          "raw_output": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.\n{\n  \"arms\": {\n    \"autoload\": {\n      \"arm\": \"autoload\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": false,\n      \"script_rel\": \"\",\n      \"subprocess_calls\": 0\n    },\n    \"build\": {\n      \"arm\": \"build\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/build.py\",\n      \"subprocess_calls\": 0\n    },\n    \"direct\": {\n      \"cwd_beacon\": true,\n      \"host_beacon\": true,\n      \"returncode\": 0\n    },\n    \"gated\": {\n      \"arm\": \"gated\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": true,\n      \"execution_location\": \"sandbox\",\n      \"handling\": \"sandbox-gated\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": true,\n      \"returncode\": 0,\n      \"sandbox_beacon\": true,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"implicit\": {\n      \"arm\": \"implicit\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"naive\": {\n      \"arm\": \"naive\",\n      \"cwd_beacon\": true,\n      \"dest_beacon\": true,\n      \"executed\": true,\n      \"execution_location\": \"host\",\n      \"handling\": \"naive-host\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": true,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"plugin_layout\": {\n      \"beacon_after\": false,\n      \"beacon_before\": false,\n      \"command_field_preserved\": true,\n      \"executed_hook_command\": false,\n      \"hook_moved\": true\n    },\n    \"plugin_shaped\": {\n      \"arm\": \"plugin-shaped\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"preinstall\": {\n      \"arm\": \"preinstall\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/preinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"uninstall_plant\": {\n      \"arm\": \"uninstall-plant\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/uninstall.py\",\n      \"subprocess_calls\": 0\n    }\n  },\n  \"controls\": {\n    \"all_ok\": true,\n    \"both_states\": true,\n    \"detector_ok\": true,\n    \"gated_ok\": true,\n    \"ignored_script_names_ok\": true,\n    \"implicit_ok\": true,\n    \"naive_ok\": true,\n    \"plugin_layout_ok\": true,\n    \"plugin_post_implicit_ok\": true\n  },\n  \"method\": \"disposable-sandbox-beacon-fixture\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"probe\": \"probe1-beacon-install\",\n  \"uninstall_api_present\": false,\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ndirect cwd=True host=True\nimplicit executed=False beacon=False calls=0\nnaive executed=True beacon=True calls=1\ngated loc=sandbox sandbox_beacon=True dest_beacon=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe1 beacon-install\n",
+          "fingerprint": "c960708d570b"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+          "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+          "fingerprint": "0e4ed22b07fe"
+        }
+      ]
+    },
+    {
+      "claim": "scripts.preinstall / scripts.build / sitecustomize.py are not invoked by install_package; uninstall API is absent so T5 is NOT-CHECKED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "arm:ignored-names+uninstall-api",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe1_beacon.py",
+          "raw_output": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.\n{\n  \"arms\": {\n    \"autoload\": {\n      \"arm\": \"autoload\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": false,\n      \"script_rel\": \"\",\n      \"subprocess_calls\": 0\n    },\n    \"build\": {\n      \"arm\": \"build\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/build.py\",\n      \"subprocess_calls\": 0\n    },\n    \"direct\": {\n      \"cwd_beacon\": true,\n      \"host_beacon\": true,\n      \"returncode\": 0\n    },\n    \"gated\": {\n      \"arm\": \"gated\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": true,\n      \"execution_location\": \"sandbox\",\n      \"handling\": \"sandbox-gated\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": true,\n      \"returncode\": 0,\n      \"sandbox_beacon\": true,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"implicit\": {\n      \"arm\": \"implicit\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"naive\": {\n      \"arm\": \"naive\",\n      \"cwd_beacon\": true,\n      \"dest_beacon\": true,\n      \"executed\": true,\n      \"execution_location\": \"host\",\n      \"handling\": \"naive-host\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": true,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"plugin_layout\": {\n      \"beacon_after\": false,\n      \"beacon_before\": false,\n      \"command_field_preserved\": true,\n      \"executed_hook_command\": false,\n      \"hook_moved\": true\n    },\n    \"plugin_shaped\": {\n      \"arm\": \"plugin-shaped\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"preinstall\": {\n      \"arm\": \"preinstall\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/preinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"uninstall_plant\": {\n      \"arm\": \"uninstall-plant\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/uninstall.py\",\n      \"subprocess_calls\": 0\n    }\n  },\n  \"controls\": {\n    \"all_ok\": true,\n    \"both_states\": true,\n    \"detector_ok\": true,\n    \"gated_ok\": true,\n    \"ignored_script_names_ok\": true,\n    \"implicit_ok\": true,\n    \"naive_ok\": true,\n    \"plugin_layout_ok\": true,\n    \"plugin_post_implicit_ok\": true\n  },\n  \"method\": \"disposable-sandbox-beacon-fixture\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"probe\": \"probe1-beacon-install\",\n  \"uninstall_api_present\": false,\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ndirect cwd=True host=True\nimplicit executed=False beacon=False calls=0\nnaive executed=True beacon=True calls=1\ngated loc=sandbox sandbox_beacon=True dest_beacon=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe1 beacon-install\n",
+          "fingerprint": "c960708d570b"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+          "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+          "fingerprint": "0e4ed22b07fe"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-CONTROL-DIRECT-BEACON",
+      "name": "Beacon writes when run directly (detector control)",
+      "command": "direct subprocess of planted beacon.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T-NEGATIVE-CONTROL-CAN-GO-RED",
+      "name": "Naive host execute writes the beacon (both-states)",
+      "command": "install_package(..., naive_execute_on_host=True)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DISPOSABLE-SANDBOX",
+      "name": "All installs run under tempfile.TemporaryDirectory",
+      "command": "measure() TemporaryDirectory prefix=adv0060-",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PLUGIN-LIFECYCLE",
+      "name": "Plugin layout helper copies hook JSON and does not execute it",
+      "command": "plugin.legacy_layout_steps.apply_hooks_dispatch",
+      "result": "PASS"
+    },
+    {
+      "id": "T-MARKETPLACE-LIFECYCLE",
+      "name": "Default marketplace install refuses scripts.postinstall",
+      "command": "install_package(postinstall_package, dest)",
+      "result": "PASS"
+    },
+    {
+      "id": "T-STATIC-DYNAMIC-JOIN",
+      "name": "AST invocation sites joined to live subprocess traces",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-BEACON-BOTH-STATES",
+      "kind": "known-broken-fixture",
+      "description": "Direct/naive arms write ADV0060.beacon; implicit default install does not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC-UNEXERCISED-IS-NOT-CHECKED",
+      "kind": "other",
+      "description": "No uninstall API and no host hook runner: those targets stay NOT-CHECKED rather than REFUTED-as-safe.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "name": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe1_beacon.py",
+      "raw_output": "Probe 1: install the fixture in a sandbox and check for the beacon written by each vector.\n{\n  \"arms\": {\n    \"autoload\": {\n      \"arm\": \"autoload\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": false,\n      \"script_rel\": \"\",\n      \"subprocess_calls\": 0\n    },\n    \"build\": {\n      \"arm\": \"build\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/build.py\",\n      \"subprocess_calls\": 0\n    },\n    \"direct\": {\n      \"cwd_beacon\": true,\n      \"host_beacon\": true,\n      \"returncode\": 0\n    },\n    \"gated\": {\n      \"arm\": \"gated\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": true,\n      \"execution_location\": \"sandbox\",\n      \"handling\": \"sandbox-gated\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": true,\n      \"returncode\": 0,\n      \"sandbox_beacon\": true,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"implicit\": {\n      \"arm\": \"implicit\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"naive\": {\n      \"arm\": \"naive\",\n      \"cwd_beacon\": true,\n      \"dest_beacon\": true,\n      \"executed\": true,\n      \"execution_location\": \"host\",\n      \"handling\": \"naive-host\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": true,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 1\n    },\n    \"plugin_layout\": {\n      \"beacon_after\": false,\n      \"beacon_before\": false,\n      \"command_field_preserved\": true,\n      \"executed_hook_command\": false,\n      \"hook_moved\": true\n    },\n    \"plugin_shaped\": {\n      \"arm\": \"plugin-shaped\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/postinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"preinstall\": {\n      \"arm\": \"preinstall\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/preinstall.py\",\n      \"subprocess_calls\": 0\n    },\n    \"uninstall_plant\": {\n      \"arm\": \"uninstall-plant\",\n      \"cwd_beacon\": false,\n      \"dest_beacon\": false,\n      \"executed\": false,\n      \"execution_location\": \"none\",\n      \"handling\": \"refused-implicit\",\n      \"host_beacon\": false,\n      \"leaked_beacon\": false,\n      \"owner_gate_accepted\": false,\n      \"returncode\": 0,\n      \"sandbox_beacon\": false,\n      \"script_present\": true,\n      \"script_rel\": \"scripts/uninstall.py\",\n      \"subprocess_calls\": 0\n    }\n  },\n  \"controls\": {\n    \"all_ok\": true,\n    \"both_states\": true,\n    \"detector_ok\": true,\n    \"gated_ok\": true,\n    \"ignored_script_names_ok\": true,\n    \"implicit_ok\": true,\n    \"naive_ok\": true,\n    \"plugin_layout_ok\": true,\n    \"plugin_post_implicit_ok\": true\n  },\n  \"method\": \"disposable-sandbox-beacon-fixture\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"probe\": \"probe1-beacon-install\",\n  \"uninstall_api_present\": false,\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ndirect cwd=True host=True\nimplicit executed=False beacon=False calls=0\nnaive executed=True beacon=True calls=1\ngated loc=sandbox sandbox_beacon=True dest_beacon=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe1 beacon-install\n"
+    },
+    {
+      "id": "probe2",
+      "name": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+      "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/TST-0217",
+      "artifact_path": "command-center/adversarial/ADV-0060-install-lifecycle-script-policy.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+        "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+        "fingerprint": "0e4ed22b07fe"
+      }
+    },
+    {
+      "consumer": "tools/marketplace/install.py",
+      "artifact_path": "tools/marketplace/install.py",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+        "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+        "fingerprint": "0e4ed22b07fe"
+      }
+    },
+    {
+      "consumer": "tools/plugin/legacy_layout_steps.py",
+      "artifact_path": "tools/plugin/legacy_layout_steps.py",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0060/probe2_sites.py",
+        "raw_output": "Probe 2 (mechanically different): read the pipeline source to enumerate every point where an external command could be invoked, then confirm the fixture actually exercised each - an unexercised vector is NOT-CHECKED, not safe.\n{\n  \"install_exec_site_count\": 2,\n  \"join\": {\n    \"autoload_calls\": 0,\n    \"build_calls\": 0,\n    \"gated_calls\": 1,\n    \"implicit_calls\": 0,\n    \"naive_calls\": 1,\n    \"plugin_shaped_calls\": 0,\n    \"preinstall_calls\": 0,\n    \"unexercised_host_hook_runner\": true,\n    \"unexercised_uninstall_pipeline\": true,\n    \"uninstall_calls\": 0\n  },\n  \"layout_exec_site_count\": 0,\n  \"method\": \"ast-enum-plus-live-subprocess-trace\",\n  \"overall_verdict\": \"PARTIAL\",\n  \"plugin_exec_site_count\": 3,\n  \"probe\": \"probe2-invocation-site-join\",\n  \"reviewer_independent\": true,\n  \"sites\": [\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 229,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 247,\n      \"path\": \"tools/marketplace/install.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.run\",\n      \"lineno\": 61,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"run\",\n      \"lineno\": 74,\n      \"path\": \"tools/plugin/longrun.py\",\n      \"present\": true\n    },\n    {\n      \"call\": \"subprocess.Popen\",\n      \"lineno\": 68,\n      \"path\": \"tools/plugin/heartbeat.py\",\n      \"present\": true\n    }\n  ],\n  \"source_hashes\": {\n    \"tools/marketplace/install.py\": \"307f4cb98a83224f2197a4cdeffb8746ba05226f506b5fa599d1528861980811\",\n    \"tools/plugin/heartbeat.py\": \"6ddfdfbc19473db5935b9695ff3c79b71373ee002c874d2b68e528acc2db3afe\",\n    \"tools/plugin/legacy_layout_steps.py\": \"705410693ca5e89ed429f117a6e3f08b3e405b953ca88c59c7ecb16f3d210510\",\n    \"tools/plugin/longrun.py\": \"cbaf13ac0bc38807552c8f854503423de70244109ee86e0dc496f2126557583a\"\n  },\n  \"unit_id\": \"ADV-0060\",\n  \"verdicts\": {\n    \"T1-plugin-lifecycle-script\": \"REFUTED\",\n    \"T2-plugin-postinstall\": \"REFUTED\",\n    \"T3-auto-loaded-config-during-lifecycle\": \"REFUTED\",\n    \"T4-build-step\": \"REFUTED\",\n    \"T5-uninstall-hook\": \"NOT-CHECKED\",\n    \"T6-marketplace-payload-execution\": \"REFUTED\",\n    \"T7-package-triggered-external-command\": \"CONFIRMED\",\n    \"T8-lifecycle-command-sandbox\": \"CONFIRMED\",\n    \"T9-host-automatic-hook-enforcement\": \"NOT-CHECKED\"\n  }\n}\ninstall_sites=2 plugin_sites=3 layout_sites=0\njoin implicit=0 naive=1 gated=1 build=0\nuninstall_api=False\noverall=PARTIAL\nSUCCESS:ADV-0060-probe2 invocation-site-join\n",
+        "fingerprint": "0e4ed22b07fe"
+      }
+    }
+  ],
+  "defects": [],
+  "residual_unknowns": [
+    {
+      "claim": "No uninstall() API exists on tools/marketplace/install.py; T5 is NOT-CHECKED.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When an uninstall pipeline lands, rerun the uninstall-plant arm of probe1: the planted scripts.uninstall beacon must not execute without the owner gate."
+    },
+    {
+      "claim": "No Claude/Cursor host hook runner runs in this worktree; T9 (host automatic hook enforcement) is NOT-CHECKED here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "On a host with a plugin hook runner, install the plugin-shaped fixture and check whether the declared hook command fires automatically."
+    },
+    {
+      "claim": "platform/plugin/lifecycle.py from the Windows harvest is absent here; this unit measures tools/marketplace/install.py and the tools/plugin helpers that exist on this tree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore the Windows-harvest lifecycle module and rerun the same nine arms against it."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-10-24T19:10:31Z",
+    "ended_at": "2026-10-24T19:10:31Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Two-strikes: after a second failure on the same error fingerprint the unit pivots instruments. First live attempt on this worktree generation."
+  },
+  "report": {
+    "kind": "exploit-proof",
+    "observations": [
+      {
+        "name": "T1-plugin-lifecycle-script",
+        "measured": "REFUTED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T2-plugin-postinstall",
+        "measured": "REFUTED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T3-auto-loaded-config-during-lifecycle",
+        "measured": "REFUTED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T4-build-step",
+        "measured": "REFUTED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T5-uninstall-hook",
+        "measured": "NOT-CHECKED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T6-marketplace-payload-execution",
+        "measured": "REFUTED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T7-package-triggered-external-command",
+        "measured": "CONFIRMED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T8-lifecycle-command-sandbox",
+        "measured": "CONFIRMED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      },
+      {
+        "name": "T9-host-automatic-hook-enforcement",
+        "measured": "NOT-CHECKED",
+        "method": "sandbox beacon-install matrix + AST invocation-site join",
+        "anchor": "tools/marketplace/install.py:install_package"
+      }
+    ],
+    "control_ids": [
+      "NC-BEACON-BOTH-STATES",
+      "NC-UNEXERCISED-IS-NOT-CHECKED"
+    ]
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0060/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0060-install-lifecycle-script-policy.json",
+      "exists": true,
+      "role": "primary",
+      "bytes": 49219,
+      "sha256": "4f9813858ae0f0bd99f658f2eeb802bbfe5976d8a6050b1da64a59bdee65586d"
+    },
+    {
+      "path": "command-center/schema/exploit-proof.schema.json",
+      "exists": true,
+      "role": "supporting",
+      "bytes": 1126,
+      "sha256": "9668929c00f4fac3199cd6bfc343858a2eef722757da6934defdcee0362f0110"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0060/lifecycle.py",
+      "exists": true,
+      "role": "supporting",
+      "bytes": 23651,
+      "sha256": "7c2f6fe9dd27edf64d7a6d883bd762bcf28ad9bb39c651bdc64c2dcc9cfc7f90"
+    }
+  ],
+  "min_bytes_threshold": 1024,
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "answer": "PARTIAL: default marketplace install refuses package postinstall (beacon silent, no subprocess). Owner-gated sandbox does run the script inside sandbox_root. Plugin layout copies hook JSON without executing it. preinstall/build/autoload vectors are ignored. Uninstall pipeline and host hook enforcement were not present, so they stay NOT-CHECKED.",
+  "schema_validated": true
+}

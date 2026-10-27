@@ -1,0 +1,728 @@
+{
+ "ADV-0005": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "co_assignments": [
+    {
+     "model": "gpt-5-codex",
+     "vendor": "openai"
+    }
+   ],
+   "model": "opus",
+   "multi_vendor_policy": "independent-compared-not-merged",
+   "rationale": "normalised from the single-string form 'opus + gpt-5-codex (>=2 vendors, run independently, results compared not merged)'",
+   "role": "paired-independent-refuter",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0005 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0005 <reason>.",
+  "dependencies": [
+   "B01",
+   "B09"
+  ],
+  "evidence_requirement": "Probe 1: blind re-derivation - the refuter receives the source and the question but not the answer, and writes its verdict before the registry entry is revealed. Probe 2 (mechanically different): after unblinding, diff the two verdicts and, for every disagreement, run the claim's own named settling experiment as the tiebreak. Vote counting is banned; the specific probe wins.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "single-signal",
+   "stale-premise"
+  ],
+  "id": "ADV-0005",
+  "inputs": [
+   "CLAIM-REGISTRY.json filtered to severity P0 and P1",
+   "the raw sources each claim cites, supplied WITHOUT the claim sentence attached",
+   "AGENTS.md 4b fresh-context re-derivation rule"
+  ],
+  "mechanism": "blinded re-derivation with planted-false-claim calibration, tie-broken by the claim's own settling experiment",
+  "not_a_duplicate_because": "B09 reproduces the implementer's PROCEDURE; this deliberately withholds the conclusion so the refuter cannot anchor on it. The blinding is the mechanism.",
+  "output_path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+  "output_schema": "command-center/schema/refutation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "For each P0/P1 claim, does a refuter that is given ONLY the raw source and the settling probe - never the claim text or the implementer's conclusion - arrive at the same verdict?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11028-11041, 11043-11047",
+  "tests_required": [
+   "plant 3 known-false claims into the blinded input set and require the refuter to REFUTE all 3; a refuter that confirms a planted false claim invalidates that whole batch"
+  ],
+  "timeout_seconds": 7200,
+  "title": "Fresh-context re-derivation of every P0 and P1 claim in CLAIM-REGISTRY.json",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "AUD-0031": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0030"
+  ],
+  "evidence_requirement": "Probe 1: reverse-reference search over the import graph, excluding test modules. Probe 2: a runtime coverage trace of the non-test entry points recording which tools/lib modules are actually executed - an import is not a use.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "use-vs-mention",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "AUD-0031",
+  "inputs": [
+   "tools/lib/ modules and their 72 tests",
+   "the owner decision that salvage home = tools/lib/ shared tree",
+   "the full import graph from AUD-0030"
+  ],
+  "output_path": "command-center/audit/AUD-0031-salvage-consumption-verify.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "use-vs-mention control: a module named only inside a docstring or a comment must NOT count as a consumer; assert on a fixture containing exactly that"
+  ],
+  "timeout_seconds": 1500,
+  "title": "Verify the tools/lib salvage actually acquired consumers",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "AUD-0043": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "independent-verifier",
+   "vendor": "openai"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0043 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "evidence_requirement": "Probe 1: run the suite via python -m pytest from the source tree. Probe 2: pip install the built artifact into a fresh virtual environment and run the installed console script - by construction the source-tree run cannot detect a packaging or import-path regression.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "green-not-live",
+   "dependency-blocked",
+   "detector-failure"
+  ],
+  "id": "AUD-0043",
+  "inputs": [
+   "the CI step command lines",
+   "the baseline runner command",
+   "the package entry-point declarations"
+  ],
+  "output_path": "command-center/audit/AUD-0043-ci-local-invocation-parity.json",
+  "output_schema": "command-center/schema/audit-detector-control.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Does running the suite the way CI does (installed console script, installed package) produce the same result as running it the way the baseline did (python -m pytest against the source tree)?",
+  "retry_policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "both-states control: remove one module from the package include list in a scratch build and confirm the installed-run turns RED while the source-tree run stays GREEN"
+  ],
+  "timeout_seconds": 3600,
+  "title": "CI-versus-local invocation parity and packaging/import-path exposure",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "AUD-0044": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0044 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0041"
+  ],
+  "evidence_requirement": "Probe 1: the ruleset required_status_checks list from the API. Probe 2: the distinct check-run names reported on a recent merged PR - a required context whose name no workflow emits is permanently pending and a produced context that is not required gates nothing.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "scope-mismatch",
+   "credential-absent",
+   "detector-failure"
+  ],
+  "id": "AUD-0044",
+  "inputs": [
+   "the branch protection ruleset for main",
+   "the context names emitted by each workflow job",
+   "the standing rule to gate merges on REQUIRED contexts only"
+  ],
+  "output_path": "command-center/audit/AUD-0044-required-context-audit.json",
+  "output_schema": "command-center/schema/audit-drift.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which check contexts are REQUIRED by the branch protection ruleset, which contexts do the workflows actually produce, and where do those two sets disagree?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: confirm the comparator reports a non-empty symmetric difference on a deliberately renamed job in a scratch workflow"
+  ],
+  "timeout_seconds": 1500,
+  "title": "Branch-protection required-context set versus the checks that actually run",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "mcp__github__list_branches",
+   "mcp__github__list_pull_requests",
+   "mcp__github__pull_request_read"
+  ]
+ },
+ "AUD-0055": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0055 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0051"
+  ],
+  "evidence_requirement": "Probe 1: extract each marker with its reason and its git blame age. Probe 2: for a stratified sample, REMOVE the marker in a scratch worktree and run the test - the only way to know whether the stated reason still holds is to try it.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "AUD-0055",
+  "inputs": [
+   "every skip and xfail marker with its reason string",
+   "the referenced issue or condition for each",
+   "marker age from git blame"
+  ],
+  "output_path": "command-center/audit/AUD-0055-skip-xfail-reason-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "For every skipped or xfail-marked test, is the stated reason still true today, and how many are permanently disabled tests masquerading as temporary?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: an xfail whose underlying bug is fixed must show as XPASS when unmarked; assert at least the sample is executed rather than reasoned about"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Skip and xfail census with reason validity",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "AUD-0095": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0095 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: enumerate the freeze set and record a sha256 per file as the freeze anchor. Probe 2: define and TEST a change-detection check that turns red when any frozen file's hash changes without a version bump - an inventory with no detector is a list, not a freeze.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "AUD-0095",
+  "inputs": [
+   "every launcher and dispatcher entry point",
+   "every schema file the program will validate against",
+   "spec _USER-PROMPTS.md:10660 (freeze the launchers and schemas once the first implementation wave starts)",
+   "the recorded incident where editing a preamble mid-run left contradictory live instructions"
+  ],
+  "output_path": "command-center/audit/AUD-0095-freeze-inventory.json",
+  "output_schema": "command-center/schema/audit-inventory.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which launchers, prompt templates, and schemas must be frozen the moment the first implementation wave starts, and what is the exact versioned-migration procedure for changing each one afterwards?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "both-states control: modify one frozen file in a scratch copy without bumping its version and confirm the check fires; bump the version and confirm it passes"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Launcher and schema freeze inventory with a versioned-migration requirement",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "BLD-0010": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0010",
+  "dependencies": [
+   "B07",
+   "B08"
+  ],
+  "evidence_requirement": "Report the exact environment triple (codepage, locale, TZ) for every run, and the console encoding actually in effect - not the one requested.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "non-portable",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "BLD-0010",
+  "inputs": [
+   "every datetime, sort, print/console-emit and timestamped-filename site in shipped code",
+   "the smoke test set from B08",
+   "the event ledger writer (timestamps are its primary key surface)"
+  ],
+  "output_path": "command-center/receipts/BLD-0010.json",
+  "output_schema": "command-center/schema/coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: what breaks outside en-US / UTF-8 / UTC? Enumerate every site that formats or parses a date, sorts strings, prints to a console, or embeds a timestamp in a filename, then run the smoke set under a non-UTF8 codepage (cp1252), a non-English locale, and a non-UTC timezone that crosses a DST boundary.  [Phase 13 question answered: what platforms were never tested]",
+  "retry_policy": "Two strikes then pivot: after two environment-setup failures, containerise the locale run rather than mutating the live session environment a third time.",
+  "reviewer_requirement": "One independent reviewer who repeats the DST case with the opposite (spring-forward) boundary.",
+  "tests_required": [
+   "cp1252 console with PYTHONIOENCODING unset: no shipped CLI banner or error message may raise UnicodeEncodeError.",
+   "DST fall-back: two ledger entries written at the repeated 01:30 local hour must remain deterministically ordered.",
+   "Negative control: introducing a naive datetime.now() into a timestamp path must make the suite RED - if it stays green the suite does not test this.",
+   "Locale sort: a list sorted for display must be stable under a non-English collation or must declare an explicit locale-independent key."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Locale, codepage and timezone blind spots",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0013": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "requirements-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0013",
+  "dependencies": [
+   "B01",
+   "B07"
+  ],
+  "evidence_requirement": "Every verdict quotes BOTH the requirement's demanded mechanism at its spec line AND the bound unit's target text. A SATISFIES verdict that cites only the binding record is not evidence - the binding record is the artifact under audit, so it cannot be its own proof.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "use-vs-mention"
+  ],
+  "id": "BLD-0013",
+  "inputs": [
+   "the CC-0024 requirement records and their requirement-to-unit bindings",
+   "the merged work-unit catalog (the bound units' actual targets)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10473-11437 (the demanded mechanism, read from the source line, not from the record's summary)"
+  ],
+  "output_path": "command-center/receipts/BLD-0013.json",
+  "output_schema": "command-center/schema/binding-quality-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which requirement is BOUND to a work unit that does not in fact satisfy it? CC-0024 surfaces UNBOUND requirements - the false-negative direction. This unit audits the opposite and more dangerous direction: a requirement that reads as covered because a binding exists, where the bound unit implements a substitute, a subset, or an adjacent mechanism. For each binding, compare the requirement's demanded mechanism against the unit's actual target and classify SATISFIES / SUBSTITUTES (different mechanism, needs owner approval) / SUBSET (partial, name the residue) / MIS-BOUND.  [Phase 13 question answered: what owner requirements disappeared]",
+  "retry_policy": "Two strikes then pivot from mechanism-token comparison to a per-requirement hand adjudication of the disputed bindings.",
+  "reviewer_requirement": "One independent reviewer who re-reads five SATISFIES verdicts from the spec line alone and confirms the bound unit really does the demanded thing.",
+  "tests_required": [
+   "Control: plant a binding from a requirement to an unrelated unit and prove it classifies MIS-BOUND.",
+   "Control: a requirement demanding 'a visual OR structured builder' satisfied by a structured builder must classify SATISFIES, not SUBSTITUTES - the audit must honour disjunctive requirements.",
+   "Control: a correctly bound requirement must not be flagged (no false positives).",
+   "Direction control: prove the audit is measuring the false-positive direction by confirming an UNBOUND requirement is out of scope here and belongs to CC-0024."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Mis-binding audit: requirements marked covered by a unit that does not actually satisfy them",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0014": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "contradiction-hunter",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0014",
+  "dependencies": [
+   "B01",
+   "B07"
+  ],
+  "evidence_requirement": "Every contradiction cites BOTH sides at path:line. A decision with no contradicting artifact is reported CONFIRMED-CONSISTENT with the search surface named - not merely 'no finding', which is unfalsifiable.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "contradiction",
+   "stale-premise",
+   "use-vs-mention"
+  ],
+  "id": "BLD-0014",
+  "inputs": [
+   "command-center/OWNER-DECISIONS.md",
+   "17-DECISION-LOG.md",
+   "every shipped doc, script, CI workflow and catalog slice"
+  ],
+  "output_path": "command-center/receipts/BLD-0014.json",
+  "output_schema": "command-center/schema/contradiction-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which binding owner decision is CONTRADICTED by a shipped artifact? This is distinct from a missing implementation. For each decision in OWNER-DECISIONS.md and 17-DECISION-LOG.md, extract its normative content (release mode = PR-ONLY; retirement scope = DELETE-ALL across five trees; salvage home = tools/lib/; no-remote repos = triage first, never create remotes) and search the tree for an artifact that asserts or performs the opposite.  SCOPE BOUNDARY: AUD-0076 EXTRACTS owner requirements from the transcript. This unit detects CONTRADICTION - a shipped artifact that does the opposite of a binding decision - which extraction cannot surface.  [Phase 13 question answered: what owner requirements disappeared]",
+  "retry_policy": "Two strikes then pivot: if keyword search misses a planted contradiction twice, switch to per-decision hand-written probes.",
+  "reviewer_requirement": "An Anthropic-vendor reviewer re-reads the three highest-severity contradictions from the raw sources; the OpenAI author's summary is not the input.",
+  "tests_required": [
+   "Control: plant a line asserting a canary release channel while PR-ONLY is binding, and prove it is caught.",
+   "Use-vs-mention control: a document QUOTING the decision, or describing the rejected alternative as rejected, must NOT be flagged.",
+   "Control: a decision whose contradicting artifact is a CI workflow (not prose) must still be caught - the search surface includes executable config."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Silently reversed owner decisions: contradiction detection, not absence detection",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0031": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "calibration-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0031",
+  "dependencies": [
+   "B09",
+   "B10",
+   "B12"
+  ],
+  "evidence_requirement": "Each finding quotes the hedged sentence. A band attached to a PAST measured fact is a category error and is reported in a separate class from a missing band.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "overclaim",
+   "use-vs-mention",
+   "detector-failure"
+  ],
+  "id": "BLD-0031",
+  "inputs": [
+   "every lane report and receipt narrative",
+   "command-center/CLAIM-REGISTRY.json",
+   "AGENTS.md 7 (the confidence lexicon)"
+  ],
+  "output_path": "command-center/receipts/BLD-0031.json",
+  "output_schema": "command-center/schema/tag-position-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which forward-looking claim ships with no calibrated confidence band, or carries a band with no paired evidence anchor? Extract claims in the predictive or uncertain register from all program reports, check each for a Sherman-Kent band (almost-certain / likely / roughly-even / unlikely / remote) and a paired evidence tag, and report bare hedges such as 'should work', 'looks fine' and 'likely fine'.  SCOPE BOUNDARY: ADV-0108 audits unsupported certainty, comparing a stated band against its evidence. This unit contributes the MISSING-band population - claims carrying no band at all - which a band-versus-evidence audit structurally cannot see.  [Phase 13 question answered: what unknowns remain]",
+  "retry_policy": "Two strikes then pivot from lexicon matching to modality tagging before a third attempt.",
+  "reviewer_requirement": "One independent reviewer who re-scores twenty sampled claims blind and must agree within two on the flagged count.",
+  "tests_required": [
+   "Control: 'should work' with no band must be caught.",
+   "Control: 'likely (55-80%), measured at path:line' must pass unflagged.",
+   "Control: a past-tense measured fact carrying a probability band must be reported as a category error, not as compliant."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Confidence-band and evidence-tag audit over every forward-looking claim",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0032": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "adjudicator",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0032",
+  "dependencies": [
+   "B09",
+   "B10",
+   "B12"
+  ],
+  "evidence_requirement": "Every finding cites the recommendation heading, the premise claim id, and the premise's tag location. A recommendation with no traceable premise is reported UNGROUNDED, which is a separate and more severe class.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "contradiction",
+   "detector-failure"
+  ],
+  "id": "BLD-0032",
+  "inputs": [
+   "every recommendation in the program's reports and decision packets",
+   "command-center/CLAIM-REGISTRY.json (claim ids and verification status)",
+   "the citation edges between recommendations and claims"
+  ],
+  "output_path": "command-center/receipts/BLD-0032.json",
+  "output_schema": "command-center/schema/tag-position-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which recommendation rests on an UNVERIFIED premise without inheriting the tag in its own heading? Build premise-to-recommendation edges (a recommendation cites a claim; that claim carries a verification tag), compute the transitive premise set for each recommendation, and report every recommendation whose premise set contains an UNVERIFIED or NOT-CHECKED item while the recommendation itself reads as unqualified.  [Phase 13 question answered: what unknowns remain]",
+  "retry_policy": "Two strikes then pivot from citation-token matching to explicit claim-id edges before a third attempt.",
+  "reviewer_requirement": "One independent reviewer who traces two flagged recommendations back to their premises by hand and confirms the chain.",
+  "tests_required": [
+   "Control: a recommendation citing a tagged premise without inheriting the tag must be caught.",
+   "Control (false-positive guard): a recommendation that DOES carry the inherited tag in its heading must not be flagged.",
+   "Transitivity control: a two-hop premise chain (recommendation cites claim A, A rests on UNVERIFIED claim B) must be caught, not only the one-hop case."
+  ],
+  "timeout_seconds": 5400,
+  "title": "UNVERIFIED premise inheritance: recommendations that drop their premise's tag",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0037": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "corpus-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0037",
+  "dependencies": [
+   "B01",
+   "B02"
+  ],
+  "evidence_requirement": "A CONTRADICTS finding cites the note permalink AND the program claim at path:line. An UNCONSULTED finding must show the note is topically relevant, not merely that it exists - relevance is demonstrated by the query that retrieved it.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "recall-failure",
+   "stale-premise",
+   "contradiction"
+  ],
+  "id": "BLD-0037",
+  "inputs": [
+   "the basic-memory vault (semantic notes)",
+   "the event ledger (objective turn history)",
+   "every program artifact's citation set"
+  ],
+  "output_path": "command-center/receipts/BLD-0037.json",
+  "output_schema": "command-center/schema/contradiction-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which durable memory note or ledger entry contradicts, or already answers, a current program premise - and was never consulted? Query the semantic memory vault and the event ledger with the program's own topic set, then diff the retrieved set against the notes actually cited in program artifacts. The estate's measured dominant failure is RECALL rather than detection: seven load-bearing claims in one session were confidently wrong while the correct answer sat unread on disk.  SCOPE BOUNDARY: ADV-0018 sweeps the memory vault for contradictions against measured truth. This unit contributes the UNCONSULTED set - topically relevant notes that no program artifact ever cited - which a contradiction sweep does not measure.  [Phase 13 question answered: what existing work was ignored]",
+  "retry_policy": "Two strikes then pivot: after two empty recall runs, widen from keyword to topic/permalink browsing rather than re-running the same query a third time.",
+  "reviewer_requirement": "One independent reviewer who runs three of their own recall queries and reports any relevant note the author's query set missed.",
+  "tests_required": [
+   "Control: a known-relevant note (the squash-merge branch-reporting finding, or the git-archive CRLF finding) must be retrieved by the topic query set - a query set that misses it is under-powered.",
+   "Control: a superseded note carrying a superseded_by pointer must be classified STALE, not treated as current truth.",
+   "Control: a note whose content contradicts a live claim must surface with BOTH anchors, not as a bare mention."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Recall audit: durable memory that pre-answers or contradicts a live program premise",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "mcp__basic-memory__search_notes",
+   "mcp__basic-memory__read_note",
+   "mcp__basic-memory__recent_activity"
+  ]
+ },
+ "BLD-0044": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0044",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "The egress block must itself be controlled: prove a deliberate download attempt FAILS under the block before any green result under it is trusted. A green suite under an unproven block measures nothing.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "non-portable"
+  ],
+  "id": "BLD-0044",
+  "inputs": [
+   "the full test suite",
+   "the CNF-0147 egress-blocked confirmation-suite receipt (consumed, not re-derived)",
+   "the egress-blocking harness",
+   "the cache directories the suite touches"
+  ],
+  "output_path": "command-center/receipts/BLD-0044.json",
+  "output_schema": "command-center/schema/test-quality-census.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which test's outcome depends on an input nobody declared? Re-run the suite under randomized test order, a different PRNG seed, a shifted timezone, a different working directory, a cold cache, and with network egress BLOCKED; report every test whose result changes. The estate measured 14 tests silently downloading a bootstrap script despite comments asserting they never download. SCOPE BOUNDARY: CNF-0147 runs the egress-blocked re-run over the CONFIRMATION suite; this unit consumes that receipt and contributes the multi-axis CROSS-PRODUCT over the full suite - order x seed x timezone x cwd x cache - in which egress is one column rather than the deliverable.  [Phase 13 question answered: what test could falsely pass]",
+  "retry_policy": "Two strikes then pivot: after two blocker-setup failures, run the suite inside a network-isolated container rather than attempting a third host-level block.",
+  "reviewer_requirement": "One independent reviewer who repeats the egress-blocked run and confirms both the block control and the failure list.",
+  "tests_required": [
+   "Block control: a deliberate fetch must fail under the egress block (both-states proof for the blocker itself).",
+   "Order: at least two distinct random seeds must be used; a test that passes under one order and fails under another is reported.",
+   "Cache: a cold-cache run must be compared against a warm-cache run and any divergence reported.",
+   "Control: a genuinely hermetic test must pass identically in all environments (no false positives)."
+  ],
+  "timeout_seconds": 14400,
+  "title": "Nondeterminism and hidden-input census under randomized order, seed, TZ, cwd and blocked egress",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0048": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "security-researcher",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0048",
+  "dependencies": [
+   "B10"
+  ],
+  "evidence_requirement": "Each actor is MODELED only with a citation to the model text; MODELED-BUT-UNTESTED requires the model plus the absence of an abuse test; UNMODELED requires the search that failed to find a model. Assertion without one of these three is not a verdict.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "sampling-error"
+  ],
+  "id": "BLD-0048",
+  "inputs": [
+   "the Phase 12 threat models and refutation artifacts",
+   "the marketplace trust and supply-chain design",
+   "the multi-agent fan-out architecture"
+  ],
+  "output_path": "command-center/receipts/BLD-0048.json",
+  "output_schema": "command-center/schema/threat-coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which threat actor was never modeled? Enumerate the actor set - malicious package publisher, compromised upstream dependency, hostile or MITM'd marketplace mirror, malicious workflow/skill contributor, prompt-injecting artifact author, a compromised or misaligned agent inside our own fan-out, a curious insider reading artifacts, the host-client vendor itself, local malware with user-level file access, and a thief holding a stale credential - and cross it against the threat models actually written in Phase 12.  [Phase 13 question answered: what threat actor was not modeled]",
+  "retry_policy": "Two strikes then pivot from taxonomy-driven enumeration to attack-surface-driven enumeration (walk the trust boundaries instead of the actor list).",
+  "reviewer_requirement": "An Anthropic-vendor reviewer proposes two actors independently before reading this matrix; any actor they name that is absent is a finding against the matrix.",
+  "tests_required": [
+   "Every modeled actor must have at least one executable abuse test in B08 or B10, or be reported MODELED-BUT-UNTESTED.",
+   "Control: an actor deliberately removed from the model set in a scratch copy must be reported UNMODELED.",
+   "Control: the estate's own agents must appear in the actor set - a threat model that excludes the operator's own fan-out is incomplete by construction."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Threat-actor coverage matrix for a plugin, marketplace and multi-agent system",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash",
+   "WebSearch"
+  ]
+ },
+ "BLD-0057": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0057",
+  "dependencies": [
+   "B07",
+   "B08"
+  ],
+  "evidence_requirement": "Two independent signals are required for any ceiling claim: the commit-charge counter AND the process/handle count, plus the OS low-memory event if it fires. A single memory reading is not a ceiling. Do not freeze the owner's machine: ramp with an abort threshold well below the measured freeze point.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "resource-exhaustion",
+   "single-signal",
+   "data-loss-risk"
+  ],
+  "id": "BLD-0057",
+  "inputs": [
+   "the TST-0103 commit-exhaustion guard receipt (consumed, not re-derived)",
+   "the runner's concurrency controls and any memory guard",
+   "live process, handle and commit-charge counters (read-only)",
+   "the MCP server inventory and its per-session spawn behaviour"
+  ],
+  "output_path": "command-center/receipts/BLD-0057.json",
+  "output_schema": "command-center/schema/scale-model.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: at what concurrency does THIS box stop, and does the program stop first? Model process count, handle count and system commit charge under the program's fan-out, establish the safe concurrency ceiling, and verify the guard that enforces it. The estate's measured freeze root cause is COMMIT exhaustion (RAM plus pagefile), not RAM OOM - Task Manager hides it - driven by per-session stdio MCP process multiplication. SCOPE BOUNDARY: TST-0103 is the load TEST that asserts the guard sheds load before process creation fails; this unit consumes that receipt and contributes the SCALE MODEL - the numeric ceiling for this box and whether the program's own scheduler bound sits below it at 10x.  [Phase 13 question answered: what would break at 10x scale]",
+  "retry_policy": "No retry above the abort threshold. A second ramp failure is reported with the measured ceiling, never re-attempted at a higher load.",
+  "reviewer_requirement": "One independent reviewer who repeats the ramp at a lower ceiling and confirms the guard trip point is reproducible.",
+  "tests_required": [
+   "Ramp: increase concurrency until the guard trips and assert the guard trips BEFORE the box degrades.",
+   "Control: the guard must NOT terminate a live shared service - a kill-based memory guard terminating a shared service is a named failure class.",
+   "Control: the ramp must be abortable and must leave no orphaned processes; prove the process count returns to baseline.",
+   "Signal control: show the two counters disagreeing under a synthetic load, proving they are independent measurements."
+  ],
+  "timeout_seconds": 10800,
+  "title": "Local resource ceiling: process, handle and system commit charge under fan-out",
+  "tool_permissions": [
+   "Read",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ }
+}

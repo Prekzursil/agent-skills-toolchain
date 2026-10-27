@@ -1,0 +1,429 @@
+{
+  "schema_version": 1,
+  "unit_id": "SYN-0018",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:SYN-0018 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the recipe control passed and all four class counts carry the total denominator. Any other terminal state is FAILED:SYN-0018 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "_USER-PROMPTS.md:11093",
+  "min_bytes_threshold": 400,
+  "artifacts": [
+    {
+      "path": "command-center/schema/evidence-decay-report.schema.json",
+      "bytes": 1062,
+      "sha256": "62d6c941b4d67747ad4e74923755a5fcc60427393185c68999d21688b43a19f9",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/blobs.py",
+      "bytes": 4836,
+      "sha256": "b39efaea666dae5fd499cbe0125897f64ac6c4d16978ad1bb545b2b9f41c29c6",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/classify.py",
+      "bytes": 10125,
+      "sha256": "64ad33cc0f5c2ed25f9ed4c5ec772e1206ae00607a269f04773b6cb7959b3bbb",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/probe1_recipe.py",
+      "bytes": 2886,
+      "sha256": "f1b70db54942c7620755b169aefbb72c1756d94cf08da18f25490ce01dde4a9c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/probe2_planted.py",
+      "bytes": 4686,
+      "sha256": "9ecef740495b2f815f6dd346856ea198d1d8c7cab43b099690a6ffc690bdf4af",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/fixtures/claim-registry.planted.json",
+      "bytes": 817,
+      "sha256": "517afd7f5ec7b5929ee1a4ed969616773ceb7014e66acda7476a8cc3ed5b7fe0",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/SYN-0018/fixtures/windows-shell-8b.md",
+      "bytes": 567,
+      "sha256": "9f2278e8c6248a4ef8a835cd16737b62b46c1c8f481b9057f9c912243ac2756b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On the planted LF blob, git cat-file -p equals git show byte-for-byte and git archive differs by CRLF; classification names cat-file, never archive.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/SYN-0018/blobs.py:104",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "git cat-file -p <tree>:anchors/stable.md (isolated bare repo)",
+          "raw_output": "cat-file=42B/0CRLF show=42B/0CRLF archive=46B/4CRLF passed=True",
+          "fingerprint": "a7078479edd9294d0aa323ee8ea0a56d9fb25ddf741feba6802b8cdddd7d0636",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "git show vs git archive member extract on the same tree:path",
+          "raw_output": "cat-file=42B/0CRLF show=42B/0CRLF archive=46B/4CRLF passed=True",
+          "fingerprint": "1d9e971a8843545ae9bfe415eb89e529f1fe498c17099a5a8ab224ff9c11fbc2",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Planted four-class fixture classifies STABLE, LINE-MOVED, CONTENT-CHANGED, FILE-GONE at 1/4 each; STABLE and LINE-MOVED stay distinct.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/SYN-0018/classify.py:45",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/SYN-0018/classify.py run_campaign",
+          "raw_output": "{\"CONTENT-CHANGED\": \"1/4\", \"FILE-GONE\": \"1/4\", \"LINE-MOVED\": \"1/4\", \"STABLE\": \"1/4\"}",
+          "fingerprint": "5adcf99eac3dab6a9032b3aef3a32008006166f5961bd83e14a971a34a930abb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/SYN-0018/classify.py FIXTURE_ANCHORS expected field",
+          "raw_output": "{\"CLAIM-GONE-001\": \"FILE-GONE\", \"CLAIM-MOVED-001\": \"LINE-MOVED\", \"CLAIM-REWRITE-001\": \"CONTENT-CHANGED\", \"CLAIM-STABLE-001\": \"STABLE\"}",
+          "fingerprint": "a3282d31fc6365d784f9d1d2e0546e72d646a23407e691201db1c3b41e019e10",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1",
+      "name": "recipe control: cat-file == show; archive differs by CRLF",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0018/probe1_recipe.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T2",
+      "name": "planted drift: insert a line above -> LINE-MOVED not STABLE",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0018/probe2_planted.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T3",
+      "name": "planted rewrite: change the anchored line -> CONTENT-CHANGED",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0018/probe2_planted.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-DRIFT",
+      "kind": "known-broken-fixture",
+      "description": "Insert one line above CLAIM-MOVED-001; must classify LINE-MOVED, not STABLE.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CLAIM-MOVED-001 LINE-MOVED",
+      "good_state_output": "CLAIM-STABLE-001 STABLE"
+    },
+    {
+      "id": "NC-REWRITE",
+      "kind": "known-broken-fixture",
+      "description": "Change the anchored line of CLAIM-REWRITE-001; must classify CONTENT-CHANGED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CLAIM-REWRITE-001 CONTENT-CHANGED",
+      "good_state_output": "CLAIM-STABLE-001 STABLE"
+    },
+    {
+      "id": "NC-GONE",
+      "kind": "known-broken-fixture",
+      "description": "Delete anchors/gone.md at report tree; must classify FILE-GONE.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CLAIM-GONE-001 FILE-GONE",
+      "good_state_output": "CLAIM-STABLE-001 STABLE"
+    },
+    {
+      "id": "NC-ARCHIVE-RECIPE",
+      "kind": "known-broken-fixture",
+      "description": "git archive on * text eol=crlf returns CRLF while the blob stays LF. A classifier that used archive would be invalid by construction.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "cat-file=42B/0CRLF show=42B/0CRLF archive=46B/4CRLF passed=True",
+      "good_state_output": "cat-file==show LF bytes=42"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "SYN-0018-probe2-planted-detector",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 re-runs the detector on the planted known-broken fixtures (drift, rewrite, gone) and is silent on the known-good STABLE fixture. Probe 1 independently re-runs the blob recipe control. Neither probe treats this receipt's conclusion as evidence."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/SYN-0018/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "SYN-0018"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema.Draft7Validator against command-center/schema/evidence-decay-report.schema.json (disk RefResolver, no network)",
+      "artifact_path": "command-center/receipts/SYN-0018.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 command-center/p2-wave/probes/SYN-0018/emit_receipt.py",
+        "raw_output": "schema-valid; garbage rejected",
+        "fingerprint": "fffb8954f91f6b9ce992621d7604944908a10fbf1e5eee88ca43e299f66d6bb3",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:02:24Z",
+    "ended_at": "2026-08-25T01:02:24Z",
+    "duration_seconds": 0.04501
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. The first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Production CLAIM-REGISTRY anchors re-resolved at a capture SHA and a STATUS.md report-time SHA",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Record capture_sha + path + line per claim, record a report-time SHA in STATUS.md, and re-run git cat-file -p <rev>:<path> from a git object database that contains both trees. This worktree has neither SHA pair nor .git."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "evidence-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "evidence-decay-report",
+    "title": "Stale-evidence re-validation across the SHA delta between claim capture and report time",
+    "question": "Question (spec lens 4, _USER-PROMPTS.md:11093): for every evidence anchor recorded earlier in the program, does it still point at the same content at the report-time SHA? Target: re-resolve each anchor at both SHAs and classify STABLE | LINE-MOVED | CONTENT-CHANGED | FILE-GONE. Read blobs with git cat-file -p <rev>:<path>, never git archive.",
+    "observations": [
+      {
+        "name": "recipe-cat-file-equals-show",
+        "measured": true,
+        "method": "git cat-file -p vs git show on isolated tree",
+        "anchor": "anchors/stable.md"
+      },
+      {
+        "name": "recipe-archive-differs-by-crlf",
+        "measured": true,
+        "method": "git archive member extract vs cat-file blob",
+        "anchor": "anchors/stable.md"
+      },
+      {
+        "name": "planted-four-class-counts",
+        "measured": "{\"CONTENT-CHANGED\": \"1/4\", \"FILE-GONE\": \"1/4\", \"LINE-MOVED\": \"1/4\", \"STABLE\": \"1/4\"}",
+        "method": "classify_anchor via git cat-file -p",
+        "anchor": "command-center/p2-wave/probes/SYN-0018/classify.py"
+      },
+      {
+        "name": "production-coverage",
+        "measured": "NOT-CHECKED",
+        "method": "stat CLAIM-REGISTRY.json STATUS.md .git",
+        "anchor": "command-center/CLAIM-REGISTRY.json"
+      }
+    ],
+    "control_ids": [
+      "NC-DRIFT",
+      "NC-REWRITE",
+      "NC-GONE",
+      "NC-ARCHIVE-RECIPE"
+    ],
+    "recipe": {
+      "name": "git cat-file -p <rev>:<path>",
+      "forbidden": "git archive",
+      "cat_file_equals_show": true,
+      "archive_differs_by_crlf": true,
+      "used_for_classification": "git cat-file -p",
+      "control": {
+        "path": "anchors/stable.md",
+        "capture_tree": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+        "cat_file_bytes": 42,
+        "show_bytes": 42,
+        "archive_bytes": 46,
+        "cat_file_crlf": 0,
+        "show_crlf": 0,
+        "archive_crlf": 4
+      },
+      "note": "git cat-file -p and git show agree byte-for-byte on the LF blob. git archive applies .gitattributes eol=crlf and returns CRLF. A run that used git archive is invalid by construction."
+    },
+    "capture_tree": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+    "report_tree": "ef03f74075a14c1c388214234c327c2ab3f0eaaf",
+    "anchors": [
+      {
+        "id": "CLAIM-STABLE-001",
+        "path": "anchors/stable.md",
+        "capture_sha": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+        "report_sha": "ef03f74075a14c1c388214234c327c2ab3f0eaaf",
+        "capture_line": 3,
+        "report_line": 3,
+        "capture_byte_range": [
+          11,
+          36
+        ],
+        "report_byte_range": [
+          11,
+          36
+        ],
+        "class": "STABLE",
+        "expected": "STABLE",
+        "recipe": "git cat-file -p",
+        "note": "same bytes at the same line numbers"
+      },
+      {
+        "id": "CLAIM-MOVED-001",
+        "path": "anchors/moved.md",
+        "capture_sha": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+        "report_sha": "ef03f74075a14c1c388214234c327c2ab3f0eaaf",
+        "capture_line": 2,
+        "report_line": 3,
+        "capture_byte_range": [
+          7,
+          31
+        ],
+        "report_byte_range": [
+          21,
+          45
+        ],
+        "class": "LINE-MOVED",
+        "expected": "LINE-MOVED",
+        "recipe": "git cat-file -p",
+        "note": "identical span now at line 3"
+      },
+      {
+        "id": "CLAIM-REWRITE-001",
+        "path": "anchors/rewritten.md",
+        "capture_sha": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+        "report_sha": "ef03f74075a14c1c388214234c327c2ab3f0eaaf",
+        "capture_line": 2,
+        "report_line": 2,
+        "capture_byte_range": [
+          7,
+          34
+        ],
+        "report_byte_range": [
+          7,
+          35
+        ],
+        "class": "CONTENT-CHANGED",
+        "expected": "CONTENT-CHANGED",
+        "recipe": "git cat-file -p",
+        "note": "anchored bytes not present at report SHA"
+      },
+      {
+        "id": "CLAIM-GONE-001",
+        "path": "anchors/gone.md",
+        "capture_sha": "df27f6baae1a4b2baaf4d2a2fc0315ab4426aa7e",
+        "report_sha": "ef03f74075a14c1c388214234c327c2ab3f0eaaf",
+        "capture_line": 2,
+        "report_line": null,
+        "capture_byte_range": [
+          7,
+          30
+        ],
+        "report_byte_range": null,
+        "class": "FILE-GONE",
+        "expected": "FILE-GONE",
+        "recipe": "git cat-file -p",
+        "note": "path missing at report SHA"
+      }
+    ],
+    "class_counts": {
+      "STABLE": {
+        "count": 1,
+        "total": 4,
+        "as_string": "1/4",
+        "denominator": 4
+      },
+      "LINE-MOVED": {
+        "count": 1,
+        "total": 4,
+        "as_string": "1/4",
+        "denominator": 4
+      },
+      "CONTENT-CHANGED": {
+        "count": 1,
+        "total": 4,
+        "as_string": "1/4",
+        "denominator": 4
+      },
+      "FILE-GONE": {
+        "count": 1,
+        "total": 4,
+        "as_string": "1/4",
+        "denominator": 4
+      }
+    },
+    "live_inputs": {
+      "claim_registry": {
+        "path": "command-center/CLAIM-REGISTRY.json",
+        "exists": true,
+        "claims": 12,
+        "capture_report_sha_pairs": 0
+      },
+      "status_md": {
+        "path": "command-center/STATUS.md",
+        "exists": true,
+        "has_report_time_sha": false
+      },
+      "windows_shell": {
+        "path": "rules/common/windows-shell.md",
+        "exists": true
+      },
+      "worktree_git": false,
+      "report_time_sha": null,
+      "coverage": "NOT-CHECKED",
+      "reason": "CLAIM-REGISTRY.json is present but carries no per-claim capture_sha/report_sha/path triple (sha_pairs=0/12). STATUS.md is present and records no 40-char report-time SHA. This worktree has no .git object database, so live anchors cannot be re-resolved with git cat-file. Live anchors were not invented. Detector proof is the planted four-class fixture read via git cat-file -p in an isolated bare repo."
+    },
+    "production_coverage": "NOT-CHECKED",
+    "denominator": 4
+  },
+  "extensions": {
+    "output_path": "command-center/receipts/SYN-0018.json",
+    "output_schema": "command-center/schema/evidence-decay-report.schema.json",
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "recipe-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0018/probe1_recipe.py"
+      },
+      {
+        "id": "probe2",
+        "role": "planted-detector",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0018/probe2_planted.py"
+      }
+    ],
+    "cloud_ok": false,
+    "notes": "G-1 for SYN-0018: live named probes exit 0, SYN-0018.json state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Production coverage is NOT-CHECKED; live anchors were not invented."
+  }
+}

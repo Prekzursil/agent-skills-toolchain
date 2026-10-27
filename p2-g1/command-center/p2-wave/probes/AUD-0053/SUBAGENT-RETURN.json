@@ -1,0 +1,41 @@
+{
+ "unit_id": "AUD-0053",
+ "id": "AUD-0053",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "output_path": "command-center/audit/AUD-0053-network-egress-census.json",
+ "output_schema": "command-center/schema/audit-finding.schema.json",
+ "manifest_path": "command-center/p2-wave/probes/AUD-0053/UNIT-ARTIFACT-MANIFEST.json",
+ "artifact_bytes": 1277741,
+ "artifact_sha256_crlf_normalized": "c3fdb5898825f31b89fc13b628c41caf6457ce1b8e0bb64a7262f8e1a3fc19f2",
+ "sentinel": "SUCCESS:AUD-0053 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0053/probe1_egress_blocked.py",
+   "exit_code": 0,
+   "role": "egress-blocked-outcome-delta",
+   "raw_output": "{\"control\": {\"blocked_exception_type\": \"EgressBlocked\", \"blocked_raises_egress_blocked\": true, \"pass\": true, \"unblocked_named_control_host\": true, \"unblocked_raises_egress_blocked\": false, \"unblocked_result\": \"connected\"}, \"pass\": true, \"planted\": {\"connect_attempt\": {\"blocked_outcome\": \"FAIL\", \"classification\": \"depend-and-touch\", \"depends_on_egress\": true, \"unblocked_outcome\": \"PASS\"}, \"get_pip\": {\"classification\": \"depend-and-touch\", \"depends_on_egress\": true, \"egress_hosts\": [\"146.75.120.175\", \"bootstrap.pypa.io\"], \"touches_egress\": true}, \"hermetic\": {\"classification\": \"hermetic\"}, \"loopback\": {\"classification\": \"hermetic\", \"loopback_hosts\": [\"127.0.0.1\"], \"touches_egress\": false}}, \"probe\": \"probe1-egress-blocked\", \"summary\": {\"budget_hit\": true, \"collected_nodeids\": 0, \"collector\": \"test_discovery.collect\", \"control_pass\": true, \"depend_paths\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\", \"tools/mcp/mcp-http-host/tests/test_mcp_http_host.py\"], \"destination_hosts\": {\"146.75.120.175\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"], \"bootstrap.pypa.io\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"]}, \"elapsed_seconds\": 141.616, \"n_depend\": 3, \"n_files_run\": 69, \"n_hermetic\": 56, \"n_not_executed\": 10, \"n_pytest_absent\": 0, \"n_touch\": 2, \"pytest_present\": true, \"touch_paths\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"]}, \"unit_id\": \"AUD-0053\"}\nSUCCESS:AUD-0053-probe1 depend=3 touch=2 hermetic=56 control=EgressBlocked-then-not files=69"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0053/probe2_socket_trace.py",
+   "exit_code": 0,
+   "role": "socket-level-trace",
+   "raw_output": "{\"budget_hit\": true, \"destination_hosts\": {\"146.75.120.175\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"], \"bootstrap.pypa.io\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"]}, \"independent\": true, \"live_control_trace\": {\"destinations\": [{\"blocked\": false, \"host\": \"146.75.120.175\", \"kinds\": [\"connect\"], \"loopback\": false, \"port\": 443}, {\"blocked\": false, \"host\": \"bootstrap.pypa.io\", \"kinds\": [\"create_connection\", \"getaddrinfo\"], \"loopback\": false, \"port\": 443}], \"exception\": null, \"hosts\": [\"146.75.120.175\", \"bootstrap.pypa.io\"], \"named_control_host\": true, \"result\": \"connected\"}, \"n_files_traced\": 175, \"n_touch\": 2, \"pass\": true, \"planted\": {\"connect_attempt_hosts\": [\"146.75.120.175\", \"bootstrap.pypa.io\"], \"get_pip_hosts\": [\"146.75.120.175\", \"bootstrap.pypa.io\"], \"hermetic_hosts\": []}, \"probe\": \"probe2-socket-trace\", \"starts_from_blocked_outcome_table\": false, \"touch_paths\": [\"command-center/p2-wave/probes/AUD-0053/controls/test_connect_attempt.py\", \"command-center/p2-wave/probes/AUD-0053/controls/test_deliberate_fetch.py\"], \"unit_id\": \"AUD-0053\"}\nSUCCESS:AUD-0053-probe2 touch=2 hosts=2 control_host=bootstrap.pypa.io"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Catalog asks for a cross-vendor Codex reviewer who re-runs ONLY the second probe. Probe 2 is that independent instrument: a socket-level trace that does not install the block hook and does not read probe 1's outcome-delta table. It names destination hosts, including bootstrap.pypa.io on the planted get-pip and connect-attempt controls, and stays silent on the hermetic control.",
+  "reviewer_id": "AUD-0053-probe2-socket-trace",
+  "role": "re-run-only-second-probe",
+  "vendor": "cross-instrument",
+  "verdict": "PASS",
+  "reviewer_source": "prior-closure-kept"
+ },
+ "closure_provenance": "prior independent reviewer closure adopted from the canonical tree and kept per the owner blanket build directive; closure verified live in p2-g1 by re-running both named probes (exit 0) and re-hashing the artifact.",
+ "notes": "shard2 resume 2026-10-24: artifact already byte-identical. Probes ported from canonical and re-run live in p2-g1.",
+ "ts": "2026-10-24T13:52:05Z"
+}

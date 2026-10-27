@@ -1,0 +1,46 @@
+{
+ "id": "ADV-0100",
+ "unit_id": "ADV-0100",
+ "status": "DELIVERED",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:ADV-0100 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent",
+ "output_path": "command-center/adversarial/ADV-0100-conflict-of-interest-self-review.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0100/probe1_delivery_predicate.py",
+   "exit_code": 0,
+   "role": "delivery-predicate",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"ADV-0100\",\n \"artifact_bytes\": 83430,\n \"targets\": 3,\n \"verdicts\": [\n  \"CONFIRMED\",\n  \"CONFIRMED\",\n  \"CONFIRMED\"\n ],\n \"controls\": 1,\n \"negative_controls\": 1,\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:ADV-0100-probe1 predicate holds (3 targets, 1+1 controls)"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0100/probe2_independent_recheck.py",
+   "exit_code": 0,
+   "role": "independent-recheck",
+   "raw_output": "{\n \"probe\": \"probe2-independent-recheck\",\n \"unit_id\": \"ADV-0100\",\n \"lanes\": {\n  \"manifest_byte_compare\": \"ok\",\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=17218efd8728d704... rows=3\"\n   },\n   {\n    \"label\": \"COI detector proven both-states: known-present self-author FIRES and is excluded\",\n    \"ok\": true,\n    \"detail\": \"status=FIRE excluded=['KNOWN-SELF-AUTHOR']\"\n   },\n   {\n    \"label\": \"direct self-review case: author eligible under configured exclude = the CONFIRMED pathology\",\n    \"ok\": true,\n    \"detail\": \"action=exclude excluded=False\"\n   },\n   {\n    \"label\": \"production census files all recorded present with bytes>0\",\n    \"ok\": true,\n    \"detail\": \"rows=5 bad=[]\"\n   },\n   {\n    \"label\": \"census row byte-count re-verified LIVE on this worktree\",\n    \"ok\": true,\n    \"detail\": \"tools/council/integrity/coi.py live_bytes=2917 census=2917\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICTOR-BOTH-STATES\",\n   \"kind\": \"mutation\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"silent_on_good_state\": true,\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"good_state_why\": \"clean\"\n  }\n },\n \"fails\": []\n}\nSUCCESS:ADV-0100-probe2 manifest sha match, 5 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/adversarial/ADV-0100-conflict-of-interest-self-review.json",
+   "bytes": 83430,
+   "sha256": "17218efd8728d7044cc998196d302a0680693e52c2bf90e978d63a5f58ea2175",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/ADV-0100/UNIT-ARTIFACT-MANIFEST.json",
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Independent reviewer closure unavailable in builder shard; artifact + named probes + manifest sha all verify live this session."
+ },
+ "notes": "Resume 2026-10-25: prior builder artifact verified; probe2 re-derives the COI detector both-states control and live re-verifies a production-census byte count on this worktree. No owner gate.",
+ "extensions": {
+  "builder": "shard1 wave-2 (resume) 2026-10-25",
+  "prior_builder": "died mid-flight; artifacts verified against the live contract, not rebuilt"
+ },
+ "ts": "2026-10-24T23:45:23Z"
+}

@@ -1,0 +1,643 @@
+<!doctype html>
+
+
+    
+    
+    
+
+    
+
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    <html lang="en" xml:lang="en" data-cms-lang="en-us">
+    <head>
+        
+<meta charset="utf-8"/>
+
+<title>Scaling to exabytes and beyond - Dropbox</title>
+
+
+
+
+<meta name="description" content="Years ago, we called Dropbox a “Magic Pocket” because it was designed to keep all your files in one convenient place. Dropbox has evolved from that simple beginning to become one of the most powerful and ubiquitous collaboration platforms in the world. And when our scale required building our own dedicated storage infrastructure, we named the project “Magic Pocket.” Two and a half years later, we’re excited to announce that we’re now storing and serving over 90% of our users’ data on our custom-built infrastructure."/>
+<meta name="data-tags" content="Magic Pocket,Infrastructure"/>
+<meta name="data-tagTaxonomy" content="Infrastructure; Magic Pocket;"/>
+<meta name="page-id" content="infrastructure-magic-pocket-infrastructure"/>
+<meta name="topic" content="Infrastructure"/>
+
+<meta name="publishDate" content="2016-03-14 07:27:27.000-0700"/>
+
+<meta name="author" content="Akhil Gupta"/>
+
+<link rel="canonical" href="https://dropbox.tech/infrastructure/magic-pocket-infrastructure"/>
+
+
+
+
+<link rel="icon" href="/cms/content/dam/dropbox/aem/favicon32.ico" type="image/x-icon"/>
+
+
+
+
+
+<meta property="og:url" content="https://dropbox.tech/infrastructure/magic-pocket-infrastructure"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="Scaling to exabytes and beyond"/>
+<meta property="og:description" content="Years ago, we called Dropbox a “Magic Pocket” because it was designed to keep all your files in one convenient place. Dropbox has evolved from that simple beginning to become one of the most powerful and ubiquitous collaboration platforms in the world. And when our scale required building our own dedicated storage infrastructure, we named the project “Magic Pocket.” Two and a half years later, we’re excited to announce that we’re now storing and serving over 90% of our users’ data on our custom-built infrastructure."/>
+<meta property="og:image" content="https://aem.dropbox.com/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/dropbox-tech-infrastructure-1-1200-628.png"/>
+
+
+<meta name="twitter:card" content="summary_large_image"/>
+
+
+
+<meta content="width=device-width,initial-scale=1.0,user-scalable=no" name="viewport"/>
+
+
+
+
+  <link rel="alternate" hreflang="en-us" href="https://dropbox.tech/infrastructure/magic-pocket-infrastructure"/>
+
+
+
+
+  <!-- Adobe Launch Tag
+  <sly data-sly-test.launchScriptUrl="https://assets.adobedtm.com/7c31e7b46b8e/d19004ab8783/launch-9d6b92cf511d.min.js">
+      <script src="" async></script>
+  </sly>-->
+  <input type="hidden" id="launchurl" name="launchurl" value="https://assets.adobedtm.com/7c31e7b46b8e/d19004ab8783/launch-9d6b92cf511d.min.js"/>
+  
+    
+<script type="text/javascript" src="/cms/etc.clientlibs/settings/wcm/designs/adobe-launch.69d49deacff84e18078620ea5d69520e.js" defer></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--/* Calling the tealium utag sync to avoid adobe target flickering */ -->
+
+
+
+
+    
+         
+          <!-- CMS-5456 : Optimizing target calls -->
+                
+         
+    
+
+<!-- /* Calling the tealium utag sync to avoid adobe target flickering */  -->
+
+    
+
+
+
+
+
+        
+
+        
+
+
+
+
+
+
+
+
+
+<!-- /* Enable rebrand styles  */
+<sly data-sly-use.inheritUtil="com.dropbox.aem.common.models.utils.InheritanceUtilUse"
+     data-sly-test.pageStyle="" /> -->
+
+     
+    
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-cms-common.fe1280fde62f39dc26aa28abd1e11743.css" type="text/css">
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all.706c697ebfafea32e18a38f788e663e8.css" type="text/css">
+
+
+
+
+    
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content.853221554a5d292bfd31a6140d9662f9.css" type="text/css">
+
+
+
+    </head>
+    <body class="tech-blog-article-page__page    stormcrow-animate   " data-article-uuid="b03c6ca8-4590-4a70-bacf-d7b5fb8ea9ac">
+
+        
+
+        
+        <input type="hidden" id="wcmRunmode" name="wcmRunmode" value="publish,prod"/>
+        
+
+        
+        
+
+<header class="dr-header">
+
+
+
+
+<div class="dr-header__sticky-container">
+  <section class="dr-header__section dr-flex dr-flex--align-center dr-padding-right-40 dr-padding-left-40 dr-header__sticky-content-container dr-header__sticky-content-container--opened dr-container--surface">
+    <div class="dr-flex-1">
+      <a class="dr-link dr-link--no-underline dr-link--no-underline-hover dr-typography-t1" href="https://dropbox.tech/">Dropbox.Tech</a>
+    </div>
+    
+
+<button class="dr-header__item dr-nav__menu-toggle-button dr-button dr-hide-from-md dr-flex dr-flex-align-center dr-flex-justify-center" data-dr-tooltip="Menu" data-dr-tooltip-theme="white">
+  <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" class="dr-width-100 dr-height-100">
+    <rect x="0.501831" y="8" width="28" height="2" fill="white"></rect>
+    <rect x="0.500977" y="18" width="28" height="2" fill="white"></rect>
+  </svg>
+</button>
+<nav class="dr-show-block-from-md dr-nav__nav">
+  <button class="dr-button dr-nav__menu-close-button">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2875 2.15983L17.6683 0.566406L9.82597 8.28403L2.33211 0.909344L0.71294 2.50277L8.2068 9.87746L0.666992 17.2974L2.28617 18.8908L9.82597 11.4709L17.7143 19.2337L19.3334 17.6403L11.4451 9.87746L19.2875 2.15983Z" fill="white"/>
+    </svg>
+  </button>
+  <ul class="dr-unstyled-list dr-typography-t2 dr-flex dr-nav__nav-list">
+    <li class="dr-header__item dr-position-relative dr-header__item--with-subnav dr-header__list-item">
+      <button class="dr-button dr-button--link dr-header__link--with-subnav">Topics</button>
+      <ul class="dr-unstyled-list dr-display-none dr-header__subnav dr-position-absolute dr-container--surface dr-padding-top-30 dr-padding-left-40 dr-padding-bottom-20 dr-padding-right-40 dr-font-weight-500">
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/application" class="dr-display-block dr-link dr-link--no-underline dr-container--application dr-link--primary">Application</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/frontend" class="dr-display-block dr-link dr-link--no-underline dr-container--frontend dr-link--primary">Front End</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/infrastructure" class="dr-display-block dr-link dr-link--no-underline dr-container--infrastructure dr-link--primary">Infrastructure</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/machine-learning" class="dr-display-block dr-link dr-link--no-underline dr-container--machine-learning dr-link--primary">Machine Learning</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/mobile" class="dr-display-block dr-link dr-link--no-underline dr-container--mobile dr-link--primary">Mobile</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/security" class="dr-display-block dr-link dr-link--no-underline dr-container--security dr-link--primary">Security</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/culture" class="dr-display-block dr-link dr-link--no-underline dr-container--culture dr-link--primary">Culture</a></li>
+      </ul>
+    </li>
+    <li class="dr-header__item dr-header__list-item">
+      <a href="https://dropbox.tech/developers" class="dr-link dr-link--no-underline dr-nav__main-category">Developers</a>
+    </li>
+    <li class="dr-header__item dr-header__list-item">
+      <a class="dr-link dr-link--no-underline dr-header__link" href="http://dropbox.com/jobs" target="_blank">Jobs</a>
+    </li>
+<li class="dr-header__item dr-header__list-item">
+      <a class="dr-link dr-link--no-underline dr-header__link" href="https://dash.dropbox.com/?utm=blogs" target="_self">Dash</a>
+    </li>
+
+  </ul>
+</nav>
+
+    <button data-dark-mode-switcher class="dr-header__item dr-header__dark-mode-switcher dr-button dr-button--link dr-cursor-pointer" data-dr-tooltip="Dark Mode" data-dr-tooltip-theme="white" type="button">
+      <img alt="" height="30" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/button_dark-mode-new.svg" width="30" class="dr-header__mode-image"/>
+    </button>
+    <button class="dr-header__item dr-header__search-button dr-button dr-button--link dr-cursor-pointer" data-dr-tooltip="Search" data-dr-tooltip-theme="white" type="button">
+      <img alt="" height="20" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/button_search-new.svg" width="20"/>
+    </button>
+    <!--search-result-page-only-->
+    
+    <!--search-result-page-only-->
+    <div class="dr-header__search dr-display-none">
+      <button class="dr-header__search-close-button dr-header__item dr-button dr-button--link dr-cursor-pointer" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2875 2.15983L17.6683 0.566406L9.82597 8.28403L2.33211 0.909344L0.71294 2.50277L8.2068 9.87746L0.666992 17.2974L2.28617 18.8908L9.82597 11.4709L17.7143 19.2337L19.3334 17.6403L11.4451 9.87746L19.2875 2.15983Z" fill="white"/>
+        </svg>
+      </button>
+      <div class="dr-header__search-form-container">
+        <form class="dr-header__search-form dr-container__content dr-width-100" method="get" action="https://dropbox.tech/search-results">
+            <div class="coveo-search-section dr-header__search-input dr-header-search-input-white dr-typography-t3" data-coveo-api-url="https://dropboxproductionpmlw0l3v.org.coveo.com/rest/search" data-coveo-org-id="dropboxproductionpmlw0l3v" data-coveo-api-key="xx54717485-2fdc-4d24-afa3-0d3c9f69e01b" data-searchPage="https://dropbox.tech/search-results.html">
+               <div class="CoveoSearchbox" data-enable-omnibox="true" data-enable-query-suggest-addon="true" data-placeholder="Search" data-number-of-suggestions="5"></div>
+                <div class="CoveoStyleReplacer"></div>
+            </div>
+            <p class="dr-header__search-hint dr-margin-top-30 dr-margin-bottom-0 dr-typography-t5 dr-display-none">
+                // Press enter to search
+            </p>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+</header>
+
+        
+
+        
+
+
+<!-- CMS-5220 : Fixing utag.js loading twice in our website
+<sly data-sly-include="/apps/dropbox-common/components/templates/base-page/partials/Analytics.html"/>
+-->
+        <div class="dr-article-hero">
+<div class="dr-article-hero__background-container dr-container--infrastructure">
+	<picture class="dr-article-hero__background dr-article-hero__background--regular">
+		<source media="( max-width: 375px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-375x150px-light.png"/>
+		<source media="( min-width: 376px ) and ( max-width: 1199px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-1024x250px-light.png"/>
+		<img class="dr-article-hero__background-image" src="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-1440x305px-light.png" alt=""/>
+	</picture>
+
+	<picture class="dr-article-hero__background dr-article-hero__background--dark">
+		<source media="( max-width: 375px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-375x150px-dark.png"/>
+		<source media="( min-width: 376px ) and ( max-width: 1199px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-1024x250px-dark.png"/>
+		<img class="dr-article-hero__background-image" src="/cms/content/dam/dropbox/tech-blog/en-us/infrastructure/Infrastructure-1-1440x305px-dark.png" alt=""/>
+	</picture>
+</div>
+<section class="dr-container__content">
+	<span class="dr-article-hero__title-container dr-container--infrastructure">
+		<h1 class="dr-display-inline dr-typography-t15 dr-container--surface dr-article-hero__title">Scaling to exabytes and beyond</h1>
+	</span>
+	<div class="dr-typography-no-space dr-margin-top-10 dr-margin-md-top-20">
+        <span class="dr-typography-t5">// By Akhil Gupta &bull; Mar 14, 2016</span>
+    </div>
+</section></div>
+<div class="dr-article-content">
+
+
+
+
+
+
+
+
+
+<div class="dr-article-content__scroll-tracker-container dr-container--infrastructure">
+    <div class="dr-article-content__scroll-tracker"></div>
+</div>
+<div class="dr-container__content">
+    <div class="dr-article-content__content-container dr-padding-md-left-80 dr-padding-md-right-80 dr-typography-t12">
+        <nav class="dr-article-content__side-nav dr-article-content__side-nav--initial dr-typography-t5">
+            <ol class="dr-article-content__side-nav-list dr-margin-0">
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#how-did-we-make-this-happen" class="dr-link dr-link--no-underline dr-article-content__side-nav-link">How did we make this happen?</a>
+                </li>
+            </ol>
+        </nav>
+        <div class="dr-article-content__content">
+            
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="1300"
+             data-sly-attribute.height="760"
+             data-aem-asset-id="142ed321-b133-47c7-8578-27473abf60da:magic-pocket.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="1300"
+             data-sly-attribute.height="760"
+             data-aem-asset-id="142ed321-b133-47c7-8578-27473abf60da:magic-pocket.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2016/03/magic-pocket.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="142ed321-b133-47c7-8578-27473abf60da:magic-pocket.png" data-trackable="true" height="760" width="1300"/>
+    
+
+            
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Years ago, we called Dropbox a <a href="https://www.youtube.com/watch?v=QULM7M98TLo">“Magic Pocket”</a> because it was designed to keep all your files in one convenient place. Dropbox has evolved from that simple beginning to become one of the most powerful and ubiquitous collaboration platforms in the world. And when our scale required building our own dedicated storage infrastructure, we named the project “Magic Pocket.” Two and a half years later, we’re excited to announce that we’re now storing and serving over 90% of our users’ data on our custom-built infrastructure.</p>
+<p>Dropbox was founded by engineers, and the ethos of technical innovation is fundamental to our culture. For our users, this means that we’ve created a product that just works. But there’s a lot that happens behind the scenes to create that simple user experience.</p>
+<p>We’ve grown enormously since launching in 2008, surpassing 500 million signups and 500 petabytes (i.e., 5 followed by 17 zeroes!) of user data. That’s almost 14,000 times the text of all the books in the Library of Congress. To give you a sense of the incredible growth we’ve experienced, we had only about 40 petabytes of user data when I joined in 2012. In the 4 years since, we’ve seen over 12x growth.</p>
+<p>Dropbox stores two kinds of data: file content and metadata about files and users. We’ve always had a hybrid cloud architecture, hosting metadata and our web servers in data centers we manage, and storing file content on Amazon. We were an early adopter of Amazon S3, which provided us with the ability to scale our operations rapidly and reliably. Amazon Web Services has, and continues to be, an invaluable partner—we couldn’t have grown as fast as we did without a service like AWS.</p>
+<p>As the needs of our users and customers kept growing, we decided to invest seriously in building our own in-house storage system. There were a couple reasons behind this decision. First, one of our key product differentiators is performance. Bringing storage in-house allows us to customize the entire stack end-to-end and improve performance for our particular use case. Second, as one of the world’s leading providers of cloud services, our use case for block storage is unique. We can leverage our scale and particular use case to customize both the hardware and software, resulting in better unit economics.</p>
+<p>We knew we’d be building one of only a handful of exabyte-scale storage systems in the world. It was clear to us from the beginning that we’d have to build everything from scratch, since there’s nothing in the open source community that’s proven to work reliably at our scale. Few companies in the world have the same requirements for scale of storage as we do. And even fewer have higher standards for safety and security. We built reliability and security into our design from the start, ensuring that the system stores the data in a safe and secure manner, and is highly available. The data is encrypted at rest, and the system is designed to provide annual data durability of over 99.9999999999%, and availability of over 99.99%.</p>
+
+</div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="how-did-we-make-this-happen">
+    <h2 class="dr-article-content__section-title">How did we make this happen?</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Code development: Magic Pocket became a major initiative in the summer of 2013. We’d built a small prototype as a proof of concept prior to this to get a sense of our workloads and file distributions. Software was a big part of the project, and we iterated on how to build this in production while validating rigorously at every stage. The innovation focused on creating a clean design that would scale from zero to one of the largest storage systems in the world, and automation that would allow our small team to maintain an enormous amount of hardware. We needed to test and audit the reliability of the system for the highest levels of data durability and availability.</p>
+<p><b>Dark launch:</b> In August 2014, we embarked on our &quot;dark launch,&quot; at which point we were mirroring data between two regional locations and considered the system ready to store user data. Of course, being Dropbox, we kept extra backups for another 6 months after this date just in case.</p>
+<p><b>Launch day:</b> February 27, 2015 was D-day. For the first time in the history of Dropbox, we began storing and serving user files exclusively in-house. Once we validated our new infrastructure, we set an aggressive goal of scaling the system to more than 500PB in six months.</p>
+<p><b>BASE Jump:</b> On April 30, 2015, we began the race to install additional servers in three regional locations fast enough to keep up with the flow of data. To make this all work, we built a high-performance network from our servers which allowed us to transfer data at a peak rate of over half a terabit per second. Because our schedule left so little time to “open the parachute,” we called this part of the project BASE Jump. On the hardware side, we were pushing up against the limitations of how many racks of hardware could fit in the loading dock at one time.</p>
+<p><b>Successful landing:</b> Our goal was to serve 90% of our data from in-house infrastructure by October 30, 2015. We actually hit the mark almost a month early, on October 7, 2015. The team not only delivered on time, but also achieved this significant technical undertaking without any major service disruptions or any loss of data.</p>
+<p>This is an exciting milestone and the start of more innovation to come. We’ll continue to invest in our own infrastructure as well as partner with Amazon where it makes sense for our users, particularly globally. Later this year, we’ll expand our relationship with AWS <a href="https://blogs.dropbox.com/business/2016/02/dropbox-is-growing-in-europe/" target="_blank">to store data in Germany for European business customers</a> that request it. Protecting and preserving the data our users entrust us with is our top priority at all times.</p>
+<p>This is Dropbox engineering—always aiming higher!</p>
+<hr />
+
+<p>This is the first of a series of blog posts about the Magic Pocket. Over the next month we’ll share a lot of the technical details around what we learned from building our own high-performance cloud infrastructure. Stay tuned.</p>
+
+</div>
+
+    
+</div>
+
+        </div>
+        <hr class="dr-typography-t5 dr-margin-top-50 dr-article-content__divider"/>
+        <div class="dr-typography-t5">
+          
+        </div>
+        
+        <div class="dr-typography-t5 dr-margin-top-20">
+            // Tags <br/>
+            <ul class="dr-unstyled-list dr-margin-top-10 dr-typography-t4">
+                <li class="dr-container--infrastructure dr-display-inline-block dr-margin-right-10  dr-margin-bottom-10">
+                    <a class="dr-link dr-pill dr-pill--primary dr-link--no-underline" href="https://dropbox.tech/infrastructure">
+                        Infrastructure
+                    </a>
+                </li>
+                
+                    <li class="dr-display-inline-block dr-margin-right-10"><a class="dr-link dr-pill dr-link--no-underline" href="https://dropbox.tech/tag-results.magic-pocket">Magic Pocket</a></li>
+                
+                    
+                
+            </ul>
+        </div>
+        
+        <div class="dr-article-content__knotch">
+            <div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+                <div class="plain-html c17-plain-html aem-GridColumn aem-GridColumn--default--12">
+                  <div class="knotch_placeholder"></div>
+                </div>
+            </div>
+        </div>
+        <div class="dr-typography-t5 dr-margin-top-20 dr-hide-from-md">
+            // Copy link <br/>
+            <div class="dr-article-content__social-links-tooltip dr-display-none">Link copied</div>
+            <button class="dr-button dr-button--link dr-link dr-link--no-underline dr-article-content__copy-link" data-dr-tooltip="Copy link">
+                <img alt="Copy link" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/copy.svg"/>
+            </button>
+        </div>
+        <div class="dr-article-content__social-links">
+            <ul class="dr-article-content__social-links-list dr-unstyled-list">
+                <li class="dr-margin-bottom-20">
+                    <div class="dr-article-content__social-links-tooltip dr-typography-t5 dr-display-none">Link copied</div>
+                    <button class="dr-button dr-display-block dr-link dr-link--no-underline dr-article-content__copy-link dr-button--link" data-dr-tooltip="Copy link" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw">
+                        <img alt="Copy link" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/copy.svg"/>
+                    </button>
+                </li>
+                <li class="dr-margin-bottom-20">
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__twitter-link" data-dr-tooltip="Share on Twitter" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://twitter.com/intent/tweet/?text=Scaling%20to%20exabytes%20and%20beyond&amp;url=https://dropbox.tech/infrastructure/magic-pocket-infrastructure" target="_blank">
+                        <img alt="Share on Twitter" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/twitter.svg"/>
+                    </a>
+                </li>
+                <li class="dr-margin-bottom-20">
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__facebook-link" data-dr-tooltip="Share on Facebook" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://facebook.com/sharer/sharer.php?u=https://dropbox.tech/infrastructure/magic-pocket-infrastructure" target="_blank">
+                        <img alt="Share on Facebook" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/facebook.svg"/>
+                    </a>
+                </li>
+                <li>
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__linkedin-link" data-dr-tooltip="Share on Linkedin" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://dropbox.tech/infrastructure/magic-pocket-infrastructure&amp;title=Scaling%20to%20exabytes%20and%20beyond&amp;source=https://dropbox.tech/infrastructure/magic-pocket-infrastructure" target="_blank">
+                        <img alt="Share on Linkedin" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/linkedin.svg"/>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</div>
+
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="related-articles aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-container--infrastructure dr-container--primary-surface">
+    <div class="dr-container__content dr-padding-top-50 dr-padding-bottom-50 dr-padding-md-top-75 dr-padding-md-bottom-75">
+        <div class="dr-flex dr-flex-align-center">
+            <div class="dr-typography-t3 dr-flex-1">
+                Related posts
+            </div>
+            <a href="https://dropbox.tech/infrastructure" class="dr-link dr-typography-t4">
+                See more
+            </a>
+        </div>
+        <ul class="dr-unstyled-list dr-margin-top-30 dr-margin-md-top-50">
+            <li>
+                <a href="https://dropbox.tech/infrastructure/how-our-universal-content-processing-platform-riviera-evolved-for-ai-and-beyond" class="dr-related-articles__title dr-link dr-link--no-underline dr-typography-t6 dr-container--primary-on-primary-surface">
+                    How our universal content processing platform Riviera evolved for AI and beyond
+                </a>
+                <div class="dr-margin-top-10 dr-typography-t5 dr-margin-lg-top-5">
+                    // Jul 20, 2026
+                </div>
+            </li>
+        
+            <li class="dr-margin-top-30 dr-margin-md-top-20">
+                <a href="https://dropbox.tech/infrastructure/improving-storage-efficiency-in-magic-pocket-our-immutable-blob-store" class="dr-related-articles__title dr-link dr-link--no-underline dr-typography-t6 dr-container--primary-on-primary-surface">
+                    Improving storage efficiency in Magic Pocket, our immutable blob store
+                </a>
+                <div class="dr-margin-top-10 dr-typography-t5 dr-margin-lg-top-5">
+                    // Apr 02, 2026
+                </div>
+            </li>
+        
+            <li class="dr-margin-top-30 dr-margin-md-top-20">
+                <a href="https://dropbox.tech/infrastructure/reducing-our-monorepo-size-to-improve-developer-velocity" class="dr-related-articles__title dr-link dr-link--no-underline dr-typography-t6 dr-container--primary-on-primary-surface">
+                    Reducing our monorepo size to improve developer velocity
+                </a>
+                <div class="dr-margin-top-10 dr-typography-t5 dr-margin-lg-top-5">
+                    // Mar 25, 2026
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+</div>
+
+    
+</div>
+
+
+        <footer class="dr-footer">
+<div class="dr-container--surface">
+  <section class="dr-container__content dr-footer__container">
+   <!--CMS-9789 Remove Mailchimp email signup from dropbox.tech (commenting out for now)
+     <sly data-sly-resource="newsletterSubscribe" /> 
+     -->
+    <div class="dr-grid dr-grid--md-2">
+      <div>
+        <a href="https://dropbox.com" target="_blank" class="dr-margin-bottom-20 dr-display-block">
+          <img alt="Dropbox" height="40" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/logo_dropbox.svg" width="164"/>
+        </a>
+      </div>
+      
+      <ul class="dr-footer-links dr-unstyled-list dr-typography-t10 dr-grid dr-grid--2 dr-grid--column-gap-15">
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/about" target="_self">
+            About us
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://twitter.com/Dropbox" target="_blank">
+            X
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dash.dropbox.com/" target="_self">
+            Dropbox Dash
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.linkedin.com/company/dropbox" target="_blank">
+            LinkedIn
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/jobs" target="_blank">
+            Jobs
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.instagram.com/dropbox" target="_blank">
+            Instagram
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/terms" target="_blank">
+            Privacy and terms
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dropbox.tech/feed" target="_blank">
+            RSS feed
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/ai-principles" target="_self">
+            AI principles
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dropbox.tech/culture/our-updated-engineering-career-framework" target="_blank">
+            Engineering Career Framework
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline evidon-notice-link" href="https://dropbox.tech/#manage-cookies" target="_self">
+            Cookies and CCPA preferences
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://blog.dropbox.com/" target="_blank">
+            Blog
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+</div>
+</footer>
+        
+
+        
+
+
+
+<!-- /*CMS-2358, include Coveo scripts*/ -->
+<script class="coveo-script" src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/CoveoJsSearch.Lazy.min.js" integrity="sha512-TZ/h9PEDIZgO9TOpoJHlGGlz52ZqBl/B3wLmbpJ+q8Z6fIAUAkAOGPfx6Oy2camtVy6zLdVBA6H/2c8aUT40Qg==" crossorigin="anonymous"></script>
+<script src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/templates/templates.js" integrity="sha512-CR0Yk/LIwgh1MsKqjecDp/r6F9ipKc6gA+4+E1pplT3N3r1pk+la/HaqyDiKtjOFwrwIIbIYBFrUJgPql93QHw==" crossorigin="anonymous"></script>
+
+    <script src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/cultures/en.js" integrity="sha512-WwPseicWtWAxrdno8NVAcKvVezXUCAxIklKyGEptRepHDvt+hZ3UzJeUiUN0C1hc49SiHFoGj18pdyy4pR9NNA==" crossorigin="anonymous"></script>
+
+
+
+    
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-jquery.618538b4ab9639d444e962729a927f15.js"></script>
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-cms-common.68a837164e0eb431209ced45efb1615e.js"></script>
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all.8227f364d7c883652f21f593dbc437a3.js"></script>
+
+
+
+
+
+    
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content.698e752d4084220b3a6facc1645490f8.js"></script>
+
+
+
+
+
+ 
+<script>
+    window.utag_cfg_ovrd = window.utag_cfg_ovrd || {};
+    window.utag_cfg_ovrd.noview = true;
+    window.utag_data = window.utag_data || {};
+    window.utag_data.evidon_enabled = true;
+    if(window.utag_data.consent_categories == undefined){
+        window.utag_data.consent_categories = "";
+    }
+</script>
+<script src="https://www.dropbox.com/pithos/privacy_consent,top_frame_marketing_tracker,ux_analytics" async="true"></script>
+<script src="https://www.dropbox.com/pithos/zoom_chat_client" async=""></script>
+
+
+
+        
+        <script type="application/javascript">document.body.classList.remove('stormcrow-animate');</script>
+        <noscript><style>body.stormcrow-animate{opacity:1;}</style></noscript>
+
+          <!--/* CMS-3302 Automated Schema Markup for Components, Structure data changes-->
+       
+
+                 
+       
+    </body>
+    </html>

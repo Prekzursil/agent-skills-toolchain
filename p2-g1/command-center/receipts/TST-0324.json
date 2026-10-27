@@ -1,0 +1,176 @@
+{
+  "artifacts": [
+    {
+      "bytes": 19373,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/bench/condition8.py",
+      "role": "primary-implementation",
+      "sha256": "e25e3a7fce81e2afa88248876dfaad3705e331490dc269148928d33b38dfbe9a"
+    },
+    {
+      "bytes": 684,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/bench/__init__.py",
+      "role": "supporting",
+      "sha256": "c9e9111f92d71d0fe128c0f5d0276813a699bfdad8657b3f84b1219c9a1bb2e0"
+    },
+    {
+      "bytes": 8497,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/bench/tests/test_condition8.py",
+      "role": "supporting",
+      "sha256": "24b0363a19f5bbf1e2c389b99fb405764fb50ad63770d23d158d07e44fe4e603"
+    },
+    {
+      "bytes": 2029,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0324/probe1_missing_and_regression.py",
+      "role": "supporting",
+      "sha256": "a5ea47c50485c0b6eff23e20b1518c651bcf6034c92c8458466aee2df387f33b"
+    },
+    {
+      "bytes": 1921,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0324/probe2_true_and_determinism.py",
+      "role": "supporting",
+      "sha256": "1dc64f2dfba7a1613cd46afb1c6fa0bc91fb57f2c0dc4e56b535ca61d4ae9c4f"
+    },
+    {
+      "bytes": 13470,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0324/emit_receipt.py",
+      "role": "supporting",
+      "sha256": "b882465a6d9111ba9cebb0027a2348154e2a17d0a62c1dfea1ad5d01328280b0"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0324",
+  "evidence": [
+    {
+      "claim": "Removing any required input (ledger, B07 margins, B04 intervals) yields NOT-CHECKED, never TRUE. Live tree verdict=NOT-CHECKED because those files are absent.",
+      "detail": "live_reason=missing-required-input; source_paths={\"b04_intervals\": null, \"b07_margin_table\": null, \"ledger\": null}",
+      "kind": "control"
+    },
+    {
+      "claim": "A planted primary win with p95_latency_ms worse-bound 80ms against a 25ms B07 margin returns FALSE and still carries the consumed run ids. A mutant that ignores secondaries returns TRUE and is caught.",
+      "detail": "regression fixture: accuracy lo=0.04 (clears min_effect 0.02) and latency hi=80 > margin 25 -> FALSE with run ids b04-baseline-001, b04-candidate-001",
+      "kind": "control"
+    },
+    {
+      "claim": "Genuine improvement within margins returns TRUE with the consumed run ids. Two evaluations of the same ledger state are byte-identical. TRUE with no run ids is refused.",
+      "detail": "genuine fixture: accuracy [0.03, 0.08], latency [4, 12] within 25ms, error_rate within 0.01; run ids attached; repeat digest matches",
+      "kind": "control"
+    }
+  ],
+  "id": "TST-0324",
+  "implementation": {
+    "api": "bench.condition8.evaluate_condition_8",
+    "condition8_bytes": 19373,
+    "condition8_sha256": "e25e3a7fce81e2afa88248876dfaad3705e331490dc269148928d33b38dfbe9a",
+    "live_api": "bench.condition8.evaluate_tree",
+    "module": "tools/bench/condition8.py",
+    "rules": [
+      "missing required input -> NOT-CHECKED, never TRUE",
+      "TRUE with empty run_ids is refused",
+      "bare point estimate (no lo/hi) -> NOT-CHECKED",
+      "n below pre-registered min_n -> NOT-CHECKED",
+      "empty B07 secondary margins -> NOT-CHECKED",
+      "primary interval clears min_effect and secondaries within margins -> TRUE with run ids",
+      "primary improved but a secondary worse-bound exceeds its margin -> FALSE"
+    ]
+  },
+  "live_condition_8": {
+    "missing": [
+      "ledger",
+      "b07_margin_table",
+      "b04_intervals"
+    ],
+    "reason": "missing-required-input",
+    "run_ids": [],
+    "source_paths": {
+      "b04_intervals": null,
+      "b07_margin_table": null,
+      "ledger": null
+    },
+    "verdict": "NOT-CHECKED"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0324/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "notes": "G-1 TST-0324: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Live condition 8 on this worktree is NOT-CHECKED (ledger/margins/intervals absent), which is the catalog default, not a program TRUE. SUCCESS:TST-0324",
+  "output_path": "command-center/receipts/TST-0324.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "premise": {
+    "action": "Created tools/bench/condition8.py and probes/TST-0324 on this sparse worktree. Live ledger, B07 margin table, B04 intervals, CC-0015 encoding, and COMPLETION-GATES.json are absent, so the live program-level readout is NOT-CHECKED. Fixture controls prove missing->NOT-CHECKED, regression-beyond-margin->FALSE, genuine-improvement->TRUE with run ids, and determinism.",
+    "catalog_inputs": [
+      "_USER-PROMPTS.md:11385 (stopping condition 8)",
+      "command-center/COMPLETION-GATES.json",
+      "command-center/bench/results/",
+      "the B07 margin table"
+    ],
+    "inputs_were_absent": true
+  },
+  "probe1_output": "{\n  \"margin_ignoring_mutant\": {\n    \"empty_margins_not_true\": true,\n    \"honest_verdict\": \"FALSE\",\n    \"id\": \"margin-ignoring-mutant-caught\",\n    \"mutant_verdict\": \"TRUE\",\n    \"pass\": true\n  },\n  \"missing_data\": {\n    \"empty_verdict\": \"NOT-CHECKED\",\n    \"id\": \"missing-data-not-checked\",\n    \"live_missing\": [\n      \"ledger\",\n      \"b07_margin_table\",\n      \"b04_intervals\"\n    ],\n    \"live_paths\": {\n      \"b04_intervals\": null,\n      \"b07_margin_table\": null,\n      \"ledger\": null\n    },\n    \"live_verdict\": \"NOT-CHECKED\",\n    \"pass\": true,\n    \"rows\": [\n      {\n        \"dropped\": \"ledger\",\n        \"reason\": \"missing-required-input\",\n        \"run_ids\": [],\n        \"verdict\": \"NOT-CHECKED\"\n      },\n      {\n        \"dropped\": \"margin_table\",\n        \"reason\": \"missing-required-input\",\n        \"run_ids\": [],\n        \"verdict\": \"NOT-CHECKED\"\n      },\n      {\n        \"dropped\": \"intervals\",\n        \"reason\": \"missing-required-input\",\n        \"run_ids\": [],\n        \"verdict\": \"NOT-CHECKED\"\n      }\n    ]\n  },\n  \"pass\": true,\n  \"probe\": \"probe1-missing-and-regression\",\n  \"regression_beyond_margin\": {\n    \"id\": \"regression-beyond-margin\",\n    \"pass\": true,\n    \"primary_interval\": {\n      \"hi\": 0.09,\n      \"lo\": 0.04,\n      \"n\": 40\n    },\n    \"reason\": \"secondary-regression-beyond-margin\",\n    \"run_ids\": [\n      \"b04-baseline-001\",\n      \"b04-candidate-001\"\n    ],\n    \"secondary_regressions\": [\n      {\n        \"hi\": 80.0,\n        \"higher_is_better\": false,\n        \"lo\": 40.0,\n        \"margin\": 25.0,\n        \"metric\": \"p95_latency_ms\",\n        \"signed_worsening\": 80.0,\n        \"worse_bound\": 80.0\n      }\n    ],\n    \"verdict\": \"FALSE\"\n  },\n  \"unit_id\": \"TST-0324\"\n}\nSUCCESS:TST-0324-probe1 missing->NOT-CHECKED; primary-up-secondary-beyond-margin->FALSE; margin-ignoring mutant caught",
+  "probe2_output": "{\n  \"determinism\": {\n    \"bare_point\": \"NOT-CHECKED\",\n    \"genuine_digest\": \"cd9adb976dd32622d54e88eb130346e879a38bd623c772344ac49ef366bec812\",\n    \"id\": \"determinism-two-evaluations-agree\",\n    \"identical_repeats\": true,\n    \"pass\": true,\n    \"regression_digest\": \"19e5fcdeadeb140f664bb33b668bcdf44b5267462532e8f6cb30b2e1b06cd3f1\",\n    \"underpowered\": \"NOT-CHECKED\"\n  },\n  \"genuine_improvement\": {\n    \"at_margin_verdict\": \"TRUE\",\n    \"id\": \"genuine-improvement-true-with-run-ids\",\n    \"pass\": true,\n    \"reason\": \"primary-improved-within-secondary-margins\",\n    \"run_ids\": [\n      \"b04-baseline-001\",\n      \"b04-candidate-001\"\n    ],\n    \"true_without_run_ids_refused\": true,\n    \"verdict\": \"TRUE\"\n  },\n  \"pass\": true,\n  \"probe\": \"probe2-true-and-determinism\",\n  \"unit_id\": \"TST-0324\"\n}\nSUCCESS:TST-0324-probe2 genuine->TRUE with run ids; two evaluations of the same ledger agree",
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "benchmark-engineer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question": "Implementation target: condition 8 at :11385 must be a function over the results ledger, the B07 margin table and the B04 intervals, returning TRUE, FALSE or NOT-CHECKED with the supporting run ids attached. The default when data is missing must be NOT-CHECKED, never TRUE.",
+  "question_or_target": "Implementation target: condition 8 at :11385 must be a function over the results ledger, the B07 margin table and the B04 intervals, returning TRUE, FALSE or NOT-CHECKED with the supporting run ids attached. The default when data is missing must be NOT-CHECKED, never TRUE.",
+  "report_kind": "test-receipt",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial controls are the missing-input default, the primary-win-plus-secondary-regression fixture, the margin-ignoring mutant, and the no-run-id TRUE refusal. Probe 2 independently re-evaluates the genuine and regression fixtures and checks digest equality.",
+    "reviewer_id": "TST-0324-probe2-true-and-determinism",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0324",
+  "spec_anchor": "WORK-UNIT-CATALOG.json TST-0324; _USER-PROMPTS.md:11385 (benchmark improvement without material regression); CC-0015 encodes the 21 conditions; this unit supplies the evaluator",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0324/probe1_missing_and_regression.py",
+      "exit_code": 0,
+      "id": "TST-0324-missing-data-not-checked",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0324/probe1_missing_and_regression.py",
+      "exit_code": 0,
+      "id": "TST-0324-regression-beyond-margin-false",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0324/probe2_true_and_determinism.py",
+      "exit_code": 0,
+      "id": "TST-0324-genuine-true-with-run-ids",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0324/probe2_true_and_determinism.py",
+      "exit_code": 0,
+      "id": "TST-0324-determinism",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:34:23Z",
+    "started_at": "2026-08-25T01:34:23Z"
+  },
+  "title": "Compute stopping condition 8 from the ledger instead of asserting it in prose",
+  "unit_id": "TST-0324"
+}

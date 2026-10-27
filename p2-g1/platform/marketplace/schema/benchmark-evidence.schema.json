@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/benchmark-evidence.schema.json",
+  "title": "Benchmark evidence",
+  "description": "Benchmark evidence (spec 10856). A benchmark claim is only admissible with the machinery that makes it falsifiable: the exact command, the environment, the sample count, and -- mandatory -- a BOTH-STATES control (`control_known_good` and `control_known_broken`). A measurement whose instrument was never shown to fire on a known-broken input measures nothing, so the schema refuses to express a benchmark without one.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "name", "version", "measurements", "environment", "controls"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "name": { "$ref": "common.schema.json#/$defs/package_name" },
+    "version": { "$ref": "common.schema.json#/$defs/semver" },
+    "measurements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["metric", "unit", "value_milli", "samples", "command"],
+        "properties": {
+          "metric": { "type": "string", "minLength": 2, "maxLength": 80 },
+          "unit": { "enum": ["ms", "bytes", "count", "ratio_milli"] },
+          "value_milli": {
+            "type": "integer",
+            "description": "The value in THOUSANDTHS of the unit. Integer-only: floats are unrepresentable in the canonical signed form, and a benchmark that cannot be signed cannot be trusted. `ratio_milli: 950` reads as 0.950."
+          },
+          "samples": { "type": "integer", "minimum": 1 },
+          "command": { "type": "string", "minLength": 3, "maxLength": 500 }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "python", "captured_at"],
+      "properties": {
+        "os": { "type": "string", "minLength": 3, "maxLength": 100 },
+        "python": { "type": "string", "minLength": 3, "maxLength": 40 },
+        "cpu": { "type": "string", "maxLength": 120 },
+        "captured_at": { "$ref": "common.schema.json#/$defs/iso8601" }
+      }
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control_known_good", "control_known_broken"],
+      "properties": {
+        "control_known_good": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "passed"],
+          "properties": {
+            "description": { "type": "string", "minLength": 8, "maxLength": 400 },
+            "passed": { "const": true }
+          }
+        },
+        "control_known_broken": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["description", "fired"],
+          "properties": {
+            "description": { "type": "string", "minLength": 8, "maxLength": 400 },
+            "fired": {
+              "const": true,
+              "description": "`const: true` on purpose. A benchmark whose instrument did NOT fire on the known-broken input is not evidence, so the schema will not let a publisher record that state and still call the document benchmark evidence."
+            }
+          }
+        }
+      }
+    }
+  }
+}

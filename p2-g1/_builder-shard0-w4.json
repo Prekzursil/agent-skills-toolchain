@@ -1,0 +1,613 @@
+{
+ "ADV-0005": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "co_assignments": [
+    {
+     "model": "gpt-5-codex",
+     "vendor": "openai"
+    }
+   ],
+   "model": "opus",
+   "multi_vendor_policy": "independent-compared-not-merged",
+   "rationale": "normalised from the single-string form 'opus + gpt-5-codex (>=2 vendors, run independently, results compared not merged)'",
+   "role": "paired-independent-refuter",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0005 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0005 <reason>.",
+  "dependencies": [
+   "B01",
+   "B09"
+  ],
+  "evidence_requirement": "Probe 1: blind re-derivation - the refuter receives the source and the question but not the answer, and writes its verdict before the registry entry is revealed. Probe 2 (mechanically different): after unblinding, diff the two verdicts and, for every disagreement, run the claim's own named settling experiment as the tiebreak. Vote counting is banned; the specific probe wins.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "overclaim",
+   "single-signal",
+   "stale-premise"
+  ],
+  "id": "ADV-0005",
+  "inputs": [
+   "CLAIM-REGISTRY.json filtered to severity P0 and P1",
+   "the raw sources each claim cites, supplied WITHOUT the claim sentence attached",
+   "AGENTS.md 4b fresh-context re-derivation rule"
+  ],
+  "mechanism": "blinded re-derivation with planted-false-claim calibration, tie-broken by the claim's own settling experiment",
+  "not_a_duplicate_because": "B09 reproduces the implementer's PROCEDURE; this deliberately withholds the conclusion so the refuter cannot anchor on it. The blinding is the mechanism.",
+  "output_path": "command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json",
+  "output_schema": "command-center/schema/refutation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "For each P0/P1 claim, does a refuter that is given ONLY the raw source and the settling probe - never the claim text or the implementer's conclusion - arrive at the same verdict?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11028-11041, 11043-11047",
+  "tests_required": [
+   "plant 3 known-false claims into the blinded input set and require the refuter to REFUTE all 3; a refuter that confirms a planted false claim invalidates that whole batch"
+  ],
+  "timeout_seconds": 7200,
+  "title": "Fresh-context re-derivation of every P0 and P1 claim in CLAIM-REGISTRY.json",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0010": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0010 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0010 <reason>.",
+  "dependencies": [
+   "B08"
+  ],
+  "evidence_requirement": "Probe 1: apply a mutation catalogue to gate code (invert a comparison, drop a required field from the required-set, flip a default from True to False, replace a raise with a log) and record which mutations leave the suite green. Probe 2 (mechanically different): for each survivor, demonstrate the real-world consequence by running the mutated gate against a genuinely bad input and showing it exits 0.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "ADV-0010",
+  "inputs": [
+   "the source of every gate that can block a merge or a release",
+   "the gates' own tests",
+   "_USER-PROMPTS.md:11325 (mutation survives the test suite)"
+  ],
+  "mechanism": "mutation testing inverted onto the enforcement layer, where a survivor means the gate has an unasserted behaviour",
+  "not_a_duplicate_because": "B08 mutation units target product code. The measured hole on this estate (a default-False require_complete making a whole-block deletion pass) lives in the GATE, which no product-code mutation run can reach.",
+  "output_path": "command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json",
+  "output_schema": "command-center/schema/refutation-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Which mutations of the GATE code (validators, CI workflow steps, manifest checks, permission checks) survive the gates' own test suite - i.e. which gate behaviours are asserted by nothing?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11325, 11382",
+  "tests_required": [
+   "the mutation harness must produce at least one KILLED mutation to prove the suite runs at all; an all-survived result usually means the tests were never executed"
+  ],
+  "timeout_seconds": 7200,
+  "title": "Mutation-survivor hunt aimed at the quality gates themselves, not at product code",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ },
+ "ADV-0014": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0014 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0014 <reason>.",
+  "dependencies": [
+   "B02"
+  ],
+  "evidence_requirement": "Probe 1: extract the invoked surface from source (argv arrays, MCP tool identifiers) and execute each binary's --help today, diffing flag-by-flag. Probe 2 (mechanically different): resolve each MCP tool name against the live tool schema rather than against the docs - the hyphenated vs underscored codex-reply case proves a doc-derived name can be wrong while looking right.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "ADV-0014",
+  "inputs": [
+   "every external command string and MCP tool name issued by program code, extracted from source rather than from docs",
+   "today's --help / --version output for each binary and today's tool schema for each MCP",
+   "the documented invocation in the program's own docs"
+  ],
+  "mechanism": "source-extracted invocation surface diffed against live --help and live tool schemas, not against documentation",
+  "not_a_duplicate_because": "ADV-0019 finds references to tools that no longer EXIST; this finds tools that exist with CHANGED semantics, which no presence check can see.",
+  "output_path": "command-center/adversarial/ADV-0014-vendor-cli-surface-drift.json",
+  "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "For every vendor command, flag and endpoint the program depends on (claude, codex, gh, git, uv, node, docker, wsl and each mounted MCP), does the invocation the code actually issues still exist and still mean the same thing today?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11048, 10685-10686",
+  "tests_required": [
+   "detector control: include one flag known to be valid and one known-invalid flag and require the checker to classify both correctly before any real result is accepted"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Vendor CLI and API surface drift check against today's --help and today's schema",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0015": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "stale-premise-refuter",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0015 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0015 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: fetch the current vendor surface and diff every id, window and price against the table. Probe 2 (mechanically different): runtime behaviour test - call the router with a deliberately retired id and record whether it fails loudly, silently substitutes, or estimates a cost from a stale price.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "stale-premise",
+   "overclaim"
+  ],
+  "id": "ADV-0015",
+  "inputs": [
+   "every model routing table, cost estimator and capability matrix in the program",
+   "current vendor model listings and pricing pages, fetched today",
+   "the program's fallback behaviour for an unknown model id"
+  ],
+  "mechanism": "published-surface diff plus a retired-id runtime behaviour probe",
+  "not_a_duplicate_because": "ADV-0014 covers CLI/MCP invocation surfaces; this covers the semantic routing metadata (window, price, capability) that no --help exposes.",
+  "output_path": "command-center/adversarial/ADV-0015-model-routing-table-staleness.json",
+  "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does every model id, context window, price and capability flag in the router, cost estimator and cross-vendor adapter still match the vendor's current published surface - and what does the estimator do with an id that no longer resolves?",
+  "retry_policy": "up to 3 attempts with staggered arrival (60s / 300s / 900s) because this unit depends on external endpoints; a 429/529 is provider-side and is NOT a unit failure and must NOT reduce concurrency",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10894, 11048",
+  "tests_required": [
+   "a silent substitution must be classified as a defect even when the substituted model works; degrade-loudly is the contract"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Model, pricing and capability staleness audit of every routing table",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "WebFetch",
+   "WebSearch",
+   "mcp__search-hub__tavily_search",
+   "mcp__search-hub__web_search_exa"
+  ]
+ },
+ "ADV-0018": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "stale-premise-refuter",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0018 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0018 <reason>.",
+  "dependencies": [
+   "B01",
+   "ADV-0012"
+  ],
+  "evidence_requirement": "Probe 1: retrieve notes by topic and diff each load-bearing assertion against the corresponding current measurement. Probe 2 (mechanically different): frontmatter audit for superseded_by/valid_as_of on every contradicted note, computed from the file rather than from the search snippet, because a search result can surface a superseded body without its frontmatter.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-premise",
+   "single-signal"
+  ],
+  "id": "ADV-0018",
+  "inputs": [
+   "the basic-memory vault notes touching this program's subject matter",
+   "the current measured facts from the ground lanes and the command center",
+   "the estate's temporal-validity convention (superseded_by on the old note, valid_as_of on the new)"
+  ],
+  "mechanism": "assertion-level diff against current measurement joined to a frontmatter supersession check",
+  "not_a_duplicate_because": "ADV-0012 re-probes the command-center LEDGER; this targets the semantic vault, whose failure mode is different - a contradicted note stays recallable and re-injects the dead end.",
+  "output_path": "command-center/adversarial/ADV-0018-memory-vault-contradiction-sweep.json",
+  "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+  "owner_approval_required": false,
+  "phase": "1",
+  "question_or_target": "Which basic-memory notes assert something that current measurement contradicts, and of those, which carry no superseded_by pointer and are therefore still recallable as truth?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10662-10679, 11048",
+  "tests_required": [
+   "recall control: query for a fact known to be present and require it to be found, proving the retrieval path works before any absence is reported"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Contradiction sweep of the semantic memory vault against current measured truth",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "mcp__basic-memory__search_notes",
+   "mcp__basic-memory__read_note",
+   "mcp__basic-memory__recent_activity"
+  ]
+ },
+ "ADV-0019": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "adversarial-refuter",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0019 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0019 <reason>.",
+  "dependencies": [
+   "B02"
+  ],
+  "evidence_requirement": "Probe 1: extract every tool/command token from instruction artifacts and set-difference it against the live inventory. Probe 2 (mechanically different): resolve each name through a second inventory source - Get-Command in PowerShell for binaries (which sees .cmd shims that a Git-Bash which misses) and the live MCP tool schema for MCP names.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "ADV-0019",
+  "inputs": [
+   "every instruction-bearing artifact (skills, rules, agent definitions, workflow prompts, command definitions)",
+   "the live inventory: installed plugins with enabled/disabled state, mounted MCP servers and their actual tool lists, commands on PATH",
+   "the known retired set (AgentBridge get_budget/check_budget) as a calibration case"
+  ],
+  "mechanism": "instruction-token to live-inventory set difference with a second, shell-independent resolver",
+  "not_a_duplicate_because": "ADV-0014 finds tools that changed SEMANTICS; this finds tools that are GONE and are still being instructed - a different query with a different fix (edit the instruction, not the call site).",
+  "output_path": "command-center/adversarial/ADV-0019-retired-capability-dead-references.json",
+  "output_schema": "command-center/schema/stale-premise-reprobe.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Which prompts, skills, rules, agents and workflow definitions still instruct an agent to call a tool, plugin or command that no longer exists in the live inventory?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11330, 11048",
+  "tests_required": [
+   "known-present control: a currently-available tool must NOT be flagged",
+   "known-absent control: the retired budget tools MUST be flagged, otherwise the detector is not reaching the instruction corpus"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Dead-reference sweep for retired tools, disabled plugins and removed capabilities",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0022": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "security-exploit-engineer",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0022 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0022 <reason>.",
+  "dependencies": [
+   "B07",
+   "B06"
+  ],
+  "evidence_requirement": "Probe 1: author a component declaring read-only permissions that attempts, in order, a subprocess spawn, a network call, a file write outside its root, and an invocation of a wider-permission sibling; record which succeed. Probe 2 (mechanically different): audit the enforcement point statically to determine whether the permission set is enforced at call time or merely recorded in metadata - a metadata-only permission is escaped by construction.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "sandbox-escape",
+   "supply-chain",
+   "overclaim"
+  ],
+  "id": "ADV-0022",
+  "inputs": [
+   "every component manifest with a declared permission set",
+   "the enforcement point that is supposed to constrain execution",
+   "_USER-PROMPTS.md:11346 (marketplace package has malicious or excessive permissions)"
+  ],
+  "mechanism": "capability-escape probe from inside a narrowly-declared component, paired with a static check of whether enforcement exists at all",
+  "not_a_duplicate_because": "ADV-0036 audits permissions that are DECLARED TOO WIDE (least privilege); this proves whether a NARROW declaration is even enforceable. Opposite direction.",
+  "output_path": "command-center/adversarial/ADV-0022-declared-permission-escape.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Can a component whose manifest declares a narrow tool_permissions set reach capability outside that set - by shelling out, by importing a library that performs I/O, or by invoking another component with wider permissions?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10804",
+  "tests_required": [
+   "control: a component that declares the wide permissions it uses must run unimpeded, proving the enforcement is not blocking everything",
+   "all attempts run inside a disposable sandbox; no attempt targets a live credential or a third-party system"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Declared-versus-actual tool permission escape for skills, hooks and workflow steps",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0023": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-threat-modeler",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0023 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0023 <reason>.",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: run gitleaks plus a high-entropy scan across the corpus and record every hit as (path, line, prefix-only, entropy) - never the value. Probe 2 (mechanically different): confirm the planted canaries were all found; a sweep that misses a planted canary has an unknown false-negative rate and its clean result is void.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "secret-exposure",
+   "detector-failure",
+   "privacy-leak"
+  ],
+  "id": "ADV-0023",
+  "inputs": [
+   "the full command-center corpus plus rollback backups and event logs",
+   "a set of planted canary tokens with realistic prefixes placed in known locations before the scan",
+   "AGENTS.md 9 (never print a value; a zero-entropy prefix is acceptable)"
+  ],
+  "mechanism": "recall-calibrated secret scanning: the planted canary set converts an unmeasurable absence into a measured false-negative rate",
+  "not_a_duplicate_because": "ADV-0024 tests whether the PACKAGER refuses a secret-bearing bundle at build time; this measures whether secrets are already sitting in the corpus.",
+  "output_path": "command-center/adversarial/ADV-0023-corpus-secret-canary-sweep.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Does any secret-shaped value appear in the program corpus - artifacts, event logs, transcripts, caches, test fixtures, rollback backups - and can the scanner prove it would find one if it were there?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10659, 11345",
+  "tests_required": [
+   "every planted canary must be REMOVED and its removal verified before the unit reports, and the canary set must never be committed",
+   "a clean result is only reportable together with the canary recall rate; a bare zero-findings result is NOT-CHECKED"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Planted-canary secret sweep across the entire program corpus",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "ADV-0024": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "security-exploit-engineer",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0024 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0024 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run the packager against each fixture and record exit code plus the emitted diagnostic. Probe 2 (mechanically different): if the packager exits 0, extract the produced bundle and enumerate its members - silent exclusion and silent inclusion are both defects, and only member enumeration distinguishes them from a genuine refusal.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "secret-exposure",
+   "supply-chain",
+   "uncontrolled-silence"
+  ],
+  "id": "ADV-0024",
+  "inputs": [
+   "the packaging/publish pipeline",
+   "a fixture tree containing, separately: a token-shaped file, a git-crypt-decrypted file, a .git directory, and a 2 GB unrelated blob",
+   "_USER-PROMPTS.md:10842, 11307, 11345"
+  ],
+  "mechanism": "fixture-driven packager refusal test with bundle-member enumeration as the independent oracle",
+  "not_a_duplicate_because": "ADV-0023 scans what already exists; this tests the gate that is supposed to prevent it, and the two fail independently.",
+  "output_path": "command-center/adversarial/ADV-0024-packager-secret-and-bloat-refusal.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does the artifact packager refuse to produce a bundle that contains a credential file, a decrypted secret, a .git directory or an unrelated multi-gigabyte tree - and does it refuse LOUDLY rather than silently excluding?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10842, 11345",
+  "tests_required": [
+   "control: a clean fixture must package successfully",
+   "the token fixture uses a synthetic non-authenticating value; no live credential is used at any point"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Packager refusal test for bundles containing credentials or decrypted secrets",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ },
+ "ADV-0028": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "security-exploit-engineer",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0028 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0028 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: attempt install of each variant and record accept/reject plus the exact failure mode. Probe 2 (mechanically different): disable network or corrupt the trust store and re-attempt - a verifier that silently skips verification when it cannot reach the key source is failing open, which no positive-path test reveals.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain",
+   "detector-failure"
+  ],
+  "id": "ADV-0028",
+  "inputs": [
+   "the signing and verification implementation and the trusted-key store",
+   "package variants: unsigned, truncated signature, signature over an older version of the content, signature by a key not in the trust store",
+   "_USER-PROMPTS.md:10855-10857 (provenance, signatures)"
+  ],
+  "mechanism": "variant matrix plus a deliberately degraded trust-store environment to expose fail-open behaviour",
+  "not_a_duplicate_because": "ADV-0062 verifies that a rebuild reproduces the SAME bytes; this verifies that the CHECK on those bytes cannot be skipped. Independent failures.",
+  "output_path": "command-center/adversarial/ADV-0028-signature-verification-bypass.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Can a package be installed when its signature is absent, malformed, valid-but-for-different-content, or signed by an untrusted key - and does the verifier fail closed?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10856-10857, 11108",
+  "tests_required": [
+   "control: a correctly signed package by a trusted key must install",
+   "all keys used are synthetic test keys generated for this unit; no existing signing key is read, created, modified or revoked"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Signature and provenance verification bypass on install",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0029": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "supply-chain-auditor",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0029 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0029 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: resolve a private package name with a shadow public entry present at a higher version and record which artifact is fetched, by hash. Probe 2 (mechanically different): tamper one field of the index (a download URL, a hash) and re-resolve - if the resolver accepts the tampered entry the index has no integrity control, independent of the name-shadowing result.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "supply-chain"
+  ],
+  "id": "ADV-0029",
+  "inputs": [
+   "the resolver and its source precedence rules",
+   "a local fixture registry plus a shadow entry with a higher version",
+   "the canonical index and whatever integrity control it has"
+  ],
+  "mechanism": "name-shadowing plus index-field tampering against the real resolver, decided by artifact hash rather than by log text",
+  "not_a_duplicate_because": "ADV-0064 detects typosquat NAMES in the registry (a listing problem); this attacks RESOLUTION precedence and index integrity (a client problem).",
+  "output_path": "command-center/adversarial/ADV-0029-dependency-confusion-index-poisoning.json",
+  "output_schema": "command-center/schema/supply-chain-attestation.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "If a public registry offers a package with the same name (or a higher version) as a private/internal one, which does the resolver choose - and can an index entry be added or altered without detection?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:10848-10853, 11052",
+  "tests_required": [
+   "control: with no shadow entry present, resolution must select the private package, proving the harness is exercising the real resolver"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Dependency confusion and registry index poisoning against the resolver",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ADV-0037": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-threat-modeler",
+   "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0037 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0037 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run every credential path with the planted synthetic value present and grep all outputs - stdout, stderr, log files, event ledger, cache, crash dump - for the distinctive body. Probe 2 (mechanically different): force each path's ERROR branch (unset, malformed, expired-shaped) and repeat the sweep, because the leak usually lives in the exception formatter rather than the happy path.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "secret-exposure",
+   "detector-failure",
+   "privacy-leak"
+  ],
+  "id": "ADV-0037",
+  "inputs": [
+   "every code path that reads an environment variable, credential file or keychain entry",
+   "a planted synthetic credential with a distinctive non-authenticating body",
+   "AGENTS.md 9 (read-only diagnosis; never print the value; never modify any credential)"
+  ],
+  "mechanism": "planted-synthetic-value tracing through happy and error branches, with a deliberate-leak calibration run",
+  "not_a_duplicate_because": "ADV-0023 sweeps the corpus for secrets at rest; this traces the code paths that could put one there, especially the exception formatter.",
+  "output_path": "command-center/adversarial/ADV-0037-credential-diagnosis-path-leak.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does every credential-touching code path (presence checks, auth probes, error messages, logs, ledger entries, crash dumps) emit at most a zero-entropy prefix - and does any path print, persist or transmit the value?",
+  "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+  "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11345, 11049",
+  "tests_required": [
+   "detector control: deliberately print the planted value once in a scratch run and confirm the sweep finds it, proving the sweep can detect a leak before its silence is trusted",
+   "HARD CONSTRAINT: no real credential is read, printed, rotated, revoked, unset or modified; the planted value is synthetic and is removed afterwards"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Adversarial review of the credential-diagnosis code path with a planted secret",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ }
+}

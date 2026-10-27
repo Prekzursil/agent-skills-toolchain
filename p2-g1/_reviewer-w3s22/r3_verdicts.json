@@ -1,0 +1,56 @@
+{
+  "reviewer": "w3-shard22-independent-reviewer-20261026-r3",
+  "wave": 3,
+  "shard": 22,
+  "round": 3,
+  "date": "2026-10-26",
+  "instrument": "_reviewer-w3s22/r3_verify.py (written fresh this round; imports only the program gates receipt_schema_gate + _p2lib/schema_resolver; never imports builder or prior reviewer code)",
+  "units_of_record": ["TST-0174", "TST-0175", "TST-0176", "TST-0178", "TST-0179", "TST-0180", "TST-0181", "TST-0185", "TST-0188", "TST-0190", "TST-0193", "TST-0194"],
+  "verdicts": {
+    "TST-0175": {"verdict": "PASS", "disposition": "existing valid PASS closure re-verified live in fresh context: admission ACCEPT rc0, 12-condition gate COMPLETE, catalog output_schema 0 errors, all manifest rows re-hashed match, probes re-run 2 rounds each rc0+sentinel; stays SUCCESS"},
+    "TST-0176": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0178": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0179": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0180": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0181": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0185": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0188": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0190": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0193": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0194": {"verdict": "PASS", "disposition": "same battery, all checks TRUE; stays SUCCESS"},
+    "TST-0174": {
+      "verdict": "FAIL",
+      "receipt_unchanged": true,
+      "receipt_state": "command-center/receipts/TST-0174.json (state=BLOCKED, classification=[reviewer-absent], reviewer=null; manifest receipt-row sha still matches live bytes — verified post-battery)",
+      "failing_check": "live probes do not re-run exit 0: probe1_interleavings.py PermissionError [WinError 32] at the parent DONE/<n>.A|n.B unlink racing atomic_cache.py writer_loop .touch() open handle; round-3 reviewer tally 5 crashes / 12 rounds (42%). Three independent review sessions now measured this instability: r1 5/11 (45%), r2 2/20 (10%), r3 5/12 (42%). probe2_mutation_temps 3/3 rc0 (not the blocker).",
+      "measured_layer_note": "The cache-atomicity property itself holds in every completed run (partial_reads=0 across 1000 interleavings; mutation control fires); the defect is the probe harness teardown IPC race, not the measured layer. The contract gate is on probe exit-0 stability, so the unit cannot close.",
+      "not_fixed_by_reviewer_and_why": "The catalog reviewer_requirement for this unit is 'one independent adversarial reviewer in a fresh context who did not author the harness under test'. Repairing probe1 would make the reviewer the author of the unit's measurement instrument, so a subsequent reviewer PASS over it would be self-certification. The repair belongs to the builder lane; r2_verdicts.json repair_hint stands (retry unlink on PermissionError / per-trial signal dirs / close-handle-then-rename), then rebuild the receipt in receipt-core shape and resubmit for a fresh reviewer closure.",
+      "other_checks": "manifest_ok=true (all rows sha match live bytes); builder admission REJECT rc1 (builder BLOCKED receipt is schema-invalid — expected pre-closure shape, curable by the same reviewer receipt-core rewrite the 11 sibling units went through, moot while the probe is unstable)"
+    }
+  },
+  "summary": {"pass": 11, "fail": 1, "total": 12},
+  "census_20261026": {
+    "basis": "receipt-state census over all 2007 catalog units (green = receipt state=SUCCESS with reviewer.verdict=PASS + independent=true; full DELIVERED re-verification is what the per-shard reviewer waves do, this is the program-level counter)",
+    "green": 1103,
+    "overclaimed_success_without_valid_closure": 15,
+    "open_receipt": 33,
+    "no_receipt_yet": 856,
+    "unparseable": 0,
+    "terminal_disposition": 0,
+    "honest_green_fraction": "1103/2007 = 54.96%",
+    "distance_to_full_green": 904,
+    "overclaimed_ids": ["ADV-0006", "ADV-0007", "ADV-0008", "ADV-0009", "ADV-0021", "ADV-0027", "ADV-0030", "ADV-0031", "ADV-0036", "ADV-0039", "ADV-0042", "AUD-0020", "IMP-0285", "IMP-0298", "TST-0050"],
+    "worst_overclaim": "IMP-0285: reviewer.verdict=PASS with independent=false — an explicit self-certified PASS, receipt_core-forbidden",
+    "open_tst_ids": ["TST-0129", "TST-0130", "TST-0158", "TST-0174", "TST-0334"]
+  },
+  "honesty_notes": [
+    "No receipt or manifest bytes were modified this round for any of the 12 units: the 11 PASS units were CONFIRMED (re-verified live), and the FAIL unit's receipt is untouched (manifest receipt-row sha re-verified matching after the battery).",
+    "The TST-0174 crash reproduced on this session's FIRST probe run, so the instability is not a stale prior-round artifact; it is live as of 2026-10-26 ~18:4xZ.",
+    "Instrument race, caught and fixed: closed-batch 2 and 3 were launched concurrently and both wrote r3_closed.json, clobbering 7 units' detailed results (printed verdicts were all SUCCESS, but the file held only 4). The 7 units were re-run sequentially in one invocation, all PASS, and the file re-merged to the full 11-unit record; pre-clobber batch-3 rows preserved in r3_closed_batch3.json.",
+    "Partial green is reported as partial: 11/12 closed-and-confirmed, 1/12 honestly red with the precise failing check and the builder-side repair path; program-wide the same honesty rule is applied (15 overclaimed greens are counted as NOT green)."
+  ],
+  "artifacts": {
+    "instrument": "_reviewer-w3s22/r3_verify.py",
+    "results": ["_reviewer-w3s22/r3_closed.json", "_reviewer-w3s22/r3_s174.json", "_reviewer-w3s22/r3_census.json"]
+  }
+}

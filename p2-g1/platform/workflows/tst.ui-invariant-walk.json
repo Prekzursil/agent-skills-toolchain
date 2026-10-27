@@ -1,0 +1,767 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.ui-invariant-walk",
+  "name": "Property-based UI invariant walk with shrinking",
+  "description": "Randomly drive a RUNNING app under a declared command model and assert UI invariants after every command - no enabled, visible control is a dead click, and no navigation reaches an error route - then SHRINK any violation to a minimal reproducing sequence. The walk is seeded, so a violation replays exactly. The detector control that keeps this honest is walk coverage: a walk that visited one route and executed no commands measured nothing, and a zero-violation report over such a walk is a false green, not a clean bill of health.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "testing",
+    "property-based",
+    "ui",
+    "shrinking",
+    "shadow"
+  ],
+  "flagship": false,
+  "params": {
+    "app_target": {
+      "type": "string",
+      "required": true,
+      "min_length": 4,
+      "description": "A localhost URL or a packaged Electron executable path - never a production instance",
+      "examples": [
+        "http://127.0.0.1:5173"
+      ]
+    },
+    "command_model_ref": {
+      "type": "path",
+      "required": true,
+      "description": "The fast-check command model: which actions exist and when each is applicable"
+    },
+    "invariants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "default": [
+        "no-dead-enabled-control",
+        "no-error-route",
+        "no-console-error"
+      ],
+      "description": "Asserted after EVERY command, not once at the end"
+    },
+    "walk_length": {
+      "type": "integer",
+      "default": 120,
+      "minimum": 5,
+      "maximum": 5000,
+      "description": "Commands per walk; too short and the walk cannot reach deep states"
+    },
+    "walk_seed": {
+      "type": "integer",
+      "required": true,
+      "minimum": 0,
+      "description": "Recorded with every violation so the sequence replays exactly"
+    },
+    "seed_from_golden_journey": {
+      "type": "boolean",
+      "default": true,
+      "description": "Start the walk from a known-good journey so deep states are reachable at all"
+    }
+  },
+  "roles": {
+    "model-author": {
+      "description": "Declares the command model: available actions and their preconditions",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "walker": {
+      "description": "Drives the app, asserts invariants after each command, shrinks violations",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:node",
+        "Bash:npx",
+        "Write(command-center/ui/**)"
+      ],
+      "write_paths": [
+        "command-center/ui/**"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:node",
+      "Bash:npx",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/ui/**)"
+    ],
+    "network": "read-only",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/ui/**"
+    ],
+    "forbid_write_paths": [
+      "app/**",
+      "src/**"
+    ],
+    "source_policy": {
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == MODEL_AUTHOR",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "a wrong command model makes every subsequent walk meaningless"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "walk-actually-moved": {
+      "predicate": "custom-expression",
+      "expression": "routes_visited > 1 AND commands_executed > 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "minimal-sequence-required": {
+      "predicate": "custom-expression",
+      "expression": "violations_without_minimal_sequence == 0 AND seed_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "shadow-only": {
+      "predicate": "custom-expression",
+      "expression": "blocks_ci == false AND nags == false AND sink_bounded == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "not-production": {
+      "predicate": "custom-expression",
+      "expression": "target_is_production == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "define-command-model",
+      "title": "Declare the actions and their preconditions",
+      "kind": "task",
+      "role": "model-author",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "QLT-5701",
+        "title": "Declare the fast-check command model for the app under walk",
+        "phase": "2B",
+        "question_or_target": "Enumerate the commands the walk may issue, each with the precondition that makes it applicable and the observable state change that proves it did something. A command with no observable postcondition cannot distinguish a dead control from a working one, so it is refused.",
+        "inputs": [
+          "params.app_target",
+          "params.command_model_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "model-author",
+          "basis": "the model bounds what the walk can ever discover"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/ui/qlt-57-command-model.json",
+        "output_schema": "command-center/schema/contract-spec.schema.json",
+        "evidence_requirement": "every command names its precondition and its observable postcondition, anchored to a selector",
+        "tests_required": [
+          "a command with no observable postcondition must be REFUSED at model time",
+          "both-states control: the model must admit at least one command per declared route, or the walk cannot leave the first screen"
+        ],
+        "reviewer_requirement": "the walk-actually-moved gate re-checks reachability empirically after the walk",
+        "completion_sentinel": "SUCCESS:QLT-5701 emitted only when every command carries a precondition and an observable postcondition, and at least one command exists per declared route; otherwise FAILED:QLT-5701 <reason>",
+        "retry_policy": "two strikes then pivot to a hand-written journey seed instead of a generated model",
+        "failure_classification": [
+          "spec-underspecified",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "command-model declaration with mandatory observable postconditions"
+      },
+      "produces": [
+        {
+          "path": "command-center/ui/qlt-57-command-model.json",
+          "schema_ref": "command-center/schema/contract-spec.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5701",
+          "consumers": [
+            "random-walk",
+            "shrink-violation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "not-production",
+      "title": "Never walk a production instance",
+      "kind": "gate",
+      "depends_on": [
+        "define-command-model"
+      ],
+      "gate_ref": "not-production"
+    },
+    {
+      "id": "attach-to-app",
+      "title": "Attach to the running app, or FAIL loudly",
+      "kind": "task",
+      "depends_on": [
+        "not-production"
+      ],
+      "role": "walker",
+      "timeout_seconds": 600,
+      "on_failure": {
+        "on_failure": "fail-fast",
+        "classify_as": [
+          "app-unreachable"
+        ],
+        "terminal_state_required": true,
+        "never_silent": true,
+        "preserve_partial_artifact": true,
+        "escalate_to": "emit-shadow-report"
+      },
+      "work_unit_ref": "CNF-0122"
+    },
+    {
+      "id": "random-walk",
+      "title": "Walk randomly, asserting invariants after every command",
+      "kind": "loop",
+      "depends_on": [
+        "attach-to-app"
+      ],
+      "loop_var": "walk_step",
+      "body": [
+        {
+          "id": "issue-command-and-assert",
+          "kind": "task",
+          "role": "walker",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:node",
+            "Bash:npx",
+            "Write(command-center/ui/**)"
+          ],
+          "work_unit_ref": "TST-0116",
+          "timeout_seconds": 1800
+        }
+      ],
+      "convergence": {
+        "max_iterations": 1000,
+        "min_iterations": 1,
+        "converged_when": "commands_executed >= walk_length OR violations_found > 0",
+        "no_progress_rounds": 50,
+        "metrics": [
+          {
+            "name": "commands_executed",
+            "direction": "increase"
+          },
+          {
+            "name": "violations_found",
+            "direction": "stabilize"
+          },
+          {
+            "name": "routes_visited",
+            "direction": "increase",
+            "target": 2
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "walk-actually-moved",
+      "title": "A walk that never left the first screen measured nothing",
+      "kind": "gate",
+      "depends_on": [
+        "random-walk"
+      ],
+      "gate_ref": "walk-actually-moved"
+    },
+    {
+      "id": "shrink-violation",
+      "title": "Shrink each violation to a minimal reproducing sequence",
+      "kind": "loop",
+      "depends_on": [
+        "walk-actually-moved"
+      ],
+      "loop_var": "shrink_round",
+      "when": "violations_found > 0",
+      "body": [
+        {
+          "id": "drop-one-command",
+          "kind": "task",
+          "role": "walker",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:node",
+            "Bash:npx"
+          ],
+          "work_unit_ref": "TST-0117",
+          "timeout_seconds": 1800
+        }
+      ],
+      "convergence": {
+        "max_iterations": 200,
+        "min_iterations": 1,
+        "converged_when": "sequence_length_stable == true",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "sequence_length",
+            "direction": "decrease"
+          },
+          {
+            "name": "sequence_length_stable",
+            "direction": "stabilize"
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "minimal-sequence-required",
+      "title": "A violation is only reportable with its minimal sequence and seed",
+      "kind": "gate",
+      "depends_on": [
+        "shrink-violation"
+      ],
+      "gate_ref": "minimal-sequence-required"
+    },
+    {
+      "id": "emit-shadow-report",
+      "title": "Log to a bounded sink; never block, never nag",
+      "kind": "task",
+      "depends_on": [
+        "minimal-sequence-required"
+      ],
+      "role": "walker",
+      "work_unit": {
+        "id": "QLT-5702",
+        "title": "Emit the shadow walk report with per-violation minimal sequences and the coverage it achieved",
+        "phase": "2B",
+        "question_or_target": "Write the walk report to a bounded rotating sink: the seed, the commands executed, the routes visited, and per violation the minimal reproducing sequence plus a screenshot. State the coverage achieved so a zero-violation result cannot be read as a clean app when the walk barely moved.",
+        "inputs": [
+          "command-center/ui/qlt-57-command-model.json",
+          "command-center/ui/qlt-57-walk-log.json",
+          "params.walk_seed"
+        ],
+        "dependencies": [
+          "QLT-5701"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "walker",
+          "basis": "the report is where a null result is made interpretable rather than reassuring"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/ui/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/ui/qlt-57-walk-report.json",
+        "output_schema": "command-center/schema/smoke-report.schema.json",
+        "evidence_requirement": "the seed and full command sequence are recorded so any violation replays exactly",
+        "tests_required": [
+          "plant a control that looks disabled but is enabled and does nothing - the walk must find it",
+          "both-states control: on a healthy app expect zero violations AND assert routes_visited > 1, so the null is interpretable"
+        ],
+        "reviewer_requirement": "advisory; SHADOW mode logs and never blocks",
+        "completion_sentinel": "SUCCESS:QLT-5702 emitted only when the report carries the seed, the achieved coverage, and a minimal sequence for every violation; otherwise FAILED:QLT-5702 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the raw walk log with no aggregate claim",
+        "failure_classification": [
+          "app-unreachable",
+          "flaky-ui",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "bounded-sink report with achieved-coverage disclosure"
+      },
+      "produces": [
+        {
+          "path": "command-center/ui/qlt-57-walk-report.json",
+          "schema_ref": "command-center/schema/smoke-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "tst.packaged-artifact-golden-journey-smoke"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shadow-only",
+      "title": "Observe and log only",
+      "kind": "gate",
+      "depends_on": [
+        "emit-shadow-report"
+      ],
+      "gate_ref": "shadow-only"
+    },
+    {
+      "id": "record-walk-verdict",
+      "title": "Record the walk verdict downstream of the coverage and shadow gates",
+      "kind": "task",
+      "depends_on": [
+        "shadow-only"
+      ],
+      "role": "walker",
+      "work_unit_ref": "TST-0118",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/ui/qlt-57-walk-verdict.json",
+          "schema_ref": "command-center/schema/completion-verdict.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "walk-budget-or-violation",
+      "expression": "commands_executed >= walk_length OR violations_found > 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "routes_visited > 1"
+    },
+    {
+      "id": "app-unreachable",
+      "expression": "attached == false AND attach_diagnostics_recorded == true",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "emit-shadow-report"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "app-unreachable",
+      "flaky-ui",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "emit-shadow-report",
+    "quarantine_path": "command-center/quarantine/qlt-57"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-57",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260818,
+    "journal_path": "command-center/replay/qlt-57-walk.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "store": "command-center/cache/qlt-57",
+    "ttl_seconds": 3600,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-57-plan.json",
+    "forbid_tools": [
+      "Bash:node",
+      "Bash:npx",
+      "Write(command-center/ui/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.4,
+      "max": 1.6
+    },
+    "wallclock_seconds": {
+      "expected": 1800,
+      "max": 7200
+    },
+    "tokens": {
+      "expected": 90000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "DRIVES a live local app and may mutate its local state; never a production target (not-production is a blocking gate). Writes only under command-center/ui/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-57-walk.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/ui-invariant-walk",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/ui-drive",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "dubzzz/fast-check",
+        "relation": "ADOPT-AS-IS",
+        "license": "MIT",
+        "credit": "fast-check authors"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/ui-invariant-walk"
+    ]
+  },
+  "outputs": {
+    "walk-report": {
+      "path": "command-center/ui/qlt-57-walk-report.json",
+      "schema_ref": "command-center/schema/smoke-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-04",
+    "card_index": 57,
+    "family": "D11-testing",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "live-app-interaction",
+      "oracle": "invariant-assertion-per-command",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "randomised-sequence-then-shrink",
+      "output_type": "minimal-reproducing-sequence",
+      "information_barrier": false
+    },
+    "mechanism": "Randomised model-based command sequence over a live app, invariant assertion after each step, then delta-debugging shrink to a minimal repro. Nothing is mutated and nothing is compared to a spec - the oracle is an invariant.",
+    "contraindications": [
+      "NOT for pixel or design critique - that is the UX rubric family",
+      "NOT for deterministic single-flow E2E - use plain Playwright",
+      "NOT on a production instance - not-production is a blocking gate",
+      "NOT trustworthy as a null result unless routes_visited > 1"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "planted-dead-button",
+        "setup": "a control that renders enabled and visible but has no handler",
+        "expected": "the walk finds it and shrinks to a minimal click sequence"
+      },
+      {
+        "name": "healthy-app-null",
+        "setup": "an app with no known defects",
+        "expected": "zero violations AND routes_visited > 1; a null over a one-route walk measured nothing"
+      }
+    ],
+    "why_not_a_duplicate": "BP-TST-05 asserts deterministic postconditions on a PACKAGED artifact's OUTPUT along fixed journeys; this asserts invariants during RANDOM interaction and its product is a minimal sequence. Fixed-vs-random and output-vs-invariant are both different axes.",
+    "unverified": "UNVERIFIED (roughly-even) coverage depth versus the scripted E2E suite; settling experiment = instrument route coverage during a walk and check it exceeds the scripted suite's. Random walks miss deep states without journey seeding, which is why seed_from_golden_journey defaults true.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "walk a local Vite dev server with a 120-command budget",
+      "params": {
+        "app_target": "http://127.0.0.1:5173",
+        "command_model_ref": "command-center/ui/models/studio-commands.json",
+        "invariants": [
+          "no-dead-enabled-control",
+          "no-error-route"
+        ],
+        "walk_length": 120,
+        "walk_seed": 20260818,
+        "seed_from_golden_journey": true
+      },
+      "narrative": "Seeded from the export journey, the walk executed 74 commands across 5 routes before hitting a no-dead-enabled-control violation on a settings toggle. Shrinking reduced the repro from 74 commands to 3. The report records seed 20260818, so the 3-command sequence replays exactly.",
+      "context": {
+        "routes_visited": 5,
+        "commands_executed": 74,
+        "violations_found": 1,
+        "violations_without_minimal_sequence": 0,
+        "seed_recorded": true,
+        "blocks_ci": false,
+        "nags": false,
+        "sink_bounded": true,
+        "target_is_production": false,
+        "walk_length": 120,
+        "sequence_length": 3,
+        "sequence_length_stable": true,
+        "attached": true,
+        "attach_diagnostics_recorded": false,
+        "stage_role": "WALKER"
+      },
+      "expected_gate_pass": [
+        "walk-actually-moved",
+        "minimal-sequence-required",
+        "shadow-only",
+        "not-production"
+      ],
+      "expected_stop": [
+        "walk-budget-or-violation"
+      ],
+      "negative_control": {
+        "gate": "walk-actually-moved",
+        "overrides": {
+          "routes_visited": 1,
+          "commands_executed": 0
+        },
+        "expected": false,
+        "why": "a zero-violation report over a walk that never moved is a false green; the coverage control must reject it"
+      }
+    }
+  }
+}

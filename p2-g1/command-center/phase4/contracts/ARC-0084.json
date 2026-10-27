@@ -1,0 +1,533 @@
+{
+  "$defs": {
+    "artifact_envelope": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "contract"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 16384,
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "dossier"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 512,
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "manifest"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 512,
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "markdown"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 1024,
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "receipt"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 1024,
+                "type": "integer"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "artifact_class": {
+                "const": "schema"
+              }
+            },
+            "required": [
+              "artifact_class"
+            ]
+          },
+          "then": {
+            "properties": {
+              "byte_size": {
+                "minimum": 512,
+                "type": "integer"
+              }
+            }
+          }
+        }
+      ],
+      "properties": {
+        "artifact_class": {
+          "enum": [
+            "contract",
+            "dossier",
+            "manifest",
+            "markdown",
+            "receipt",
+            "schema"
+          ],
+          "type": "string"
+        },
+        "artifact_id": {
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}:[A-Za-z0-9._-]{1,64}$",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 2,
+          "type": "integer"
+        },
+        "content_hash": {
+          "$ref": "#/$defs/content_hash"
+        },
+        "evidence_anchors": {
+          "items": {
+            "$ref": "#/$defs/evidence_anchor"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "manifest_registration": {
+          "$ref": "#/$defs/manifest_registration_record"
+        },
+        "path": {
+          "minLength": 3,
+          "pattern": "^[A-Za-z0-9._/=+-][A-Za-z0-9._/=+-]*$",
+          "type": "string"
+        },
+        "producing_unit": {
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+          "type": "string"
+        },
+        "retention_class": {
+          "enum": [
+            "session",
+            "unit",
+            "program",
+            "archival"
+          ],
+          "type": "string"
+        },
+        "schema_reference": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "sentinel": {
+          "minLength": 8,
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "producing_unit",
+        "content_hash",
+        "byte_size",
+        "schema_reference",
+        "sentinel",
+        "evidence_anchors",
+        "retention_class",
+        "manifest_registration",
+        "path",
+        "artifact_class"
+      ],
+      "type": "object"
+    },
+    "artifact_manifest": {
+      "additionalProperties": true,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/manifest_registration_record"
+          },
+          "type": "array"
+        },
+        "contract": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "derivation": {
+          "type": "string"
+        },
+        "expected": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "present": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "schema_version": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "verified_on_disk": {
+          "const": true
+        }
+      },
+      "required": [
+        "schema_version",
+        "verified_on_disk",
+        "artifacts"
+      ],
+      "type": "object"
+    },
+    "content_hash": {
+      "additionalProperties": false,
+      "properties": {
+        "alg": {
+          "const": "sha256"
+        },
+        "hex": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "alg",
+        "hex"
+      ],
+      "type": "object"
+    },
+    "evidence_anchor": {
+      "additionalProperties": false,
+      "properties": {
+        "claim": {
+          "minLength": 8,
+          "type": "string"
+        },
+        "line": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "path": {
+          "minLength": 3,
+          "type": "string"
+        },
+        "snippet": {
+          "minLength": 4,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "claim"
+      ],
+      "type": "object"
+    },
+    "manifest_registration_record": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "manifest_path": {
+          "pattern": ".*ARTIFACT-MANIFEST\\.json$",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 3,
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "producing_unit": {
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^([0-9a-f]{64}|\\(self\\)|)$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "manifest_path",
+        "path",
+        "sha256",
+        "bytes",
+        "present",
+        "producing_unit"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "command-center/phase4/contracts/ARC-0084.json",
+  "$ref": "#/$defs/artifact_envelope",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "completeness_rule": "An artifact is complete only if (1) the path exists on disk, (2) CRLF-normalized byte size meets the class floor, (3) the sha256 of those bytes matches the envelope content_hash, and (4) ARTIFACT-MANIFEST.json, read from disk, contains a present=true row for that path whose sha256 matches the live digest. A path that exists but is unregistered fails. A plausible digest for an absent file fails.",
+  "description": "Canonical envelope for a produced artifact: artifact id, producing unit, content hash, byte size, schema reference, sentinel, evidence anchors, retention class, and the manifest registration record. An artifact that exists on disk but is absent from the on-disk ARTIFACT-MANIFEST.json is not complete. Size floors are derived from the live distribution (never one byte). SUCCESS:ARC-0084",
+  "mandated_envelope_fields": [
+    "artifact_id",
+    "producing_unit",
+    "content_hash",
+    "byte_size",
+    "schema_reference",
+    "sentinel",
+    "evidence_anchors",
+    "retention_class",
+    "manifest_registration"
+  ],
+  "min_bytes_threshold": 16384,
+  "sentinel": "SUCCESS:ARC-0084",
+  "size_floor_derivation": {
+    "classes": {
+      "contract": {
+        "floor": 16384,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 20546,
+            "path": "command-center/phase4/contracts/ARC-0093.json"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 1,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 20546,
+        "observed_min": 20546,
+        "observed_p50": 20546,
+        "source_class": "contract",
+        "witness_rule": "min, p50, and max of the live population"
+      },
+      "dossier": {
+        "floor": 512,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 983,
+            "path": "command-center/p2-wave/probes/ARC-0045/design_spec.json"
+          },
+          {
+            "bytes": 3028,
+            "path": "command-center/p2-wave/probes/ARC-0061/composed-design.json"
+          },
+          {
+            "bytes": 24249,
+            "path": "command-center/phase3/A7/SECURITY.json"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 5,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 24249,
+        "observed_min": 983,
+        "observed_p50": 3028,
+        "source_class": "dossier",
+        "witness_rule": "min, p50, and max of the live population"
+      },
+      "manifest": {
+        "floor": 512,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 969,
+            "path": "command-center/p2-wave/probes/RES-0178/UNIT-ARTIFACT-MANIFEST.json"
+          },
+          {
+            "bytes": 2992,
+            "path": "command-center/p2-wave/probes/WFA-0093/UNIT-ARTIFACT-MANIFEST.json"
+          },
+          {
+            "bytes": 64644,
+            "path": "command-center/p2-wave/probes/WFA-0112/UNIT-ARTIFACT-MANIFEST.json"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 2008,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 64644,
+        "observed_min": 969,
+        "observed_p50": 2992,
+        "source_class": "manifest",
+        "witness_rule": "min, p50, and max of the live population"
+      },
+      "markdown": {
+        "floor": 1024,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 1789,
+            "path": "command-center/p2-wave/OVH-FLEET_2026-08-24.md"
+          },
+          {
+            "bytes": 12474,
+            "path": "command-center/p2-wave/P2-GROUNDING.md"
+          },
+          {
+            "bytes": 30572,
+            "path": "command-center/p2-wave/P2-BUILD-ROUND1.md"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 9,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 30572,
+        "observed_min": 1789,
+        "observed_p50": 12474,
+        "source_class": "markdown",
+        "witness_rule": "min, p50, and max of the live population"
+      },
+      "receipt": {
+        "floor": 1024,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 1391,
+            "path": "command-center/p2-wave/probes/CNF-0123/SUBAGENT-RETURN.json"
+          },
+          {
+            "bytes": 2829,
+            "path": "command-center/p2-wave/probes/RES-0111/SUBAGENT-RETURN.json"
+          },
+          {
+            "bytes": 382234,
+            "path": "command-center/p2-wave/probes/ADV-0004/SUBAGENT-RETURN.json"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 2007,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 382234,
+        "observed_min": 1391,
+        "observed_p50": 2829,
+        "source_class": "receipt",
+        "witness_rule": "min, p50, and max of the live population"
+      },
+      "schema": {
+        "floor": 512,
+        "floor_rule": "largest power of two strictly below observed_min",
+        "members": [
+          {
+            "bytes": 982,
+            "path": "command-center/schema/event.schema.json"
+          },
+          {
+            "bytes": 1057,
+            "path": "command-center/schema/failing-test-receipt.schema.json"
+          },
+          {
+            "bytes": 9802,
+            "path": "command-center/schema/foundry-artifact.schema.json"
+          }
+        ],
+        "members_are_population_witnesses": true,
+        "n": 231,
+        "note": "derived from live members excluding probes/*/fixtures/ and empty-object stubs",
+        "observed_max": 9802,
+        "observed_min": 982,
+        "observed_p50": 1057,
+        "source_class": "schema",
+        "witness_rule": "min, p50, and max of the live population"
+      }
+    },
+    "floors": {
+      "contract": 16384,
+      "dossier": 512,
+      "manifest": 512,
+      "markdown": 1024,
+      "receipt": 1024,
+      "schema": 512
+    },
+    "historical_guess_rejected": {
+      "DEFAULT_MIN_BYTES": 1024,
+      "why_not_used_as_authority": "TST-0007 records that reverting 1024->512 left a 15/15 green suite because tests passed min_bytes explicitly. A constant that is never derived from the live distribution is not this unit's floor."
+    },
+    "method": "largest power of two strictly below the observed minimum of real on-disk members; fixtures, empty-object stubs, and content-less files excluded from the population; never 1 byte",
+    "one_byte_forbidden": true,
+    "skipped_stubs": []
+  },
+  "size_floors": {
+    "contract": 16384,
+    "dossier": 512,
+    "manifest": 512,
+    "markdown": 1024,
+    "receipt": 1024,
+    "schema": 512
+  },
+  "state": "SUCCESS",
+  "tests_required": [
+    "Registration assertion: an artifact on disk but unregistered must fail the predicate",
+    "Digest control: mutate one byte of an artifact and assert the digest check fires"
+  ],
+  "title": "Contract: Artifact envelope schema, integrity digest and manifest registration",
+  "unit_id": "ARC-0084",
+  "x-predicate": "command-center/p2-wave/probes/ARC-0084/predicate.py",
+  "x-reviewers": {
+    "consumer_call_site": "command-center/p2-wave/probes/ARC-0084/consumer.py",
+    "independent_contract_reviewer": "command-center/p2-wave/probes/ARC-0084/reviewer.py"
+  }
+}

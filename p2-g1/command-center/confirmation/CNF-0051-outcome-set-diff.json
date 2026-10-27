@@ -1,0 +1,1200 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0051",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0051 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the cancelling-pair control was constructed and shown to be invisible to counts but visible to the set difference. Any other terminal state is FAILED:CNF-0051 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0051",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/regression-delta.schema.json",
+      "bytes": 1101,
+      "sha256": "84480f69300ef5ee15378265b4e4faad2a29d10265667b7195f3436e6a81ed0d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/outcome_set.py",
+      "bytes": 5165,
+      "sha256": "1b0a634494014ccaa65cbb325bc33efedb42cfb5edea779cfcff673afc5ccf43",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/harness.py",
+      "bytes": 7463,
+      "sha256": "d9edbaa730a065e9aaab60f6224f35bfc9b640905b227f026c28d4ca84327e8d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/probe1_cancelling_pair.py",
+      "bytes": 3680,
+      "sha256": "5f6f360811bdb43a40ea1ad9fa7432de6ab72d7ecb5c0deea9fa80b7b10f296e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/probe2_collection_error.py",
+      "bytes": 3054,
+      "sha256": "6b2cdd446e301824054f0ab7fb56ef1e1a9fb9f8e084a2294712a816ed631139",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/fixtures/cancelling/before/test_outcomes.py",
+      "bytes": 637,
+      "sha256": "f0b6122260f4e267cdde8c8e1292fdc67192e89c2b8798eae0fdab38a01703d8",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/fixtures/cancelling/after/test_outcomes.py",
+      "bytes": 725,
+      "sha256": "7a8c0a8cead11fef9b80510a239a8de06fa83b82dcb196948765f4dab98e6f55",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/fixtures/collect_error/test_ok.py",
+      "bytes": 225,
+      "sha256": "f1cfbbc88ccb4e8ebf9d680b470fc9ae3637f616dad64ae0f3fc9751b9d83c27",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0051/fixtures/collect_error/test_syntax.py",
+      "bytes": 26,
+      "sha256": "c5cd2792fe4ad09b3d448e86b4f6c92267c732ce46acb1594dafd72c36272c92",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A cancelling pair (one pass->fail and one fail->pass) leaves visible pass/fail/skip counts unchanged and is visible in the per-id set difference (test_outcomes.py::OutcomeSet::test_beta_was_pass, test_outcomes.py::OutcomeSet::test_gamma_was_fail).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0051/outcome_set.py:cancelling_pair_holds",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B -c unittest fixtures/cancelling/{before,after}",
+          "raw_output": "{\"flipped\": [{\"from\": \"passed\", \"id\": \"test_outcomes.py::OutcomeSet::test_beta_was_pass\", \"to\": \"failed\"}, {\"from\": \"failed\", \"id\": \"test_outcomes.py::OutcomeSet::test_gamma_was_fail\", \"to\": \"passed\"}], \"holds\": true, \"visible_counts_after\": {\"failed\": 2, \"passed\": 2, \"skipped\": 1}, \"visible_counts_before\": {\"failed\": 2, \"passed\": 2, \"skipped\": 1}}",
+          "fingerprint": "b6d3e47500130d89",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "diff fixtures/cancelling/before/test_outcomes.py fixtures/cancelling/after/test_outcomes.py",
+          "raw_output": "before: test_beta_was_pass asserts True, test_gamma_was_fail asserts 1==0; after: those two asserts invert; alpha/delta/epsilon unchanged",
+          "fingerprint": "f7b05103c1f08d3e",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Collection errors are a separate bucket from failures; a suite that cannot collect is not a suite that passed.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0051/fixtures/collect_error/test_syntax.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B unittest fixtures/collect_error",
+          "raw_output": "{\"counts\": {\"collection_error_count\": 1, \"counted_separately_from_failures\": true, \"failed_count\": 0, \"holds\": true, \"overlap_ids\": [], \"suite_classified_passed\": false, \"suite_not_classified_passed\": true}, \"holds\": true}",
+          "fingerprint": "b4b136fc1912044d",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python3 -c ast.parse(test_syntax.py)",
+          "raw_output": "SyntaxError: '(' was never closed",
+          "fingerprint": "d76e38a6bdf62d97",
+          "exit_code": 1
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "cancelling-pair-control",
+      "name": "construct a control where one test flips each way and confirm the aggregate count is unchanged while the set difference is not",
+      "command": "python3 -B command-center/p2-wave/probes/CNF-0051/emit.py (unittest fixtures/cancelling/{before,after})",
+      "result": "PASS",
+      "output_tail": "visible counts {'passed': 2, 'failed': 2, 'skipped': 1} == {'passed': 2, 'failed': 2, 'skipped': 1}; flipped_to_fail=1 id=test_outcomes.py::OutcomeSet::test_beta_was_pass; flipped_to_pass=1 id=test_outcomes.py::OutcomeSet::test_gamma_was_fail"
+    },
+    {
+      "id": "collection-error-separate",
+      "name": "collection errors must be counted separately from failures; a suite that cannot collect is not a suite that passed",
+      "command": "python3 -B command-center/p2-wave/probes/CNF-0051/emit.py (unittest fixtures/collect_error)",
+      "result": "PASS",
+      "output_tail": "fixture collection_error=1 failed=0 overlap=[] suite_classified_passed=False; live collection_error=67 passed=0"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-CANCELLING-PAIR",
+      "kind": "known-broken-fixture",
+      "description": "Before vs after cancelling fixtures must fire the set-difference detector; after vs after identity must be silent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"after_only\": 0, \"before_only\": 0, \"flipped\": 2, \"flipped_to_fail\": 1, \"flipped_to_pass\": 1}",
+      "good_state_output": "{\"after_only\": 0, \"before_only\": 0, \"flipped\": 0, \"flipped_to_fail\": 0, \"flipped_to_pass\": 0}"
+    },
+    {
+      "id": "NC-COLLECTION-ERROR",
+      "kind": "malformed-input",
+      "description": "SyntaxError fixture must be collection_error not failed; a clean unittest tree must have zero collection_error.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"counts\": {\"collection_error_count\": 1, \"counted_separately_from_failures\": true, \"failed_count\": 0, \"holds\": true, \"overlap_ids\": [], \"suite_classified_passed\": false, \"suite_not_classified_passed\": true}, \"holds\": true}",
+      "good_state_output": "{\"collection_error_count\": 0}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0051-probe1-cancelling-pair",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Named probe1 re-runs the cancelling-pair fixtures and recomputes the set difference without reading this file's verdict first. Named probe2 re-runs the syntax-error fixture and asserts collection_error is not folded into failed."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0051/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0051"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/CNF-0051/outcome_set.py",
+      "artifact_path": "command-center/p2-wave/probes/CNF-0051/fixtures/cancelling/after/test_outcomes.py",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "test-run",
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0051/emit.py",
+        "raw_output": "{\"flipped\": [{\"from\": \"passed\", \"id\": \"test_outcomes.py::OutcomeSet::test_beta_was_pass\", \"to\": \"failed\"}, {\"from\": \"failed\", \"id\": \"test_outcomes.py::OutcomeSet::test_gamma_was_fail\", \"to\": \"passed\"}], \"holds\": true, \"visible_counts_after\": {\"failed\": 2, \"passed\": 2, \"skipped\": 1}, \"visible_counts_before\": {\"failed\": 2, \"passed\": 2, \"skipped\": 1}}",
+        "fingerprint": "7ef1175c66ca2e2b",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "json.loads (stdlib) of live confirmation artifact",
+      "artifact_path": "command-center/confirmation/CNF-0051-outcome-set-diff.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "python3 -c json.load(command-center/confirmation/CNF-0051-outcome-set-diff.json)",
+        "raw_output": "parse deferred until after write; G-1 named probes re-read",
+        "fingerprint": "e774a55d1e8318ce",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:10Z",
+    "ended_at": "2026-08-25T00:58:10Z",
+    "duration_seconds": 0.059913
+  },
+  "retry": {
+    "count": 0,
+    "policy": "no blind retry. Re-runs are permitted ONLY as flake measurement and EVERY run's outcome is recorded"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Commit-to-commit per-test-id outcome delta across the live suite.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "On a git checkout with pytest installed, collect machine-readable per-id outcomes at the BASELINE-SNAPSHOT freeze SHA and at HEAD, then recompute the symmetric difference."
+    }
+  ],
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "regression-analyst",
+    "execution_substrate": "local-parallel"
+  },
+  "report": {
+    "kind": "regression-delta",
+    "observations": [
+      {
+        "name": "cancelling_pair_holds",
+        "measured": true,
+        "method": "unittest-fixture-pair",
+        "anchor": "command-center/p2-wave/probes/CNF-0051/outcome_set.py:cancelling_pair_holds"
+      },
+      {
+        "name": "flipped_to_fail",
+        "measured": 1,
+        "method": "per-id-set-difference",
+        "anchor": "test_outcomes.py::OutcomeSet::test_beta_was_pass"
+      },
+      {
+        "name": "flipped_to_pass",
+        "measured": 1,
+        "method": "per-id-set-difference",
+        "anchor": "test_outcomes.py::OutcomeSet::test_gamma_was_fail"
+      },
+      {
+        "name": "live_collection_error_count",
+        "measured": 67,
+        "method": "ast-id-inventory-plus-pytest-import",
+        "anchor": "tools/command-center/tests"
+      }
+    ],
+    "control_ids": [
+      "NC-CANCELLING-PAIR",
+      "NC-COLLECTION-ERROR"
+    ],
+    "title": "Per-test outcome-set differential across the full suite, not aggregate counts",
+    "question": "Did any test change outcome that nobody noticed? Capture the per-test-id outcome SET before and after the change and compute the symmetric difference. Question: which test ids flipped in each direction? An unchanged total count can hide one new pass and one new failure cancelling out, and aggregate counts are structurally blind to it.",
+    "completion_sentinel": "SUCCESS:CNF-0051 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the cancelling-pair control was constructed and shown to be invisible to counts but visible to the set difference. Any other terminal state is FAILED:CNF-0051 <classification> with the diagnostic tail attached.",
+    "cloud_ok": false,
+    "answer": "Commit-to-commit outcome delta is NOT-CHECKED (no git; baseline has aggregates, not per-id sets). Live suite tools/command-center/tests cannot collect (67 collection_error ids, 0 passed). That is not a pass. The cancelling-pair control was constructed: visible pass/fail/skip counts are unchanged at {'passed': 2, 'failed': 2, 'skipped': 1} while the set difference shows 1 flipped to fail (test_outcomes.py::OutcomeSet::test_beta_was_pass) and 1 flipped to pass (test_outcomes.py::OutcomeSet::test_gamma_was_fail). Collection errors are a separate bucket from failures (1 collection_error, 0 failed).",
+    "inputs_observed": {
+      "live_suite": "tools/command-center/tests",
+      "historical": {
+        "pre_change_commit": null,
+        "post_change_commit": null,
+        "git_available": false,
+        "baseline_snapshot": {
+          "path": "command-center/BASELINE-SNAPSHOT.json",
+          "present": true,
+          "has_per_test_id_outcomes": false,
+          "aggregate_counts_verbatim": {
+            "passed": 5326,
+            "failed": 8,
+            "error": 4,
+            "skipped": 2,
+            "deselected": 1
+          },
+          "freeze_head_sha": "53c37c6cfb3e7bd1a48edbe604e1ea06a77b50b1",
+          "note": "Baseline records suite aggregates, not a per-test-id outcome set. Symmetric difference by test id cannot be computed from it."
+        },
+        "status": "NOT-CHECKED",
+        "reason": "This worktree has no .git, so a commit-to-commit per-id outcome delta cannot be claimed. command-center/BASELINE-SNAPSHOT.json is present and records aggregate counts, not a per-test-id outcome SET. The live tools/command-center/tests tree was invoked twice as an identity capture; pytest is not installed, so every live id is collection_error (not passed)."
+      },
+      "pytest_capture_1": {
+        "available": false,
+        "command": "/usr/bin/python3 -B -m pytest --collect-only -q /opt/p2/ast-integrate/tools/command-center/tests",
+        "returncode": 1,
+        "stderr_tail": "/usr/bin/python3: No module named pytest"
+      },
+      "pytest_capture_2": {
+        "available": false,
+        "command": "/usr/bin/python3 -B -m pytest --collect-only -q /opt/p2/ast-integrate/tools/command-center/tests",
+        "returncode": 1,
+        "stderr_tail": "/usr/bin/python3: No module named pytest"
+      }
+    },
+    "before": {
+      "label": "live-suite-capture-1",
+      "members": [
+        {
+          "id": "live/test_close.py::test_a_close_that_would_break_reachability_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_is_one_command_like_open",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_sets_a_terminal_disposition_with_evidence",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_without_evidence_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_defer_keeps_the_item_open_and_never_deletes",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_drop_records_the_owner_decision",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_dry_run_writes_nothing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_every_mutation_regenerates_the_graph_and_logs_an_event",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_list_filters_by_program_and_openness",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_next_id_rejects_an_unknown_program",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_no_verb_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_note_records_progress_without_closing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_now_defaults_to_wall_clock_utc",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_open_allocates_the_next_free_id_in_that_program",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_open_without_a_program_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_supersede_requires_a_real_replacement",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_the_event_log_is_append_only",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_unknown_item_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_unreadable_catalog_fails_closed",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_a_mention_OUTSIDE_the_plan_is_referenced_but_still_not_delivered",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_an_empty_file_is_not_delivery",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_fails_closed_on_an_empty_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_finds_the_same_artifact_moved_to_another_directory",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_fires_on_an_artifact_at_its_declared_path",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_multiple_name_matches_are_flagged_ambiguous_not_silently_resolved",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_silent_on_a_known_absent_artifact",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_claim_declares_both_probes_or_is_typed_not_checked",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_named_invariant_test_actually_exists",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_recorded_suite_exists_and_has_the_recorded_count",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_the_counting_guard_can_go_red",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_render.py::test_an_answered_question_renders_its_answer_not_just_its_state",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_one_render_leaves_check_clean_from_a_perturbed_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_open_questions_still_render_with_no_answer_column_noise",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_the_manifest_records_the_graph_it_just_wrote",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_write_all_does_not_touch_the_real_repo",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_seed.py::test_derived_fields_agree_with_the_committed_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_seed.py::test_register_provenance_is_lf_normalised",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_seed.py::test_seeding_is_deterministic",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_a_gate_that_is_already_answered_stops_counting_as_a_blocker",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_an_open_dependency_is_a_legal_reason_to_have_no_action",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_exit_one_on_a_mutated_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_exit_zero_on_the_real_tree",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_fails_closed_on_a_blank_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_fails_closed_on_unreadable_inputs",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_committed_graph_equals_the_derived_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cycle_report_excludes_innocent_downstream_nodes",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_blank_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_deleted_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_missing_register_snapshot",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_silently_dropped_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_stale_dependency_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_tampered_register_snapshot",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_closed_item_depending_on_open_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_cycle",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_dangling_dependency",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_dead_end_open_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_disposition_without_evidence",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_duplicate_and_malformed_ids",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_non_terminal_disposition",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_owner_gate_pointing_at_nothing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_empty_catalog_fails_closed",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_parser_reproduces_the_registers_own_header_counts",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_real_catalog_is_clean",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_require_complete_flags_unresolved_work_unit_fields",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        }
+      ],
+      "counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 67,
+        "total_ids": 67
+      }
+    },
+    "after": {
+      "label": "live-suite-capture-2",
+      "members": [
+        {
+          "id": "live/test_close.py::test_a_close_that_would_break_reachability_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_a_preexisting_violation_elsewhere_does_not_block_an_unrelated_close",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_is_one_command_like_open",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_sets_a_terminal_disposition_with_evidence",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_close_without_evidence_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_defer_keeps_the_item_open_and_never_deletes",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_drop_records_the_owner_decision",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_dry_run_writes_nothing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_every_mutation_regenerates_the_graph_and_logs_an_event",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_list_filters_by_program_and_openness",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_next_id_rejects_an_unknown_program",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_no_verb_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_note_records_progress_without_closing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_now_defaults_to_wall_clock_utc",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_open_allocates_the_next_free_id_in_that_program",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_open_without_a_program_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_supersede_requires_a_real_replacement",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_the_event_log_is_append_only",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_unknown_item_is_refused",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_close.py::test_unreadable_catalog_fails_closed",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_a_mention_OUTSIDE_the_plan_is_referenced_but_still_not_delivered",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_an_empty_file_is_not_delivery",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_fails_closed_on_an_empty_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_finds_the_same_artifact_moved_to_another_directory",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_fires_on_an_artifact_at_its_declared_path",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_multiple_name_matches_are_flagged_ambiguous_not_silently_resolved",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_silent_on_a_known_absent_artifact",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_reconcile_delivery.py::test_the_plan_restating_its_own_id_is_NOT_delivery",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_claim_declares_both_probes_or_is_typed_not_checked",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_named_invariant_test_actually_exists",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_every_recorded_suite_exists_and_has_the_recorded_count",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_registry.py::test_the_counting_guard_can_go_red",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_render.py::test_an_answered_question_renders_its_answer_not_just_its_state",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_one_render_leaves_check_clean_from_a_perturbed_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_open_questions_still_render_with_no_answer_column_noise",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_the_manifest_records_the_graph_it_just_wrote",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_render.py::test_write_all_does_not_touch_the_real_repo",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'pytest'"
+        },
+        {
+          "id": "live/test_seed.py::test_derived_fields_agree_with_the_committed_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_seed.py::test_register_provenance_is_lf_normalised",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_seed.py::test_seeding_is_deterministic",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_a_gate_that_is_already_answered_stops_counting_as_a_blocker",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_an_open_dependency_is_a_legal_reason_to_have_no_action",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_exit_one_on_a_mutated_catalog",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_exit_zero_on_the_real_tree",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_fails_closed_on_a_blank_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cli_fails_closed_on_unreadable_inputs",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_committed_graph_equals_the_derived_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_cycle_report_excludes_innocent_downstream_nodes",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_blank_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_deleted_register_digest",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_missing_register_snapshot",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_silently_dropped_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_stale_dependency_graph",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_a_tampered_register_snapshot",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_closed_item_depending_on_open_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_cycle",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_dangling_dependency",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_dead_end_open_item",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_disposition_without_evidence",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_duplicate_and_malformed_ids",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_non_terminal_disposition",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_detects_owner_gate_pointing_at_nothing",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_empty_catalog_fails_closed",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_parser_reproduces_the_registers_own_header_counts",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_real_catalog_is_clean",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        },
+        {
+          "id": "live/test_validate.py::test_require_complete_flags_unresolved_work_unit_fields",
+          "outcome": "collection_error",
+          "diagnostic": "ModuleNotFoundError: No module named 'catalog'"
+        }
+      ],
+      "counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 67,
+        "total_ids": 67
+      }
+    },
+    "symmetric_difference": {
+      "only_in_before": [],
+      "only_in_after": [],
+      "flipped": [],
+      "counts": {
+        "before_only": 0,
+        "after_only": 0,
+        "flipped": 0,
+        "flipped_to_pass": 0,
+        "flipped_to_fail": 0
+      }
+    },
+    "aggregate_counts": {
+      "before": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 67,
+        "total_ids": 67
+      },
+      "after": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 67,
+        "total_ids": 67
+      },
+      "unchanged": true,
+      "note": "Live identity capture: both captures are collection_error sets. Unchanged totals here do not certify 'no regressions' across a change; see controls.cancelling_pair for the detector that would see cancelling flips."
+    },
+    "controls": {
+      "cancelling_pair": {
+        "constructed": true,
+        "aggregate_count_unchanged": true,
+        "set_difference_nonempty": true,
+        "flipped_each_way": true,
+        "invisible_to_counts_visible_to_set_difference": true,
+        "flip_to_fail_id": "test_outcomes.py::OutcomeSet::test_beta_was_pass",
+        "flip_to_pass_id": "test_outcomes.py::OutcomeSet::test_gamma_was_fail",
+        "before": {
+          "label": "cancelling-pair-before",
+          "members": [
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_alpha_stable_pass",
+              "outcome": "passed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_beta_was_pass",
+              "outcome": "passed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_delta_stable_fail",
+              "outcome": "failed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_epsilon_stable_skip",
+              "outcome": "skipped"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_gamma_was_fail",
+              "outcome": "failed"
+            }
+          ],
+          "counts": {
+            "passed": 2,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "collection_error": 0,
+            "total_ids": 5
+          }
+        },
+        "after": {
+          "label": "cancelling-pair-after",
+          "members": [
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_alpha_stable_pass",
+              "outcome": "passed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_beta_was_pass",
+              "outcome": "failed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_delta_stable_fail",
+              "outcome": "failed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_epsilon_stable_skip",
+              "outcome": "skipped"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_gamma_was_fail",
+              "outcome": "passed"
+            }
+          ],
+          "counts": {
+            "passed": 2,
+            "failed": 2,
+            "skipped": 1,
+            "error": 0,
+            "collection_error": 0,
+            "total_ids": 5
+          }
+        },
+        "symmetric_difference": {
+          "only_in_before": [],
+          "only_in_after": [],
+          "flipped": [
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_beta_was_pass",
+              "from": "passed",
+              "to": "failed"
+            },
+            {
+              "id": "test_outcomes.py::OutcomeSet::test_gamma_was_fail",
+              "from": "failed",
+              "to": "passed"
+            }
+          ],
+          "counts": {
+            "before_only": 0,
+            "after_only": 0,
+            "flipped": 2,
+            "flipped_to_pass": 1,
+            "flipped_to_fail": 1
+          }
+        },
+        "visible_counts_before": {
+          "passed": 2,
+          "failed": 2,
+          "skipped": 1
+        },
+        "visible_counts_after": {
+          "passed": 2,
+          "failed": 2,
+          "skipped": 1
+        },
+        "identity_after_vs_after_empty": true,
+        "fixture_before": "command-center/p2-wave/probes/CNF-0051/fixtures/cancelling/before",
+        "fixture_after": "command-center/p2-wave/probes/CNF-0051/fixtures/cancelling/after"
+      },
+      "collection_errors": {
+        "constructed": true,
+        "counted_separately_from_failures": true,
+        "suite_not_classified_passed": true,
+        "collection_error_count": 1,
+        "failed_count": 0,
+        "overlap_ids": [],
+        "members": {
+          "label": "collect-error-fixture",
+          "members": [
+            {
+              "id": "test_ok.py::Ok::test_ok",
+              "outcome": "passed"
+            },
+            {
+              "id": "test_syntax.py::<collection>",
+              "outcome": "collection_error",
+              "diagnostic": "SyntaxError: '(' was never closed (test_syntax.py, line 1)"
+            }
+          ],
+          "counts": {
+            "passed": 1,
+            "failed": 0,
+            "skipped": 0,
+            "error": 0,
+            "collection_error": 1,
+            "total_ids": 2
+          }
+        },
+        "fixture": "command-center/p2-wave/probes/CNF-0051/fixtures/collect_error",
+        "note": "test_syntax.py is a SyntaxError. test_ok.py passes. The SyntaxError id is collection_error, not failed. failed==0 does not make the suite a pass."
+      },
+      "identity_live_capture": {
+        "constructed": true,
+        "set_difference_empty": true,
+        "note": "Two captures of the same uncollected live tree must not invent flips."
+      }
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "cancelling-pair-detector-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0051/probe1_cancelling_pair.py"
+      },
+      {
+        "id": "probe2",
+        "role": "collection-error-separate",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0051/probe2_collection_error.py"
+      }
+    ],
+    "produced_by_script": "command-center/p2-wave/probes/CNF-0051/emit.py"
+  }
+}

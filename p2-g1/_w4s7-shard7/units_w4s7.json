@@ -1,0 +1,154 @@
+{
+  "IMP-0072": {
+    "modules": [
+      "tools/marketplace/event_chain.py",
+      "tools/marketplace/tests/test_event_chain.py"
+    ],
+    "tests": [
+      [
+        "IMP0072-T1",
+        "tamper detected AND localised; clean log verifies; writer refuses rewrites",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_event_chain.py",
+        4
+      ]
+    ],
+    "nc": [
+      [
+        "IMP0072-NC1",
+        "mutation",
+        "single-field edit to middle record seq 3; verification fails naming that exact record",
+        "probe2_tamper_named_position.position_named_is_3",
+        true,
+        true
+      ],
+      [
+        "IMP0072-NC2",
+        "known-broken-fixture",
+        "untampered log verifies clean in the same run",
+        "probe2_tamper_named_position.clean_control_ok_before_tamper",
+        true,
+        true
+      ]
+    ],
+    "e1": "chain verification passes over a genuine log (5 demo records plus an appended record)",
+    "e2": "verification FAILS after a single-field edit to a middle record and names that record (seq 3)",
+    "notes": "rechain_after_edit is honest about its limit: a fully re-chained rewrite verifies clean, so silent retroactive edits need an external anchor (recorded as residual).",
+    "residual": [
+      "a fully re-chained rewrite verifies clean; detection of silent retroactive edits requires an external anchor",
+      "CONFIRMED",
+      "anchor the head hash to the registry index or an append-only external log"
+    ]
+  },
+  "IMP-0114": {
+    "modules": [
+      "tools/marketplace/index_linter.py",
+      "tools/marketplace/tests/test_index_linter.py",
+      "scripts/plugin_registry_doctor.py"
+    ],
+    "tests": [
+      [
+        "IMP0114-T1",
+        "five defect classes planted and found; clean index silent; doctor supersede explicit",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_index_linter.py",
+        3
+      ]
+    ],
+    "tests_cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_index_linter.py",
+    "nc": [
+      [
+        "IMP0114-NC1",
+        "known-broken-fixture",
+        "clean index yields ZERO findings in the same run that finds all five planted defects",
+        "probe1_five_defect_classes.clean_control_silent",
+        true,
+        true
+      ]
+    ],
+    "e1": "the linter reports dangling blob, orphan blob, duplicate id, digest mismatch and unresolvable dependency",
+    "e2": "an independent graph recomputation (separate walk) matches the dangling and orphan sets exactly",
+    "notes": "Deliverable completion this session: index_linter.py extended with ORPHAN_BLOB, DUPLICATE_ID and UNRESOLVED_DEPENDENCY (previously only dangling+digest); explicit supersede note in the module docstring: the registry doctor stays the entry point and delegates whole-index consistency here.",
+    "residual": [
+      "lint_registry assumes index.json sits directly in the registry root layout",
+      "NOT-CHECKED",
+      "run the linter against a deployed marketplace fixture registry"
+    ]
+  },
+  "IMP-0116": {
+    "modules": [
+      "tools/marketplace/scaffolder.py",
+      "tools/marketplace/conformance.py",
+      "test_scaffolder.py present in marketplace tests"
+    ],
+    "tests": [
+      [
+        "IMP0116-T1",
+        "one case per scaffold type with zero lint findings plus conformance pass plus broken-template red",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_scaffolder.py",
+        3
+      ]
+    ],
+    "nc": [
+      [
+        "IMP0116-NC1",
+        "mutation",
+        "break one template (README loses Usage); conformance goes red, healing restores green",
+        "probe2_conformance_and_red.broken_template_red",
+        true,
+        true
+      ]
+    ],
+    "e1": "each scaffold type generates and lints with zero findings against the 341-name installed surface",
+    "e2": "generated artifacts also pass the conformance validator (a different tool with different rules)",
+    "notes": "The name-lint leg runs name_linter plus structural manifest checks plus conformance. tools/marketplace/checks.py is a g1-surface stub, so the package_linter composer (IMP-0113 lane) composes no real rules; recorded as an open cross-lane defect, not edited from this lane.",
+    "defects": [
+      [
+        "IMP0116-D1",
+        "P2",
+        "open",
+        "tools/marketplace/checks.py is a g1-surface stub (RULE_IDS set to the bare string RULE_IDS and a module __getattr__ returning _NS placeholders), so package_linter.lint_package (IMP-0113 lane) composes no real rules; the IMP-0113 receipt claims SUCCESS against a stubbed dependency surface"
+      ]
+    ]
+  },
+  "IMP-0158": {
+    "modules": [
+      "tools/marketplace/trust_tiers.py",
+      "tools/marketplace/trust_levels.py",
+      "tools/marketplace/tests/test_trust_tiers.py"
+    ],
+    "tests": [
+      [
+        "IMP0158-T1",
+        "unknown refused; first-party twin admitted; deterministic assignment; conditional paths named",
+        "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_trust_tiers.py",
+        3
+      ]
+    ],
+    "tests_cmd": "PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest -q tools/marketplace/tests/test_trust_tiers.py",
+    "nc": [
+      [
+        "IMP0158-NC1",
+        "known-broken-fixture",
+        "unknown-tier fixture REFUSED by admission while the first-party twin of the same content is AUTO-ADMITTED",
+        "probe1_unknown_refused.unknown_refused",
+        true,
+        true
+      ]
+    ],
+    "e1": "an unknown-tier fixture is refused by the admission path (both-states control: first-party twin admitted)",
+    "e2": "tier assignment is reproducible: same tier and digest across two subprocesses with different injected clocks",
+    "notes": "Deliverable build this session: tools/marketplace/trust_tiers.py implements tier assignment (first-party, vendor, community, unknown) plus the admission gate; trust_policy.py remains a g1 stub, superseded for this contract by trust_tiers. Catalog dependency B07 is not a work-unit id (residual).",
+    "residual": [
+      "catalog dependency token B07 is not a work-unit id in the catalog",
+      "NOT-CHECKED",
+      "catalog-forensics agent resolves the B07 reference"
+    ],
+    "defects": [
+      [
+        "IMP0158-D1",
+        "P3",
+        "open",
+        "tools/marketplace/tests/conftest.py inserts tools/ after marketplace at sys.path position 0, so bare-module imports resolve to g1 stub shadows (tools/scaffolder.py sets KINDS to the bare string KINDS); the new tests use package-form imports to avoid it"
+      ]
+    ]
+  }
+}

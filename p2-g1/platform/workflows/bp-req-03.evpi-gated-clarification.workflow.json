@@ -1,0 +1,471 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-req-03.evpi-gated-clarification",
+ "name": "EVPI-Gated Clarification",
+ "description": "Ask the owner 1-3 questions ONLY when the answer would change the approach, and never after the first two actions. The mid-task prohibition is a security property, not etiquette: a 'clarification' raised mid-task is the surface through which fetched content steers the plan. A prompt prefixed '*' is already scoped and must produce ZERO questions.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "product-design-and-strategy"
+ ],
+ "tags": [
+  "clarification",
+  "evpi",
+  "pre-execution",
+  "injection-surface"
+ ],
+ "flagship": true,
+ "params": {
+  "prompt": {
+   "type": "string",
+   "required": true,
+   "min_length": 1,
+   "description": "The raw owner prompt"
+  },
+  "repo_context_root": {
+   "type": "path",
+   "default": ".",
+   "description": "Root the scan grounds options in"
+  },
+  "star_prefixed": {
+   "type": "boolean",
+   "default": false,
+   "description": "True when the prompt begins with '*' - the scoped bypass; forces zero questions"
+  },
+  "actions_elapsed": {
+   "type": "integer",
+   "default": 0,
+   "minimum": 0,
+   "description": "Tool actions already taken this turn; >2 closes the clarification window for good"
+  },
+  "max_questions": {
+   "type": "integer",
+   "default": 3,
+   "minimum": 1,
+   "maximum": 3,
+   "description": "Hard cap. 4 questions is a violation, not a thorough gate."
+  }
+ },
+ "roles": {
+  "scanner": {
+   "description": "Grounds every candidate option in a real repo fact before it is offered",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "owner": {
+   "description": "The human being asked; the only role that can answer",
+   "vendor": "human",
+   "authority": "owner",
+   "speaking_rights": "on-request"
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "AskUserQuestion",
+   "Write(command-center/clarify/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/clarify/**"
+  ],
+  "forbid_write_paths": [
+   "command-center/WORK-UNIT-CATALOG.json"
+  ]
+ },
+ "model_routing": {
+  "strategy": "static",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "window-open": {
+   "predicate": "custom-expression",
+   "expression": "bypass_star == false AND actions_elapsed <= 2",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "evpi-positive": {
+   "predicate": "custom-expression",
+   "expression": "questions_with_single_plan == 0 AND questions_asked <= 3",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-scan",
+   "title": "S0 SCAN repo context",
+   "kind": "task",
+   "role": "scanner",
+   "timeout_seconds": 600,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-REQ03-S0",
+    "title": "Scan repo context so every option offered is grounded in a real fact",
+    "phase": "2B",
+    "question_or_target": "Collect the repo facts that could disambiguate the prompt, so no offered option is invented.",
+    "inputs": [
+     "params.prompt",
+     "params.repo_context_root"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "scanner",
+     "basis": "substantive subagents default to Opus"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Glob"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/clarify/req03-scan.json",
+    "output_schema": "command-center/schema/capability-index.schema.json",
+    "evidence_requirement": "every candidate option cites a file:line or an exact command output that grounds it",
+    "tests_required": [
+     "a scan that grounds zero options must FAIL, not emit an ungrounded option list"
+    ],
+    "reviewer_requirement": "none - gated mechanically by the grounding assertion, not by opinion",
+    "completion_sentinel": "SUCCESS:BP3-REQ03-S0 only when every option in the artifact carries a repo anchor; otherwise FAILED:BP3-REQ03-S0 <reason>",
+    "retry_policy": "none; a failed scan escalates to an open question rather than inventing options",
+    "failure_classification": [
+     "ungroundable-option",
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/clarify/req03-scan.json",
+     "schema_ref": "command-center/schema/capability-index.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-REQ03-S0",
+     "consumers": [
+      "s1-identify"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-identify",
+   "title": "S1 IDENTIFY material ambiguity",
+   "kind": "task",
+   "role": "scanner",
+   "depends_on": [
+    "s0-scan"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-REQ03-S1",
+    "title": "Separate material ambiguity from cosmetic under-specification",
+    "phase": "2B",
+    "question_or_target": "Name each ambiguity and the two or more materially different plans it would produce.",
+    "inputs": [
+     "command-center/clarify/req03-scan.json"
+    ],
+    "dependencies": [
+     "BP3-REQ03-S0"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "scanner",
+     "basis": "judgement over grounded facts"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/clarify/req03-ambiguities.json",
+    "output_schema": "command-center/schema/unknowns-closure.schema.json",
+    "evidence_requirement": "each ambiguity names the >=2 distinct plans it produces; a single-plan ambiguity is not material",
+    "tests_required": [
+     "an ambiguity listing one plan must be classified immaterial"
+    ],
+    "reviewer_requirement": "none - the >=2-distinct-plans test is mechanical",
+    "completion_sentinel": "SUCCESS:BP3-REQ03-S1 only when every recorded ambiguity lists at least two distinct plans; otherwise FAILED:BP3-REQ03-S1 <reason>",
+    "retry_policy": "none; an unresolvable ambiguity is recorded, not guessed",
+    "failure_classification": [
+     "spec-underspecified"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s2-evpi",
+   "title": "S2 COMPUTE EVPI and drop zero-value questions",
+   "kind": "gate",
+   "depends_on": [
+    "s1-identify"
+   ],
+   "gate_ref": "evpi-positive"
+  },
+  {
+   "id": "s2b-window",
+   "title": "S2b ENFORCE the pre-execution window and the * bypass",
+   "kind": "gate",
+   "depends_on": [
+    "s2-evpi"
+   ],
+   "gate_ref": "window-open"
+  },
+  {
+   "id": "s3-ask",
+   "title": "S3 ASK at most three grounded questions",
+   "kind": "human_checkpoint",
+   "depends_on": [
+    "s2b-window"
+   ],
+   "prompt": "Answer the surviving clarification questions, or reply 'proceed' to accept the stated default for each.",
+   "approvers": [
+    "owner"
+   ],
+   "approval_mode": "owner-only",
+   "timeout_seconds": 3600,
+   "on_timeout": "proceed",
+   "owner_approval_required": false,
+   "options": [
+    "answer",
+    "proceed-with-defaults",
+    "cancel"
+   ],
+   "decision_artifact": {
+    "path": "command-center/clarify/req03-questions.json",
+    "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+    "min_bytes": 192,
+    "register_in_manifest": true,
+    "consumers": [
+     "command-center/clarify/req03-closure.json"
+    ]
+   }
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "no-material-ambiguity-or-cap-reached",
+   "expression": "material_ambiguity == false OR questions_asked >= 3",
+   "applies_to": "workflow",
+   "minimum_conditions": "repo_context_scanned == true",
+   "on_stop": "complete"
+  },
+  {
+   "id": "scoped-bypass",
+   "expression": "bypass_star == true",
+   "applies_to": "workflow",
+   "on_stop": "complete"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "none",
+  "max_attempts": 1
+ },
+ "failure_policy": {
+  "on_failure": "degrade-loudly",
+  "classify_as": [
+   "ungroundable-option",
+   "spec-underspecified"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "s3-ask",
+  "quarantine_path": "command-center/quarantine/req03"
+ },
+ "resume": {
+  "enabled": false
+ },
+ "replay": {
+  "deterministic": false
+ },
+ "cache": {
+  "enabled": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "permission-report"
+  ],
+  "plan_artifact": "command-center/dry-run/req03-plan.json",
+  "forbid_tools": [
+   "AskUserQuestion",
+   "Write(command-center/clarify/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 20,
+   "expected": 120,
+   "max": 600
+  },
+  "tokens": {
+   "min": 4000,
+   "expected": 20000,
+   "max": 80000
+  },
+  "tool_calls": {
+   "expected": 8,
+   "max": 40
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "writes only under command-center/clarify/**; asks the owner at most three questions",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-req-03.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "skills/clarify-requirements",
+    "relation": "ADOPT-AS-IS",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "AGENTS.md#1-front-load-clarification",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-03",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true,
+  "rollback_to": [
+   "skills/clarify-requirements@current"
+  ]
+ },
+ "outputs": {
+  "questions": {
+   "path": "command-center/clarify/req03-questions.json",
+   "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+   "min_bytes": 192,
+   "register_in_manifest": true,
+   "consumers": [
+    "the calling workflow",
+    "command-center/clarify/req03-closure.json"
+   ]
+  },
+  "closure": {
+   "path": "command-center/clarify/req03-closure.json",
+   "schema_ref": "command-center/schema/owner-question-closure.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the calling workflow"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-03 (doc-order 25 of 96)",
+  "distinguishing_mechanism": "drop a question whose options all produce the SAME plan; actuator is a human checkpoint. BP-REQ-04 shares the pre-execution slot but actuates a probe.",
+  "contraindications": [
+   "never mid-task (actions_elapsed > 2)",
+   "never when the prompt is '*'-prefixed",
+   "never to rubber-stamp an obvious task - that is permission theatre"
+  ],
+  "worked_example": {
+   "name": "star-bypass and single-plan drop",
+   "narrative": "Two candidate questions are raised. The first offers two options that produce genuinely different plans and survives. The second offers three options that all produce 'rebuild-from-scratch', so its EVPI is zero and it is dropped. A second run with star_prefixed=true must ask nothing at all.",
+   "mechanism": "mechanisms.evpi_questions",
+   "input": {
+    "candidates": [
+     {
+      "text": "Should the migration be in-place or via a shadow table?",
+      "options": {
+       "in-place": "plan-A",
+       "shadow-table": "plan-B"
+      }
+     },
+     {
+      "text": "Which font should the report use?",
+      "options": {
+       "inter": "rebuild-from-scratch",
+       "roboto": "rebuild-from-scratch",
+       "system": "rebuild-from-scratch"
+      }
+     }
+    ],
+    "star_prefixed": false,
+    "actions_elapsed": 0
+   },
+   "expected": {
+    "kept_texts": [
+     "Should the migration be in-place or via a shadow table?"
+    ],
+    "dropped_count": 1
+   },
+   "controls": [
+    {
+     "star_prefixed": true,
+     "expected_kept": 0,
+     "why": "the '*' bypass must be absolute"
+    },
+    {
+     "actions_elapsed": 3,
+     "expected_kept": 0,
+     "why": "the window closes after two actions"
+    }
+   ]
+  }
+ }
+}

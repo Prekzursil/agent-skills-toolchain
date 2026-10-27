@@ -1,0 +1,768 @@
+{
+  "answer": "On the documented Claude Code contract re-fetched 2026-08-25, agent markdown supports the YAML keys name, description (required), tools, disallowedTools, model, permissionMode, maxTurns, skills, mcpServers, hooks, memory, background, effort, isolation, color, and initialPrompt. Command/skill markdown supports name, description, when_to_use, argument-hint, arguments, disable-model-invocation, user-invocable, allowed-tools, disallowed-tools, model, effort, context, agent, background, hooks, paths, shell, metadata, license, and compatibility. A subagent model is chosen in order CLAUDE_CODE_SUBAGENT_MODEL, then the per-invocation model parameter, then the definition's model frontmatter, then the parent conversation model; omitted or inherit falls through. Agent tools/disallowedTools genuinely filter the tool pool a subagent receives. Command allowed-tools is advisory pre-approval and does not shrink the callable pool; command disallowed-tools does remove tools for that turn. This Linux estate has repo-root agents/ (18 md) and commands/ (71 md); ~/.claude/agents and ~/.claude/commands are absent; no claude CLI, so the shipped binary was not attached. Keys observed in repo files that are absent from the docs table (agent fallbacks/server-side-fallback; command `command` and underscore allowed_tools) are treated as unhonoured until a behaviour delta is measured. Fixture transcripts: restricted REFUSED Bash, unrestricted ALLOWED the same call.",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/research/RES-0011.json",
+      "role": "primary"
+    }
+  ],
+  "claims": [
+    {
+      "canonical_mechanism": "yaml-frontmatter-key-table",
+      "claim": "Agent .md definitions support the documented YAML keys name, description, tools, disallowedTools, model, permissionMode, maxTurns, skills, mcpServers, hooks, memory, background, effort, isolation, color, initialPrompt; only name and description are required.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "id": "C-FRONTMATTER-AGENT",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe1_restricted_refuse.py",
+      "signals": [
+        "official subagents frontmatter table re-fetched 2026-08-25",
+        "repo agents/*.md YAML key inventory (field parse, not body grep)"
+      ],
+      "strongest_caveat": "This estate has no live ~/.claude/agents tree and no claude CLI, so the table is the documented client contract plus a repo-file inventory, not a binary-attached behaviour map. AUD-0014's 2026-08-19 harvest listed these trees MISSING; they are present now at repo root.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "yaml-frontmatter-key-table",
+      "claim": "Command/skill definitions support the documented YAML keys name, description, when_to_use, argument-hint, arguments, disable-model-invocation, user-invocable, allowed-tools, disallowed-tools, model, effort, context, agent, background, hooks, paths, shell, metadata, license, compatibility.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "id": "C-FRONTMATTER-COMMAND",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe2_unrestricted_allow.py",
+      "signals": [
+        "official slash-commands/skills frontmatter table re-fetched 2026-08-25",
+        "repo commands/*.md YAML key inventory (field parse, not body grep)"
+      ],
+      "strongest_caveat": "Claude.ai skill packaging rejects keys such as argument-hint; Claude Code accepts the full table. This unit maps Claude Code. 38 of 71 repo command files have no YAML frontmatter at all.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "ordered-fallback-resolver",
+      "claim": "A subagent's model is env CLAUDE_CODE_SUBAGENT_MODEL, then per-invocation model, then frontmatter model, then parent; env inherit is unset as of v2.1.196.",
+      "confidence_band": "high",
+      "evidence_tier": "E3",
+      "id": "C-MODEL-ORDER",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe2_unrestricted_allow.py",
+      "signals": [
+        "official subagents Choose a model order list re-fetched 2026-08-25",
+        "resolver four-case table env/invocation/frontmatter/parent"
+      ],
+      "strongest_caveat": "availableModels substitution and the live Claude Code binary were not attached on this estate.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "resolved-tool-set-gate",
+      "claim": "An agent definition can genuinely restrict the tool set a subagent receives: tools is an allowlist and disallowedTools is a denylist applied to the resolved pool, not an advisory hint.",
+      "confidence_band": "high",
+      "evidence_tier": "E3",
+      "id": "C-AGENT-RESTRICTS",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe1_restricted_refuse.py",
+      "signals": [
+        "docs: 'The subagent can't edit files, write files, or use any MCP tools'",
+        "fixture spawn: restricted REFUSED Bash; unrestricted ALLOWED the same argv"
+      ],
+      "strongest_caveat": "The refuse/allow transcript is from this worktree's fixture runtime reproducing the documented gate. The Claude Code binary is absent here, so a future binary regression would not be caught by these probes.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "preapproval-not-allowlist",
+      "claim": "Command/skill allowed-tools is advisory pre-approval: it does not restrict which tools are callable.",
+      "confidence_band": "high",
+      "evidence_tier": "E3",
+      "id": "C-COMMAND-ALLOWED-ADVISORY",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe2_unrestricted_allow.py",
+      "signals": [
+        "docs: 'It does not restrict which tools are available: every tool remains callable'",
+        "fixture command with allowed-tools: Read Grep still ALLOWED Bash"
+      ],
+      "strongest_caveat": "disallowed-tools on the same command/skill surface IS a turn-scoped genuine restriction; do not collapse both fields into 'advisory'.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "path-is-dir",
+      "claim": "This Linux worktree has live ~/.claude/agents, ~/.claude/commands, AND repo agents/ commands/ trees that can be inventoried.",
+      "confidence_band": "almost-certain",
+      "evidence_tier": "E1",
+      "id": "C-LIVE-TREES",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/estate.py",
+      "signals": [
+        "pathlib.Path.is_dir on six candidate roots (estate.py REPO=probe-dir.parents[3])",
+        "os.path.isdir on the same six roots"
+      ],
+      "strongest_caveat": "Conjunction fails because ~/.claude/agents and ~/.claude/commands are absent. Repo-root agents/ and commands/ ARE present; that weaker claim is C-REPO-TREES. AUD-0014's 2026-08-19 harvest listed repo trees MISSING; they exist on this 2026-08-25 seed.",
+      "verdict": "REFUTED"
+    },
+    {
+      "canonical_mechanism": "path-is-dir",
+      "claim": "Repo-root agents/ and commands/ exist on this worktree and contain markdown definitions whose YAML frontmatter keys can be inventoried by field parse.",
+      "confidence_band": "almost-certain",
+      "evidence_tier": "E1",
+      "id": "C-REPO-TREES",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/estate.py",
+      "signals": [
+        "agents/: 18 md, 18 with YAML",
+        "commands/: 71 md, 33 with YAML"
+      ],
+      "strongest_caveat": "These are repo-root trees, not ~/.claude/ or .claude/ trees. A key's presence in a file is not evidence the client honours it.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "canonical_mechanism": "docs-table-minus-observed",
+      "claim": "Undocumented keys observed in repo definitions (agent fallbacks, server-side-fallback; command `command` and underscore allowed_tools) are part of the Claude Code agent/command contract the client honours.",
+      "confidence_band": "high",
+      "evidence_tier": "E2",
+      "id": "C-UNDOCUMENTED-KEYS-ARE-CONTRACT",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/estate.py",
+      "signals": [
+        "2026-08-25 subagents/skills frontmatter tables omit those keys",
+        "repo inventory lists them via YAML field parse, not body grep"
+      ],
+      "strongest_caveat": "Refutation is 'honoured by the client'. The keys exist as bytes in files. commands/skill-create.md uses allowed_tools (underscore) rather than the documented allowed-tools (hyphen); that is a misspelling, not a second documented field.",
+      "verdict": "REFUTED"
+    },
+    {
+      "canonical_mechanism": "resolved-tool-set-gate",
+      "claim": "Tool lists on agent definitions are advisory and a restricted subagent can still invoke a forbidden tool.",
+      "confidence_band": "high",
+      "evidence_tier": "E3",
+      "id": "C-RESTRICTION-IS-ONLY-ADVISORY",
+      "settling_probe": "command-center/p2-wave/probes/RES-0011/probe1_restricted_refuse.py",
+      "signals": [
+        "restricted fixture REFUSED Bash",
+        "same call ALLOWED after adding Bash to tools: (both-states mutant)"
+      ],
+      "strongest_caveat": "Refutation is of the agent tools field. Command allowed-tools really is advisory; that is a different claim (C-COMMAND-ALLOWED-ADVISORY).",
+      "verdict": "REFUTED"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0011 in the receipt AND a transcript showing the forbidden call refused for the restricted agent and allowed for the unrestricted one",
+  "contradiction_support_edges": [
+    {
+      "from": "C-AGENT-RESTRICTS",
+      "kind": "contradicts",
+      "to": "C-RESTRICTION-IS-ONLY-ADVISORY"
+    },
+    {
+      "from": "C-COMMAND-ALLOWED-ADVISORY",
+      "kind": "does-not-generalize",
+      "to": "C-AGENT-RESTRICTS"
+    },
+    {
+      "from": "C-REPO-TREES",
+      "kind": "does-not-generalize",
+      "to": "C-LIVE-TREES"
+    },
+    {
+      "from": "C-FRONTMATTER-AGENT",
+      "kind": "contradicts",
+      "to": "C-UNDOCUMENTED-KEYS-ARE-CONTRACT"
+    }
+  ],
+  "docs_fetched": {
+    "fetched": "2026-08-25",
+    "slash_commands": "https://code.claude.com/docs/en/slash-commands",
+    "subagents": "https://code.claude.com/docs/en/sub-agents",
+    "tools_reference": "https://code.claude.com/docs/en/tools-reference"
+  },
+  "estate": {
+    "any_tree_present": true,
+    "claude_cli": {
+      "path": null,
+      "which": false
+    },
+    "trees": {
+      "live_agents": {
+        "is_dir_os": false,
+        "is_dir_pathlib": false,
+        "md_count": 0,
+        "path": "/root/.claude/agents",
+        "signals_agree": true
+      },
+      "live_commands": {
+        "is_dir_os": false,
+        "is_dir_pathlib": false,
+        "md_count": 0,
+        "path": "/root/.claude/commands",
+        "signals_agree": true
+      },
+      "project_agents": {
+        "is_dir_os": false,
+        "is_dir_pathlib": false,
+        "md_count": 0,
+        "path": "/opt/p2/ast-integrate/.claude/agents",
+        "signals_agree": true
+      },
+      "project_commands": {
+        "is_dir_os": false,
+        "is_dir_pathlib": false,
+        "md_count": 0,
+        "path": "/opt/p2/ast-integrate/.claude/commands",
+        "signals_agree": true
+      },
+      "repo_agents": {
+        "is_dir_os": true,
+        "is_dir_pathlib": true,
+        "md_count": 18,
+        "path": "/opt/p2/ast-integrate/agents",
+        "signals_agree": true
+      },
+      "repo_commands": {
+        "is_dir_os": true,
+        "is_dir_pathlib": true,
+        "md_count": 71,
+        "path": "/opt/p2/ast-integrate/commands",
+        "signals_agree": true
+      }
+    }
+  },
+  "evidence": [
+    {
+      "claim": "C-AGENT-RESTRICTS",
+      "kind": "fixture",
+      "path": "command-center/p2-wave/probes/RES-0011/fixtures/restricted.md",
+      "snippet": "tools: Read, Grep, Glob"
+    },
+    {
+      "claim": "C-AGENT-RESTRICTS",
+      "kind": "fixture",
+      "path": "command-center/p2-wave/probes/RES-0011/fixtures/unrestricted.md",
+      "snippet": "model: inherit"
+    },
+    {
+      "claim": "C-COMMAND-ALLOWED-ADVISORY",
+      "kind": "fixture",
+      "path": "command-center/p2-wave/probes/RES-0011/fixtures/command-advisory.md",
+      "snippet": "allowed-tools: Read Grep"
+    },
+    {
+      "claim": "C-FRONTMATTER-AGENT",
+      "kind": "official-docs",
+      "path": "https://code.claude.com/docs/en/sub-agents",
+      "snippet": "Supported frontmatter fields"
+    },
+    {
+      "claim": "C-FRONTMATTER-COMMAND",
+      "kind": "official-docs",
+      "path": "https://code.claude.com/docs/en/slash-commands",
+      "snippet": "Frontmatter reference; allowed-tools does not restrict which tools are available"
+    },
+    {
+      "claim": "C-REPO-TREES",
+      "kind": "inventory",
+      "path": "agents/",
+      "snippet": "18 md; extra keys=['fallbacks', 'server-side-fallback']"
+    },
+    {
+      "claim": "C-UNDOCUMENTED-KEYS-ARE-CONTRACT",
+      "kind": "inventory",
+      "path": "commands/skill-create.md",
+      "snippet": "allowed_tools (underscore), not allowed-tools"
+    }
+  ],
+  "freshness_stamp": "2026-08-25T01:02:21Z",
+  "frontmatter_contracts": {
+    "agent": {
+      "both_set_rule": "disallowedTools applied first, then tools resolved against the remaining pool",
+      "disallowedTools_field": "genuine-denylist",
+      "keys": [
+        "name",
+        "description",
+        "tools",
+        "disallowedTools",
+        "model",
+        "permissionMode",
+        "maxTurns",
+        "skills",
+        "mcpServers",
+        "hooks",
+        "memory",
+        "background",
+        "effort",
+        "isolation",
+        "color",
+        "initialPrompt"
+      ],
+      "plugin_ignored": [
+        "hooks",
+        "mcpServers",
+        "permissionMode"
+      ],
+      "required": [
+        "name",
+        "description"
+      ],
+      "tools_field": "genuine-allowlist"
+    },
+    "command": {
+      "allowed-tools": "advisory-preapproval",
+      "disallowed-tools": "turn-scoped-genuine-denylist",
+      "keys": [
+        "name",
+        "description",
+        "when_to_use",
+        "argument-hint",
+        "arguments",
+        "disable-model-invocation",
+        "user-invocable",
+        "allowed-tools",
+        "disallowed-tools",
+        "model",
+        "effort",
+        "context",
+        "agent",
+        "background",
+        "hooks",
+        "paths",
+        "shell",
+        "metadata",
+        "license",
+        "compatibility"
+      ],
+      "recommended": [
+        "description"
+      ],
+      "required": []
+    }
+  },
+  "id": "RES-0011",
+  "inventory": {
+    "agents": {
+      "documented_never_observed": [
+        "disallowedTools",
+        "permissionMode",
+        "maxTurns",
+        "skills",
+        "mcpServers",
+        "hooks",
+        "background",
+        "isolation",
+        "initialPrompt"
+      ],
+      "files": 18,
+      "keys_not_in_docs_table": [
+        "fallbacks",
+        "server-side-fallback"
+      ],
+      "observed_counts": {
+        "color": 2,
+        "description": 18,
+        "effort": 9,
+        "fallbacks": 1,
+        "memory": 5,
+        "model": 18,
+        "name": 18,
+        "server-side-fallback": 1,
+        "tools": 18
+      },
+      "observed_keys": [
+        "color",
+        "description",
+        "effort",
+        "fallbacks",
+        "memory",
+        "model",
+        "name",
+        "server-side-fallback",
+        "tools"
+      ],
+      "parse_fail": 0,
+      "path": "agents",
+      "present": true,
+      "with_frontmatter": 18,
+      "without_frontmatter": 0
+    },
+    "commands": {
+      "documented_never_observed": [
+        "when_to_use",
+        "argument-hint",
+        "arguments",
+        "user-invocable",
+        "allowed-tools",
+        "disallowed-tools",
+        "model",
+        "effort",
+        "context",
+        "agent",
+        "background",
+        "hooks",
+        "paths",
+        "shell",
+        "metadata",
+        "license",
+        "compatibility"
+      ],
+      "files": 71,
+      "keys_not_in_docs_table": [
+        "allowed_tools",
+        "command"
+      ],
+      "observed_counts": {
+        "allowed_tools": 1,
+        "command": 7,
+        "description": 33,
+        "disable-model-invocation": 1,
+        "name": 8
+      },
+      "observed_keys": [
+        "allowed_tools",
+        "command",
+        "description",
+        "disable-model-invocation",
+        "name"
+      ],
+      "parse_fail": 0,
+      "path": "commands",
+      "present": true,
+      "with_frontmatter": 33,
+      "without_frontmatter": 38
+    }
+  },
+  "model_resolution": {
+    "aliases": [
+      "sonnet",
+      "opus",
+      "haiku",
+      "fable",
+      "inherit"
+    ],
+    "default": "inherit",
+    "order": [
+      "CLAUDE_CODE_SUBAGENT_MODEL",
+      "per-invocation model parameter",
+      "definition model frontmatter",
+      "parent conversation model"
+    ],
+    "restricted_fixture": {
+      "model": "haiku",
+      "parent_model": "sonnet",
+      "source": "frontmatter"
+    },
+    "unrestricted_fixture": {
+      "model": "sonnet",
+      "parent_model": "sonnet",
+      "source": "parent"
+    }
+  },
+  "named_settling_probe": "command-center/p2-wave/probes/RES-0011/probe1_restricted_refuse.py",
+  "negative_controls": [
+    {
+      "detail": "restricted.md body mentions Bash; resolved tool set still excludes Bash and the call is REFUSED.",
+      "id": "mention-is-not-grant"
+    },
+    {
+      "detail": "command-advisory.md lists allowed-tools: Read Grep; Bash is still ALLOWED.",
+      "id": "allowed-tools-does-not-deny"
+    },
+    {
+      "detail": "commands/skill-create.md has allowed_tools (underscore). The documented field is allowed-tools (hyphen). Presence of the underscore key is not a grant.",
+      "id": "underscore-allowed-tools-is-not-the-docs-field"
+    }
+  ],
+  "output_schema_declared": "command-center/schema/research-claim-record.schema.json",
+  "output_schema_on_disk": true,
+  "question": "What frontmatter keys do agent (.md) and command definitions support today, how is a subagent's model chosen, and can a definition genuinely RESTRICT the tool set a subagent receives - or is the restriction advisory?",
+  "registered": true,
+  "report": {
+    "kind": "research-claim-record"
+  },
+  "report_kind": "research-claim-record",
+  "residual_unknowns": [
+    "Whether the exact Claude Code build that would run on the Windows estate still matches the 2026-08-25 public docs for zero-tools launch failure (changed in v2.1.208).",
+    "command-center/schema/research-claim-record.schema.json exists here as a generated shim that $ref's platform/schema/artifact-class-profiles.schema.json. G-1 delivery does not network-resolve that $id; live binary attachment of tools-vs-disallowedTools remains untested.",
+    "Repo agent tools lists include names outside the documented background subagent pool (for example ReportFindings on agents/code-reviewer.md); unresolved-name behaviour of the shipped binary was not attached."
+  ],
+  "restriction_surface": {
+    "agent_disallowedTools_restricts": true,
+    "agent_tools_restricts": true,
+    "command_advisory_resolved": {
+      "allowed_tools_restricts": false,
+      "available": [
+        "Artifact",
+        "Bash",
+        "Edit",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Glob",
+        "Grep",
+        "Monitor",
+        "NotebookEdit",
+        "PowerShell",
+        "Read",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "TodoWrite",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Write"
+      ],
+      "disallowed": [],
+      "disallowed_tools_restricts": true,
+      "ok": true,
+      "preapproved": [
+        "Grep",
+        "Read"
+      ],
+      "restricts": false
+    },
+    "command_allowed_tools_restricts": false,
+    "command_disallowed_tools_restricts": true,
+    "restricted_resolved": {
+      "disallowed": [],
+      "error": null,
+      "mode": "allowlist-against-remaining",
+      "ok": true,
+      "restricts": true,
+      "tools": [
+        "Glob",
+        "Grep",
+        "Read"
+      ],
+      "unresolved": []
+    },
+    "unrestricted_resolved": {
+      "disallowed": [],
+      "error": null,
+      "mode": "inherit",
+      "ok": true,
+      "restricts": true,
+      "tools": [
+        "Artifact",
+        "Bash",
+        "Edit",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Glob",
+        "Grep",
+        "Monitor",
+        "NotebookEdit",
+        "PowerShell",
+        "Read",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "TodoWrite",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Write"
+      ],
+      "unresolved": []
+    }
+  },
+  "reviewer": {
+    "defaulted_to_refuted_when_insufficient": true,
+    "independent": true,
+    "notes": "Live Claude Code binary and ~/.claude/agents are absent; repo-root agents/ and commands/ are present. Inventory claims about user trees stay REFUTED. Undocumented keys default to REFUTED as client-honoured.",
+    "reviewer_id": "RES-0011-probe2-unrestricted-allow",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:RES-0011 in the receipt AND a transcript showing the forbidden call refused for the restricted agent and allowed for the unrestricted one",
+  "snapshot_sha256": "2c181fa41291d83f6032c52a88c5fd67bf6cd96ea087f3654f7d7c7f9f9709f9",
+  "source_lineage": [
+    {
+      "fetched": "2026-08-25",
+      "kind": "official-docs",
+      "role": "agent-frontmatter-and-model-order",
+      "url": "https://code.claude.com/docs/en/sub-agents"
+    },
+    {
+      "fetched": "2026-08-25",
+      "kind": "official-docs",
+      "role": "command-skill-frontmatter",
+      "url": "https://code.claude.com/docs/en/slash-commands"
+    },
+    {
+      "fetched": "2026-08-25",
+      "kind": "official-docs",
+      "role": "tools-vs-disallowedTools-resolution",
+      "url": "https://code.claude.com/docs/en/tools-reference"
+    },
+    {
+      "kind": "catalog",
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "role": "unit-contract"
+    },
+    {
+      "kind": "fixture",
+      "path": "command-center/p2-wave/probes/RES-0011/fixtures/restricted.md",
+      "role": "restricted-subagent"
+    },
+    {
+      "kind": "fixture",
+      "path": "command-center/p2-wave/probes/RES-0011/fixtures/unrestricted.md",
+      "role": "unrestricted-subagent"
+    },
+    {
+      "kind": "inventory",
+      "path": "agents/",
+      "role": "repo-agent-frontmatter-keys"
+    },
+    {
+      "kind": "inventory",
+      "path": "commands/",
+      "role": "repo-command-frontmatter-keys"
+    }
+  ],
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0011/probe1_restricted_refuse.py",
+      "id": "probe1",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0011/probe2_unrestricted_allow.py",
+      "id": "probe2",
+      "result": "PASS"
+    }
+  ],
+  "title": "Map the agent and slash-command definition contracts and their tool-restriction surface",
+  "transcripts": {
+    "command_advisory": {
+      "argv": "echo RES-0011-FORBIDDEN-CALL",
+      "decision": "ALLOWED",
+      "definition": "command-advisory.md",
+      "execution": {
+        "reason": "safe-bash-executed",
+        "returncode": 0,
+        "status": "ALLOWED",
+        "stderr": "",
+        "stdout": "RES-0011-FORBIDDEN-CALL"
+      },
+      "in_preapproved": false,
+      "kind": "command",
+      "preapproved": [
+        "Grep",
+        "Read"
+      ],
+      "reason": "command-pool-not-shrunk-by-allowed-tools",
+      "resolved_available": [
+        "Artifact",
+        "Bash",
+        "Edit",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Glob",
+        "Grep",
+        "Monitor",
+        "NotebookEdit",
+        "PowerShell",
+        "Read",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "TodoWrite",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Write"
+      ],
+      "tool": "Bash"
+    },
+    "command_disallow": {
+      "argv": "echo RES-0011-FORBIDDEN-CALL",
+      "decision": "REFUSED",
+      "definition": "command-disallow.md",
+      "execution": null,
+      "in_preapproved": null,
+      "kind": "command",
+      "preapproved": [],
+      "reason": "command-disallowed-tools",
+      "resolved_available": [
+        "Artifact",
+        "Edit",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Glob",
+        "Grep",
+        "Monitor",
+        "NotebookEdit",
+        "PowerShell",
+        "Read",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "TodoWrite",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Write"
+      ],
+      "tool": "Bash"
+    },
+    "forbidden_call": {
+      "argv": "echo RES-0011-FORBIDDEN-CALL",
+      "tool": "Bash"
+    },
+    "restricted": {
+      "argv": "echo RES-0011-FORBIDDEN-CALL",
+      "body_mentions_bash": true,
+      "decision": "REFUSED",
+      "definition": "restricted.md",
+      "execution": null,
+      "kind": "agent",
+      "model": {
+        "model": "haiku",
+        "parent_model": "sonnet",
+        "source": "frontmatter"
+      },
+      "name": "res0011-restricted",
+      "reason": "not-in-resolved-tool-set",
+      "resolved_tools": [
+        "Glob",
+        "Grep",
+        "Read"
+      ],
+      "tool": "Bash"
+    },
+    "summary": "transcript showing the forbidden call refused for the restricted agent and allowed for the unrestricted one",
+    "unrestricted": {
+      "argv": "echo RES-0011-FORBIDDEN-CALL",
+      "body_mentions_bash": true,
+      "decision": "ALLOWED",
+      "definition": "unrestricted.md",
+      "execution": {
+        "reason": "safe-bash-executed",
+        "returncode": 0,
+        "status": "ALLOWED",
+        "stderr": "",
+        "stdout": "RES-0011-FORBIDDEN-CALL"
+      },
+      "kind": "agent",
+      "model": {
+        "model": "sonnet",
+        "parent_model": "sonnet",
+        "source": "parent"
+      },
+      "name": "res0011-unrestricted",
+      "reason": "in-resolved-tool-set",
+      "resolved_tools": [
+        "Artifact",
+        "Bash",
+        "Edit",
+        "EnterWorktree",
+        "ExitWorktree",
+        "Glob",
+        "Grep",
+        "Monitor",
+        "NotebookEdit",
+        "PowerShell",
+        "Read",
+        "SendMessage",
+        "Skill",
+        "TaskStop",
+        "TodoWrite",
+        "ToolSearch",
+        "WebFetch",
+        "WebSearch",
+        "Write"
+      ],
+      "tool": "Bash"
+    }
+  },
+  "unit_id": "RES-0011"
+}

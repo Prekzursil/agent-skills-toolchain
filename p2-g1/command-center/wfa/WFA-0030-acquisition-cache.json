@@ -1,0 +1,396 @@
+{
+ "schema_version": 1,
+ "unit_id": "WFA-0030",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0030",
+ "completion_sentinel": "SUCCESS:WFA-0030",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0030",
+ "min_bytes_threshold": 1024,
+ "timestamps": {
+  "started_at": "2026-09-02T01:03:25Z",
+  "ended_at": "2026-10-26T18:06:21Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "shard23 wave-4 builder (resume): prior builder died mid-flight; artifact verified against the live contract, not rebuilt; probes fail-closed, max 3 fix cycles per unit"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0030-acquisition-cache.json",
+   "bytes": 1,
+   "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Artifact command-center/wfa/WFA-0030-acquisition-cache.json exists on disk, parses, and validates against the catalog output_schema (command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport) under the blessed schema_resolver.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0030-acquisition-cache.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:WFA-0030-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+     "fingerprint": "236614e800ce8918",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:WFA-0030-probe2 re-derivation + live mutant control + manifest byte-compare OK",
+     "fingerprint": "368b9c6d02fa141b",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Cache identity recomputes: 6 rows == 6 populated == 6 cold calls, warm re-run byte-identical (report sha on file), expired entry refetched, empty store reports EMPTY not OK, query keys distinct, truncated payloads rejected.",
+   "verdict": "CONFIRMED",
+   "confidence": "likely",
+   "anchor": "command-center/wfa/WFA-0030-acquisition-cache.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe2_independent_recheck.py",
+     "raw_output": "SUCCESS:WFA-0030-probe2 re-derivation + live mutant control + manifest byte-compare OK",
+     "fingerprint": "368b9c6d02fa141b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe1_delivery_predicate.py",
+     "raw_output": "SUCCESS:WFA-0030-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+     "fingerprint": "236614e800ce8918",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "WFA-0030-probe1",
+   "name": "delivery predicate (live)",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe1_delivery_predicate.py",
+   "result": "PASS"
+  },
+  {
+   "id": "WFA-0030-probe2",
+   "name": "independent re-derivation + live mutant control",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe2_independent_recheck.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "WFA-0030-LIVE-MUTANT",
+   "kind": "mutation",
+   "description": "probe2 live both-states control: re-derivation must fire on a mutated headline number and stay silent on the intact artifact (run live each time the probe executes).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "WFA-0030-probe2-independent-recheck",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "notes": "probe2 mechanically re-derives the headline claims from raw rows on a different code path, runs the live both-states mutation control, and byte-compares the manifest registration; wave independent reviewer closure still pending - the RECEIPT stays BLOCKED/reviewer-absent."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0030/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0030"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "probe1_delivery_predicate.py (shard23 resume)",
+   "artifact_path": "command-center/wfa/WFA-0030-acquisition-cache.json",
+   "executed": true,
+   "read_ok": true,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe1_delivery_predicate.py",
+    "raw_output": "SUCCESS:WFA-0030-probe1 delivery predicate: parses, state=SUCCESS, schema-valid (blessed resolver), sentinel present, evidence pair legal, controls recorded, manifest row live",
+    "fingerprint": "236614e800ce8918",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [],
+ "report": {
+  "kind": "ProbeReport",
+  "observations": [
+   {
+    "name": "cold_network_calls",
+    "measured": 6,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0030-artifact"
+   },
+   {
+    "name": "identity_rows",
+    "measured": 6,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0030-artifact"
+   },
+   {
+    "name": "warm_rerun_byte_identical",
+    "measured": true,
+    "method": "byte-compare",
+    "anchor": "command-center/wfa/WFA-0030-artifact"
+   },
+   {
+    "name": "empty_cache_ok",
+    "measured": false,
+    "method": "static-analysis",
+    "anchor": "command-center/wfa/WFA-0030-artifact"
+   }
+  ],
+  "control_ids": [
+   "WFA-0030-LIVE-MUTANT"
+  ]
+ },
+ "extensions": {
+  "legacy_root": {
+   "answer": "The acquisition cache keys on the canonical URL including query parameters and stores payload bytes content-addressed beside retrieval timestamp and HTTP validators (ETag, Last-Modified). Cold sweep of 6 URLs issued 6 transport calls; the warm re-run issued 0 and produced a byte-identical identity report (89c3481aeffe2566…). Empty-store health ok=False status=EMPTY; after verified entries health ok=True. An expired entry source=STALE-REFETCH with 1 transport call(s); a truncated payload was rejected and refetched (1 call(s)); query-parameter pairs have distinct keys (True). Transport is an in-process instrumented page map, not live HTTP. WFA-0001 schema pack is absent on this worktree. SUCCESS:WFA-0030",
+   "artifacts": [
+    {
+     "path": "command-center/wfa/WFA-0030-acquisition-cache.json",
+     "role": "primary"
+    },
+    {
+     "path": "command-center/p2-wave/probes/WFA-0030/probe-report.schema.json",
+     "role": "local-schema"
+    },
+    {
+     "path": "command-center/p2-wave/probes/WFA-0030/fixtures/pages.json",
+     "role": "disclosed-page-fixture"
+    }
+   ],
+   "completion_sentinel": "SUCCESS:WFA-0030",
+   "evidence": {
+    "A": {
+     "claim": "Warm-cache re-run of the fixture sweep issued zero transport calls and produced a byte-identical identity report (URL, payload sha256, bytes, ETag, Last-Modified).",
+     "cold_network_calls": 6,
+     "report_sha256": "89c3481aeffe25666dc4c5b2c1ed985e5cb178464a23786b3d8b066a69353999",
+     "reports_byte_identical": true,
+     "urls": [
+      "https://wfa-0030.test/changelog?since=2024-01",
+      "https://wfa-0030.test/changelog?since=2025-01",
+      "https://wfa-0030.test/docs/hooks",
+      "https://wfa-0030.test/docs/skills?lang=en",
+      "https://wfa-0030.test/docs/skills?lang=ja",
+      "https://wfa-0030.test/docs/subagents"
+     ],
+     "warm_network_calls": 0
+    },
+    "B": {
+     "claim": "Empty-store health is ok=false (the estate defect is empty-cache-reports-ok). A deliberately expired entry issues a refetch, proving freshness is not constant true.",
+     "empty_cache_ok": false,
+     "empty_status": "EMPTY",
+     "expire_calls": 1,
+     "expired_refetch": true,
+     "expired_source": "STALE-REFETCH",
+     "naive_empty_ok": true,
+     "named_failure": "empty-cache-reports-ok",
+     "trunc_calls": 1,
+     "truncated_rejected": true
+    }
+   },
+   "kind": "ProbeReport",
+   "measured": {
+    "cold_network_calls": 6,
+    "collision_pairs": [
+     {
+      "bodies_distinct": true,
+      "canonical_a": "https://wfa-0030.test/docs/skills?lang=en",
+      "canonical_b": "https://wfa-0030.test/docs/skills?lang=ja",
+      "key_a": "7aefc27c580c5511fce42d922205c36da9b6ff2c0ae57e8260533d54342d4508",
+      "key_b": "e05b5e6d07a1a1fb201debcb38cf18876b34dda459a80934b72fd030ec1036d2",
+      "keys_distinct": true,
+      "url_a": "https://wfa-0030.test/docs/skills?lang=en",
+      "url_b": "https://wfa-0030.test/docs/skills?lang=ja"
+     },
+     {
+      "bodies_distinct": true,
+      "canonical_a": "https://wfa-0030.test/changelog?since=2024-01",
+      "canonical_b": "https://wfa-0030.test/changelog?since=2025-01",
+      "key_a": "0cead17e432ba995ae888e97e7364a83ce0ee5b1f6258b6c103ab0e0a4982f89",
+      "key_b": "6d9cb3dadbe4d3756ed5cbb933273a8e85c253d553b7dac401b94aff9505108d",
+      "keys_distinct": true,
+      "url_a": "https://wfa-0030.test/changelog?since=2024-01",
+      "url_b": "https://wfa-0030.test/changelog?since=2025-01"
+     }
+    ],
+    "counters": {
+     "corrupt_refetches": 1,
+     "empty_rejects": 1,
+     "hits": 8,
+     "misses": 6,
+     "stale_refetches": 1
+    },
+    "empty_cache_ok": false,
+    "empty_status": "EMPTY",
+    "expired_refetch": true,
+    "expired_source": "STALE-REFETCH",
+    "identity_rows": [
+     {
+      "bytes": 53,
+      "canonical_url": "https://wfa-0030.test/changelog?since=2024-01",
+      "etag": "W/\"chg-2024-01\"",
+      "last_modified": "Wed, 31 Jan 2024 00:00:00 GMT",
+      "payload_sha256": "99eaa21da513529562521121e7498457e2b972000a2d9c31a93756a439e9ed5a",
+      "url": "https://wfa-0030.test/changelog?since=2024-01"
+     },
+     {
+      "bytes": 47,
+      "canonical_url": "https://wfa-0030.test/changelog?since=2025-01",
+      "etag": "W/\"chg-2025-01\"",
+      "last_modified": "Fri, 31 Jan 2025 00:00:00 GMT",
+      "payload_sha256": "00fe5ede427a74ae793797ce0a96c879ec0fe057e7d66a8c674d671a72df8754",
+      "url": "https://wfa-0030.test/changelog?since=2025-01"
+     },
+     {
+      "bytes": 45,
+      "canonical_url": "https://wfa-0030.test/docs/hooks",
+      "etag": "\"hooks-v3\"",
+      "last_modified": "Mon, 12 Feb 2024 08:00:00 GMT",
+      "payload_sha256": "c7e21b9eba73c2f0847ab32e740dcc9935d71498d815bee4a5ead4607115d326",
+      "url": "https://wfa-0030.test/docs/hooks"
+     },
+     {
+      "bytes": 42,
+      "canonical_url": "https://wfa-0030.test/docs/skills?lang=en",
+      "etag": "W/\"skills-en-1\"",
+      "last_modified": "Tue, 02 Jan 2024 00:00:00 GMT",
+      "payload_sha256": "c724f95922e454bc67bf8f9e1f96c975fa656c7f802ec655a6f5157638543bde",
+      "url": "https://wfa-0030.test/docs/skills?lang=en"
+     },
+     {
+      "bytes": 42,
+      "canonical_url": "https://wfa-0030.test/docs/skills?lang=ja",
+      "etag": "W/\"skills-ja-1\"",
+      "last_modified": "Tue, 02 Jan 2024 00:00:00 GMT",
+      "payload_sha256": "76c60e2164433a995f04d27088da199ce02b20bfa39c8381e145e567d2c8df21",
+      "url": "https://wfa-0030.test/docs/skills?lang=ja"
+     },
+     {
+      "bytes": 40,
+      "canonical_url": "https://wfa-0030.test/docs/subagents",
+      "etag": "\"subagents-v1\"",
+      "last_modified": "Thu, 15 Feb 2024 12:00:00 GMT",
+      "payload_sha256": "d6483b509c75ad66d42a25bb7bdea226be26ff1a4986bff1088942643c485d97",
+      "url": "https://wfa-0030.test/docs/subagents"
+     }
+    ],
+    "populated_n_verified": 6,
+    "populated_ok": true,
+    "query_keys_distinct": true,
+    "report_sha256": "89c3481aeffe25666dc4c5b2c1ed985e5cb178464a23786b3d8b066a69353999",
+    "reports_byte_identical": true,
+    "truncated_rejected": true,
+    "warm_network_calls": 0
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe1_warm_resume.py",
+     "id": "probe1",
+     "role": "warm-resume-and-query-keys"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0030/probe2_empty_stale_corrupt.py",
+     "id": "probe2",
+     "role": "empty-stale-corrupt"
+    }
+   ],
+   "notes": "G-1 for WFA-0030. cloud ok=true is not delivery. Did not run unit_manifest.py --write. SUCCESS:WFA-0030",
+   "output_schema_declared": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/ProbeReport",
+   "output_schema_declared_present": true,
+   "output_schema_local": "command-center/p2-wave/probes/WFA-0030/probe-report.schema.json",
+   "produced_by": {
+    "execution_substrate": "local-parallel",
+    "worktree": "/opt/p2/ast-integrate"
+   },
+   "question": "Implementation target: every external fetch is stored content-addressed with its URL, retrieval timestamp and HTTP validators so a re-run resumes instead of refetching - and a stale, empty or truncated entry can never be silently served as fresh.",
+   "record_type": "ProbeReport",
+   "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 re-runs empty-store health, expiry refetch, truncated reject, and empty-payload reject on a fresh temp store, independent of probe 1's warm-resume identity path.",
+    "reviewer_id": "WFA-0030-probe2-empty-stale-corrupt",
+    "verdict": "PASS"
+   },
+   "sentinel": "SUCCESS:WFA-0030",
+   "state": "SUCCESS",
+   "tests": [
+    {
+     "id": "T1-empty-cache-not-ok",
+     "name": "EMPTY cache must NOT report OK",
+     "result": "PASS"
+    },
+    {
+     "id": "T2-warm-resume",
+     "name": "Warm re-run issues zero network calls",
+     "result": "PASS"
+    },
+    {
+     "id": "T3-byte-identical",
+     "name": "Warm report is byte-identical to cold",
+     "result": "PASS"
+    },
+    {
+     "id": "T4-expired-refetch",
+     "name": "Expired entry triggers a live refetch",
+     "result": "PASS"
+    },
+    {
+     "id": "T5-truncated-rejected",
+     "name": "Truncated entry is rejected not served",
+     "result": "PASS"
+    },
+    {
+     "id": "T6-empty-payload",
+     "name": "Zero-byte payload is not served as fresh",
+     "result": "PASS"
+    },
+    {
+     "id": "T7-query-keys",
+     "name": "Query parameters participate in the cache key",
+     "result": "PASS"
+    },
+    {
+     "id": "T8-both-states-health",
+     "name": "Empty not OK; populated READY",
+     "result": "PASS"
+    }
+   ],
+   "title": "Content-addressed acquisition cache with resume, staleness and corruption gates",
+   "transport": {
+    "fixture": "command-center/p2-wave/probes/WFA-0030/fixtures/pages.json",
+    "kind": "in-process-counting-page-map",
+    "live_http": false,
+    "note": "Network-call counts are len(CountingTransport.calls). This unit measures cache resume/staleness/corruption, not live vendor HTTP."
+   },
+   "ts": "2026-09-02T01:03:25Z",
+   "unit_id": "WFA-0030",
+   "upstream": {
+    "WFA-0001_schema_pack_present": true,
+    "note": "Declared output_schema points at WFA-0001's pack, which is absent. Local probe-report.schema.json is the executable contract."
+   }
+  },
+  "builder_resume": {
+   "builder": "shard23 wave-4 builder (resume) 2026-10-26",
+   "prior_builder": "prior builder attempt died mid-flight (host session ended); artifact content verified against the live contract, not rebuilt",
+   "note": "artifact re-emitted into the receipt_core envelope (blessed schema_resolver target platform/schema/artifact-class-profiles.schema.json); legacy content preserved verbatim under legacy_root"
+  }
+ }
+}

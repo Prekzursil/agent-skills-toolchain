@@ -1,0 +1,365 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1914,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0134/threshold_prereg.json",
+   "role": "control",
+   "sha256": "a12b51971a9eca1641a967de61deaee2c49c5f729738e61fd58c535c9bbe823b"
+  },
+  {
+   "bytes": 5849,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0134/fixtures/frozen_subsample.json",
+   "role": "fixture",
+   "sha256": "5e17f040578d6d3d277dcb54b986de2400cf47ea23a5751e0f48de69fe2ee37b"
+  },
+  {
+   "bytes": 176,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0134/reviewer-recompute.raw.json",
+   "role": "log",
+   "sha256": "6c0cee7c18a716a05cd3d05efedf9cb9213823283b3f12f039187f7881ff49f5"
+  },
+  {
+   "bytes": 1111,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/calibration-report.schema.json",
+   "role": "supporting",
+   "sha256": "af8be92e66df89f65cbe84a64faac3a0fdc60e4a55f3c4826cda7469cfae4eff"
+  },
+  {
+   "bytes": 5419,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0134/kappa.py",
+   "role": "supporting",
+   "sha256": "826dc0e4026e2347f5b4c468a7585687cf768d2514c319d5326d6394a31314ea"
+  },
+  {
+   "bytes": 2109,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0134/demotion.py",
+   "role": "supporting",
+   "sha256": "4bdea0caa2bd543653d43e29f9e7ea498ef0891fdf339d67be5a25130d32d7e2"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/p2-wave/probes/CNF-0134/reviewer-recompute.raw.json",
+   "consumer": "reviewer-recompute.raw.json readback",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/CNF-0134/reviewer-recompute.raw.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['unit_id']=='CNF-0134'; assert 'kappa' in d; print('CONSUMER-OK kappa=', d['kappa'])\"",
+    "exit_code": 0,
+    "fingerprint": "d21a004797c3bd859347b5db19abee4e6ed271edaf187e02c6f404ce4624b389",
+    "method": "command",
+    "raw_output": "CONSUMER-OK kappa= 0.7983193277310924",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0134/fixtures/frozen_subsample.json",
+   "claim": "Unweighted Cohen's kappa on the frozen dual-confirmer subsample is 0.798319 and recomputes from the published raw count table.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe1_statistic_wiring.py",
+     "exit_code": 0,
+     "fingerprint": "a8e0a03417ca5f5742bd435642358e288051863d4d348aa8e225cf3307a2bd80",
+     "method": "test-run",
+     "raw_output": "forced_agree kappa=1.000000000000 po=1.000000 pe=0.250000 n=40\npermuted kappa=0.166666666667 po=0.375000 pe=0.250000 seed=1340134\nreviewer_recompute kappa=0.798319327731 published=0.798319327731 po=0.850000\n{\"forced_kappa\": 1.0, \"pass\": true, \"permuted_kappa\": 0.16666666666666666, \"probe\": \"probe1-statistic-wiring\", \"reviewer_kappa\": 0.7983193277310924, \"unit_id\": \"CNF-0134\"}\nSUCCESS:CNF-0134-probe1 forced-agree~1 permute~0 table-recompute",
+     "role": "source"
+    },
+    {
+     "command": "recompute kappa_from_counts(command-center/p2-wave/probes/CNF-0134/reviewer-recompute.raw.json)",
+     "exit_code": 0,
+     "fingerprint": "7ef5398f3df6857026c148b34a83909dca685e50356f1e460f44dbb4e1d84f70",
+     "method": "file-read",
+     "raw_output": "CONSUMER-OK kappa= 0.7983193277310924",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0134/demotion.py",
+   "claim": "Sub-threshold kappa demotes a single-confirmer CONFIRMED to PARTIAL and does not demote dual independent agreement.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe2_demotion.py",
+     "exit_code": 0,
+     "fingerprint": "5c2d13fa3323583c7e0aafc7e9618f207722ccd9eae7413b0452ac5b48850ae2",
+     "method": "test-run",
+     "raw_output": "single_subthreshold verdict=PARTIAL applied=True reason=sub-threshold-kappa-single-confirmer\ndual_agree_subthreshold verdict=CONFIRMED applied=False reason=independent-confirmers-agree\nsingle_above_threshold verdict=CONFIRMED applied=False\nsame_vendor_pair confirmer_count=2 applied=False verdict=CONFIRMED\n{\"dual_not_demoted\": true, \"pass\": true, \"probe\": \"probe2-demotion\", \"single_demoted_to\": \"PARTIAL\", \"unit_id\": \"CNF-0134\"}\nSUCCESS:CNF-0134-probe2 demotion fires on single, not on dual-agree",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/CNF-0134/reviewer-recompute.raw.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d['unit_id']=='CNF-0134'; assert 'kappa' in d; print('CONSUMER-OK kappa=', d['kappa'])\"",
+     "exit_code": 0,
+     "fingerprint": "d21a004797c3bd859347b5db19abee4e6ed271edaf187e02c6f404ce4624b389",
+     "method": "command",
+     "raw_output": "CONSUMER-OK kappa= 0.7983193277310924",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "answer": "On the frozen synthetic dual-confirmer subsample (n=40), unweighted Cohen's kappa=0.798319 with bootstrap 95% CI [0.637681, 0.931389]. Pre-registered threshold 0.6 (Landis-Koch substantial floor) was recorded at 2026-08-24T18:36:00Z in command-center/p2-wave/probes/CNF-0134/threshold_prereg.json before computation. Demotion rule is INACTIVE on this frame; 0 single-confirmer CONFIRMED records would be demoted to PARTIAL; dual independent agreement demoted 0. Live CNF-0133/CNF-0137 receipts are absent; this kappa characterizes the frozen synthetic frame, not unobserved live vendor confirmers. SUCCESS:CNF-0134",
+  "frame_freeze": {
+   "catalog_sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+   "commit": null,
+   "kind": "no-git",
+   "subsample_bytes": 5849,
+   "subsample_sha256": "5e17f040578d6d3d277dcb54b986de2400cf47ea23a5751e0f48de69fe2ee37b"
+  },
+  "inputs_on_disk": {
+   "CLAIM-REGISTRY.json": {
+    "path": "command-center/CLAIM-REGISTRY.json",
+    "present": true
+   },
+   "CNF-0133": {
+    "path": "command-center/receipts/CNF-0133.json",
+    "present": false
+   },
+   "CNF-0137": {
+    "path": "command-center/receipts/CNF-0137.json",
+    "present": false
+   }
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe1_statistic_wiring.py",
+    "exit_code": 0,
+    "id": "probe1",
+    "raw_output": "forced_agree kappa=1.000000000000 po=1.000000 pe=0.250000 n=40\npermuted kappa=0.166666666667 po=0.375000 pe=0.250000 seed=1340134\nreviewer_recompute kappa=0.798319327731 published=0.798319327731 po=0.850000\n{\"forced_kappa\": 1.0, \"pass\": true, \"permuted_kappa\": 0.16666666666666666, \"probe\": \"probe1-statistic-wiring\", \"reviewer_kappa\": 0.7983193277310924, \"unit_id\": \"CNF-0134\"}\nSUCCESS:CNF-0134-probe1 forced-agree~1 permute~0 table-recompute"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe2_demotion.py",
+    "exit_code": 0,
+    "id": "probe2",
+    "raw_output": "single_subthreshold verdict=PARTIAL applied=True reason=sub-threshold-kappa-single-confirmer\ndual_agree_subthreshold verdict=CONFIRMED applied=False reason=independent-confirmers-agree\nsingle_above_threshold verdict=CONFIRMED applied=False\nsame_vendor_pair confirmer_count=2 applied=False verdict=CONFIRMED\n{\"dual_not_demoted\": true, \"pass\": true, \"probe\": \"probe2-demotion\", \"single_demoted_to\": \"PARTIAL\", \"unit_id\": \"CNF-0134\"}\nSUCCESS:CNF-0134-probe2 demotion fires on single, not on dual-agree"
+   }
+  ],
+  "question": "Question: do two independent confirmers agree beyond chance on the same subsample, and what is Cohen's kappa? While kappa is below the declared threshold, a single-confirmer CONFIRMED is automatically DEMOTED to PARTIAL rather than being carried as a pass.",
+  "upstream_stand_in": {
+   "reason": "dependency receipts absent; frame frozen rather than blocked",
+   "synthetic_pairs": true
+  }
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0134",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0134/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T00:58:17Z"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "permuted labels -> kappa near 0 (wired)",
+   "description": "Permuting one rater's labels must drop kappa toward 0; forced agreement must stay at kappa=1.",
+   "fired_on_bad_state": true,
+   "good_state_output": "forced agreement -> kappa=1",
+   "id": "NC-CNF0134-PERMUTE-NEAR-0",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "single CONFIRMED -> PARTIAL",
+   "description": "A single-confirmer CONFIRMED at sub-threshold kappa must become PARTIAL.",
+   "fired_on_bad_state": true,
+   "good_state_output": "dual independent CONFIRMED stays CONFIRMED",
+   "id": "NC-CNF0134-SINGLE-DEMOTES",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "would be PARTIAL if confirmer_count were 1",
+   "description": "Demotion must NOT fire when two independent confirmers already agree, even below the kappa threshold.",
+   "fired_on_bad_state": true,
+   "good_state_output": "dual agree applied=False verdict=CONFIRMED",
+   "id": "NC-CNF0134-DUAL-NOT-DEMOTE",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-local",
+  "model": "grok-4.6",
+  "role": "calibration-auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "confidence_interval": {
+   "alpha": 0.05,
+   "high": 0.9313893653516294,
+   "low": 0.6376811594202898,
+   "method": "bootstrap_percentile",
+   "n_boot": 5000,
+   "seed": 1340134
+  },
+  "control_ids": [
+   "NC-CNF0134-PERMUTE-NEAR-0",
+   "NC-CNF0134-SINGLE-DEMOTES",
+   "NC-CNF0134-DUAL-NOT-DEMOTE"
+  ],
+  "demotion_rule": {
+   "active_on_this_frame": false,
+   "dual_independent_agree_demotions": 0,
+   "predicate": "while kappa < threshold, a record with confirmer_count==1 and verdict==CONFIRMED is rewritten to PARTIAL; the rewrite does not fire when two independent confirmers (distinct vendors) already agree",
+   "single_confirmer_confirmed_becomes": "PARTIAL",
+   "single_confirmer_demotions_on_frame": 0,
+   "threshold": 0.6
+  },
+  "kind": "calibration-report",
+  "n": 40,
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0134/fixtures/frozen_subsample.json",
+    "measured": 0.7983193277310924,
+    "method": "cohen_kappa_unweighted on frozen dual-rater table",
+    "name": "cohen-kappa-point-estimate"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0134/threshold_prereg.json",
+    "measured": false,
+    "method": "point_estimate < prereg kappa_threshold",
+    "name": "kappa-below-declared-threshold"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0134/demotion.py",
+    "measured": 0,
+    "method": "apply_demotion confirmer_count==1 over frozen pairs",
+    "name": "single-confirmer-demotions-on-frame"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0134/demotion.py",
+    "measured": 0,
+    "method": "apply_demotion two distinct vendors over frozen pairs",
+    "name": "dual-independent-demotions-on-frame"
+   }
+  ],
+  "pe": 0.25625,
+  "po": 0.85,
+  "point_estimate": 0.7983193277310924,
+  "raw_table": {
+   "cols_are": "openai",
+   "counts": [
+    [
+     6,
+     0,
+     0,
+     0
+    ],
+    [
+     0,
+     8,
+     3,
+     0
+    ],
+    [
+     0,
+     0,
+     12,
+     0
+    ],
+    [
+     3,
+     0,
+     0,
+     8
+    ]
+   ],
+   "labels": [
+    "CONFIRMED",
+    "REFUTED",
+    "PARTIAL",
+    "NOT-CHECKED"
+   ],
+   "rows_are": "anthropic"
+  },
+  "reviewer_recompute": {
+   "kappa": 0.7983193277310924,
+   "n": 40,
+   "pe": 0.25625,
+   "po": 0.85
+  },
+  "statistic": "cohen_kappa_unweighted",
+  "threshold_preregistration": {
+   "citation": "Landis JR, Koch GG (1977). The measurement of observer agreement for categorical data. Biometrics 33:159-174. The 0.60 floor is the lower bound of their 'substantial' band. Declared as the CNF-0134 demotion floor before any kappa is computed on this unit.",
+   "path": "command-center/p2-wave/probes/CNF-0134/threshold_prereg.json",
+   "prereg_sha256": "a12b51971a9eca1641a967de61deaee2c49c5f729738e61fd58c535c9bbe823b",
+   "recorded_at": "2026-08-24T18:36:00Z",
+   "recorded_before_computation": true,
+   "value": 0.6
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Live CNF-0133 calibration corpus and CNF-0137 sampling-frame receipts are absent; dual-vendor verdicts are synthetic.",
+   "settling_experiment": "Re-derive kappa on the shared CNF-0137 subsample once both vendor confirmation records and the CNF-0133 corpus exist.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame."
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Recomputed unweighted Cohen's kappa from the published raw_table.counts only; did not re-draw the subsample.",
+  "reviewed_at": "2026-08-25T00:58:17Z",
+  "reviewer_id": "CNF-0134-table-recompute",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0134",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0134",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe1_statistic_wiring.py",
+   "id": "forced-agreement-kappa-near-1",
+   "name": "Two confirmers forced to agree yield kappa near 1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe1_statistic_wiring.py",
+   "id": "permuted-verdicts-kappa-near-0",
+   "name": "Randomly permuted verdicts yield kappa near 0",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe2_demotion.py",
+   "id": "single-confirmer-confirmed-demoted-to-partial",
+   "name": "Single-confirmer CONFIRMED at sub-threshold kappa becomes PARTIAL",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0134/probe2_demotion.py",
+   "id": "dual-independent-agree-not-demoted",
+   "name": "Demotion does not fire when two independent confirmers agree",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:17Z",
+  "started_at": "2026-08-25T00:58:17Z"
+ },
+ "unit_id": "CNF-0134"
+}

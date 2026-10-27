@@ -1,0 +1,784 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "firing-path-revalidation",
+  "name": "Continuous firing-path revalidation - a delta column, not a snapshot",
+  "description": "Blueprint 93 of 96 (design BP-MNT-02). Periodically re-prove that every hook, guard and consumer still FIRES, because registration changes, budget breaches and dependency drift disarm things silently. Mechanism: ACTIVELY TRIGGER a real turn that should exercise each path, then classify the observed evidence into FIRES / INERT / DISARMED / UNREGISTERED / UNKNOWN and DIFF that scorecard against the previous run. The delta is what turns a snapshot into surveillance; a single scorecard cannot tell you anything was lost.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "hooks",
+    "firing",
+    "surveillance",
+    "delta",
+    "disarmed"
+  ],
+  "flagship": true,
+  "params": {
+    "component_inventory": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to the inventory of hooks, guards and consumers to be probed. An inventory that is itself stale silently shrinks the census."
+    },
+    "expected_firing_evidence": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "trigger": {
+            "type": "string"
+          },
+          "evidence_path": {
+            "type": "string"
+          },
+          "evidence_marker": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Per component: the action that SHOULD exercise it and the observable it must leave behind. A component with no declared evidence is UNKNOWN, never assumed firing."
+    },
+    "previous_scorecard": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to the prior scorecard. Without it there is no delta, and without a delta this workflow is a snapshot that cannot detect a regression."
+    },
+    "max_concurrency": {
+      "type": "integer",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 32,
+      "description": "Probe concurrency. Kept modest because several probes contend for the same shared per-turn hook budget, and saturating it would itself disarm checks."
+    },
+    "shared_budget_ceiling_ms": {
+      "type": "integer",
+      "default": 5000,
+      "minimum": 100,
+      "maximum": 60000,
+      "description": "The shared pre-tool budget. Recording each check's cost against it makes a creeping breach visible BEFORE it disarms something."
+    }
+  },
+  "roles": {
+    "trigger-driver": {
+      "description": "Performs the real actions that should exercise each firing path. It does not inspect configuration - configuration is not evidence of firing.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/firing/**)"
+      ],
+      "write_paths": [
+        "command-center/firing/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "evidence-classifier": {
+      "description": "Classifies each component from observed evidence only, and is required to emit UNKNOWN rather than guess",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/firing/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/firing/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/firing/**"
+    ],
+    "forbid_write_paths": [
+      ".claude/hooks/**",
+      ".claude/settings.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == evidence-classifier",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "distinguishing WIRED-BUT-INERT from FIRES is the whole difficulty; the trigger driving is mechanical"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "inventory-is-current": {
+      "predicate": "custom-expression",
+      "expression": "inventory_age_seconds <= 604800 AND inventory_component_count >= previous_component_count",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "no-config-only-verdicts": {
+      "predicate": "custom-expression",
+      "expression": "verdicts_from_config_only == 0 AND unknown_declared_where_untriggerable == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "delta-computed": {
+      "predicate": "custom-expression",
+      "expression": "previous_scorecard_loaded == true AND delta_rows == current_rows",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "check-inventory",
+      "title": "A stale inventory silently shrinks the census",
+      "kind": "task",
+      "role": "trigger-driver",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9301",
+        "title": "Verify the component inventory is current and no component has silently left it",
+        "phase": "10",
+        "question_or_target": "Load the inventory and the previous scorecard. Report the inventory's age, its component count, and any component present in the previous scorecard but ABSENT from the inventory - a disappearance from the inventory is indistinguishable from a passing component unless it is named.",
+        "inputs": [
+          "params.component_inventory",
+          "params.previous_scorecard"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "trigger-driver",
+          "basis": "cheap, but a shrinking denominator is the failure mode that makes every later percentage look better"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Write(command-center/firing/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/firing/inventory-check.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "the inventory path, its mtime, its component count, the previous count, and the named set difference in both directions",
+        "tests_required": [
+          "removing one component from the inventory must be reported as a DISAPPEARANCE, not as a smaller healthy census",
+          "an inventory older than the declared window must escalate rather than be used silently"
+        ],
+        "reviewer_requirement": "one independent reader who confirms the set difference from the two files directly",
+        "completion_sentinel": "SUCCESS:BPW-9301 emitted only when both counts and the two-way set difference are recorded; otherwise FAILED:BPW-9301 <reason>",
+        "retry_policy": "no retry - a missing inventory or a missing previous scorecard is a precondition failure, and re-reading the same absent file is not a second signal",
+        "failure_classification": [
+          "inventory-stale",
+          "component-disappeared",
+          "previous-scorecard-missing"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/firing/inventory-check.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9301",
+          "consumers": [
+            "gate-inventory",
+            "probe-components"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-inventory",
+      "title": "No census on a stale denominator",
+      "kind": "gate",
+      "depends_on": [
+        "check-inventory"
+      ],
+      "gate_ref": "inventory-is-current"
+    },
+    {
+      "id": "probe-components",
+      "title": "TRIGGER each path for real, then look for the observable it should leave",
+      "kind": "fanout",
+      "depends_on": [
+        "gate-inventory"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "expected_firing_evidence",
+        "item_var": "probe",
+        "key_field": "component"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 750,
+      "max_items": 200,
+      "on_item_failure": "continue",
+      "timeout_seconds": 10800,
+      "body": [
+        {
+          "id": "trigger-and-observe",
+          "kind": "task",
+          "role": "trigger-driver",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPW-9302",
+            "title": "Trigger one component and record the observable it produced, plus its budget cost",
+            "phase": "10",
+            "question_or_target": "Perform the declared trigger for one component and record whether its evidence_marker appeared at evidence_path. Record the check's wallclock contribution to the shared pre-tool budget. Reading the component's registration is NOT a substitute for triggering it.",
+            "inputs": [
+              "params.expected_firing_evidence",
+              "params.shared_budget_ceiling_ms"
+            ],
+            "dependencies": [
+              "BPW-9301"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "trigger-driver",
+              "basis": "driving a real trigger and capturing its side effect"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Bash:python",
+              "Write(command-center/firing/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/firing/probe-observations.json",
+            "output_schema": "command-center/schema/reachability-report.schema.json",
+            "evidence_requirement": "the trigger performed, the evidence path inspected, the marker found or not found with its byte offset, and the measured cost in ms against the shared ceiling",
+            "tests_required": [
+              "both-states control: deliberately disarm one component and confirm this probe reports its marker ABSENT, then restore it and confirm the marker returns. A probe that reports the same thing in both states measures nothing.",
+              "a component that cannot be triggered from a script must record UNKNOWN with the reason, never FIRES"
+            ],
+            "reviewer_requirement": "the evidence classifier reads only the observations, never the trigger driver's opinion of them",
+            "completion_sentinel": "SUCCESS:BPW-9302 emitted only when the trigger was actually performed and the evidence path inspected; otherwise FAILED:BPW-9302 <reason>",
+            "retry_policy": "one retry if the trigger itself errored; never retry to turn an ABSENT marker into a present one - that is the finding, not a flake",
+            "failure_classification": [
+              "trigger-failed",
+              "untriggerable-from-script",
+              "budget-ceiling-breached"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "classify-firing",
+      "title": "FIRES / INERT / DISARMED / UNREGISTERED / UNKNOWN - five states, not two",
+      "kind": "task",
+      "role": "evidence-classifier",
+      "depends_on": [
+        "probe-components"
+      ],
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "BPW-9303",
+        "title": "Classify every component from the observations, keeping WIRED-BUT-INERT distinct from FIRES",
+        "phase": "10",
+        "question_or_target": "Classify each component: FIRES (marker appeared), INERT (registered and reachable but its feed never writes, so it can never produce a verdict), DISARMED (ran but produced no verdict), UNREGISTERED (absent from the dispatch surface), UNKNOWN (untriggerable). Report the DISARMED count as a first-class metric.",
+        "inputs": [
+          "command-center/firing/probe-observations.json",
+          "command-center/firing/inventory-check.json"
+        ],
+        "dependencies": [
+          "BPW-9302"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "evidence-classifier",
+          "basis": "a consumer registered against a feed that never writes is INERT, not healthy - separating those two is judgement over evidence, not a lookup"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/firing/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/firing/firing-scorecard.json",
+        "output_schema": "command-center/schema/gate-reachability.schema.json",
+        "evidence_requirement": "per component the class plus the observation that justifies it; for INERT specifically, the evidence that the FEED is cold rather than the consumer broken",
+        "tests_required": [
+          "a consumer whose feed is cold must be classed INERT, not FIRES",
+          "a component with no observation must be classed UNKNOWN, and UNKNOWN must never be aggregated into a healthy total",
+          "the DISARMED count must appear as its own field, not folded into a pass rate"
+        ],
+        "reviewer_requirement": "none - this stage IS the classifier and holds veto authority; its own output is checked for the UNKNOWN-folded-into-healthy failure mode",
+        "completion_sentinel": "SUCCESS:BPW-9303 emitted only when every inventory component carries exactly one of the five classes and the DISARMED count is a standalone field; otherwise FAILED:BPW-9303 <reason>",
+        "retry_policy": "no retry - a reclassification over the same observations is not a second signal; a disputed class goes to the delta stage with both readings recorded",
+        "failure_classification": [
+          "inert-misread-as-firing",
+          "unknown-folded-into-healthy",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/firing/firing-scorecard.json",
+          "schema_ref": "command-center/schema/gate-reachability.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9303",
+          "consumers": [
+            "diff-against-previous",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-no-config-verdicts",
+      "title": "Configuration is not evidence of firing",
+      "kind": "gate",
+      "depends_on": [
+        "classify-firing"
+      ],
+      "gate_ref": "no-config-only-verdicts"
+    },
+    {
+      "id": "diff-against-previous",
+      "title": "The delta is the surveillance",
+      "kind": "task",
+      "role": "evidence-classifier",
+      "depends_on": [
+        "gate-no-config-verdicts"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPW-9304",
+        "title": "Diff the scorecard against the previous run and name every regression",
+        "phase": "10",
+        "question_or_target": "For every component compute delta_since_last. A transition to INERT, DISARMED or UNREGISTERED is a REGRESSION and must be named with both classes. Report the DISARMED count's trend, which matters more than its value.",
+        "inputs": [
+          "command-center/firing/firing-scorecard.json",
+          "params.previous_scorecard"
+        ],
+        "dependencies": [
+          "BPW-9303"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "evidence-classifier",
+          "basis": "deciding which transitions are regressions rather than expected steady states"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/firing/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/firing/firing-delta.json",
+        "output_schema": "command-center/schema/regression-delta.schema.json",
+        "evidence_requirement": "per component the previous class, the current class, and the transition verdict; plus the DISARMED count for both runs so the trend is visible rather than asserted",
+        "tests_required": [
+          "a component that moved FIRES -> DISARMED must be named a REGRESSION",
+          "a component that moved UNKNOWN -> FIRES must NOT be counted as a regression",
+          "both-states control: an identical pair of scorecards must produce zero regressions - a differ that reports regressions on identical input is broken"
+        ],
+        "reviewer_requirement": "one independent reader who re-derives at least one transition from the two scorecards directly",
+        "completion_sentinel": "SUCCESS:BPW-9304 emitted only when every current component has a delta row and the DISARMED trend is recorded for both runs; otherwise FAILED:BPW-9304 <reason>",
+        "retry_policy": "no retry - the diff is deterministic over two files on disk",
+        "failure_classification": [
+          "missing-previous",
+          "spurious-regression",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/firing/firing-delta.json",
+          "schema_ref": "command-center/schema/regression-delta.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9304",
+          "consumers": [
+            "gate-delta",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-delta",
+      "title": "A scorecard with no delta is a snapshot",
+      "kind": "gate",
+      "depends_on": [
+        "diff-against-previous"
+      ],
+      "gate_ref": "delta-computed"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "scorecard-and-delta-complete",
+      "expression": "components_classified == inventory_component_count AND delta_rows == current_rows",
+      "applies_to": "workflow",
+      "minimum_conditions": "previous_scorecard_loaded == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "regression-found",
+      "expression": "regressions > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "budget-breach-visible",
+      "expression": "shared_budget_cost_ms >= shared_budget_ceiling_ms",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "trigger-failed"
+    ],
+    "no_retry_on": [
+      "inert-misread-as-firing",
+      "unknown-folded-into-healthy",
+      "previous-scorecard-missing"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "trigger-failed",
+      "component-disappeared",
+      "unknown-folded-into-healthy",
+      "budget-ceiling-breached"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/firing-revalidation"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/firing-revalidation",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 21600,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/firing-revalidation.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "graph",
+      "estimate"
+    ],
+    "plan_artifact": "command-center/dry-run/firing-revalidation-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/firing/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-02 - the 27-row firing scorecard this program produced as a one-off, including a full check battery found DISARMED",
+    "cost": {
+      "currency": "USD",
+      "min": 0.2,
+      "expected": 1.6,
+      "max": 8.0
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 2700,
+      "max": 10800
+    },
+    "tokens": {
+      "min": 30000,
+      "expected": 220000,
+      "max": 900000
+    },
+    "tool_calls": {
+      "min": 15,
+      "expected": 120,
+      "max": 600
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "triggers real turns and writes only under command-center/firing/**; the hook and settings trees are explicitly forbid-write so a probe cannot repair what it is measuring",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/firing-revalidation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md#3b",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - the both-states test: a probe silent in both states measures nothing"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "the one-off 27-row scorecard, produced by hand"
+    ]
+  },
+  "outputs": {
+    "scorecard": {
+      "path": "command-center/firing/firing-scorecard.json",
+      "schema_ref": "command-center/schema/gate-reachability.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9303",
+      "consumers": [
+        "owner",
+        "scheduled-task-liveness-census"
+      ]
+    },
+    "delta": {
+      "path": "command-center/firing/firing-delta.json",
+      "schema_ref": "command-center/schema/regression-delta.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 93,
+      "of": 96,
+      "design_card": "BP-MNT-02",
+      "design_family": "D18-maintenance",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "BUILD-NEW",
+      "flagship": true
+    },
+    "mechanism": "ACTIVE trigger-then-observe with a five-state classification and a mandatory delta against the previous run. Two things make it more than an audit: WIRED-BUT-INERT is a distinct state from FIRES, and a component that cannot be triggered is UNKNOWN rather than assumed healthy.",
+    "not_a_duplicate_because": {
+      "vs_scheduled-task-liveness-census": "that pairs a DECLARATIVE task state with an output-freshness oracle and never triggers anything - it cannot, because a scheduled task's cadence is the subject. This one actively performs the trigger and looks for a side effect. Different instruments, different subjects, and neither can substitute for the other.",
+      "vs_detector-truncation-audit": "that compares a reported COUNT against an independent count. This compares an observed FIRING state against the previous run's state.",
+      "vs_live-to-repo-drift-reconcile": "that compares file bytes between trees; this compares runtime behaviour between two points in time"
+    },
+    "contraindications": [
+      "NOT a functional test of behaviour - it proves a path fires, not that it fires correctly",
+      "NOT for third-party hooks you cannot observe - those are UNKNOWN by construction and must be reported as such"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "deliberate-disarm",
+        "given": "one check disarmed on purpose",
+        "expect": "the DISARMED count moves and the delta names the component; restoring it must move the count back"
+      },
+      {
+        "id": "cold-feed-is-inert",
+        "given": "a consumer registered against a feed that never writes",
+        "expect": "class INERT, with evidence that the FEED is cold rather than the consumer broken"
+      },
+      {
+        "id": "identical-scorecards",
+        "given": "two identical scorecards",
+        "expect": "zero regressions - a differ reporting regressions on identical input is broken"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "weekly-harness-census",
+        "params": {
+          "component_inventory": "C:/Users/Prekzursil/.claude/hooks/_dispatch/manifest.json",
+          "expected_firing_evidence": [
+            {
+              "component": "git-hygiene",
+              "trigger": "end a turn with an uncommitted harness file present",
+              "evidence_path": "command-center/firing/observed/git-hygiene.log",
+              "evidence_marker": "un-reconciled live harness files"
+            },
+            {
+              "component": "stopfailure-notify",
+              "trigger": "end a turn whose last tool call returned non-zero",
+              "evidence_path": "command-center/firing/observed/stopfailure.log",
+              "evidence_marker": "FAILED:"
+            },
+            {
+              "component": "recall-index-consumer",
+              "trigger": "run a recall query",
+              "evidence_path": "command-center/firing/observed/recall.log",
+              "evidence_marker": "index_hits="
+            }
+          ],
+          "previous_scorecard": "C:/Users/Prekzursil/source/ast-integrate/command-center/firing/firing-scorecard.prev.json",
+          "max_concurrency": 6,
+          "shared_budget_ceiling_ms": 5000
+        },
+        "scorecard": [
+          {
+            "component": "git-hygiene",
+            "fires": "FIRES",
+            "evidence": "marker at offset 214",
+            "cost_ms": 380
+          },
+          {
+            "component": "stopfailure-notify",
+            "fires": "DISARMED",
+            "evidence": "ran, produced no verdict line",
+            "cost_ms": 120
+          },
+          {
+            "component": "recall-index-consumer",
+            "fires": "INERT",
+            "evidence": "consumer reachable; feed last wrote 19 days ago",
+            "cost_ms": 40
+          }
+        ],
+        "delta": [
+          {
+            "component": "git-hygiene",
+            "previous": "FIRES",
+            "current": "FIRES",
+            "verdict": "stable"
+          },
+          {
+            "component": "stopfailure-notify",
+            "previous": "FIRES",
+            "current": "DISARMED",
+            "verdict": "REGRESSION"
+          },
+          {
+            "component": "recall-index-consumer",
+            "previous": "INERT",
+            "current": "INERT",
+            "verdict": "stable-but-unhealthy"
+          }
+        ],
+        "disarmed_count": {
+          "previous": 0,
+          "current": 1,
+          "trend": "rising"
+        },
+        "terminal_state": "SUCCESS:BPW-9304 with escalation - 1 regression named, DISARMED trend rising",
+        "note": "The INERT row is the interesting one: it is STABLE, so a delta-only alarm would stay quiet, and it is UNHEALTHY, so a fires/does-not-fire binary would have called it green. Five states plus a delta is what makes both visible at once."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "That this workflow catches a regression within a month is UNVERIFIED and is the design card's own estimate (very-likely, restated here as likely 55-80% because no run of THIS workflow has happened). Settling experiment = run it twice a week apart and check whether the delta column names anything a single scorecard would have missed.",
+      "Whether every declared trigger actually exercises its component is UNVERIFIED per component until the deliberate-disarm control runs for that component. Until then a FIRES verdict rests on the marker appearing, which is a necessary but not sufficient condition."
+    ]
+  }
+}

@@ -1,0 +1,469 @@
+{
+  "unit_id": "TST-0069",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0069",
+  "completion_sentinel": "SUCCESS:TST-0069",
+  "title": "Apostrophe-bearing content breaks the agent shell transport",
+  "question_or_target": "Measured: a literal apostrophe inside a Bash-tool heredoc, grep pattern or python -c closes the tool's own outer quoting and kills the call before a byte runs - 6+ consecutive failures in one session. Target: a transport-selection rule (file + -F, or the Write tool) enforced by a lint over agent-authored commands, with the failure reproduced as the control.",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "schema_version": 1,
+  "min_bytes_threshold": 2048,
+  "spec_anchor": "rules/common/windows-shell.md#10",
+  "payload": {
+    "text": "don't ship; it's not ready",
+    "sha256": "1948a0c2638be235849546fc7c39021826071ca36eb5f1ba73a89df13b291077",
+    "select_transport": "file"
+  },
+  "measured": {
+    "payload_sha256": "1948a0c2638be235849546fc7c39021826071ca36eb5f1ba73a89df13b291077",
+    "inline_control_holds": true,
+    "file_route_holds": true,
+    "lint_holds": true,
+    "inline": {
+      "python-c": {
+        "returncode": 2,
+        "stdout_empty": true,
+        "payload_in_stdout": false,
+        "wrapped_script": "bash -c 'python3 -c 'print(\"don't ship; it's not ready\")''",
+        "stderr_head": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `bash -c 'python3 -c 'print(\"don't ship; it's not ready\")'''\n",
+        "control_holds": true,
+        "lint_hits": [
+          "payload-inlined",
+          "apostrophe-in-inline-form"
+        ]
+      },
+      "grep": {
+        "returncode": 127,
+        "stdout_empty": true,
+        "payload_in_stdout": false,
+        "wrapped_script": "bash -c 'grep -F 'don't ship; it's not ready' /tmp/tst0069-emit-jcokvhoy/haystack.txt'",
+        "stderr_head": "grep: ship: No such file or directory\nnot: line 1: its: command not found\n",
+        "control_holds": true,
+        "lint_hits": [
+          "payload-inlined",
+          "apostrophe-in-inline-form"
+        ]
+      },
+      "heredoc": {
+        "returncode": 127,
+        "stdout_empty": true,
+        "payload_in_stdout": false,
+        "wrapped_script": "bash -c 'python3 - <<'EOF'\ndon't ship; it's not ready\nEOF\n'",
+        "stderr_head": "ship: line 2: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'dont' is not defined\nError in sys.excepthook:\nTraceback (most r",
+        "control_holds": true,
+        "lint_hits": [
+          "payload-inlined",
+          "apostrophe-in-inline-form"
+        ]
+      }
+    },
+    "file": {
+      "python-argv": {
+        "returncode": 0,
+        "round_trip": true,
+        "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/echo_payload.py /tmp/tst0069-emit-jcokvhoy/payload.txt'",
+        "file_route_holds": true,
+        "lint_ok": true
+      },
+      "dash-F": {
+        "returncode": 0,
+        "round_trip": true,
+        "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/dash_f_consumer.py -F /tmp/tst0069-emit-jcokvhoy/payload.txt'",
+        "file_route_holds": true,
+        "lint_ok": true
+      },
+      "grep-f": {
+        "returncode": 0,
+        "round_trip": true,
+        "wrapped_script": "bash -c 'grep -F -f /tmp/tst0069-emit-jcokvhoy/pattern.txt /tmp/tst0069-emit-jcokvhoy/haystack.txt'",
+        "file_route_holds": true,
+        "lint_ok": true
+      }
+    },
+    "windows_shell": {
+      "path": "rules/common/windows-shell.md",
+      "present": true,
+      "bytes": 18293,
+      "heading_10_present": true,
+      "note": "Section 10 heading present."
+    },
+    "pwsh_on_path": null
+  },
+  "report": {
+    "kind": "test-receipt",
+    "control_ids": [
+      "TST0069-C1-inline-wrap",
+      "TST0069-C2-lint-corpus"
+    ],
+    "observations": [
+      {
+        "name": "inline-python-c-control",
+        "measured": true,
+        "method": "naive-bash-tool-wrap",
+        "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:75"
+      },
+      {
+        "name": "file-route-round-trip",
+        "measured": true,
+        "method": "argv-dash-F-grep-f",
+        "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:224"
+      },
+      {
+        "name": "lint-both-states",
+        "measured": true,
+        "method": "lint-corpus",
+        "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:127"
+      }
+    ],
+    "measured": {
+      "payload_sha256": "1948a0c2638be235849546fc7c39021826071ca36eb5f1ba73a89df13b291077",
+      "inline_control_holds": true,
+      "file_route_holds": true,
+      "lint_holds": true,
+      "inline": {
+        "python-c": {
+          "returncode": 2,
+          "stdout_empty": true,
+          "payload_in_stdout": false,
+          "wrapped_script": "bash -c 'python3 -c 'print(\"don't ship; it's not ready\")''",
+          "stderr_head": "bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `bash -c 'python3 -c 'print(\"don't ship; it's not ready\")'''\n",
+          "control_holds": true,
+          "lint_hits": [
+            "payload-inlined",
+            "apostrophe-in-inline-form"
+          ]
+        },
+        "grep": {
+          "returncode": 127,
+          "stdout_empty": true,
+          "payload_in_stdout": false,
+          "wrapped_script": "bash -c 'grep -F 'don't ship; it's not ready' /tmp/tst0069-emit-jcokvhoy/haystack.txt'",
+          "stderr_head": "grep: ship: No such file or directory\nnot: line 1: its: command not found\n",
+          "control_holds": true,
+          "lint_hits": [
+            "payload-inlined",
+            "apostrophe-in-inline-form"
+          ]
+        },
+        "heredoc": {
+          "returncode": 127,
+          "stdout_empty": true,
+          "payload_in_stdout": false,
+          "wrapped_script": "bash -c 'python3 - <<'EOF'\ndon't ship; it's not ready\nEOF\n'",
+          "stderr_head": "ship: line 2: warning: here-document at line 1 delimited by end-of-file (wanted `EOF')\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\nNameError: name 'dont' is not defined\nError in sys.excepthook:\nTraceback (most r",
+          "control_holds": true,
+          "lint_hits": [
+            "payload-inlined",
+            "apostrophe-in-inline-form"
+          ]
+        }
+      },
+      "file": {
+        "python-argv": {
+          "returncode": 0,
+          "round_trip": true,
+          "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/echo_payload.py /tmp/tst0069-emit-jcokvhoy/payload.txt'",
+          "file_route_holds": true,
+          "lint_ok": true
+        },
+        "dash-F": {
+          "returncode": 0,
+          "round_trip": true,
+          "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/dash_f_consumer.py -F /tmp/tst0069-emit-jcokvhoy/payload.txt'",
+          "file_route_holds": true,
+          "lint_ok": true
+        },
+        "grep-f": {
+          "returncode": 0,
+          "round_trip": true,
+          "wrapped_script": "bash -c 'grep -F -f /tmp/tst0069-emit-jcokvhoy/pattern.txt /tmp/tst0069-emit-jcokvhoy/haystack.txt'",
+          "file_route_holds": true,
+          "lint_ok": true
+        }
+      },
+      "windows_shell": {
+        "path": "rules/common/windows-shell.md",
+        "present": true,
+        "bytes": 18293,
+        "heading_10_present": true,
+        "note": "Section 10 heading present."
+      },
+      "pwsh_on_path": null
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1-inline-python-c",
+      "kind": "failing-invocation-verbatim",
+      "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:75",
+      "claim": "Naive Bash-tool wrap of python -c with payload don't ship; it's not ready exits non-zero, stdout empty, script=bash -c 'python3 -c 'print(\"don't ship; it's not ready\")'' stderr_head=bash: -c: line 1: syntax error near unexpected token `('\nbash: -c: line 1: `bash -c 'python3 -c 'print(\"don't ship; it's not ready\")'''\n",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E2-inline-grep-heredoc",
+      "kind": "failing-invocation-verbatim",
+      "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:103",
+      "claim": "grep wrap rc=127 script=bash -c 'grep -F 'don't ship; it's not ready' /tmp/tst0069-emit-jcokvhoy/haystack.txt' ; heredoc wrap rc=127 script=bash -c 'python3 - <<'EOF'\ndon't ship; it's not ready\nEOF\n'",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E3-file-route-round-trip",
+      "kind": "file-route-round-trip",
+      "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:224",
+      "claim": "Identical payload sha256=1948a0c2638be235849546fc7c39021826071ca36eb5f1ba73a89df13b291077 succeeds via python argv, dash-F, and grep -F -f; python-argv wrapped=bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/echo_payload.py /tmp/tst0069-emit-jcokvhoy/payload.txt' dash-F wrapped=bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/dash_f_consumer.py -F /tmp/tst0069-emit-jcokvhoy/payload.txt'",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E4-lint-both-states",
+      "kind": "lint-over-agent-commands",
+      "anchor": "command-center/p2-wave/probes/TST-0069/transport.py:127",
+      "claim": "Lint fired on 4 planted inline commands and was silent on 4 file-route commands (git commit -F, python argv, grep -F -f, plain script).",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E5-windows-shell-heading",
+      "kind": "input-absence",
+      "anchor": "rules/common/windows-shell.md",
+      "claim": "Section 10 heading present.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_apostrophe_payload_fails_the_inline_route",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe1_inline_fails.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_apostrophe_payload_succeeds_via_the_file_route",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe2_file_succeeds.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_lint_both_states_over_agent_authored_commands",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/transport.py --lint",
+      "result": "PASS"
+    }
+  ],
+  "tests_run": [
+    {
+      "id": "test_apostrophe_payload_fails_the_inline_route",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe1_inline_fails.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_apostrophe_payload_succeeds_via_the_file_route",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe2_file_succeeds.py",
+      "result": "PASS"
+    }
+  ],
+  "both_states": {
+    "supported_proceeds": true,
+    "unsupported_refused": true,
+    "supported": "file-route (Write / argv / -F / grep -F -f)",
+    "unsupported": "inline python -c / grep / heredoc through naive Bash-tool wrap"
+  },
+  "matrix": {
+    "axes": {
+      "os": [
+        "linux"
+      ],
+      "client": [
+        "bash-tool",
+        "pwsh"
+      ],
+      "transport": [
+        "inline",
+        "file"
+      ],
+      "shape": [
+        "python-c",
+        "grep",
+        "heredoc",
+        "python-argv",
+        "dash-F",
+        "grep-f"
+      ]
+    },
+    "cells": [
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "inline-python-c",
+        "declared": "UNSUPPORTED",
+        "attempted": true,
+        "outcome": "REFUSED",
+        "returncode": 2,
+        "wrapped_script": "bash -c 'python3 -c 'print(\"don't ship; it's not ready\")''"
+      },
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "inline-grep",
+        "declared": "UNSUPPORTED",
+        "attempted": true,
+        "outcome": "REFUSED",
+        "returncode": 127,
+        "wrapped_script": "bash -c 'grep -F 'don't ship; it's not ready' /tmp/tst0069-emit-jcokvhoy/haystack.txt'"
+      },
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "inline-heredoc",
+        "declared": "UNSUPPORTED",
+        "attempted": true,
+        "outcome": "REFUSED",
+        "returncode": 127,
+        "wrapped_script": "bash -c 'python3 - <<'EOF'\ndon't ship; it's not ready\nEOF\n'"
+      },
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "file-python-argv",
+        "declared": "SUPPORTED",
+        "attempted": true,
+        "outcome": "PROCEEDED",
+        "round_trip": true,
+        "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/echo_payload.py /tmp/tst0069-emit-jcokvhoy/payload.txt'"
+      },
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "file-dash-F",
+        "declared": "SUPPORTED",
+        "attempted": true,
+        "outcome": "PROCEEDED",
+        "round_trip": true,
+        "wrapped_script": "bash -c 'python3 /opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0069/dash_f_consumer.py -F /tmp/tst0069-emit-jcokvhoy/payload.txt'"
+      },
+      {
+        "os": "linux",
+        "client": "bash-tool",
+        "client_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+        "shape": "file-grep-f",
+        "declared": "SUPPORTED",
+        "attempted": true,
+        "outcome": "PROCEEDED",
+        "round_trip": true,
+        "wrapped_script": "bash -c 'grep -F -f /tmp/tst0069-emit-jcokvhoy/pattern.txt /tmp/tst0069-emit-jcokvhoy/haystack.txt'"
+      },
+      {
+        "os": "linux",
+        "client": "pwsh",
+        "client_version": "absent",
+        "shape": "windows-other-shell",
+        "declared": "UNDECLARED",
+        "attempted": false,
+        "outcome": "UNTESTED",
+        "note": "pwsh/powershell not on PATH; catalog Windows specialist is NOT-CHECKED"
+      }
+    ],
+    "counts": {
+      "supported_proceeded": 3,
+      "unsupported_refused": 3,
+      "untested": 1
+    }
+  },
+  "negative_controls": [
+    {
+      "id": "TST0069-C1-inline-wrap",
+      "kind": "known-broken-inline-transport",
+      "description": "Naive Bash-tool single-quote wrap of python -c / grep / heredoc with an apostrophe payload must fail and must not print the payload.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "TST0069-C2-lint-corpus",
+      "kind": "both-states-lint",
+      "description": "Planted inline commands are flagged; file + -F / argv commands with no apostrophe in the command body are silent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0069-probe2-file-route-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "attempt": "Second process re-ran argv, -F, and grep -F -f on a fresh temp tree, required byte identity of the same apostrophe payload, and required the receipt to quote the live failing python-c wrap."
+  },
+  "reviewer_windows": {
+    "reviewer_id": "TST-0069-windows-pwsh-specialist",
+    "verdict": "NOT-CHECKED",
+    "independent": true,
+    "attempt": "Catalog asks a Windows-platform specialist to re-run in the other shell (PowerShell 7 vs Git Bash). pwsh/powershell are not on PATH on this Linux worktree.",
+    "pwsh_on_path": null
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether the same naive wrap fails under PowerShell 7 quoting on a Windows checkout of this tree.",
+      "settling_experiment": "On a Windows worktree with pwsh 7 and Git Bash, re-run PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe1_inline_fails.py and PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe2_file_succeeds.py in each shell and diff return codes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "inline-route-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe1_inline_fails.py"
+    },
+    {
+      "id": "probe2",
+      "role": "file-route-and-receipt",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/probe2_file_succeeds.py"
+    },
+    {
+      "id": "probe-lint",
+      "role": "lint-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0069/transport.py --lint"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0069.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/test-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0069/transport.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0069/dash_f_consumer.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0069/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "global_catalog_write": false
+  },
+  "cloud_ok": false,
+  "notes": "G-1 for TST-0069: live named probes exit 0, receipts/TST-0069.json state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild.",
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:03Z",
+    "ended_at": "2026-08-25T00:59:03Z"
+  },
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "role": "platform-test-engineer",
+    "vendor": "openai",
+    "model": "gpt-5-codex"
+  }
+}

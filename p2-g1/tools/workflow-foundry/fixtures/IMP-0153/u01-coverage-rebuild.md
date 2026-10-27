@@ -1,0 +1,1 @@
+Rebuild the coverage index after every wave. First run the census script, then validate each row against the catalog, and finally record the row count in the index. When done, verify the index parses before you emit the summary.

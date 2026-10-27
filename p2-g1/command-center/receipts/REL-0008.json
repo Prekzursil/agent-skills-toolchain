@@ -1,0 +1,570 @@
+{
+  "schema_version": 1,
+  "unit_id": "REL-0008",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:REL-0008",
+  "profile": "destruction-oracle",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json REL-0008; _USER-PROMPTS.md:11016-11017,11132",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "data-integrity-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/REL-0008/oracle.py",
+      "bytes": 4590,
+      "sha256": "3e97b0b374d3a692203c55d6af3611259d838624a820a59998ad624aa1ebb17e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0008/walker.py",
+      "bytes": 5007,
+      "sha256": "15d2211377d04d772854639b4e5a66aa98dd8fe8451709b951df8a970c1f9353",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0008/lifecycle.py",
+      "bytes": 3791,
+      "sha256": "d4736389f6b0ef26c62e5f33e15d0ac9ef0a7f73e5b3ea23afe8ea4a5c2cd000",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0008/profile.py",
+      "bytes": 3999,
+      "sha256": "f80bd5ed95a7a11f36245d9e2854b001b3dd9084be14bab81732d05adecf8ee9",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+      "bytes": 1136,
+      "sha256": "d435179d50514d203aa7620f4c2237bd8513143e92c233a640f62460496b8486",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A broken install that deletes seeded owner file owner/notes/keep-me.txt is reported as loss, not a silent pass.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/REL-0008/oracle.py:compare",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/REL-0008/emit_receipt.py plant_and_delete",
+          "raw_output": "[\"owner/notes/keep-me.txt\"]",
+          "fingerprint": "bf18c8d4a7b9a9aeb1bf055ce8d414f01f5b38c8f0cba683fa31e34d3b058cd1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe1_loss_and_hostile_walk.py",
+          "raw_output": "plant_delete_caught=true",
+          "fingerprint": "ffc1274423233fbc81c5b7330c419e56ea827e82bcbecc230e2d5b1da17d7802",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Clean install, upgrade, rollback and uninstall are oracle-silent; hashed_path_count=6 is a number; skipped fifo is NOT-CHECKED and is not folded into pass.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/REL-0008/oracle.py:run_op",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/REL-0008/emit_receipt.py clean_four_ops",
+          "raw_output": "{\"hashed_path_count\": 6, \"ops\": [\"install\", \"upgrade\", \"rollback\", \"uninstall\"]}",
+          "fingerprint": "3a0a25fda3620fdc7c26cbcdc79588ab630824f0c9761a0a42764800dbc61a58",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe2_clean_four_ops.py",
+          "raw_output": "ops_silent four-ops",
+          "fingerprint": "8d59b2d10746704f2b0a57e7fba12984ebf7b4dd2c6fa5a572728913c9b4516b",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The walker hashed a reserved-device-named file and a 260+ character relative path, and tracked a case-only sibling as a distinct path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/REL-0008/walker.py:census",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python3 -B command-center/p2-wave/probes/REL-0008/emit_receipt.py hostile_walk",
+          "raw_output": "{\"nul_sha256\": \"b4ec288fb190a8e07eb6032f9f65640fae1d3caddefe1c9d49d095f7106e27ea\", \"long_rel_chars\": 263, \"exact\": 10, \"collapsed\": 9}",
+          "fingerprint": "f4be913d1402e3dd1de1dac540313bd7874b6f0ebb5c2161c2852f717b758a81",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe1_loss_and_hostile_walk.py",
+          "raw_output": "nul_hashed long_rel case",
+          "fingerprint": "ffc1274423233fbc81c5b7330c419e56ea827e82bcbecc230e2d5b1da17d7802",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A reviewer case-insensitive uninstall that would destroy pkg/hooks/Pre-Tool.json is caught as loss before sign-off.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/REL-0008/lifecycle.py:apply_uninstall_casefold_wipe",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/REL-0008/emit_receipt.py reviewer_destroy",
+          "raw_output": "[\"pkg/hooks/Pre-Tool.json\"]",
+          "fingerprint": "c341e208226b63b2cb253fbeb88f3f69ffcbf630509942bb90e935a4cb4ee7d5",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe2_clean_four_ops.py",
+          "raw_output": "reviewer_caught=true",
+          "fingerprint": "8d59b2d10746704f2b0a57e7fba12984ebf7b4dd2c6fa5a572728913c9b4516b",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-plant-and-delete",
+      "name": "Broken installer deleting a seeded owner file is loss",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe1_loss_and_hostile_walk.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "lost=owner/notes/keep-me.txt"
+    },
+    {
+      "id": "T2-clean-four-ops",
+      "name": "Clean four-op drill is silent with a numeric hashed-path count",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe2_clean_four_ops.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "hashed_path_count=6"
+    },
+    {
+      "id": "T3-hostile-walk",
+      "name": "Walker hashes NUL and a 260+ character path without raising",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe1_loss_and_hostile_walk.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "nul_sha256=b4ec288fb190 rel_chars=263"
+    },
+    {
+      "id": "T4-case-distinct",
+      "name": "Case-only colliding name is a distinct census key",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0008/probe1_loss_and_hostile_walk.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "exact=10 collapsed=9"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "plant-and-delete",
+      "kind": "mutation",
+      "description": "Installer deletes seeded owner file; oracle must fire. Clean install on the same seed must stay silent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "owner/notes/keep-me.txt",
+      "good_state_output": "install oracle_silent=true"
+    },
+    {
+      "id": "isolation-owner-home",
+      "kind": "known-broken-fixture",
+      "description": "assert_isolated must raise on the owner's live HOME and stay silent on the throwaway canary.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "IsolationError on Path.home()",
+      "good_state_output": "isolated=true"
+    },
+    {
+      "id": "casefold-uninstall-wipe",
+      "kind": "adversarial-payload",
+      "description": "Case-insensitive uninstall deletes the owner case-sibling; oracle must report that path as loss.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "pkg/hooks/Pre-Tool.json",
+      "good_state_output": "uninstall oracle_silent=true"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "REL-0008-probe2-destroy-and-catch",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "reviewed_at": "2026-08-25T00:58:32Z",
+    "notes": "Probe2 re-runs a case-insensitive uninstall against a fresh profile and requires the oracle to name pkg/hooks/Pre-Tool.json as loss before PASS."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/REL-0008/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "REL-0008",
+    "registered_at": "2026-08-25T00:58:32Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft7Validator local-store lifecycle-drill-receipt",
+      "artifact_path": "command-center/receipts/REL-0008.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/p2-wave/probes/REL-0008/emit_receipt.py validate_or_die",
+        "raw_output": "schema-valid against local $ref store; garbage rejected",
+        "fingerprint": "81eb1d7ed8a404327fdd27a1b9b512a215a7761690f69f8218083f3fe5547011",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:32Z",
+    "ended_at": "2026-08-25T00:58:32Z",
+    "duration_seconds": 0.015101
+  },
+  "retry": {
+    "count": 1,
+    "policy": "retry only on a FRESH profile. Re-running a lifecycle drill on a dirtied profile measures the dirt, not the drill.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "schema-shim-https-ref-unresolvable",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "local-store-receipt-core-emit",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Windows Get-Item -LiteralPath corroboration of the NUL and 260+ character paths was not run; this runner is Linux.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run walker.py census on Windows with a reserved-device name and a MAX_PATH-class relative path."
+    },
+    {
+      "claim": "REL-0004 canary-rig receipt is absent on this worktree; isolation is asserted locally rather than inherited.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run after command-center/receipts/REL-0004.json exists and confirm REL-0008 still refuses owner HOME."
+    }
+  ],
+  "report": {
+    "kind": "lifecycle-drill-receipt",
+    "title": "Destruction oracle over all four lifecycle operations, seeded with hostile filenames",
+    "question": "Answer spec line 11132, 'no data loss occurs', identically for install, upgrade, rollback and uninstall with one oracle: hash every owner-owned path in the profile before the operation, hash again afterwards, and require that nothing present beforehand is missing or altered unless the operation declared that change. Seed adversarial names first.",
+    "hashed_path_count": 6,
+    "skip_folded_into_pass": false,
+    "operations": [
+      {
+        "name": "install",
+        "paths_hashed": 6,
+        "paths_skipped": 1,
+        "paths_altered": 0,
+        "skipped_are_not_checked": true,
+        "skip_folded_into_pass": false,
+        "verified_unchanged_count": 6,
+        "verified_unchanged": [
+          "owner/.canary-profile",
+          "owner/long/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/payload.bin",
+          "owner/notes/keep-me.txt",
+          "owner/reserved/NUL",
+          "owner/skills/user-skill.md",
+          "pkg/hooks/Pre-Tool.json"
+        ],
+        "skipped_paths": [
+          "owner/skipped/pipe.fifo"
+        ],
+        "loss": [],
+        "declared_ok": [],
+        "skipped_then_missing": [],
+        "undeclared_creates": [],
+        "oracle_silent": true,
+        "honest_pass_count": 6,
+        "lying_pass_count_if_skips_folded": 7,
+        "declared_change_set": {
+          "creates": [
+            "pkg/manifest.json",
+            "pkg/hooks/pre-tool.json",
+            "pkg/rules/base.md",
+            "pkg/bin/cli.py"
+          ],
+          "mutates": [],
+          "removes": []
+        },
+        "fresh_profile": true,
+        "retry_policy": "retry only on a FRESH profile; this sequence is one attempt"
+      },
+      {
+        "name": "upgrade",
+        "paths_hashed": 10,
+        "paths_skipped": 1,
+        "paths_altered": 2,
+        "skipped_are_not_checked": true,
+        "skip_folded_into_pass": false,
+        "verified_unchanged_count": 8,
+        "verified_unchanged": [
+          "owner/.canary-profile",
+          "owner/long/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/payload.bin",
+          "owner/notes/keep-me.txt",
+          "owner/reserved/NUL",
+          "owner/skills/user-skill.md",
+          "pkg/hooks/Pre-Tool.json",
+          "pkg/hooks/pre-tool.json",
+          "pkg/rules/base.md"
+        ],
+        "skipped_paths": [
+          "owner/skipped/pipe.fifo"
+        ],
+        "loss": [],
+        "declared_ok": [
+          "pkg/bin/cli.py",
+          "pkg/manifest.json"
+        ],
+        "skipped_then_missing": [],
+        "undeclared_creates": [],
+        "oracle_silent": true,
+        "honest_pass_count": 8,
+        "lying_pass_count_if_skips_folded": 11,
+        "declared_change_set": {
+          "creates": [
+            "pkg/migrations/001.json"
+          ],
+          "mutates": [
+            "pkg/manifest.json",
+            "pkg/bin/cli.py"
+          ],
+          "removes": []
+        },
+        "fresh_profile": false,
+        "retry_policy": "retry only on a FRESH profile; this sequence is one attempt"
+      },
+      {
+        "name": "rollback",
+        "paths_hashed": 11,
+        "paths_skipped": 1,
+        "paths_altered": 3,
+        "skipped_are_not_checked": true,
+        "skip_folded_into_pass": false,
+        "verified_unchanged_count": 8,
+        "verified_unchanged": [
+          "owner/.canary-profile",
+          "owner/long/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/payload.bin",
+          "owner/notes/keep-me.txt",
+          "owner/reserved/NUL",
+          "owner/skills/user-skill.md",
+          "pkg/hooks/Pre-Tool.json",
+          "pkg/hooks/pre-tool.json",
+          "pkg/rules/base.md"
+        ],
+        "skipped_paths": [
+          "owner/skipped/pipe.fifo"
+        ],
+        "loss": [],
+        "declared_ok": [
+          "pkg/bin/cli.py",
+          "pkg/manifest.json",
+          "pkg/migrations/001.json"
+        ],
+        "skipped_then_missing": [],
+        "undeclared_creates": [],
+        "oracle_silent": true,
+        "honest_pass_count": 8,
+        "lying_pass_count_if_skips_folded": 12,
+        "declared_change_set": {
+          "creates": [],
+          "mutates": [
+            "pkg/manifest.json",
+            "pkg/bin/cli.py"
+          ],
+          "removes": [
+            "pkg/migrations/001.json"
+          ]
+        },
+        "fresh_profile": false,
+        "retry_policy": "retry only on a FRESH profile; this sequence is one attempt"
+      },
+      {
+        "name": "uninstall",
+        "paths_hashed": 10,
+        "paths_skipped": 1,
+        "paths_altered": 4,
+        "skipped_are_not_checked": true,
+        "skip_folded_into_pass": false,
+        "verified_unchanged_count": 6,
+        "verified_unchanged": [
+          "owner/.canary-profile",
+          "owner/long/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/payload.bin",
+          "owner/notes/keep-me.txt",
+          "owner/reserved/NUL",
+          "owner/skills/user-skill.md",
+          "pkg/hooks/Pre-Tool.json"
+        ],
+        "skipped_paths": [
+          "owner/skipped/pipe.fifo"
+        ],
+        "loss": [],
+        "declared_ok": [
+          "pkg/bin/cli.py",
+          "pkg/hooks/pre-tool.json",
+          "pkg/manifest.json",
+          "pkg/rules/base.md"
+        ],
+        "skipped_then_missing": [],
+        "undeclared_creates": [],
+        "oracle_silent": true,
+        "honest_pass_count": 6,
+        "lying_pass_count_if_skips_folded": 11,
+        "declared_change_set": {
+          "creates": [],
+          "mutates": [],
+          "removes": [
+            "pkg/manifest.json",
+            "pkg/hooks/pre-tool.json",
+            "pkg/rules/base.md",
+            "pkg/bin/cli.py",
+            "pkg/migrations/001.json"
+          ]
+        },
+        "fresh_profile": false,
+        "retry_policy": "retry only on a FRESH profile; this sequence is one attempt"
+      }
+    ],
+    "hostile_walk": {
+      "nul_present": true,
+      "nul_skipped": false,
+      "nul_sha256": "b4ec288fb190a8e07eb6032f9f65640fae1d3caddefe1c9d49d095f7106e27ea",
+      "nul_rel": "owner/reserved/NUL",
+      "long_rel": "owner/long/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/payload.bin",
+      "long_abs_chars": 292,
+      "long_rel_chars": 263,
+      "long_sha256": "d7162a7f88134084ed2acfb3ad5377018eaa1ac39d73b163809f4a1adb908187",
+      "long_skipped": false,
+      "case_owner_rel": "pkg/hooks/Pre-Tool.json",
+      "case_package_rel": "pkg/hooks/pre-tool.json",
+      "case_owner_sha256": "0d60f8ec7b4f99805ef74cba08d9621e30d193184339332a04a29ab61f24bacd",
+      "case_package_sha256": "e078053ef367e6656fd32cce8efa21645675bed40ddc78666e13e58ed734a393",
+      "exact_path_count": 10,
+      "casefold_collapsed_count": 9,
+      "distinct_not_collapsed": true,
+      "fifo_rel": "owner/skipped/pipe.fifo",
+      "fifo_not_checked": true,
+      "walker_uses_stdlib_relpath": false,
+      "hashed_path_count": 6
+    },
+    "plant_and_delete": {
+      "caught": true,
+      "lost_paths": [
+        "owner/notes/keep-me.txt"
+      ],
+      "paths_hashed": 6,
+      "paths_skipped": 1,
+      "paths_altered": 1
+    },
+    "reviewer_destroy": {
+      "caught": true,
+      "lifecycle_path": "uninstall",
+      "destroyed_owner_path": "pkg/hooks/Pre-Tool.json",
+      "lost_paths": [
+        "pkg/hooks/Pre-Tool.json"
+      ]
+    },
+    "isolation": {
+      "fired_on_owner_home": true,
+      "silent_on_canary": true,
+      "owner_home": "/root",
+      "isolation_assertion": "canary profile is a throwaway directory and is not the owner's live HOME; no read or write targeted the live profile",
+      "isolated": true,
+      "owner_home_untouched": true,
+      "rel_0004_receipt": {
+        "path": "command-center/receipts/REL-0004.json",
+        "status": "NOT-CHECKED",
+        "reason": "REL-0004 receipt is absent on this worktree; REL-0008 supplies its own throwaway HOME. Isolation is asserted here rather than inferred from a missing install directory."
+      }
+    },
+    "surfaces_not_checked": [
+      "owner live HOME (isolation refuses it; never queried as a drill root)",
+      "REL-0004 hook-firing canary receipt (file absent on this worktree)",
+      "Windows Get-Item -LiteralPath corroboration (this runner is Linux)",
+      "owner/skipped/pipe.fifo"
+    ],
+    "walker_never_calls_os_path_relpath": true,
+    "observations": [
+      {
+        "name": "hashed_path_count",
+        "measured": 6,
+        "method": "oracle census before install",
+        "anchor": "command-center/p2-wave/probes/REL-0008/oracle.py:run_op"
+      },
+      {
+        "name": "plant_and_delete_caught",
+        "measured": true,
+        "method": "broken install deletes owner file",
+        "anchor": "command-center/p2-wave/probes/REL-0008/lifecycle.py:apply_install_deletes_owner"
+      },
+      {
+        "name": "long_rel_chars",
+        "measured": 263,
+        "method": "walker census of seeded 240-char directory",
+        "anchor": "command-center/p2-wave/probes/REL-0008/profile.py:LONG_REL"
+      },
+      {
+        "name": "skip_folded_into_pass",
+        "measured": false,
+        "method": "fifo listed in skipped_paths not verified_unchanged",
+        "anchor": "command-center/p2-wave/probes/REL-0008/oracle.py:honest_pass_count"
+      }
+    ],
+    "control_ids": [
+      "plant-and-delete",
+      "isolation-owner-home",
+      "casefold-uninstall-wipe"
+    ]
+  },
+  "extensions": {
+    "write_scope": [
+      "command-center/receipts/REL-0008.json",
+      "command-center/p2-wave/probes/REL-0008/"
+    ],
+    "prohibited_actions_not_run": [
+      "git commit",
+      "git add",
+      "git push",
+      "git stash",
+      "git checkout",
+      "git rebase",
+      "tools/command-center/unit_manifest.py --write"
+    ]
+  }
+}

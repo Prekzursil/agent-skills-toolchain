@@ -1,0 +1,68 @@
+{
+  "id": "inv-imp0476-fixture",
+  "components_root_note": "paths resolve against the fixtures dir of this probe",
+  "checks": [
+    {
+      "id": "ledger.writable",
+      "component": "status-ledger",
+      "title": "status ledger present and parseable",
+      "probes": [
+        {"id": "ledger-stat", "method": "file-stat", "path": "ledger.json", "min_bytes": 20, "command": "stat ledger.json"},
+        {"id": "ledger-keys", "method": "json-keys", "path": "ledger.json", "required": ["entries", "updated_at"], "command": "python3 -c json.load(ledger.json)"}
+      ]
+    },
+    {
+      "id": "router.responding",
+      "component": "seed-router",
+      "title": "seed router manifest present",
+      "probes": [
+        {"id": "router-stat", "method": "file-stat", "path": "router.json", "min_bytes": 20, "command": "stat router.json"},
+        {"id": "router-hash", "method": "content-hash", "path": "router.json", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "command": "sha256(router.json) == pinned"}
+      ]
+    },
+    {
+      "id": "skills.registered",
+      "component": "skills-registry",
+      "title": "skills registry inventory present",
+      "probes": [
+        {"id": "skills-stat", "method": "file-stat", "path": "skills.json", "min_bytes": 20, "command": "stat skills.json"},
+        {"id": "skills-keys", "method": "json-keys", "path": "skills.json", "required": ["skills"], "command": "python3 -c json.load(skills.json)"}
+      ]
+    },
+    {
+      "id": "schemas.parse",
+      "component": "schema-substrate",
+      "title": "schema substrate parses",
+      "probes": [
+        {"id": "schemas-stat", "method": "file-stat", "path": "schemas.json", "min_bytes": 10, "command": "stat schemas.json"},
+        {"id": "schemas-keys", "method": "json-keys", "path": "schemas.json", "required": ["version"], "command": "python3 -c json.load(schemas.json)"}
+      ]
+    },
+    {
+      "id": "legacy.sansprobe",
+      "component": "legacy-component",
+      "title": "single-probe legacy check (must render NOT-CHECKED)",
+      "probes": [
+        {"id": "legacy-stat", "method": "file-stat", "path": "ledger.json", "min_bytes": 20, "command": "stat ledger.json"}
+      ]
+    },
+    {
+      "id": "legacy.samemethod",
+      "component": "legacy-component-2",
+      "title": "two probes, same method (not independent; must render NOT-CHECKED)",
+      "probes": [
+        {"id": "same-a", "method": "file-stat", "path": "router.json", "min_bytes": 20, "command": "stat router.json"},
+        {"id": "same-b", "method": "file-stat", "path": "router.json", "min_bytes": 20, "command": "stat2 router.json"}
+      ]
+    },
+    {
+      "id": "control.healthy",
+      "component": "healthy-control",
+      "title": "positive control: genuinely healthy two-probe check",
+      "probes": [
+        {"id": "healthy-stat", "method": "file-stat", "path": "healthy.json", "min_bytes": 5, "command": "stat healthy.json"},
+        {"id": "healthy-keys", "method": "json-keys", "path": "healthy.json", "required": ["ok"], "command": "python3 -c json.load(healthy.json)"}
+      ]
+    }
+  ]
+}

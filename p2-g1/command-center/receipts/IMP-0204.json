@@ -1,0 +1,264 @@
+{
+ "artifacts": [
+  {
+   "path": "tools/workflows/retirement.py",
+   "bytes": 7306,
+   "sha256": "ec00ebfde31da3eb97428ca230d831af58e05afd02d6fd40f1f8191785d3267d",
+   "exists": true,
+   "eol": "LF",
+   "role": "implementation"
+  },
+  {
+   "path": "tools/workflows/schema/retirement-record.schema.json",
+   "bytes": 1531,
+   "sha256": "2be8b5bde9b4eca970d563a7c206c610f411cdacf4448b1613925287652a1a4f",
+   "exists": true,
+   "eol": "LF",
+   "role": "implementation"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0204/probe1_resolve_and_pin.py",
+   "bytes": 3486,
+   "sha256": "3b271adbd85898444fb17e0b12a979ef60225daab12a45d718687d08e0702283",
+   "exists": true,
+   "eol": "LF",
+   "role": "named-probe"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0204/probe2_refuse_delete.py",
+   "bytes": 4026,
+   "sha256": "246299e887497f8d2468ce2360ceea6124c80fe3cb64f305dfc56f7a6818919e",
+   "exists": true,
+   "eol": "LF",
+   "role": "named-probe"
+  }
+ ],
+ "cloud_ok": false,
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0204.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0204",
+    "exit_code": 0,
+    "fingerprint": "a3a7660d1ab5a2713ec200e9069fb246",
+    "method": "command",
+    "raw_output": "deferred to post-write measure",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/workflows/retirement.py:Catalog.resolve",
+   "claim": "A retired workflow id remains resolvable and returns the successor: resolve('wf.catalog-class.discovery-only').successor_id == 'wf.catalog-class.typed-restore'.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "Catalog.supersede + Catalog.resolve + Catalog.execute_consumer",
+     "exit_code": 0,
+     "fingerprint": "d57dc54627c5fe6be7ebe004918ee11d",
+     "method": "in-process",
+     "raw_output": "{\"executed_id\": \"wf.catalog-class.discovery-only\", \"pin_ok\": true, \"successor\": \"wf.catalog-class.typed-restore\", \"warning\": \"WORKFLOW_SUPERSEDED\"}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/workflows/retirement.py:Catalog.execute_consumer",
+   "claim": "A consumer pinned to the retired id still executes (no hard break) and emits typed warning WORKFLOW_SUPERSEDED naming successor 'wf.catalog-class.typed-restore'.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "Catalog.supersede + Catalog.resolve + Catalog.execute_consumer",
+     "exit_code": 0,
+     "fingerprint": "d57dc54627c5fe6be7ebe004918ee11d",
+     "method": "in-process",
+     "raw_output": "{\"executed_id\": \"wf.catalog-class.discovery-only\", \"pin_ok\": true, \"successor\": \"wf.catalog-class.typed-restore\", \"warning\": \"WORKFLOW_SUPERSEDED\"}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/workflows/retirement.py:Catalog.delete",
+   "claim": "Deletion of a referenced workflow is refused; the id still resolves afterwards (FC-11347: retirement is never silent removal).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "Catalog.delete on referenced retired workflow",
+     "exit_code": 0,
+     "fingerprint": "3d55924fdd756d363629493ce582af36",
+     "method": "in-process",
+     "raw_output": "{\"delete_refused\": true, \"still_resolves\": true}",
+     "role": "source"
+    },
+    {
+     "command": "Catalog.force_drop_for_probe (silent-deletion mutant, FC-11347)",
+     "exit_code": 0,
+     "fingerprint": "3e8ce3392aab9015b0519143817290fc",
+     "method": "mutation",
+     "raw_output": "{\"silent_delete_broke_resolve\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/workflows/retirement.py:validate_retirement",
+   "claim": "Retirement schema admits only SUPERSESSION (successor+migration) or DEPRECATION (reason+removal_date); DELETION and dangling successors are rejected.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "validate_retirement rejects DELETION / missing successor / missing migration",
+     "exit_code": 0,
+     "fingerprint": "5fedb8696dd7facbe0ef7587ac86c3d9",
+     "method": "schema-reject",
+     "raw_output": "[{\"label\": \"no-successor\", \"rejected\": true}, {\"label\": \"no-migration\", \"rejected\": true}, {\"label\": \"dangling-successor\", \"rejected\": true}, {\"label\": \"deletion-kind\", \"rejected\": true}]",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0204/probe1_resolve_and_pin.py",
+     "exit_code": 0,
+     "fingerprint": "89b2dc8060e5590d7ecd6bc4dea6200b",
+     "method": "command",
+     "raw_output": "RESULT:{\"retired_resolves\": true, \"successor_id\": \"wf.catalog-class.typed-restore\", \"pinned_still_runs\": true, \"warning_code\": \"WARN_SUPERSEDED\", \"hard_break\": false}\nSUCCESS:IMP-0204-probe1 retired id resolves; pinned consumer still runs",
+     "role": "retired-id-resolves-pin-still-runs"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0204/probe2_refuse_delete.py",
+     "exit_code": 0,
+     "fingerprint": "82930aafab10109d2bc420aa33bc3b2b",
+     "method": "command",
+     "raw_output": "RESULT:{\"delete_refused\": true, \"still_resolves\": true, \"schema_rejected_labels\": [\"no-successor\", \"no-migration\", \"dangling-successor\", \"deletion-kind\"], \"honest_record_accepted\": true}\nSUCCESS:IMP-0204-probe2 referenced delete refused; id still resolves",
+     "role": "referenced-delete-refused"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0204/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "force_drop_for_probe -> NotFound on resolve",
+   "description": "Dropping the retired body without a retirement record (silent deletion) must make resolve and pinned execute hard-break. The public delete() path must not do this.",
+   "fired_on_bad_state": true,
+   "good_state_output": "supersede+pin execute ok; delete refused; still resolvable",
+   "id": "IMP0204-C1-silent-delete",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "[{\"label\": \"no-successor\", \"rejected\": true}, {\"label\": \"no-migration\", \"rejected\": true}, {\"label\": \"dangling-successor\", \"rejected\": true}, {\"label\": \"deletion-kind\", \"rejected\": true}]",
+   "description": "Malformed retirement records must be SCHEMA_INVALID.",
+   "fired_on_bad_state": true,
+   "good_state_output": "SUPERSESSION wf.catalog-class.discovery-only -> wf.catalog-class.typed-restore admitted",
+   "id": "IMP0204-C2-schema",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "role": "implementer"
+ },
+ "report": {
+  "engine": "tools/workflows/retirement.py",
+  "failure_class": "FC-11347 rollback destroys user-owned files/commands/settings",
+  "kind": "workflow-retirement-engine",
+  "measurement": {
+   "delete_refused": true,
+   "deprecation_warning": "WORKFLOW_DEPRECATED",
+   "kind_deprecation": "DEPRECATION",
+   "kind_supersession": "SUPERSESSION",
+   "pin_executed_id": "wf.catalog-class.discovery-only",
+   "pin_ok": true,
+   "pin_warning_code": "WORKFLOW_SUPERSEDED",
+   "pin_warning_successor": "wf.catalog-class.typed-restore",
+   "resolve_present": true,
+   "resolve_successor": "wf.catalog-class.typed-restore",
+   "schema_all_rejected": true,
+   "schema_hits": [
+    {
+     "label": "no-successor",
+     "rejected": true
+    },
+    {
+     "label": "no-migration",
+     "rejected": true
+    },
+    {
+     "label": "dangling-successor",
+     "rejected": true
+    },
+    {
+     "label": "deletion-kind",
+     "rejected": true
+    }
+   ],
+   "silent_delete_broke_resolve": true,
+   "still_resolves_after_delete": true,
+   "warn_deprecated": "WORKFLOW_DEPRECATED",
+   "warn_superseded": "WORKFLOW_SUPERSEDED"
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0203 (certification record) is a catalog dependency and is not delivered on this worktree; retirement does not consult certificates.",
+   "settling_experiment": "Re-run resolve against a catalog that also holds IMP-0203 certificates.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "probe2 is a separate process that did not author retirement.py; it re-runs delete-refusal and the silent-deletion mutant.",
+  "reviewer_id": "IMP-0204-probe2-refuse-delete",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0204",
+ "spec_anchor": "_USER-PROMPTS.md:11347",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0204/probe1_resolve_and_pin.py",
+   "id": "retired-id-resolves-pin-still-runs",
+   "output_tail": "{\"bad\": {\"detector_fired\": true, \"silent_delete_pin_hard_broke\": true, \"silent_delete_resolve_broke\": true}, \"both_states\": true, \"good\": {\"deprecation_removal_date\": \"2027-02-01\", \"deprecation_resolves\": true, \"deprecation_runs\": true, \"deprecation_warning_code\": \"WORKFLOW_DEPRECATED\", \"pin_executed_retired_id\": true, \"pin_ok\": true, \"pin_warning_code\": \"WORKFLOW_SUPERSEDED\", \"pin_warning_successor\": \"wf.catalog-class.typed-restore\", \"retired_resolves\": true, \"successor_body\": \"typed-restore-then-record\", \"successor_id\": \"wf.catalog-class.typed-restore\"}, \"pass\": true, \"probe\": \"probe1-resolve-and-pin\", \"schema_rejects\": {\"all_rejected\": true, \"cases\": [{\"label\": \"supersession-without-successor\", \"rejected\": true}, {\"label\": \"supersession-without-migration\", \"rejected\": true}, {\"label\": \"deprecation-without-reason\", \"rejected\": true}, {\"label\": \"deprecation-without-removal-date\", \"rejected\": true}, {\"label\": \"dangling-successor\", \"rejected\": true}, {\"label\": \"deletion-kind\", \"rejected\": true}]}, \"unit_id\": \"IMP-0204\"}\nGOOD resolve successor=wf.catalog-class.typed-restore pin_ok=True warn=WORKFLOW_SUPERSEDED\nBAD silent-delete detector_fired=True schema_rejects=True\nSUCCESS:IMP-0204-probe1 retired id resolves; pinned consumer still runs",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0204/probe2_refuse_delete.py",
+   "id": "referenced-delete-refused",
+   "output_tail": "{\"bad\": {\"detector_fired\": true, \"force_drop_pin_broke\": true, \"force_drop_resolve_broke\": true}, \"both_states\": true, \"good\": {\"code\": \"DELETE_REFUSED\", \"consumer_pin_intact\": true, \"delete_refused\": true, \"references\": [{\"id\": \"consumer.pinned-to-discovery-only\", \"kind\": \"consumer_pin\"}, {\"id\": \"wf.catalog-class.discovery-only\", \"kind\": \"retirement_record\"}], \"still_resolves\": true, \"successor_delete_refused\": true, \"successor_still_present\": true}, \"pass\": true, \"probe\": \"probe2-refuse-delete\", \"unit_id\": \"IMP-0204\"}\nGOOD delete_refused=True still_resolves=True refs=2\nBAD force_drop detector_fired=True\nSUCCESS:IMP-0204-probe2 deletion of referenced workflow refused",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:07Z",
+  "started_at": "2026-08-24T18:34:00Z"
+ },
+ "title": "Implement deprecation and supersession records for retired workflows",
+ "unit_id": "IMP-0204",
+ "extensions": {
+  "shard8_reconstruction": {
+   "date": "2026-10-24T12:38:21Z",
+   "note": "probe kit rebuilt 2026-10-24 from the receipt's own recorded specs after the g1 tree reset; artifacts[] and evidence probes carry freshly measured values from the live runs",
+   "laid_out_from": "receipt evidence + tests_required + negative_controls"
+  }
+ }
+}

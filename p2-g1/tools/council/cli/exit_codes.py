@@ -1,0 +1,28 @@
+"""Council CLI exit-code contract. Success codes are pairwise distinct and never 0."""
+from __future__ import annotations
+
+EXIT_RUN_OK = 10
+EXIT_RESUME_OK = 11
+EXIT_INSPECT_OK = 12
+EXIT_LIST_PRESETS_OK = 13
+EXIT_EXPLAIN_OK = 14
+EXIT_COUNCIL_FAILED = 20
+EXIT_MISSING_ARTIFACT = 21
+EXIT_NO_CHECKPOINT = 22
+EXIT_NO_PRESETS = 23
+EXIT_NO_LINEAGE = 24
+EXIT_USAGE = 2
+
+__all__ = [
+    "EXIT_RUN_OK",
+    "EXIT_RESUME_OK",
+    "EXIT_INSPECT_OK",
+    "EXIT_LIST_PRESETS_OK",
+    "EXIT_EXPLAIN_OK",
+    "EXIT_COUNCIL_FAILED",
+    "EXIT_MISSING_ARTIFACT",
+    "EXIT_NO_CHECKPOINT",
+    "EXIT_NO_PRESETS",
+    "EXIT_NO_LINEAGE",
+    "EXIT_USAGE",
+]

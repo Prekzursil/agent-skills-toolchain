@@ -1,0 +1,68 @@
+{
+  "report_kind": "cache_report",
+  "claims": [
+    {
+      "id": "E-zero-pinned-evictions",
+      "anchor": "command-center/p2-wave/probes/TST-0178/pinned_cache.py:_prune_locked",
+      "claim": "Across a 3,000-op randomized pressure run with three concurrent readers holding pins (1,906 pinned reads, 916 total evictions), zero pinned entries were evicted: the pin table protects every entry a running unit holds.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-mutation-control",
+      "anchor": "command-center/p2-wave/probes/TST-0178/probe2_mutation.py:run_pressure",
+      "claim": "Mutation control: with pinning disabled (pin table ignored in the evict path), the same seeded rig produces 12 evictions of pinned entries while the pinned baseline on the identical seed stays clean - the detector fires on the broken state and is silent on the good one.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "pinning-disabled-mutant",
+      "kind": "mutation",
+      "description": "pinning_enabled=False evicts entries whose pin count is raised; the violation hook records the actual eviction (not the attempt), so the pinned baseline records nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutant_pinned_evictions=12 detector_red=true",
+      "good_state_output": "baseline violations=0 across 443 evictions with pins live"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0178/pinned_cache.py",
+    "pinning": "acquire() raises a per-key pin count; release() drops it; LRU prune skips pinned entries (reference-count style)",
+    "violation_semantics": "recorded only when a pinned entry is ACTUALLY evicted (mutant path), never on a protected attempt",
+    "production_note": "platform/plugin/cache.py Cache.prune evicts strictly by mtime LRU and has no pin concept; the pinned reference implementation is the measured layer per the unit contract",
+    "signals": {
+      "a": "eviction log cross-referenced against the pin table at eviction time",
+      "b": "pinned readers' read outcomes recorded during the pressure run (1,906 reads)"
+    }
+  },
+  "observations": [
+    {
+      "name": "pinned evictions across 3,000 randomized ops",
+      "measured": 0,
+      "method": "3 reader threads holding pins while put/get/prune churn runs; violation hook on the eviction path",
+      "anchor": "command-center/p2-wave/probes/TST-0178/probe1_pressure.py"
+    },
+    {
+      "name": "total evictions during pressure (pressure is real)",
+      "measured": 916,
+      "method": "same run, eviction log length",
+      "anchor": "command-center/p2-wave/probes/TST-0178/pinned_cache.py:_prune_locked"
+    },
+    {
+      "name": "pinned evictions under the pinning-disabled mutant",
+      "measured": 12,
+      "method": "identical seeded rig with pinning_enabled=False",
+      "anchor": "command-center/p2-wave/probes/TST-0178/probe2_mutation.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Production Cache.prune has no pin/reference-count concept, so the pinned property cannot be bound to it today; if production gains pinning, re-bind these probes to Cache.prune and retire the probe-local implementation.",
+      "settling_experiment": "Re-bind probe1/probe2 to the production prune once a pin API exists; keep the pinning-disabled mutant as the detector control.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0178: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

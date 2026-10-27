@@ -1,0 +1,48 @@
+feat(slop): gate the class -- a committed doc may not publish a command a clone cannot run
+
+The SLOP lane carried 45 probe scripts that committed artifacts named while
+.gitignore:76 kept every one of them untracked. It fixed the 45 instances. Nothing
+stopped the 46th, and there already is one: two committed command-centre reports
+publish `python platform/lib/_p12_refute_predicate.py` as "Executable proof", and
+that file exists on exactly one disk.
+
+check_published_commands.py is the class fix. For every tracked .md under
+command-center/ and docs/ it extracts each `python <path>` invocation and requires
+<path> to be TRACKED. 230 commands across 255 documents today.
+
+COUNT THE FIELD, NOT THE DOCUMENT. The obvious version of this gate is refuted and
+the refutation is why the scope is narrow. Grepping tracked artifacts for an
+untracked script's BASENAME reports 103-158 "dangling citations" -- but 157 of the
+citers are this lane's own census outputs (_slop_measure*.out.json), whose entire
+job is to ENUMERATE untracked filenames. A census that lists a file is measuring it,
+not depending on it. A JSON array element "_foo.py" cannot match `python <path>`, so
+that whole noise class disappears by construction rather than by an exception list.
+Measured in _i1_dangling_census.out.json and _i2_published_cmds.out.json.
+
+Two resolution roots, because both conventions are live: repo-root-relative and
+citer-dir-relative. Requiring repo-root alone reports ~83 false violations across
+the skill packs.
+
+The baseline is a ratchet, not a mute button. The two inherited violations belong to
+the platform lane and are NOT carried here, because they cannot be carried
+byte-unchanged: `ruff check` at the CI pin 0.15.17 reports F841 at
+_p12_refute_predicate.py:107, so committing it as-is turns gate-lint-format RED for
+every sibling PR. Both SLOP rounds carried evidence byte-unchanged on purpose -- the
+round-1 provenance-lock detector failed its own positive control, so nobody can yet
+prove a receipt does not pin those bytes. Each row therefore records its owner, why
+it is open, and the one-line settling action; and a row that stops violating makes
+the gate FAIL so the floor drops instead of drifting into slack.
+
+Detector controls: fail-closed on zero commands found; --self-test proves both
+states; the negative sentinel is uuid4-generated at runtime, not hardcoded, because
+a fixed sentinel poisons its own corpus the moment the gate and its receipt are
+committed -- measured on this lane's round-1 control, which ships asserting quiet==0
+and yields quiet==2 to everyone who reruns it.
+
+Portability is load-bearing: the repo root comes from `git rev-parse --show-toplevel`.
+The sibling gate command-center/hook-audit/check_citations.py hardcodes
+REPO = Path("C:/Users/Prekzursil/source/ast-integrate") and so cannot run on a CI
+runner at all, which is one reason it is wired into no workflow.
+
+Not wired to CI in this commit. The wiring lands only after the red-proof runs
+against a clone that actually contains this file.

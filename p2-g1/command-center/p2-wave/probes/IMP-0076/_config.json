@@ -1,0 +1,46 @@
+{
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0076: publisher trust levels derived from measurement, not popularity",
+  "arts": [
+    {"path": "command-center/receipts/IMP-0076.json", "role": "primary"},
+    {"path": "tools/marketplace/trust_levels.py", "role": "primary"},
+    {"path": "tools/marketplace/schema/trust-levels.schema.json", "role": "supporting"},
+    {"path": "tools/marketplace/fixtures/trust_publishers.json", "role": "fixture"},
+    {"path": "tools/marketplace/tests/test_trust_levels.py", "role": "supporting"},
+    {"path": "command-center/p2-wave/probes/IMP-0076/probe1_fixture_arithmetic.py", "role": "supporting"},
+    {"path": "command-center/p2-wave/probes/IMP-0076/probe2_gaming_attack.py", "role": "supporting"}
+  ],
+  "p1": {"rel": "command-center/p2-wave/probes/IMP-0076/probe1_fixture_arithmetic.py", "raw": "probe1-fixture-arithmetic.raw.txt", "role": "source"},
+  "p2": {"rel": "command-center/p2-wave/probes/IMP-0076/probe2_gaming_attack.py", "raw": "probe2-gaming-attack.raw.txt", "role": "verifier"},
+  "tests": [
+    {"id": "test_trust_levels.py", "script": "tools/marketplace/tests/test_trust_levels.py",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_trust_levels.py"}
+  ],
+  "evidence": [
+    {"claim": "Computed trust levels for every fixture publisher equal the hand-derived millipoint arithmetic frozen in the fixture file (level + signed/conformance/advisory/provenance components + scoring_input_sha256 over the canonical scoring-keys blob only).",
+     "anchor": "tools/marketplace/fixtures/trust_publishers.json", "method": "test-run"},
+    {"claim": "The gaming strategy (popularity inflation: downloads/stars/ratings/followers/default_trusted planted at absurd values) is DEFEATED - level, score, component vector and scoring_input_sha256 are unchanged, an independent no-import interpreter reproduces the score, a real conformance drop on a near-high publisher moves HIGH to MEDIUM, and UNRATED is never default-trusted.",
+     "anchor": "tools/marketplace/trust_levels.py:POPULARITY_KEYS", "method": "static-analysis"}
+  ],
+  "controls": [
+    {"id": "IMP0076-C1-popularity-gaming", "kind": "adversarial-payload",
+     "description": "Absurd popularity inflation on the alice fixture must leave every trust output byte-identical; a REAL conformance drop on a near-high publisher must move the level (detector not silent in both directions).",
+     "fired_bad": true, "silent_good": true,
+     "bad": "conformance 30% moves HIGH->MEDIUM (fired)",
+     "good": "popularity-inflated twin is byte-identical to baseline (silent)"},
+    {"id": "IMP0076-C2-unrated-empty", "kind": "known-broken-fixture",
+     "description": "A publisher with published_version_count=0 is UNRATED with null score, never DEFAULT-TRUSTED.",
+     "fired_bad": true, "silent_good": true,
+     "bad": "UNRATED with null score on the empty-history fixture",
+     "good": "scored publishers carry numeric millipoints"}
+  ],
+  "residuals": [
+    {"claim": "trust-levels.schema.json is validated by the unit tests; the probe instruments re-derive the arithmetic numerically rather than by schema validation of the TrustLevel object.",
+     "settling_experiment": "Add a jsonschema pass of compute_publisher_trust().as_dict() against tools/marketplace/schema/trust-levels.schema.json once the stdlib-platform shadow permits importing jsonschema from REPO cwd."}
+  ],
+  "reviewer": {
+    "id": "IMP-0076-probe2-gaming-strategy-independent",
+    "scope": "Proposed the popularity-inflation gaming strategy against the formula and ran it for real; recomputed the weighted average with an independent interpreter that does not import trust_levels.py; verified the live-detector control (real conformance drop moves HIGH->MEDIUM).",
+    "notes": "Reviewer obligation (catalog) satisfied: one gaming strategy proposed, executed and reported DEFETED with the live-detector control proving non-silence."
+  },
+  "report": "G-1 for IMP-0076: fixture arithmetic equals hand-derived millipoints; popularity gaming defeated; independent interpreter agrees; receipt closed SUCCESS by the probe2 instrument after a BLOCKED/reviewer-absent builder phase."
+}

@@ -1,0 +1,1 @@
+Stratifying the corpus is not the hard part; keeping the held-out slice held out is. The convention-based partition is a known pitfall - teams tune on the test slice and then report surprise. Avoid any partition you cannot recompute from a hash.

@@ -1,0 +1,672 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-pln-01.mechanical-plan-lint-then-adversarial-trio",
+ "name": "Mechanical Plan-Lint then Adversarial Trio",
+ "description": "Lint a plan mechanically FIRST - structure, missing sections, unnumbered steps, untestable acceptance, missing rollback - and only then spend three fresh adversarial reviewers on what a script cannot judge. The ordering IS the mechanism: if stage 0 fails hard the reviewers never run, because spending adversarial budget on a malformed plan is waste. All three lenses must PASS; a FAIL returns the plan to its author with the blocking items attached.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability",
+  "collective-intelligence-and-meta"
+ ],
+ "tags": [
+  "plan-gate",
+  "lint-before-llm",
+  "adversarial-trio",
+  "typed-verdicts"
+ ],
+ "flagship": true,
+ "params": {
+  "plan_path": {
+   "type": "path",
+   "required": true,
+   "description": "The plan under review"
+  },
+  "requirements_path": {
+   "type": "path",
+   "description": "Requirements the plan must satisfy; when absent the completeness lens says NOT-CHECKED"
+  },
+  "constraints": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "default": [],
+   "description": "Hard constraints the plan may not violate"
+  },
+  "cross_vendor_fourth_lens": {
+   "type": "boolean",
+   "default": false,
+   "description": "Add a fourth cross-vendor reviewer on a high-stakes plan; three same-vendor lenses share blind spots"
+  },
+  "revisions_allowed": {
+   "type": "integer",
+   "default": 2,
+   "minimum": 0,
+   "maximum": 5,
+   "description": "How many author revisions before the gate escalates instead of looping"
+  }
+ },
+ "roles": {
+  "linter": {
+   "description": "A deterministic script. It holds no discretion and its verdict is not an opinion.",
+   "model": "none-deterministic-script",
+   "vendor": "any",
+   "effort": "low",
+   "authority": "veto",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Bash:python"
+   ],
+   "speaking_rights": "always"
+  },
+  "feasibility_lens": {
+   "description": "Can this plan actually be executed with what exists today",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "veto",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "completeness_lens": {
+   "description": "What the requirements demand and the plan omits",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "veto",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "scope_lens": {
+   "description": "Steps that exceed the stated goal, and steps the goal needs that are absent",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "veto",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "cross_vendor_lens": {
+   "description": "Optional fourth lens from another vendor for high-stakes plans",
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "cross_vendor_required": true,
+   "tool_permissions": [
+    "Read",
+    "Grep"
+   ],
+   "speaking_rights": "on-request"
+  },
+  "aggregator": {
+   "description": "Counts typed verdicts; it does not average opinions or break ties by vibe",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "medium",
+   "authority": "judge",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Bash:python",
+    "Write(command-center/plan-gate/**)"
+   ],
+   "write_paths": [
+    "command-center/plan-gate/**"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:python",
+   "Write(command-center/plan-gate/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/plan-gate/**"
+  ],
+  "forbid_write_paths": [
+   "command-center/WORK-UNIT-CATALOG.json"
+  ]
+ },
+ "model_routing": {
+  "strategy": "capability",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "routes": [
+   {
+    "when": "cross_vendor_fourth_lens == true",
+    "target": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "effort": "high"
+    },
+    "reason": "three same-vendor lenses share blind spots on a high-stakes plan"
+   }
+  ],
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "lint-hard-pass": {
+   "predicate": "custom-expression",
+   "expression": "lint_hard_violations == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "trio-unanimous": {
+   "predicate": "custom-expression",
+   "expression": "lenses_passed == lenses_run AND lenses_run >= 3",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "repair"
+  },
+  "nothing-mechanical-sent-to-an-llm": {
+   "predicate": "custom-expression",
+   "expression": "reviewer_findings_a_script_could_have_made == 0",
+   "blocking": false,
+   "evidence_required": true,
+   "on_fail": "record-and-continue"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-lint",
+   "title": "S0 LINT mechanically - structure, numbering, acceptance, rollback",
+   "kind": "task",
+   "role": "linter",
+   "timeout_seconds": 600,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-PLN01-S0",
+    "title": "Run the deterministic plan lint before any reviewer is spent",
+    "phase": "2B",
+    "question_or_target": "Check the plan for missing sections, unnumbered steps, untestable acceptance criteria and a missing rollback section.",
+    "inputs": [
+     "params.plan_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "linter",
+     "basis": "anything a script can decide is never sent to a model"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/plan-gate/pln01-lint.json",
+    "output_schema": "command-center/schema/conformance-report.schema.json",
+    "evidence_requirement": "every violation names the section and the rule id; the lint records the exact command and exit code",
+    "tests_required": [
+     "a plan with no rollback section MUST be caught by the LINT, not by a reviewer",
+     "the lint must be shown to fire on a known-bad plan before its silence counts as clean",
+     "a lint that found zero inputs must FAIL closed, since a lint over nothing is not a pass"
+    ],
+    "reviewer_requirement": "none - a deterministic lint is asserted by tests, not reviewed",
+    "completion_sentinel": "SUCCESS:BP3-PLN01-S0 only when the lint enumerated a non-empty input set and recorded its exit code; otherwise FAILED:BP3-PLN01-S0 <reason>",
+    "retry_policy": "none; a lint failure is a plan defect, not a flake",
+    "failure_classification": [
+     "detector-failure",
+     "plan-malformed"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/plan-gate/pln01-lint.json",
+     "schema_ref": "command-center/schema/conformance-report.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN01-S0",
+     "consumers": [
+      "s0-gate",
+      "s2-aggregate"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s0-gate",
+   "title": "S0 gate: a hard lint failure STOPS here - reviewers are not spent on a malformed plan",
+   "kind": "gate",
+   "depends_on": [
+    "s0-lint"
+   ],
+   "gate_ref": "lint-hard-pass"
+  },
+  {
+   "id": "s1-review",
+   "title": "S1 FAN OUT three fresh adversarial lenses in parallel",
+   "kind": "fanout",
+   "depends_on": [
+    "s0-gate"
+   ],
+   "over": {
+    "source": "literal",
+    "items": [
+     "feasibility",
+     "completeness",
+     "scope"
+    ],
+    "item_var": "lens",
+    "key_field": "lens"
+   },
+   "max_concurrency": 3,
+   "arrival_stagger_ms": 250,
+   "on_item_failure": "continue",
+   "body": [
+    {
+     "id": "run-lens",
+     "kind": "task",
+     "role": "feasibility_lens",
+     "timeout_seconds": 1800,
+     "work_unit": {
+      "id": "BP3-PLN01-S1",
+      "title": "Review the plan through exactly one adversarial lens",
+      "phase": "2B",
+      "question_or_target": "Return a typed PASS or FAIL for one lens, with each blocking item anchored to a numbered plan step.",
+      "inputs": [
+       "params.plan_path",
+       "command-center/plan-gate/pln01-lint.json"
+      ],
+      "dependencies": [
+       "BP3-PLN01-S0"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "feasibility_lens",
+       "basis": "one lens per agent; a reviewer holding two lenses averages them"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Glob"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 1800,
+      "output_path": "command-center/plan-gate/pln01-review.json",
+      "output_schema": "command-center/schema/meta-review-finding.schema.json",
+      "evidence_requirement": "each blocking item cites the plan step number and states what would have to be true for it to pass",
+      "tests_required": [
+       "a structurally perfect but infeasible plan MUST be caught by a reviewer, not by the lint - the two benchmark cases must be caught by different stages",
+       "a reviewer returning untyped prose is retried ONCE with the verdict vocabulary enumerated inline, then counted as a null lens"
+      ],
+      "reviewer_requirement": "the aggregator, which counts lenses instead of averaging them",
+      "completion_sentinel": "SUCCESS:BP3-PLN01-S1 only when the verdict token is recognised and every blocking item cites a plan step number; otherwise FAILED:BP3-PLN01-S1 <reason>",
+      "retry_policy": "one retry with the vocabulary enumerated inline, then null lens",
+      "failure_classification": [
+       "schema-invalid",
+       "null-lens"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "all",
+    "on_partial": "proceed-with-quarantine",
+    "require_stages": [
+     "run-lens"
+    ],
+    "reject_result_matching": [
+     "started in the background",
+     "Check /codex:status"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s2-aggregate",
+   "title": "S2 AGGREGATE typed verdicts and attribute each finding to its right stage",
+   "kind": "task",
+   "role": "aggregator",
+   "depends_on": [
+    "s1-review"
+   ],
+   "timeout_seconds": 900,
+   "work_unit": {
+    "id": "BP3-PLN01-S2",
+    "title": "Aggregate the typed verdicts and measure what the lint should have caught",
+    "phase": "2B",
+    "question_or_target": "Count PASS and FAIL per lens, and flag every reviewer finding that a deterministic lint could have produced.",
+    "inputs": [
+     "command-center/plan-gate/pln01-review.json",
+     "command-center/plan-gate/pln01-lint.json"
+    ],
+    "dependencies": [
+     "BP3-PLN01-S1"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "aggregator",
+     "basis": "counting typed verdicts is arithmetic; only the lint-attribution call is judgement"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/plan-gate/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/plan-gate/pln01-verdict.json",
+    "output_schema": "command-center/schema/adjudication-report.schema.json",
+    "evidence_requirement": "the verdict records lenses_run and lenses_passed separately, so a null lens cannot be silently counted as a pass",
+    "tests_required": [
+     "two PASS plus one null lens must NOT aggregate to a gate PASS",
+     "a reviewer finding that the lint rules already cover must be reported, so the lint can absorb it next time"
+    ],
+    "reviewer_requirement": "the owner reads the verdict; the gate does not need an opinion",
+    "completion_sentinel": "SUCCESS:BP3-PLN01-S2 only when lenses_run and lenses_passed are both recorded and a null lens is counted as neither; otherwise FAILED:BP3-PLN01-S2 <reason>",
+    "retry_policy": "one retry then escalate",
+    "failure_classification": [
+     "null-lens",
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s2-gate",
+   "title": "S2 gate: all lenses that ran must have PASSED, and at least three must have run",
+   "kind": "gate",
+   "depends_on": [
+    "s2-aggregate"
+   ],
+   "gate_ref": "trio-unanimous"
+  },
+  {
+   "id": "s2b-lint-feedback",
+   "title": "S2b ADVISORY: findings a script could have made are lint debt, not review value",
+   "kind": "gate",
+   "depends_on": [
+    "s2-gate"
+   ],
+   "gate_ref": "nothing-mechanical-sent-to-an-llm"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "gate-pass",
+   "expression": "lint_hard_violations == 0 AND lenses_passed == lenses_run AND lenses_run >= 3",
+   "applies_to": "workflow",
+   "minimum_conditions": "lint_inputs_enumerated >= 1",
+   "on_stop": "complete"
+  },
+  {
+   "id": "author-out-of-revisions",
+   "expression": "revisions_used >= 2",
+   "applies_to": "workflow",
+   "on_stop": "escalate"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "schema-invalid",
+   "null-lens"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "aggregator"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "degrade-loudly",
+  "classify_as": [
+   "plan-malformed",
+   "null-lens",
+   "detector-failure"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "aggregator",
+  "quarantine_path": "command-center/quarantine/pln01"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/pln01",
+  "granularity": "stage",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/pln01.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "model_outputs"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "schema-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "inputs_hash",
+   "model_id"
+  ],
+  "store": "command-center/cache/pln01",
+  "ttl_seconds": 86400,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "permission-report"
+  ],
+  "plan_artifact": "command-center/dry-run/pln01-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/plan-gate/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 300,
+   "expected": 1500,
+   "max": 5400
+  },
+  "tokens": {
+   "min": 40000,
+   "expected": 220000,
+   "max": 700000
+  },
+  "tool_calls": {
+   "expected": 20,
+   "max": 180
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "read-only over the plan; writes only under command-center/plan-gate/**",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-pln-01.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "workflows/plan-gate.mjs",
+    "relation": "ADOPT-AS-IS",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "metaswarm/plan-review-gate",
+    "relation": "MERGE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-01",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true,
+  "rollback_to": [
+   "workflows/plan-gate.mjs@current"
+  ]
+ },
+ "outputs": {
+  "lint": {
+   "path": "command-center/plan-gate/pln01-lint.json",
+   "schema_ref": "command-center/schema/conformance-report.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the gate",
+    "the plan author"
+   ]
+  },
+  "verdict": {
+   "path": "command-center/plan-gate/pln01-verdict.json",
+   "schema_ref": "command-center/schema/adjudication-report.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the plan author",
+    "the owner"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-01 (doc-order 33 of 96)",
+  "distinguishing_mechanism": "the ORDERING is the mechanism: a hard lint failure prevents the reviewers from running at all. BP-REQ-05 applies the same ordering to REQUIREMENTS; BP-CNC-01 reviews a DESIGN with personas and has no mechanical stage.",
+  "posture": "SHADOW in its source form: advisory. Project governance may promote it to blocking, which is a stricter layer and therefore allowed.",
+  "worked_example": {
+   "name": "each benchmark case must be caught by the RIGHT stage",
+   "narrative": "Two plans. The first has no rollback section: the deterministic lint must catch it, and the reviewers must never be spent. The second is structurally perfect - numbered steps, rollback present, testable acceptance - but proposes a step that cannot be executed with what exists; the lint passes it and a reviewer must catch it. A blueprint where BOTH are caught by the same stage has lost the property.",
+   "mechanism": "mechanisms.is_testable (the lint's acceptance rule) + stage ordering",
+   "input": {
+    "plan_a": {
+     "sections": [
+      "goal",
+      "steps"
+     ],
+     "acceptance": "the export should feel fast",
+     "has_rollback": false
+    },
+    "plan_b": {
+     "sections": [
+      "goal",
+      "steps",
+      "rollback"
+     ],
+     "acceptance": "p95 latency <= 2000 ms over 100 runs",
+     "has_rollback": true
+    }
+   },
+   "expected": {
+    "plan_a_caught_by": "lint",
+    "plan_a_reviewers_spent": 0,
+    "plan_b_caught_by": "reviewer",
+    "plan_b_lint_violations": 0
+   },
+   "controls": [
+    {
+     "mutate": "give plan_a a rollback section and a testable criterion",
+     "expected_lint_violations": 0,
+     "why": "the lint must be able to pass, or it is a permanently-red gate that tells you nothing"
+    }
+   ]
+  }
+ }
+}

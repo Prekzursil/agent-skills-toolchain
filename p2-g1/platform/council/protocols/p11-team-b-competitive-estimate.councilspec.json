@@ -1,0 +1,1048 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p11-team-b-competitive-estimate",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Test whether a load-bearing analytic claim survives full independent re-derivation, by having a second team answer the same question from the same raw sources without ever seeing the first team's product.",
+    "charter": "Team A / Team B competitive estimate (US IC, 1976). Two isolated cells, one pinned source set, byte-identical conclusion-free briefs; the two products are compared only after both are final and the divergences are adjudicated.",
+    "risk_tier": "critical",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "both briefs hash identically and contain no conclusion",
+      "no Team A output token appears in Team B's brief or context",
+      "every divergence between the two estimates is adjudicated on the record"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 3,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 480
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "adjudication-chair",
+        "display_name": "Adjudication chair (sees both products, only after both are final)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "analytic tradecraft",
+          "divergence adjudication"
+        ],
+        "role": "judge",
+        "authority": "judge",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "brief-clerk",
+        "display_name": "Brief clerk (hashes both briefs, scans for leakage)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "hashing",
+          "leak detection"
+        ],
+        "role": "verifier",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "divergence-analyst",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "comparative analysis"
+        ],
+        "role": "statistician",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "team-a-lead",
+        "display_name": "Team A lead (reports A's product; does not see B's)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "analytic tradecraft"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      },
+      {
+        "participant_id": "team-b-lead",
+        "display_name": "Team B lead (reports B's product; does not see A's)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "analytic tradecraft"
+        ],
+        "role": "proposer",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "shares_context_with": []
+        }
+      }
+    ],
+    "information_partition": {
+      "enabled": true,
+      "strategy": "hidden_profile",
+      "partitions": [
+        {
+          "partition_id": "team-a-product",
+          "visible_to": [
+            "team-a-lead",
+            "adjudication-chair"
+          ],
+          "sources": [
+            "team-a-estimate.json"
+          ]
+        },
+        {
+          "partition_id": "team-b-product",
+          "visible_to": [
+            "team-b-lead",
+            "adjudication-chair"
+          ],
+          "sources": [
+            "team-b-estimate.json"
+          ]
+        }
+      ]
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "prompt",
+        "position_similarity"
+      ],
+      "max_similarity": 0.75
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "prep_time_minutes": 60,
+    "required_artifacts": [
+      "evidence_pack",
+      "prior_art_scan",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "nested_subcouncil",
+    "subcouncils": [
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p11-team-a-independent-estimate",
+        "participation": "agent_only",
+        "objective": {
+          "statement": "Team A: produce an independent estimate from the pinned raw source set, with no access to Team B's product.",
+          "charter": "Isolated analytic cell. Same question, same raw sources, byte-identical brief, zero conclusions in the brief.",
+          "risk_tier": "high",
+          "desired_output": "forecast",
+          "success_criteria": [
+            "the estimate cites only the pinned source set",
+            "no Team B token appears anywhere in this cell's context"
+          ],
+          "consensus_intent": "elicit_distribution",
+          "confidence_target": 0.75,
+          "evidence_requirements": {
+            "citation_required": true,
+            "anchor_style": "file_line",
+            "min_independent_sources": 3,
+            "evidence_outranks_votes": true
+          }
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact"
+            ],
+            "explain_choices": true
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 3,
+            "min": 3,
+            "max": 3
+          },
+          "roster": [
+            {
+              "participant_id": "a-lead",
+              "display_name": "Team A lead",
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "expertise": [
+                "analytic tradecraft"
+              ],
+              "role": "chair",
+              "authority": "chair",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            },
+            {
+              "participant_id": "a-analyst-1",
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "expertise": [
+                "source analysis"
+              ],
+              "role": "domain_expert",
+              "authority": "voter",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            },
+            {
+              "participant_id": "a-analyst-2",
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "expertise": [
+                "base rates",
+                "reference classes"
+              ],
+              "role": "forecaster",
+              "authority": "voter",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            }
+          ],
+          "information_partition": {
+            "enabled": true,
+            "strategy": "role_scoped",
+            "partitions": [
+              {
+                "partition_id": "team-a-sources",
+                "visible_to": [
+                  "a-lead",
+                  "a-analyst-1",
+                  "a-analyst-2"
+                ],
+                "sources": [
+                  "pinned-source-set.json"
+                ]
+              }
+            ]
+          }
+        },
+        "preparation": {
+          "research_required": true,
+          "independent_prep": true,
+          "min_sources": 3,
+          "required_artifacts": [
+            "evidence_pack",
+            "position_memo"
+          ]
+        },
+        "topology": {
+          "kind": "chair_led",
+          "chair": "a-lead"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read-sources",
+              "independent": true
+            },
+            {
+              "kind": "prediction_confidence",
+              "stage_id": "estimate",
+              "rounds": 2
+            },
+            {
+              "kind": "synthesis",
+              "stage_id": "cell-estimate"
+            }
+          ],
+          "speaking_order": "round_robin",
+          "rounds": {
+            "min": 2,
+            "max": 4
+          },
+          "turn": {
+            "max_words": 700
+          },
+          "obligations": {
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "standard"
+        },
+        "budgets": {
+          "effort": "high",
+          "time_minutes": 120,
+          "tool_calls": 150,
+          "sources": 30,
+          "turns": 18
+        },
+        "targets": {
+          "evidence_items": 18,
+          "coverage_score": 0.8,
+          "dedup": {
+            "enabled": true,
+            "max_similarity": 0.82,
+            "trivial_variant_policy": "reject"
+          }
+        },
+        "voting": {
+          "method": "bayesian",
+          "belief_aggregation": {
+            "method": "logarithmic_pool",
+            "require_confidence_per_vote": true
+          },
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "reject_evidence_free_majority": true
+          },
+          "tie_break": "chair"
+        },
+        "consensus": {
+          "threshold": 0.7,
+          "measure": "confidence_overlap",
+          "minority_report": "required",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": true,
+            "suppression_check": true
+          },
+          "irreducible_disagreement_allowed": true,
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              {
+                "metric": "evidence_saturation",
+                "op": "==",
+                "value": true
+              },
+              {
+                "metric": "confidence",
+                "op": ">=",
+                "value": 0.7
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 2,
+            "min_evidence_items": 12
+          },
+          "hard_caps": {
+            "max_rounds": 4,
+            "max_minutes": 120,
+            "on_cap": "synthesize_best_effort"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "no_decision",
+            "minority_report",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "echo_chamber",
+            "collusion",
+            "evidence_free_majority",
+            "hallucinated_expertise"
+          ],
+          "fast_unanimity_response": [
+            "blind_re_evaluation",
+            "forced_dissent"
+          ],
+          "injection_defense": {
+            "treat_artifacts_as_data": true,
+            "strip_instructions_from_participant_output": true,
+            "quarantine_untrusted_sources": true
+          }
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "evidence_map",
+            "confidence_trajectory",
+            "dissent_minority_report",
+            "final_recommendation"
+          ],
+          "receipt_schema": "platform/schema/receipt.schema.json"
+        },
+        "audit": {
+          "transcript": true,
+          "replay": true,
+          "resume": true,
+          "determinism": "deterministic_where_possible",
+          "privacy": {
+            "redact_secrets": true,
+            "redaction_policy": "deny_by_default",
+            "retain_days": 180,
+            "pii_policy": "redact"
+          },
+          "safety": {
+            "forbid_irreversible_actions": true,
+            "owner_approval_for": [
+              "merge",
+              "release"
+            ]
+          },
+          "persistence": {
+            "store": "both",
+            "checkpoint_every_round": true
+          },
+          "calibration": {
+            "post_run": true,
+            "score": "brier"
+          }
+        },
+        "metadata": {
+          "title": "P11 Team A isolated cell",
+          "lineage": [
+            "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P11"
+          ]
+        }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p11-team-b-independent-estimate",
+        "participation": "agent_only",
+        "objective": {
+          "statement": "Team B: produce an independent estimate from the pinned raw source set, with no access to Team A's product.",
+          "charter": "Isolated analytic cell. Same question, same raw sources, byte-identical brief, zero conclusions in the brief.",
+          "risk_tier": "high",
+          "desired_output": "forecast",
+          "success_criteria": [
+            "the estimate cites only the pinned source set",
+            "no Team A token appears anywhere in this cell's context"
+          ],
+          "consensus_intent": "elicit_distribution",
+          "confidence_target": 0.75,
+          "evidence_requirements": {
+            "citation_required": true,
+            "anchor_style": "file_line",
+            "min_independent_sources": 3,
+            "evidence_outranks_votes": true
+          }
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact"
+            ],
+            "explain_choices": true
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 3,
+            "min": 3,
+            "max": 3
+          },
+          "roster": [
+            {
+              "participant_id": "b-lead",
+              "display_name": "Team B lead",
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "expertise": [
+                "analytic tradecraft"
+              ],
+              "role": "chair",
+              "authority": "chair",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            },
+            {
+              "participant_id": "b-analyst-1",
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "expertise": [
+                "source analysis"
+              ],
+              "role": "domain_expert",
+              "authority": "voter",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            },
+            {
+              "participant_id": "b-analyst-2",
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "expertise": [
+                "base rates",
+                "reference classes"
+              ],
+              "role": "forecaster",
+              "authority": "voter",
+              "vote_weight": 1.0,
+              "independence": {
+                "fresh_context": true,
+                "shares_context_with": []
+              }
+            }
+          ],
+          "information_partition": {
+            "enabled": true,
+            "strategy": "role_scoped",
+            "partitions": [
+              {
+                "partition_id": "team-b-sources",
+                "visible_to": [
+                  "b-lead",
+                  "b-analyst-1",
+                  "b-analyst-2"
+                ],
+                "sources": [
+                  "pinned-source-set.json"
+                ]
+              }
+            ]
+          }
+        },
+        "preparation": {
+          "research_required": true,
+          "independent_prep": true,
+          "min_sources": 3,
+          "required_artifacts": [
+            "evidence_pack",
+            "position_memo"
+          ]
+        },
+        "topology": {
+          "kind": "chair_led",
+          "chair": "b-lead"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read-sources",
+              "independent": true
+            },
+            {
+              "kind": "prediction_confidence",
+              "stage_id": "estimate",
+              "rounds": 2
+            },
+            {
+              "kind": "synthesis",
+              "stage_id": "cell-estimate"
+            }
+          ],
+          "speaking_order": "round_robin",
+          "rounds": {
+            "min": 2,
+            "max": 4
+          },
+          "turn": {
+            "max_words": 700
+          },
+          "obligations": {
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "standard"
+        },
+        "budgets": {
+          "effort": "high",
+          "time_minutes": 120,
+          "tool_calls": 150,
+          "sources": 30,
+          "turns": 18
+        },
+        "targets": {
+          "evidence_items": 18,
+          "coverage_score": 0.8,
+          "dedup": {
+            "enabled": true,
+            "max_similarity": 0.82,
+            "trivial_variant_policy": "reject"
+          }
+        },
+        "voting": {
+          "method": "bayesian",
+          "belief_aggregation": {
+            "method": "logarithmic_pool",
+            "require_confidence_per_vote": true
+          },
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "reject_evidence_free_majority": true
+          },
+          "tie_break": "chair"
+        },
+        "consensus": {
+          "threshold": 0.7,
+          "measure": "confidence_overlap",
+          "minority_report": "required",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": true,
+            "suppression_check": true
+          },
+          "irreducible_disagreement_allowed": true,
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              {
+                "metric": "evidence_saturation",
+                "op": "==",
+                "value": true
+              },
+              {
+                "metric": "confidence",
+                "op": ">=",
+                "value": 0.7
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 2,
+            "min_evidence_items": 12
+          },
+          "hard_caps": {
+            "max_rounds": 4,
+            "max_minutes": 120,
+            "on_cap": "synthesize_best_effort"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "no_decision",
+            "minority_report",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "echo_chamber",
+            "collusion",
+            "evidence_free_majority",
+            "hallucinated_expertise"
+          ],
+          "fast_unanimity_response": [
+            "blind_re_evaluation",
+            "forced_dissent"
+          ],
+          "injection_defense": {
+            "treat_artifacts_as_data": true,
+            "strip_instructions_from_participant_output": true,
+            "quarantine_untrusted_sources": true
+          }
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "evidence_map",
+            "confidence_trajectory",
+            "dissent_minority_report",
+            "final_recommendation"
+          ],
+          "receipt_schema": "platform/schema/receipt.schema.json"
+        },
+        "audit": {
+          "transcript": true,
+          "replay": true,
+          "resume": true,
+          "determinism": "deterministic_where_possible",
+          "privacy": {
+            "redact_secrets": true,
+            "redaction_policy": "deny_by_default",
+            "retain_days": 180,
+            "pii_policy": "redact"
+          },
+          "safety": {
+            "forbid_irreversible_actions": true,
+            "owner_approval_for": [
+              "merge",
+              "release"
+            ]
+          },
+          "persistence": {
+            "store": "both",
+            "checkpoint_every_round": true
+          },
+          "calibration": {
+            "post_run": true,
+            "score": "brier"
+          }
+        },
+        "metadata": {
+          "title": "P11 Team B isolated cell",
+          "lineage": [
+            "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P11"
+          ]
+        }
+      }
+    ],
+    "fan_in": {
+      "reducer": "meta_jury",
+      "require_all_subcouncils_complete": true
+    }
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "brief-pinning",
+        "custom_name": "pin_sources_and_hash_briefs",
+        "participants": [
+          "brief-clerk"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:brief_hash_identical",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "brief-clerk brief hash"
+            },
+            {
+              "metric": "custom:team_a_tokens_in_team_b_brief",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "brief-clerk leakage scan"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "isolated-estimates",
+        "custom_name": "two_isolated_cells_run_in_parallel",
+        "participants": [
+          "team-a-lead",
+          "team-b-lead"
+        ],
+        "independent": true
+      },
+      {
+        "kind": "custom",
+        "stage_id": "divergence-mapping",
+        "custom_name": "map_divergences_between_products",
+        "participants": [
+          "divergence-analyst",
+          "adjudication-chair"
+        ],
+        "quotas": {
+          "objections_per_participant": 4
+        }
+      },
+      {
+        "kind": "jury",
+        "stage_id": "adjudication",
+        "rounds": 2
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "final-estimate"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 900
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 4,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "max",
+    "time_minutes": 480,
+    "tool_calls": 600,
+    "sources": 60,
+    "experiments": 4,
+    "turns": 70,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "unique_ideas": 12,
+    "novelty_ratio": 0.4,
+    "coverage_score": 0.9,
+    "objections": 10,
+    "counterexamples": 4,
+    "evidence_items": 40,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.75,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 2,
+      "on_failure": "escalate_to_owner"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true
+    },
+    "belief_aggregation": {
+      "method": "logarithmic_pool",
+      "require_confidence_per_vote": true,
+      "calibration_source": "estate run-record base rates"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.85,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "subcouncils_complete",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "metric": "custom:brief_hash_identical",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "brief-clerk brief hash"
+        },
+        {
+          "metric": "custom:team_a_tokens_in_team_b_brief",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "brief-clerk leakage scan"
+        },
+        {
+          "metric": "custom:divergences_adjudicated_ratio",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number",
+          "producer": "divergence-analyst divergence ledger"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 2,
+      "min_evidence_items": 30,
+      "min_objections_addressed": 6
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 480,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "any unadjudicated divergence is re-run as a discriminating probe before the claim is cited"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "recruit_independent_critic",
+      "judge_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "collusion",
+      "hidden_conflict_of_interest",
+      "evidence_free_majority",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "evidence_map",
+      "claim_evidence_contradiction_graph",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "calibration_report",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 365,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release",
+        "cite as ground truth"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P11 Team B competitive estimate",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:262",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:275"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P11",
+      "US IC Team A / Team B 1976"
+    ],
+    "notes": "ADVERSARIAL. Full independent RE-DERIVATION from raw sources, which is what separates it from a red team attacking an existing artifact. The two cells are real nested CouncilSpec instances under topology.subcouncils, each validated by the same schema and the same semantic rules; nesting is capped at one level.\n\nanti-failure controls, each mapped to the field implementing it:\n  echo_chamber -> two fully independent cells (topology.subcouncils) re-derive the estimate from the same pinned raw sources; neither sees the other's product until adjudication\n  collusion -> the card's failure mode is Team B leaking Team A's framing through a shared brief, so the brief must be byte-identical and conclusion-free: custom:brief_hash_identical == true AND custom:team_a_tokens_in_team_b_brief == 0 are both closing preconditions\n  hidden_conflict_of_interest -> participants.conflicts_policy.on_conflict=recuse_from_vote with disclosure_required, applied to the adjudication panel that sees both products\n  evidence_free_majority -> voting.method=judge with evidence_gate.evidence_outranks_majority; a divergence is settled by the sources, not by which cell had more seats\n  premature_convergence -> topology.fan_in.require_all_subcouncils_complete + the subcouncils_complete >= 2 conjunct; adjudication cannot start on one cell's answer"
+  }
+}

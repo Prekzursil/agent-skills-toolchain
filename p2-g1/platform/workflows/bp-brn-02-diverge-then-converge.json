@@ -1,0 +1,813 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-brn-02-diverge-then-converge",
+  "name": "Diverge-then-Converge Brainstorm",
+  "description": "Blueprint 13 of 96 (design card BP-BRN-02, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:737). MECHANISM: a HARD temporal barrier between unjudged generation and judgement. N divergers generate blind to each other and blind to the scoring criteria; the barrier freezes and hashes the idea set; the convergence council may score, shortlist and reject but is contractually FORBIDDEN from adding an idea. The barrier is the whole contribution - superpowers:brainstorming blends exploration with judgement, and a council assumes the options already exist.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative-work",
+    "collective-intelligence-and-meta-workflows"
+  ],
+  "tags": [
+    "brainstorm",
+    "diverge-converge",
+    "hard-barrier",
+    "bp-brn-02"
+  ],
+  "flagship": false,
+  "params": {
+    "intent": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The thing being scoped, in one sentence. S0 rewrites it; a bad frame poisons both halves."
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Known constraints. NOT shown to the divergers - a constraint list is a judgement criterion and leaks the convergence frame into generation.",
+      "default": []
+    },
+    "divergence_lenses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 3,
+      "max_items": 64,
+      "description": "One blind diverger per lens. The fan-out key.",
+      "default": [
+        "first-principles",
+        "user-journey",
+        "adjacent-product",
+        "constraint-free",
+        "failure-first",
+        "cheapest-possible",
+        "most-ambitious"
+      ]
+    },
+    "shortlist_target": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 1,
+      "maximum": 12,
+      "description": "How many survivors the convergence council should hand the owner."
+    },
+    "convergence_protocol": {
+      "type": "enum",
+      "enum": [
+        "four-voice-classic",
+        "nominal-group",
+        "charrette"
+      ],
+      "default": "four-voice-classic",
+      "description": "Which council preset scores the frozen set."
+    }
+  },
+  "roles": {
+    "framer": {
+      "description": "Rewrites the intent into one falsifiable sentence and states what would count as a good answer, WITHOUT proposing any answer",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "diverger": {
+      "description": "Generates ideas under one lens, blind to every sibling and blind to the scoring criteria; never self-censors on feasibility",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "convergence-chair": {
+      "description": "Chairs the convergence council, enforces the no-new-ideas contract and logs any breach as a process violation",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - receives the shortlist and the open questions, and is the only escalation target",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write(command-center/brainstorm/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/brainstorm/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "barrier-integrity": {
+      "predicate": "custom-expression",
+      "expression": "frozen_idea_set_hash_recorded == true AND ideas_added_after_barrier == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "every-rejection-reasoned": {
+      "predicate": "custom-expression",
+      "expression": "rejections_without_reason == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "shortlist-usable": {
+      "predicate": "custom-expression",
+      "expression": "shortlist_size >= 1 OR open_questions_count >= 1",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "frame",
+      "title": "S0 FRAME the intent in one falsifiable sentence",
+      "kind": "task",
+      "role": "framer",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WBRN-0201",
+        "title": "Frame the brainstorm intent and define what a good answer looks like",
+        "phase": "2B",
+        "question_or_target": "Rewrite the owner intent as one falsifiable sentence plus an explicit statement of what would make an answer good, proposing zero answers.",
+        "inputs": [
+          "params.intent",
+          "params.constraints"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "framer",
+          "basis": "a bad frame poisons both halves, so this is not a cheap step"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/brainstorm/bp-brn-02/frame.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "the frame quotes the owner intent verbatim and names at least one thing that would make an answer BAD, so the criterion is falsifiable rather than aspirational",
+        "tests_required": [
+          "a frame that contains a candidate answer is rejected by the no-answers check"
+        ],
+        "reviewer_requirement": "the convergence chair reads the frame before the council opens and may return it once",
+        "completion_sentinel": "SUCCESS:WBRN-0201 emitted only when frame.json exists, parses, carries one_sentence + good_answer_criteria + bad_answer_criteria, and contains no candidate answer; otherwise FAILED:WBRN-0201 <reason>",
+        "retry_policy": "two strikes then pivot to an owner clarification rather than a third reframe",
+        "failure_classification": [
+          "spec-underspecified",
+          "frame-contaminated"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-02/frame.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0201",
+          "consumers": [
+            "diverge",
+            "converge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diverge",
+      "title": "S1 DIVERGE - one blind generator per lens, no scoring criteria in the prompt",
+      "kind": "fanout",
+      "depends_on": [
+        "frame"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "divergence_lenses",
+        "item_var": "lens",
+        "key_field": "lens"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 250,
+      "max_items": 64,
+      "on_item_failure": "continue",
+      "timeout_seconds": 2400,
+      "body": [
+        {
+          "id": "generate-under-lens",
+          "title": "Generate ideas under exactly one lens",
+          "kind": "task",
+          "role": "diverger",
+          "timeout_seconds": 1200,
+          "work_unit": {
+            "id": "WBRN-0202",
+            "title": "Generate unjudged ideas under one assigned lens",
+            "phase": "2B",
+            "question_or_target": "Under the assigned lens only, generate ideas for the framed intent. Do not rank, do not filter on feasibility, do not read any sibling output.",
+            "inputs": [
+              "command-center/brainstorm/bp-brn-02/frame.json",
+              "item.lens"
+            ],
+            "dependencies": [
+              "WBRN-0201"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "diverger",
+              "basis": "generation quality is the product here"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/brainstorm/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/brainstorm/bp-brn-02/diverged/lens.json",
+            "output_schema": "command-center/schema/novelty-ledger.schema.json",
+            "evidence_requirement": "every idea names the lens that produced it and is stated concretely enough that the convergence council can reject it for a specific reason",
+            "tests_required": [
+              "a diverger prompt that contains any scoring criterion fails the prompt-purity check"
+            ],
+            "reviewer_requirement": "no reviewer during divergence - review is what the barrier defers",
+            "completion_sentinel": "SUCCESS:WBRN-0202 emitted per lens when the lens artifact exists, parses, and carries at least one idea; a lens that returns nothing emits FAILED:WBRN-0202 null-lens and is recorded, not hidden",
+            "retry_policy": "one retry with the lens restated inline, then record a null lens and proceed on the survivors",
+            "failure_classification": [
+              "null-lens",
+              "quota-429-storm",
+              "severed-stream"
+            ],
+            "owner_approval_required": false
+          },
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "model_id"
+            ],
+            "store": "command-center/cache/bp-brn-02",
+            "ttl_seconds": 86400,
+            "verify_integrity": true
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.6,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "freeze",
+      "title": "S2 BARRIER - freeze and hash the idea set; nothing may be added after this point",
+      "kind": "barrier",
+      "depends_on": [
+        "diverge"
+      ],
+      "checkpoint": true,
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "diverge"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "diverge"
+      ],
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-02/frozen-idea-set.json",
+          "schema_ref": "command-center/schema/novelty-ledger.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0203",
+          "consumers": [
+            "converge",
+            "barrier-gate"
+          ]
+        }
+      ],
+      "timeout_seconds": 900
+    },
+    {
+      "id": "barrier-gate",
+      "title": "S2b The barrier is HARD - assert the freeze happened before any judgement ran",
+      "kind": "gate",
+      "depends_on": [
+        "freeze"
+      ],
+      "gate_ref": "barrier-integrity"
+    },
+    {
+      "id": "converge",
+      "title": "S3 CONVERGE - council scores and shortlists the FROZEN set and may not add an idea",
+      "kind": "council",
+      "depends_on": [
+        "barrier-gate"
+      ],
+      "council_spec_ref": "platform/council/presets/c-s13-council-4voice-classic.councilspec.json",
+      "participants_min": 3,
+      "participants_max": 7,
+      "timeout_seconds": 3600,
+      "stopping_rules": [
+        {
+          "id": "shortlist-settled",
+          "expression": "no_new_idea_rounds >= 2 AND objections_open == 0",
+          "applies_to": "council",
+          "minimum_conditions": "divergence_complete == true AND unique_ideas >= 3",
+          "on_stop": "complete"
+        },
+        {
+          "id": "out-of-contract-idea",
+          "expression": "novel_ideas >= 1",
+          "applies_to": "council",
+          "on_stop": "escalate"
+        }
+      ],
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-02/convergence.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 768,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0204",
+          "consumers": [
+            "reason-gate",
+            "emit",
+            "command-center/decisions"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reason-gate",
+      "title": "S3b Every rejection carries a reason, or the convergence is not done",
+      "kind": "gate",
+      "depends_on": [
+        "converge"
+      ],
+      "gate_ref": "every-rejection-reasoned"
+    },
+    {
+      "id": "emit",
+      "title": "S4 EMIT the shortlist plus the open questions for the owner",
+      "kind": "task",
+      "role": "convergence-chair",
+      "depends_on": [
+        "reason-gate"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WBRN-0205",
+        "title": "Emit the shortlist, the reasoned rejections and the open questions",
+        "phase": "2B",
+        "question_or_target": "Emit the owner-facing result: shortlist with rationale, every rejection with its reason, and the open questions that the brainstorm could not settle.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-02/convergence.json",
+          "command-center/brainstorm/bp-brn-02/frozen-idea-set.json"
+        ],
+        "dependencies": [
+          "WBRN-0204"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "convergence-chair",
+          "basis": "the chair owns the no-new-ideas contract and must not delegate the emission"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/brainstorm/bp-brn-02/shortlist.json",
+        "output_schema": "command-center/schema/option-closure.schema.json",
+        "evidence_requirement": "every shortlisted item cites the lens artifact it came from; every open question names what would settle it",
+        "tests_required": [
+          "a shortlist item with no source lens artifact fails the provenance check",
+          "both-states control: inject an idea that exists only in the convergence transcript and confirm the provenance check FAILS on it and PASSES once removed"
+        ],
+        "reviewer_requirement": "one independent reader who did not sit on the convergence council confirms every shortlist item traces to a frozen idea",
+        "completion_sentinel": "SUCCESS:WBRN-0205 emitted when shortlist.json exists, parses, every item traces to the frozen set, and every rejection carries a reason; otherwise FAILED:WBRN-0205 <reason>",
+        "retry_policy": "two strikes then pivot: escalate the untraceable item to the owner rather than dropping it silently",
+        "failure_classification": [
+          "provenance-missing",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-02/shortlist.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0205",
+          "consumers": [
+            "owner",
+            "bp-req-01-program-scale-extensive-grill",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "usable-gate",
+      "title": "S4b The run is only complete if the owner got something actionable OR an explicit open question",
+      "kind": "gate",
+      "depends_on": [
+        "emit"
+      ],
+      "gate_ref": "shortlist-usable"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "shortlist-actionable",
+      "expression": "shortlist_size >= 1 AND rejections_without_reason == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "frozen_idea_count >= 3 AND surviving_lenses >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "open-questions-dominate",
+      "expression": "open_questions_count > shortlist_size",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "barrier-breached",
+      "expression": "ideas_added_after_barrier >= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "quota-429-storm",
+      "severed-stream",
+      "null-lens"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "frame-contaminated"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "null-lens",
+      "frame-contaminated",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-brn-02"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-brn-02",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-brn-02.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs",
+      "timings"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "params_hash",
+      "model_id"
+    ],
+    "store": "command-center/cache/bp-brn-02",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "frame-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-brn-02-plan.json",
+    "forbid_tools": [
+      "Write(command-center/brainstorm/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.4,
+      "expected": 1.6,
+      "max": 5.0
+    },
+    "wallclock_seconds": {
+      "min": 420,
+      "expected": 1500,
+      "max": 4200
+    },
+    "tokens": {
+      "min": 80000,
+      "expected": 320000,
+      "max": 900000
+    },
+    "tool_calls": {
+      "expected": 45,
+      "max": 200
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/brainstorm/bp-brn-02/**; no network, no shell",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-brn-02.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "superpowers:brainstorming",
+        "relation": "COMPOSE",
+        "license": "third-party-plugin-claude-plugins-official",
+        "credit": "superpowers plugin authors"
+      },
+      {
+        "source": "skills/council",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-BRN-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "superpowers:brainstorming",
+      "skills/council"
+    ]
+  },
+  "outputs": {
+    "shortlist": {
+      "path": "command-center/brainstorm/bp-brn-02/shortlist.json",
+      "schema_ref": "command-center/schema/option-closure.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-req-01-program-scale-extensive-grill"
+      ]
+    },
+    "frozen_idea_set": {
+      "path": "command-center/brainstorm/bp-brn-02/frozen-idea-set.json",
+      "schema_ref": "command-center/schema/novelty-ledger.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "converge",
+        "barrier-gate"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 13,
+    "design_card": "BP-BRN-02",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:737",
+    "acquisition_route": "COMPOSE",
+    "state_v": [
+      "MERGED"
+    ],
+    "size_v": [
+      "CONFIG"
+    ],
+    "distinct_mechanism": "hard temporal barrier + hash-frozen idea set + a convergence phase contractually forbidden from adding ideas",
+    "not_a_duplicate_because": "BP-BRN-01 separates peers by VENDOR; this separates generation from judgement in TIME and works entirely in-vendor. BP-REQ-01 also brainstorms then converges, but its convergence is a serial human one-question loop, not an automated council over a frozen set.",
+    "contraindications": [
+      "the requirement is already specified - go straight to planning",
+      "a binary go/no-go - that is a council alone with no divergence phase"
+    ],
+    "worked_examples": [
+      {
+        "name": "scope the receipt-schema substrate before building it",
+        "params": {
+          "intent": "Decide how catalogued work units should reach a schema-valid receipt when the declared schema directory does not exist",
+          "constraints": [
+            "no second control plane",
+            "the catalog file must stay byte-identical"
+          ],
+          "divergence_lenses": [
+            "first-principles",
+            "cheapest-possible",
+            "most-ambitious",
+            "failure-first"
+          ],
+          "shortlist_target": 3,
+          "convergence_protocol": "four-voice-classic"
+        },
+        "expected_artifacts": [
+          "command-center/brainstorm/bp-brn-02/frame.json",
+          "command-center/brainstorm/bp-brn-02/frozen-idea-set.json",
+          "command-center/brainstorm/bp-brn-02/convergence.json",
+          "command-center/brainstorm/bp-brn-02/shortlist.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WBRN-0205",
+        "walkthrough": "S0 reframes the intent and states that a good answer names ONE control plane. S1 runs 4 blind divergers: first-principles proposes a resolver over a generated shim tree; cheapest-possible proposes rewriting the catalog paths; most-ambitious proposes a schema registry service; failure-first proposes leaving it dangling but failing closed. S2 freezes 4 lens artifacts and records the set hash. S3's council rejects the catalog rewrite (violates the byte-identical constraint - reason recorded) and the registry service (new runtime - reason recorded), and shortlists the shim-tree resolver. S4 emits the shortlist plus one open question: who regenerates the shims when the catalog changes.",
+        "expected_gate_outcomes": {
+          "barrier-integrity": "PASS - ideas_added_after_barrier == 0",
+          "every-rejection-reasoned": "PASS - 2 rejections, 2 reasons",
+          "shortlist-usable": "PASS - shortlist_size == 1"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - an idea injected only into the convergence prompt",
+        "params": {
+          "intent": "Decide how catalogued work units should reach a schema-valid receipt",
+          "divergence_lenses": [
+            "first-principles",
+            "cheapest-possible",
+            "failure-first"
+          ],
+          "shortlist_target": 2
+        },
+        "expected_artifacts": [
+          "command-center/brainstorm/bp-brn-02/convergence.json"
+        ],
+        "expected_terminal_state": "FAILED:WBRN-0204 out-of-contract-idea",
+        "walkthrough": "The convergence prompt is seeded with a strong idea that appears in no lens artifact. The council shortlists it. The stopping rule out-of-contract-idea fires (ideas_added_after_barrier == 1), the barrier-integrity gate fails, and the run escalates instead of shipping a shortlist whose best item has no provenance. This is the benchmark case named on the design card and it is what makes the barrier load-bearing rather than decorative.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "inject a strong idea only into the convergence prompt - it must be rejected as out-of-contract",
+      "a scope with one obvious answer - expect a short diverge phase and a fast shortlist, not manufactured breadth"
+    ],
+    "unverified": "UNVERIFIED that the barrier measurably increases shortlist diversity; the settling experiment is to run the same intent blended (no barrier) and barriered and compare shortlist diversity. Confidence: likely (55-80%).",
+    "council_presets_referenced": [
+      "platform/council/presets/c-s13-council-4voice-classic.councilspec.json",
+      "platform/council/protocols/p26-brainstorming-swarm.councilspec.json"
+    ],
+    "council_metric_binding": {
+      "novel_ideas": "INSIDE the convergence council this registry metric counts ideas that are NOT members of the frozen set - so novel_ideas >= 1 IS the barrier breach. Bound this way on purpose: `custom:ideas_added_after_barrier` parses under councilspec but is a DSL-SEM-007 VIOLATION in platform/lib/wfdsl/expr.py (the ':' is not in its lexer), so only registry metric names satisfy BOTH implementations.",
+      "no_new_idea_rounds": "quiet rounds in the convergence council - the scoring has stopped moving",
+      "objections_open": "a rejection without a reason is carried as an open objection, so objections_open == 0 is the reasoned-rejection condition expressed in registry terms"
+    }
+  }
+}

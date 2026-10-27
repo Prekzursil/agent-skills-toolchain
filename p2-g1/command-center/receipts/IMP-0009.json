@@ -1,0 +1,317 @@
+{
+ "artifacts": [
+  {
+   "bytes": 6380,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/case_collision.py",
+   "role": "supporting",
+   "sha256": "92569c58573d36ee703b03f9c6ad9be6560c229842f8b7530d9c6705a31c4f66"
+  },
+  {
+   "bytes": 3918,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_case_collision.py",
+   "role": "supporting",
+   "sha256": "44261b3af24362df44c50adf690ab2f679044c6736959eceae90d4d279519498"
+  },
+  {
+   "bytes": 114,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/tests/fixtures/name-collision.json",
+   "role": "fixture",
+   "sha256": "f719b1aa7f116c5f892f6db3439a4d96710b8cac9be8707c8c92178b8cf8e492"
+  },
+  {
+   "bytes": 99,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/tests/fixtures/duplicate-keys.json",
+   "role": "fixture",
+   "sha256": "5e30844f2fec3d848ff53d9a3ac2a9162ff5ae89d9dc74869a3a08bf362a4c15"
+  },
+  {
+   "bytes": 145,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/tests/fixtures/clean-manifest.json",
+   "role": "fixture",
+   "sha256": "84ca2cd00f9f087963fe9bf8d4cc34d3b4d1d553e0d71d2a011467e5c12a4b0a"
+  },
+  {
+   "bytes": 3315,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0009/probe1_linter_flags.py",
+   "role": "supporting",
+   "sha256": "7b70582d7026d15c0822047f607a33472485e03fc8d7adca5e5c4462ddfe7cf1"
+  },
+  {
+   "bytes": 4370,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0009/probe2_pairs_hook.py",
+   "role": "supporting",
+   "sha256": "9371e8966f318790d7f1022ecd77f9e484896078ade91814119a52f55d296c47"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/plugin/case_collision.py",
+   "consumer": "tools/plugin/tests/test_case_collision.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py",
+    "exit_code": 0,
+    "fingerprint": "d0411862c0c012862c2831092d59099e",
+    "method": "test-run",
+    "raw_output": "PASS test_case_distinct_keys_rejected\nPASS test_exact_duplicate_keys_rejected\nPASS test_negative_control_clean_passes_planted_fails\nPASS test_nested_case_distinct_keys_rejected\nPASS test_keys_that_differ_by_more_than_case_are_silent\nPASS test_plain_dict_load_destroys_duplicate_evidence\nPASS test_absent_live_inputs_are_not_reported_clean\nSUCCESS:IMP-0009 tests 7/7",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/tests/fixtures/name-collision.json",
+   "claim": "The linter flags a fixture containing both Name and name, and the same run accepts a clean manifest (negative control).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py && python3 -B tools/plugin/case_collision.py tools/plugin/tests/fixtures/name-collision.json tools/plugin/tests/fixtures/clean-manifest.json",
+     "exit_code": 0,
+     "fingerprint": "2576355de0b7b5352239d188395dc6bf",
+     "method": "command",
+     "raw_output": "{\"clean_findings\": 0, \"planted_keys\": [\"Name\", \"name\"], \"planted_kinds\": [\"case-distinct\"]}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c object_pairs_hook extract Name/name and duplicate name",
+     "exit_code": 0,
+     "fingerprint": "a4b99eee14f0e55e24fec63fb2cfa6d3",
+     "method": "static-analysis",
+     "raw_output": "{\"loader\": \"json.loads(..., object_pairs_hook=list)\", \"naive_dict_name_count\": 1, \"pairs_duplicate_name_count\": 2, \"pairs_planted_keys\": [\"Name\", \"name\", \"version\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "json.loads object_pairs_hook",
+   "claim": "Independent json.loads(..., object_pairs_hook=list) extraction sees both planted keys and both duplicate name members; a naive dict load last-wins and cannot confirm the source.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py",
+     "exit_code": 0,
+     "fingerprint": "d0411862c0c012862c2831092d59099e",
+     "method": "test-run",
+     "raw_output": "PASS test_case_distinct_keys_rejected\nPASS test_exact_duplicate_keys_rejected\nPASS test_negative_control_clean_passes_planted_fails\nPASS test_nested_case_distinct_keys_rejected\nPASS test_keys_that_differ_by_more_than_case_are_silent\nPASS test_plain_dict_load_destroys_duplicate_evidence\nPASS test_absent_live_inputs_are_not_reported_clean\nSUCCESS:IMP-0009 tests 7/7",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c object_pairs_hook extract Name/name and duplicate name",
+     "exit_code": 0,
+     "fingerprint": "a4b99eee14f0e55e24fec63fb2cfa6d3",
+     "method": "static-analysis",
+     "raw_output": "{\"loader\": \"json.loads(..., object_pairs_hook=list)\", \"naive_dict_name_count\": 1, \"pairs_duplicate_name_count\": 2, \"pairs_planted_keys\": [\"Name\", \"name\", \"version\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "live_inputs": [
+   {
+    "absent": false,
+    "catalog_input": true,
+    "error": null,
+    "findings": [],
+    "parse_ok": true,
+    "source": "/opt/p2/ast-integrate/.claude-plugin/plugin.json"
+   },
+   {
+    "absent": false,
+    "catalog_input": true,
+    "error": null,
+    "findings": [],
+    "parse_ok": true,
+    "source": "/opt/p2/ast-integrate/hooks/_dispatch/manifest.json"
+   }
+  ]
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0009/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 512,
+ "negative_controls": [
+  {
+   "bad_state_output": "[\"case-distinct\"]",
+   "description": "Clean manifest is silent; Name/name fixture is flagged.",
+   "fired_on_bad_state": true,
+   "good_state_output": "findings=[]",
+   "id": "clean-vs-planted",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive name='last-wins-under-dict-load' count=1",
+   "description": "json.loads dict last-wins exact duplicate keys; pairs-hook keeps both.",
+   "fired_on_bad_state": true,
+   "good_state_output": "pairs-hook name count=2",
+   "id": "plain-dict-load-destroys-duplicates",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "report": {
+  "completion_sentinel": "SUCCESS:IMP-0009",
+  "linter": {
+   "default_targets": [
+    ".claude-plugin/plugin.json",
+    "hooks/_dispatch/manifest.json"
+   ],
+   "fixtures": {
+    "clean": {
+     "findings": [],
+     "path": "tools/plugin/tests/fixtures/clean-manifest.json"
+    },
+    "duplicate_keys": {
+     "findings": [
+      {
+       "indices": [
+        0,
+        2
+       ],
+       "json_path": "$",
+       "keys": [
+        "name",
+        "name"
+       ],
+       "kind": "exact-duplicate",
+       "message": "/opt/p2/ast-integrate/tools/plugin/tests/fixtures/duplicate-keys.json$: exact duplicate key 'name' appears 2 times; naive dict load last-wins and drops 1 value(s)",
+       "rule": "IMP-0009",
+       "source": "/opt/p2/ast-integrate/tools/plugin/tests/fixtures/duplicate-keys.json",
+       "values": [
+        "\"first-wins-never\"",
+        "\"last-wins-under-dict-load\""
+       ]
+      }
+     ],
+     "naive_dict_keys": [
+      "name",
+      "version"
+     ],
+     "naive_dict_name": "last-wins-under-dict-load",
+     "pairs_hook_name_count": 2,
+     "path": "tools/plugin/tests/fixtures/duplicate-keys.json"
+    },
+    "name_collision": {
+     "findings": [
+      {
+       "casefold": "name",
+       "json_path": "$",
+       "keys": [
+        "Name",
+        "name"
+       ],
+       "kind": "case-distinct",
+       "message": "/opt/p2/ast-integrate/tools/plugin/tests/fixtures/name-collision.json$: case-distinct keys ['Name', 'name'] collide under casefold; a case-insensitive parser silently keeps one value",
+       "rule": "IMP-0009",
+       "source": "/opt/p2/ast-integrate/tools/plugin/tests/fixtures/name-collision.json",
+       "values": [
+        "\"Display Title That Would Be Lost\"",
+        "\"imp-0009-planted-fixture\""
+       ]
+      }
+     ],
+     "pairs_hook_keys": [
+      "Name",
+      "name",
+      "version"
+     ],
+     "path": "tools/plugin/tests/fixtures/name-collision.json"
+    }
+   },
+   "live_inputs": [
+    {
+     "absent": false,
+     "catalog_input": true,
+     "error": null,
+     "findings": [],
+     "parse_ok": true,
+     "source": "/opt/p2/ast-integrate/.claude-plugin/plugin.json"
+    },
+    {
+     "absent": false,
+     "catalog_input": true,
+     "error": null,
+     "findings": [],
+     "parse_ok": true,
+     "source": "/opt/p2/ast-integrate/hooks/_dispatch/manifest.json"
+    }
+   ],
+   "loader": "json.loads(..., object_pairs_hook=ObjectPairs)",
+   "module": "tools/plugin/case_collision.py",
+   "rules": [
+    "case-distinct",
+    "exact-duplicate"
+   ]
+  },
+  "notes": "G-1 IMP-0009: linter rejects case-distinct and exact-duplicate JSON keys using object_pairs_hook. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+  "output_path": "command-center/receipts/IMP-0009.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "question_or_target": "Implement a linter rule that rejects any manifest or config object containing two keys that differ only by case, because a case-insensitive downstream parser silently collapses them and one value is lost without an error.",
+  "title": "Case-distinct JSON key collision guard in the manifest linter"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Catalog inputs .claude-plugin/plugin.json and hooks/_dispatch/manifest.json were linted live with object_pairs_hook; absent targets are recorded ABSENT rather than scored clean.",
+   "settling_experiment": "Re-run tools/plugin/case_collision.py on those paths after any rewrite of the live plugin or dispatch manifests.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Loader is json.loads(..., object_pairs_hook=list). A check built on a plain dict load last-wins exact duplicates and measures nothing for that class. Case-distinct Name/name is confirmed on source pairs, then shown to collapse under casefold.",
+  "reviewer_id": "IMP-0009-probe2-object-pairs-hook",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0009",
+ "spec_anchor": "_USER-PROMPTS.md:11310",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py::test_case_distinct_keys_rejected",
+   "id": "test_case_distinct_keys_rejected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py::test_exact_duplicate_keys_rejected",
+   "id": "test_exact_duplicate_keys_rejected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py::test_negative_control_clean_passes_planted_fails",
+   "id": "test_negative_control_clean_passes_planted_fails",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:26Z",
+  "started_at": "2026-08-25T00:58:26Z"
+ },
+ "unit_id": "IMP-0009"
+}

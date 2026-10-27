@@ -1,0 +1,348 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d43-nested-subcouncils-15",
+  "preset": "general_purpose_auto_composed",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide a program-level question by partitioning it into four lens subcouncils, then adjudicating their outputs in a meta-jury - composing the roles, protocol, and evidence standard of each subcouncil FROM the task, explaining every choice, and letting the owner override any of them.",
+    "charter": "This is the general-purpose auto-composed council. The meta-chair reads the task and derives the partition: which lenses the question needs, what protocol each lens should run, and what evidence standard applies to each. Every one of those choices is written down with its reason, and every one is an owner-overridable dial - an auto-composed council that cannot be corrected is a black box, not a tool. Composition rules actually used here: a lens whose output will be relied on as fact gets a GROUNDED standard (file:line, adversarial critique, judge voting); a lens whose job is to generate options gets an IDEATION standard (external sources, no critique during generation, synthesis only) - holding an ideation lens to a grounded standard rejects all of its legitimate output. Nesting is ONE level only. The fan-in is null-tolerant by design: if a subcouncil dies mid-run the meta-jury must report DISARMED k of n and rule on what returned, never hang waiting for it.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "the partition, the per-lens protocol, and the per-lens evidence standard are each recorded with the reason they were chosen",
+      "every composition choice is presented as an owner-overridable dial",
+      "each subcouncil runs its own pipeline and returns independently",
+      "a dead subcouncil produces DISARMED k of n, and the meta-jury still rules",
+      "nesting never exceeds one level"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 2, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 240 }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": ["automatic", "expertise_ranked", "stakeholder_balanced", "model_diverse", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "elastic",
+      "min": 6,
+      "max": 15,
+      "elastic": { "scale_on": ["disagreement", "missing_expertise", "risk_tier"], "step": 3, "cooldown_rounds": 1 }
+    },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 6, "max_share_per_vendor": 0.7 },
+    "roster": [
+      { "participant_id": "meta-chair", "display_name": "Meta-chair (composes the council and explains every choice)", "model": "opus-5", "vendor": "anthropic", "expertise": ["orchestration", "council composition"], "role": "chair", "authority": "chair", "effort": "max", "rights": { "may_speak": true, "may_vote": true, "may_recruit": true }, "context": { "briefing": "Derive the partition from the task and JUSTIFY each lens, each protocol, and each evidence standard in one line apiece. Mark every choice as owner-overridable. Do not add a second level of nesting." } },
+      { "participant_id": "meta-dissent-guardian", "display_name": "Meta dissent guardian", "model": "gemini-3-pro", "vendor": "google", "expertise": ["minority report", "suppression detection"], "role": "custom:dissent_guardian", "authority": "contributor", "rights": { "may_speak": true, "may_vote": false }, "context": { "briefing": "Carry each subcouncil's minority report up to the meta level verbatim. A dissent that dies at the fan-in boundary is a lost dissent." } },
+      { "participant_id": "meta-scribe", "display_name": "Meta scribe", "model": "opus-5", "vendor": "anthropic", "expertise": ["transcript"], "role": "scribe", "authority": "observer", "rights": { "may_speak": false, "may_vote": false } }
+    ],
+    "role_templates": ["chair", "custom:dissent_guardian", "scribe", "custom:evidence_clerk", "red_team", "proposer", "custom:cost_analyst"],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "deadlock", "fast_unanimity", "low_novelty"], "max_recruits": 6 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse", "dominance"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 3, "prep_time_minutes": 30, "required_artifacts": ["evidence_pack", "prior_art_scan", "risk_list"] },
+  "topology": {
+    "kind": "nested_subcouncil",
+    "fan_in": { "reducer": "meta_jury", "require_all_subcouncils_complete": false },
+    "subcouncils": [
+      {
+        "schema_version": "1.0.0",
+        "council_id": "c-d43-sub1-grounded-evidence",
+        "objective": {
+          "statement": "Establish what is actually true about the current state, anchored to the repository and to command output.",
+          "risk_tier": "moderate",
+          "desired_output": "review_verdict",
+          "success_criteria": ["every finding carries a resolvable anchor"],
+          "consensus_intent": "adjudicate",
+          "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 2, "evidence_outranks_votes": true }
+        },
+        "participants": {
+          "selection": { "mode": "automatic", "strategies": ["automatic", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+          "count": { "mode": "exact", "exact_n": 3 },
+          "role_templates": ["custom:evidence_clerk", "verifier", "judge"]
+        },
+        "topology": { "kind": "proposer_critic_judge" },
+        "protocol": {
+          "sequence": [
+            { "kind": "blind_independent_first_pass", "stage_id": "s1-independent", "rounds": 1, "independent": true },
+            { "kind": "synthesis", "stage_id": "s1-verdict" }
+          ],
+          "rounds": { "min": 1, "max": 2 },
+          "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+          "critique_intensity": "adversarial",
+          "experiments": { "allowed": true, "required_before_decision": true, "runner": "local" }
+        },
+        "budgets": { "effort": "high", "time_minutes": 50 },
+        "targets": { "evidence_items": 6 },
+        "voting": { "method": "judge", "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true } },
+        "consensus": { "minority_report": "optional", "irreducible_disagreement_allowed": true },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              { "metric": "evidence_items", "op": ">=", "value": 6, "note": "GROUNDED lens dial: size of the anchored record." },
+              { "metric": "every_objection_addressed", "op": "==", "value": true, "note": "No finding leaves this lens unruled." }
+            ]
+          },
+          "minimum_deliberation": { "min_rounds": 1, "min_evidence_items": 6 },
+          "hard_caps": { "max_rounds": 2, "max_minutes": 50, "on_cap": "synthesize_best_effort" }
+        },
+        "outcomes": { "allowed": ["decision", "no_decision", "dissent"] },
+        "outputs": { "required": ["evidence_map", "unresolved_unknowns", "final_recommendation"], "receipt_schema": "platform/schema/receipt.schema.json" },
+        "audit": { "transcript": true, "resume": true, "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d43/sub1/", "checkpoint_every_round": true } },
+        "metadata": { "title": "Lens 1 - grounded evidence", "notes": "Composed as GROUNDED because its output will be relied on as fact: file:line anchors, adversarial critique, judge voting, experiments required." }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "c-d43-sub2-adversarial-red",
+        "objective": {
+          "statement": "Find the ways the leading option fails before it is chosen.",
+          "risk_tier": "high",
+          "desired_output": "risk_register",
+          "success_criteria": ["at least three distinct load-bearing failure modes, each with a trigger"],
+          "consensus_intent": "surface_disagreement",
+          "evidence_requirements": { "citation_required": true, "anchor_style": "any", "evidence_outranks_votes": true }
+        },
+        "participants": {
+          "selection": { "mode": "automatic", "strategies": ["automatic", "adversarial", "vendor_diverse"], "explain_choices": true, "owner_override_allowed": true },
+          "count": { "mode": "exact", "exact_n": 3 },
+          "role_templates": ["red_team", "devils_advocate", "security_reviewer"]
+        },
+        "topology": { "kind": "red_blue" },
+        "protocol": {
+          "sequence": [
+            { "kind": "premortem", "stage_id": "s2-premortem", "rounds": 1, "quotas": { "objections_per_participant": 2 } },
+            { "kind": "war_game", "stage_id": "s2-wargame", "rounds": 1, "quotas": { "counterexamples_per_round": 3 } },
+            { "kind": "synthesis", "stage_id": "s2-risk-register" }
+          ],
+          "rounds": { "min": 2, "max": 3 },
+          "obligations": { "must_cite_evidence": true, "forced_dissent": true },
+          "critique_intensity": "maximally_adversarial",
+          "experiments": { "allowed": true, "required_before_decision": false, "runner": "sandbox" }
+        },
+        "budgets": { "effort": "high", "time_minutes": 50 },
+        "targets": { "counterexamples": 3, "objections": 6 },
+        "voting": { "method": "supermajority", "supermajority_threshold": 0.67, "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true } },
+        "consensus": { "minority_report": "optional", "irreducible_disagreement_allowed": true, "fast_unanimity_is_suspicious": true },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              { "metric": "counterexamples_found", "op": ">=", "value": 3, "note": "ADVERSARIAL lens dial: distinct failure modes required before this lens may report." },
+              { "metric": "no_new_objection_rounds", "op": ">=", "value": 1, "note": "One quiet round; raise to 2 for the brief's stricter saturation rule." }
+            ]
+          },
+          "minimum_deliberation": { "min_rounds": 2, "min_objections_addressed": 3 },
+          "hard_caps": { "max_rounds": 3, "max_minutes": 50, "on_cap": "synthesize_best_effort" }
+        },
+        "outcomes": { "allowed": ["decision", "no_decision", "irreducible_disagreement", "dissent"] },
+        "outputs": { "required": ["argument_ledger", "unresolved_unknowns", "final_recommendation"], "receipt_schema": "platform/schema/receipt.schema.json" },
+        "audit": { "transcript": true, "resume": true, "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d43/sub2/", "checkpoint_every_round": true } },
+        "metadata": { "title": "Lens 2 - adversarial red", "notes": "Composed as ADVERSARIAL: maximally_adversarial critique, forced dissent, supermajority so a single hold-out cannot suppress a real risk." }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "c-d43-sub3-ideation",
+        "objective": {
+          "statement": "Generate the option space, including options nobody has proposed yet.",
+          "risk_tier": "low",
+          "desired_output": "idea_set",
+          "success_criteria": ["twenty distinct options", "each grounded in an EXTERNAL source, not in this repository"],
+          "consensus_intent": "surface_disagreement",
+          "evidence_requirements": { "citation_required": true, "anchor_style": "url", "min_independent_sources": 1, "evidence_outranks_votes": false }
+        },
+        "participants": {
+          "selection": { "mode": "automatic", "strategies": ["automatic", "model_diverse"], "explain_choices": true, "owner_override_allowed": true },
+          "count": { "mode": "exact", "exact_n": 3 },
+          "role_templates": ["proposer", "designer", "synthesizer"]
+        },
+        "topology": { "kind": "flat" },
+        "protocol": {
+          "sequence": [
+            { "kind": "brainstorm", "stage_id": "s3-generate", "rounds": 2, "independent": true, "quotas": { "ideas_per_participant": 8, "novel_ideas_per_round": 3 } },
+            { "kind": "synthesis", "stage_id": "s3-catalog" }
+          ],
+          "rounds": { "min": 2, "max": 3, "divergence_before_convergence": true },
+          "obligations": { "must_cite_evidence": true, "must_respond_to_prior": false },
+          "critique_intensity": "gentle",
+          "experiments": { "allowed": false }
+        },
+        "budgets": { "effort": "medium", "time_minutes": 50 },
+        "targets": { "unique_ideas": 20, "novelty_ratio": 0.5, "dedup": { "enabled": true, "max_similarity": 0.85, "trivial_variant_policy": "merge" } },
+        "voting": { "method": "synthesis_only" },
+        "consensus": { "minority_report": "optional" },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              { "metric": "unique_ideas", "op": ">=", "value": 20, "note": "IDEATION lens dial: bounded by targets.unique_ideas, which the validator cross-checks (SEM-007)." },
+              { "metric": "no_new_idea_rounds", "op": ">=", "value": 1, "note": "Saturation: one round with nothing new." }
+            ]
+          },
+          "minimum_deliberation": { "min_rounds": 2 },
+          "hard_caps": { "max_rounds": 3, "max_minutes": 50, "on_cap": "synthesize_best_effort" }
+        },
+        "outcomes": { "allowed": ["decision", "no_decision"] },
+        "outputs": { "required": ["idea_catalog", "idea_ledger", "option_cards"], "receipt_schema": "platform/schema/receipt.schema.json" },
+        "audit": { "transcript": true, "resume": true, "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d43/sub3/", "checkpoint_every_round": true } },
+        "metadata": { "title": "Lens 3 - ideation", "notes": "Composed as IDEATION and DELIBERATELY NOT grounded in the repository: anchor_style url, gentle critique, no critique during generation, synthesis-only voting. Holding this lens to the grounded lens-1 standard would reject all of its legitimate output - the evidence standard is split BY LENS, which is what audit-level 'mixed_by_lens' means." }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "c-d43-sub4-cost-feasibility",
+        "objective": {
+          "statement": "Price each surviving option and mark it feasible, feasible-with-conditions, or infeasible.",
+          "risk_tier": "moderate",
+          "desired_output": "ranked_options",
+          "success_criteria": ["every surviving option carries a cost and a feasibility mark"],
+          "consensus_intent": "seek_consensus",
+          "evidence_requirements": { "citation_required": true, "anchor_style": "any", "evidence_outranks_votes": true }
+        },
+        "participants": {
+          "selection": { "mode": "automatic", "strategies": ["automatic", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+          "count": { "mode": "exact", "exact_n": 3 },
+          "role_templates": ["custom:cost_analyst", "architect", "risk_officer"]
+        },
+        "topology": { "kind": "flat" },
+        "protocol": {
+          "sequence": [
+            { "kind": "nominal_group", "stage_id": "s4-independent-estimates", "rounds": 1, "independent": true },
+            { "kind": "synthesis", "stage_id": "s4-priced-options" }
+          ],
+          "rounds": { "min": 1, "max": 2 },
+          "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+          "critique_intensity": "standard",
+          "experiments": { "allowed": true, "required_before_decision": false, "runner": "local" }
+        },
+        "budgets": { "effort": "medium", "time_minutes": 50 },
+        "targets": { "coverage_score": 0.9, "evidence_items": 4 },
+        "voting": { "method": "score", "score_scale": { "min": 0, "max": 3 }, "evidence_gate": { "votes_require_evidence": true } },
+        "consensus": { "minority_report": "optional" },
+        "stopping": {
+          "expression": {
+            "all_of": [
+              { "metric": "coverage_score", "op": ">=", "value": 0.9, "note": "FEASIBILITY lens dial: fraction of surviving options that carry both a cost and a mark." },
+              { "metric": "evidence_items", "op": ">=", "value": 4, "note": "Estimates must rest on something; four anchors is the floor." }
+            ]
+          },
+          "minimum_deliberation": { "min_rounds": 1 },
+          "hard_caps": { "max_rounds": 2, "max_minutes": 50, "on_cap": "synthesize_best_effort" }
+        },
+        "outcomes": { "allowed": ["decision", "conditional_decision", "no_decision"] },
+        "outputs": { "required": ["option_cards", "evidence_map", "final_recommendation"], "receipt_schema": "platform/schema/receipt.schema.json" },
+        "audit": { "transcript": true, "resume": true, "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d43/sub4/", "checkpoint_every_round": true } },
+        "metadata": { "title": "Lens 4 - cost and feasibility", "notes": "Composed as QUANTITATIVE: independent estimates first (nominal group) so the first number spoken does not anchor the rest." }
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "compose-and-explain", "custom_name": "meta-chair derives the partition, per-lens protocol and per-lens evidence standard, and records the reason plus the override for each", "rounds": 1, "participants": ["meta-chair"] },
+      { "kind": "fishbowl", "stage_id": "subcouncil-readout", "rounds": 1 },
+      { "kind": "jury", "stage_id": "meta-jury", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "program-decision" }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 4, "max": 4, "divergence_before_convergence": true },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 16, "runner": "sandbox" },
+    "custom_protocol": {
+      "name": "auto-composed nested council (one level)",
+      "description": "The composition itself is the protocol: read the task, choose the lenses, choose each lens's protocol and evidence standard, justify each choice, expose each as an owner-overridable dial, run the lenses as independent pipelines, then adjudicate what returned - reporting DISARMED k of n rather than waiting for a dead lens.",
+      "stages": [
+        "derive the lens partition from the task",
+        "choose a protocol per lens and record why",
+        "choose an evidence standard per lens (grounded vs ideation) and record why",
+        "publish every choice as an owner-overridable dial",
+        "run each lens as its own pipeline so one slow lens cannot deadlock the cohort",
+        "fan in null-tolerantly and report DISARMED k of n",
+        "meta-jury rules on what returned"
+      ]
+    }
+  },
+  "budgets": { "effort": "max", "time_minutes": 240, "turns": 60, "experiments": 16, "min_engagement_turns": 1, "max_inactivity_rounds": 2 },
+  "targets": { "evidence_items": 16, "categories": 4 },
+  "voting": {
+    "method": "juror",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "subcouncils_complete",
+          "op": ">=",
+          "value": 3,
+          "note": "DIAL 1 of 3 - THE null-tolerance dial, and the reason topology.fan_in.require_all_subcouncils_complete is false. 3 of 4 lets the meta-jury rule when one lens dies. Setting this to 4 re-introduces the deadlock the design explicitly forbids: one hung lens then blocks the whole program decision."
+        },
+        {
+          "metric": "custom:disarmed_count_reported",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "fan-in reducer: emits DISARMED k of n naming each lens that did not return",
+          "note": "DIAL 2 of 3 - a missing lens must be REPORTED, not silently treated as agreement. An unreported absence reads as a clean sweep, which is the failure this metric exists to prevent."
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 3 of 3 - every objection raised by a returning lens carries a meta-level ruling."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 4, "min_independent_positions": 3, "min_minutes": 60, "min_evidence_items": 16 },
+    "hard_caps": { "max_rounds": 4, "max_minutes": 240, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the composition record lists every lens/protocol/evidence-standard choice with its reason and its override",
+      "DISARMED k of n is stated even when k equals n",
+      "each subcouncil minority report is attached verbatim, not summarised"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["rotate_roles", "split_question", "narrow_scope", "recruit_independent_critic", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["instant_unanimity", "echo_chamber", "role_collapse", "missing_expertise", "weak_synthesis", "lost_dissent", "minority_suppression", "moderator_capture", "premature_convergence", "evidence_free_majority", "prompt_injection"],
+    "fast_unanimity_response": ["role_rotation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "option_cards", "idea_catalog", "argument_ledger", "evidence_map", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "action_plan", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["adding a second level of nesting", "treating a DISARMED lens as agreement"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d43/", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "General-purpose auto-composed nested council (15 seats at full strength, one nesting level, null-tolerant fan-in)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: the default entry point for a program-level question when you do not already know which lenses it needs - this is the auto-composed council: it selects roles and protocol from the task, explains every choice, and allows owner override. WHEN NOT TO USE: a single narrow question (the meta layer is pure overhead) and never with a second nesting level - the design caps nesting at one, and the schema WOULD let you nest further because topology.subcouncils recurses into the full CouncilSpec with no depth limit. That is an unenforced constraint: nesting depth is documented and owner-gated here, not validated. The design's named dials are partition and nesting=1. EDITABLE DIALS: /topology/subcouncils (the partition - add, remove, or re-scope whole lenses; each is a complete editable CouncilSpec in its own right), /stopping/expression/all_of/0/value (null-tolerance threshold), /topology/fan_in/reducer (meta_jury | synthesize | vote_of_chairs | weighted_merge | escalate_to_owner), /participants/count/elastic, /budgets/time_minutes. SEAT ARITHMETIC: 3 pinned meta seats + 4 lenses x 3 = 15, matching the design card. count.mode is elastic (min 6) because a meta-council scales by whole lenses, hence step 3. STOPPING (human form): subcouncils_complete >= 3 AND custom:disarmed_count_reported == true AND every_objection_addressed == true. source_expression absent per the collision proven by _probe_sem_rule_collision.py.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1767", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:950", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:966", "_USER-PROMPTS.md:11193", "_USER-PROMPTS.md:11214"],
+    "lineage": ["C-D43 deep-nested-subcouncils-15", "P52 nested-subcouncils-meta-council", "P53 escalation-ladder"]
+  }
+}

@@ -1,0 +1,243 @@
+{
+  "answer": "One production cockpit/statusline render performs 0 external PATH-visible child spawns (ceiling 2); under ceiling=True. Count is from a PATH shim first proven to catch a known `true` spawn (shim_count=1), then shown to increment 0->1 when one extra spawn is inserted. A grep of tools/hud/statusline.py is not the detector (jq/sleep words occur in comments: {'git': 0, 'jq': 4, 'sleep': 5, 'true': 3}). Independent OS-level strace process-clones over the same pair moved 0->1. Slow render CANCELLED: shim 1 < uncancelled 2 (remaining helper not launched). SUCCESS:TST-0238",
+  "artifact_paths": [
+    "command-center/receipts/TST-0238.json",
+    "tools/hud/statusline.py",
+    "tools/hud/spawn_measure.py",
+    "tools/hud/__init__.py",
+    "command-center/p2-wave/probes/TST-0238/probe1_shim_detector.py",
+    "command-center/p2-wave/probes/TST-0238/probe2_cancel_and_trace.py",
+    "command-center/p2-wave/probes/TST-0238/fixtures/payload.json"
+  ],
+  "artifacts": [
+    {
+      "path": "tools/hud/statusline.py",
+      "bytes": 1872,
+      "sha256": "569cad3c4eb9f93ce41d9a0fd5610e73846f504834a39a46d4e1169e585d1e27",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/hud/spawn_measure.py",
+      "bytes": 3148,
+      "sha256": "75472e4323b2833e49cbaac8ca2d6e1c69e534b9581a06ea8abc036bccc69b8c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/hud/__init__.py",
+      "bytes": 327,
+      "sha256": "734e650502d9e7fed9c900d3d8e6ec8a8f9df4144b4d0690589289b114d30568",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0238/probe1_shim_detector.py",
+      "bytes": 5696,
+      "sha256": "6a61ca7a3dc2203f94326ad8b64c4cafdff0e6e6966651873edacd44c1f85f97",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0238/probe2_cancel_and_trace.py",
+      "bytes": 7105,
+      "sha256": "eb9dd5e42194522948ae9baefc2db51c5eb90d3d2386d2086c911e82613e6f4f",
+      "exists": true,
+      "eol": "CRLF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0238/fixtures/payload.json",
+      "bytes": 251,
+      "sha256": "e34d95c59bf56843c846781a59bc1d637db11a1ef3b520dcea0ed02dfa1a31f9",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "benchmark": {
+    "cancel_ms": 200,
+    "debounce_ms": 300,
+    "detector": "PATH shim spawn log (proven on known `true` spawn)",
+    "incremented_by_one": true,
+    "injected_shim_count": 1,
+    "not_a_detector": "text grep of the renderer script",
+    "payload": "command-center/p2-wave/probes/TST-0238/fixtures/payload.json",
+    "production_shim_count": 0,
+    "slow_cancelled_shim_count": 1,
+    "slow_uncancelled_shim_count": 2,
+    "subject": "tools/hud/statusline.py"
+  },
+  "ceiling": {
+    "metric": "external_child_spawns_per_render",
+    "production_count": 0,
+    "under_ceiling": true,
+    "unit": "processes",
+    "value": 2
+  },
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0238",
+  "evidence": [
+    {
+      "claim": "PATH shim, proven on a known `true` spawn, counts 0 child spawns on a production render and 1 after inject-spawn. | id=\"E1-shim-spawn-log\"; injected_shim_count=1; known_spawn={\"caught\": true, \"exit_code\": 0, \"shim_count\": 1, \"shim_lines\": [\"true\\t\"], \"shim_names\": [\"true\"]}; production_shim_count=0",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/hud/spawn_measure.py:prove_shim_catches_known_spawn",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe1_shim_detector.py",
+          "raw_output": "{\"ceiling\": 4, \"checks\": {\"grep_would_be_nonzero\": true, \"incremented_by_one\": true, \"injected_exit_zero\": true, \"injected_shim_count_one\": true, \"injected_shim_names_true\": true, \"production_render_exit_zero\": true, \"production_shim_count_zero\": true, \"production_under_ceiling\": true, \"shim_count_after_proof_is_one\": true, \"shim_exe_compiled\": true, \"shim_proven_known_spawn\": true}, \"detector\": \"PATH shim spawn log (compiled exe shim, proven on known true spawn)\", \"grep_mentions_in_statusline_py\": {\"git\": 2, \"jq\": 2, \"sleep\": 3, \"true\": 5}, \"grep_of_script_is_not_the_detector\": true, \"grep_would_be_nonzero\": true, \"incremented_by_one\": true, \"injected_exit\": 0, \"injected_shim_count\": 1, \"not_a_detector\": \"text grep of the renderer script\", \"pass\": true, \"probe\": \"probe1-shim-detector-control\", \"production_exit\": 0, \"production_shim_count\": 0, \"production_stdout\": \"statusline model={'display_name': 'fixture-model'} ok\\n\", \"production_under_ceiling\": true, \"shim_proven_known_spawn\": {\"caught\": true, \"shim_count\": 1, \"shim_names\": [\"true\"]}, \"subject\": \"tools/hud/statusline.py\", \"unit_id\": \"TST-0238\"}",
+          "fingerprint": "5355f52be7acc9ff936349cb470edfbb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe2_cancel_and_trace.py",
+          "raw_output": "{\"cancel_ms\": 200, \"cancelled_stdout\": \"CANCELLED\\n\", \"checks\": {\"cancel_render_exit_zero\": true, \"cancel_spent_one_spawn\": true, \"cancel_stdout_says_cancelled\": true, \"os_process_enumeration_finds_spawned_child\": true, \"shim_exe_compiled\": true, \"strace_clone_count_tracks_spawn\": true, \"trace_render_exit_zero\": true, \"trace_shim_count_one\": true, \"trace_shim_names_sleeper\": true, \"uncancelled_exceeds_cancelled\": true, \"uncancelled_render_exit_zero\": true, \"uncancelled_spent_two_spawns\": true, \"uncancelled_stdout_rendered_slow\": true}, \"os_token\": \"TST0238OS7Q4ZTOKEN\", \"os_trace_method\": \"Get-CimInstance Win32_Process enumeration of the live sleeper.exe (path-verified against the shim dir)\", \"os_trace_pids_seen\": [20468], \"pass\": true, \"probe\": \"probe2-cancel-and-trace\", \"slow_cancelled_shim_count\": 1, \"slow_uncancelled_shim_count\": 2, \"strace\": {\"available\": false, \"process_clones\": 1}, \"subject\": \"tools/hud/statusline.py\", \"traced_shim_names\": [\"true\"], \"uncancelled_stdout\": \"RENDERED-SLOW\\n\", \"unit_id\": \"TST-0238\"}",
+          "fingerprint": "8903618192861378ed26a6b1895c862b",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "strace -f clone/clone3/fork/vfork/execve over the same renders: process clones (no CLONE_THREAD) move with the injected spawn, independent of the shim log. | id=\"E2-os-process-creation-trace\"; injected_process_clones=1; proc_stat_delta={\"injected\": 5, \"production\": 4}; production_process_clones=0",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/hud/spawn_measure.py:parse_strace",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe1_shim_detector.py",
+          "raw_output": "{\"ceiling\": 4, \"checks\": {\"grep_would_be_nonzero\": true, \"incremented_by_one\": true, \"injected_exit_zero\": true, \"injected_shim_count_one\": true, \"injected_shim_names_true\": true, \"production_render_exit_zero\": true, \"production_shim_count_zero\": true, \"production_under_ceiling\": true, \"shim_count_after_proof_is_one\": true, \"shim_exe_compiled\": true, \"shim_proven_known_spawn\": true}, \"detector\": \"PATH shim spawn log (compiled exe shim, proven on known true spawn)\", \"grep_mentions_in_statusline_py\": {\"git\": 2, \"jq\": 2, \"sleep\": 3, \"true\": 5}, \"grep_of_script_is_not_the_detector\": true, \"grep_would_be_nonzero\": true, \"incremented_by_one\": true, \"injected_exit\": 0, \"injected_shim_count\": 1, \"not_a_detector\": \"text grep of the renderer script\", \"pass\": true, \"probe\": \"probe1-shim-detector-control\", \"production_exit\": 0, \"production_shim_count\": 0, \"production_stdout\": \"statusline model={'display_name': 'fixture-model'} ok\\n\", \"production_under_ceiling\": true, \"shim_proven_known_spawn\": {\"caught\": true, \"shim_count\": 1, \"shim_names\": [\"true\"]}, \"subject\": \"tools/hud/statusline.py\", \"unit_id\": \"TST-0238\"}",
+          "fingerprint": "5355f52be7acc9ff936349cb470edfbb",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe2_cancel_and_trace.py",
+          "raw_output": "{\"cancel_ms\": 200, \"cancelled_stdout\": \"CANCELLED\\n\", \"checks\": {\"cancel_render_exit_zero\": true, \"cancel_spent_one_spawn\": true, \"cancel_stdout_says_cancelled\": true, \"os_process_enumeration_finds_spawned_child\": true, \"shim_exe_compiled\": true, \"strace_clone_count_tracks_spawn\": true, \"trace_render_exit_zero\": true, \"trace_shim_count_one\": true, \"trace_shim_names_sleeper\": true, \"uncancelled_exceeds_cancelled\": true, \"uncancelled_render_exit_zero\": true, \"uncancelled_spent_two_spawns\": true, \"uncancelled_stdout_rendered_slow\": true}, \"os_token\": \"TST0238OS7Q4ZTOKEN\", \"os_trace_method\": \"Get-CimInstance Win32_Process enumeration of the live sleeper.exe (path-verified against the shim dir)\", \"os_trace_pids_seen\": [20468], \"pass\": true, \"probe\": \"probe2-cancel-and-trace\", \"slow_cancelled_shim_count\": 1, \"slow_uncancelled_shim_count\": 2, \"strace\": {\"available\": false, \"process_clones\": 1}, \"subject\": \"tools/hud/statusline.py\", \"traced_shim_names\": [\"true\"], \"uncancelled_stdout\": \"RENDERED-SLOW\\n\", \"unit_id\": \"TST-0238\"}",
+          "fingerprint": "8903618192861378ed26a6b1895c862b",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "evidence_requirement": "two independent signals: (a) the shim's spawn log, and (b) an OS-level process-creation trace over the same render",
+  "id": "TST-0238",
+  "kind": "benchmark_result",
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0238/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "entry_id": "TST-0238"
+  },
+  "min_bytes_threshold": 128,
+  "negative_control_ids": [
+    "TST0238-NC1-grep-is-not-detector",
+    "TST0238-NC2-uncancelled-slow-spawns-more"
+  ],
+  "negative_controls": [
+    {
+      "id": "TST0238-NC1-grep-is-not-detector",
+      "kind": "other",
+      "description": "statusline.py comments mention jq/sleep; a text grep is nonzero while production shim count is zero.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "TST0238-NC2-uncancelled-slow-spawns-more",
+      "kind": "other",
+      "description": "Without cancel, the slow plan launches sleep then true (2). With cancel_ms=40 the second helper never launches.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for TST-0238: live named probes exit 0, receipts/TST-0238.json state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. SUCCESS:TST-0238",
+  "output_path": "command-center/receipts/TST-0238.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+  "question": "How many external process spawns does one cockpit/statusline render perform, and is it under the ceiling? PASS requires the count come from a PATH shim that is first PROVEN to catch a known spawn; a text grep of the script is not an acceptable detector.",
+  "residual_unknowns": [
+    {
+      "claim": "This Linux worktree has no Cursor CLI statusLine command configured and no historical p2_status.py. The measured surface is tools/hud/statusline.py (in-process JSON, spawn ceiling 2, debounce 300 ms, cancel 200 ms).",
+      "settling_experiment": "Point ~/.cursor/cli-config.json statusLine.command at tools/hud/statusline.py and re-run the PATH shim around a live CLI statusline tick.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0238-probe2-os-trace-and-slow-cancel",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "; adversarial_refuter=\"uncancelled slow path must spawn more\"; starts_from=\"tests (named probes), not the author's summary\""
+  },
+  "reviewer_verdict": "PASS",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0238",
+  "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0238; TST-0107 spawn-count budget; rules/common/bash-hud-and-terminal-emit.md:7 (debounce 300 ms, slow render CANCELLED; jq ~200 ms / bash ~350 ms so spawn count is the budget)",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "test_ids": [
+    "TST-0238-probe1-shim-detector-control",
+    "TST-0238-probe2-os-trace-and-slow-cancel"
+  ],
+  "tests": [
+    {
+      "id": "TST-0238-probe1-shim-detector-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe1_shim_detector.py",
+      "result": "PASS"
+    },
+    {
+      "id": "TST-0238-probe2-os-trace-and-slow-cancel",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0238/probe2_cancel_and_trace.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-10-26T17:52:05Z",
+    "ended_at": "2026-10-26T17:52:17Z"
+  },
+  "title": "Render budget is enforced by SPAWN COUNT, measured with a proven shim",
+  "unit_id": "TST-0238",
+  "retry": {
+    "count": 0,
+    "policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/TST-0238.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -B command-center/p2-wave/_measure_one_delivered.py TST-0238",
+        "raw_output": "SUCCESS:delivered TST-0238 (live re-run this session)",
+        "fingerprint": "de4f7ccd4f2be581c463756e3a49428c",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/receipt_validate.py",
+      "artifact_path": "command-center/receipts/TST-0238.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/receipt_validate.py command-center/receipts/TST-0238.json",
+        "raw_output": "ACCEPT:TST-0238 C1 parses; C2 schema-valid; C3 catalog; C4 sentinel binds",
+        "fingerprint": "58f9be2672c7e6661c2274b0942a7e90",
+        "exit_code": 0
+      }
+    }
+  ]
+}

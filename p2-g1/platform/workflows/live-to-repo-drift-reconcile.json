@@ -1,0 +1,883 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "live-to-repo-drift-reconcile",
+  "name": "Live-to-repo harness drift reconcile - with a both-states control on the tool itself",
+  "description": "Blueprint 92 of 96 (design BP-MNT-01). Reconcile the live harness trees against the repo WITHOUT the reconciliation tool destroying uncommitted repo work. Mechanism: the workflow's FIRST stage is a both-states control on the sync tool in a scratch copy - prove that a bare `-Report json` run destroys an uncommitted edit and that `-Drift` does not - and the run is gated on that proof. The deterministic classification half is DELEGATED to the dual-tree-plumbing-mirror subworkflow rather than reimplemented, so there is exactly one blob-classification implementation in the platform. What remains here is what only this workflow does: distrust a tool whose flag semantics are a live hazard, and route two-sided files to a human two-directional merge.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "harness",
+    "drift",
+    "detector-control",
+    "distrusted-tool"
+  ],
+  "flagship": true,
+  "params": {
+    "live_roots": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "ABSOLUTE live harness roots (e.g. the skills, hooks and rules trees). Live-only work is architecturally orphaned until it lands in the repo."
+    },
+    "repo_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE repo root - the source of truth. The live tree is a deploy target, never the authority."
+    },
+    "mode": {
+      "type": "enum",
+      "enum": [
+        "drift",
+        "apply"
+      ],
+      "default": "drift",
+      "description": "drift = measure only. apply = write. A bare report flag is NOT a mode: on the measured tool it selects the OUTPUT FORMAT and still writes."
+    },
+    "scratch_copy_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to a throwaway copy where the both-states control on the tool is run. The control must never run against the real repo."
+    },
+    "allow_apply_with_dirty_repo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Must stay false. The tool's pre-write guard reads STAGED paths only, so unstaged and untracked repo work is unprotected during an apply."
+    }
+  },
+  "roles": {
+    "control-runner": {
+      "description": "Runs the both-states control on the sync tool in a scratch copy and reports whether the footgun reproduces on THIS box today",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:git",
+        "Bash:pwsh",
+        "Write(command-center/drift/**)"
+      ],
+      "write_paths": [
+        "command-center/drift/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "merge-author": {
+      "description": "Performs the two-directional hand merge for files where both the live tree and the repo hold unique content",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:git",
+        "Write(command-center/drift/**)"
+      ],
+      "write_paths": [
+        "command-center/drift/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - decides which branch carries the reconciliation PR and authorises any apply",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Bash:git",
+      "Bash:pwsh",
+      "Write(command-center/drift/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Bash:pwsh"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/drift/**"
+    ],
+    "forbid_write_paths": [
+      "Documents/GitHub/Reframe/**",
+      ".claude/agent-worktrees/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_id == hand-merge-two-sided",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "a two-directional merge that drops one side's unique lines is unrecoverable data loss, so it gets maximum effort"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "footgun-control-passed": {
+      "predicate": "custom-expression",
+      "expression": "control_fired_in_broken_state == true AND control_silent_in_fixed_state == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "repo-clean-before-apply": {
+      "predicate": "custom-expression",
+      "expression": "mode == drift OR repo_uncommitted_paths == 0 OR allow_apply_with_dirty_repo == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "clean-verdict-is-not-evidence": {
+      "predicate": "custom-expression",
+      "expression": "verdict_source_run_was_nonwriting == true AND NOT clean_verdict_from_writing_run",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "subworkflows": {
+    "dual-tree-plumbing-mirror": {
+      "workflow_id": "dual-tree-plumbing-mirror",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/dual-tree-plumbing-mirror.json"
+    }
+  },
+  "stages": [
+    {
+      "id": "control-the-tool",
+      "title": "Both-states control: prove the footgun reproduces, in a scratch copy",
+      "kind": "task",
+      "role": "control-runner",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9201",
+        "title": "Reproduce and refute the sync-tool write footgun in a throwaway copy before trusting any run",
+        "phase": "7",
+        "question_or_target": "In scratch_copy_root: make a deliberate UNCOMMITTED repo edit, run the sync tool with a bare report flag, and record whether the edit survived. Then restore the edit and run the tool in drift mode and record whether it survived. The control must FIRE in the first state and be SILENT in the second - a probe silent in both states measures nothing.",
+        "inputs": [
+          "params.scratch_copy_root",
+          "params.live_roots",
+          "params.repo_root"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "control-runner",
+          "basis": "the whole point of this stage is detector discipline, which is where this program has repeatedly lost"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:git",
+          "Bash:pwsh",
+          "Write(command-center/drift/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/drift/sync-tool-both-states-control.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "the byte content of the deliberate edit before and after EACH of the two runs, plus both literal command lines; a claim that the footgun exists without the destroyed-then-preserved pair is a citation, not a measurement",
+        "tests_required": [
+          "the control must FIRE (edit destroyed) on the bare-report run",
+          "the control must be SILENT (edit preserved) on the drift run",
+          "a control that reports the same outcome in both states must FAIL the stage - it proves the probe, not the tool"
+        ],
+        "reviewer_requirement": "one independent reader who confirms from the recorded bytes that the two runs differed in outcome, without re-running the tool",
+        "completion_sentinel": "SUCCESS:BPW-9201 emitted only when both states were exercised and produced DIFFERENT outcomes; otherwise FAILED:BPW-9201 <reason>",
+        "retry_policy": "no retry against the real repo under any circumstance; a scratch-copy failure is re-run once after re-creating the scratch copy, then escalated",
+        "failure_classification": [
+          "probe-silent-in-both-states",
+          "scratch-copy-missing",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/drift/sync-tool-both-states-control.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9201",
+          "consumers": [
+            "gate-control",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-control",
+      "title": "No run at all until the control has both states",
+      "kind": "gate",
+      "depends_on": [
+        "control-the-tool"
+      ],
+      "gate_ref": "footgun-control-passed"
+    },
+    {
+      "id": "stage-repo-first",
+      "title": "Commit or stage every authoritative repo edit BEFORE any writing run",
+      "kind": "task",
+      "role": "control-runner",
+      "depends_on": [
+        "gate-control"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPW-9202",
+        "title": "Enumerate uncommitted repo work and require it to be committed or staged",
+        "phase": "7",
+        "question_or_target": "Run `git status --porcelain -uall` in repo_root and enumerate every modified, staged, and untracked path. Report the count of paths that are UNSTAGED or UNTRACKED - those are the ones the tool's pre-write guard does not protect.",
+        "inputs": [
+          "params.repo_root"
+        ],
+        "dependencies": [
+          "BPW-9201"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "control-runner",
+          "basis": "cheap, but the consequence of getting it wrong is unrecoverable"
+        },
+        "tool_permissions": [
+          "Bash:git",
+          "Write(command-center/drift/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/drift/repo-precondition.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "the porcelain output with -uall and the three counts (staged, unstaged, untracked) derived from it; without -uall an untracked DIRECTORY collapses to one line and its members are invisible",
+        "tests_required": [
+          "an untracked directory containing three files must contribute three paths, not one - the -uall control",
+          "a repo with unstaged work and mode=apply must fail the precondition gate"
+        ],
+        "reviewer_requirement": "the gate is the reviewer; the counts are re-derivable from the recorded porcelain output",
+        "completion_sentinel": "SUCCESS:BPW-9202 emitted only when the -uall enumeration is recorded with all three counts; otherwise FAILED:BPW-9202 <reason>",
+        "retry_policy": "no retry - a git status that fails twice is an environment fault, and this workflow must never proceed on a guess about repo cleanliness",
+        "failure_classification": [
+          "truncated-enumeration",
+          "repo-state-unknown",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/drift/repo-precondition.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9202",
+          "consumers": [
+            "gate-clean",
+            "classify-drift"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-clean",
+      "title": "The tool's guard reads STAGED paths only",
+      "kind": "gate",
+      "depends_on": [
+        "stage-repo-first"
+      ],
+      "gate_ref": "repo-clean-before-apply"
+    },
+    {
+      "id": "classify-drift",
+      "title": "Delegate the deterministic classification to the plumbing mirror",
+      "kind": "subworkflow",
+      "depends_on": [
+        "gate-clean"
+      ],
+      "timeout_seconds": 7200,
+      "workflow": {
+        "workflow_id": "dual-tree-plumbing-mirror",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "normalize_eol_before_compare": true,
+        "baseline_ref": "MIRROR_BASELINE"
+      },
+      "isolation": "worktree",
+      "propagate_failure": true,
+      "produces": [
+        {
+          "path": "command-center/mirror/blob-classification.json",
+          "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "hand-merge-two-sided",
+            "emit-drift-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hand-merge-two-sided",
+      "title": "Two-directional merge - only for files where BOTH sides hold unique content",
+      "kind": "fanout",
+      "depends_on": [
+        "classify-drift"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/mirror/divergent-paths.json#/two_sided",
+        "item_var": "divergent_path",
+        "key_field": "target"
+      },
+      "max_concurrency": 3,
+      "arrival_stagger_ms": 500,
+      "max_items": 200,
+      "on_item_failure": "quarantine",
+      "timeout_seconds": 14400,
+      "body": [
+        {
+          "id": "merge-one-file",
+          "kind": "task",
+          "role": "merge-author",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "BPW-9203",
+            "title": "Merge one two-sided file keeping every unique line from BOTH sides",
+            "phase": "7",
+            "question_or_target": "For one TWO-SIDED file, produce a merged version that retains the live tree's unique content AND the repo's unique content. Before writing, enumerate the lines unique to each side and assert both sets survive in the output.",
+            "inputs": [
+              "command-center/mirror/divergent-paths.json"
+            ],
+            "dependencies": [
+              "BPW-9201",
+              "BPW-9202"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "merge-author",
+              "basis": "a one-directional read cannot see two-directional divergence; the measured error direction on exactly this task was 31 of 31 pointing at data loss"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Bash:git",
+              "Write(command-center/drift/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/drift/merged-two-sided.json",
+            "output_schema": "command-center/schema/divergence-ruling.schema.json",
+            "evidence_requirement": "for each merged file the set of lines unique to the live side, the set unique to the repo side, and an assertion that BOTH sets appear in the merged output; a diff summary is not sufficient",
+            "tests_required": [
+              "a merge that drops any line unique to either side must FAIL the unique-line assertion",
+              "both-states control: a deliberately one-directional merge (repo-only) must be caught by the same assertion, proving the assertion is not vacuous"
+            ],
+            "reviewer_requirement": "one independent reviewer who re-derives the two unique-line sets from the raw blobs rather than from the merge author's summary",
+            "completion_sentinel": "SUCCESS:BPW-9203 emitted only when the unique-line assertion holds for both sides; otherwise FAILED:BPW-9203 <reason>",
+            "retry_policy": "two strikes then pivot: after two failed merges of the same file, hand it to the owner with both sides' unique-line sets rather than attempting a third",
+            "failure_classification": [
+              "one-directional-merge",
+              "unique-line-lost",
+              "overclaim"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "emit-drift-report",
+      "title": "The drift report, with the verdict's provenance attached",
+      "kind": "task",
+      "role": "control-runner",
+      "depends_on": [
+        "hand-merge-two-sided"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPW-9204",
+        "title": "Emit the drift report stating which run produced the verdict and whether that run wrote",
+        "phase": "7",
+        "question_or_target": "Emit the drift report with new / changed / identical / eol-only sets, the unresolved set, and - as a first-class field - which run produced the verdict and whether that run was non-writing. A CLEAN verdict from a writing run is not evidence of no drift.",
+        "inputs": [
+          "command-center/mirror/blob-classification.json",
+          "command-center/drift/merged-two-sided.json",
+          "command-center/drift/repo-precondition.json"
+        ],
+        "dependencies": [
+          "BPW-9203"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "control-runner",
+          "basis": "assembling a verdict with its provenance is judgement about what the evidence supports"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/drift/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/drift/drift-report.json",
+        "output_schema": "command-center/schema/drift-report.schema.json",
+        "evidence_requirement": "every set enumerated with counts, plus the run provenance (command line, mode, writing yes/no) that produced the verdict; a verdict whose producing run is unrecorded declares zero signals, not one",
+        "tests_required": [
+          "an EOL-only pair must not appear in the changed set",
+          "a report whose producing run wrote must be rejected by the clean-verdict gate even if the sets look empty"
+        ],
+        "reviewer_requirement": "one independent reviewer who checks the run provenance field before reading any set",
+        "completion_sentinel": "SUCCESS:BPW-9204 emitted only when every set is enumerated AND the producing run's provenance is recorded; otherwise FAILED:BPW-9204 <reason>",
+        "retry_policy": "no retry - the report is assembled from artifacts on disk; a failure means one is missing or malformed",
+        "failure_classification": [
+          "missing-input",
+          "clean-verdict-from-writing-run",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/drift/drift-report.json",
+          "schema_ref": "command-center/schema/drift-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9204",
+          "consumers": [
+            "owner",
+            "anchor-checked-per-file-deploy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-verdict-provenance",
+      "title": "A CLEAN verdict from a writing run is not evidence",
+      "kind": "gate",
+      "depends_on": [
+        "emit-drift-report"
+      ],
+      "gate_ref": "clean-verdict-is-not-evidence"
+    },
+    {
+      "id": "gate-unit-complete",
+      "title": "The one shared 12-condition completion predicate",
+      "kind": "gate",
+      "depends_on": [
+        "gate-verdict-provenance"
+      ],
+      "gate_ref": "unit-complete"
+    },
+    {
+      "id": "owner-branch-decision",
+      "title": "Which branch carries the reconciliation PR",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "gate-unit-complete"
+      ],
+      "prompt": "The drift report is attached, two-sided files are merged with both sides' unique lines preserved, and the unresolved set is named. Which branch carries the reconciliation PR, and is an apply authorised?",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "open-pr-on-new-branch",
+        "open-pr-on-existing-branch",
+        "defer-unresolved-set",
+        "abandon"
+      ],
+      "decision_artifact": {
+        "path": "command-center/drift/reconcile-branch-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "owner"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "unresolved-empty-or-deferred",
+      "expression": "unresolved_count == 0 OR unresolved_explicitly_deferred == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "control_fired_in_broken_state == true AND control_silent_in_fixed_state == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "control-inconclusive",
+      "expression": "control_fired_in_broken_state == false OR control_silent_in_fixed_state == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "weighted-reconcile-quality",
+      "expression": {
+        "weighted": {
+          "terms": [
+            {
+              "expr": "unique_line_assertion_passed == true",
+              "weight": 0.5
+            },
+            {
+              "expr": "eol_only_separated == true",
+              "weight": 0.2
+            },
+            {
+              "expr": "verdict_source_run_was_nonwriting == true",
+              "weight": 0.3
+            }
+          ],
+          "threshold": 1.0
+        }
+      },
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 15,
+    "jitter": false,
+    "retry_on": [
+      "object-store-lock",
+      "scratch-copy-missing"
+    ],
+    "no_retry_on": [
+      "one-directional-merge",
+      "unique-line-lost",
+      "clean-verdict-from-writing-run",
+      "probe-silent-in-both-states"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-branch-decision"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "probe-silent-in-both-states",
+      "one-directional-merge",
+      "unique-line-lost",
+      "clean-verdict-from-writing-run"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-branch-decision",
+    "quarantine_path": "command-center/quarantine/drift-reconcile"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/drift-reconcile",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 7200,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/drift-reconcile.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs",
+      "env_fingerprint"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "artifact-diff",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/drift-reconcile-plan.json",
+    "forbid_tools": [
+      "Bash:pwsh",
+      "Bash:git",
+      "Write(command-center/drift/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "almost-certain",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-01 - the measured tool footgun (a bare report-format flag WRITES, omits new/changed from the unresolved set, and still reports CLEAN with exit 0) and the ~470 lines of unversioned security-bearing live harness work it recovers",
+    "cost": {
+      "currency": "USD",
+      "min": 0.3,
+      "expected": 2.5,
+      "max": 15.0
+    },
+    "wallclock_seconds": {
+      "min": 900,
+      "expected": 5400,
+      "max": 43200
+    },
+    "tokens": {
+      "min": 60000,
+      "expected": 400000,
+      "max": 2000000
+    },
+    "tool_calls": {
+      "min": 20,
+      "expected": 150,
+      "max": 700
+    },
+    "impact": {
+      "risk": "high",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "in drift mode: read-only plus writes under command-center/drift/**. In apply mode it can overwrite repo files with live bytes - which is exactly why the both-states control and the commit-first gate precede it. A destroyed uncommitted edit is NOT recoverable.",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "cache-manifest"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/drift-reconcile.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-01",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/harness-vcs-hygiene.md",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - the repo-is-truth / live-is-a-deploy-target rule"
+      },
+      {
+        "source": "platform/workflows/dual-tree-plumbing-mirror.json",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "blueprint 91 - the deterministic classification half"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "dual-tree-plumbing-mirror@1.0.0",
+      "manual `-Drift -Report json` inspection"
+    ]
+  },
+  "outputs": {
+    "drift": {
+      "path": "command-center/drift/drift-report.json",
+      "schema_ref": "command-center/schema/drift-report.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9204",
+      "consumers": [
+        "owner",
+        "anchor-checked-per-file-deploy"
+      ]
+    },
+    "control": {
+      "path": "command-center/drift/sync-tool-both-states-control.json",
+      "schema_ref": "command-center/schema/detector-control.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 92,
+      "of": 96,
+      "design_card": "BP-MNT-01",
+      "design_family": "D18-maintenance",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "REPAIR",
+      "flagship": true
+    },
+    "mechanism": "distrust-the-tool-first. The workflow's own first stage is a both-states control on the tool it is about to use, and the run is gated on that control having produced DIFFERENT outcomes in the broken and fixed states. The deterministic blob classification is delegated, not duplicated.",
+    "not_a_duplicate_because": {
+      "vs_dual-tree-plumbing-mirror": "that primitive has no tool to distrust and no merge path - it refuses two-sided paths. This workflow CALLS it (declared in subworkflows, invoked by the classify-drift stage) and adds the two things only it does: a both-states control on a hazardous tool, and a two-directional hand merge whose postcondition is that BOTH sides' unique lines survive.",
+      "vs_anchor-checked-per-file-deploy": "that is the safe TRANSPORT that lands a change once a drift verdict exists; this produces the verdict. The dependency runs one way: deploy consumes drift-report.json.",
+      "vs_pre-pr-surface-check": "that compares two COMMITS in one repo; this compares two TREES on disk, one of which is not under version control at all."
+    },
+    "contraindications": [
+      "NOT for application repos with a normal workflow",
+      "NOT while a peer session holds the checkout - a concurrent write makes every hash comparison a race"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "destroy-an-uncommitted-edit",
+        "given": "a scratch copy with an uncommitted repo edit and a bare report-format run",
+        "expect": "the edit is DESTROYED - the control fires. Then with -Drift the same edit survives. Different outcomes in the two states is the pass condition."
+      },
+      {
+        "id": "eol-only-is-not-drift",
+        "given": "a live/repo pair differing only in line endings",
+        "expect": "classified EOL-ONLY and absent from the changed set"
+      },
+      {
+        "id": "one-directional-merge-caught",
+        "given": "a deliberately repo-only merge of a two-sided file",
+        "expect": "the unique-line assertion FAILS, proving it is not vacuous"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "reconcile-the-live-hooks-tree",
+        "params": {
+          "live_roots": [
+            "C:/Users/Prekzursil/.claude/hooks",
+            "C:/Users/Prekzursil/.claude/rules"
+          ],
+          "repo_root": "C:/Users/Prekzursil/source/agent-skills-toolchain",
+          "mode": "drift",
+          "scratch_copy_root": "C:/Users/Prekzursil/AppData/Local/Temp/drift-scratch-01",
+          "allow_apply_with_dirty_repo": false
+        },
+        "control_result": {
+          "broken_state_run": "bare -Report json -> the uncommitted edit to hooks/_shared/completion.py was overwritten with live bytes; control FIRED",
+          "fixed_state_run": "-Drift -Report json -> the same edit survived byte-for-byte; control SILENT",
+          "verdict": "PASS - different outcomes in the two states"
+        },
+        "classification": {
+          "identical": 24,
+          "eol_only": 7,
+          "new_in_live": 3,
+          "two_sided": 2
+        },
+        "hand_merged": [
+          "hooks/git-hygiene/check.py",
+          "rules/common/windows-shell.md"
+        ],
+        "unresolved": [],
+        "terminal_state": "SUCCESS:BPW-9204 - drift report emitted from a NON-writing run, provenance recorded, 2 files merged with both sides' unique lines asserted present",
+        "note": "The 7 EOL-only files would have appeared as drift under a naive comparison. The 2 two-sided files are the ones a one-directional check would have silently overwritten - the measured error direction on this exact task was 31 of 31 pointing at data loss."
+      }
+    ],
+    "owner_decision": "YES - where the ~470 lines of unversioned, security-bearing live harness work land: which branch carries the PR. Represented in-workflow as the owner-branch-decision human checkpoint, so the workflow cannot silently pick for the owner.",
+    "unverified": [
+      "That the footgun still reproduces on this box TODAY is UNVERIFIED by this artifact - that is precisely why stage control-the-tool exists and why the whole run is gated on it. The design card's confidence is almost-certain (90-99%) that it exists as documented; this workflow refuses to inherit that confidence and re-measures it every run. Settling experiment = stage control-the-tool itself.",
+      "The ~470-line figure for unversioned live harness work is quoted from the design card and is NOT re-measured here. Settling experiment = the classify-drift stage's new_in_live line count."
+    ]
+  }
+}

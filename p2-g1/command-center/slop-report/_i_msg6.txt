@@ -1,0 +1,33 @@
+test(slop): re-execute every proof against the FINAL gate, and correct a residual that went stale
+
+The gate changed in f3a1410c/f1c57145, so every receipt taken before those commits was a
+receipt for different code. All four re-run against the final state rather than quoted:
+
+  check_published_commands.py  HEAD        rc 0 -- 236 commands / 269 docs / 2 example-marked
+                                           / 0 NEW / 0 stale
+  _i5_ci_wiring_verify         268b5747    WIRING-PROVEN 5/5
+  _i3_integration_redproof     268b5747    INTEGRATION-PROVEN 8/8
+  _i8_final_integrity          6f30510a    INTEGRITY-OK 5/5
+  _r2_gate_now                 f1014b19~1, f1c57145, HEAD -- rc 0 / rc 0 / 0 would-reformat,
+                                           6/6 controls on each reading
+  .quality/charter_check.sh    HEAD        OK -- 7 gates consistent
+
+_i8_final_integrity is new: all five of this round's commits are ancestors of HEAD; 0 foreign
+paths and 0 deletions in any of them (files 2/1/19/3/2, every path either the one declared
+workflow or command-center/slop-report/); frozen evidence UNTOUCHED -- casualty/probes 7 files,
+p2-wave/probes 25 files, each 0 commits touching / 0 tracked diff / 0 dirty since c488f55b~1,
+under a hasher proven non-constant and a count floor > 0, because silence about a nonexistent
+pathspec is indistinguishable from silence about an untouched one.
+
+RESIDUAL CORRECTED, and the correction is the lane's own D1 shape caught on myself. Section 1
+cited command-center/hook-audit/check_citations.py as hardcoding a Windows root, measured at
+f1ce459e. Sibling commit 6f30510a made it portable while this round was running. Correctly
+scoped at 6f30510a: it is portable NOW, and still invoked by no workflow (0 hits for
+check_citations across .github/workflows/). The reachability half stands, the portability half
+does not, and the original wording is kept rather than deleted. I only avoided shipping the
+stale version by re-running the probe at the commit I was publishing into -- which is the
+argument for the probe rather than for care.
+
+Two more of my own failures added to section 5: shipping the gate red and then breaking it
+again while fixing it (four instances of one use-vs-mention class in one lane, none of them
+prevented by knowing about it), and this stale residual.

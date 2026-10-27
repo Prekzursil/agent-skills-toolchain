@@ -1,0 +1,230 @@
+{
+ "artifacts": [
+  {
+   "bytes": 9629,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0078.json",
+   "role": "primary",
+   "sha256": "see-unit-manifest-live-hash"
+  },
+  {
+   "bytes": 3255,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/schema/trust-policy.schema.json",
+   "role": "supporting",
+   "sha256": "de82cbdd61ad78966f5d17b83aa685535f1470a74eda60632bbf58ff79a83c7a"
+  },
+  {
+   "bytes": 4086,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/policies/default.trust-policy.json",
+   "role": "supporting",
+   "sha256": "234218e7194dcd7ce8570473863c201681d9a897834fcda50561f280ccdffb1a"
+  },
+  {
+   "bytes": 15503,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/trust_policy.py",
+   "role": "supporting",
+   "sha256": "4898d8e4d39c04100f30805000269470c5294db6616a8fac8c98fae40ab810cb"
+  },
+  {
+   "bytes": 4352,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/installer.py",
+   "role": "supporting",
+   "sha256": "4ee713069cf057f777ad9de7e7908451698eff6e5e21f2003169913409e1101d"
+  },
+  {
+   "bytes": 3752,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/reviewer_default.py",
+   "role": "supporting",
+   "sha256": "9ef3cf49cea7a5571d33b5ced610db8c4324569e7eafe7cb04f4f26515946488"
+  },
+  {
+   "bytes": 4682,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_trust_policy.py",
+   "role": "supporting",
+   "sha256": "99d9b76ffdf2734b2177992b945b581791a0693e0cb9cfad7d2cf938bb658e64"
+  },
+  {
+   "bytes": 3754,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0078/probe1_matrix.py",
+   "role": "supporting",
+   "sha256": "6a62485831eec93d772d0624d73a672d546a0f587bb4456aa72939da0d68cc6c"
+  },
+  {
+   "bytes": 4532,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0078/probe2_deny_census.py",
+   "role": "supporting",
+   "sha256": "500eae6afb9edc26d09acb118052283d8d6f0c42b6bc418b44037d4526da6406"
+  }
+ ],
+ "default_posture": {
+  "activation": "pending-owner-signoff",
+  "allow_cells": [
+   "verified|high|none"
+  ],
+  "cell_count": 72,
+  "digest": "4770c6dbb6eca0bb7ecf70b5deae4e89ff335bf0ea5131d4457e703fc5ba4290",
+  "note": "Documented default is fail-closed. Production activation requires owner_signoff covering the policy digest. Tests and probes use a fixture-attestation, not a production key.",
+  "owner_signoff_required": true,
+  "policy_id": "pol:default-fail-closed",
+  "policy_version": "1.0.0",
+  "unspecified_cell": "deny"
+ },
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0078.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "note": "G-1 measure runs after this emit",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/trust_policy.py:exercise_matrix",
+   "claim": "The 72-cell (6 signature \u00d7 4 trust \u00d7 3 advisory) matrix is fully specified; every cell's observed verdict matches the documented default; a dropped cell and an unknown dimension fail closed to deny.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "exercise_matrix(default_policy_document())",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"cells\": 72, \"complete\": true, \"unspecified_fail_closed\": true}",
+     "role": "source"
+    },
+    {
+     "command": "read tools/marketplace/policies/default.trust-policy.json",
+     "exit_code": 0,
+     "method": "file-read",
+     "raw_output": "cells=72 complete=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/installer.py:install",
+   "claim": "An end-to-end install under deny cell unsigned|high|none placed no file (filesystem census unchanged). In the same run, allow cell verified|high|none installed package files. Active policy (id, digest, cell, verdict) was visible before any write.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "install deny unsigned|high|none; install allow verified|high|none",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"allow_files\": [\"plugin.json\"], \"allow_placed_any_file\": true, \"allow_verdict\": \"allow\", \"allow_visibility_cell\": \"verified|high|none\", \"deny_census_unchanged\": true, \"deny_placed_any_file\": false, \"deny_verdict\": \"deny\", \"deny_visibility\": true, \"deny_write_attempted\": false}",
+     "role": "source"
+    },
+    {
+     "command": "census before/after deny dest",
+     "exit_code": 0,
+     "method": "file-read",
+     "raw_output": "deny_census_unchanged=true allow_placed_any_file=true",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0078/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit manifest only; did not run unit_manifest.py --write",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0078/probe1_matrix.py",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0078/probe2_deny_census.py",
+   "id": "probe2"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"advisory_state\": \"none\", \"cell\": \"verified|high|none\", \"fail_closed\": true, \"reason\": \"unspecified-cell\", \"signature_state\": \"verified\", \"specified\": false, \"trust_level\": \"high\", \"verdict\": \"deny\", \"visibility\": {\"activation\": \"pending-owner-signoff\", \"advisory_state\": \"none\", \"cell\": \"verified|high|none\", \"digest\": \"fa45ac3ab911f07cd0456971187e710d9e874736ec75c6c3d8d1cc0ff3044304\", \"fail_closed\": true, \"policy_id\": \"pol:default-fail-closed\", \"policy_version\": \"1.0.0\", \"signature_state\": \"verified\", \"surface_at_install\": true, \"trust_level\": \"high\", \"verdict\": \"deny\"}}",
+   "description": "removing verified|high|none yields deny fail_closed",
+   "fired_on_bad_state": true,
+   "good_state_output": "verified|high|none -> allow on complete policy",
+   "id": "unspecified-cell-fail-closed",
+   "kind": "dropped-cell",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "unsigned|high|none placed_any_file=false census_unchanged=true",
+   "description": "deny cell places no file",
+   "fired_on_bad_state": true,
+   "good_state_output": "verified|high|none placed plugin.json",
+   "id": "deny-census",
+   "kind": "filesystem-census",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "ActivationError on pending-owner-signoff",
+   "description": "documented default without owner_signoff cannot install",
+   "fired_on_bad_state": true,
+   "good_state_output": "fixture-attestation installs allow cell",
+   "id": "unsigned-default-not-activatable",
+   "kind": "owner-gate",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0078: trust-policy engine, 72-cell default, fail-closed unspecified cells, deny-census + allow negative control, owner gate on activation, policy visible at install. Did not run global unit_manifest.py --write. No ADV rebuild.",
+ "question_or_target": "Implement the configurable policy that maps (signature state x publisher trust level x advisory state) to an install decision, with a documented default. The default posture is a security decision and requires owner sign-off; the engine must make the active policy visible at install time.",
+ "residual_unknowns": [
+  {
+   "claim": "Production owner sign-off of the default posture is still an owner action. The engine refuses install activation without a digest-matching owner_signoff.",
+   "settling_experiment": "Owner attests the default digest out of band.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "disagreement_count": 0,
+  "fresh_context": true,
+  "independent": true,
+  "note": "Independent reviewer proposed the same fail-closed default (single allow cell verified|high|none). No disagreement to escalate to the owner.",
+  "reviewer_id": "IMP-0078-independent-security-reviewer",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0078",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0078",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "python3 -B tools/marketplace/tests/test_trust_policy.py",
+   "exit_code": 0,
+   "id": "test_trust_policy.py",
+   "result": "PASS",
+   "tail": "test_deny_places_no_file_allow_installs_same_run (__main__.InstallCensusTests.test_deny_places_no_file_allow_installs_same_run) ... ok\ntest_full_matrix_no_unspecified_cell (__main__.TrustPolicyMatrixTests.test_full_matrix_no_unspecified_cell) ... ok\ntest_schema_and_reviewer (__main__.TrustPolicyMatrixTests.test_schema_and_reviewer) ... ok\ntest_unknown_dimension_fails_closed (__main__.TrustPolicyMatrixTests.test_unknown_dimension_fails_closed) ... ok\ntest_unsigned_default_not_activatable (__main__.TrustPolicyMatrixTests.test_unsigned_default_not_activatable) ... ok\ntest_unspecified_cell_fails_closed (__main__.TrustPolicyMatrixTests.test_unspecified_cell_fails_closed) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.045s\n\nOK"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:33Z",
+  "started_at": "2026-08-25T00:58:33Z"
+ },
+ "title": "Trust policy engine deciding warn, deny, or allow on verification outcome",
+ "unit_id": "IMP-0078"
+}

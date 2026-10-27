@@ -1,0 +1,504 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p36-calibration-tournament",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Stop weighting every seat equally regardless of whether it has ever been right: every verdict carries a confidence band, outcomes are recorded, and seat weights move with realised accuracy - with seats below the floor demoted to advisory.",
+    "charter": "The only protocol in the catalogue with MEMORY ACROSS COUNCILS. It changes the WEIGHTS over time rather than the round structure, which is exactly why it ships in SHADOW: a bad weight silently distorts every later council.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "no verdict was accepted without a confidence band",
+      "every outcome was recorded with the n it contributes to",
+      "no weight left 1.0 while any seat had fewer than 20 resolutions or kappa at or below 0.6"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "calibration_ranked",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "graded-seat-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "the decision domain"
+        ],
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "graded-seat-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "the decision domain"
+        ],
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "graded-seat-c",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "adversarial review"
+        ],
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "graded-seat-d",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "estimation"
+        ],
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "calibrator",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "calibrator",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "kappa",
+          "Brier scoring",
+          "weight governance"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "SHADOW MODE. Record every band and outcome. Hold every weight at 1.0 until a seat has at least 20 resolutions AND kappa against the owner's own corrections exceeds 0.6. Disclose n on every report."
+        }
+      },
+      {
+        "participant_id": "demotion-clerk",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "contributor",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "policy enforcement"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "A seat below the accuracy floor is demoted to advisory and cannot carry a vote."
+        }
+      }
+    ],
+    "role_templates": [
+      "domain_expert",
+      "critic",
+      "forecaster",
+      "calibrator",
+      "verifier"
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "hallucinated_expertise",
+        "inactivity",
+        "policy_violation"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "benchmark_baseline"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "prediction_confidence",
+        "stage_id": "banded-verdicts",
+        "rounds": 1,
+        "participants": [
+          "graded-seat-a",
+          "graded-seat-b",
+          "graded-seat-c",
+          "graded-seat-d"
+        ],
+        "independent": true,
+        "quotas": {
+          "novel_ideas_per_round": 1
+        },
+        "exit_when": {
+          "metric": "custom:unbanded_verdicts",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "outcome_resolution_recording",
+        "stage_id": "record",
+        "rounds": 1,
+        "participants": [
+          "calibrator"
+        ],
+        "exit_when": {
+          "metric": "custom:outcomes_recorded",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "weight_promotion_gate_shadow_until_proven",
+        "stage_id": "promotion-gate",
+        "rounds": 1,
+        "participants": [
+          "calibrator",
+          "demotion-clerk"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:min_resolutions_per_seat",
+              "op": ">=",
+              "value": 20,
+              "value_type": "number"
+            },
+            {
+              "metric": "custom:judge_owner_kappa",
+              "op": ">=",
+              "value": 0.6,
+              "value_type": "number"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict-and-scores"
+      }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": {
+      "min": 1,
+      "max": 3
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 45,
+    "turns": 20,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 4,
+    "categories": 2,
+    "novelty_ratio": 0.25,
+    "evidence_items": 6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "weighted",
+    "weights": {
+      "graded-seat-a": 1.0,
+      "graded-seat-b": 1.0,
+      "graded-seat-c": 1.0,
+      "graded-seat-d": 1.0
+    },
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true,
+      "calibration_source": "platform/council/state/p36-calibration-tournament/seat-scores.json"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "confidence_overlap",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[custom:unbanded_verdicts <= 0, custom:outcomes_recorded >= 1, all_participants_spoke == true, custom:weights_pinned_until_proven == true]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:unbanded_verdicts",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:outcomes_recorded",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number"
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "custom:weights_pinned_until_proven",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4
+    },
+    "hard_caps": {
+      "max_rounds": 3,
+      "max_minutes": 60,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the n behind every seat weight is disclosed with the verdict",
+      "any weight that left 1.0 names the kappa and resolution count that authorised it"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "blind_re_evaluation",
+      "recruit_independent_critic",
+      "escalate_to_owner",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "strategic_voting",
+      "sycophancy",
+      "evidence_free_majority",
+      "hallucinated_expertise",
+      "lost_dissent",
+      "collusion",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "calibration_report",
+      "confidence_trajectory",
+      "votes_by_round",
+      "dissent_minority_report",
+      "evidence_map",
+      "transcript",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 365,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "moving any seat weight off 1.0",
+        "demoting a seat to advisory",
+        "resetting the calibration store"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p36-calibration-tournament",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P36 calibration tournament (FORECASTING, SHADOW, OWNER-DECISION)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:685",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:690",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:696",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:697"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P36 calibration-tournament"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (7 declared): (1) the card's failure mode is 'weights learned from too few resolutions', defended by the promotion-gate stage whose exit requires BOTH custom:min_resolutions_per_seat >= 20 AND custom:judge_owner_kappa >= 0.6, and by voting.weights being pinned at 1.0 for every seat right now - SHADOW is the shipped configuration, not a TODO; (2) strategic_voting and (3) collusion matter more here than anywhere else because a vote is a durable weight update, so strategic_abstention_check is on and duplicate_detection covers model AND vendor; (4) sycophancy is answered by speaking_order=lowest_confidence_first, which puts the least confident seat first so it cannot fold to a confident peer it has not heard yet; (5) evidence_free_majority is blocked by evidence_outranks_majority - a weighted vote with no evidence is the worst possible input to a memory system; (6) hallucinated_expertise is what the scoring is FOR, and it also triggers replacement; (7) lost_dissent is met by minority_report=required with suppression_check. FAST UNANIMITY: blind_re_evaluation first, because unanimity in a council that writes weights is self-reinforcing. HONEST LIMITS, INLINE: (a) the calibration store at platform/council/state/p36-calibration-tournament/seat-scores.json DOES NOT EXIST, so belief_aggregation.method=calibration_weighted currently degrades to equal weights - which is exactly what the pinned 1.0 weights already say; (b) custom:weights_pinned_until_proven is an assertion named in the lane's PRODUCERS map (platform/lib/council_protocols/_shared.py, republished in PROTOCOL-EXPECTATIONS-25-36.json) and NOT implemented, with no implementation, so today SHADOW mode is a declaration rather than an enforced invariant, and the settling experiment is the card's own - measure kappa against the owner's own corrections and require it above 0.6 before any weight moves; (c) the card marks this OWNER-DECISION: YES and conflicts-with P06 nominal-group-technique, which is equal-weight by design."
+  }
+}

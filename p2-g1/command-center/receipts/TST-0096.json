@@ -1,0 +1,360 @@
+{
+  "unit_id": "TST-0096",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "fault-injection-receipt",
+  "title": "Resume after a crash mid-unit",
+  "question": "Phase 10 layer 24 (:11012) and Phase 9 crash recovery (:10976). Target: kill the runner at each of several checkpoints and assert resume re-executes exactly the incomplete units, re-executes nothing already complete, and produces the identical final artifact set as an uninterrupted run.",
+  "question_or_target": "Phase 10 layer 24 (:11012) and Phase 9 crash recovery (:10976). Target: kill the runner at each of several checkpoints and assert resume re-executes exactly the incomplete units, re-executes nothing already complete, and produces the identical final artifact set as an uninterrupted run.",
+  "sentinel": "SUCCESS:TST-0096",
+  "completion_sentinel": "SUCCESS:TST-0096",
+  "min_bytes_threshold": 2048,
+  "spec_anchor": "spec:_USER-PROMPTS.md:11012,_USER-PROMPTS.md:10976",
+  "fault_class": "partial-artifact+severed-stream",
+  "substrate": {
+    "kind": "probe-local-serialized-runner",
+    "path": "command-center/p2-wave/probes/TST-0096/runner.py",
+    "notes": "IMP-0145/IMP-0225 program-wide orchestrator receipts are not on disk. TST-0096 measures the resume contract on a durable checkpointed runner that is actually SIGKILL'd at named checkpoints, not a simulated in-process skip.",
+    "checkpoint_file": "checkpoint.json",
+    "kill_signal": "SIGKILL",
+    "plan_units": [
+      "u1",
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+    ]
+  },
+  "hash_comparison": {
+    "clean_artifact_set_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+    "clean_dispatches": {
+      "u1": 1,
+      "u2": 1,
+      "u3": 1,
+      "u4": 1,
+      "u5": 1
+    },
+    "all_resumed_equal_clean": true,
+    "algorithm": "sha256 over plan-relative path + artifact sha256"
+  },
+  "units_reexecuted": [
+    {
+      "checkpoint": "after:u1",
+      "units_reexecuted": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "units_not_reexecuted": [
+        "u1"
+      ]
+    },
+    {
+      "checkpoint": "mid:u2",
+      "units_reexecuted": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "units_not_reexecuted": [
+        "u1"
+      ]
+    },
+    {
+      "checkpoint": "after:u3",
+      "units_reexecuted": [
+        "u4",
+        "u5"
+      ],
+      "units_not_reexecuted": [
+        "u1",
+        "u2",
+        "u3"
+      ]
+    },
+    {
+      "checkpoint": "mid:u4",
+      "units_reexecuted": [
+        "u4",
+        "u5"
+      ],
+      "units_not_reexecuted": [
+        "u1",
+        "u2",
+        "u3"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "after:u1",
+      "fault": "after:u1",
+      "outcome": "resumed-to-clean-artifact-set",
+      "typed_classification": "severed-stream",
+      "kill_rc": -9,
+      "resume_ok": true,
+      "only_incomplete": true,
+      "mid_partial_rejected": true,
+      "expected_complete": [
+        "u1"
+      ],
+      "expected_incomplete": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "reexecuted": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "hash_equal": true,
+      "result": "PASS"
+    },
+    {
+      "id": "mid:u2",
+      "fault": "mid:u2",
+      "outcome": "resumed-to-clean-artifact-set",
+      "typed_classification": "partial-artifact",
+      "kill_rc": -9,
+      "resume_ok": true,
+      "only_incomplete": true,
+      "mid_partial_rejected": true,
+      "expected_complete": [
+        "u1"
+      ],
+      "expected_incomplete": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "reexecuted": [
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ],
+      "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "hash_equal": true,
+      "result": "PASS"
+    },
+    {
+      "id": "after:u3",
+      "fault": "after:u3",
+      "outcome": "resumed-to-clean-artifact-set",
+      "typed_classification": "severed-stream",
+      "kill_rc": -9,
+      "resume_ok": true,
+      "only_incomplete": true,
+      "mid_partial_rejected": true,
+      "expected_complete": [
+        "u1",
+        "u2",
+        "u3"
+      ],
+      "expected_incomplete": [
+        "u4",
+        "u5"
+      ],
+      "reexecuted": [
+        "u4",
+        "u5"
+      ],
+      "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "hash_equal": true,
+      "result": "PASS"
+    },
+    {
+      "id": "mid:u4",
+      "fault": "mid:u4",
+      "outcome": "resumed-to-clean-artifact-set",
+      "typed_classification": "partial-artifact",
+      "kill_rc": -9,
+      "resume_ok": true,
+      "only_incomplete": true,
+      "mid_partial_rejected": true,
+      "expected_complete": [
+        "u1",
+        "u2",
+        "u3"
+      ],
+      "expected_incomplete": [
+        "u4",
+        "u5"
+      ],
+      "reexecuted": [
+        "u4",
+        "u5"
+      ],
+      "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+      "hash_equal": true,
+      "result": "PASS"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_resume_reexecutes_only_incomplete_units",
+      "name": "resume re-executes exactly the incomplete units",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe1_resume_incomplete.py"
+    },
+    {
+      "id": "test_resumed_artifact_set_hash_equals_the_clean_run",
+      "name": "interrupted-then-resumed artifact-set hash equals clean",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe2_hash_and_controls.py"
+    },
+    {
+      "id": "test_resume_from_each_of_at_least_four_checkpoints",
+      "name": "the same pair of assertions at four named kill points",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe1_resume_incomplete.py"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Killing the runner at each of four checkpoints and resuming re-executes exactly the incomplete units; completed receipts are not re-dispatched.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0096/runner.py:98",
+      "units_reexecuted": [
+        {
+          "checkpoint": "after:u1",
+          "units_reexecuted": [
+            "u2",
+            "u3",
+            "u4",
+            "u5"
+          ],
+          "units_not_reexecuted": [
+            "u1"
+          ]
+        },
+        {
+          "checkpoint": "mid:u2",
+          "units_reexecuted": [
+            "u2",
+            "u3",
+            "u4",
+            "u5"
+          ],
+          "units_not_reexecuted": [
+            "u1"
+          ]
+        },
+        {
+          "checkpoint": "after:u3",
+          "units_reexecuted": [
+            "u4",
+            "u5"
+          ],
+          "units_not_reexecuted": [
+            "u1",
+            "u2",
+            "u3"
+          ]
+        },
+        {
+          "checkpoint": "mid:u4",
+          "units_reexecuted": [
+            "u4",
+            "u5"
+          ],
+          "units_not_reexecuted": [
+            "u1",
+            "u2",
+            "u3"
+          ]
+        }
+      ]
+    },
+    {
+      "claim": "The artifact-set hash of every interrupted-then-resumed run equals the uninterrupted clean run (f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615).",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0096/runner.py:61",
+      "clean_artifact_set_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "c-redispatch-complete",
+      "kind": "planted-broken-resume",
+      "description": "resume that re-dispatches units whose receipts still pass the oracle; the only-incomplete predicate must fire",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "reexecuted": [
+        "u1",
+        "u2",
+        "u3",
+        "u4",
+        "u5"
+      ]
+    },
+    {
+      "id": "c-skip-incomplete",
+      "kind": "planted-broken-resume",
+      "description": "resume that treats a mid-unit crash as complete; hash must diverge from the clean run",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "hash_equal": false,
+      "reexecuted": [
+        "u3",
+        "u4",
+        "u5"
+      ]
+    },
+    {
+      "id": "c-mid-unit-partial-not-success",
+      "kind": "both-states",
+      "description": "after SIGKILL at mid:u2 the truncated file fails the oracle; after honest resume it passes",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0096-probe2-hash-and-controls",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Named probe2 independently re-runs the clean vs kill-resume hash comparison and the two planted-broken resume modes. Catalog scoring by a second-vendor human reviewer is independent of G-1 probe-green."
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "resume-only-incomplete",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe1_resume_incomplete.py"
+    },
+    {
+      "id": "probe2",
+      "role": "hash-equality-and-controls",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe2_hash_and_controls.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0096.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/fault-injection-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0096/runner.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ]
+}

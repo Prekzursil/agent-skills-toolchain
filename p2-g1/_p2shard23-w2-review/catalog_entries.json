@@ -1,0 +1,565 @@
+{
+ "TST-0113": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "docs-test-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0113",
+  "dependencies": [
+   "TST-0078"
+  ],
+  "evidence_requirement": "the verbatim message for every triggered error path with a rubric score per part; scores assigned against the captured text, not from reading the source",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "false-coverage",
+   "overclaim",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "TST-0113",
+  "inputs": [
+   "_USER-PROMPTS.md:10840"
+  ],
+  "output_path": "command-center/receipts/TST-0113.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Phase 5 requires 'clear user-facing error messages' (:10840). Target: trigger every error path and score its message against a three-part rubric (what failed, why, what to do). A message that only says an operation failed is a defect, not a style preference.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two fresh-context reviewers: one cross-vendor refuter and one Windows-platform specialist who re-runs the probe in the OTHER shell (PowerShell 7 vs Git Bash)",
+  "tests_required": [
+   "test_every_error_path_is_triggered_at_least_once",
+   "test_each_message_scores_on_all_three_rubric_parts"
+  ],
+  "timeout_seconds": 3600,
+  "title": "User-facing error messages must name the component, the cause and the remedy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Edit",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "TST-0124": {
+  "_source_slice_file": "TST-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "test-governance-auditor",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0124",
+  "dependencies": [
+   "TST-0123"
+  ],
+  "evidence_requirement": "the suite x gate join table with the ungated count; the join must be proven by showing a known-gated suite appearing on the gated side",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "false-coverage",
+   "overclaim",
+   "detector-failure",
+   "owner-blocked"
+  ],
+  "id": "TST-0124",
+  "inputs": [
+   ".github/workflows/quality.yml",
+   ".github/workflows/no-runtime-junk.yml",
+   "_USER-PROMPTS.md:11026"
+  ],
+  "output_path": "command-center/receipts/TST-0124.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Measured on this estate: 162 of 244 suites ran in NO CI gate, and every triage lane that looked inside that set found a live bug. Target: enumerate suites and gates, join them, and report the ungated set. A suite nobody runs is not coverage.",
+  "retry_policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one fresh-context adversarial reviewer from the OTHER vendor than the author (Claude author -> Codex reviewer, and the reverse); a same-vendor reviewer inherits the author's blind spots",
+  "tests_required": [
+   "test_every_suite_is_classified_gated_or_ungated",
+   "test_a_known_gated_suite_is_correctly_joined (control)",
+   "test_ungated_suites_are_listed_by_path"
+  ],
+  "timeout_seconds": 3600,
+  "title": "CI-gate census: every test suite must map to a gate that can turn red",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "mcp__github__list_commits",
+   "mcp__github__get_file_contents",
+   "mcp__github__pull_request_read"
+  ]
+ },
+ "TST-0129": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "fault-injection-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0129",
+  "dependencies": [
+   "B07",
+   "B06"
+  ],
+  "evidence_requirement": "two mechanically independent signals: (a) the process exit code plus stderr text, and (b) a pre/post sha256 of the on-disk index directory taken by a separate process; plus the both-states transcript showing the same assertion passing on a resolvable host",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "dependency-blocked"
+  ],
+  "id": "TST-0129",
+  "inputs": [
+   "_USER-PROMPTS.md:11007 (Phase 10 layer 19, network-fault tests)",
+   "_USER-PROMPTS.md:10627-10648 (shared completion predicate, 12 conditions)",
+   "tools/lib/net-allowlist.mjs",
+   "B07 registry + package-download clients"
+  ],
+  "output_path": "command-center/receipts/TST-0129.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/fault_injection_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "When DNS resolution for the marketplace registry host fails, does `install` abort with an actionable error and leave ZERO bytes of index written, or does it fall back to a partial / previously cached index and report success? PASS requires: non-zero exit, an error naming the host and the resolver, and a byte-for-byte unchanged index file.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: assertion fires with the resolver blackholed and is silent on a reachable registry",
+   "postcondition probe: index directory sha256 identical before and after the failed install"
+  ],
+  "timeout_seconds": 2700,
+  "title": "DNS failure during registry fetch fails closed",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0130": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "codex-cli-default",
+   "role": "security-tester",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:TST-0130",
+  "dependencies": [
+   "B07",
+   "B06"
+  ],
+  "evidence_requirement": "two independent signals: (a) client exit classification, and (b) a passive capture of the attempted connections proving no second connection to an http:// scheme or port 80 occurred",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "dependency-blocked"
+  ],
+  "id": "TST-0130",
+  "inputs": [
+   "_USER-PROMPTS.md:11007 (Phase 10 layer 19, network-fault tests)",
+   "_USER-PROMPTS.md:10627-10648 (shared completion predicate, 12 conditions)",
+   "tools/lib/net-allowlist.mjs",
+   "B07 registry + package-download clients"
+  ],
+  "output_path": "command-center/receipts/TST-0130.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "With an expired / wrong-CN certificate presented by the registry endpoint, does the client refuse the connection outright? PASS requires: no plaintext HTTP retry on any port, no `--insecure` equivalent reachable from config, and no silent substitution of a cached index for the refused fetch.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: a valid certificate on the same fixture endpoint must pass",
+   "negative control: a config that attempts to set insecure-TLS must be rejected at parse time"
+  ],
+  "timeout_seconds": 2700,
+  "title": "TLS handshake failure must not downgrade to plaintext",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0136": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0136",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) dispatch timestamps recorded by the harness, and (b) the server fixture's own arrival log; the two clocks must be reconciled and the reconciliation shown",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0136",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler"
+  ],
+  "output_path": "command-center/receipts/TST-0136.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does the client honor `Retry-After` when expressed as delta-seconds AND as an HTTP-date? PASS requires the observed next-attempt time to fall inside the instructed window for both forms, including a date already in the past (immediate retry) and a malformed value (fall back to backoff, do not crash).",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: a client that ignores Retry-After must fail all four cases",
+   "property test over 200 generated Retry-After values including negative, zero, huge and malformed"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Retry-After is honored in both wire formats",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0137": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0137",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) per-request dispatch timestamps binned into 1-second buckets, and (b) the fixture server's independently recorded arrival count; the two must agree within 1%",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0137",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler",
+   "tools/command-center/measure_rate.py"
+  ],
+  "output_path": "command-center/receipts/TST-0137.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Release 256 units at t=0 and measure the observed arrival rate at the vendor boundary. Does the scheduler's stagger/jitter keep the measured rate under the configured ceiling? PASS requires the rate be measured from DISPATCH TIMESTAMPS at the boundary, never read back from the config value.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "detector control: run with the stagger disabled and confirm the measurement reports a ceiling breach, proving the meter can see one",
+   "both-states control: stagger enabled must be silent"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Arrival-rate ceiling holds under a 256-unit simultaneous release",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0138": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0138",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) empirical interval samples across 50 runs, and (b) a symbolic or exhaustive check over the backoff function proving the bound for all attempt counts",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0138",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler"
+  ],
+  "output_path": "command-center/receipts/TST-0138.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Are retry intervals non-deterministic across runs (full jitter) while the SUM of the retry budget is provably less than the unit's `timeout_seconds`? PASS requires: interval sets from two runs differ, and no generated schedule exceeds the timeout for any configured max-attempts.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "property test: for all (base, cap, attempts) in the supported ranges, sum(schedule) < timeout",
+   "negative control: a fixed-interval (unjittered) implementation must fail the non-determinism assertion"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Backoff is jittered, bounded, and cannot outlive the unit timeout",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0139": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0139",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the concurrency counter sampled during the injected 529 storm, and (b) the per-unit classification recorded in the ledger",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0139",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler"
+  ],
+  "output_path": "command-center/receipts/TST-0139.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does the harness distinguish a 429 (our arrival rate) from a 529 / vendor-overload (their capacity) and apply different policies? PASS requires: 429 reduces our arrival rate; 529 does NOT reduce program concurrency and instead retries the affected unit while siblings continue.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: an injected 429 storm MUST reduce arrival rate; an injected 529 storm must not - a harness that behaves identically for both fails",
+   "negative control: mislabelling 529 as 429 must be detectable by this test"
+  ],
+  "timeout_seconds": 3600,
+  "title": "429 and 529 are different policies, and 529 must not shrink concurrency",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0141": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0141",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) an invariant assertion inside the bucket, and (b) an external audit of the issued-permit log recomputing the window totals after the fact",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0141",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler"
+  ],
+  "output_path": "command-center/receipts/TST-0141.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Under 64 concurrent takers, can the token bucket ever go negative or issue more permits than its capacity in any window? PASS requires zero violations across a randomized property run and a deterministic replay of any counterexample.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "property test with 10,000 randomized interleavings; any counterexample must shrink to a minimal reproducing schedule",
+   "mutation control: remove the lock/CAS and confirm the property fails"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Token-bucket accounting is race-free under N concurrent takers",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0142": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "scheduler-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0142",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the barrier's returned object compared against the launch manifest, and (b) an independent count of receipt files on disk",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "detector-failure",
+   "flaky-nondeterminism",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "TST-0142",
+  "inputs": [
+   "_USER-PROMPTS.md:11008 (Phase 10 layer 20, rate-limit tests)",
+   "_USER-PROMPTS.md:10570-10583 (separate logical count from simultaneous concurrency)",
+   "tools/command-center/measure_rate.py",
+   "B07 dispatcher + scheduler",
+   "rules/common/fan-out-contract.md"
+  ],
+  "output_path": "command-center/receipts/TST-0142.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "When half a cohort is 429-blocked at the barrier, does fan-in return a typed PARTIAL naming every blocked unit id? PASS requires the denominator stay at the launched count; a result reporting 'N of N complete' after silently dropping blocked units is a FAIL.",
+  "retry_policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: an unblocked cohort returns COMPLETE with the same denominator",
+   "negative control: a barrier that filters blocked units out of its own denominator must fail"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Rate-limited partial fan-in returns typed PARTIAL, never a shrunken denominator",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0143": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "completion-predicate-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0143",
+  "dependencies": [
+   "B06",
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the predicate's returned condition vector, and (b) an independent stat() of the file size",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "green-not-live",
+   "fixture-invalid"
+  ],
+  "id": "TST-0143",
+  "inputs": [
+   "_USER-PROMPTS.md:11009 (Phase 10 layer 21, partial-artifact tests)",
+   "_USER-PROMPTS.md:10627-10648 (shared completion predicate, 12 conditions)",
+   "command-center/COMPLETION-GATES.json",
+   "command-center/ARTIFACT-MANIFEST.json"
+  ],
+  "output_path": "command-center/receipts/TST-0143.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/predicate_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "Does completion-predicate condition 3 (non-empty and above a meaningful minimum) reject a 0-byte artifact while accepting a legitimately small one at exactly the declared floor? PASS requires both directions.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: 0 bytes fails, floor-sized passes",
+   "boundary test at floor-1, floor, floor+1"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Zero-byte artifact fails the minimum-size condition",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "TST-0144": {
+  "_source_slice_file": "TST-2.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "completion-predicate-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:TST-0144",
+  "dependencies": [
+   "B06",
+   "B07"
+  ],
+  "evidence_requirement": "two independent signals: (a) the parse error with byte offset, and (b) an inspection of the consumer's cache showing no entry for the artifact id",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "uncontrolled-silence",
+   "green-not-live",
+   "fixture-invalid"
+  ],
+  "id": "TST-0144",
+  "inputs": [
+   "_USER-PROMPTS.md:11009 (Phase 10 layer 21, partial-artifact tests)",
+   "_USER-PROMPTS.md:10627-10648 (shared completion predicate, 12 conditions)",
+   "command-center/COMPLETION-GATES.json",
+   "command-center/ARTIFACT-MANIFEST.json"
+  ],
+  "output_path": "command-center/receipts/TST-0144.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/predicate_report",
+  "owner_approval_required": false,
+  "phase": "10",
+  "question_or_target": "When an artifact is non-empty but truncated mid-JSON, does condition 4 fail AND does no downstream consumer retain a partially-parsed object? PASS requires the parse cache to hold no entry for that artifact after the failure.",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure on the same hypothesis, enumerate >=2 alternative approaches before a third attempt",
+  "reviewer_requirement": "one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "tests_required": [
+   "both-states control: the complete artifact parses and caches",
+   "negative control: a lenient parser that repairs truncated JSON must fail this test"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Truncated JSON fails schema parse and is never cached as parsed",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ }
+}

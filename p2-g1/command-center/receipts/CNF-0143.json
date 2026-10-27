@@ -1,0 +1,533 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0143",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0143",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0143]",
+  "min_bytes_threshold": 2000,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "evidence-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CNF-0143.json",
+      "bytes": 22539,
+      "sha256": "e3c3d8a081f003a294ed5f2463c8ea49b6237c86f551c971c53ea2d353bded9d",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "On the frozen 12-claim control frame the earned pass rate is 6/12 (BLOCKED in the denominator) and the unearned rate obtained by dropping BLOCKED is 6/10. A wiring mutant that uses n_all for both denominators is rejected.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0143/accounting.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe1_arithmetic.py",
+          "raw_output": "overall with=6/12 without=6/10 n_blocked=2\nwiring_mutant_caught=True err=wiring bug: P2|confirm|anthropic|coverage has n_blocked=1 but identical rates 3/5 == 3/5\nempty_blocked coincide 8/12 == 8/12\nSUCCESS:CNF-0143 arithmetic (emit in-process)",
+          "fingerprint": "58460943088457932dad761271aa8ef7ee77630c5d2fb507ccb45be562233877",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "other",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; sys.path.insert(0, str(Path('command-center/p2-wave/probes/CNF-0143'))); import accounting as A, reviewer as R; b=A.load_control_set(); sid=b['expected']['stratum_a']; print(R.hand_recompute(b['records_nonempty_blocked'], b['frame'], sid))\"",
+          "raw_output": "{\"method\": \"hand-count loop over raw records; does not call compute_rates\", \"n_all\": 5, \"n_blocked\": 1, \"n_confirmed\": 3, \"n_without_blocked\": 4, \"rate_with_blocked_in_denominator\": \"3/5\", \"rate_without_blocked\": \"3/4\", \"stratum_id\": \"P2|confirm|anthropic|coverage\"}",
+          "fingerprint": "aab3d70f03d7748d3340482a5062d7af0afa3d5d0e0ad150d519b5eabe63a768",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "Every BLOCKED record names a non-empty prerequisite and unblock experiment. The completeness overlay rejects empty and whitespace-only prerequisites. Both control-frame prerequisites appear in UNKNOWNS-REGISTER.md.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0143/program-gate-report.overlay.schema.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe2_completeness.py",
+          "raw_output": "good BLOCKED records schema-valid; empty prerequisite rejected; unknowns_crosscheck ok=True missing=[]\nSUCCESS:CNF-0143 completeness (emit in-process)",
+          "fingerprint": "1265c65dbe84a092ec15d14e9ca311a1de0d74e943680146190308fcc254af2b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; from pathlib import Path; sys.path.insert(0, str(Path('command-center/p2-wave/probes/CNF-0143'))); import accounting as A; doc=json.loads(Path('command-center/receipts/CNF-0143.json').read_text()); errs=A.overlay_errors(doc); print('overlay_errs', errs[:8]); raise SystemExit(0 if not errs else 1)\"",
+          "raw_output": "good BLOCKED records schema-valid; empty prerequisite rejected; unknowns_crosscheck ok=True missing=[]\nSUCCESS:CNF-0143 completeness (emit in-process)",
+          "fingerprint": "f9ac985280590642b6590d2d5414ddc3ae72261c23d26f5f4c3f572ee9188ced",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "arithmetic-control",
+      "name": "Two rates differ whenever BLOCKED set is non-empty",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe1_arithmetic.py",
+      "result": "PASS"
+    },
+    {
+      "id": "known-absent-control",
+      "name": "Empty BLOCKED set: the two rates coincide exactly",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe1_arithmetic.py",
+      "result": "PASS"
+    },
+    {
+      "id": "completeness-schema",
+      "name": "BLOCKED record with empty prerequisite is schema-invalid",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe2_completeness.py",
+      "result": "PASS"
+    },
+    {
+      "id": "unknowns-register-crosscheck",
+      "name": "Every BLOCKED prerequisite appears in UNKNOWNS-REGISTER.md",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe2_completeness.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-CNF0143-WIRING-MUTANT",
+      "kind": "mutation",
+      "description": "Clone that sets both rates to n_confirmed/n_all must be caught whenever n_blocked>0 (arithmetic control).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "wiring bug: P2|confirm|anthropic|coverage has n_blocked=1 but identical rates 3/5 == 3/5",
+      "good_state_output": "rates_differ=True with=6/12 without=6/10"
+    },
+    {
+      "id": "NC-CNF0143-EMPTY-BLOCKED-COINCIDE",
+      "kind": "known-broken-fixture",
+      "description": "Known-absent: empty BLOCKED set, the two rates coincide. The nonempty fixture is the bad state for this detector.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "nonempty rates_differ=True 6/12 vs 6/10",
+      "good_state_output": "empty n_blocked=0 rates coincide 8/12"
+    },
+    {
+      "id": "NC-CNF0143-EMPTY-PREREQUISITE",
+      "kind": "malformed-input",
+      "description": "BLOCKED with empty or whitespace prerequisite is unrepresentable (completeness schema).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "schema rejects '' and whitespace-only prerequisite",
+      "good_state_output": "well-formed BLOCKED records validate"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0143-hand-recompute-stratum-A",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Reviewer counts CONFIRMED and BLOCKED by looping the raw record table and does not call compute_rates. Stratum P2|confirm|anthropic|coverage: earned 3/5, dropped-BLOCKED 3/4.",
+    "reviewed_at": "2026-08-25T00:58:08Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0143/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0143",
+    "registered_at": "2026-08-25T00:58:08Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of catalog output_path",
+      "artifact_path": "command-center/receipts/CNF-0143.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; from pathlib import Path; p=Path('command-center/receipts/CNF-0143.json'); doc=json.loads(p.read_text(encoding='utf-8')); assert doc.get('sentinel')=='SUCCESS:CNF-0143'; print('read_ok bytes', p.stat().st_size)\"",
+        "raw_output": "read_ok bytes=22539 sentinel=SUCCESS:CNF-0143 SUCCESS:CNF-0143",
+        "fingerprint": "cd48ecace3fa5ef10de158faee79ca96384d23b0167b98ee73f6766d6a52713d",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:08Z",
+    "ended_at": "2026-08-25T00:58:08Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "No retry. A statistical result that is re-drawn until it looks acceptable is p-hacking; if the computation errors, fix the computation and re-derive from the frozen frame."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live CNF-0137 sampling frame is absent on this worktree, so no production program pass rate was computed.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place command-center/receipts/CNF-0137.json with a claims frame, harvest live confirmation records, and re-run accounting.compute_rates on that frame."
+    }
+  ],
+  "report": {
+    "kind": "program-gate-report",
+    "observations": [
+      {
+        "name": "earned-rate-with-blocked-in-denominator",
+        "measured": "6/12",
+        "method": "n_confirmed / n_all on frozen control frame",
+        "anchor": "command-center/p2-wave/probes/CNF-0143/fixtures/control-set.json"
+      },
+      {
+        "name": "unearned-rate-without-blocked",
+        "measured": "6/10",
+        "method": "n_confirmed / (n_all - n_blocked)",
+        "anchor": "command-center/p2-wave/probes/CNF-0143/accounting.py"
+      },
+      {
+        "name": "blocked-count",
+        "measured": 2,
+        "method": "count verdict==BLOCKED on framed records",
+        "anchor": "command-center/p2-wave/probes/CNF-0143/fixtures/control-set.json"
+      },
+      {
+        "name": "wiring-mutant-caught",
+        "measured": true,
+        "method": "assert_invariants on wiring_bug_clone",
+        "anchor": "command-center/p2-wave/probes/CNF-0143/accounting.py"
+      }
+    ],
+    "control_ids": [
+      "NC-CNF0143-WIRING-MUTANT",
+      "NC-CNF0143-EMPTY-BLOCKED-COINCIDE",
+      "NC-CNF0143-EMPTY-PREREQUISITE"
+    ]
+  },
+  "extensions": {
+    "title": "Account for unconfirmable claims so BLOCKED never silently improves the pass rate",
+    "question": "Question: what happens to claims that cannot be confirmed at all (missing artifact, external blocker, retired subsystem)? Build the non-response accounting that records each as BLOCKED with a named missing prerequisite, and recompute every published rate BOTH with and without them. Dropping them from the denominator is how a program reports a pass rate it did not earn.",
+    "answer": "Unconfirmable claims are recorded as BLOCKED with a named missing prerequisite and a named unblock experiment. Every published rate is emitted twice: with BLOCKED in the denominator (earned) and without them (the unearned pass rate). On the frozen control frame the overall earned rate is 6/12 and the dropped-BLOCKED rate is 6/10. Schema rejects BLOCKED with an empty prerequisite. Live CNF-0137 sampling frame and confirmation-record corpus are absent on this worktree, so no live program pass rate is claimed. SUCCESS:CNF-0143",
+    "gate": "non-response-accounting",
+    "completion_sentinel": "SUCCESS:CNF-0143",
+    "frame_freeze": {
+      "kind": "content-sha256",
+      "sha256": "845e5e69d35538cbceff555a24b870e73341bf1ad7e007d520ac9b0b599b43fb",
+      "n_claims": 12,
+      "git_available": false,
+      "git_commit": null,
+      "note": "Worktree is not a git repo; the sampling frame is frozen at the canonical JSON sha256 of its claims list, not a commit."
+    },
+    "formula": {
+      "rate_with_blocked_in_denominator": "n_confirmed / n_all",
+      "rate_without_blocked": "n_confirmed / (n_all - n_blocked)",
+      "pass_verdict": "CONFIRMED",
+      "note": "rate_without_blocked is the unearned pass rate obtained by dropping BLOCKED from the denominator"
+    },
+    "published_rates": {
+      "source": "frozen-control-frame",
+      "not_a_live_program_rate": true,
+      "overall": {
+        "stratum_id": "OVERALL",
+        "n_all": 12,
+        "n_confirmed": 6,
+        "n_blocked": 2,
+        "n_refuted": 3,
+        "n_partial": 0,
+        "n_not_checked": 1,
+        "n_without_blocked": 10,
+        "rate_with_blocked_in_denominator": {
+          "defined": true,
+          "confirmed": 6,
+          "denominator": 12,
+          "as_string": "6/12",
+          "as_float": 0.5,
+          "fraction": "1/2"
+        },
+        "rate_without_blocked": {
+          "defined": true,
+          "confirmed": 6,
+          "denominator": 10,
+          "as_string": "6/10",
+          "as_float": 0.6,
+          "fraction": "3/5"
+        },
+        "rates_differ": true,
+        "claim_ids": [
+          "CLAIM-A1",
+          "CLAIM-A2",
+          "CLAIM-A3",
+          "CLAIM-A4",
+          "CLAIM-A5",
+          "CLAIM-B1",
+          "CLAIM-B2",
+          "CLAIM-B3",
+          "CLAIM-B4",
+          "CLAIM-C1",
+          "CLAIM-C2",
+          "CLAIM-C3"
+        ]
+      },
+      "strata": [
+        {
+          "stratum_id": "P2|confirm|anthropic|coverage",
+          "n_confirmed": 3,
+          "n_blocked": 1,
+          "n_all": 5,
+          "n_refuted": 1,
+          "n_not_checked": 0,
+          "rate_with_blocked_in_denominator": {
+            "defined": true,
+            "confirmed": 3,
+            "denominator": 5,
+            "as_string": "3/5",
+            "as_float": 0.6,
+            "fraction": "3/5"
+          },
+          "rate_without_blocked": {
+            "defined": true,
+            "confirmed": 3,
+            "denominator": 4,
+            "as_string": "3/4",
+            "as_float": 0.75,
+            "fraction": "3/4"
+          },
+          "rates_differ": true,
+          "unearned_inflation": 0.15,
+          "claim_ids": [
+            "CLAIM-A1",
+            "CLAIM-A2",
+            "CLAIM-A3",
+            "CLAIM-A4",
+            "CLAIM-A5"
+          ]
+        },
+        {
+          "stratum_id": "P2|retired-subsys|anthropic|lifecycle",
+          "n_confirmed": 1,
+          "n_blocked": 1,
+          "n_all": 3,
+          "n_refuted": 0,
+          "n_not_checked": 1,
+          "rate_with_blocked_in_denominator": {
+            "defined": true,
+            "confirmed": 1,
+            "denominator": 3,
+            "as_string": "1/3",
+            "as_float": 0.3333333333333333,
+            "fraction": "1/3"
+          },
+          "rate_without_blocked": {
+            "defined": true,
+            "confirmed": 1,
+            "denominator": 2,
+            "as_string": "1/2",
+            "as_float": 0.5,
+            "fraction": "1/2"
+          },
+          "rates_differ": true,
+          "unearned_inflation": 0.166666666667,
+          "claim_ids": [
+            "CLAIM-C1",
+            "CLAIM-C2",
+            "CLAIM-C3"
+          ]
+        },
+        {
+          "stratum_id": "P3|scheduler|openai|runtime",
+          "n_confirmed": 2,
+          "n_blocked": 0,
+          "n_all": 4,
+          "n_refuted": 2,
+          "n_not_checked": 0,
+          "rate_with_blocked_in_denominator": {
+            "defined": true,
+            "confirmed": 2,
+            "denominator": 4,
+            "as_string": "2/4",
+            "as_float": 0.5,
+            "fraction": "1/2"
+          },
+          "rate_without_blocked": {
+            "defined": true,
+            "confirmed": 2,
+            "denominator": 4,
+            "as_string": "2/4",
+            "as_float": 0.5,
+            "fraction": "1/2"
+          },
+          "rates_differ": false,
+          "unearned_inflation": 0.0,
+          "claim_ids": [
+            "CLAIM-B1",
+            "CLAIM-B2",
+            "CLAIM-B3",
+            "CLAIM-B4"
+          ]
+        }
+      ]
+    },
+    "known_absent_control": {
+      "empty_blocked_set": true,
+      "n_blocked": 0,
+      "rate_with_blocked_in_denominator": {
+        "defined": true,
+        "confirmed": 8,
+        "denominator": 12,
+        "as_string": "8/12",
+        "as_float": 0.6666666666666666,
+        "fraction": "2/3"
+      },
+      "rate_without_blocked": {
+        "defined": true,
+        "confirmed": 8,
+        "denominator": 12,
+        "as_string": "8/12",
+        "as_float": 0.6666666666666666,
+        "fraction": "2/3"
+      },
+      "rates_coincide": true
+    },
+    "blocked": [
+      {
+        "claim_id": "CLAIM-A5",
+        "stratum_id": "P2|confirm|anthropic|coverage",
+        "prerequisite": "missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json",
+        "unblock_experiment": "Write a confirmation-record JSON for CLAIM-A5 at command-center/receipts/confirmations/CLAIM-A5.json with verdict in {CONFIRMED,REFUTED,PARTIAL} from an independent confirmer, then re-run accounting.compute_rates on the frozen frame.",
+        "reason": "missing confirmation artifact",
+        "class": "missing-artifact"
+      },
+      {
+        "claim_id": "CLAIM-C3",
+        "stratum_id": "P2|retired-subsys|anthropic|lifecycle",
+        "prerequisite": "retired-subsystem:wave0-agentbridge",
+        "unblock_experiment": "Restore a living confirmer substrate for wave0-agentbridge, or formally withdraw CLAIM-C3 from the frozen sampling frame via a CNF-0137 mutation, then re-run accounting.compute_rates.",
+        "reason": "retired subsystem",
+        "class": "retired-subsystem"
+      }
+    ],
+    "excluded_set": {
+      "count": 2,
+      "entries": [
+        {
+          "claim_id": "CLAIM-A5",
+          "stratum_id": "P2|confirm|anthropic|coverage",
+          "prerequisite": "missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json",
+          "unblock_experiment": "Write a confirmation-record JSON for CLAIM-A5 at command-center/receipts/confirmations/CLAIM-A5.json with verdict in {CONFIRMED,REFUTED,PARTIAL} from an independent confirmer, then re-run accounting.compute_rates on the frozen frame.",
+          "reason": "missing confirmation artifact",
+          "class": "missing-artifact"
+        },
+        {
+          "claim_id": "CLAIM-C3",
+          "stratum_id": "P2|retired-subsys|anthropic|lifecycle",
+          "prerequisite": "retired-subsystem:wave0-agentbridge",
+          "unblock_experiment": "Restore a living confirmer substrate for wave0-agentbridge, or formally withdraw CLAIM-C3 from the frozen sampling frame via a CNF-0137 mutation, then re-run accounting.compute_rates.",
+          "reason": "retired subsystem",
+          "class": "retired-subsystem"
+        }
+      ],
+      "reasons": [
+        {
+          "claim_id": "CLAIM-A5",
+          "prerequisite": "missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json",
+          "unblock_experiment": "Write a confirmation-record JSON for CLAIM-A5 at command-center/receipts/confirmations/CLAIM-A5.json with verdict in {CONFIRMED,REFUTED,PARTIAL} from an independent confirmer, then re-run accounting.compute_rates on the frozen frame.",
+          "reason": "missing confirmation artifact"
+        },
+        {
+          "claim_id": "CLAIM-C3",
+          "prerequisite": "retired-subsystem:wave0-agentbridge",
+          "unblock_experiment": "Restore a living confirmer substrate for wave0-agentbridge, or formally withdraw CLAIM-C3 from the frozen sampling frame via a CNF-0137 mutation, then re-run accounting.compute_rates.",
+          "reason": "retired subsystem"
+        }
+      ]
+    },
+    "not_checked": [
+      {
+        "claim_id": "CLAIM-C2",
+        "stratum_id": "P2|retired-subsys|anthropic|lifecycle",
+        "note": "NOT-CHECKED stays in BOTH denominators until it is upgraded to BLOCKED with a named prerequisite"
+      }
+    ],
+    "unknowns_register": {
+      "path": "command-center/UNKNOWNS-REGISTER.md",
+      "crosscheck": {
+        "ok": true,
+        "present_count": 2,
+        "missing": [],
+        "marker": "CNF-0143-PREREQUISITE"
+      },
+      "ensure": {
+        "path": "/opt/p2/ast-integrate/command-center/UNKNOWNS-REGISTER.md",
+        "created": false,
+        "added": [],
+        "already_present": [
+          "missing-artifact:command-center/receipts/confirmations/CLAIM-A5.json",
+          "retired-subsystem:wave0-agentbridge"
+        ]
+      }
+    },
+    "live_inventory": {
+      "cnf_0137_present": false,
+      "claim_registry_present": true,
+      "unknowns_register_present": true,
+      "record_count": 0,
+      "blocked_count": 0,
+      "not_checked_count": 0,
+      "search_dirs": [
+        "command-center/receipts/confirmations",
+        "command-center/confirmation-records",
+        "command-center/confirmations"
+      ],
+      "scanned_files": 0,
+      "live_rates": null,
+      "live_blocked": [],
+      "note": "Live confirmation corpus is harvested only from confirmation-record directories (claim_id + verdict + source_probe/confirmer). Unit receipts and architecture reviews are not confirmation records."
+    },
+    "worked_example": {
+      "stratum_id": "P2|confirm|anthropic|coverage",
+      "hand": {
+        "stratum_id": "P2|confirm|anthropic|coverage",
+        "n_confirmed": 3,
+        "n_blocked": 1,
+        "n_all": 5,
+        "n_without_blocked": 4,
+        "rate_with_blocked_in_denominator": "3/5",
+        "rate_without_blocked": "3/4",
+        "method": "hand-count loop over raw records; does not call compute_rates"
+      },
+      "code_rate_with": "3/5",
+      "code_rate_without": "3/4",
+      "match": true,
+      "arithmetic": "3 CONFIRMED of 5 records including 1 BLOCKED => earned 3/5; dropping BLOCKED yields 3/4 (unearned inflation of 0.15)."
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "arithmetic-known-absent",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe1_arithmetic.py"
+      },
+      {
+        "id": "probe2",
+        "role": "completeness-unknowns",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0143/probe2_completeness.py"
+      }
+    ],
+    "scope": {
+      "proof_surface": "Executable non-response accounting on a frozen 12-claim control frame with two BLOCKED records (missing artifact, retired subsystem), plus schema completeness and UNKNOWNS-REGISTER cross-check. Live confirmation corpus and CNF-0137 frame were inventoried and are absent.",
+      "does_not_claim": [
+        "CNF-0137 sampling frame exists on this worktree",
+        "a live program pass rate was computed from a production confirmation corpus",
+        "cloud ok=true is delivery",
+        "global unit_manifest.py --write was run"
+      ]
+    },
+    "overlay_schema": "command-center/p2-wave/probes/CNF-0143/program-gate-report.overlay.schema.json",
+    "catalog_output_schema": "command-center/schema/program-gate-report.schema.json",
+    "cloud_ok": false
+  }
+}

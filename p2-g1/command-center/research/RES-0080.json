@@ -1,0 +1,946 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0080.json",
+   "bytes": 22828,
+   "sha256": "8d0eb9f87abe0c1b649adae5130f06d137143f205b0d46aba5660fb3f8f21bbe",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:RES-0080 in the receipt AND a detector list where each entry names an existing transcript field, plus one not-portable measure",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0080.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0080",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Mechanically computable from this program's council transcript: (1) premature-closure as round-1 unanimity with disagreement_rounds == 0; (2) dissent-suppression as a minority seat that has a TURN in round r and none in round r+1 while the council continues; (3) self-censorship as a non-independent Vote.claim_id flip onto the next majority. Not computable: Asch-style critical-trial conformity rate (needs private_judgment, trial_type, ground_truth — none exist) and Janis's scored 8-symptom inventory (needs morale / invulnerability fields that do not exist). Pathological threshold: any portable detector firing. That threshold is operational for this transcript, not a validated clinical cutoff and not Asch's 36.8%.",
+   "canonical_mechanism": "Do not copy Asch's 36.8% as a cutoff. Compute three detectors from fields the live council transcript already carries (Vote.claim_id / round / participant_id, CouncilSnapshot.rounds_elapsed and disagreement_rounds, Event.kind / participant_id / round_index, Brief.independent). Flag a panel pathological when any detector fires. Mark Asch critical-trial conformity and the Janis 8-symptom checklist not-portable because their required fields are absent.",
+   "claim_id": "RES-0080",
+   "completion_sentinel": "SUCCESS:RES-0080 in the receipt AND a detector list where each entry names an existing transcript field, plus one not-portable measure",
+   "confidence_band": "high-on-fields, medium-on-threshold",
+   "confidence_notes": "Field existence is high: inventory is executed against kernel Event.as_dict, Vote/Brief/CouncilSnapshot, chair journal records, and council-audit.schema.json. The pathological OR-threshold is medium: no published study validates these exact flags on LLM agent panels, so the number we refuse to copy (36.8%) stays refused.",
+   "dependencies": {
+    "RES-0001": "schema file absent; envelope uses the named field list",
+    "RES-0075": "Delphi artifact absent; not required to name transcript fields"
+   },
+   "detectors": [
+    {
+     "all_fields_exist": true,
+     "classical_measure": "premature-closure timing (operationalized as round-1 unanimity)",
+     "field_exists": true,
+     "field_sources": {
+      "disagreement_rounds": "tools/council/antifail/unanimity.py:CouncilSnapshot",
+      "rounds_elapsed": "tools/council/antifail/unanimity.py:CouncilSnapshot",
+      "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+     },
+     "fires_when": "rounds_elapsed <= 1 AND disagreement_rounds == 0 AND at least two round-1 votes exist AND they all share one claim_id.",
+     "id": "premature_closure_instant_unanimity",
+     "portable": true,
+     "reads": "All Vote.claim_id values in round 1, Vote.participant_id count, CouncilSnapshot.rounds_elapsed, CouncilSnapshot.disagreement_rounds.",
+     "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+     "transcript_field": "votes.round",
+     "transcript_fields": [
+      "votes.round",
+      "votes.claim_id",
+      "votes.participant_id",
+      "rounds_elapsed",
+      "disagreement_rounds"
+     ]
+    },
+    {
+     "all_fields_exist": true,
+     "classical_measure": "dissent-suppression / mindguard (seat disappearance)",
+     "field_exists": true,
+     "field_sources": {
+      "events.kind": "tools/council/kernel.py:Event.as_dict",
+      "events.participant_id": "tools/council/kernel.py:Event.as_dict",
+      "events.round_index": "tools/council/kernel.py:Event.as_dict",
+      "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+     },
+     "fires_when": "A participant whose round-r vote is not the majority claim has a TURN in that round and zero TURNs in round r+1 while at least one other participant still has a TURN (council continued without them).",
+     "id": "dissent_suppression_seat_drop",
+     "portable": true,
+     "reads": "Minority Vote.participant_id in round r versus TURN events at round_index r-1 and r.",
+     "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+     "transcript_field": "votes.round",
+     "transcript_fields": [
+      "votes.round",
+      "votes.claim_id",
+      "votes.participant_id",
+      "events.kind",
+      "events.participant_id",
+      "events.round_index"
+     ]
+    },
+    {
+     "all_fields_exist": true,
+     "classical_measure": "dissent-suppression / self-censorship (public flip)",
+     "field_exists": true,
+     "field_sources": {
+      "briefs.independent": "tools/council/antifail/unanimity.py:Brief.to_dict",
+      "briefs.participant_id": "tools/council/antifail/unanimity.py:Brief.to_dict",
+      "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+      "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+     },
+     "fires_when": "A seat moves from a non-majority claim_id to the next-round majority AND their Brief.independent is false (no independent re-evaluation recorded).",
+     "id": "dissent_suppression_vote_collapse",
+     "portable": true,
+     "reads": "Vote.claim_id across consecutive rounds plus Brief.independent for the flipping seat.",
+     "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+     "transcript_field": "votes.round",
+     "transcript_fields": [
+      "votes.round",
+      "votes.claim_id",
+      "votes.participant_id",
+      "briefs.participant_id",
+      "briefs.independent"
+     ]
+    }
+   ],
+   "edges": {
+    "contradicts": [
+     {
+      "from": "asch-critical-trial-rate",
+      "note": "The human rate is real (E2) and still cannot be the agent-panel cutoff because the transcript cannot score critical trials.",
+      "to": "copied-368-percent-threshold"
+     }
+    ],
+    "supports": [
+     {
+      "from": "asch-unanimity-not-size",
+      "to": "premature_closure_instant_unanimity"
+     },
+     {
+      "from": "stasser-titus-hidden-profile",
+      "to": "premature_closure_instant_unanimity"
+     }
+    ]
+   },
+   "evidence_tier": "mixed",
+   "fixture_both_states": [
+    {
+     "expect_fired": [],
+     "fired": [],
+     "id": "healthy",
+     "ok": true,
+     "pathological": false
+    },
+    {
+     "expect_fired": [
+      "premature_closure_instant_unanimity"
+     ],
+     "fired": [
+      "premature_closure_instant_unanimity"
+     ],
+     "id": "instant_unanimity",
+     "ok": true,
+     "pathological": true
+    },
+    {
+     "expect_fired": [
+      "dissent_suppression_seat_drop"
+     ],
+     "fired": [
+      "dissent_suppression_seat_drop"
+     ],
+     "id": "seat_drop",
+     "ok": true,
+     "pathological": true
+    },
+    {
+     "expect_fired": [
+      "dissent_suppression_vote_collapse"
+     ],
+     "fired": [
+      "dissent_suppression_vote_collapse"
+     ],
+     "id": "vote_collapse",
+     "ok": true,
+     "pathological": true
+    }
+   ],
+   "freshness_stamp": "2026-08-25T01:25:04Z",
+   "id": "RES-0080",
+   "mechanisms": [
+    {
+     "baseline": "ordinary line-matching errors less than 1% of the time (no-majority control)",
+     "claim": "Under a unanimous wrong majority, naive subjects matched the majority on 36.8% of critical trials, versus less than 1% errors without that majority.",
+     "doi": "10.1038/scientificamerican1155-31",
+     "effect_size": "36.8% of critical-trial selections matched the misleading majority; ~75% of subjects agreed with the majority on at least one critical trial; ~25% never agreed",
+     "evidence_tier": "E2",
+     "id": "asch-critical-trial-rate",
+     "paper": "Asch, S. E. (1955). Opinions and Social Pressure. Scientific American, 193(5), 31-35.",
+     "promotes_detector": false,
+     "section_or_figure": "pp.32-33 running text of the 123-subject series (18 trials, 12 critical); companion majority-size series same pages",
+     "strongest_caveat": "Sample is 123 male college students in a perceptual task with confederates, not LLM council seats. Asch 1956 (doi:10.1037/h0093718) is the archival monograph of the same program; Wikipedia's 35.7% figure is a later rounding and is not used here.",
+     "why_not_promoted": "The metric needs private_judgment, trial_type, and ground_truth, which this transcript does not carry. Headline 36.8% without those terms would be E3 on this substrate."
+    },
+    {
+     "baseline": "3.6% errors against a single opponent; <1% with no opponents",
+     "claim": "Unanimity, not majority size past three, is the load-bearing pressure: one opponent 3.6% errors, two 13.6%, three 31.8%, further increases add little; a truthful partner cuts yielding to about one-fourth.",
+     "detector_id": "premature_closure_instant_unanimity",
+     "doi": "10.1038/scientificamerican1155-31",
+     "effect_size": "3.6% (n_opponents=1), 13.6% (2), 31.8% (3), 35.1% (4), 35.2% (6), 37.1% (7), 35.1% (9), 31.2% (15); partner condition 'only one fourth as often' as unanimous majority",
+     "evidence_tier": "E2",
+     "id": "asch-unanimity-not-size",
+     "paper": "Asch, S. E. (1955). Opinions and Social Pressure. Scientific American, 193(5), 31-35.",
+     "promotes_detector": true,
+     "section_or_figure": "majority-size series and partner series, pp.33-34 and the SIZE OF MAJORITY chart notes",
+     "strongest_caveat": "Asch measured perceptual error under confederates, not elapsed rounds on an agent council. The portable detector is the round-index rule already used by IMP-0318 (INSTANT_ROUND_CEILING=1), not a copied percentage.",
+     "why_promoted": "Supports treating round-1 unanimity with disagreement_rounds==0 as the portable premature-closure proxy: the human finding is that a unanimous first public front is the pressure, and this transcript records exactly those public votes and the disagreement_rounds counter."
+    },
+    {
+     "baseline": "83% correct group decisions when all profile information is shared",
+     "claim": "When unique information is unshared, groups rarely abandon the initially popular (wrong) candidate: 83% chose the objectively best candidate A when profiles were fully shared, versus 18% of groups in the unshared conditions.",
+     "detector_id": "premature_closure_instant_unanimity",
+     "doi": "10.1037/0022-3514.48.6.1467",
+     "effect_size": "Shared-info groups: 83% chose A (n=18 groups). Combined unshared groups: 18% chose A (n=38). Chi-square on A vs not-A: χ²(1, N=56)=21.59, p<.001",
+     "evidence_tier": "E2",
+     "id": "stasser-titus-hidden-profile",
+     "paper": "Stasser, G., & Titus, W. (1985). Pooling of unshared information in group decision making. Journal of Personality and Social Psychology, 48(6), 1467-1478.",
+     "promotes_detector": true,
+     "section_or_figure": "Table 3, Group decisions row; Results text p.1474 '83% of the 18 groups' vs '18% of the 38 groups'",
+     "strongest_caveat": "Stasser & Titus measured candidate choice after a political caucus simulation, not wall-clock closure. They do not publish a minute threshold, so elapsed_ms cannot inherit a cutoff from this paper (that would be E3).",
+     "why_promoted": "Shows discussion does not reliably correct an early plurality. Instant unanimity is therefore a pathology flag, not evidence the panel 'finished thinking'."
+    }
+   ],
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0080/probe1_detector_fields.py",
+   "not_portable_measures": [
+    {
+     "classical_measure": "Asch-style critical-trial conformity rate",
+     "field_exists": {
+      "ground_truth": false,
+      "private_judgment": false,
+      "trial_type": false
+     },
+     "id": "asch_critical_trial_conformity_rate",
+     "missing_fields": [
+      "private_judgment",
+      "trial_type",
+      "ground_truth"
+     ],
+     "portable": false,
+     "reason": "Asch's 36.8% figure is the share of *public* answers that matched a unanimous *wrong* majority on *critical* trials, scored against a known correct line length, with a no-majority control baseline (<1% error). Computing it requires a private_judgment distinct from the public Vote.claim_id, a trial_type (critical vs neutral), and a ground_truth. None of those names exist on kernel Event.as_dict, Vote.to_dict, the chair journal, or council-audit participant_action_logs. Public agreement (share of Vote.claim_id) is consensus_pct, not Asch conformity.",
+     "requested_fields": [
+      "private_judgment",
+      "trial_type",
+      "ground_truth"
+     ]
+    },
+    {
+     "classical_measure": "Janis groupthink 8-symptom inventory as a scored detector",
+     "field_exists": {
+      "belief_in_inherent_morality": false,
+      "illusion_of_invulnerability": false,
+      "morale": false
+     },
+     "id": "janis_eight_symptom_checklist",
+     "missing_fields": [
+      "morale",
+      "illusion_of_invulnerability",
+      "belief_in_inherent_morality"
+     ],
+     "portable": false,
+     "reason": "Janis (1972) is a qualitative symptom list, not a numeric timing or error rate. Symptoms such as illusion of invulnerability and belief in inherent morality have no named transcript field. Inventing a minute-cutoff or a 36.8% copy on agent panels would be an E3 headline without a baseline on this population.",
+     "requested_fields": [
+      "morale",
+      "illusion_of_invulnerability",
+      "belief_in_inherent_morality"
+     ]
+    }
+   ],
+   "notes": "G-1 for RES-0080: live named probes, honest non-BLOCKED research record, per-unit manifest. Did not run unit_manifest.py --write. Did not author the shared research-claim-record schema.",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "output_schema_status": "PRESENT as a generated shim at command-center/schema/research-claim-record.schema.json. The shim carries no class-specific payload constraints (delegates to platform/schema/artifact-class-profiles.schema.json#/$defs/research-claim-record). This unit does not author the shared schema file. Envelope fields follow the list named in RES-0001's catalog question (claim id, canonical mechanism, source lineage, evidence tier, confidence band, named settling probe, edges, freshness stamp, snapshot sha256).",
+   "pathological_threshold": {
+    "copied_asch_368_percent": false,
+    "operational_not_clinical": true,
+    "rule": "A panel is PATHOLOGICAL when any portable detector fires (instant round-1 unanimity, minority seat-drop while the council continues, or non-independent vote collapse onto the next majority).",
+    "why_not_asch_percent": "Asch's 36.8% is a human critical-trial public-error rate against a <1% no-majority baseline. Copying it as a cutoff on agent Vote.claim_id agreement would mix populations and drop the private-judgment / trial-type / ground-truth terms. That copy is REFUTED as a portable threshold."
+   },
+   "question": "Which conformity and groupthink measurements from human group research (Asch-style conformity rate, premature-closure timing, dissent-suppression markers) are mechanically computable from an agent transcript, and what threshold marks a pathological panel?",
+   "question_or_target": "Which conformity and groupthink measurements from human group research (Asch-style conformity rate, premature-closure timing, dissent-suppression markers) are mechanically computable from an agent transcript, and what threshold marks a pathological panel?",
+   "refuted_claims": [
+    {
+     "claim": "Use Asch's 36.8% as the pathological cutoff on agent council Vote.claim_id agreement.",
+     "reason": "Missing private_judgment, trial_type, and ground_truth; wrong population; would drop the <1% control baseline.",
+     "verdict": "REFUTED"
+    },
+    {
+     "claim": "Score Janis's eight groupthink symptoms as a numeric detector over the current transcript.",
+     "reason": "No morale / invulnerability / morality fields exist. Janis 1972 is qualitative; no numeric threshold was retrieved from that book in this unit.",
+     "verdict": "REFUTED"
+    },
+    {
+     "claim": "Premature-closure timing is the wall-clock of Event.elapsed_ms against a published minute cutoff.",
+     "reason": "elapsed_ms exists (so duration is mechanically readable) but neither Asch nor Stasser & Titus publish a minute cutoff with a baseline. A fabricated T would be E3 and cannot promote a detector. The portable timing detector is round-index instant unanimity, not milliseconds.",
+     "verdict": "REFUTED"
+    }
+   ],
+   "report_kind": "research-claim-record",
+   "snapshot_sha256": "76a5e76ec5f65ed9af127b452528d94af47f090e58c64c049299e15118b59461",
+   "source_lineage": [
+    {
+     "locator": "Scientific American 193(5) pp.31-35, including the 12-of-18 critical-trial series and the majority-size series",
+     "retrieved": "open PDF extract 2026-08-24",
+     "source_id": "asch-1955-sciam",
+     "uri": "doi:10.1038/scientificamerican1155-31"
+    },
+    {
+     "locator": "Psychological Monographs 70(9) 1-70, archival report",
+     "retrieved": "DOI + secondary concordance with the 1955 numbers",
+     "source_id": "asch-1956-monograph",
+     "uri": "doi:10.1037/h0093718"
+    },
+    {
+     "locator": "Journal of Personality and Social Psychology 48(6) Table 3",
+     "retrieved": "publisher PDF extract 2026-08-24",
+     "source_id": "stasser-titus-1985",
+     "uri": "doi:10.1037/0022-3514.48.6.1467"
+    },
+    {
+     "locator": "tools/council/kernel.py Event.as_dict",
+     "source_id": "kernel-event",
+     "uri": "file:tools/council/kernel.py"
+    },
+    {
+     "locator": "tools/council/antifail/unanimity.py Vote/Brief/CouncilSnapshot",
+     "source_id": "unanimity-snapshot",
+     "uri": "file:tools/council/antifail/unanimity.py"
+    },
+    {
+     "locator": "tools/council/topology/chair.py FloorRequest/Recognition/Submission",
+     "source_id": "chair-journal",
+     "uri": "file:tools/council/topology/chair.py"
+    },
+    {
+     "locator": "configurations.items.participant_action_logs",
+     "source_id": "council-audit-schema",
+     "uri": "file:command-center/schema/council-audit.schema.json"
+    }
+   ],
+   "status": "DELIVERED",
+   "tests_required": [
+    "name the transcript field each detector reads and confirm the field exists in the council schema",
+    "control: at least one classical measure must be marked not-portable with the reason"
+   ],
+   "title": "Port the operational groupthink detectors from social psychology to agent panels",
+   "transcript_field_inventory": {
+    "classical_names_absent": [
+     "critical_trial",
+     "ground_truth",
+     "illusion_of_invulnerability",
+     "morale",
+     "private_judgment",
+     "private_vote",
+     "trial_type"
+    ],
+    "count": 51,
+    "names": [
+     "briefs.evidence_ids",
+     "briefs.independent",
+     "briefs.participant_id",
+     "briefs.text",
+     "capture_verdict.actual_counts",
+     "capture_verdict.chi_square",
+     "capture_verdict.fair_counts",
+     "capture_verdict.flagged",
+     "capture_verdict.max_abs_diff",
+     "capture_verdict.n_slots",
+     "capture_verdict.reason",
+     "capture_verdict.starved",
+     "chair_artifact.agenda",
+     "chair_artifact.chair",
+     "chair_artifact.chair_history",
+     "chair_artifact.events_recorded",
+     "chair_artifact.kind",
+     "chair_artifact.local_operations",
+     "chair_artifact.recognition_distribution",
+     "chair_artifact.roster",
+     "chair_artifact.submissions",
+     "claims",
+     "council_id",
+     "disagreement_rounds",
+     "events.elapsed_ms",
+     "events.kind",
+     "events.obligations",
+     "events.obligations_met",
+     "events.obligations_missing",
+     "events.output",
+     "events.participant_id",
+     "events.round_index",
+     "events.seq",
+     "events.status",
+     "events.turn_index",
+     "family",
+     "participants.id",
+     "participants.role",
+     "question",
+     "recognitions.chair_id",
+     "recognitions.participant_id",
+     "recognitions.round_index",
+     "rounds_elapsed",
+     "submissions.participant_id",
+     "submissions.round_index",
+     "submissions.submission_id",
+     "submissions.text",
+     "votes.claim_id",
+     "votes.confidence",
+     "votes.participant_id",
+     "votes.round"
+    ],
+    "sources": [
+     "tools/council/antifail/unanimity.py:Brief.to_dict",
+     "tools/council/antifail/unanimity.py:CouncilSnapshot",
+     "tools/council/antifail/unanimity.py:Participant.to_dict",
+     "tools/council/antifail/unanimity.py:Vote.to_dict",
+     "tools/council/kernel.py:Event.as_dict",
+     "tools/council/topology/chair.py:CaptureVerdict.as_dict",
+     "tools/council/topology/chair.py:ChairLedSession.artifact",
+     "tools/council/topology/chair.py:Recognition",
+     "tools/council/topology/chair.py:Submission"
+    ]
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0080",
+ "evidence": [
+  {
+   "claim": "RES-0080 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0080.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0080.json",
+     "raw_output": "bytes=22828 sha256=8d0eb9f87abe0c1b649adae5130f06d137143f205b0d46aba5660fb3f8f21bbe",
+     "fingerprint": "21fce27fd470755040d9ac70071eb21c",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0080",
+     "raw_output": "schema-check",
+     "fingerprint": "f8c953866f2b94cd9b6373b1a2010397",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0080 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0080",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0080",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "29cbf64b222e1cc285337ca7f810910b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0080",
+     "raw_output": "schema-valid",
+     "fingerprint": "4d199a347d5cc8643484018aa999917b",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0080/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0080"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0080.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0080.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "075ce082a06480275d5f4c3d9b932d2e",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 22828,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0080.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Mechanically computable from this program's council transcript: (1) premature-closure as round-1 unanimity with disagreement_rounds == 0; (2) dissent-suppression as a minority seat that has a TURN in round r and none in round r+1 while the council continues; (3) self-censorship as a non-independent Vote.claim_id flip onto the next majority. Not computable: Asch-style critical-trial conformity rate (needs private_judgment, trial_type, ground_truth — none exist) and Janis's scored 8-symptom inventory (needs morale / invulnerability fields that do not exist). Pathological threshold: any portable detector firing. That threshold is operational for this transcript, not a validated clinical cutoff and not Asch's 36.8%.",
+ "canonical_mechanism": "Do not copy Asch's 36.8% as a cutoff. Compute three detectors from fields the live council transcript already carries (Vote.claim_id / round / participant_id, CouncilSnapshot.rounds_elapsed and disagreement_rounds, Event.kind / participant_id / round_index, Brief.independent). Flag a panel pathological when any detector fires. Mark Asch critical-trial conformity and the Janis 8-symptom checklist not-portable because their required fields are absent.",
+ "claim_id": "RES-0080",
+ "completion_sentinel": "SUCCESS:RES-0080 in the receipt AND a detector list where each entry names an existing transcript field, plus one not-portable measure",
+ "confidence_band": "high-on-fields, medium-on-threshold",
+ "confidence_notes": "Field existence is high: inventory is executed against kernel Event.as_dict, Vote/Brief/CouncilSnapshot, chair journal records, and council-audit.schema.json. The pathological OR-threshold is medium: no published study validates these exact flags on LLM agent panels, so the number we refuse to copy (36.8%) stays refused.",
+ "dependencies": {
+  "RES-0001": "schema file absent; envelope uses the named field list",
+  "RES-0075": "Delphi artifact absent; not required to name transcript fields"
+ },
+ "detectors": [
+  {
+   "all_fields_exist": true,
+   "classical_measure": "premature-closure timing (operationalized as round-1 unanimity)",
+   "field_exists": true,
+   "field_sources": {
+    "disagreement_rounds": "tools/council/antifail/unanimity.py:CouncilSnapshot",
+    "rounds_elapsed": "tools/council/antifail/unanimity.py:CouncilSnapshot",
+    "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+   },
+   "fires_when": "rounds_elapsed <= 1 AND disagreement_rounds == 0 AND at least two round-1 votes exist AND they all share one claim_id.",
+   "id": "premature_closure_instant_unanimity",
+   "portable": true,
+   "reads": "All Vote.claim_id values in round 1, Vote.participant_id count, CouncilSnapshot.rounds_elapsed, CouncilSnapshot.disagreement_rounds.",
+   "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+   "transcript_field": "votes.round",
+   "transcript_fields": [
+    "votes.round",
+    "votes.claim_id",
+    "votes.participant_id",
+    "rounds_elapsed",
+    "disagreement_rounds"
+   ]
+  },
+  {
+   "all_fields_exist": true,
+   "classical_measure": "dissent-suppression / mindguard (seat disappearance)",
+   "field_exists": true,
+   "field_sources": {
+    "events.kind": "tools/council/kernel.py:Event.as_dict",
+    "events.participant_id": "tools/council/kernel.py:Event.as_dict",
+    "events.round_index": "tools/council/kernel.py:Event.as_dict",
+    "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+   },
+   "fires_when": "A participant whose round-r vote is not the majority claim has a TURN in that round and zero TURNs in round r+1 while at least one other participant still has a TURN (council continued without them).",
+   "id": "dissent_suppression_seat_drop",
+   "portable": true,
+   "reads": "Minority Vote.participant_id in round r versus TURN events at round_index r-1 and r.",
+   "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+   "transcript_field": "votes.round",
+   "transcript_fields": [
+    "votes.round",
+    "votes.claim_id",
+    "votes.participant_id",
+    "events.kind",
+    "events.participant_id",
+    "events.round_index"
+   ]
+  },
+  {
+   "all_fields_exist": true,
+   "classical_measure": "dissent-suppression / self-censorship (public flip)",
+   "field_exists": true,
+   "field_sources": {
+    "briefs.independent": "tools/council/antifail/unanimity.py:Brief.to_dict",
+    "briefs.participant_id": "tools/council/antifail/unanimity.py:Brief.to_dict",
+    "votes.claim_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.participant_id": "tools/council/antifail/unanimity.py:Vote.to_dict",
+    "votes.round": "tools/council/antifail/unanimity.py:Vote.to_dict"
+   },
+   "fires_when": "A seat moves from a non-majority claim_id to the next-round majority AND their Brief.independent is false (no independent re-evaluation recorded).",
+   "id": "dissent_suppression_vote_collapse",
+   "portable": true,
+   "reads": "Vote.claim_id across consecutive rounds plus Brief.independent for the flipping seat.",
+   "schema_source": "tools/council/antifail/unanimity.py:Vote.to_dict",
+   "transcript_field": "votes.round",
+   "transcript_fields": [
+    "votes.round",
+    "votes.claim_id",
+    "votes.participant_id",
+    "briefs.participant_id",
+    "briefs.independent"
+   ]
+  }
+ ],
+ "edges": {
+  "contradicts": [
+   {
+    "from": "asch-critical-trial-rate",
+    "note": "The human rate is real (E2) and still cannot be the agent-panel cutoff because the transcript cannot score critical trials.",
+    "to": "copied-368-percent-threshold"
+   }
+  ],
+  "supports": [
+   {
+    "from": "asch-unanimity-not-size",
+    "to": "premature_closure_instant_unanimity"
+   },
+   {
+    "from": "stasser-titus-hidden-profile",
+    "to": "premature_closure_instant_unanimity"
+   }
+  ]
+ },
+ "evidence_tier": "mixed",
+ "fixture_both_states": [
+  {
+   "expect_fired": [],
+   "fired": [],
+   "id": "healthy",
+   "ok": true,
+   "pathological": false
+  },
+  {
+   "expect_fired": [
+    "premature_closure_instant_unanimity"
+   ],
+   "fired": [
+    "premature_closure_instant_unanimity"
+   ],
+   "id": "instant_unanimity",
+   "ok": true,
+   "pathological": true
+  },
+  {
+   "expect_fired": [
+    "dissent_suppression_seat_drop"
+   ],
+   "fired": [
+    "dissent_suppression_seat_drop"
+   ],
+   "id": "seat_drop",
+   "ok": true,
+   "pathological": true
+  },
+  {
+   "expect_fired": [
+    "dissent_suppression_vote_collapse"
+   ],
+   "fired": [
+    "dissent_suppression_vote_collapse"
+   ],
+   "id": "vote_collapse",
+   "ok": true,
+   "pathological": true
+  }
+ ],
+ "freshness_stamp": "2026-08-25T01:25:04Z",
+ "id": "RES-0080",
+ "mechanisms": [
+  {
+   "baseline": "ordinary line-matching errors less than 1% of the time (no-majority control)",
+   "claim": "Under a unanimous wrong majority, naive subjects matched the majority on 36.8% of critical trials, versus less than 1% errors without that majority.",
+   "doi": "10.1038/scientificamerican1155-31",
+   "effect_size": "36.8% of critical-trial selections matched the misleading majority; ~75% of subjects agreed with the majority on at least one critical trial; ~25% never agreed",
+   "evidence_tier": "E2",
+   "id": "asch-critical-trial-rate",
+   "paper": "Asch, S. E. (1955). Opinions and Social Pressure. Scientific American, 193(5), 31-35.",
+   "promotes_detector": false,
+   "section_or_figure": "pp.32-33 running text of the 123-subject series (18 trials, 12 critical); companion majority-size series same pages",
+   "strongest_caveat": "Sample is 123 male college students in a perceptual task with confederates, not LLM council seats. Asch 1956 (doi:10.1037/h0093718) is the archival monograph of the same program; Wikipedia's 35.7% figure is a later rounding and is not used here.",
+   "why_not_promoted": "The metric needs private_judgment, trial_type, and ground_truth, which this transcript does not carry. Headline 36.8% without those terms would be E3 on this substrate."
+  },
+  {
+   "baseline": "3.6% errors against a single opponent; <1% with no opponents",
+   "claim": "Unanimity, not majority size past three, is the load-bearing pressure: one opponent 3.6% errors, two 13.6%, three 31.8%, further increases add little; a truthful partner cuts yielding to about one-fourth.",
+   "detector_id": "premature_closure_instant_unanimity",
+   "doi": "10.1038/scientificamerican1155-31",
+   "effect_size": "3.6% (n_opponents=1), 13.6% (2), 31.8% (3), 35.1% (4), 35.2% (6), 37.1% (7), 35.1% (9), 31.2% (15); partner condition 'only one fourth as often' as unanimous majority",
+   "evidence_tier": "E2",
+   "id": "asch-unanimity-not-size",
+   "paper": "Asch, S. E. (1955). Opinions and Social Pressure. Scientific American, 193(5), 31-35.",
+   "promotes_detector": true,
+   "section_or_figure": "majority-size series and partner series, pp.33-34 and the SIZE OF MAJORITY chart notes",
+   "strongest_caveat": "Asch measured perceptual error under confederates, not elapsed rounds on an agent council. The portable detector is the round-index rule already used by IMP-0318 (INSTANT_ROUND_CEILING=1), not a copied percentage.",
+   "why_promoted": "Supports treating round-1 unanimity with disagreement_rounds==0 as the portable premature-closure proxy: the human finding is that a unanimous first public front is the pressure, and this transcript records exactly those public votes and the disagreement_rounds counter."
+  },
+  {
+   "baseline": "83% correct group decisions when all profile information is shared",
+   "claim": "When unique information is unshared, groups rarely abandon the initially popular (wrong) candidate: 83% chose the objectively best candidate A when profiles were fully shared, versus 18% of groups in the unshared conditions.",
+   "detector_id": "premature_closure_instant_unanimity",
+   "doi": "10.1037/0022-3514.48.6.1467",
+   "effect_size": "Shared-info groups: 83% chose A (n=18 groups). Combined unshared groups: 18% chose A (n=38). Chi-square on A vs not-A: χ²(1, N=56)=21.59, p<.001",
+   "evidence_tier": "E2",
+   "id": "stasser-titus-hidden-profile",
+   "paper": "Stasser, G., & Titus, W. (1985). Pooling of unshared information in group decision making. Journal of Personality and Social Psychology, 48(6), 1467-1478.",
+   "promotes_detector": true,
+   "section_or_figure": "Table 3, Group decisions row; Results text p.1474 '83% of the 18 groups' vs '18% of the 38 groups'",
+   "strongest_caveat": "Stasser & Titus measured candidate choice after a political caucus simulation, not wall-clock closure. They do not publish a minute threshold, so elapsed_ms cannot inherit a cutoff from this paper (that would be E3).",
+   "why_promoted": "Shows discussion does not reliably correct an early plurality. Instant unanimity is therefore a pathology flag, not evidence the panel 'finished thinking'."
+  }
+ ],
+ "named_settling_probe": "command-center/p2-wave/probes/RES-0080/probe1_detector_fields.py",
+ "not_portable_measures": [
+  {
+   "classical_measure": "Asch-style critical-trial conformity rate",
+   "field_exists": {
+    "ground_truth": false,
+    "private_judgment": false,
+    "trial_type": false
+   },
+   "id": "asch_critical_trial_conformity_rate",
+   "missing_fields": [
+    "private_judgment",
+    "trial_type",
+    "ground_truth"
+   ],
+   "portable": false,
+   "reason": "Asch's 36.8% figure is the share of *public* answers that matched a unanimous *wrong* majority on *critical* trials, scored against a known correct line length, with a no-majority control baseline (<1% error). Computing it requires a private_judgment distinct from the public Vote.claim_id, a trial_type (critical vs neutral), and a ground_truth. None of those names exist on kernel Event.as_dict, Vote.to_dict, the chair journal, or council-audit participant_action_logs. Public agreement (share of Vote.claim_id) is consensus_pct, not Asch conformity.",
+   "requested_fields": [
+    "private_judgment",
+    "trial_type",
+    "ground_truth"
+   ]
+  },
+  {
+   "classical_measure": "Janis groupthink 8-symptom inventory as a scored detector",
+   "field_exists": {
+    "belief_in_inherent_morality": false,
+    "illusion_of_invulnerability": false,
+    "morale": false
+   },
+   "id": "janis_eight_symptom_checklist",
+   "missing_fields": [
+    "morale",
+    "illusion_of_invulnerability",
+    "belief_in_inherent_morality"
+   ],
+   "portable": false,
+   "reason": "Janis (1972) is a qualitative symptom list, not a numeric timing or error rate. Symptoms such as illusion of invulnerability and belief in inherent morality have no named transcript field. Inventing a minute-cutoff or a 36.8% copy on agent panels would be an E3 headline without a baseline on this population.",
+   "requested_fields": [
+    "morale",
+    "illusion_of_invulnerability",
+    "belief_in_inherent_morality"
+   ]
+  }
+ ],
+ "notes": "G-1 for RES-0080: live named probes, honest non-BLOCKED research record, per-unit manifest. Did not run unit_manifest.py --write. Did not author the shared research-claim-record schema.",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "output_schema_status": "PRESENT as a generated shim at command-center/schema/research-claim-record.schema.json. The shim carries no class-specific payload constraints (delegates to platform/schema/artifact-class-profiles.schema.json#/$defs/research-claim-record). This unit does not author the shared schema file. Envelope fields follow the list named in RES-0001's catalog question (claim id, canonical mechanism, source lineage, evidence tier, confidence band, named settling probe, edges, freshness stamp, snapshot sha256).",
+ "pathological_threshold": {
+  "copied_asch_368_percent": false,
+  "operational_not_clinical": true,
+  "rule": "A panel is PATHOLOGICAL when any portable detector fires (instant round-1 unanimity, minority seat-drop while the council continues, or non-independent vote collapse onto the next majority).",
+  "why_not_asch_percent": "Asch's 36.8% is a human critical-trial public-error rate against a <1% no-majority baseline. Copying it as a cutoff on agent Vote.claim_id agreement would mix populations and drop the private-judgment / trial-type / ground-truth terms. That copy is REFUTED as a portable threshold."
+ },
+ "question": "Which conformity and groupthink measurements from human group research (Asch-style conformity rate, premature-closure timing, dissent-suppression markers) are mechanically computable from an agent transcript, and what threshold marks a pathological panel?",
+ "question_or_target": "Which conformity and groupthink measurements from human group research (Asch-style conformity rate, premature-closure timing, dissent-suppression markers) are mechanically computable from an agent transcript, and what threshold marks a pathological panel?",
+ "refuted_claims": [
+  {
+   "claim": "Use Asch's 36.8% as the pathological cutoff on agent council Vote.claim_id agreement.",
+   "reason": "Missing private_judgment, trial_type, and ground_truth; wrong population; would drop the <1% control baseline.",
+   "verdict": "REFUTED"
+  },
+  {
+   "claim": "Score Janis's eight groupthink symptoms as a numeric detector over the current transcript.",
+   "reason": "No morale / invulnerability / morality fields exist. Janis 1972 is qualitative; no numeric threshold was retrieved from that book in this unit.",
+   "verdict": "REFUTED"
+  },
+  {
+   "claim": "Premature-closure timing is the wall-clock of Event.elapsed_ms against a published minute cutoff.",
+   "reason": "elapsed_ms exists (so duration is mechanically readable) but neither Asch nor Stasser & Titus publish a minute cutoff with a baseline. A fabricated T would be E3 and cannot promote a detector. The portable timing detector is round-index instant unanimity, not milliseconds.",
+   "verdict": "REFUTED"
+  }
+ ],
+ "report_kind": "research-claim-record",
+ "snapshot_sha256": "76a5e76ec5f65ed9af127b452528d94af47f090e58c64c049299e15118b59461",
+ "source_lineage": [
+  {
+   "locator": "Scientific American 193(5) pp.31-35, including the 12-of-18 critical-trial series and the majority-size series",
+   "retrieved": "open PDF extract 2026-08-24",
+   "source_id": "asch-1955-sciam",
+   "uri": "doi:10.1038/scientificamerican1155-31"
+  },
+  {
+   "locator": "Psychological Monographs 70(9) 1-70, archival report",
+   "retrieved": "DOI + secondary concordance with the 1955 numbers",
+   "source_id": "asch-1956-monograph",
+   "uri": "doi:10.1037/h0093718"
+  },
+  {
+   "locator": "Journal of Personality and Social Psychology 48(6) Table 3",
+   "retrieved": "publisher PDF extract 2026-08-24",
+   "source_id": "stasser-titus-1985",
+   "uri": "doi:10.1037/0022-3514.48.6.1467"
+  },
+  {
+   "locator": "tools/council/kernel.py Event.as_dict",
+   "source_id": "kernel-event",
+   "uri": "file:tools/council/kernel.py"
+  },
+  {
+   "locator": "tools/council/antifail/unanimity.py Vote/Brief/CouncilSnapshot",
+   "source_id": "unanimity-snapshot",
+   "uri": "file:tools/council/antifail/unanimity.py"
+  },
+  {
+   "locator": "tools/council/topology/chair.py FloorRequest/Recognition/Submission",
+   "source_id": "chair-journal",
+   "uri": "file:tools/council/topology/chair.py"
+  },
+  {
+   "locator": "configurations.items.participant_action_logs",
+   "source_id": "council-audit-schema",
+   "uri": "file:command-center/schema/council-audit.schema.json"
+  }
+ ],
+ "status": "DELIVERED",
+ "tests_required": [
+  "name the transcript field each detector reads and confirm the field exists in the council schema",
+  "control: at least one classical measure must be marked not-portable with the reason"
+ ],
+ "title": "Port the operational groupthink detectors from social psychology to agent panels",
+ "transcript_field_inventory": {
+  "classical_names_absent": [
+   "critical_trial",
+   "ground_truth",
+   "illusion_of_invulnerability",
+   "morale",
+   "private_judgment",
+   "private_vote",
+   "trial_type"
+  ],
+  "count": 51,
+  "names": [
+   "briefs.evidence_ids",
+   "briefs.independent",
+   "briefs.participant_id",
+   "briefs.text",
+   "capture_verdict.actual_counts",
+   "capture_verdict.chi_square",
+   "capture_verdict.fair_counts",
+   "capture_verdict.flagged",
+   "capture_verdict.max_abs_diff",
+   "capture_verdict.n_slots",
+   "capture_verdict.reason",
+   "capture_verdict.starved",
+   "chair_artifact.agenda",
+   "chair_artifact.chair",
+   "chair_artifact.chair_history",
+   "chair_artifact.events_recorded",
+   "chair_artifact.kind",
+   "chair_artifact.local_operations",
+   "chair_artifact.recognition_distribution",
+   "chair_artifact.roster",
+   "chair_artifact.submissions",
+   "claims",
+   "council_id",
+   "disagreement_rounds",
+   "events.elapsed_ms",
+   "events.kind",
+   "events.obligations",
+   "events.obligations_met",
+   "events.obligations_missing",
+   "events.output",
+   "events.participant_id",
+   "events.round_index",
+   "events.seq",
+   "events.status",
+   "events.turn_index",
+   "family",
+   "participants.id",
+   "participants.role",
+   "question",
+   "recognitions.chair_id",
+   "recognitions.participant_id",
+   "recognitions.round_index",
+   "rounds_elapsed",
+   "submissions.participant_id",
+   "submissions.round_index",
+   "submissions.submission_id",
+   "submissions.text",
+   "votes.claim_id",
+   "votes.confidence",
+   "votes.participant_id",
+   "votes.round"
+  ],
+  "sources": [
+   "tools/council/antifail/unanimity.py:Brief.to_dict",
+   "tools/council/antifail/unanimity.py:CouncilSnapshot",
+   "tools/council/antifail/unanimity.py:Participant.to_dict",
+   "tools/council/antifail/unanimity.py:Vote.to_dict",
+   "tools/council/kernel.py:Event.as_dict",
+   "tools/council/topology/chair.py:CaptureVerdict.as_dict",
+   "tools/council/topology/chair.py:ChairLedSession.artifact",
+   "tools/council/topology/chair.py:Recognition",
+   "tools/council/topology/chair.py:Submission"
+  ]
+ }
+}

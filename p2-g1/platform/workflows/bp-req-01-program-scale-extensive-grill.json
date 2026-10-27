@@ -1,0 +1,1015 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-req-01-program-scale-extensive-grill",
+  "name": "Program-Scale Extensive Grill",
+  "description": "Blueprint 23 of 96 (design card BP-REQ-01, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:1182). MECHANISM: interrogate an under-specified program ONE DECISION AT A TIME, foundational questions before detail questions, each question carrying a RECOMMENDATION - a bare question is a process violation - until the decision space is closed and durably recorded. The scarce resource this workflow spends is OWNER ATTENTION, not tokens, so the loop parks with the remaining questions ordered by consequence rather than guessing. It is the only blueprint in this range whose loop body contains a human checkpoint, and the only one that delegates to a child workflow (constraint inversion, when the decision list feels boxed in).",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy",
+    "collective-intelligence-and-meta-workflows"
+  ],
+  "tags": [
+    "grill",
+    "decision-log",
+    "foundational-first",
+    "owner-attention",
+    "bp-req-01"
+  ],
+  "flagship": true,
+  "params": {
+    "program_intent": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "What the program is for. Under-specified on purpose - closing that is the job."
+    },
+    "known_constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Constraints the owner already stated. Passed to the constraint-inversion child workflow if the decision list turns out boxed in.",
+      "default": []
+    },
+    "mode": {
+      "type": "enum",
+      "enum": [
+        "expansion",
+        "modification",
+        "scope-change",
+        "modernization",
+        "better-ideas",
+        "red-team",
+        "simplification",
+        "prioritization"
+      ],
+      "default": "expansion",
+      "description": "The eight grill modes from the source skill. UNVERIFIED whether all eight are ever exercised - the settling experiment is to tag past grills by mode and count coverage."
+    },
+    "brainstorm_lenses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 2,
+      "max_items": 40,
+      "description": "Lenses for the S1 fan-out that surfaces directions BEYOND the stated ask",
+      "default": [
+        "adjacent-capability",
+        "what-to-kill",
+        "owner-attention-cost",
+        "failure-first",
+        "cheapest-viable",
+        "ten-x-ambition"
+      ]
+    },
+    "ask_cost_minutes": {
+      "type": "integer",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 60,
+      "description": "Modelled cost of asking the owner one question. The loop stops when the remaining questions are all lower-consequence than this."
+    },
+    "invert_constraints_when_boxed_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "Delegate to the constraint-inversion child workflow when the decision list reads as boxed in"
+    }
+  },
+  "roles": {
+    "scout": {
+      "description": "Scouts existing context and memory BEFORE any question is asked; the measured failure is asking the owner something the ledger already answered",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "mcp__basic-memory__search_notes",
+        "Write(command-center/grill/**)"
+      ],
+      "write_paths": [
+        "command-center/grill/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "direction-finder": {
+      "description": "One lens per agent, surfacing directions beyond the stated ask; blind to siblings",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/grill/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "question-orderer": {
+      "description": "Structures the categorized decision list FOUNDATIONAL FIRST - a detail decision taken on a foundation that later flips is waste",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/grill/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "recommender": {
+      "description": "Attaches a recommendation to every question; a bare question is a process violation, because it hands the owner work instead of a decision",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/grill/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "ledger-writer": {
+      "description": "Records each decision durably as it is taken, so a compaction cannot lose the middle of the interrogation",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/grill/**)",
+        "mcp__basic-memory__write_note"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the scarce resource. Every question spends owner attention, which is why ordering and recommendations are mandatory.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp__basic-memory__search_notes",
+      "mcp__basic-memory__write_note",
+      "Write(command-center/grill/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/grill/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == question_orderer",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "the ordering rule is the load-bearing part of this blueprint; a mis-ordered list wastes the owner's attention on details that a later foundational answer invalidates"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "subworkflows": {
+    "bp-brn-03-constraint-inversion": {
+      "workflow_id": "bp-brn-03-constraint-inversion",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/bp-brn-03-constraint-inversion.json"
+    }
+  },
+  "gates": {
+    "foundational-before-detail": {
+      "predicate": "custom-expression",
+      "expression": "detail_questions_before_foundational == 0 AND every_question_has_a_recommendation == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "recall-ran-first": {
+      "predicate": "custom-expression",
+      "expression": "recall_executed == true AND questions_already_answered_in_ledger == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "decision-log-is-authoritative": {
+      "predicate": "custom-expression",
+      "expression": "decisions_without_rationale == 0 AND parked_questions_ordered_by_consequence == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "scout",
+      "title": "S0 SCOUT existing context and memory before asking the owner anything",
+      "kind": "task",
+      "role": "scout",
+      "checkpoint": true,
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WREQ-0101",
+        "title": "Scout repo context and durable memory for what is already decided",
+        "phase": "2B",
+        "question_or_target": "Recall what is already known or already decided about this program, so no owner attention is spent on a settled question.",
+        "inputs": [
+          "params.program_intent",
+          "params.known_constraints"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "scout",
+          "basis": "recall before asking; the dominant measured failure is re-asking what a note already answers"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "mcp__basic-memory__search_notes",
+          "Write(command-center/grill/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/grill/bp-req-01/scout.json",
+        "output_schema": "command-center/schema/capability-index.schema.json",
+        "evidence_requirement": "the scout lists the search surfaces it covered and, for each already-decided item, cites the note or ledger entry - so a later question that duplicates one is mechanically detectable",
+        "tests_required": [
+          "a question whose answer already exists in the ledger must be dropped, not asked",
+          "both-states control: seed a ledger answer and confirm the matching question is dropped; remove it and confirm the question is asked"
+        ],
+        "reviewer_requirement": "the question orderer confirms no question in the final list duplicates a scouted answer",
+        "completion_sentinel": "SUCCESS:WREQ-0101 emitted when scout.json exists, parses, and lists the covered search surfaces; otherwise FAILED:WREQ-0101 <reason>",
+        "retry_policy": "two strikes then pivot: record the surfaces that could not be searched rather than claiming a complete recall",
+        "failure_classification": [
+          "recall-not-run",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grill/bp-req-01/scout.json",
+          "schema_ref": "command-center/schema/capability-index.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WREQ-0101",
+          "consumers": [
+            "recall-gate",
+            "brainstorm",
+            "structure"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recall-gate",
+      "title": "S0b No owner attention is spent before recall has run",
+      "kind": "gate",
+      "depends_on": [
+        "scout"
+      ],
+      "gate_ref": "recall-ran-first"
+    },
+    {
+      "id": "brainstorm",
+      "title": "S1 BRAINSTORM fan-out to surface directions BEYOND the stated ask",
+      "kind": "fanout",
+      "depends_on": [
+        "recall-gate"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "brainstorm_lenses",
+        "item_var": "lens",
+        "key_field": "lens"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 250,
+      "max_items": 40,
+      "on_item_failure": "continue",
+      "timeout_seconds": 3600,
+      "body": [
+        {
+          "id": "direction-under-lens",
+          "title": "Surface directions under one lens",
+          "kind": "task",
+          "role": "direction-finder",
+          "timeout_seconds": 1200,
+          "work_unit": {
+            "id": "WREQ-0102",
+            "title": "Surface program directions under one assigned lens",
+            "phase": "2B",
+            "question_or_target": "Under the assigned lens, name directions this program could take that the stated ask does not mention, and the decision each direction would require.",
+            "inputs": [
+              "command-center/grill/bp-req-01/scout.json",
+              "item.lens"
+            ],
+            "dependencies": [
+              "WREQ-0101"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "direction-finder",
+              "basis": "the value of a grill is the questions the owner had not thought to ask"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Write(command-center/grill/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/grill/bp-req-01/directions/lens.json",
+            "output_schema": "command-center/schema/novelty-ledger.schema.json",
+            "evidence_requirement": "each direction states the DECISION it would force and its consequence class, so the orderer can rank it rather than guess",
+            "tests_required": [
+              "a direction with no forced decision is not a direction and is dropped",
+              "a well-scoped program must produce FEW directions - the blueprint should decline to grill rather than manufacture questions"
+            ],
+            "reviewer_requirement": "no per-lens reviewer; the orderer is the review and sees every lens",
+            "completion_sentinel": "SUCCESS:WREQ-0102 emitted per lens when the artifact exists and parses; a barren lens emits FAILED:WREQ-0102 null-lens with its reasoning recorded",
+            "retry_policy": "one retry with the lens restated, then record a null lens and continue",
+            "failure_classification": [
+              "null-lens",
+              "severed-stream"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.5,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "invert-constraints",
+      "title": "S1b CONDITIONAL child workflow - invert the constraints when the decision list reads boxed in",
+      "kind": "subworkflow",
+      "depends_on": [
+        "brainstorm"
+      ],
+      "when": "invert_constraints_when_boxed_in == true",
+      "timeout_seconds": 7200,
+      "workflow": {
+        "workflow_id": "bp-brn-03-constraint-inversion",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "hard_ban_policy": "refuse-and-record"
+      },
+      "isolation": "none",
+      "propagate_failure": false,
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-03/newly-visible-options.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 640,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0304",
+          "consumers": [
+            "structure"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structure",
+      "title": "S2 STRUCTURE a categorized decision list, FOUNDATIONAL FIRST, each with a recommendation",
+      "kind": "task",
+      "role": "question-orderer",
+      "depends_on": [
+        "invert-constraints"
+      ],
+      "checkpoint": true,
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "WREQ-0103",
+        "title": "Order the decision list foundational-first and attach a recommendation to every question",
+        "phase": "2B",
+        "question_or_target": "Build the categorized decision list, ordered so that every question whose answer changes other questions comes first, and attach a recommendation to each.",
+        "inputs": [
+          "command-center/grill/bp-req-01/directions",
+          "command-center/grill/bp-req-01/scout.json",
+          "params.mode"
+        ],
+        "dependencies": [
+          "WREQ-0102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "question-orderer",
+          "basis": "max effort: the ordering IS the mechanism, and a wrong order silently wastes the scarcest resource in the system"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/grill/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/grill/bp-req-01/decision-list.json",
+        "output_schema": "command-center/schema/option-closure.schema.json",
+        "evidence_requirement": "each question records which OTHER questions its answer would change - the dependency edge is what makes foundational-first checkable rather than a matter of taste - plus a recommendation with its reasoning",
+        "tests_required": [
+          "a program with a hidden foundational choice must ask it FIRST, not tenth - the design card's primary benchmark",
+          "a bare question with no recommendation must fail the foundational-before-detail gate",
+          "both-states control: reorder one detail question ahead of its foundation and confirm detail_questions_before_foundational rises above zero and the gate FAILS"
+        ],
+        "reviewer_requirement": "one independent reader checks the dependency edges: no question may precede a question it depends on",
+        "completion_sentinel": "SUCCESS:WREQ-0103 emitted when decision-list.json exists, parses, every question carries a recommendation, and no question precedes one it depends on; otherwise FAILED:WREQ-0103 <reason>",
+        "retry_policy": "two strikes then pivot: emit the list with the ambiguous ordering flagged rather than a confidently wrong order",
+        "failure_classification": [
+          "ordering-violation",
+          "bare-question",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grill/bp-req-01/decision-list.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WREQ-0103",
+          "consumers": [
+            "ordering-gate",
+            "ask-loop"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ordering-gate",
+      "title": "S2b Foundational before detail, and no bare questions",
+      "kind": "gate",
+      "depends_on": [
+        "structure"
+      ],
+      "gate_ref": "foundational-before-detail"
+    },
+    {
+      "id": "ask-loop",
+      "title": "S3-S4 ASK one question at a time with its recommendation, and RECORD each answer immediately",
+      "kind": "loop",
+      "depends_on": [
+        "ordering-gate"
+      ],
+      "loop_var": "question_index",
+      "timeout_seconds": 86400,
+      "body": [
+        {
+          "id": "ask-one",
+          "title": "Ask exactly ONE question, carrying its recommendation",
+          "kind": "human_checkpoint",
+          "prompt": "One decision at a time. The recommendation and its reasoning are attached; choose it, choose an alternative, or park this question. Parking is a legitimate answer and the remaining questions stay ordered by consequence.",
+          "approvers": [
+            "owner"
+          ],
+          "approval_mode": "owner-only",
+          "quorum": 1,
+          "timeout_seconds": 86400,
+          "on_timeout": "escalate",
+          "owner_approval_required": true,
+          "options": [
+            "accept-recommendation",
+            "choose-alternative",
+            "park-this-question",
+            "stop-the-grill"
+          ],
+          "decision_artifact": {
+            "path": "command-center/grill/bp-req-01/answers/question.json",
+            "schema_ref": "command-center/schema/decision-record.schema.json",
+            "min_bytes": 128,
+            "register_in_manifest": true,
+            "sentinel": "SUCCESS:WREQ-0104",
+            "consumers": [
+              "record-answer",
+              "converge"
+            ]
+          }
+        },
+        {
+          "id": "record-answer",
+          "title": "RECORD the answer durably before the next question is asked",
+          "kind": "task",
+          "role": "ledger-writer",
+          "depends_on": [
+            "ask-one"
+          ],
+          "checkpoint": true,
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "WREQ-0105",
+            "title": "Record one owner decision durably with its rationale",
+            "phase": "2B",
+            "question_or_target": "Append the owner's answer, the recommendation that was offered, and the rationale to the decision log, then checkpoint before asking the next question.",
+            "inputs": [
+              "command-center/grill/bp-req-01/answers",
+              "command-center/grill/bp-req-01/decision-list.json"
+            ],
+            "dependencies": [
+              "WREQ-0104"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "ledger-writer",
+              "basis": "durability per answer is what makes the grill survive a compaction mid-interrogation"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/grill/**)",
+              "mcp__basic-memory__write_note"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 600,
+            "output_path": "command-center/grill/bp-req-01/decision-log.json",
+            "output_schema": "command-center/schema/decision-record.schema.json",
+            "evidence_requirement": "each entry records the question, the recommendation offered, the owner's choice and the rationale - including when the owner chose AGAINST the recommendation, which is the most informative case and the easiest to lose",
+            "tests_required": [
+              "an answer recorded without its rationale must fail the decision-log gate",
+              "a choice AGAINST the recommendation must be recorded as such, not normalised to the recommendation",
+              "both-states control: kill the run after answer 3 and resume - the log must contain exactly 3 answers and the loop must continue at question 4"
+            ],
+            "reviewer_requirement": "one independent reader confirms every logged answer names the recommendation it was measured against",
+            "completion_sentinel": "SUCCESS:WREQ-0105 emitted per answer when decision-log.json exists, parses, and the new entry carries question, recommendation, choice and rationale; otherwise FAILED:WREQ-0105 <reason>",
+            "retry_policy": "no retry that could double-append; the idempotency key is workflow plus stage plus question index",
+            "failure_classification": [
+              "rationale-missing",
+              "double-append",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 200,
+        "min_iterations": 1,
+        "converged_when": "open_decisions == 0 OR remaining_consequence_below_ask_cost == true",
+        "no_progress_rounds": 3,
+        "metrics": [
+          {
+            "name": "open_decisions",
+            "direction": "decrease",
+            "target": 0
+          },
+          {
+            "name": "remaining_consequence_below_ask_cost",
+            "direction": "stabilize"
+          },
+          {
+            "name": "owner_attention_minutes_spent",
+            "direction": "increase"
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "converge",
+      "title": "S5 CONVERGE to the authoritative decision log, parking the rest ordered by consequence",
+      "kind": "task",
+      "role": "question-orderer",
+      "depends_on": [
+        "ask-loop"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WREQ-0106",
+        "title": "Emit the authoritative decision log and the consequence-ordered parked list",
+        "phase": "2B",
+        "question_or_target": "Emit the authoritative decision log, plus the questions that remain, ordered by consequence, so the next session resumes rather than restarts.",
+        "inputs": [
+          "command-center/grill/bp-req-01/decision-log.json",
+          "command-center/grill/bp-req-01/decision-list.json"
+        ],
+        "dependencies": [
+          "WREQ-0105"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "question-orderer",
+          "basis": "the parked list is the handoff; a wrong order there wastes the next session too"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/grill/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/grill/bp-req-01/authoritative-decision-log.json",
+        "output_schema": "command-center/schema/decision-trace.schema.json",
+        "evidence_requirement": "the log states next_stage plan, and every parked question carries its consequence rating and the reason it was not asked - so parking is a recorded judgement, never an omission",
+        "tests_required": [
+          "a parked question with no consequence rating fails the decision-log gate",
+          "the log must declare next_stage == plan so the planning stage has a defined input",
+          "both-states control: remove one consequence rating and confirm parked_questions_ordered_by_consequence goes false and the gate FAILS"
+        ],
+        "reviewer_requirement": "one independent reader confirms the parked ordering is by consequence and not by original list position",
+        "completion_sentinel": "SUCCESS:WREQ-0106 emitted when authoritative-decision-log.json exists, parses, declares next_stage plan, and every parked question carries a consequence rating; otherwise FAILED:WREQ-0106 <reason>",
+        "retry_policy": "two strikes then pivot: emit with the unrated questions flagged rather than an ordering that looks authoritative and is not",
+        "failure_classification": [
+          "consequence-unrated",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grill/bp-req-01/authoritative-decision-log.json",
+          "schema_ref": "command-center/schema/decision-trace.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WREQ-0106",
+          "consumers": [
+            "log-gate",
+            "owner",
+            "bp-req-02-recursive-decision-ledger-walk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "log-gate",
+      "title": "S5b The decision log is authoritative only if every decision has a rationale and every parked question a consequence",
+      "kind": "gate",
+      "depends_on": [
+        "converge"
+      ],
+      "gate_ref": "decision-log-is-authoritative"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "decision-list-exhausted",
+      "expression": "open_decisions == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "recall_executed == true AND detail_questions_before_foundational == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "remaining-questions-not-worth-asking",
+      "expression": "remaining_consequence_below_ask_cost == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "answers_recorded >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "owner-unavailable-park-the-rest",
+      "expression": "owner_available == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 15,
+    "jitter": false,
+    "retry_on": [
+      "null-lens",
+      "severed-stream",
+      "bare-question"
+    ],
+    "no_retry_on": [
+      "double-append",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "ordering-violation",
+      "bare-question",
+      "rationale-missing",
+      "consequence-unrated",
+      "null-lens"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-req-01"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-req-01",
+    "granularity": "work-unit",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 2592000,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-req-01.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs",
+      "timings"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "store": "command-center/cache/bp-req-01",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "scout-hash-change",
+      "mode-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-req-01-plan.json",
+    "forbid_tools": [
+      "Write(command-center/grill/**)",
+      "mcp__basic-memory__write_note"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "min": 0.4,
+      "expected": 2.0,
+      "max": 8.0
+    },
+    "wallclock_seconds": {
+      "min": 1800,
+      "expected": 21600,
+      "max": 86400
+    },
+    "tokens": {
+      "min": 80000,
+      "expected": 350000,
+      "max": 1200000
+    },
+    "tool_calls": {
+      "expected": 70,
+      "max": 300
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/grill/bp-req-01/**; the real cost is OWNER ATTENTION, which is why wallclock is dominated by the human checkpoint rather than by compute",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-req-01.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/grill-me-extensive",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "workflows/grill.yaml",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/recursive-decision-ledger",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/grill-me-extensive",
+      "workflows/grill.yaml"
+    ]
+  },
+  "outputs": {
+    "authoritative_decision_log": {
+      "path": "command-center/grill/bp-req-01/authoritative-decision-log.json",
+      "schema_ref": "command-center/schema/decision-trace.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-req-02-recursive-decision-ledger-walk",
+        "bp-cnc-05-governance-decision-gate"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 23,
+    "design_card": "BP-REQ-01",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1182",
+    "acquisition_route": "ADOPT",
+    "state_v": [
+      "FOUND"
+    ],
+    "size_v": [
+      "NATIVE"
+    ],
+    "distinct_mechanism": "recall-gated before any owner question, a lens fan-out to find questions the owner had not thought of, a foundational-first ordering enforced by dependency edges, a serial loop whose body IS a human checkpoint plus an immediate durable write, an owner-attention cost model as the stopping rule, and a conditional child workflow for constraint inversion",
+    "not_a_duplicate_because": "BP-REQ-03 is a 1-3 question EVPI-gated pre-execution clarify; this is a program-scale multi-session interrogation with its own decision ledger. BP-REQ-02 manages a DEPENDENT tree with a frontier; this asks a FLAT ordered list. Within this range it is the only blueprint with a subworkflow stage and the only one whose loop body contains a human checkpoint.",
+    "contraindications": [
+      "a well-scoped task - that is over-process, and the blueprint should DECLINE to grill rather than manufacture questions",
+      "mid-execution - the behaviour contract forbids mid-task clarification",
+      "a specific artifact - a design council is the right instrument there"
+    ],
+    "eight_grill_modes": [
+      "expansion",
+      "modification",
+      "scope-change",
+      "modernization",
+      "better-ideas",
+      "red-team",
+      "simplification",
+      "prioritization"
+    ],
+    "worked_examples": [
+      {
+        "name": "scope the blueprint programme with a hidden foundational choice",
+        "params": {
+          "program_intent": "Build a library of executable workflow blueprints for this estate",
+          "known_constraints": [
+            "no second orchestration runtime",
+            "release mode is PR-ONLY"
+          ],
+          "mode": "expansion",
+          "brainstorm_lenses": [
+            "adjacent-capability",
+            "what-to-kill",
+            "owner-attention-cost",
+            "failure-first"
+          ],
+          "ask_cost_minutes": 4,
+          "invert_constraints_when_boxed_in": false
+        },
+        "expected_artifacts": [
+          "command-center/grill/bp-req-01/scout.json",
+          "command-center/grill/bp-req-01/decision-list.json",
+          "command-center/grill/bp-req-01/decision-log.json",
+          "command-center/grill/bp-req-01/authoritative-decision-log.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WREQ-0106 with next_stage == plan",
+        "walkthrough": "S0 recalls that release mode PR-ONLY is already a binding decision and drops the two questions that would have re-asked it. S0b passes. S1 runs four lenses; what-to-kill surfaces the hidden foundational question - `is a blueprint a JSON definition validated by a schema, or a prose card?` - which nothing in the stated ask mentions and on which twelve later questions depend. S2 orders it FIRST with the recommendation `JSON definition, because a prose card cannot be gated` and its dependency edges to the twelve. S2b passes: zero detail questions precede their foundation, every question has a recommendation. S3-S4 asks it; the owner accepts; the answer is written and checkpointed before question two. Nine more questions are answered; the remaining six are all rated lower-consequence than the four-minute ask cost, so remaining_consequence_below_ask_cost becomes true and the loop exits at iteration 10 of a 200 bound. S5 emits the log with next_stage plan and the six parked questions ordered by consequence.",
+        "expected_gate_outcomes": {
+          "recall-ran-first": "PASS - recall executed, 0 questions already answered in the ledger",
+          "foundational-before-detail": "PASS - 0 ordering violations, every question carries a recommendation",
+          "decision-log-is-authoritative": "PASS - 0 decisions without rationale, 6 parked questions all rated"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a well-scoped task and a bare question",
+        "params": {
+          "program_intent": "Rename one function and update its two call sites",
+          "mode": "simplification",
+          "brainstorm_lenses": [
+            "what-to-kill",
+            "failure-first"
+          ],
+          "ask_cost_minutes": 4
+        },
+        "expected_artifacts": [
+          "command-center/grill/bp-req-01/decision-list.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WREQ-0106 with zero questions asked",
+        "walkthrough": "The task is already specified. Both lenses return null with their reasoning recorded, the decision list is empty, and remaining_consequence_below_ask_cost is true before the first question, so the loop runs its minimum single iteration and exits without spending any owner attention. The blueprint DECLINES to grill - the design card's second benchmark. The paired negative arm: if a question had been emitted without a recommendation, every_question_has_a_recommendation would be false and foundational-before-detail would FAIL with on_fail=repair, because handing the owner a bare question is a process violation rather than a cheap shortcut.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "a program with a hidden foundational choice - it must be asked first, not tenth",
+      "a well-scoped task - the blueprint should decline to grill rather than manufacture questions"
+    ],
+    "unverified": "UNVERIFIED whether all eight grill modes are ever exercised; settling experiment = tag past grills by mode and count coverage. The source skill and its vendor-neutral YAML are deployed and exercised, so no adoption proof is needed for the mechanism itself. Confidence: almost-certain (90-99%).",
+    "council_presets_referenced": [
+      "platform/council/presets/c-s22-nominal-group-6.councilspec.json",
+      "platform/council/presets/C-X46-gem-hunt-40lens.councilspec.json"
+    ]
+  }
+}

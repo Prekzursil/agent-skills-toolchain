@@ -1,0 +1,324 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1659,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/process-table-census.json",
+   "role": "primary",
+   "sha256": "ba0d1aa52a8e0bfefba9a451869e6d53e23917a0812028f0fad302d33b97ace5"
+  },
+  {
+   "bytes": 1138,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/fault-injection-receipt.schema.json",
+   "role": "supporting",
+   "sha256": "c4c394a910661a45108812156993597780479547f0afe20dbe3eeec918d42137"
+  },
+  {
+   "bytes": 6581,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/harness.py",
+   "role": "supporting",
+   "sha256": "660c582faa69611c9a116927214c1c4439aceedd0deaad974a47faa3c37980f4"
+  },
+  {
+   "bytes": 433,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/worker.py",
+   "role": "supporting",
+   "sha256": "31ef63162f22dce0a3f9ec2569dde66dadf48c5261d01a16174089cc73e78a8d"
+  },
+  {
+   "bytes": 3889,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/probe1_process_count_scales.py",
+   "role": "supporting",
+   "sha256": "74d5413083a88bfe537b6c0b92768b8478d376af294c14a6a99ec68221eb0bff"
+  },
+  {
+   "bytes": 5562,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/probe2_disabled_server_zero.py",
+   "role": "supporting",
+   "sha256": "852857a82a7d7c6e82d60ec708b1eda5cfcc0003a375e89503f62a8e09f49212"
+  },
+  {
+   "bytes": 1014,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/probe1.out.txt",
+   "role": "log",
+   "sha256": "f43f39d40fac2c2037bb176a2366b4fde54bb963a3af9f0244fa3326e9a79c04"
+  },
+  {
+   "bytes": 872,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0102/probe2.out.txt",
+   "role": "log",
+   "sha256": "541824ed1481437d7d6f6b104a2928a33b8ba83fae9f4e638bb744bcd59cfc86"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0102.json",
+   "consumer": "platform/lib/schema_resolver.py:validate_artifact",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c schema_resolver.validate_artifact(TST-0102.json, fault-injection-receipt)",
+    "exit_code": 0,
+    "fingerprint": "b43eac980880ffaaef2356d9a4b5d91c713ad4a1c67342492ff7dd40a7b027cf",
+    "method": "schema-validate",
+    "raw_output": "schema_error_count=0\nSUCCESS:schema-valid\n",
+    "role": "source"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/TST-0102.json",
+   "consumer": "json.loads",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c json.load(command-center/p2-wave/probes/TST-0102/process-table-census.json)",
+    "exit_code": 0,
+    "fingerprint": "d420e6d2756568c786e0a3dca735a6ed3c9dd593cfd7a300969745aa13459836",
+    "method": "command",
+    "raw_output": "census_json_loads=true\nSUCCESS:census-parse\n",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0102/probe1.out.txt:1",
+   "claim": "After opening N=3 sandbox sessions against M=4 MCP-style servers, the OS process table showed eager_count=12 (equal to N*M=12) and shared_count=4 (equal to M). The designed policy is one shared child per enabled server, not one child per (session, server).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe1_process_count_scales.py",
+     "exit_code": 0,
+     "fingerprint": "02652498a67394e5ced731c3edcc74c711ae2f664a747880154f10efabbd8701",
+     "method": "process-table",
+     "raw_output": "{\n  \"config_path\": \"/tmp/tst0102-p1-elc78kkg/mcp-config.json\",\n  \"eager_count\": 12,\n  \"instrument\": \"os-process-table\",\n  \"multiplicative_product\": 12,\n  \"pass\": true,\n  \"per_server_eager\": {\n    \"alpha\": 3,\n    \"bravo\": 3,\n    \"charlie\": 3,\n    \"delta\": 3\n  },\n  \"per_server_shared\": {\n    \"alpha\": 1,\n    \"bravo\": 1,\n    \"charlie\": 1,\n    \"delta\": 1\n  },\n  \"probe\": \"probe1-process-count-scales\",\n  \"server_names\": [\n    \"alpha\",\n    \"bravo\",\n    \"charlie\",\n    \"delta\"\n  ],\n  \"servers\": 4,\n  \"sessions\": 3,\n  \"shared_count\": 4,\n  \"unit_id\": \"TST-0102\",\n  \"verdict\": {\n    \"broken_policy_fails_designed_check\": true,\n    \"designed_ok\": true,\n    \"eager_count\": 12,\n    \"eager_is_multiplicative\": true,\n    \"multiplicative_product\": 12,\n    \"servers\": 4,\n    \"sessions\": 3,\n    \"shared_count\": 4,\n    \"shared_is_not_multiplicative\": true,\n    \"shared_is_server_count\": true\n  }\n}\neager=12 shared=4 product=12 designed_ok=True both_states_red_on_eager=True\nSUCCESS:TST-0102-probe1 process-count-scales-as-designed",
+     "role": "source"
+    },
+    {
+     "command": "read command-center/p2-wave/probes/TST-0102/harness.py spawn_sessions eager-vs-shared",
+     "fingerprint": "52557a689e95b838f22348a160f71879666cb05d905ad4211a51848895f5d512",
+     "method": "file-read",
+     "raw_output": "EFFECTIVE_SCOPE = \"user\"\n            \"servers\": {name: {\"enabled\": enabled if scope == EFFECTIVE_SCOPE else True} for name in servers}\n        \"effective_scope\": EFFECTIVE_SCOPE,\ndef is_effectively_enabled(config: dict, server: str) -> bool:\n    scope = str(config.get(\"effective_scope\") or EFFECTIVE_SCOPE)\ndef spawn_sessions(\n    if mode == \"eager\":\n    elif mode == \"shared\":",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0102/probe2.out.txt:1",
+   "claim": "Disabling charlie at inert scope project left 1 live process(es) even though that config file said disabled; the same disable at effective scope user produced process-table count -1. Other enabled servers stayed at count 1 ({'alpha': 1, 'bravo': 1, 'delta': 1}). Config intent alone is not evidence.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe2_disabled_server_zero.py",
+     "exit_code": 0,
+     "fingerprint": "cfa68d0461c3046cfb2c61acff5b003838379bdafd4a2e71ddb98b1f325c716e",
+     "method": "process-table",
+     "raw_output": "{\n  \"baseline_target_live\": 1,\n  \"config_alone_is_not_evidence\": true,\n  \"effective_disable_config_says_disabled\": true,\n  \"effective_disable_process_table_count\": 0,\n  \"effective_disable_process_table_zero\": true,\n  \"effective_scope\": \"user\",\n  \"inert_disable_config_says_disabled\": true,\n  \"inert_disable_process_table_count\": 1,\n  \"inert_disable_process_table_still_live\": true,\n  \"inert_disable_still_effective\": true,\n  \"inert_scope\": \"project\",\n  \"instrument\": \"os-process-table\",\n  \"other_servers_after_effective_disable\": {\n    \"alpha\": 1,\n    \"bravo\": 1,\n    \"delta\": 1\n  },\n  \"pass\": true,\n  \"probe\": \"probe2-disabled-server-zero\",\n  \"sessions\": 2,\n  \"target_server\": \"charlie\",\n  \"unit_id\": \"TST-0102\"\n}\ninert_live=1 effective_zero=0 others={'alpha': 1, 'bravo': 1, 'delta': 1} config_alone_not_evidence=True\nSUCCESS:TST-0102-probe2 disabled-server-spawns-zero",
+     "role": "source"
+    },
+    {
+     "command": "read command-center/p2-wave/probes/TST-0102/process-table-census.json config_corroboration",
+     "fingerprint": "a8a5b62e94a74eb22a93f9b23a415a1115dfd6bec990330206efece0c14b20c2",
+     "method": "file-read",
+     "raw_output": "{\n  \"config_alone_is_not_evidence\": true,\n  \"effective_disable_process_table_zero\": true,\n  \"inert_disable_config_says_disabled\": true,\n  \"inert_disable_process_table_still_live\": true\n}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "config_corroboration": {
+   "config_alone_is_not_evidence": true,
+   "effective_scope": "user",
+   "inert_scope": "project",
+   "other_servers_after_effective_disable": {
+    "alpha": 1,
+    "bravo": 1,
+    "delta": 1
+   },
+   "target_server": "charlie"
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe1_process_count_scales.py",
+    "exit_code": 0,
+    "id": "probe1"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe2_disabled_server_zero.py",
+    "exit_code": 0,
+    "id": "probe2"
+   }
+  ],
+  "process_table": {
+   "eager_count": 12,
+   "instrument": "os-process-table",
+   "multiplicative_product": 12,
+   "per_server_eager": {
+    "alpha": 3,
+    "bravo": 3,
+    "charlie": 3,
+    "delta": 3
+   },
+   "per_server_shared": {
+    "alpha": 1,
+    "bravo": 1,
+    "charlie": 1,
+    "delta": 1
+   },
+   "servers": 4,
+   "sessions": 3,
+   "shared_count": 4
+  }
+ },
+ "manifest_registration": {
+  "entry_id": "TST-0102",
+  "manifest_path": "command-center/p2-wave/probes/TST-0102/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T01:05:00Z"
+ },
+ "min_bytes_threshold": 256,
+ "negative_controls": [
+  {
+   "bad_state_output": "eager_count=12 product=12",
+   "description": "The designed assertion (process-table count == M) is run against the eager per-session spawn. It must fail there so a stuck-green counter cannot pass.",
+   "fired_on_bad_state": true,
+   "good_state_output": "shared_count=4 servers=4",
+   "id": "eager-spawn-fails-designed-count-eq-M",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "inert_live=1 config_says_disabled=true",
+   "description": "A disable written at project scope while enablement is resolved at user scope. The config file looks disabled; the process table must still list the server.",
+   "fired_on_bad_state": true,
+   "good_state_output": "effective_zero=-1",
+   "id": "inert-project-disable-still-live",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "fault-injection-engineer",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Yes on this Linux sandbox. N=3 sessions x M=4 servers: eager policy produced 12 processes (N*M=12); shared policy produced 4 (equal to M). Disabling charlie at inert scope project left 1 live process(es) despite config saying disabled. The same disable at effective scope user produced process-table count -1. Live Cursor/Claude MCP config was not mutated.",
+  "control_ids": [
+   "eager-spawn-fails-designed-count-eq-M",
+   "inert-project-disable-still-live"
+  ],
+  "historical_claim": {
+   "note": "Catalog memory of the estate incident. This unit re-proves the scaling law on a sandbox N,M rather than replaying 23x65 on a shared box.",
+   "reported_processes": 2037,
+   "servers": 65,
+   "sessions": 23
+  },
+  "kind": "fault-injection-receipt",
+  "live_surface": {
+   "mutated_live_mcp_config": false,
+   "owner_approval_required_for_live_mcp": true,
+   "sandbox_only": true
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0102/probe1.out.txt:1",
+    "measured": 12,
+    "method": "os /proc cmdline census of --mcp-worker children",
+    "name": "eager process-table count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0102/probe1.out.txt:1",
+    "measured": 4,
+    "method": "os /proc cmdline census of --mcp-worker children",
+    "name": "shared process-table count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0102/probe2.out.txt:1",
+    "measured": 1,
+    "method": "os /proc cmdline census after project-scope disable",
+    "name": "inert-scope disable process-table count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0102/probe2.out.txt:1",
+    "measured": -1,
+    "method": "os /proc cmdline census after user-scope disable",
+    "name": "effective-scope disable process-table count"
+   }
+  ],
+  "question": "After opening N sessions against M MCP-style servers, does the OS process table show designed scaling (one shared process per enabled server) rather than N*M eager multiplication, and does a disable at the effective config scope produce a zero process-table count for that server while a disable at an inert scope does not?",
+  "title": "Eager per-session MCP process multiplication"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Windows process-table re-run in PowerShell 7 versus Git Bash on the owner's machine",
+   "settling_experiment": "Re-run probe1 and probe2 under pwsh and Git Bash on a Windows host; census via Win32_Process CommandLine instead of /proc.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Live Cursor/Claude MCP disable-scope on this owner's machine",
+   "settling_experiment": "Owner-approved run against the real MCP config surfaces; this unit deliberately did not mutate them.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "single attempt then escalate to the owner; this unit must not mutate a live shared MCP surface. Sandbox spawn only."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 is a second instrument: it writes disable at inert vs effective config scope and recensus /proc. It does not reuse probe 1's session-count arithmetic. Windows PowerShell vs Git Bash re-run is residual NOT-CHECKED on this Linux worktree.",
+  "reviewed_at": "2026-08-25T01:05:00Z",
+  "reviewer_id": "TST-0102-probe2-process-table-disable",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0102",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0102 failure class :11326",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe1_process_count_scales.py",
+   "id": "test_process_count_scales_as_designed_not_multiplicatively",
+   "name": "OS process-table count is M under shared policy, N*M under eager",
+   "output_tail": "{\n  \"config_path\": \"/tmp/tst0102-p1-elc78kkg/mcp-config.json\",\n  \"eager_count\": 12,\n  \"instrument\": \"os-process-table\",\n  \"multiplicative_product\": 12,\n  \"pass\": true,\n  \"per_server_eager\": {\n    \"alpha\": 3,\n    \"bravo\": 3,\n    \"charlie\": 3,\n    \"delta\": 3\n  },\n  \"per_server_shared\": {\n    \"alpha\": 1,\n    \"bravo\": 1,\n    \"charlie\": 1,\n    \"delta\": 1\n  },\n  \"probe\": \"probe1-process-count-scales\",\n  \"server_names\": [\n    \"alpha\",\n    \"bravo\",\n    \"charlie\",\n    \"delta\"\n  ],\n  \"servers\": 4,\n  \"sessions\": 3,\n  \"shared_count\": 4,\n  \"unit_id\": \"TST-0102\",\n  \"verdict\": {\n    \"broken_policy_fails_designed_check\": true,\n    \"designed_ok\": true,\n    \"eager_count\": 12,\n    \"eager_is_multiplicative\": true,\n    \"multiplicative_product\": 12,\n    \"servers\": 4,\n    \"sessions\": 3,\n    \"shared_count\": 4,\n    \"shared_is_not_multiplicative\": true,\n    \"shared_is_server_count\": true\n  }\n}\neager=12 shared=4 product=12 designed_ok=True both_states_red_on_eager=True\nSUCCESS:TST-0102-probe1 process-count-scales-as-designed",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0102/probe2_disabled_server_zero.py",
+   "id": "test_a_disabled_server_spawns_zero_processes",
+   "name": "Effective-scope disable yields process-table zero; inert scope does not",
+   "output_tail": "{\n  \"baseline_target_live\": 1,\n  \"config_alone_is_not_evidence\": true,\n  \"effective_disable_config_says_disabled\": true,\n  \"effective_disable_process_table_count\": 0,\n  \"effective_disable_process_table_zero\": true,\n  \"effective_scope\": \"user\",\n  \"inert_disable_config_says_disabled\": true,\n  \"inert_disable_process_table_count\": 1,\n  \"inert_disable_process_table_still_live\": true,\n  \"inert_disable_still_effective\": true,\n  \"inert_scope\": \"project\",\n  \"instrument\": \"os-process-table\",\n  \"other_servers_after_effective_disable\": {\n    \"alpha\": 1,\n    \"bravo\": 1,\n    \"delta\": 1\n  },\n  \"pass\": true,\n  \"probe\": \"probe2-disabled-server-zero\",\n  \"sessions\": 2,\n  \"target_server\": \"charlie\",\n  \"unit_id\": \"TST-0102\"\n}\ninert_live=1 effective_zero=0 others={'alpha': 1, 'bravo': 1, 'delta': 1} config_alone_not_evidence=True\nSUCCESS:TST-0102-probe2 disabled-server-spawns-zero",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T01:05:00Z",
+  "started_at": "2026-08-25T01:05:00Z"
+ },
+ "unit_id": "TST-0102"
+}

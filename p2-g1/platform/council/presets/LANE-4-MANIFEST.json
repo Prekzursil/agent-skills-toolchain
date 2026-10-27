@@ -1,0 +1,430 @@
+{
+  "about": "Machine-checked manifest for the editable CouncilSpec preset library, lane build/preset-4. Scope: global ordinals 49-64 of the 72 designs in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (whose ids form a single global sequence C-M01=1 ... C-H72=72), plus THREE gap-closers for REQUIRED preset names that a measured cross-lane scan found covered by zero files (GAP-AUTO and GAP-WATCH have no design entry at all; GAP-ROADMAP follows design C-H65, which sits outside the 64-preset budget and is therefore owned by no lane). platform/council/presets/ is SHARED with three sibling lanes, so this manifest and its gate police ONLY the doc ids listed here. Every owned .councilspec.json must appear below or the gate fails - an unlisted file is an untested file. Each case carries a both-states control: metrics_satisfying must stop the council and metrics_not_satisfying must not, because a stopping rule proven in only one state measures nothing. `isolates` names the single clause each negative probe is designed to falsify.",
+  "lane": "build/preset-4",
+  "range": "council presets 49-64 of 64, plus GAP-AUTO / GAP-ROADMAP / GAP-WATCH",
+  "status": "COMPLETE - 19 of 19 authored (16 design-derived + 3 gap-closers); the gate output is the receipt, not this line",
+  "coverage_line": "16 design-derived presets (C-X49..C-H64) + 3 gap-closers for REQUIRED preset names a measured cross-lane scan found covered by zero files. Doc ordinals 65-72 (C-H65..C-H72) are owned by NO lane; C-H65 is built here only because roadmap_prioritization would otherwise be missing. C-H66..C-H72 remain unbuilt - reported, not silently dropped.",
+  "runner": "python platform/council/validate_presets_lane4.py",
+  "known_substrate_defects": {
+    "leaf_note_vs_source_expression": "A stop leaf may carry `note` (and a custom leaf `producer`) per the schema, but SEM-001 compares parse(source_expression) to stopping.expression by DICT EQUALITY and councilspec.expression.parse emits neither key. Declaring source_expression therefore forbids both. Every preset here keeps source_expression (the documentation-cannot-lie guarantee) and moves per-metric prose and producer attribution into metadata.notes. Consequence: one SEM-012 WARN per custom leaf, expected and non-blocking. Probe: platform/council/_probe_note_vs_source_expression.py",
+    "weighted_branch_unparse_only": "The schema's `weighted` stop_expression is emitted by unparse() as WEIGHTED[...] >= t, which parse() cannot read (no WEIGHTED production). A weighted spec can neither declare source_expression nor pass a parse(unparse(tree)) idempotence check, though it is schema-valid and evaluates correctly. No preset here uses weighted. Probe: platform/council/_probe_weighted_roundtrip.py",
+    "committees_need_roster_ids": "SEM-006 requires every topology.committees[].members entry to be a roster participant_id, so a council whose seats are auto-selected cannot declare committees or caucuses structurally. C-X49 (100 seats, 6 pinned) therefore uses topology.kind `committee` with NO committees array and assigns lanes at runtime.",
+    "no_editable_dials_field": "The design doc gives every preset an `editable_dials` list, but CouncilSpec has no field for it and additionalProperties is false at every level, so the dials are carried as a labelled EDITABLE DIALS section inside metadata.notes. The gate asserts that section exists in every preset rather than trusting it.",
+    "no_binding_mode_field": "The design doc's `default binding` (advisory / binding / shadow) has no schema field. It is encoded through outcomes.allowed: a shadow council allows ONLY conditional_decision (C-X51), a binding council allows `decision`. Documented per preset."
+  },
+  "cases": [
+    {
+      "file": "C-X49-mega-lens-fanout-100.councilspec.json",
+      "doc_id": "C-X49",
+      "ordinal": 49,
+      "preset": "innovation_moonshot_council",
+      "source_expression": "custom:lane_completeness_ratio >= 1 AND unique_ideas >= 250 AND NOT custom:byte_floor_gate_used == true",
+      "metrics_satisfying": {
+        "custom:lane_completeness_ratio": 1,
+        "unique_ideas": 260,
+        "custom:byte_floor_gate_used": false
+      },
+      "metrics_not_satisfying": {
+        "custom:lane_completeness_ratio": 1,
+        "unique_ideas": 260,
+        "custom:byte_floor_gate_used": true
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "the NOT clause: a byte floor used as the completeness gate must block the stop even when every lane is complete and the idea target is met"
+    },
+    {
+      "file": "C-X50-mega-corpus-adjudication-50.councilspec.json",
+      "doc_id": "C-X50",
+      "ordinal": 50,
+      "preset": "evidence_adjudication_jury",
+      "source_expression": "custom:mechanical_coverage_ratio >= 1 AND custom:agent_touched_outside_residue == false AND every_objection_addressed == true",
+      "metrics_satisfying": {
+        "custom:mechanical_coverage_ratio": 1,
+        "custom:agent_touched_outside_residue": false,
+        "every_objection_addressed": true
+      },
+      "metrics_not_satisfying": {
+        "custom:mechanical_coverage_ratio": 0.98,
+        "custom:agent_touched_outside_residue": false,
+        "every_objection_addressed": true
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "partial mechanical coverage (0.98) must NOT stop the council - that state is exactly the one that produced the measured data-loss errors"
+    },
+    {
+      "file": "C-X51-mega-calibration-tournament-30.councilspec.json",
+      "doc_id": "C-X51",
+      "ordinal": 51,
+      "preset": "forecasting_council",
+      "source_expression": "custom:min_resolutions_per_seat >= 20 AND custom:inter_rater_kappa >= 0.6 AND calibration_error <= 0.25",
+      "metrics_satisfying": {
+        "custom:min_resolutions_per_seat": 20,
+        "custom:inter_rater_kappa": 0.6,
+        "calibration_error": 0.2
+      },
+      "metrics_not_satisfying": {
+        "custom:min_resolutions_per_seat": 19,
+        "custom:inter_rater_kappa": 0.6,
+        "calibration_error": 0.2
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "19 resolutions per seat must NOT unlock weight movement - the resolution floor is the whole point of the preset"
+    },
+    {
+      "file": "C-H52-harness-hook-registration-gate.councilspec.json",
+      "doc_id": "C-H52",
+      "ordinal": 52,
+      "preset": "custom",
+      "source_expression": "custom:event_name_in_events_tuple == true AND custom:hook_observed_firing == true AND experiments_passed >= 1",
+      "metrics_satisfying": {
+        "custom:event_name_in_events_tuple": true,
+        "custom:hook_observed_firing": true,
+        "experiments_passed": 1
+      },
+      "metrics_not_satisfying": {
+        "custom:event_name_in_events_tuple": true,
+        "custom:hook_observed_firing": false,
+        "experiments_passed": 1
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "a valid event name with NO observed fire must not admit the hook - the design's whole point is that a green conformance gate does not prove the hook will ever be called"
+    },
+    {
+      "file": "C-H53-harness-deploy-transport-gate.councilspec.json",
+      "doc_id": "C-H53",
+      "ordinal": 53,
+      "preset": "release_readiness_board",
+      "source_expression": "custom:transport_proven_on_control_file == true AND custom:rollback_executed_once == true AND NOT custom:fail_open_exit_zero_count_zero == true",
+      "metrics_satisfying": {
+        "custom:transport_proven_on_control_file": true,
+        "custom:rollback_executed_once": true,
+        "custom:fail_open_exit_zero_count_zero": false
+      },
+      "metrics_not_satisfying": {
+        "custom:transport_proven_on_control_file": true,
+        "custom:rollback_executed_once": true,
+        "custom:fail_open_exit_zero_count_zero": true
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "the fail-open shape - exit 0 with a zero-file count - must deny authorisation even when both positive proofs are present"
+    },
+    {
+      "file": "C-H54-harness-budget-allocation-council.councilspec.json",
+      "doc_id": "C-H54",
+      "ordinal": 54,
+      "preset": "custom",
+      "source_expression": "custom:per_check_cost_measured == true AND custom:headroom_computed == true AND custom:disarmed_baseline_stated == true",
+      "metrics_satisfying": {
+        "custom:per_check_cost_measured": true,
+        "custom:headroom_computed": true,
+        "custom:disarmed_baseline_stated": true
+      },
+      "metrics_not_satisfying": {
+        "custom:per_check_cost_measured": true,
+        "custom:headroom_computed": true,
+        "custom:disarmed_baseline_stated": false
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "measured costs and computed headroom are not enough: an allocation against an unstated DISARMED baseline is arithmetic on fiction"
+    },
+    {
+      "file": "C-H55-security-secret-exposure-blastradius.councilspec.json",
+      "doc_id": "C-H55",
+      "ordinal": 55,
+      "preset": "incident_war_room",
+      "source_expression": "custom:blast_radius_fully_enumerated == true AND custom:rotation_scheduled_with_owner == true AND custom:secret_value_printed == false",
+      "metrics_satisfying": {
+        "custom:blast_radius_fully_enumerated": true,
+        "custom:rotation_scheduled_with_owner": true,
+        "custom:secret_value_printed": false
+      },
+      "metrics_not_satisfying": {
+        "custom:blast_radius_fully_enumerated": true,
+        "custom:rotation_scheduled_with_owner": true,
+        "custom:secret_value_printed": true
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "a printed credential value must block closure even on a complete radius with rotation scheduled - the never-print rule is not tradeable against thoroughness"
+    },
+    {
+      "file": "C-H56-security-untrusted-repo-admission.councilspec.json",
+      "doc_id": "C-H56",
+      "ordinal": 56,
+      "preset": "security_red_blue_council",
+      "source_expression": "custom:six_autoload_surfaces_inspected == true AND custom:autoload_config_neutralised == true AND evidence_items >= 6",
+      "metrics_satisfying": {
+        "custom:six_autoload_surfaces_inspected": true,
+        "custom:autoload_config_neutralised": true,
+        "evidence_items": 6
+      },
+      "metrics_not_satisfying": {
+        "custom:six_autoload_surfaces_inspected": true,
+        "custom:autoload_config_neutralised": true,
+        "evidence_items": 5
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "five anchors cannot substantiate six inspected surfaces; the arithmetic floor is what makes the boolean expensive to assert"
+    },
+    {
+      "file": "C-H57-re-offset-drift-council.councilspec.json",
+      "doc_id": "C-H57",
+      "ordinal": 57,
+      "preset": "custom",
+      "source_expression": "custom:offset_rederived_in_fresh_context == true AND custom:aob_signature_or_diff_cited == true AND independent_positions >= 2",
+      "metrics_satisfying": {
+        "custom:offset_rederived_in_fresh_context": true,
+        "custom:aob_signature_or_diff_cited": true,
+        "independent_positions": 2
+      },
+      "metrics_not_satisfying": {
+        "custom:offset_rederived_in_fresh_context": true,
+        "custom:aob_signature_or_diff_cited": true,
+        "independent_positions": 1
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "one position is one signal: a fresh-context derivation that silently reproduces the original leaves nothing to compare"
+    },
+    {
+      "file": "C-H58-cloud-spend-authorization.councilspec.json",
+      "doc_id": "C-H58",
+      "ordinal": 58,
+      "preset": "risk_committee",
+      "source_expression": "custom:cost_estimate_has_reference_class == true AND custom:teardown_path_named == true AND owner_approved == true",
+      "metrics_satisfying": {
+        "custom:cost_estimate_has_reference_class": true,
+        "custom:teardown_path_named": true,
+        "owner_approved": true
+      },
+      "metrics_not_satisfying": {
+        "custom:cost_estimate_has_reference_class": true,
+        "custom:teardown_path_named": true,
+        "owner_approved": false
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "a sound estimate and a named teardown do not authorise spend; owner approval is a required clause, and silence is not approval"
+    },
+    {
+      "file": "C-H59-model-vendor-selection.councilspec.json",
+      "doc_id": "C-H59",
+      "ordinal": 59,
+      "preset": "benchmark_results_jury",
+      "source_expression": "custom:quality_measured == true AND custom:cost_measured == true AND custom:latency_measured == true AND experiments_passed >= 3",
+      "metrics_satisfying": {
+        "custom:quality_measured": true,
+        "custom:cost_measured": true,
+        "custom:latency_measured": true,
+        "experiments_passed": 3
+      },
+      "metrics_not_satisfying": {
+        "custom:quality_measured": true,
+        "custom:cost_measured": true,
+        "custom:latency_measured": false,
+        "experiments_passed": 3
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "an unmeasured third axis makes the candidate unranked, not merely weaker - two of three axes must not close the selection"
+    },
+    {
+      "file": "C-H60-marketplace-plugin-admission.councilspec.json",
+      "doc_id": "C-H60",
+      "ordinal": 60,
+      "preset": "custom",
+      "source_expression": "custom:catalogue_tax_computed == true AND custom:hook_surface_enumerated == true AND custom:disable_verified_at_user_scope == true AND owner_approved == true",
+      "metrics_satisfying": {
+        "custom:catalogue_tax_computed": true,
+        "custom:hook_surface_enumerated": true,
+        "custom:disable_verified_at_user_scope": true,
+        "owner_approved": true
+      },
+      "metrics_not_satisfying": {
+        "custom:catalogue_tax_computed": true,
+        "custom:hook_surface_enumerated": true,
+        "custom:disable_verified_at_user_scope": false,
+        "owner_approved": true
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "an unverified user-scope disable blocks admission even with owner approval - a plugin that cannot be reliably disabled is effectively permanent"
+    },
+    {
+      "file": "C-H61-mcp-server-admission.councilspec.json",
+      "doc_id": "C-H61",
+      "ordinal": 61,
+      "preset": "custom",
+      "source_expression": "custom:tool_count_stated == true AND custom:token_cost_per_turn_measured == true AND custom:egress_surface_enumerated == true AND custom:auth_model_stated == true AND evidence_items >= 4",
+      "metrics_satisfying": {
+        "custom:tool_count_stated": true,
+        "custom:token_cost_per_turn_measured": true,
+        "custom:egress_surface_enumerated": true,
+        "custom:auth_model_stated": true,
+        "evidence_items": 4
+      },
+      "metrics_not_satisfying": {
+        "custom:tool_count_stated": true,
+        "custom:token_cost_per_turn_measured": false,
+        "custom:egress_surface_enumerated": true,
+        "custom:auth_model_stated": true,
+        "evidence_items": 4
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "an unmeasured per-turn token cost blocks admission: three of four facts is not the standard, and a README figure is not a measurement"
+    },
+    {
+      "file": "C-H62-memory-note-supersession.councilspec.json",
+      "doc_id": "C-H62",
+      "ordinal": 62,
+      "preset": "custom",
+      "source_expression": "custom:old_note_has_superseded_by == true AND custom:new_note_has_valid_as_of == true",
+      "metrics_satisfying": {
+        "custom:old_note_has_superseded_by": true,
+        "custom:new_note_has_valid_as_of": true
+      },
+      "metrics_not_satisfying": {
+        "custom:old_note_has_superseded_by": true,
+        "custom:new_note_has_valid_as_of": false
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "a supersession pointer without a valid_as_of on the replacement leaves the new note undated and unrankable - both sides or neither"
+    },
+    {
+      "file": "C-H63-rule-authoring-review.councilspec.json",
+      "doc_id": "C-H63",
+      "ordinal": 63,
+      "preset": "requirements_council",
+      "source_expression": "custom:named_routes_verified_present == true AND custom:both_states_example_given == true AND objections_open == 0",
+      "metrics_satisfying": {
+        "custom:named_routes_verified_present": true,
+        "custom:both_states_example_given": true,
+        "objections_open": 0
+      },
+      "metrics_not_satisfying": {
+        "custom:named_routes_verified_present": true,
+        "custom:both_states_example_given": true,
+        "objections_open": 1
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "one open objection blocks the rule from landing - equality to zero is the only form that means dispositioned rather than outvoted"
+    },
+    {
+      "file": "C-H64-skill-adoption-vs-build.councilspec.json",
+      "doc_id": "C-H64",
+      "ordinal": 64,
+      "preset": "product_strategy_council",
+      "source_expression": "custom:prior_art_enumerated_before_scoring == true AND custom:native_feature_option_dispositioned == true AND sources_gathered >= 3",
+      "metrics_satisfying": {
+        "custom:prior_art_enumerated_before_scoring": true,
+        "custom:native_feature_option_dispositioned": true,
+        "sources_gathered": 3
+      },
+      "metrics_not_satisfying": {
+        "custom:prior_art_enumerated_before_scoring": false,
+        "custom:native_feature_option_dispositioned": true,
+        "sources_gathered": 3
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "scoring a build option before enumeration closes must block the ranking - the ordering IS the rule, because scoring build first anchors every later comparison"
+    },
+    {
+      "file": "GAP-AUTO-general-purpose-auto-composed.councilspec.json",
+      "doc_id": "GAP-AUTO",
+      "ordinal": null,
+      "preset": "general_purpose_auto_composed",
+      "source_expression": "(confidence >= 0.8 AND every_objection_addressed == true) OR (owner_approved == true AND rounds_elapsed >= 1)",
+      "metrics_satisfying": {
+        "confidence": 0.85,
+        "every_objection_addressed": true,
+        "owner_approved": false,
+        "rounds_elapsed": 3
+      },
+      "metrics_not_satisfying": {
+        "confidence": 0.7,
+        "every_objection_addressed": true,
+        "owner_approved": false,
+        "rounds_elapsed": 3
+      },
+      "expected_warnings": [],
+      "isolates": "the substance route alone: confidence 0.7 with objections addressed and NO owner approval must not stop the council, proving the disjunction is not vacuously true. Zero expected warnings because every clause uses a registry metric - the only preset in the lane with no custom extension.",
+      "gap_closer": true,
+      "gap_reason": "REQUIRED by the spec (the schema preset_name enum plus the lane brief) but absent from all 72 designs in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md: a case-insensitive grep for auto.composed / auto_composed / autocompose over that file returns zero hits, so no lane's doc-derived slice would have produced it."
+    },
+    {
+      "file": "GAP-ROADMAP-pr-merge-order-council.councilspec.json",
+      "doc_id": "GAP-ROADMAP",
+      "ordinal": null,
+      "preset": "roadmap_prioritization",
+      "source_expression": "custom:pairwise_overlap_computed_mechanically == true AND custom:byte_identical_overlap_distinguished == true AND experiments_passed >= 1",
+      "metrics_satisfying": {
+        "custom:pairwise_overlap_computed_mechanically": true,
+        "custom:byte_identical_overlap_distinguished": true,
+        "experiments_passed": 1
+      },
+      "metrics_not_satisfying": {
+        "custom:pairwise_overlap_computed_mechanically": true,
+        "custom:byte_identical_overlap_distinguished": false,
+        "experiments_passed": 1
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "a computed overlap matrix that does NOT separate byte-identical overlap from real conflict must not produce an order - that conflation is what turns a stackable set into an imagined rebase marathon",
+      "gap_closer": true,
+      "gap_reason": "Faithful to design C-H65 `pr-merge-order-council` (12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2105), but doc ordinals 65-72 fall outside the program's 64-preset budget so NO lane owns them. A measured cross-lane scan found the required name `roadmap_prioritization` covered by zero files, so it is closed here rather than left missing."
+    },
+    {
+      "file": "GAP-WATCH-standing-watch-council.councilspec.json",
+      "doc_id": "GAP-WATCH",
+      "ordinal": null,
+      "preset": "standing_watch_council",
+      "source_expression": "(custom:every_invariant_probed_this_cycle == true AND custom:cycle_verdict_clean == true) OR (custom:trigger_corroborated_and_escalated == true AND owner_approved == true)",
+      "metrics_satisfying": {
+        "custom:every_invariant_probed_this_cycle": true,
+        "custom:cycle_verdict_clean": true,
+        "custom:trigger_corroborated_and_escalated": false,
+        "owner_approved": false
+      },
+      "metrics_not_satisfying": {
+        "custom:every_invariant_probed_this_cycle": false,
+        "custom:cycle_verdict_clean": true,
+        "custom:trigger_corroborated_and_escalated": true,
+        "owner_approved": false
+      },
+      "expected_warnings": [
+        "SEM-012"
+      ],
+      "isolates": "the negative state is the exact failure a standing watch exists to prevent: a clean-looking verdict where not every invariant was probed, plus a fired trigger the owner never acknowledged. Neither branch of the disjunction may fire, so a silent pass is structurally impossible.",
+      "gap_closer": true,
+      "gap_reason": "REQUIRED by the spec but absent from all 72 designs: a case-insensitive grep for standing.watch / standing_watch / watch.council / vigil / sentinel over 12-COUNCIL-PROTOCOLS-AND-PRESETS.md returns zero hits, and a measured cross-lane scan found the name covered by zero files."
+    }
+  ]
+}

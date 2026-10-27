@@ -1,0 +1,674 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.fail-first-red-proof-certification",
+  "name": "Fail-first red-proof certification as an external gate",
+  "description": "Certify, from OUTSIDE the author's own discipline, that a change's own test was RED before the fix - so a test that could never fail cannot be presented as a regression test. Mechanical and fully deterministic given the refs: check out the pre-change ref, run the NAMED tests (they must fail), run them post-change (they must pass), and STORE the runner's real output as the capture rather than asserting it. A test that passes at the pre-change ref is not a regression proof for this change. An unbuildable pre-change tree makes the certification UNAVAILABLE - never assumed.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability",
+    "research-and-evidence"
+  ],
+  "tags": [
+    "testing",
+    "red-proof",
+    "certification",
+    "two-ref",
+    "external-gate"
+  ],
+  "flagship": true,
+  "params": {
+    "diff_path": {
+      "type": "path",
+      "required": true,
+      "description": "The change whose test claim is being certified"
+    },
+    "test_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "description": "The tests the change CLAIMS as its proof; each is certified or refused individually"
+    },
+    "pre_change_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The ref the tests must FAIL at",
+      "examples": [
+        "HEAD~1"
+      ]
+    },
+    "post_change_ref": {
+      "type": "string",
+      "default": "HEAD",
+      "description": "The ref the tests must PASS at"
+    },
+    "pure_addition_allowed": {
+      "type": "boolean",
+      "default": true,
+      "description": "A new-feature test with no prior behaviour has nothing to be red about; substitute a mutation check instead of forcing a fake red"
+    },
+    "evidence_store": {
+      "type": "path",
+      "default": "command-center/test/red-proofs",
+      "description": "Where the runner's real stdout is stored per certified test"
+    }
+  },
+  "roles": {
+    "certifier": {
+      "description": "Runs the named tests at both refs and stores the real runner output",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:git",
+        "Bash:pytest",
+        "Bash:longrun",
+        "Write(command-center/test/**)"
+      ],
+      "write_paths": [
+        "command-center/test/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "addition-adjudicator": {
+      "description": "Decides whether a test is a pure addition and routes it to the mutation substitute",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:git"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Bash:longrun",
+      "Bash:pytest",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/test/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/test/**"
+    ],
+    "forbid_write_paths": [
+      "platform/**",
+      "hooks/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == ADDITION_ADJUDICATOR",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "the pure-addition escape is the one place this gate can be talked out of firing"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "red-before": {
+      "predicate": "custom-expression",
+      "expression": "tests_passing_at_pre_change_ref == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "green-after": {
+      "predicate": "custom-expression",
+      "expression": "tests_failing_at_post_change_ref == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "capture-is-real-output": {
+      "predicate": "custom-expression",
+      "expression": "red_capture_source == RUNNER_STDOUT AND asserted_without_capture == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "pre-tree-buildable": {
+      "predicate": "custom-expression",
+      "expression": "pre_change_tree_built == true OR certification_marked_unavailable == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "subworkflows": {
+    "tst.diff-scoped-mutation-gate": {
+      "workflow_id": "tst.diff-scoped-mutation-gate",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/tst.diff-scoped-mutation-gate.json"
+    }
+  },
+  "stages": [
+    {
+      "id": "identify-claimed-tests",
+      "title": "Which tests does the change claim as its proof?",
+      "kind": "task",
+      "role": "addition-adjudicator",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "QLT-5901",
+        "title": "Identify the tests a change claims as its proof and split pure additions from regression tests",
+        "phase": "2B",
+        "question_or_target": "Resolve each claimed test id to a real test, and classify it: a REGRESSION test asserts behaviour that existed and broke, so it must be red at the pre-change ref; a PURE ADDITION covers behaviour that did not exist, so there is nothing to be red about and forcing a fake red would be fabrication. Say which is which and why.",
+        "inputs": [
+          "params.diff_path",
+          "params.test_ids",
+          "params.pre_change_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "addition-adjudicator",
+          "basis": "misclassifying a regression test as a pure addition is how this gate gets bypassed"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:git"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/test/qlt-59-claimed-tests.json",
+        "output_schema": "command-center/schema/test-registry-entry.schema.json",
+        "evidence_requirement": "each test id resolves to a real node id, and its classification cites the pre-change source that either did or did not contain the behaviour",
+        "tests_required": [
+          "a test asserting behaviour present before the change must classify REGRESSION, not PURE-ADDITION",
+          "both-states control: a test for a brand-new function must classify PURE-ADDITION and route to the mutation substitute"
+        ],
+        "reviewer_requirement": "the red-before gate is mechanical; the classification is the only judgement and it is recorded",
+        "completion_sentinel": "SUCCESS:QLT-5901 emitted only when every claimed test id resolves and carries a REGRESSION or PURE-ADDITION classification with its justification; otherwise FAILED:QLT-5901 <reason>",
+        "retry_policy": "two strikes then pivot to classifying REGRESSION (the stricter path) and say so",
+        "failure_classification": [
+          "unresolvable-test-id",
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "test-id resolution plus regression-versus-addition classification"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-59-claimed-tests.json",
+          "schema_ref": "command-center/schema/test-registry-entry.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5901",
+          "consumers": [
+            "run-at-pre-change",
+            "mutation-substitute"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "run-at-pre-change",
+      "title": "At the pre-change ref the named tests must FAIL",
+      "kind": "task",
+      "depends_on": [
+        "identify-claimed-tests"
+      ],
+      "role": "certifier",
+      "timeout_seconds": 3600,
+      "work_unit_ref": "CNF-0051"
+    },
+    {
+      "id": "pre-tree-buildable",
+      "title": "An unbuildable pre-change tree makes this UNAVAILABLE, not assumed",
+      "kind": "gate",
+      "depends_on": [
+        "run-at-pre-change"
+      ],
+      "gate_ref": "pre-tree-buildable"
+    },
+    {
+      "id": "red-before",
+      "title": "A test that passes pre-change is not a regression proof",
+      "kind": "gate",
+      "depends_on": [
+        "pre-tree-buildable"
+      ],
+      "gate_ref": "red-before"
+    },
+    {
+      "id": "run-at-post-change",
+      "title": "At the post-change ref the named tests must PASS",
+      "kind": "task",
+      "depends_on": [
+        "red-before"
+      ],
+      "role": "certifier",
+      "timeout_seconds": 3600,
+      "work_unit_ref": "ADV-0011"
+    },
+    {
+      "id": "green-after",
+      "title": "A test still failing after the change certifies nothing",
+      "kind": "gate",
+      "depends_on": [
+        "run-at-post-change"
+      ],
+      "gate_ref": "green-after"
+    },
+    {
+      "id": "capture-is-real-output",
+      "title": "The red capture must be the runner's real output, stored",
+      "kind": "gate",
+      "depends_on": [
+        "green-after"
+      ],
+      "gate_ref": "capture-is-real-output"
+    },
+    {
+      "id": "mutation-substitute",
+      "title": "For a pure addition, substitute mutation evidence of protective power",
+      "kind": "subworkflow",
+      "depends_on": [
+        "capture-is-real-output"
+      ],
+      "when": "pure_addition_count > 0 AND pure_addition_allowed == true",
+      "workflow": {
+        "workflow_id": "tst.diff-scoped-mutation-gate",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "scope": "pure-addition-lines-only"
+      },
+      "isolation": "worktree",
+      "propagate_failure": true
+    },
+    {
+      "id": "certify-or-refuse",
+      "title": "Per test: CERTIFIED, REFUSED, or UNAVAILABLE",
+      "kind": "task",
+      "depends_on": [
+        "mutation-substitute"
+      ],
+      "role": "certifier",
+      "work_unit": {
+        "id": "QLT-5902",
+        "title": "Emit a per-test certification with the stored red and green captures",
+        "phase": "2B",
+        "question_or_target": "For each claimed test emit CERTIFIED (red at pre, green at post, both captures stored), REFUSED (passed at pre, so it proves nothing about this change), SUBSTITUTED (pure addition, mutation evidence attached) or UNAVAILABLE (pre-change tree would not build). No aggregate verdict may be more favourable than its worst per-test outcome.",
+        "inputs": [
+          "command-center/test/qlt-59-claimed-tests.json",
+          "command-center/test/qlt-59-pre-run.json",
+          "command-center/test/qlt-59-post-run.json"
+        ],
+        "dependencies": [
+          "QLT-5901"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "certifier",
+          "basis": "the certification is the deliverable and is fully determined by the stored captures"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/test/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/test/qlt-59-red-proof-certification.json",
+        "output_schema": "command-center/schema/failing-test-receipt.schema.json",
+        "evidence_requirement": "the stored runner stdout for both refs, per test, with the exact node id and both git refs recorded",
+        "tests_required": [
+          "a test that passes before the change must be REFUSED as a proof, not certified",
+          "both-states control: a genuine regression test must CERTIFY, so the gate is not a blanket refusal"
+        ],
+        "reviewer_requirement": "none required - the captures are the evidence and a reviewer cannot overturn them",
+        "completion_sentinel": "SUCCESS:QLT-5902 emitted only when every claimed test has one of the four verdicts with its stored captures, and the aggregate is no better than the worst per-test outcome; otherwise FAILED:QLT-5902 <reason>",
+        "retry_policy": "two strikes then pivot to emitting UNAVAILABLE with the build error attached",
+        "failure_classification": [
+          "unbuildable-pre-tree",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "two-ref outcome pairing over author-named tests with stored captures",
+        "not_a_duplicate_because": "the spec-blind synthesis blueprint also runs two trees, but its tests are synthesised behind an information barrier; here the tests are the AUTHOR'S OWN and the question is whether they were ever red"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-59-red-proof-certification.json",
+          "schema_ref": "command-center/schema/failing-test-receipt.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json",
+            "crv.overclaim-scoping-review"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-named-tests-resolved",
+      "expression": "tests_uncertified == 0",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "claimed_tests >= 1"
+    },
+    {
+      "id": "certification-unavailable",
+      "expression": "pre_change_tree_built == false AND certification_marked_unavailable == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "certify-or-refuse"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "unbuildable-pre-tree",
+      "unresolvable-test-id",
+      "runner-flake"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "certify-or-refuse",
+    "quarantine_path": "command-center/quarantine/qlt-59"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-59",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260820,
+    "journal_path": "command-center/replay/qlt-59-red-proof.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/qlt-59",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-59-plan.json",
+    "forbid_tools": [
+      "Bash:pytest",
+      "Bash:longrun",
+      "Write(command-center/test/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.08,
+      "max": 0.4
+    },
+    "wallclock_seconds": {
+      "expected": 900,
+      "max": 5400
+    },
+    "tokens": {
+      "expected": 25000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "checks out a pre-change ref in a separate worktree and runs named tests; writes captures under command-center/test/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-59-red-proof.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-06",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "exec-reframe-50-implement-batches",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/verification-before-completion",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/agent-as-judge",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/tdd-workflow"
+    ]
+  },
+  "outputs": {
+    "certification": {
+      "path": "command-center/test/qlt-59-red-proof-certification.json",
+      "schema_ref": "command-center/schema/failing-test-receipt.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-06",
+    "card_index": 59,
+    "family": "D11-testing",
+    "acquisition_route": "DISTILL",
+    "mechanism_fingerprint": {
+      "subject": "author-named-tests",
+      "oracle": "test-runner-at-two-git-refs",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "pre-ref-red-vs-post-ref-green",
+      "output_type": "per-test-certification",
+      "information_barrier": false
+    },
+    "mechanism": "Replay the author's OWN named tests at two git refs and require the red-then-green pattern, storing the runner output as the capture. No generation, no mutation, no reading - just two executions and a stored artifact.",
+    "contraindications": [
+      "NOT for tests added alongside brand-new behaviour - there is nothing to be red about, so a mutation substitute is used instead of a fake red",
+      "NOT usable when the pre-change tree will not build - the verdict is UNAVAILABLE, never assumed",
+      "NOT a judgement of test QUALITY, only of whether the test could ever have failed"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "passes-before-change",
+        "setup": "a test that is green at the pre-change ref",
+        "expected": "REFUSED as a proof for this change"
+      },
+      {
+        "name": "genuine-regression-test",
+        "setup": "a test that fails pre-change and passes post-change",
+        "expected": "CERTIFIED with both captures stored"
+      }
+    ],
+    "why_not_a_duplicate": "BP-IMP-04 is the implementation LOOP that produces a red proof; this is the external CERTIFIER of one, usable on work you did not write. BP-TST-03 shares the two-execution harness but its tests are synthesised behind an information barrier and it returns SPEC-MISS, a verdict this blueprint cannot produce.",
+    "unverified": "UNVERIFIED (very-likely) how many past 'fixed with a test' commits carry no red proof; settling experiment = certify the last 20 such commits and count. The MECHANISM is almost-certain (fully deterministic given the refs); only the yield is unmeasured.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "certify the two tests a predicate bug-fix commit claims as its proof",
+      "params": {
+        "diff_path": "command-center/test/inbox/predicate-fix.diff",
+        "test_ids": [
+          "platform/lib/wfdsl/test_expr.py::test_missing_identifier_raises",
+          "platform/lib/wfdsl/test_expr.py::test_enum_constant_on_right"
+        ],
+        "pre_change_ref": "HEAD~1",
+        "post_change_ref": "HEAD",
+        "pure_addition_allowed": true
+      },
+      "narrative": "Both tests classified REGRESSION. At HEAD~1 both failed and the runner stdout was stored verbatim; at HEAD both passed. Both CERTIFIED. No pure additions, so the mutation substitute did not run.",
+      "context": {
+        "tests_passing_at_pre_change_ref": 0,
+        "tests_failing_at_post_change_ref": 0,
+        "red_capture_source": "RUNNER_STDOUT",
+        "asserted_without_capture": 0,
+        "pre_change_tree_built": true,
+        "certification_marked_unavailable": false,
+        "tests_uncertified": 0,
+        "claimed_tests": 2,
+        "pure_addition_count": 0,
+        "pure_addition_allowed": true,
+        "stage_role": "CERTIFIER"
+      },
+      "expected_gate_pass": [
+        "red-before",
+        "green-after",
+        "capture-is-real-output",
+        "pre-tree-buildable"
+      ],
+      "expected_stop": [
+        "all-named-tests-resolved"
+      ],
+      "negative_control": {
+        "gate": "red-before",
+        "overrides": {
+          "tests_passing_at_pre_change_ref": 1
+        },
+        "expected": false,
+        "why": "a test that was already green cannot be a regression proof for this change; this is the single most common way a green suite lies"
+      }
+    }
+  }
+}

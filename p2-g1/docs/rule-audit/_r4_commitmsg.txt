@@ -1,0 +1,45 @@
+docs(rule-audit): round 4 -- a receipt certified a command that cannot run, so now a gate runs them
+
+Round 3 shipped this row, and two independent reviewers confirmed it by EXECUTING it:
+
+  rule_audit.py --json --md   regenerated: JSON and TABLES byte-identical   rc=0   <!--argv-invalid-->
+
+The second flag is eaten as the VALUE of the first. argparse exits 2 and writes nothing, so the
+"byte-identical (cmp)" beside it was vacuous -- the artifacts were unchanged precisely because
+nothing was written. That is a control which cannot distinguish the two hypotheses, sitting inside
+the receipt table of the report that writes the calibration note about that exact shape.
+
+OVERCLAIM, not a code defect. rule_audit.py was correct throughout; run with real paths it returns
+rc=0 and reproduces both artifacts sha256-identically (123,434 B and 6,412 B). Fixed the SENTENCE
+at every reachable site and recorded the refutation rather than deleting the wording.
+
+TEN sites, where the adversary found three -- because a gate enumerated them instead of a reader:
+  RULE-AUDIT-R3.md:275 and RULE-AUDIT-ADV-R2.md:24   false receipts, corrected + REFUTED note
+  _r3_commitmsg.txt:65                               live template of the git-history site
+  ADV-R3.md x3, VERIFY-R3.md x3, R4.md x1            reviewers quoting it: marker only
+The commit message of 0475e4a4 is the one site that cannot be fixed. History is NOT rewritten; the
+template that would re-emit it is amended and the record is in RULE-AUDIT-R4.md.
+
+NEW: r4_receipt_argv_gate.py parses every documented invocation in this directory with the tool's
+OWN argparse parser (rule_audit.py gained build_parser() so the contract is reachable without
+running it). Tier 2 handles hand-parsed scripts from their AST flag literals and says inline that
+it is weaker. Exemption is an explicit <!--argv-invalid--> field, never a prose guess, and a marked
+line that PARSES is a violation too, so the marker cannot silence a working command.
+
+BOTH STATES, on real committed bytes: FAILED 10 violations before the fix, SUCCESS 44 invocations
+after. Four detector faults it committed on its own first run are recorded with a regression arm
+each -- including the dangerous one, which was SILENT: requiring the .py extension made it read the
+commit-message template and report CLEAN, on the single site that becomes permanent.
+
+Gates: self-test 27 gate-level states (len(ran), never a literal) - rule_audit --self-test 19
+unchanged - r2_control_count_gate 4 prose == tool 19 == AST 19 - r2_pathrefs 254/0 unwaived, rc=2
+by design - r3_corpus_parity 3 trees/254 - lazy_predict 16/16 + 1/1 - pytest ci/tests/test_rules_*
+167 passed - ruff check clean, 26 files formatted.
+
+Also brings the round-3 VERIFY and ADVERSARIAL artifacts and their probes under version control;
+they existed only in the working tree. Their bytes are unchanged apart from six invisible markers,
+proven by a printed before/after sha of the marker-stripped content.
+
+Still open and NOT claimed fixed: agent-self/config/AGENTS.md 9/9b credential inversion (out of
+write scope, owner action), the two corrected always-on rules still undeployed to ~/.claude/, and
+this gate is not wired into CI.

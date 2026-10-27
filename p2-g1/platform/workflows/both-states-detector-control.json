@@ -1,0 +1,415 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "both-states-detector-control",
+  "name": "Both-states detector control: the probe must FIRE on the known-broken state",
+  "description": "Blueprint 45 of 96 (BP-DBG-02). FLAGSHIP. Before a probe's SILENCE may be cited as evidence that something is fixed or absent, the probe is run against a deliberately KNOWN-BROKEN fixture and required to fire there. A probe that is silent in both states measures nothing, and a measured case exists where exactly such a probe was one step from being reported as verification. The distinctive mechanism is the fixture PAIR and the asymmetry of the two gates: failing to fire on broken is FATAL, while an unconstructible broken fixture yields the honest verdict UNVALIDATABLE which every dependent claim then inherits. Fully deterministic - no model judgement enters the verdict.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "research-and-evidence"],
+  "tags": ["detector-control", "both-states", "negative-control", "deterministic"],
+  "flagship": true,
+
+  "params": {
+    "probe": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The detector, hook, guard, gate, monitor or suite under test - identified by its invocation, not by its name"
+    },
+    "broken_fixture": {
+      "type": "path",
+      "description": "The known-broken state. If it cannot be constructed the verdict is UNVALIDATABLE - the workflow does not proceed to a VALID verdict without it."
+    },
+    "healthy_fixture": {
+      "type": "path",
+      "description": "The known-healthy state the probe must be SILENT on"
+    },
+    "subject_is_test_suite": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the broken state is produced by REVERTING a real historical bug and the suite must go red (mutation testing applied to the suite)"
+    },
+    "expected_fire_signal": {
+      "type": "enum",
+      "enum": ["nonzero-exit", "stderr-match", "finding-emitted", "log-line"],
+      "default": "nonzero-exit",
+      "description": "What counts as FIRING. Declared up front so 'it fired' cannot be re-defined after the run."
+    }
+  },
+
+  "roles": {
+    "fixture-builder": {
+      "description": "Constructs the broken and healthy fixtures, or declares the broken one unconstructible. Never edits the probe.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Write", "Bash:git"],
+      "write_paths": ["command-center/detector-control/fixtures/**"],
+      "speaking_rights": "always"
+    },
+    "probe-runner": {
+      "description": "Runs the probe unmodified against one fixture and records the raw result. Interprets nothing.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Bash:python", "Bash:pytest"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Write", "Bash:git", "Bash:python", "Bash:pytest"],
+    "deny": ["Edit", "WebFetch", "WebSearch"],
+    "network": "none",
+    "write_paths": ["command-center/detector-control/**"],
+    "forbid_write_paths": ["hooks/**", "platform/lib/**"]
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "low" },
+    "forbid_downgrade_below": "haiku"
+  },
+
+  "gates": {
+    "broken-fixture-exists": {
+      "predicate": "custom-expression",
+      "expression": "broken_fixture_constructed == true AND broken_state_is_genuinely_broken == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "fires-on-broken": {
+      "predicate": "custom-expression",
+      "expression": "probe_fired_on_broken == true AND fire_signal_matches_declared == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "silent-on-healthy": {
+      "predicate": "custom-expression",
+      "expression": "probe_fired_on_healthy == false AND probe_exited_cleanly_on_healthy == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "probe-unmodified": {
+      "predicate": "custom-expression",
+      "expression": "probe_bytes_unchanged_across_both_runs == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "construct-fixtures",
+      "title": "S0 CONSTRUCT a genuinely broken fixture and its healthy twin",
+      "kind": "task",
+      "role": "fixture-builder",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "TST-0328",
+        "title": "Construct a broken/healthy fixture pair for one probe, or declare the broken state unconstructible",
+        "phase": "0",
+        "question_or_target": "Build the smallest state in which the subject is GENUINELY broken in the way the probe claims to detect, plus a healthy twin differing only in that respect, and prove the difference independently of the probe under test. If no broken state can be constructed, emit UNVALIDATABLE rather than a fixture that is only cosmetically broken.",
+        "inputs": ["params.probe", "params.expected_fire_signal", "params.subject_is_test_suite"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "fixture-builder",
+          "basis": "a cosmetically-broken fixture produces a false VALID verdict; this step carries the judgement"
+        },
+        "tool_permissions": ["Read", "Grep", "Glob", "Write", "Bash:git"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/detector-control/fixture-pair.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "an INDEPENDENT demonstration that the broken fixture is broken - a second observation that does not use the probe under test - plus the diff between the two fixtures showing they differ only in the property at issue",
+        "tests_required": [
+          "the two fixtures must differ, and the diff must be confined to the property under test",
+          "the broken fixture's brokenness must be demonstrated WITHOUT the probe - using the probe to prove its own fixture is circular",
+          "with subject_is_test_suite=true the broken state must be produced by reverting a REAL historical bug, not by editing a test"
+        ],
+        "reviewer_requirement": "an independent reviewer who inspects both fixtures and confirms the broken one is broken by their own observation",
+        "completion_sentinel": "SUCCESS:TST-0328 emitted only when fixture-pair.json exists, parses, names both fixtures, and carries the independent brokenness demonstration; FAILED:TST-0328 unconstructible-broken-state when no genuine broken state exists",
+        "retry_policy": "two strikes then pivot: after two cosmetic fixtures, enumerate at least two alternative ways to break the subject genuinely before a third attempt",
+        "failure_classification": ["unconstructible-broken-state", "cosmetic-fixture", "circular-evidence"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/detector-control/fixture-pair.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0328",
+          "consumers": ["fixture-gate", "run-on-broken", "run-on-healthy"]
+        }
+      ]
+    },
+    {
+      "id": "fixture-gate",
+      "title": "No broken fixture means UNVALIDATABLE - an honest verdict, not a pass",
+      "kind": "gate",
+      "depends_on": ["construct-fixtures"],
+      "gate_ref": "broken-fixture-exists"
+    },
+    {
+      "id": "run-on-broken",
+      "title": "S1 RUN the probe against the broken fixture - it MUST fire",
+      "kind": "task",
+      "role": "probe-runner",
+      "depends_on": ["fixture-gate"],
+      "work_unit_ref": "TST-0013",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/detector-control/broken-run.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0013",
+          "consumers": ["broken-gate", "emit-verdict"]
+        }
+      ]
+    },
+    {
+      "id": "broken-gate",
+      "title": "A probe that does not fire on the broken state measures nothing - this is FATAL",
+      "kind": "gate",
+      "depends_on": ["run-on-broken"],
+      "gate_ref": "fires-on-broken"
+    },
+    {
+      "id": "run-on-healthy",
+      "title": "S2 RUN the SAME probe bytes against the healthy fixture - it MUST be silent",
+      "kind": "task",
+      "role": "probe-runner",
+      "depends_on": ["broken-gate"],
+      "work_unit_ref": "TST-0018",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/detector-control/healthy-run.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0018",
+          "consumers": ["healthy-gate", "emit-verdict"]
+        }
+      ]
+    },
+    {
+      "id": "healthy-gate",
+      "title": "A probe that fires on the healthy state is a false-positive generator",
+      "kind": "gate",
+      "depends_on": ["run-on-healthy"],
+      "gate_ref": "silent-on-healthy"
+    },
+    {
+      "id": "same-bytes-gate",
+      "title": "Both runs must have used the SAME probe bytes, or the two results are not comparable",
+      "kind": "gate",
+      "depends_on": ["healthy-gate"],
+      "gate_ref": "probe-unmodified"
+    },
+    {
+      "id": "suite-mutation-variant",
+      "title": "S0b OPTIONAL - for a test SUITE: revert each real historical bug in turn and require red",
+      "kind": "task",
+      "role": "fixture-builder",
+      "depends_on": ["same-bytes-gate"],
+      "when": "subject_is_test_suite == true",
+      "work_unit_ref": "IMP-0471",
+      "timeout_seconds": 7200,
+      "produces": [
+        {
+          "path": "command-center/detector-control/suite-mutation.json",
+          "schema_ref": "command-center/schema/mutation-census.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:IMP-0471",
+          "consumers": ["emit-verdict"]
+        }
+      ]
+    },
+    {
+      "id": "emit-verdict",
+      "title": "S3 VERDICT - VALID, MEASURES-NOTHING, or UNVALIDATABLE",
+      "kind": "task",
+      "role": "probe-runner",
+      "depends_on": ["suite-mutation-variant"],
+      "work_unit_ref": "ADV-0009",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/detector-control/verdict.json",
+          "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0009",
+          "consumers": ["command-center/CLAIM-REGISTRY.json"]
+        }
+      ]
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "verdict-valid",
+      "expression": "probe_fired_on_broken == true AND probe_fired_on_healthy == false",
+      "applies_to": "workflow",
+      "minimum_conditions": "broken_fixture_constructed == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "verdict-measures-nothing",
+      "expression": "probe_fired_on_broken == false",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "verdict-unvalidatable",
+      "expression": "broken_fixture_constructed == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["unconstructible-broken-state", "cosmetic-fixture", "circular-evidence"]
+  },
+
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": ["unconstructible-broken-state", "cosmetic-fixture", "circular-evidence", "probe-modified-midrun"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/detector-control/quarantine"
+  },
+
+  "resume": {
+    "enabled": false,
+    "resume_from": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/both-states-detector-control.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "stage",
+    "read_only": true,
+    "invalidate_on": ["probe-bytes-change", "fixture-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report"],
+    "plan_artifact": "command-center/dry-run/both-states-detector-control-plan.json",
+    "forbid_tools": ["Write", "Bash:python", "Bash:pytest", "Bash:git"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "wallclock_seconds": { "min": 120, "expected": 900, "max": 7200 },
+    "tokens": { "min": 8000, "expected": 60000, "max": 300000 },
+    "tool_calls": { "expected": 18, "max": 90 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "fixtures under command-center/detector-control/**; the probe itself is never edited - Edit is denied and a byte-equality gate enforces it",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "tests", "replay-journal", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/both-states-detector-control.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "tools/detector-self-test",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md#3b",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DBG-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["tools/detector-self-test@as-shipped"]
+  },
+
+  "outputs": {
+    "verdict": {
+      "path": "command-center/detector-control/verdict.json",
+      "schema_ref": "command-center/schema/audit-detector-control.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["two-signal-corroboration-gate", "silent-disarm-hunt", "command-center/CLAIM-REGISTRY.json"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A guard that imports its dependency inside try/except ImportError and reports 'no findings' when the import fails.",
+      "healthy_fixture": "the dependency present; the guard finds a planted violation and exits non-zero",
+      "broken_fixture": "the dependency RENAMED so the import fails; the guard silently reports no findings and exits 0",
+      "outcome": "probe_fired_on_broken == false -> fires-on-broken FAILS with the fatal verdict MEASURES-NOTHING. The guard was silently DISARMED and every 'no findings' it ever printed is void",
+      "measured_precedent": "a codex-exec probe printed no parse error in the broken state as well as the fixed one and was one step from being reported as verification; and 1 of 6 real-bug mutations survived a green suite, exposing a genuine hole",
+      "unvalidatable_case": "for a monitor whose broken state depends on an external outage nobody can stage, S0 emits UNVALIDATABLE; the monitor is then labelled so, and every claim that cites its silence inherits the tag",
+      "suite_variant": "with subject_is_test_suite=true the broken state is produced by reverting a real historical bug: the suite MUST go red. A suite that stays green is not protecting that behaviour, whatever its coverage number says"
+    },
+    "distinctive_mechanism": "a fixture PAIR with asymmetric gates - not firing on broken is fatal, an unconstructible broken state is UNVALIDATABLE - plus a byte-equality check that both runs used the same probe, and independent proof of brokenness so the probe cannot certify its own fixture",
+    "contraindications": [
+      "NOT when a known-broken state cannot be constructed - then the probe is unvalidatable and must be labelled so, not blessed",
+      "NOT a substitute for the fix itself - this validates the instrument, nothing more",
+      "NOT for third-party probes you cannot run against your own fixtures"
+    ],
+    "not_a_duplicate_because": "diff-scoped mutation testing mutates PRODUCTION code to test a suite; this mutates SYSTEM STATE to test a detector, and therefore applies to hooks, monitors and gates that have no test suite at all.",
+    "flagship_test": "platform/lib/workflows/test_both_states_detector_control.py"
+  }
+}

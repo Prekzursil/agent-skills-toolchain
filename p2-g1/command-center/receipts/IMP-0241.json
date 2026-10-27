@@ -1,0 +1,301 @@
+{
+  "unit_id": "IMP-0241",
+  "id": "IMP-0241",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0241",
+  "schema_version": 1,
+  "spec_anchor": "_USER-PROMPTS.md:10900-10907,_USER-PROMPTS.md:11347,B07 phase-5/6",
+  "title": "Implement engineering blueprints 13-16: plugin conformance, marketplace conformance, release go/no-go, rollback rehearsal",
+  "min_bytes_threshold": 128,
+  "blueprints": [
+    "wf.engineering.plugin-conformance",
+    "wf.engineering.marketplace-conformance",
+    "wf.engineering.release-go-no-go",
+    "wf.engineering.rollback-rehearsal"
+  ],
+  "blueprint_registration": [
+    {
+      "ok": true,
+      "registered": true,
+      "id": "wf.engineering.plugin-conformance",
+      "name": "plugin-conformance",
+      "capability_vector": [
+        "plugin.lint",
+        "plugin.schema",
+        "plugin.package-root"
+      ],
+      "missing": [],
+      "rejections": []
+    },
+    {
+      "ok": true,
+      "registered": true,
+      "id": "wf.engineering.marketplace-conformance",
+      "name": "marketplace-conformance",
+      "capability_vector": [
+        "marketplace.lint",
+        "marketplace.evidence-ledger",
+        "marketplace.version-agree"
+      ],
+      "missing": [],
+      "rejections": []
+    },
+    {
+      "ok": true,
+      "registered": true,
+      "id": "wf.engineering.release-go-no-go",
+      "name": "release-go-no-go",
+      "capability_vector": [
+        "release.go-no-go",
+        "completion.oracle.judge"
+      ],
+      "missing": [],
+      "rejections": []
+    },
+    {
+      "ok": true,
+      "registered": true,
+      "id": "wf.engineering.rollback-rehearsal",
+      "name": "rollback-rehearsal",
+      "capability_vector": [
+        "release.rollback",
+        "userdata.preserve",
+        "package.restore"
+      ],
+      "missing": [],
+      "rejections": []
+    }
+  ],
+  "contract_omission_controls": {
+    "plugin-conformance": {
+      "distinct": true,
+      "all_rejected": true,
+      "rejections": [
+        "CONTRACT-MISSING-WORKFLOW",
+        "CONTRACT-MISSING-EXAMPLE",
+        "CONTRACT-MISSING-PRESET",
+        "CONTRACT-MISSING-STOPPING-RULES",
+        "CONTRACT-MISSING-SMOKE-TEST",
+        "CONTRACT-MISSING-CAPABILITY-VECTOR"
+      ]
+    },
+    "marketplace-conformance": {
+      "distinct": true,
+      "all_rejected": true,
+      "rejections": [
+        "CONTRACT-MISSING-WORKFLOW",
+        "CONTRACT-MISSING-EXAMPLE",
+        "CONTRACT-MISSING-PRESET",
+        "CONTRACT-MISSING-STOPPING-RULES",
+        "CONTRACT-MISSING-SMOKE-TEST",
+        "CONTRACT-MISSING-CAPABILITY-VECTOR"
+      ]
+    },
+    "release-go-no-go": {
+      "distinct": true,
+      "all_rejected": true,
+      "rejections": [
+        "CONTRACT-MISSING-WORKFLOW",
+        "CONTRACT-MISSING-EXAMPLE",
+        "CONTRACT-MISSING-PRESET",
+        "CONTRACT-MISSING-STOPPING-RULES",
+        "CONTRACT-MISSING-SMOKE-TEST",
+        "CONTRACT-MISSING-CAPABILITY-VECTOR"
+      ]
+    },
+    "rollback-rehearsal": {
+      "distinct": true,
+      "all_rejected": true,
+      "rejections": [
+        "CONTRACT-MISSING-WORKFLOW",
+        "CONTRACT-MISSING-EXAMPLE",
+        "CONTRACT-MISSING-PRESET",
+        "CONTRACT-MISSING-STOPPING-RULES",
+        "CONTRACT-MISSING-SMOKE-TEST",
+        "CONTRACT-MISSING-CAPABILITY-VECTOR"
+      ]
+    }
+  },
+  "plugin_marketplace_matrix": {
+    "plugin_benign_ok": true,
+    "plugin_abuses_rejected": [
+      "PLUGIN-INSTALL-SCRIPT",
+      "PLUGIN-EXCESSIVE-PERMISSION",
+      "PLUGIN-PLATFORM-SHADOW",
+      "PLUGIN-PATH-ESCAPE",
+      "PLUGIN-DECLARED-ACTUAL-MISMATCH"
+    ],
+    "marketplace_benign_ok": true,
+    "marketplace_abuses_rejected": [
+      "MKT-EVIDENCE-FREE-TEXT",
+      "MKT-VERSION-DISAGREE",
+      "MKT-EVIDENCE-UNRESOLVED"
+    ]
+  },
+  "tests": [
+    {
+      "id": "probe1-userdata-rollback",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe1_userdata_rollback.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2-gongo-oracle-ast",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe2_gongo_oracle_ast.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "plugin-conformance-matrix",
+      "result": "PASS"
+    },
+    {
+      "id": "marketplace-conformance-matrix",
+      "result": "PASS"
+    },
+    {
+      "id": "blueprint-contract-6-omissions",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "naive-rollback-loses-userdata",
+      "kind": "both-states",
+      "description": "naive wipe-profile rollback loses planted user-data; packaged restore keeps hash",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "planted-local-checklist",
+      "kind": "both-states",
+      "description": "AST detector fires on all(checklist) rival and is silent on go_no_go.py",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "exit-zero-only-nogo",
+      "kind": "anti-pattern-10646",
+      "description": "release_go_no_go({exit_code:0}) is NO-GO",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0241/rollback.py:execute_rollback",
+      "claim": "Rehearsed rollback executes restore from a packaged zip and preserves planted user-data existence+sha256.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe1_userdata_rollback.py",
+          "exit_code": 0,
+          "raw_output": "{\"both_states\": true, \"naive\": {\"executed\": true, \"file_missing\": true, \"lost\": [\"notes/owner.txt\"], \"lost_planted\": true, \"mode\": \"naive-wipe-profile\"}, \"probe\": \"probe1-userdata-rollback\", \"safe\": {\"executed\": true, \"exists_after\": true, \"hash_match\": true, \"live_hash\": \"5e6c9523528aae2d4dfbb1d8c920b20d09271ae8753f9e790d607624e787a851\", \"lost\": [], \"mode\": \"packaged-artifact-restore\", \"package\": \"plugin-1.0.0.zip\", \"pass\": true, \"planted_hash\": \"5e6c9523528aae2d4dfbb1d8c920b20d09271ae8753f9e790d607624e787a851\", \"rolled_back_to\": \"1.0.0\", \"upgraded_to\": \"2.0.0\"}, \"unit_id\": \"IMP-0241\"}\nsafe_preserved=True naive_lost=True hash=5e6c9523528aae2d4dfbb1d8c920b20d09271ae8753f9e790d607624e787a851 version=1.0.0\nSUCCESS:IMP-0241-probe1 planted user-data survives rehearsed rollback"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe1_userdata_rollback.py",
+          "exit_code": 0,
+          "raw_output": "re-run by named probe in G-1 measure"
+        }
+      ]
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0241/go_no_go.py:release_go_no_go",
+      "claim": "release-go-no-go calls oracle.judge; a local all(checklist) rival is detected by AST.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe2_gongo_oracle_ast.py",
+          "exit_code": 0,
+          "raw_output": "{\"live\": {\"exit_zero_as_go\": false, \"imports_oracle_judge\": true, \"judge_calls\": 1, \"local_checklist\": false, \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0241/go_no_go.py\", \"uses_shared_oracle\": true}, \"rival\": {\"exit_zero_as_go\": true, \"imports_oracle_judge\": false, \"judge_calls\": 0, \"local_checklist\": true, \"path\": \"planted-rival-local-checklist\", \"uses_shared_oracle\": false}}\nast_shared=True rival_detected=True exit_only=NO-GO complete=GO\nSUCCESS:IMP-0241-probe2 go/no-go uses shared oracle.judge"
+        },
+        {
+          "role": "verifier",
+          "method": "ast",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe2_gongo_oracle_ast.py",
+          "exit_code": 0,
+          "raw_output": "ast_shared=True rival_detected=True"
+        }
+      ]
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0241-probe2-gongo-oracle-ast",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 is AST-of-go_no_go plus a live oracle call; probe 1 is a packaged rollback hash census. Different fields."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0241/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0241.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0241",
+        "role": "verifier",
+        "method": "command"
+      }
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "userdata-rollback-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe1_userdata_rollback.py"
+    },
+    {
+      "id": "probe2",
+      "role": "gongo-shared-oracle-ast",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0241/probe2_gongo_oracle_ast.py"
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "timestamps": {
+    "ended_at": "2026-08-25T00:54:31Z",
+    "started_at": "2026-08-25T00:54:31Z"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "tools/agentspec is complete on this sparse worktree",
+      "REL-0018 twenty-one stopping conditions were all TRUE on this tree"
+    ],
+    "proof_surface": "Four contract-gated blueprints under probes/IMP-0241; rollback executes zip restore in tempfile; go/no-go imports oracle.judge."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Full agentspec.oracle.judge on tools/agentspec is IMP-0226/IMP-0415, not this unit.",
+      "settling_experiment": "IMP-0226 AST sweep over runner/monitor/harvester.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for IMP-0241: live named probes, honest SUCCESS receipt, per-unit manifest row. Did not run global unit_manifest.py --write."
+}

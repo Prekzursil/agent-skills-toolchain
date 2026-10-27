@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0002",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0002",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0002; _USER-PROMPTS.md:10828",
+  "title": "Deterministic reproducible packer (stable order, fixed mtimes, no git archive)",
+  "min_bytes_threshold": 128,
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "question": "Implement tools/plugin/pack.py so two builds of the same commit produce byte-identical archives: sort entries by NFC-normalised path, zero out mtime/uid/gid/umask bits, pin the compression level, and read file bytes via `git cat-file -p <rev>:<path>` rather than the git subcommand measured on this box to return CRLF worktree bytes instead of the blob.",
+  "implementation": {
+    "module": "tools/plugin/pack.py",
+    "allowlist": "tools/plugin/payload-allowlist.json",
+    "tests": [
+      "tools/plugin/tests/test_pack_determinism.py",
+      "tools/plugin/tests/test_pack_uses_blob_bytes.py"
+    ],
+    "byte_source": "git cat-file -p <rev>:<path>",
+    "sort": "NFC-normalised POSIX path",
+    "tar_metadata": "mtime=0 uid=0 gid=0 uname/gname empty; mode pinned from git tree",
+    "gzip": {
+      "compresslevel": 9,
+      "mtime": 0,
+      "os_byte": "0xFF"
+    },
+    "normalisation": "NFC"
+  },
+  "measured_builds": {
+    "equal": true,
+    "sha256": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+    "build1": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+    "build2": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+    "build3": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+    "build3_independent_hasher": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+    "members": [
+      "README.md",
+      "a-first.txt",
+      "bin/tool",
+      "empty.txt",
+      "payload/app.py",
+      "payload/café.txt",
+      "payload/crlf.txt",
+      "payload/data.bin",
+      "payload/naïve.txt",
+      "z-last.txt"
+    ],
+    "bytes": 410,
+    "compression_level": 9
+  },
+  "artifacts": [
+    {
+      "path": "tools/plugin/pack.py",
+      "bytes": 8816,
+      "sha256": "c1b8352d98c25d8627ad70843137e2d22c621d5a8ba1039e07e2eaaf730281e8",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/payload-allowlist.json",
+      "bytes": 902,
+      "sha256": "3b4b37671fce27d54c53c139513bbb20e6552f10ca503187eed280719193629f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/fixture_repo.py",
+      "bytes": 1828,
+      "sha256": "18272bb882404074ea38b92e3a28ac479d9ecffd0daf51f08fa4021e1d9939b5",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "tools/plugin/tests/test_pack_determinism.py",
+      "bytes": 1808,
+      "sha256": "301fe7212a54971f1ff4c071c1698614dab0810d7abea7fc4a8380bb6cf76f1e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_pack_uses_blob_bytes.py",
+      "bytes": 730,
+      "sha256": "1e3b39d773dca261eb6a3db891aa0140a665fd7edbd39f72ce7682d980499ca5",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Two consecutive packs of the same git revision are byte-identical after worktree utime, umask, TZ, and SOURCE_DATE_EPOCH perturbation.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/tests/test_pack_determinism.py::test_two_builds_identical",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/plugin/tests/test_pack_determinism.py::test_two_builds_identical",
+          "raw_output": "{\"build1\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"build2\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"equal\": true, \"members\": [\"README.md\", \"a-first.txt\", \"bin/tool\", \"empty.txt\", \"payload/app.py\", \"payload/caf\\u00e9.txt\", \"payload/crlf.txt\", \"payload/data.bin\", \"payload/na\\u00efve.txt\", \"z-last.txt\"], \"sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\"}",
+          "fingerprint": "972252b33e0c2dce3b516598036c1aa4118f5ffc2debc1943348115f5b4e3511",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "sha256_file(build1) == sha256_file(build2) after utime/umask/TZ",
+          "raw_output": "{\"equal\": true, \"sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\"}",
+          "fingerprint": "eaa28dc50ef5153ac78dd842acb5217da45e56948acbea7884abd28a3303185f",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "A third pack in a different cwd with a different TMPDIR and a shifted clock/utime, hashed by hash_archive.py (does not import pack.py), matches the first two digests.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0002/hash_archive.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0002/hash_archive.py <third.tar.gz>",
+          "raw_output": "{\"TMPDIR\": \"tmp-b\", \"TZ\": \"America/Adak\", \"build3\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"cwd\": \"cwd-b\", \"independent\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"matches_first_two\": true}",
+          "fingerprint": "23d72259d1871000d4d787dcbae0438fb47dcdd27f99114aca862f90c74436f3",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "independent hasher vs pack.py digest",
+          "raw_output": "{\"equal\": true, \"hasher_sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"pack_sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\"}",
+          "fingerprint": "8dce6bf4b34bd64608fb39143510792beb6b796b496270cecbfe0a8c21b6badc",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_two_builds_identical",
+      "command": "python3 -B tools/plugin/tests/test_pack_determinism.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_real_mtimes_breaks_determinism",
+      "command": "python3 -B tools/plugin/tests/test_pack_determinism.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_crlf_worktree_packed_with_lf_blob",
+      "command": "python3 -B tools/plugin/tests/test_pack_uses_blob_bytes.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "real-mtimes-flag",
+      "kind": "known-broken-fixture",
+      "description": "Re-enable real worktree mtimes behind --real-mtimes; two packs after utime() must diverge (determinism test goes red).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "h1=435edb0563a8a777f3f1f9f26e140a4dedb4454d93a2f493028f5ffecd1391e6 h2=2cbb0b3cfaefaac122df8445dc5d66aa477cf49942f603aaa2de0a724255e4ed diverged=True",
+      "good_state_output": "sha256=ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36 equal=True"
+    },
+    {
+      "id": "crlf-worktree-lf-blob",
+      "kind": "other",
+      "description": "payload/crlf.txt worktree is CRLF; blob and packed member are LF. ; original-kind: both-states",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "packed bytes would contain CRLF if worktree were read",
+      "good_state_output": "{\"blob_is_lf\": true, \"packed_equals_blob\": true, \"packed_ne_worktree\": true, \"worktree_is_crlf\": true}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0002-probe2-independent-hasher",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Third digest computed by hash_archive.py which does not import pack.py. CRLF worktree member packed as LF blob via git cat-file. note=Third digest computed by hash_archive.py which does not import pack.py. CRLF worktree member packed as LF blob via git cat-file."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0002/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "IMP-0002"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0002/probe1_two_builds.py",
+      "artifact_path": "command-center/receipts/IMP-0002.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0002/probe1_two_builds.py",
+        "raw_output": "deferred-to-named-probe",
+        "fingerprint": "f6bf87a10548f04a947d2cb018712bf12781313eeb4e6fbaf4256e099b07ffcb",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0001 (payload-allowlist census of a 7911-file product tree) is not delivered on this worktree. pack.py consumes a deny-by-default allowlist; the default file is the packer's include set, not that census.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-bind DEFAULT_ALLOWLIST to the IMP-0001 artifact when it lands."
+    },
+    {
+      "claim": "This worktree is not a git checkout of the product plugin. Live proofs run against an isolated fixture git repo created per run.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Pack HEAD of a product checkout with the IMP-0001 allowlist."
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "timestamps": {
+    "started_at": "2026-08-24T20:50:00Z",
+    "ended_at": "2026-08-25T00:34:40Z"
+  },
+  "completion_sentinel": "SUCCESS:IMP-0002",
+  "id": "IMP-0002",
+  "defects": [],
+  "extensions": {}
+}

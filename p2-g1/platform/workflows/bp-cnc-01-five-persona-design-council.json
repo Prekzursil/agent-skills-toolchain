@@ -1,0 +1,776 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-01-five-persona-design-council",
+  "name": "Schema-Typed Five-Persona Design Council",
+  "description": "Blueprint 16 of 96 (design card BP-CNC-01, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:871). MECHANISM: five FIXED personas review one committed design artifact in parallel, each blind to the others, and each must return a verdict drawn from an ENUMERATED set - free text is a schema failure, not a soft pass. A null-tolerant barrier aggregates; a persona that fails schema validation is retried ONCE with the vocabulary restated inline and then recorded as a null lens (measured: our own schemas reject our own agents 22.7% of the time). SHADOW posture: the aggregate gate is non-blocking with on_fail=record-and-continue, so this council can never wedge the owner.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta-workflows",
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "design-council",
+    "typed-verdicts",
+    "shadow-mode",
+    "bp-cnc-01"
+  ],
+  "flagship": true,
+  "params": {
+    "design_doc_path": {
+      "type": "path",
+      "required": true,
+      "description": "The committed design document under review. A council over a verbal idea produces five opinions and no evidence, so a real artifact is required."
+    },
+    "definition_of_done": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "What the design must achieve; personas score against this, not against taste"
+    },
+    "prior_decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Binding prior decisions the design may not silently re-open",
+      "default": []
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "enum",
+        "enum": [
+          "pm",
+          "architect",
+          "designer",
+          "security",
+          "cto",
+          "codex-cross-vendor"
+        ]
+      },
+      "min_items": 3,
+      "max_items": 6,
+      "description": "Fixed persona set. The 6th is the optional cross-vendor arm.",
+      "default": [
+        "pm",
+        "architect",
+        "designer",
+        "security",
+        "cto"
+      ]
+    },
+    "schema_retry_once": {
+      "type": "boolean",
+      "default": true,
+      "description": "Retry a schema-invalid verdict once with the enumerated vocabulary restated inline before recording a null lens"
+    }
+  },
+  "roles": {
+    "pm": {
+      "description": "Product persona - judges whether the design serves the stated definition of done and nothing else",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/design-council/**)"
+      ],
+      "write_paths": [
+        "command-center/design-council/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "architect": {
+      "description": "Architecture persona - judges coupling, failure domains and whether the design introduces a second runtime",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/design-council/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "designer": {
+      "description": "Design persona - judges the surface the owner actually touches, including error and empty states",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/design-council/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "security": {
+      "description": "Security persona - REASONS about the design; it has no elevated access and does not scan (pair with the scanner workflow for that)",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "vote_weight": 2,
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/design-council/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "cto": {
+      "description": "CTO persona - judges whether this is worth building now against everything else competing for the same attention",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/design-council/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "codex-cross-vendor": {
+      "description": "Optional 6th persona on a different vendor - five same-vendor personas share blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "aggregator": {
+      "description": "Assembles the verdict table with a null-tolerant barrier and never converts a null lens into an approval",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design-council/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp__codex__codex",
+      "Write(command-center/design-council/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/design-council/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == codex_cross_vendor",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the 6th persona exists precisely to not share the other five blind spots"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "verdicts-are-enumerated": {
+      "predicate": "custom-expression",
+      "expression": "free_text_verdicts == 0 AND verdicts_returned >= 3 AND blocking_findings_without_section_anchor == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "retry"
+    },
+    "shadow-aggregate": {
+      "predicate": "reviewer-pass",
+      "expression": "blocking_findings == 0",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "load",
+      "title": "S0 LOAD the design and the binding prior decisions",
+      "kind": "task",
+      "role": "aggregator",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WCNC-0101",
+        "title": "Load the design document and the binding prior-decision set",
+        "phase": "2B",
+        "question_or_target": "Confirm the design artifact exists and is non-empty, and assemble the binding prior decisions the design may not silently re-open.",
+        "inputs": [
+          "params.design_doc_path",
+          "params.definition_of_done",
+          "params.prior_decisions"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "aggregator",
+          "basis": "cheap assembly, but it must fail closed when the artifact is absent"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/design-council/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/design-council/bp-cnc-01/brief.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "the brief records the design document byte length and content hash, so a persona verdict can be tied to the exact revision it reviewed",
+        "tests_required": [
+          "an absent design_doc_path must FAIL this unit, never proceed to a five-persona fan-out over nothing",
+          "both-states control: point at a missing path and confirm FAILED, point at a real path and confirm SUCCESS"
+        ],
+        "reviewer_requirement": "none - this is a mechanical load; the personas are the review",
+        "completion_sentinel": "SUCCESS:WCNC-0101 emitted when brief.json exists, parses, and records the design hash and byte length; otherwise FAILED:WCNC-0101 <reason>",
+        "retry_policy": "no retry on a missing artifact - that is an owner input error, not a transient failure",
+        "failure_classification": [
+          "artifact-missing",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/design-council/bp-cnc-01/brief.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 200,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0101",
+          "consumers": [
+            "review",
+            "aggregate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "review",
+      "title": "S1 FAN-OUT the fixed personas in parallel, each blind, each returning a typed verdict",
+      "kind": "fanout",
+      "depends_on": [
+        "load"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "personas",
+        "item_var": "persona",
+        "key_field": "persona"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 150,
+      "max_items": 6,
+      "on_item_failure": "continue",
+      "timeout_seconds": 3600,
+      "body": [
+        {
+          "id": "persona-verdict",
+          "title": "One persona returns one schema-valid verdict",
+          "kind": "task",
+          "role": "pm",
+          "timeout_seconds": 1800,
+          "retry": {
+            "strategy": "fixed",
+            "max_attempts": 2,
+            "backoff_seconds": 5,
+            "jitter": false,
+            "retry_on": [
+              "schema-invalid"
+            ],
+            "no_retry_on": [
+              "artifact-missing"
+            ]
+          },
+          "work_unit": {
+            "id": "WCNC-0102",
+            "title": "Return one persona verdict from the enumerated vocabulary with anchored blocking findings",
+            "phase": "2B",
+            "question_or_target": "As the assigned persona only, return verdict APPROVE, APPROVE_WITH_CONDITIONS or REJECT, with every blocking finding citing the design document by section.",
+            "inputs": [
+              "command-center/design-council/bp-cnc-01/brief.json",
+              "item.persona"
+            ],
+            "dependencies": [
+              "WCNC-0101"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "pm",
+              "basis": "one persona per item; the role is overridden per item by the persona key"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Write(command-center/design-council/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/design-council/bp-cnc-01/verdicts/persona.json",
+            "output_schema": "command-center/schema/council-audit.schema.json",
+            "evidence_requirement": "every blocking finding cites a section of the design document; a finding with no anchor is not a finding and is rejected by the enumeration gate",
+            "tests_required": [
+              "a free-text verdict such as 'looks good to me' is a SCHEMA FAILURE, not a soft pass",
+              "seeded-hole benchmark: a design with a deliberate auth hole must produce a BLOCKING finding from the security persona",
+              "a clean design must produce APPROVE, not manufactured findings"
+            ],
+            "reviewer_requirement": "no cross-review during the fan-out - blindness is the mechanism; the optional cross-vendor persona is a sibling, not a reviewer",
+            "completion_sentinel": "SUCCESS:WCNC-0102 emitted per persona when the verdict artifact exists, parses against council-audit, and the verdict is one of the three enumerated values; a schema-invalid verdict retried once then emits FAILED:WCNC-0102 null-lens",
+            "retry_policy": "exactly one retry with the enumerated vocabulary restated inline, then record a null lens - measured: our own schemas reject our own agents 22.7% of the time",
+            "failure_classification": [
+              "schema-invalid",
+              "null-lens",
+              "severed-stream"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.6,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "I was unable to"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "enumeration-gate",
+      "title": "S1b A free-text verdict is a schema failure - assert the vocabulary before aggregating",
+      "kind": "gate",
+      "depends_on": [
+        "review"
+      ],
+      "gate_ref": "verdicts-are-enumerated"
+    },
+    {
+      "id": "aggregate",
+      "title": "S2 AGGREGATE with a null-tolerant barrier - a null lens is never an approval",
+      "kind": "task",
+      "role": "aggregator",
+      "depends_on": [
+        "enumeration-gate"
+      ],
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "WCNC-0103",
+        "title": "Aggregate the persona verdicts into one table, counting null lenses explicitly",
+        "phase": "2B",
+        "question_or_target": "Build the verdict table: one row per persona, the aggregate, and an explicit count of null lenses. A null lens is reported as NOT-CHECKED, never folded into the approval count.",
+        "inputs": [
+          "command-center/design-council/bp-cnc-01/verdicts",
+          "command-center/design-council/bp-cnc-01/brief.json"
+        ],
+        "dependencies": [
+          "WCNC-0102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "aggregator",
+          "basis": "aggregation is mechanical but the null-lens accounting is where a silent pass would hide"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design-council/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/design-council/bp-cnc-01/verdict-table.json",
+        "output_schema": "command-center/schema/council-audit.schema.json",
+        "evidence_requirement": "the table states personas_requested, verdicts_returned, null_lenses and the derived unaccounted_personas, and unaccounted_personas must be 0; every blocking finding is carried forward verbatim with its anchor",
+        "tests_required": [
+          "unaccounted_personas (personas_requested minus verdicts_returned minus null_lenses) must be 0 - the arithmetic is computed by the runner because the DSL expression grammar has no arithmetic operators",
+          "both-states control: drop one verdict file and confirm the reconciliation check FAILS, restore it and confirm it PASSES",
+          "a null lens must never increment the approval count"
+        ],
+        "reviewer_requirement": "one independent reader confirms the three counts reconcile and that no null lens was read as an approval",
+        "completion_sentinel": "SUCCESS:WCNC-0103 emitted when verdict-table.json exists, parses, and unaccounted_personas == 0; otherwise FAILED:WCNC-0103 <reason>",
+        "retry_policy": "two strikes then pivot: emit the partial table with the reconciliation gap stated rather than a table that silently balances",
+        "failure_classification": [
+          "reconciliation-mismatch",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/design-council/bp-cnc-01/verdict-table.json",
+          "schema_ref": "command-center/schema/council-audit.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0103",
+          "consumers": [
+            "shadow-gate",
+            "owner",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shadow-gate",
+      "title": "S3 EMIT - SHADOW posture: record the verdict, never block the owner",
+      "kind": "gate",
+      "depends_on": [
+        "aggregate"
+      ],
+      "gate_ref": "shadow-aggregate"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-personas-terminal",
+      "expression": "unaccounted_personas == 0 AND reconciliation_ok == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "verdicts_returned >= 3",
+      "on_stop": "complete"
+    },
+    {
+      "id": "quorum-lost",
+      "expression": "verdicts_returned < 3",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": true,
+    "retry_on": [
+      "schema-invalid",
+      "severed-stream"
+    ],
+    "no_retry_on": [
+      "artifact-missing",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "schema-invalid",
+      "null-lens",
+      "artifact-missing",
+      "reconciliation-mismatch"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-01"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-01",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-cnc-01.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs",
+      "timings"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "model_id"
+    ],
+    "store": "command-center/cache/bp-cnc-01",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "design-doc-hash-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-01-plan.json",
+    "forbid_tools": [
+      "Write(command-center/design-council/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "min": 0.3,
+      "expected": 1.0,
+      "max": 3.0
+    },
+    "wallclock_seconds": {
+      "min": 240,
+      "expected": 900,
+      "max": 3600
+    },
+    "tokens": {
+      "min": 60000,
+      "expected": 200000,
+      "max": 600000
+    },
+    "tool_calls": {
+      "expected": 35,
+      "max": 140
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only on the repo plus writes under command-center/design-council/bp-cnc-01/**; SHADOW posture means it cannot block a merge or a completion",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-01.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "migrate",
+      "migrations": [
+        {
+          "from": "0.9.0",
+          "to": "1.0.0",
+          "script": "platform/lib/wfdsl/migrations/v0_9_to_v1_0.py",
+          "reversible": true
+        }
+      ],
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "workflows/design-gate.mjs",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "metaswarm:design-review-gate",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "third-party-plugin-metaswarm",
+        "credit": "metaswarm authors"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "workflows/design-gate.mjs"
+    ]
+  },
+  "outputs": {
+    "verdict_table": {
+      "path": "command-center/design-council/bp-cnc-01/verdict-table.json",
+      "schema_ref": "command-center/schema/council-audit.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate",
+        "bp-cnc-06-weighted-rubric-jury"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 16,
+    "design_card": "BP-CNC-01",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:871",
+    "acquisition_route": "ADOPT",
+    "state_v": [
+      "FOUND"
+    ],
+    "size_v": [
+      "NATIVE"
+    ],
+    "distinct_mechanism": "fixed-persona parallel fan-out with an ENUMERATED categorical verdict vocabulary, a retry-once-then-null-lens rule, explicit null-lens accounting that must reconcile, and a NON-BLOCKING shadow aggregate gate",
+    "not_a_duplicate_because": "BP-CNC-06 scores on a weighted rubric with a critical-error override and returns a number; this returns categorical persona verdicts and no score. BP-CNC-04 reviews the CROSS-LANE premise structure of many outputs; this reviews ONE artifact. It is also the only blueprint in this range whose terminal gate is deliberately non-blocking.",
+    "contraindications": [
+      "code review - that is a different blueprint with a different evidence standard",
+      "a plan - the plan gate uses adversarial reviewers, not personas",
+      "no artifact exists - a council over a verbal idea produces five opinions and no evidence"
+    ],
+    "shadow_posture_note": "shadow-aggregate has blocking=false and on_fail=record-and-continue on purpose. The enumeration gate IS blocking, because a free-text verdict makes the fan-in unreadable - that is a contract failure, not a design opinion. The distinction is deliberate: SHADOW applies to the design VERDICT, never to the schema contract.",
+    "worked_examples": [
+      {
+        "name": "seeded-hole benchmark - a design with a deliberate auth hole",
+        "params": {
+          "design_doc_path": "command-center/designs/receipt-substrate-design.md",
+          "definition_of_done": "every catalogued unit can emit a receipt that validates against a resolvable schema, with exactly one control plane",
+          "prior_decisions": [
+            "release mode is PR-ONLY",
+            "the catalog file stays byte-identical"
+          ],
+          "personas": [
+            "pm",
+            "architect",
+            "designer",
+            "security",
+            "cto"
+          ],
+          "schema_retry_once": true
+        },
+        "expected_artifacts": [
+          "command-center/design-council/bp-cnc-01/brief.json",
+          "command-center/design-council/bp-cnc-01/verdict-table.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0103 with shadow-aggregate recording blocking_findings == 1",
+        "walkthrough": "The design proposes generating shims from an unauthenticated remote index. S0 records the design hash. S1 fans out five personas blind. security returns REJECT with a blocking finding anchored at the design section that fetches the index over the network, citing the fetched-content-is-data rule. architect returns APPROVE_WITH_CONDITIONS (one control plane, but the generator must be in-repo). pm, designer and cto return APPROVE. S1b passes: five enumerated verdicts, one anchored blocking finding, zero free text. S2 reconciles 5 requested = 5 returned + 0 null. S3 RECORDS blocking_findings == 1 and does NOT block - the owner sees a REJECT from security and decides.",
+        "expected_gate_outcomes": {
+          "verdicts-are-enumerated": "PASS - free_text_verdicts == 0, verdicts_returned == 5",
+          "shadow-aggregate": "RECORDED-NOT-BLOCKED - blocking_findings == 1, on_fail=record-and-continue"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a persona returns free text and one dies",
+        "params": {
+          "design_doc_path": "command-center/designs/receipt-substrate-design.md",
+          "definition_of_done": "every catalogued unit can emit a schema-valid receipt",
+          "personas": [
+            "pm",
+            "architect",
+            "designer",
+            "security",
+            "cto"
+          ]
+        },
+        "expected_artifacts": [
+          "command-center/design-council/bp-cnc-01/verdict-table.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0103 with null_lenses == 1",
+        "walkthrough": "designer returns 'this looks fine to me' - not an enumerated value. The per-item retry fires once with the three legal values restated inline; the second attempt is severed, so designer is recorded as a null lens. The barrier quorum of 0.6 is met (4 of 5), so aggregation proceeds DEGRADED. S2 reports personas_requested=5, verdicts_returned=4, null_lenses=1 and the three numbers reconcile. The null lens is reported NOT-CHECKED and does NOT increment the approval count - which is the failure this accounting exists to prevent.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "a design with a deliberate auth hole - the Security persona must raise it as blocking",
+      "a clean design - expect 5 APPROVE, not manufactured findings"
+    ],
+    "unverified": "UNVERIFIED whether 5 personas beat 3; settling experiment = ablate to 3 on ten designs and compare blocking-finding recall against the union of both arms. Confidence that the source workflow runs today: almost-certain (90-99%).",
+    "council_presets_referenced": [
+      "platform/council/presets/c-s11-design-gate-5.councilspec.json"
+    ],
+    "topology_note": "The design card's topology is `5 fresh reviewers in parallel, each blind to the others -> 1 aggregator`. That is a FAN-OUT, not a deliberation, so this blueprint deliberately carries NO council stage - the c-s11-design-gate-5 preset is referenced as the seat contract rather than executed as a deliberating council. BP-CNC-02/04/05 are where deliberation actually happens."
+  }
+}

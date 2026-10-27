@@ -1,0 +1,423 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1333,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/generated/test_independent.py",
+      "role": "primary",
+      "sha256": "37e65dbece94e6ec0a3010c632152f4c2e49f9af38487692b3e279ff2cd540f4"
+    },
+    {
+      "bytes": 1042,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/blind-test-report.schema.json",
+      "role": "supporting",
+      "sha256": "00d3331ca9406e2c95ba2903269935ab3824712e77d19b0d739835e62c084c68"
+    },
+    {
+      "bytes": 5147,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/synthesizer.py",
+      "role": "supporting",
+      "sha256": "f021f198e7b2d09d0fbf6e9e591b770ad67423f7986a982426bf6c46c0ac9898"
+    },
+    {
+      "bytes": 832,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/fixtures/requirement.md",
+      "role": "fixture",
+      "sha256": "3664295278cc54f17805abdf2d217d3b5fb6f76c949843f0111150713e14a9d1"
+    },
+    {
+      "bytes": 732,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/fixtures/public_api.py",
+      "role": "fixture",
+      "sha256": "23bdd9274913177d7eafa6726ec82cf7b40d4289a540d22e6c94ee5b9b833c42"
+    },
+    {
+      "bytes": 2098,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/probe1_leak_control.py",
+      "role": "control",
+      "sha256": "7420512752d0f14a515f5f49271d212915ec1b51897cb0c541785f055cb78b57"
+    },
+    {
+      "bytes": 3421,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0038/probe2_red_green.py",
+      "role": "control",
+      "sha256": "6798ed1874dc6bf443ea9f7adeb91611d5730395e44b2376d602c7d5664b75d2"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0038-blind-test-synthesis.json",
+      "consumer": "jsonschema Draft202012Validator + disk RefResolver store",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0038/schema_local.py via emit.py error_list",
+        "exit_code": 0,
+        "fingerprint": "disk-store:blind-test-report",
+        "method": "schema-validate",
+        "raw_output": "SUCCESS:schema-valid errors=0",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0038/generated/test_independent.py:1",
+      "claim": "An independently synthesised test from the requirement and public API is RED at the pre-fix snapshot and GREEN at the post-fix snapshot, with both outcomes recorded verbatim.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONPATH=command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix python3 -B command-center/p2-wave/probes/CNF-0038/generated/test_independent.py",
+          "exit_code": 1,
+          "fingerprint": "synth-run:pre-fix",
+          "method": "test-run",
+          "raw_output": "CASE missing-source-probe got={'ok': True, 'reason': 'independent-probes'} expect_ok=False expect_reason=empty-source-probe pass=False\nCASE empty-source-probe got={'ok': True, 'reason': 'independent-probes'} expect_ok=False expect_reason=empty-source-probe pass=False\nSUMMARY failed=2 of 2\n",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONPATH=command-center/p2-wave/probes/CNF-0038/fixtures/post-fix python3 -B command-center/p2-wave/probes/CNF-0038/generated/test_independent.py",
+          "exit_code": 0,
+          "fingerprint": "synth-run:post-fix",
+          "method": "file-read",
+          "raw_output": "CASE missing-source-probe got={'ok': False, 'reason': 'empty-source-probe'} expect_ok=False expect_reason=empty-source-probe pass=True\nCASE empty-source-probe got={'ok': False, 'reason': 'empty-source-probe'} expect_ok=False expect_reason=empty-source-probe pass=True\nSUMMARY failed=0 of 2\n",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0038/leak_detector.py:1",
+      "claim": "The leak detector is silent on a CNF-0005-style clean brief and fires on injected author-test, conclusion, and diff markers; the synthesizer opened zero forbidden paths.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "leak_detector.scan(clean_brief) vs injected markers",
+          "exit_code": 0,
+          "fingerprint": "leak:both-states",
+          "method": "static-analysis",
+          "raw_output": "{\"fired_on_injected_author_test\": true, \"fired_on_injected_conclusion\": true, \"fired_on_injected_diff\": true, \"forbidden_paths_opened\": [], \"silent_on_clean_brief\": true}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0038/probe1_leak_control.py",
+          "exit_code": 0,
+          "fingerprint": "probe1:leak-control",
+          "method": "command",
+          "raw_output": "{\"fired_on_author_test\": true, \"fired_on_conclusion\": true, \"fired_on_diff\": true, \"forbidden_opened\": 0, \"pass\": true, \"probe\": \"probe1-leak-control\", \"silent_on_clean\": true, \"unit_id\": \"CNF-0038\"}\nsilent_on_clean=True fired_on_injected=True forbidden_opened=0 both_states=True\nSUCCESS:CNF-0038-probe1 leak detector both-states and access guard",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "git checkout of pre-fix/post-fix SHAs",
+      "CNF-0005 catalog artifact was present on this worktree"
+    ]
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0038",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0038/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T00:56:40Z"
+  },
+  "min_bytes_threshold": 512,
+  "negative_controls": [
+    {
+      "bad_state_output": "fired_on_injected_author_test/conclusion/diff=true",
+      "description": "Inject author-test, conclusion, and diff markers into an otherwise clean brief; the detector must fire, and it must stay silent on the clean brief.",
+      "fired_on_bad_state": true,
+      "good_state_output": "silent_on_clean_brief=true forbidden_opened=0",
+      "id": "NC-LEAK-INJECTED",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "requirement-already-satisfied",
+      "description": "The already-satisfied snapshot is post-fix bytes used as a pre-fix stand-in; an independent test that is green there is requirement-already-satisfied, not success.",
+      "fired_on_bad_state": true,
+      "good_state_output": "red-then-green",
+      "id": "NC-ALREADY-SATISFIED",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "independent=RED author=GREEN",
+      "description": "Overfitted patch rejects a missing key only; the independent test still fails on empty-string source_probe while the author test is green.",
+      "fired_on_bad_state": true,
+      "good_state_output": "independent=GREEN on post-fix",
+      "id": "NC-OVERFITTED-PATCH",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local-fixture-worktrees",
+    "model": "grok-4.6",
+    "role": "blind-test-synthesiser",
+    "vendor": "grok"
+  },
+  "report": {
+    "author_comparison": {
+      "agree": false,
+      "author_executions": [
+        {
+          "commit_id": "fixture:3fb0b3baf4f80ec1719ca8faa1b8b1859322ac78",
+          "exit_code": 1,
+          "role": "pre-fix",
+          "snapshot_path": "command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix",
+          "verbatim_stderr": "test_absent_key_is_not_ok (__main__.AuthorReceiptTests.test_absent_key_is_not_ok) ... FAIL\n\n======================================================================\nFAIL: test_absent_key_is_not_ok (__main__.AuthorReceiptTests.test_absent_key_is_not_ok)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0038/fixtures/author_test.py\", line 20, in test_absent_key_is_not_ok\n    self.assertFalse(result.get(\"ok\"))\nAssertionError: True is not false\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n",
+          "verbatim_stdout": "",
+          "verdict": "RED"
+        },
+        {
+          "commit_id": "fixture:8c341fa24c37d10baa06bd9e006a8440ca9c6d5b",
+          "exit_code": 0,
+          "role": "post-fix",
+          "snapshot_path": "command-center/p2-wave/probes/CNF-0038/fixtures/post-fix",
+          "verbatim_stderr": "test_absent_key_is_not_ok (__main__.AuthorReceiptTests.test_absent_key_is_not_ok) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+          "verbatim_stdout": "",
+          "verdict": "GREEN"
+        }
+      ],
+      "disagreements": [
+        {
+          "author": "not asserted; author test only covers a missing key",
+          "axis": "empty-string source_probe case",
+          "independent": "CASE empty-source-probe expects ok=false reason=empty-source-probe",
+          "matches_requirement": "independent"
+        },
+        {
+          "author": "asserts only that ok is False on a missing key",
+          "axis": "exact reason token empty-source-probe",
+          "independent": "asserts reason exactly empty-source-probe on both cases",
+          "matches_requirement": "independent"
+        }
+      ],
+      "overlap": "Both are RED at pre-fix and GREEN at post-fix on the missing-key shape (author RED-then-GREEN).",
+      "requirement_match": "independent"
+    },
+    "both_commits_executed": true,
+    "claim_under_test": "An independently derived test from the requirement and public API fails at the pre-fix snapshot and passes at the post-fix snapshot.",
+    "commit_stand_in": "G-1 forbids git checkout; isolated fixture worktrees are content-addressed as commit_id fixture:<sha256-40>.",
+    "control_ids": [
+      "leak-detector-both-states",
+      "already-satisfied",
+      "overfitted-patch"
+    ],
+    "controls": {
+      "already_satisfied": {
+        "caught": true,
+        "classification": "requirement-already-satisfied"
+      },
+      "overfitted_patch": {
+        "author": "GREEN",
+        "caught": true,
+        "independent": "RED"
+      }
+    },
+    "executions": [
+      {
+        "commit_id": "fixture:3fb0b3baf4f80ec1719ca8faa1b8b1859322ac78",
+        "exit_code": 1,
+        "role": "pre-fix",
+        "snapshot_path": "command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix",
+        "verbatim_stderr": "",
+        "verbatim_stdout": "CASE missing-source-probe got={'ok': True, 'reason': 'independent-probes'} expect_ok=False expect_reason=empty-source-probe pass=False\nCASE empty-source-probe got={'ok': True, 'reason': 'independent-probes'} expect_ok=False expect_reason=empty-source-probe pass=False\nSUMMARY failed=2 of 2\n",
+        "verdict": "RED"
+      },
+      {
+        "commit_id": "fixture:8c341fa24c37d10baa06bd9e006a8440ca9c6d5b",
+        "exit_code": 0,
+        "role": "post-fix",
+        "snapshot_path": "command-center/p2-wave/probes/CNF-0038/fixtures/post-fix",
+        "verbatim_stderr": "",
+        "verbatim_stdout": "CASE missing-source-probe got={'ok': False, 'reason': 'empty-source-probe'} expect_ok=False expect_reason=empty-source-probe pass=True\nCASE empty-source-probe got={'ok': False, 'reason': 'empty-source-probe'} expect_ok=False expect_reason=empty-source-probe pass=True\nSUMMARY failed=0 of 2\n",
+        "verdict": "GREEN"
+      }
+    ],
+    "git_checkout_used": false,
+    "kind": "blind-test-report",
+    "leak_control": {
+      "brief_path": "command-center/p2-wave/probes/CNF-0038/generated/brief.json",
+      "fired_on_injected_author_test": true,
+      "fired_on_injected_conclusion": true,
+      "fired_on_injected_diff": true,
+      "forbidden_paths_opened": [],
+      "silent_on_clean_brief": true
+    },
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0038/probe1_leak_control.py",
+        "id": "probe1",
+        "role": "leak-control"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0038/probe2_red_green.py",
+        "id": "probe2",
+        "role": "red-then-green"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix/receipt_gate.py",
+        "measured": "RED",
+        "method": "test-run",
+        "name": "independent_pre"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0038/fixtures/post-fix/receipt_gate.py",
+        "measured": "GREEN",
+        "method": "test-run",
+        "name": "independent_post"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0038/classify.py",
+        "measured": "red-then-green",
+        "method": "classification",
+        "name": "pattern"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0038/fixtures/already-satisfied",
+        "measured": true,
+        "method": "known-broken-fixture",
+        "name": "already_satisfied_caught"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0038/fixtures/overfitted",
+        "measured": true,
+        "method": "known-broken-fixture",
+        "name": "overfitted_caught"
+      }
+    ],
+    "pattern": {
+      "classification": "red-then-green",
+      "expected": "red-then-green",
+      "observed": "RED-then-GREEN"
+    },
+    "question": "Would a fresh agent, reading only the requirement and the public API and never the author test, write a test that fails before the fix and passes after? Do exactly that and answer: does the independently derived test agree with the author test, and where it disagrees, which one matches the requirement text?",
+    "synthesised_test": {
+      "author_test_bytes_read": 0,
+      "cases": [
+        {
+          "expect_ok": false,
+          "expect_reason": "empty-source-probe",
+          "id": "missing-source-probe",
+          "input": {
+            "verdict": "CONFIRMED",
+            "verifier_probe": "verifier-alpha"
+          }
+        },
+        {
+          "expect_ok": false,
+          "expect_reason": "empty-source-probe",
+          "id": "empty-source-probe",
+          "input": {
+            "source_probe": "",
+            "verdict": "CONFIRMED",
+            "verifier_probe": "verifier-alpha"
+          }
+        }
+      ],
+      "derived_from": [
+        "requirement",
+        "public_api"
+      ],
+      "diff_bytes_read": 0,
+      "function": "validate_receipt",
+      "module": "receipt_gate",
+      "path": "command-center/p2-wave/probes/CNF-0038/generated/test_independent.py",
+      "source": "#!/usr/bin/env python3\n\"\"\"Independently synthesised from the requirement + public API surface.\n\nNot copied from an author test. Not derived from a diff.\n\"\"\"\nfrom __future__ import annotations\n\nimport sys\n\nfrom receipt_gate import validate_receipt\n\nCASES = [{'id': 'missing-source-probe', 'input': {'verdict': 'CONFIRMED', 'verifier_probe': 'verifier-alpha'}, 'expect_ok': False, 'expect_reason': 'empty-source-probe'}, {'id': 'empty-source-probe', 'input': {'verdict': 'CONFIRMED', 'source_probe': '', 'verifier_probe': 'verifier-alpha'}, 'expect_ok': False, 'expect_reason': 'empty-source-probe'}]\n\n\ndef main() -> int:\n    failed = 0\n    for case in CASES:\n        got = validate_receipt(case[\"input\"])\n        ok = got.get(\"ok\") is case[\"expect_ok\"] and got.get(\"reason\") == case[\"expect_reason\"]\n        print(\n            \"CASE {id} got={got!r} expect_ok={expect_ok} \"\n            \"expect_reason={expect_reason} pass={ok}\".format(\n                id=case[\"id\"],\n                got=got,\n                expect_ok=case[\"expect_ok\"],\n                expect_reason=case[\"expect_reason\"],\n                ok=ok,\n            )\n        )\n        if not ok:\n            failed += 1\n    print(\"SUMMARY failed={0} of {1}\".format(failed, len(CASES)))\n    return 1 if failed else 0\n\n\nif __name__ == \"__main__\":\n    raise SystemExit(main())\n"
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "CNF-0005 catalog artifact command-center/confirmation/CNF-0005-blind-brief-builder.json is absent on this worktree; the in-probe CNF-0005-style brief builder was used instead.",
+      "settling_experiment": "Re-run after CNF-0005 is delivered on this worktree and feed that brief into synthesizer.py without reading author_test.py.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Pre-fix and post-fix git commits were not checked out; isolated fixture directories stand in, content-addressed as fixture:<sha256-40>.",
+      "settling_experiment": "When git checkout is allowed, re-run the synthesised test at the real pre-fix and post-fix SHAs and compare verdicts.",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "retry": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "jsonschema-ref-network-ast-integrate.invalid",
+        "outcome": "FAILED",
+        "started_at": "2026-08-25T00:56:39Z"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "disk-store-Draft202012Validator",
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-25T00:56:40Z"
+      }
+    ],
+    "count": 1,
+    "pivot_alternatives": [
+      "Validate via disk-only RefResolver store of platform/schema files",
+      "Reshape the receipt to generic_report with report.kind=blind-test-report"
+    ],
+    "policy": "one retry executed by a confirmer from the other vendor; if the two runs disagree, escalate to raw-source adjudication rather than a third run"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "The implementer does not close disagreements. Probe 1 re-runs the leak detector both-states control. Probe 2 re-runs the live red-then-green pair plus already-satisfied and overfitted fixtures. Did not run global unit_manifest.py --write.",
+    "reviewed_at": "2026-08-25T00:56:40Z",
+    "reviewer_id": "CNF-0038-probe1-leak-control",
+    "vendor": "anthropic",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0038 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the synthesised test was executed at both commits and both outcomes are recorded verbatim. Any other terminal state is FAILED:CNF-0038 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0038",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 5,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0038/probe1_leak_control.py",
+      "id": "probe1-leak-control",
+      "name": "leak detector both-states and synthesizer access guard",
+      "output_tail": "{\"fired_on_author_test\": true, \"fired_on_conclusion\": true, \"fired_on_diff\": true, \"forbidden_opened\": 0, \"pass\": true, \"probe\": \"probe1-leak-control\", \"silent_on_clean\": true, \"unit_id\": \"CNF-0038\"}\nsilent_on_clean=True fired_on_injected=True forbidden_opened=0 both_states=True\nSUCCESS:CNF-0038-probe1 leak detector both-states and access guard",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "python3 -B command-center/p2-wave/probes/CNF-0038/generated/test_independent.py against command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix then command-center/p2-wave/probes/CNF-0038/fixtures/post-fix",
+      "id": "T-INDEPENDENT-RED-THEN-GREEN",
+      "name": "independently synthesised test fails before the fix and passes after",
+      "output_tail": "pre=RED post=GREEN red-then-green",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 1,
+    "ended_at": "2026-08-25T00:56:40Z",
+    "started_at": "2026-08-25T00:56:39Z"
+  },
+  "unit_id": "CNF-0038"
+}

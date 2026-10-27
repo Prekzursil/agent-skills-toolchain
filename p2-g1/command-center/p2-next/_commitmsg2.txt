@@ -1,0 +1,42 @@
+feat(p2next): finish the satisfiable subset -- 10 of 10 reviewed, each on its own requirement
+
+Completes the review half of the lane. The first commit did the 7 review-only units; this one does
+the remaining 3, which each carry a DIFFERENT executable reviewer requirement, so each was reviewed
+on its own terms rather than by a generic pass.
+
+IMP-0440 asks for the three-route blob comparison re-measured on a DIFFERENT file. The unit used
+ready_units.py and blobread.py; this review measured four others. On every one `git cat-file -p` and
+`git show <rev>:<path>` are byte-identical at 0 CRLF while `git archive` carries CRLF, and all three
+share one sha256 after LF normalisation. The control is stronger than the row's own: the byte delta
+equals the archive CRLF count EXACTLY on all four files (621/621, 220/220, 205/205, 100/100), which
+is what makes this line-ending expansion rather than a content difference, plus a newline-free
+negative case with zero delta.
+
+TST-0334 asks for the probe re-run under a SECOND Windows shell with any divergence reported as a
+finding. Run via PowerShell and via Git Bash: 20 payload fields compared, ZERO differing, all 12
+route-measurement fields identical, terminal markers identical, both rc=0. There is no divergence to
+report. The absent-path half exits rc=1 instead of returning empty bytes.
+
+TST-0350 asks the reviewer to reproduce the both-states control. Its declared NC2 was reproduced
+in-process, both directions: collect_count over an empty directory returns 0 and require_nonempty(0)
+raises ValueError, while on the real suite 3948 >= 3900 the same guard stays silent and check_suite
+returns ok. The CLI also fails closed on an unregistered suite and its own test file passes 16/16.
+
+Two new findings, both LOW. TST-0334's blocked_on still names "a committed consumer of blobread" as
+outstanding and that is stale: an AST import check finds 6 real importers, 5 non-test, including the
+CI-wired unitgate.py and vendordrift.py. git grep matched 15 candidates, so 9 were mention-only --
+the use-vs-mention correction applied to my own first probe. IMP-0440's T5 debt is now 62 by
+git grep -l, but that is a mention count by the same method the row used for its 37, so it is
+recorded as UNVERIFIED with the AST check named as the settling experiment.
+
+Four more reviewer-instrument failures are recorded in the receipts rather than hidden, each caught
+before it became a false finding: a json.loads over stdout that mistook a trailing SUCCESS: marker
+for a cross-shell divergence; a control that predicted archive diverges only on CRLF worktrees and
+measured the opposite; an NC2 attempt outside the repo that died on a Windows path error and
+measured nothing; and a decomposition checker that passed on the broken text because
+"repos_scanned=1" supplied a standalone 1 -- caught by its own both-states control.
+
+All three stay BLOCKED. Each keeps its own second blocker (cross-tree edit authority, and the first
+CI execution of the wired step) and all three inherit condition 11, which no tool in the repo can
+satisfy. receipt_validate --self-test still exits 0 with TST-0334 as its golden, all 3 receipts are
+ADMITTED, unitgate exits 0, and ruff 0.15.17 check and format --check both pass.

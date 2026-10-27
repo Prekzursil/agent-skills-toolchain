@@ -1,0 +1,159 @@
+{
+ "artifacts": [
+  {
+   "bytes": 5402,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/replay.py",
+   "role": "primary-implementation",
+   "sha256": "aa446e22b726a7ace6a90ed4019438e8235d163958d4a91a24087a76f5d71a60"
+  },
+  {
+   "bytes": 7768,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/determinism.py",
+   "role": "primary-implementation",
+   "sha256": "0453f40d309bde96907ccc31c643b9ee735122f56bb1dd9ce1e6c0261cd926f4"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0228",
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/replay.py:replay_run",
+   "claim": "Cross-machine replay reproduces the compiled plan byte-for-byte (canonical SHA-256 match against an independent compile_plan). Dropping workflow or fanout_materialized names the missing input; a hostname stuffed into the plan is named as a leak, not explained away.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0228/probe1_cross_machine.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"detail\": \"plan and verdicts reproduced with zero dispatch\",\n  \"format\": \"agentspec.replay.v1\",\n  \"host_unused\": true,\n  \"id\": \"cross-machine-plan-bytes\",\n  \"live_dispatch\": 2,\n  \"missing_inputs\": [],\n  \"pass\": true,\n  \"plan_match\": true,\n  \"plan_sha256\": \"9ec50fea3f4ddc76b0bb09af4178fc9e083ea9f6429c6e565e06b2677de7443d\",\n  \"replay_dispatch\": 0,\n  \"verdicts\": {\n    \"a\": \"pass\",\n    \"b\": \"pass\"\n  }\n}\n{\n  \"fanout_missing\": [\n    \"events.fanout_materialized\"\n  ],\n  \"fanout_named\": true,\n  \"id\": \"missing-input-named\",\n  \"no_invented_plan\": true,\n  \"pass\": true,\n  \"replay_dispatch\": 0,\n  \"workflow_missing\": [\n    \"workflow\"\n  ],\n  \"workflow_named\": true\n}\n{\n  \"host_leaks\": [\n    \"/plan/0/hostname\"\n  ],\n  \"id\": \"host-leak-named\",\n  \"missing_inputs\": [\n    \"/plan/0/hostname\",\n    \"stamp:/plan/0/hostname\"\n  ],\n  \"ok\": false,\n  \"pass\": true,\n  \"scanner_hits\": [\n    \"/plan/0/hostname\"\n  ],\n  \"stamp_leaks\": [\n    \"/plan/0/hostname\"\n  ]\n}\nSUCCESS:IMP-0228-probe1 cross-machine plan bytes or named missing input",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/replay.py:CountingRail",
+   "claim": "Zero dispatch during replay, counted: live rail=2, replay rail=0. AST: record_run calls dispatch; replay_run does not. determinism.py and replay.py import none of time/random/socket/uuid/platform.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0228/probe2_zero_dispatch.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"id\": \"zero-dispatch-both-states\",\n  \"live_dispatch\": 2,\n  \"ok\": true,\n  \"pass\": true,\n  \"record_fn_calls_dispatch\": true,\n  \"replay_dispatch\": 0,\n  \"replay_fn_calls_dispatch\": false,\n  \"result_dispatch_count\": 0\n}\n{\n  \"banned_in_determinism\": [],\n  \"banned_in_plan\": [],\n  \"banned_in_replay\": [],\n  \"determinism_imports\": [\n    \"__future__\",\n    \"ast\",\n    \"collections\",\n    \"dataclasses\",\n    \"hashlib\",\n    \"json\",\n    \"pathlib\",\n    \"typing\"\n  ],\n  \"format\": \"agentspec.replay.v1\",\n  \"id\": \"clock-free-modules\",\n  \"pass\": true,\n  \"plan_imports\": [\n    \"__future__\",\n    \"collections\",\n    \"typing\"\n  ],\n  \"replay_imports\": [\n    \"__future__\",\n    \"agentspec\",\n    \"collections\",\n    \"dataclasses\",\n    \"typing\"\n  ]\n}\n{\n  \"expected\": {\n    \"a\": \"pass\",\n    \"b\": \"fail\"\n  },\n  \"id\": \"verdicts-roundtrip\",\n  \"pass\": true,\n  \"verdicts\": {\n    \"a\": \"pass\",\n    \"b\": \"fail\"\n  }\n}\nSUCCESS:IMP-0228-probe2 zero dispatch counted; live path still dispatches",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0228",
+ "implementation": {
+  "determinism_bytes": 7768,
+  "determinism_sha256": "0453f40d309bde96907ccc31c643b9ee735122f56bb1dd9ce1e6c0261cd926f4",
+  "dispatch_rail": "CountingRail.dispatch is called only by record_run; replay_run never references .dispatch (AST)",
+  "entry_points": [
+   "agentspec.replay.record_run",
+   "agentspec.replay.replay_run"
+  ],
+  "format": "agentspec.replay.v1",
+  "host_metadata_ignored_on_replay": true,
+  "host_metadata_key": "recorded_machine",
+  "live_dispatch_count": 2,
+  "missing_input_policy": "name the field; never invent a plan",
+  "modules": [
+   "tools/agentspec/agentspec/determinism.py",
+   "tools/agentspec/agentspec/replay.py"
+  ],
+  "plan_sha256_static_fixture": "9ec50fea3f4ddc76b0bb09af4178fc9e083ea9f6429c6e565e06b2677de7443d",
+  "replay_bytes": 5402,
+  "replay_dispatch_count": 0,
+  "replay_ok": true,
+  "replay_sha256": "aa446e22b726a7ace6a90ed4019438e8235d163958d4a91a24087a76f5d71a60"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0228/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "description": "A complete log replays ok with an empty missing_inputs list. Dropping workflow yields missing_inputs=['workflow'] and plan=None.",
+   "fired_on_bad_state": true,
+   "id": "IMP-0228-C1-drop-workflow",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A DynamicFanOut log without fanout_materialized names events.fanout_materialized instead of inventing shard ids from the hostname.",
+   "fired_on_bad_state": true,
+   "id": "IMP-0228-C2-drop-fanout-event",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Injecting hostname into a recorded plan makes replay_run return ok=False and names the leak path; it does not succeed by copying the leaky plan through.",
+   "fired_on_bad_state": true,
+   "id": "IMP-0228-C3-host-leak-in-plan",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "record_run increments CountingRail (2 WorkUnits); replay_run leaves a fresh rail at 0. A stuck-at-zero counter would fail the live half.",
+   "fired_on_bad_state": true,
+   "id": "IMP-0228-C4-dispatch-counter-both-states",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0228: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0228",
+ "output_path": "command-center/receipts/IMP-0228.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "premise": {
+  "action": "Extended tools/agentspec/agentspec/determinism.py with FORMAT_ID, canonical_sha256 and find_host_leaks (scan_package retained). Added tools/agentspec/agentspec/plan.py and tools/agentspec/agentspec/replay.py (record_run / replay_run with CountingRail). Did not exit on predicate:absent.",
+  "catalog_inputs": [
+   "IMP-0144 replay format",
+   "tools/agentspec/agentspec/determinism.py"
+  ],
+  "dependency_IMP_0144": "tools/agentspec/agentspec/replay_log.py is absent on this worktree; replay log format agentspec.replay.v1 is defined here as the executor contract",
+  "inputs_were_absent": true
+ },
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "p2-wave-g1-unit",
+ "reviewer": {
+  "independent": true,
+  "notes": "Adversarial controls are the host-leak mutant, the dropped fanout event, and the AST/import scan; not a self-attested prose review.",
+  "reviewer_id": "IMP-0228-probe2-zero-dispatch-and-clock-free-AST",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0228",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0228: replay a recorded run, reproducing plan and verdicts with zero dispatch; a log from a different machine still reproduces the plan or names the missing input",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0228/probe1_cross_machine.py",
+   "exit_code": 0,
+   "id": "cross-machine-replay-or-named-missing-input",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0228/probe2_zero_dispatch.py",
+   "exit_code": 0,
+   "id": "zero-dispatch-during-replay-counted",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:11:41Z",
+  "started_at": "2026-08-25T01:11:41Z"
+ },
+ "title": "Implement the deterministic replay executor",
+ "unit_id": "IMP-0228"
+}

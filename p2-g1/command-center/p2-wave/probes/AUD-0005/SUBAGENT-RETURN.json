@@ -1,0 +1,46 @@
+{
+ "id": "AUD-0005",
+ "unit_id": "AUD-0005",
+ "status": "DELIVERED",
+ "state": "BLOCKED",
+ "sentinel": "FAILED:AUD-0005 builder-side delivery COMPLETE (artifact + live probes + manifest sha verified); SUCCESS withheld: reviewer-absent, independent closure pending",
+ "output_path": "command-center/audit/AUD-0005-tag-release-parity.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0005/probe1_tag_deref.py",
+   "exit_code": 0,
+   "role": "delivery-predicate",
+   "raw_output": "{\n \"probe\": \"probe1-git-tag-deref\",\n \"unit_id\": \"AUD-0005\",\n \"fixture\": \"temp control repo (2 annotated tags + registry-only orphan)\",\n \"notes\": [\n  \"drift note: artifact records worktree_is_git=true (built in the prior builder's tree); the current worktree is not a git repository, so the discriminating census is the freshly rebuilt fixture control-repo above, which re-proves the instrument\"\n ],\n \"fails\": []\n}\nSUCCESS:AUD-0005-probe1 tag-deref instrument re-proven (2 tags LIVE, orphan DEAD); 4 artifact rows consistent with tallies; planted control independent"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0005/probe2_release_assets.py",
+   "exit_code": 0,
+   "role": "independent-recheck",
+   "raw_output": "{\n \"probe\": \"probe2-github-release-assets-byte-size\",\n \"unit_id\": \"AUD-0005\",\n \"fixture\": \"temp release store (published+asset, unpublished, zero-byte asset, absent row)\",\n \"notes\": [],\n \"fails\": []\n}\nSUCCESS:AUD-0005-probe2 release-asset census rule re-proven (3/4 DEAD, orphan control DEAD); zero-byte-asset detector fired, published-nonzero stayed LIVE"
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/audit/AUD-0005-tag-release-parity.json",
+   "bytes": 117176,
+   "sha256": "413c79e15eeeead8ce02ada1c3ff350ddc731967163c572b13868cb15b888d94",
+   "exists": true,
+   "role": "primary"
+  }
+ ],
+ "manifest_path": "command-center/p2-wave/probes/AUD-0005/UNIT-ARTIFACT-MANIFEST.json",
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Independent reviewer closure unavailable in builder shard; artifact + named probes + manifest sha all verify live this session."
+ },
+ "notes": "Resume 2026-10-25: prior builder's artifact verified, not rebuilt. probe1 rebuilds the git fixture control-repo in a temp dir and re-proves `git rev-list -n 1 <tag>` (caret form forbidden): 2 annotated tags LIVE, registry-only orphan DEAD; artifact rows consistent with tallies (probe1_dead=0; LIVE rows carry 40-hex commits); planted control independent (probe1 LIVE / probe2 DEAD). probe2 rebuilds the release-store fixture: LIVE iff published with non-zero asset bytes; zero-byte asset, unpublished, and absent-row are DEAD (3/4) matching tallies. Live GitHub arm recorded NOT-CHECKED. Drift note: artifact records worktree_is_git=true; current tree is not a git repo, so the rebuilt fixture census is the discriminating instrument. No owner gate.",
+ "extensions": {
+  "builder": "shard3 wave-2 (resume) 2026-10-25",
+  "prior_builder": "died mid-flight; artifacts verified against the live contract, not rebuilt"
+ },
+ "ts": "2026-10-25T15:25:03Z"
+}

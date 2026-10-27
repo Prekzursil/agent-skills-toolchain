@@ -1,0 +1,234 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "gap-roadmap-pr-merge-order-council",
+  "preset": "roadmap_prioritization",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Prioritise and order a set of pull requests for merge, on a mechanically computed pairwise file-overlap matrix that distinguishes byte-identical overlap from real conflict.",
+    "charter": "MANDATE. Merge order is a dependency problem, and dependency problems are answerable by an exact algorithm - so the algorithm runs first and the council judges only what it cannot decide. Two facts must be established mechanically. (1) The pairwise file-overlap matrix across every PR in the set, computed rather than eyeballed, because a per-PR mergeability status is evaluated in ISOLATION against the base and therefore cannot see PR-to-PR overlap at all; a set of individually-clean PRs can be mutually conflicting. (2) The distinction between byte-identical overlap and genuine conflict: if two PRs touch the same lines with identical content, whichever merges second is a no-op, not a conflict. Conflating the two is what turns a fully stackable set into an imagined rebase marathon. The judge then rules on the residual - which real conflict is resolved in whose favour - and that is judgement, not arithmetic.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "the pairwise overlap matrix is computed for every PR pair, not sampled",
+      "byte-identical overlap is reported separately from real conflict",
+      "the proposed order is a valid topological order of the real conflicts",
+      "any PR whose diff proposes mass deletion against the base is flagged before ordering"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "infer merge order from per-PR mergeability status alone",
+        "treat byte-identical overlap as a conflict",
+        "estimate the conflict surface from diff line counts"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "expertise_ranked"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - knows what each PR is trying to do",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["change intent", "rebase mechanics"],
+        "role": "custom:implementer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE - merge-queue and CI consequences of the order",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["merge queues", "required checks"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "context": {
+          "briefing": "Gate the queue on REQUIRED contexts only, and treat an unknown mergeability state as unknown rather than as mergeable. A squash-merged branch can still report as ahead of base, so an ahead-count is not evidence a branch has unlanded work."
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - insists the matrix is computed, not judged",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["exact algorithms", "error-direction analysis"],
+        "role": "custom:methodologist",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max",
+        "context": {
+          "briefing": "If a question is answerable by byte comparison or set membership, WRITE THE ALGORITHM. Measured: agent judgement on exactly this class of comparison ran at 86% accuracy with every error pointing at data loss, while a short deterministic differ was exact."
+        }
+      },
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk - runs the matrix and records the receipts",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["diff tooling", "reproduction"],
+        "role": "custom:evidence_clerk",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "Measure the real conflict surface with a trial merge and a count of unmerged paths, not with the diff's line count. Added files never conflict, so a very large diff can have a tiny conflict surface."
+        }
+      },
+      {
+        "participant_id": "judge",
+        "display_name": "Judge - rules on the residual real conflicts",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["adjudication", "precedence"],
+        "role": "judge",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "max"
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack", "benchmark_baseline"]
+  },
+  "topology": { "kind": "proposer_critic_judge" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "mechanical-overlap-matrix",
+        "custom_name": "compute the pairwise file-overlap matrix for every PR pair",
+        "rounds": 1,
+        "participants": ["evidence-clerk"]
+      },
+      {
+        "kind": "custom",
+        "stage_id": "identical-vs-conflict",
+        "custom_name": "separate byte-identical overlap from genuine conflict",
+        "rounds": 1,
+        "participants": ["evidence-clerk", "methodologist"]
+      },
+      { "kind": "custom", "stage_id": "topological-order", "custom_name": "derive a valid order from the real conflicts only", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "ruling", "rounds": 1, "participants": ["judge"] }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 8, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 18, "experiments": 8 },
+  "targets": { "evidence_items": 6 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:pairwise_overlap_computed_mechanically == true AND custom:byte_identical_overlap_distinguished == true AND experiments_passed >= 1",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:pairwise_overlap_computed_mechanically", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:byte_identical_overlap_distinguished", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "experiments_passed", "op": ">=", "value": 1 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "every_participant_spoke": true, "min_evidence_items": 4 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": ["the first two merges in the order land green before the rest proceed"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2 },
+    "resolution": ["run_experiment", "split_question", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "judge" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "weak_synthesis",
+      "premature_convergence",
+      "hallucinated_expertise"
+    ],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "evidence_map",
+      "experiments",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["merging any pull request"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/gap-roadmap", "checkpoint_every_round": true },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "PR merge-order / prioritisation council (advisory) - GAP-CLOSER for roadmap_prioritization",
+    "owner": "Prekzursil",
+    "lineage": [
+      "GAP-ROADMAP",
+      "faithful to design C-H65 `pr-merge-order-council` (doc ordinal 65)",
+      "protocols P37,P15"
+    ],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2105", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H65 `pr-merge-order-council` (12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2105), tier standard, protocols P37/P15, 5 seats, 2 rounds, advisory, OWNER-DECISION NO. WHY IT IS FILED AS A GAP-CLOSER RATHER THAN AN ORDINAL: doc ordinals 65-72 fall outside the program's 64-preset budget, so no lane owns them - yet a measured scan of the shared preset directory showed the required preset name `roadmap_prioritization` covered by ZERO files across all four lanes. A missing required name is a spec-requirement failure while a duplicate is a cosmetic dedupe, so this closes the gap with the nearest faithful design rather than inventing one. Evidence: platform/council/_probe_union_preset_coverage.py, and its snapshot at platform/council/LANE-4-UNION-COVERAGE.json. If a sibling lane also built a roadmap_prioritization preset after that snapshot, the orchestrator should dedupe - this file is the traceable one. || EDITABLE DIALS: (1) pr_set -> the mechanical-overlap-matrix stage and the evidence-clerk seat; the set of PRs under consideration is the only input this council needs. Secondary dials: budgets.time_minutes (45), protocol.experiments.max_experiments (8), consensus.threshold. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `topological_then_judge` -> the topological half is NOT a ballot and is encoded as protocol stages (mechanical-overlap-matrix, identical-vs-conflict, topological-order) with protocol.experiments.required_before_decision true; the judge half is voting.method `judge` with tie_break `judge` and topology.kind `proposer_critic_judge`. Reading voting.method alone would miss that an algorithm decides most of the question. roles `implementer` -> custom:implementer, `sre` -> custom:sre, `methodologist` -> custom:methodologist as chair, `evidence_clerk` -> custom:evidence_clerk, `judge` -> judge (enum). Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision. `evidence standard: executable_receipt` -> anchor_style `command_output` plus outputs.receipt_schema. || CUSTOM METRICS AND THEIR PRODUCERS: custom:pairwise_overlap_computed_mechanically (boolean; produced by the evidence clerk running a differ over every PR pair - every pair, not a sample) and custom:byte_identical_overlap_distinguished (boolean; produced by the identical-vs-conflict stage, true only when identical-content overlap is reported in its own bucket). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with stopping.expression by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. Two SEM-012 WARNs are expected and non-blocking. || WHY THE SECOND CLAUSE MATTERS MORE THAN IT LOOKS: without it a council can compute a perfect overlap matrix and still conclude a stackable set is mutually conflicting, because overlap and conflict look identical in a file-name matrix. The distinction is the difference between a no-op second merge and a rebase marathon."
+  }
+}

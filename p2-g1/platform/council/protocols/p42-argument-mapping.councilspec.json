@@ -1,0 +1,362 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p42-argument-mapping",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Render the debate as a claim/premise/warrant/objection graph so support is computed, not summarised.",
+    "charter": "Toulmin / van Gelder mapping. Every node carries the transcript span it came from; deleting a load-bearing premise must visibly drop the computed support.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "every node cites its transcript span",
+      "unsupported leaf premises are marked",
+      "sensitivity is demonstrated: deleting a load-bearing premise drops the support"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4
+    },
+    "roster": [
+      {
+        "participant_id": "mapper",
+        "role": "proposer",
+        "expertise": [
+          "argument mapping",
+          "graph construction"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "tools": [
+          "argument_graph.builder"
+        ]
+      },
+      {
+        "participant_id": "map-critic",
+        "role": "critic",
+        "expertise": [
+          "warrant analysis",
+          "hidden premises"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "span-auditor",
+        "role": "verifier",
+        "expertise": [
+          "transcript provenance"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "tools": [
+          "argument_graph.span_check"
+        ]
+      },
+      {
+        "participant_id": "map-judge",
+        "role": "judge",
+        "expertise": [
+          "adjudication",
+          "sensitivity analysis"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "judge",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true
+        }
+      }
+    ]
+  },
+  "topology": {
+    "kind": "proposer_critic_judge"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "map",
+        "custom_name": "toulmin-graph-construction",
+        "rounds": 3,
+        "exit_when": {
+          "weighted": {
+            "threshold": 0.7,
+            "clauses": [
+              {
+                "weight": 0.5,
+                "when": {
+                  "metric": "custom:unsupported_leaf_premises",
+                  "op": "==",
+                  "value": 0,
+                  "value_type": "number",
+                  "producer": "argument_graph.builder"
+                }
+              },
+              {
+                "weight": 0.3,
+                "when": {
+                  "metric": "custom:nodes_without_transcript_span",
+                  "op": "==",
+                  "value": 0,
+                  "value_type": "number",
+                  "producer": "argument_graph.span_check",
+                  "note": "Card failure mode: map construction is itself an LLM judgement and can be wrong; every node must carry its span."
+                }
+              },
+              {
+                "weight": 0.4,
+                "when": {
+                  "metric": "custom:premise_deletion_sensitivity_proven",
+                  "op": "==",
+                  "value": true,
+                  "value_type": "boolean",
+                  "producer": "argument_graph.sensitivity_probe",
+                  "note": "Card proof gate: delete a known load-bearing premise; the computed support MUST drop. A map whose support is insensitive to its premises is decoration."
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "attack-the-map",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 3,
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 2,
+      "max": 8
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 4,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "turns": 32,
+    "speaking_quota_per_participant": 8,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "evidence_items": 8,
+    "objections": 9,
+    "counterexamples": 2,
+    "coverage_score": 0.85,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "weighted",
+    "weights": {
+      "map-critic": 1.0,
+      "span-auditor": 1.0,
+      "map-judge": 2.0,
+      "mapper": 0.0
+    },
+    "belief_aggregation": {
+      "method": "calibration_weighted",
+      "require_confidence_per_vote": true,
+      "calibration_source": "council_eval.calibration_history"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "(coverage_score >= 0.85 AND objections_open == 0) OR max_rounds == 8",
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "coverage_score",
+              "op": ">=",
+              "value": 0.85
+            },
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0
+            }
+          ]
+        },
+        {
+          "metric": "max_rounds",
+          "op": "==",
+          "value": 8
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_objections_addressed": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the remaining unsupported leaf premises either supported or removed"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.88,
+      "circular_citation_check": true,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "judge_ruling",
+      "split_question",
+      "strongest_counterexample",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "judge"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "circular_debate",
+      "endless_debate",
+      "circular_citation",
+      "weak_synthesis",
+      "instant_unanimity",
+      "evidence_free_majority",
+      "premature_convergence",
+      "lost_dissent"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "blind_re_evaluation",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "argument_graph",
+      "argument_ledger",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P42 argument-mapping",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:784-798",
+      "_USER-PROMPTS.md:10931"
+    ],
+    "lineage": [
+      "P42 argument-mapping",
+      "Toulmin",
+      "van Gelder argument mapping"
+    ],
+    "notes": "The card is only roughly-even confidence and its recommended default is NO (use after a decision has been re-litigated twice), so the endless-debate control is a HARD stop: the OR branch fires at max_rounds == 8, which equals both protocol.rounds.max and hard_caps.max_rounds. The mapper's vote weight is 0.0 - whoever builds the map does not get to grade it. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

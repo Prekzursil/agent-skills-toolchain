@@ -1,0 +1,581 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0033",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0033 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every claim has a recomputed value or an explicit NOT-CHECKED with the missing raw file named. Any other terminal state is FAILED:CNF-0033 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0033",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "metric-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0033-metric-recompute.json",
+      "bytes": 24183,
+      "sha256": "c1535be84a4fc34bbc0815e545145aaeaa90fce4a88030ffad59a39366b9dfaa",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/benchmark-report.schema.json",
+      "bytes": 1101,
+      "sha256": "890043cae54b2d8bda22bb4725161d0ce8e4ce1cfff829093838bcd508cfcade",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0033/recompute.py",
+      "bytes": 11048,
+      "sha256": "35ba21aac447fed6532622349068bcf5b291c2195aafa2f5df74999a14b0823f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0033/inventory.py",
+      "bytes": 3479,
+      "sha256": "c34148a342fd1dc14eb6f914974f930e06327bfef9b72c913a2558547911093f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json",
+      "bytes": 207,
+      "sha256": "5ba9c480e261e61695a28fe8b33112ce82f914a3912853c773c7142cb66d2bf2",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_unmeasurable_after.json",
+      "bytes": 213,
+      "sha256": "f6f1aaa94e89dea40d91ba84f19d485056c898b1a702566e9ea3aa4b0977d7c2",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0033/fixtures/summary/implementer_table.json",
+      "bytes": 389,
+      "sha256": "5c3222b89a64b54a2b779132d586401b19ffb5c2ad761b5bb614f257dd13fe1e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Each detector-control claim is recomputed from raw repetition files; the implementer summary is comparison-only. control.match MATCH at 10.0; control.summary-poison is MISMATCH (raw 10.0 vs table 999.0); missing raw is NOT-CHECKED with the file named.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:41",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe1_raw_recompute.py",
+          "raw_output": "match=10.0 poison=10.0 poison_verdict=MISMATCH missing=command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json two_way_agree=True iqr_floor=2.5 unmeasurable_delta=-0.1999999999999993",
+          "fingerprint": "c0135797fb86ca11b4684994034963318b9118f22d0a51c25dc9e3305f0a14ae",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "command-center/p2-wave/probes/CNF-0033/recompute.py:evaluate",
+          "raw_output": "match=10.0 poison=10.0 poison_verdict=MISMATCH missing=command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json two_way_agree=True iqr_floor=2.5 unmeasurable_delta=-0.1999999999999993",
+          "fingerprint": "3ae4757308d936ec77a8a0a218b6501b0fffa7a3f07e6fbebcd70a5729261675",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "A before/after delta inside the fixture IQR is UNMEASURABLE regardless of sign. Two independent median paths agree on the n=11 control sample. Live CNF-0027 floor is NOT-CHECKED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:320",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe2_noise_and_two_way.py",
+          "raw_output": "two_way_median agree=True a=10.0 b=10.0; two_way_iqr agree=True a=2.5 b=2.5",
+          "fingerprint": "0654b0dd50e3354a8846edc8dc2cf4822422dfb63ae232329cd5580fd154b111",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "command-center/p2-wave/probes/CNF-0033/schema_local.py",
+          "raw_output": "two_way_median agree=True a=10.0 b=10.0; two_way_iqr agree=True a=2.5 b=2.5",
+          "fingerprint": "50811804f7d10322b0da20cce1e43f59f085f38dc4f0bdabcd1a9354b071629d",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "missing-raw-not-checked",
+      "name": "Missing raw data is NOT-CHECKED with the file named",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe1_raw_recompute.py",
+      "result": "PASS"
+    },
+    {
+      "id": "noise-floor-unmeasurable",
+      "name": "Delta inside fixture IQR is UNMEASURABLE regardless of sign",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe2_noise_and_two_way.py",
+      "result": "PASS"
+    },
+    {
+      "id": "two-way-recompute",
+      "name": "statistics.median agrees with odd-n middle index on n=11",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe2_noise_and_two_way.py",
+      "result": "PASS"
+    },
+    {
+      "id": "summary-not-used-as-input",
+      "name": "control.summary-poison recomputes 10.0 not 999.0",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe1_raw_recompute.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-CNF0033-MISSING-RAW",
+      "kind": "absent-input",
+      "description": "A claim whose raw file is absent must be NOT-CHECKED with missing_raw_file named, never MATCH by plausibility.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "verdict=NOT-CHECKED missing_raw_file=command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json",
+      "good_state_output": "control.match verdict=MATCH recomputed_value=10.0"
+    },
+    {
+      "id": "NC-CNF0033-SUMMARY-POISON",
+      "kind": "adversarial-payload",
+      "description": "Implementer table lists median_ms=999.0 for the same raw file as control.match. Recompute must ignore the table.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "control.summary-poison verdict=MISMATCH recomputed=10.0 not 999.0",
+      "good_state_output": "control.match verdict=MATCH recomputed=10.0 claimed=10.0"
+    },
+    {
+      "id": "NC-CNF0033-NOISE-FLOOR",
+      "kind": "known-broken-fixture",
+      "description": "A negative improvement whose |delta| is inside the fixture IQR is UNMEASURABLE regardless of sign.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "control.unmeasurable verdict=UNMEASURABLE delta=-0.1999999999999993 floor=2.5",
+      "good_state_output": "two-way IQR agree on n=11 control_match sample"
+    },
+    {
+      "id": "NC-CNF0033-SCHEMA-MUTANT",
+      "kind": "mutation",
+      "description": "A NOT-CHECKED claim with missing_raw_file stripped must be rejected by the unit overlay schema.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "overlay rejects NOT-CHECKED without missing_raw_file",
+      "good_state_output": "live receipt passes catalog schema and overlay"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0033-probe2-interval-arithmetic",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe2 re-loads the fixture sample, re-computes median and IQR on a second code path, and requires overlay-schema rejection when missing_raw_file is stripped from a NOT-CHECKED row. Sampling-frame redraw is identity of the n=11 fixture.",
+    "reviewed_at": "2026-08-25T01:01:21Z"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0033/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0033",
+    "registered_at": "2026-08-25T01:01:21Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of catalog output_path",
+      "artifact_path": "command-center/confirmation/CNF-0033-metric-recompute.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "file-read",
+        "command": "python3 -c json.loads(command-center/confirmation/CNF-0033-metric-recompute.json)",
+        "raw_output": "parsed ok",
+        "fingerprint": "953b6a85c0a879966a83b87c1ff41b7648a2270009252f4bdb79b53a8977258a",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "schema_local overlay_validator",
+      "artifact_path": "command-center/confirmation/CNF-0033-metric-recompute.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "command-center/p2-wave/probes/CNF-0033/schema_local.py",
+        "raw_output": "overlay+catalog accept live receipt; garbage rejected",
+        "fingerprint": "50811804f7d10322b0da20cce1e43f59f085f38dc4f0bdabcd1a9354b071629d",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:01:21Z",
+    "ended_at": "2026-08-25T01:01:21Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live implementer improvement claims cannot be recomputed: command-center/confirmation/raw/phase0-improvement-repetitions.json and CNF-0027-baseline-variance.json are absent. BASELINE-SNAPSHOT.json exists but has no repetitions array.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver CNF-0027 and raw n>=11 repetition files for each claimed improvement, then re-run CNF-0033 against those files."
+    }
+  ],
+  "report": {
+    "kind": "benchmark-report",
+    "title": "Recompute every claimed improvement metric from raw measurement data",
+    "question": "Recompute each claimed improvement directly from the raw measurement files, never from the implementer summary table, and answer: does the recomputed value match the claim within the stated precision, and is the claimed delta larger than the measured noise floor from CNF-0027?",
+    "completion_sentinel": "SUCCESS:CNF-0033 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every claim has a recomputed value or an explicit NOT-CHECKED with the missing raw file named. Any other terminal state is FAILED:CNF-0033 <classification> with the diagnostic tail attached.",
+    "answer": "Detector controls recomputed from fixtures/raw/ (never from the implementer summary): MATCH=1 MISMATCH=1 UNMEASURABLE=1 NOT-CHECKED=3. Live Phase-0 / CNF-0027 rows are NOT-CHECKED with the missing raw files named. SUCCESS:CNF-0033 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every claim has a recomputed value or an explicit NOT-CHECKED with the missing raw file named. Any other terminal state is FAILED:CNF-0033 <classification> with the diagnostic tail attached.",
+    "observations": [
+      {
+        "name": "control.match.recomputed_median",
+        "measured": 10.0,
+        "method": "statistics.median on raw repetitions",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:41"
+      },
+      {
+        "name": "control.summary-poison.verdict",
+        "measured": "MISMATCH",
+        "method": "raw median compared to poisoned summary table 999.0",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:41"
+      },
+      {
+        "name": "control.unmeasurable.verdict",
+        "measured": "UNMEASURABLE",
+        "method": "before/after median delta vs fixture IQR",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:320"
+      },
+      {
+        "name": "control.missing-raw.verdict",
+        "measured": "NOT-CHECKED",
+        "method": "absent raw file named, never confirmed by plausibility",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:132"
+      },
+      {
+        "name": "two-way-median-agree",
+        "measured": true,
+        "method": "statistics.median vs odd-n middle index",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:45"
+      },
+      {
+        "name": "live-census-not-checked-count",
+        "measured": 3,
+        "method": "inventory.live_census plus evaluate() missing-file branch",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:26766"
+      }
+    ],
+    "control_ids": [
+      "control.match",
+      "control.summary-poison",
+      "control.unmeasurable",
+      "control.missing-raw"
+    ],
+    "census": {
+      "baseline_snapshot_present": true,
+      "cnf0027_present": false,
+      "implementer_summary_tables_found": [],
+      "raw_measurement_files_found": [],
+      "live_improvement_claims_with_raw": 0,
+      "note": "BASELINE-SNAPSHOT.json is present as a Phase 0 freeze document but it is not a raw repetition series. Expected improvement raw files under command-center/confirmation/raw/ are absent, CNF-0027 is absent, and no implementer summary tables live under command-center/confirmation/. Live claims are NOT-CHECKED with those missing raw files named. Detector-control claims are recomputed from fixtures/raw/ only."
+    },
+    "noise_floor": {
+      "source": "command-center/confirmation/CNF-0027-baseline-variance.json",
+      "present": false,
+      "status": "NOT-CHECKED",
+      "missing_file": "command-center/confirmation/CNF-0027-baseline-variance.json",
+      "numeric_floor": null,
+      "definition": "CNF-0027 IQR of >=11 baseline repetitions. Absent on this tree, so live delta-vs-floor answers are NOT-CHECKED.",
+      "fixture_only": {
+        "status": "FIXTURE-ONLY",
+        "numeric_floor": 2.5,
+        "definition": "IQR of fixtures/raw/control_match.json (n=11)",
+        "two_way_iqr": {
+          "metric_id": "two-way-iqr",
+          "method_a": {
+            "name": "statistics.quantiles_inclusive",
+            "value": 2.5,
+            "file_line": "command-center/p2-wave/probes/CNF-0033/recompute.py:55"
+          },
+          "method_b": {
+            "name": "linear_percentile",
+            "value": 2.5,
+            "file_line": "command-center/p2-wave/probes/CNF-0033/recompute.py:60"
+          },
+          "agree": true,
+          "delta": 0.0
+        }
+      }
+    },
+    "control_two_way": {
+      "metric_id": "two-way-median",
+      "method_a": {
+        "name": "statistics.median",
+        "value": 10.0,
+        "file_line": "command-center/p2-wave/probes/CNF-0033/recompute.py:41"
+      },
+      "method_b": {
+        "name": "odd_n_middle_index",
+        "value": 10.0,
+        "file_line": "command-center/p2-wave/probes/CNF-0033/recompute.py:45"
+      },
+      "agree": true,
+      "delta": 0.0
+    },
+    "answers": {
+      "recomputed_match_within_precision": {
+        "match": 1,
+        "mismatch": 1,
+        "not_checked": 3,
+        "unmeasurable": 1,
+        "note": "MATCH/MISMATCH are detector-control only. Live census rows are NOT-CHECKED because raw files are missing."
+      },
+      "claimed_delta_exceeds_noise_floor": {
+        "live_status": "NOT-CHECKED",
+        "live_missing_file": "command-center/confirmation/CNF-0027-baseline-variance.json",
+        "fixture_unmeasurable": "control.unmeasurable",
+        "fixture_floor": 2.5,
+        "note": "A delta inside the fixture IQR is UNMEASURABLE regardless of sign. Live claims cannot be compared to CNF-0027 because that artifact is absent."
+      }
+    },
+    "claims": [
+      {
+        "id": "live.phase0-baseline-snapshot",
+        "source": "live-census",
+        "raw_file": "command-center/confirmation/raw/phase0-improvement-repetitions.json",
+        "precision_decimals": 3,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:120",
+        "claimed_value": null,
+        "claimed_delta": null,
+        "verdict": "NOT-CHECKED",
+        "classification": "missing-raw-data",
+        "missing_raw_file": "command-center/confirmation/raw/phase0-improvement-repetitions.json",
+        "recomputed_value": null,
+        "delta": null,
+        "precision_match": null,
+        "noise_floor_status": "NOT-CHECKED",
+        "noise_floor_missing_file": "command-center/confirmation/raw/phase0-improvement-repetitions.json"
+      },
+      {
+        "id": "live.cnf-0027-noise-floor",
+        "source": "live-census",
+        "raw_file": "command-center/confirmation/CNF-0027-baseline-variance.json",
+        "precision_decimals": 3,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:120",
+        "claimed_value": null,
+        "claimed_delta": null,
+        "verdict": "NOT-CHECKED",
+        "classification": "missing-raw-data",
+        "missing_raw_file": "command-center/confirmation/CNF-0027-baseline-variance.json",
+        "recomputed_value": null,
+        "delta": null,
+        "precision_match": null,
+        "noise_floor_status": "NOT-CHECKED",
+        "noise_floor_missing_file": "command-center/confirmation/CNF-0027-baseline-variance.json"
+      },
+      {
+        "id": "control.match",
+        "source": "detector-control",
+        "raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json",
+        "precision_decimals": 1,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:120",
+        "claimed_value": 10.0,
+        "claimed_delta": null,
+        "verdict": "MATCH",
+        "classification": "confirmed",
+        "recomputed_value": 10.0,
+        "delta": 0.0,
+        "precision_match": true,
+        "noise_floor_status": "NOT-APPLICABLE",
+        "n": 11,
+        "raw_repetitions": [
+          7.0,
+          8.0,
+          8.5,
+          9.0,
+          9.5,
+          10.0,
+          10.5,
+          11.0,
+          11.5,
+          12.0,
+          13.0
+        ],
+        "two_way_median_agree": true
+      },
+      {
+        "id": "control.summary-poison",
+        "source": "detector-control",
+        "raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json",
+        "precision_decimals": 1,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:120",
+        "claimed_value": 999.0,
+        "claimed_delta": null,
+        "verdict": "MISMATCH",
+        "classification": "overclaim",
+        "recomputed_value": 10.0,
+        "delta": -989.0,
+        "precision_match": false,
+        "noise_floor_status": "NOT-APPLICABLE",
+        "n": 11,
+        "raw_repetitions": [
+          7.0,
+          8.0,
+          8.5,
+          9.0,
+          9.5,
+          10.0,
+          10.5,
+          11.0,
+          11.5,
+          12.0,
+          13.0
+        ],
+        "two_way_median_agree": true
+      },
+      {
+        "id": "control.unmeasurable",
+        "source": "detector-control",
+        "raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_unmeasurable_after.json",
+        "baseline_raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json",
+        "precision_decimals": 1,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:233",
+        "claimed_value": 9.8,
+        "claimed_delta": -0.2,
+        "verdict": "UNMEASURABLE",
+        "classification": "noise-dominated-claim",
+        "recomputed_value": 9.8,
+        "recomputed_baseline": 10.0,
+        "delta": -0.1999999999999993,
+        "precision_match": true,
+        "noise_floor_status": "INSIDE",
+        "n_before": 11,
+        "n_after": 11,
+        "raw_repetitions": [
+          6.8,
+          7.8,
+          8.3,
+          8.8,
+          9.3,
+          9.8,
+          10.3,
+          10.8,
+          11.3,
+          11.8,
+          12.8
+        ],
+        "baseline_repetitions": [
+          7.0,
+          8.0,
+          8.5,
+          9.0,
+          9.5,
+          10.0,
+          10.5,
+          11.0,
+          11.5,
+          12.0,
+          13.0
+        ],
+        "two_way_median_agree": true,
+        "noise_floor_numeric": 2.5
+      },
+      {
+        "id": "control.missing-raw",
+        "source": "detector-control",
+        "raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json",
+        "precision_decimals": 1,
+        "recompute_script": "command-center/p2-wave/probes/CNF-0033/recompute.py:120",
+        "claimed_value": 12.0,
+        "claimed_delta": null,
+        "verdict": "NOT-CHECKED",
+        "classification": "missing-raw-data",
+        "missing_raw_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json",
+        "recomputed_value": null,
+        "delta": null,
+        "precision_match": null,
+        "noise_floor_status": "NOT-CHECKED",
+        "noise_floor_missing_file": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_missing.json"
+      }
+    ],
+    "evidence_anchors": [
+      {
+        "path": "command-center/p2-wave/probes/CNF-0033/recompute.py",
+        "line": 41,
+        "snippet": "def median_statistics(values: list[float]) -> float:",
+        "kind": "live-tree",
+        "claim": "Recompute uses statistics.median on raw repetitions.",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:41"
+      },
+      {
+        "path": "command-center/p2-wave/probes/CNF-0033/recompute.py",
+        "line": 45,
+        "snippet": "def median_middle_index(values: list[float]) -> float:",
+        "kind": "live-tree",
+        "claim": "Second median path is the odd-n middle index.",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/recompute.py:45"
+      },
+      {
+        "path": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json",
+        "line": 5,
+        "snippet": "\"repetitions\": [7.0, 8.0, 8.5, 9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0, 13.0]",
+        "kind": "fixture",
+        "claim": "Control raw repetitions for two-way median and IQR.",
+        "anchor": "command-center/p2-wave/probes/CNF-0033/fixtures/raw/control_match.json:5"
+      }
+    ],
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "raw-recompute",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe1_raw_recompute.py"
+      },
+      {
+        "id": "probe2",
+        "role": "noise-floor-two-way",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0033/probe2_noise_and_two_way.py"
+      }
+    ],
+    "scope": {
+      "does_not_claim": [
+        "CNF-0027 was delivered",
+        "Phase 0 baselines were re-measured on this host",
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run"
+      ]
+    }
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "registered": true,
+    "output_path": "command-center/confirmation/CNF-0033-metric-recompute.json",
+    "output_schema": "command-center/schema/benchmark-report.schema.json"
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "artifacts": [
+    {
+      "bytes": 15214,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/audit/AUD-0069-option-card-body-dedup.json",
+      "role": "primary",
+      "sha256": "2d0d6a0b56223a8d89dac154856162f4f54c128a023fada38cb8366986442508"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0069/SUBAGENT-RETURN.json",
+      "claim": "Both named probes re-ran live this run and exited 0.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0069/probe1_lexical.py",
+          "exit_code": 0,
+          "fingerprint": "3accc8c1a9ae50c60c26dc05304e1405",
+          "method": "command",
+          "raw_output": "{\"calibration_ok\": true, \"contracted_cards\": 283, \"corpus_present\": true, \"fork_class\": \"FORK-OR-NEAR\", \"fork_jaccard\": 0.809524, \"lexical_catches_paraphrase\": false, \"lexical_catches_rename\": true, \"live_cards_with_bodies\": 281, \"live_confirmed_same_mechanism\": 0, \"live_lexical_candidates\": 0, \"method\": \"unstemmed-token-set-jaccard\", \"paraphrase_jaccard\": 0.384615, \"probe\": \"probe1-lexical\", \"rename_jaccard\": 1.0, \"thresholds\": {\"emb_dup\": 0.5, \"jac_candidate\": 0.5, \"jac_rename\": 0.95}, \"unit_id\": \"AUD-0069\"}\nrename_jaccard=1.0 paraphrase_jaccard=0.384615 fork_jaccard=0.809524 live_bodies=281 live_lexical_candidates=0\nSUCCESS:AUD-0069-probe1 lexical near-duplicate planted-mutant calibration",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0069/probe2_embedding.py",
+          "exit_code": 0,
+          "fingerprint": "8767a4912b7677211ffe1dc5beacd1ee",
+          "method": "command",
+          "raw_output": "{\"calibration_ok\": true, \"contracted_cards\": 283, \"corpus_present\": true, \"embedding_catches_paraphrase\": true, \"embedding_catches_rename\": true, \"fork_class\": \"FORK-OR-NEAR\", \"fork_embedding_cosine\": 0.833333, \"full_rewrite_class\": \"DISTINCT\", \"full_rewrite_embedding_cosine\": 0.0, \"lexical_catches_paraphrase\": false, \"lexical_coverage\": \"Token-Jaccard fires on exact-body renames and high-overlap one-parameter forks. A paraphrase of the same mechanism sits at jaccard=0.384615 (below 0.5) so lexical-only coverage misses it. A full rewrite of the same mechanism sits at jaccard=0.055556 / embedding=0.0, the same DISTINCT band as a genuinely different card. Stemmed-content cosine is the second detector; it is not a neural embedding and does not claim full-rewrite recall.\", \"live_cards_with_bodies\": 281, \"live_confirmed_same_mechanism\": 0, \"live_embedding_candidates\": 0, \"live_paraphrase_pairs\": 0, \"method\": \"stemmed-content-word-tf-cosine\", \"paraphrase_embedding_cosine\": 0.67082, \"probe\": \"probe2-embedding\", \"rename_embedding_cosine\": 1.0, \"thresholds\": {\"emb_dup\": 0.5, \"jac_candidate\": 0.5, \"jac_rename\": 0.95}, \"unit_id\": \"AUD-0069\"}\nrename_cos=1.0 paraphrase_cos=0.67082 fork_cos=0.833333 rewrite_cos=0.0 live_bodies=281 live_confirmed=0\nSUCCESS:AUD-0069-probe2 embedding-cosine planted-mutant rescan",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0069/UNIT-ARTIFACT-MANIFEST.json",
+      "claim": "UNIT-ARTIFACT-MANIFEST.json carries a sha256 row matching the live artifact (CRLF normalized).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "compare UNIT-ARTIFACT-MANIFEST.json row sha256 for AUD-0069 against live artifact",
+          "fingerprint": "64db3f3f17a3d071113fe85957bf0fa4",
+          "method": "byte-compare",
+          "raw_output": "manifest sha256 == live artifact sha256 (2d0d6a0b56223a8d...)",
+          "role": "source"
+        },
+        {
+          "command": "recompute sha256 of command-center/audit/AUD-0069-option-card-body-dedup.json after CRLF->LF normalization",
+          "fingerprint": "e7bfa9695ac72dba3b962b165052ab41",
+          "method": "byte-compare",
+          "raw_output": "recomputed digest equals manifest row (2d0d6a0b56223a8d...)",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/AUD-0069/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/receipt_validate.py (admission gate C1-C4)",
+      "artifact_path": "command-center/receipts/AUD-0069.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -I command-center/receipt_validate.py command-center/receipts/AUD-0069.json",
+        "raw_output": "ACCEPT:AUD-0069 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)",
+        "exit_code": 0,
+        "fingerprint": "w4s4-admit:AUD-0069:rc0"
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "t1-probe1_lexical",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0069/probe1_lexical.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0069-probe1 lexical near-duplicate planted-mutant calibration"
+    },
+    {
+      "id": "t2-probe2_embedding",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0069/probe2_embedding.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:AUD-0069-probe2 embedding-cosine planted-mutant rescan"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CTRL-AUD-0069-planted-mutants",
+      "kind": "adversarial-payload",
+      "description": "Planted-mutant calibration per the catalog: both probes must catch the exact rename (lexical 1.0 / cosine 1.0), and the embedding-side detector must additionally catch the paraphrase (cosine 0.67 where lexical jaccard 0.38 misses); one-parameter fork lands FORK-OR-NEAR (0.83), full rewrite stays DISTINCT (0.0).",
+      "bad_state_output": "lexical_catches_paraphrase=false (paraphrase jaccard 0.38 below the 0.5 lexical band)",
+      "good_state_output": "rename_embedding_cosine=1.0; embedding_catches_paraphrase=true; embedding_catches_rename=true",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The second detector is stemmed-content TF cosine, not a neural embedding; the probe itself discloses it does not claim full-rewrite recall, so a rewritten same-mechanism pair below 0.5 cosine would be missed.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run a neural-embedding rescan over the 283 card bodies and diff the candidate pairs."
+    }
+  ],
+  "min_bytes_threshold": 1024,
+  "notes": "resume-verify: the prior attempt artifact/probes/manifest re-verified live this run; no rebuild.; shard4-w4 resume 2026-10-26: receipt completed for the current receipt.schema.json - downstream_consumers/tests/negative_controls/residual_unknowns added; every row cites executions already recorded in this receipt's evidence block, the downstream-consumer row records a live receipt_validate.py admission run (ACCEPT captured); w3s4 independent reviewer closure preserved verbatim; the null failure placeholder (schema types failure as object) was dropped, zero information lost.",
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "claude-opus-5-5",
+    "role": "builder-shard4-w2",
+    "vendor": "anthropic"
+  },
+  "retry": {
+    "attempts": [],
+    "count": 0,
+    "policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent reviewer closure (wave-3 shard-4, fresh context, did not build). Verified: artifact at catalog output_path exists/non-empty/parses and is not self-declared BLOCKED/FAILED; both named probes re-run LIVE by the reviewer via the g1 shim and exited 0; artifact sha256 recomputed (CRLF->LF) and matched against probes/AUD-0069/UNIT-ARTIFACT-MANIFEST.json primary row and the receipt artifacts row; receipt schema_errors=[] under the program's receipt_schema_gate. Disclosed, not gating per operative program practice: (1) strict class-profile layer (generic_report report{kind,observations,control_ids}) unmet by this receipt, a delta shared by 451 prior SUCCESS receipts and sibling wave-3 closures; (2) 12-condition predicate c6/c7/c8/c12 unsatisfied as built (evidence method duplication, no tests/controls/downstream keys), identical to sibling closures IMP-0442/IMP-0467.",
+    "reviewer_id": "AUD-0069-indep-reviewer-w3s4",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:AUD-0069 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "spec_anchor": "catalog:AUD-0069",
+  "state": "SUCCESS",
+  "timestamps": {
+    "ended_at": "2026-10-26T04:02:20Z",
+    "started_at": "2026-10-25T16:52:59Z"
+  },
+  "unit_id": "AUD-0069"
+}

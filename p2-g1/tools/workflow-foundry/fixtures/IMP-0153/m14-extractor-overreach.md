@@ -1,0 +1,1 @@
+Candidate extraction over-collects. Treating every imperative sentence as a workflow-to-build harvests criticism as endorsement - the use-vs-mention confusion hit this estate eight times in one session. Beware extractors without a mention guard.

@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://marketplace.local/schema/registry-api.schema.json",
+  "title": "Marketplace registry API contract (IMP-0074)",
+  "type": "object",
+  "$defs": {
+    "cursor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Opaque pagination token. Encoding, expiry and signature are deliberately NOT in the contract; a third-party client must round-trip the token unchanged."
+    },
+    "plugin_name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-_.]{0,63}$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+][0-9A-Za-z.-]+)?$"
+    },
+    "plugin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "description"],
+      "properties": {
+        "name": {"$ref": "#/$defs/plugin_name"},
+        "version": {"$ref": "#/$defs/semver"},
+        "description": {"type": "string"},
+        "keywords": {"type": "array", "items": {"type": "string"}},
+        "source": {"type": "string"},
+        "category": {"type": "string"}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": ["invalid_request", "not_found", "unknown_endpoint", "invalid_name"]
+        },
+        "message": {"type": "string", "minLength": 1}
+      }
+    },
+    "index_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "api_version", "endpoints"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "api_version": {"type": "string", "pattern": "^\\d+\\.\\d+$"},
+        "endpoints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {"path": {"type": "string"}, "method": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "plugin_list_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugins", "total"],
+      "properties": {
+        "plugins": {"type": "array", "items": {"$ref": "#/$defs/plugin"}},
+        "total": {"type": "integer", "minimum": 0},
+        "next_cursor": {"$ref": "#/$defs/cursor"}
+      }
+    },
+    "plugin_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plugin"],
+      "properties": {"plugin": {"$ref": "#/$defs/plugin"}}
+    },
+    "search_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["results", "query"],
+      "properties": {
+        "results": {"type": "array", "items": {"$ref": "#/$defs/plugin"}},
+        "query": {"type": "string", "minLength": 1},
+        "next_cursor": {"$ref": "#/$defs/cursor"}
+      }
+    },
+    "error_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {"error": {"$ref": "#/$defs/error"}}
+    },
+    "list_plugins_query": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Known keys listed; unknown keys are tolerated (ignored) by this server major version.",
+      "properties": {
+        "limit": {"type": "string", "pattern": "^\\d{1,4}$"},
+        "cursor": {"$ref": "#/$defs/cursor"}
+      }
+    },
+    "search_query": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["q"],
+      "properties": {
+        "q": {"type": "string", "minLength": 1},
+        "cursor": {"$ref": "#/$defs/cursor"}
+      }
+    }
+  },
+  "anyOf": [
+    {"$ref": "#/$defs/index_response"},
+    {"$ref": "#/$defs/plugin_list_response"},
+    {"$ref": "#/$defs/plugin_response"},
+    {"$ref": "#/$defs/search_response"},
+    {"$ref": "#/$defs/error_response"}
+  ]
+}

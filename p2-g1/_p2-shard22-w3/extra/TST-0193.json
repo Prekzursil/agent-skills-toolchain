@@ -1,0 +1,67 @@
+{
+  "report_kind": "shell_report",
+  "claims": [
+    {
+      "id": "E-zero-substitution-300-payloads",
+      "anchor": "command-center/p2-wave/probes/TST-0193/param_sink.py:sink",
+      "claim": "Across 300 injection payloads spanning 15 shell-metacharacter families ($(...), backticks, %VAR%, ${...}, ;, |, &&, >, command substitution nesting, CRLF injection, cmd /c invocation, touch), the workflow parameter sink forwards every payload to the child byte-identical (0 argv mismatches) and NO canary marker file was ever created - zero substitution anywhere in the pipeline.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-detector-control-eval",
+      "anchor": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py:main",
+      "claim": "Detector control: deliberately evaluating one payload through a real shell creates the canary marker (content 'pwned'), proving the probe can detect substitution when a shell is in the path; the reference sink then runs the same payload class and stays literal (marker absent, argv byte-identical).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "deliberate-shell-eval",
+      "kind": "detector-control",
+      "description": "A deliberately evaled payload demonstrates the canary fires exactly when a shell re-parses a parameter - the failure mode the unit guards against - while the list-argv sink never triggers it.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "marker_appeared=true marker_content='pwned'",
+      "good_state_output": "marker_after_sink=false argv literal across 300 payloads"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0193/param_sink.py",
+    "sink": "subprocess list-argv spawn (shell=False, CreateProcess direct); child echoes received argv bytes as JSON",
+    "canary": "every payload embeds a marker-creating command; the marker's absence after each run is the pass signal",
+    "signals": {
+      "a": "absence of the canary marker file after every sink call",
+      "b": "the recorded literal parameter value at the sink (child-received argv == sent payload, all 300)"
+    }
+  },
+  "observations": [
+    {
+      "name": "canary markers created across 300 payloads",
+      "measured": 0,
+      "method": "marker existence check after each list-argv sink call",
+      "anchor": "command-center/p2-wave/probes/TST-0193/probe1_canary_property.py"
+    },
+    {
+      "name": "argv mismatches across 300 payloads",
+      "measured": 0,
+      "method": "child-received argv compared to the sent literal",
+      "anchor": "command-center/p2-wave/probes/TST-0193/param_sink.py:observed"
+    },
+    {
+      "name": "detector control (deliberate eval)",
+      "measured": "marker created with content 'pwned'",
+      "method": "same payload class through a real shell",
+      "anchor": "command-center/p2-wave/probes/TST-0193/probe2_detector_control.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The measured sink is the reference list-argv dispatch (the shape tools/lib/codex-invocation.mjs uses for child spawns); other call sites that interpolate parameters into shell strings elsewhere in the estate were not in this unit's sink list.",
+      "settling_experiment": "Enumerate all estate parameter sinks (grep for shell=True / cmd /c composition) and run the same 300-payload canary through each.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0193: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

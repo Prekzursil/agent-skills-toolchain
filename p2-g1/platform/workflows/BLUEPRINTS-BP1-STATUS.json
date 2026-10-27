@@ -1,0 +1,91 @@
+{
+  "artifact": "platform/workflows/BLUEPRINTS-BP1-STATUS.json",
+  "unit": "blueprints/bp-1",
+  "status": "MEASURED - all seven claims below were measured by this run",
+  "range": "blueprints 1-12 of 96 == the first 12 cards of 09-WORKFLOW-BLUEPRINT-LIBRARY.md in document order (BP-RES-01..06, BP-GEM-01..05, BP-BRN-01)",
+
+  "provenance_note": "A PRIOR instance of this unit wrote the 12 workflow JSON files (mtime 04:11) and BLUEPRINTS-BP1-VALIDATION.json (mtime 04:13) claiming all_valid=true, then died WITHOUT rewriting this status file, which still held the untouched 'nothing measured' skeleton. This run did NOT cite that artifact: it re-ran the validator itself (platform/lib/workflows/_bp1_reverify.py) and re-derived every number below.",
+
+  "detector_failure_found_and_fixed": {
+    "what": "The first re-verification invoked `python platform/lib/wfdsl/validate.py <file>` and got exit=2 with EMPTY stdout on all 12 files, which reads as '12 broken blueprints'.",
+    "root_cause": "validate.py is an argparse sub-command CLI; the correct invocation is `validate.py workflow <file>`. stderr said: \"argument cmd: invalid choice\". A uniform failure with no stdout was the tell.",
+    "lesson": "exit!=0 from a wrong invocation is a DETECTOR failure, not a finding. Corrected invocation is recorded in _bp1_reverify.py."
+  },
+
+  "claims": {
+    "12 materially distinct blueprints written": "CONFIRMED - 12 of 12 files present; mechanism-fingerprint distinctness measured, widest genuine pair 0.3556 vs 0.85 threshold (margin 0.4944); 0 flagged near-duplicates; 0 output-path collisions. No design collapsed into another, so the honest number is 12, not fewer.",
+    "every blueprint validates against workflow-dsl.schema.json": "CONFIRMED - 12/12 exit=0, schema_valid=true, via `validate.py workflow <file>` per file.",
+    "every blueprint has 0 semantic violations": "CONFIRMED - 12/12 semantic_violations=0 and semantic_advisories=0 across the DSL-SEM rule set.",
+    "flagship blueprints have end-to-end tests": "CONFIRMED - 6 of 12 are flagship and all 6 have a test file at platform/lib/workflows/test_<name>.py. 6/12 = 50% clears the spec's 40/96 (41.7%) pro-rata floor, which would require 5.",
+    "each test has a both-states mutation control": "CONFIRMED, exactly scoped - across the 6 flagship test files there are 104 test functions, of which 33 are mutation-named and 6 are both_states-named (39 combined). Every one of the 6 files carries at least one mutation control (minimum 5 per file). NOTE: test_bp_gem_02 has 0 functions literally named 'both_states' but 6 mutation controls, so the control exists there under a different name - the claim is 'every file has a mutation control', not 'every file has a function named both_states'. Independently, the validator was proven to FIRE on 6/6 synthetic mutations.",
+    "near-duplicate self-check by MECHANISM performed": "CONFIRMED - platform/lib/workflows/_bp1_distinctness.py, reusing the fingerprint/jaccard algorithm already control-tested for the bp-6 slice. Its own both-states control (a renamed deep copy) scores 1.0000 and fires.",
+    "baseline test suite still green": "CONFIRMED - 475 passed in 101.35s on the stable baseline (wfdsl + completion_predicate + receipt_schema_gate + schema_resolver + councilspec + council_protocols), exactly matching the substrate sibling's 475. This unit's slice: 390 passed, 14 skipped in 10.94s."
+  },
+
+  "counts": {
+    "blueprints_delivered": 12,
+    "blueprints_schema_valid": 12,
+    "blueprints_semantic_clean": 12,
+    "flagship": 6,
+    "flagship_with_e2e_test": 6,
+    "slice_tests_passed": 390,
+    "slice_tests_skipped": 14,
+    "baseline_tests_passed": 475,
+    "mechanism_pairs_compared": 66,
+    "flagged_near_duplicates": 0,
+    "output_path_collisions": 0,
+    "validator_mutations_fired": "6/6",
+    "distinctness_control_fired": true
+  },
+
+  "workflows": [
+    {"id": "bp-res-01-grounded-evidence-cascade", "card": "BP-RES-01", "flagship": true, "stages": 9, "stage_kinds": ["fanout", "gate", "task"], "categories": ["research-and-evidence"], "acquisition": "ADOPT", "test": "test_bp_res_01_grounded_evidence_cascade.py"},
+    {"id": "bp-res-02-multilingual-native-index-fusion", "card": "BP-RES-02", "flagship": false, "stages": 9, "stage_kinds": ["fanout", "gate", "task"], "categories": ["research-and-evidence"], "acquisition": "REPAIR", "test": null},
+    {"id": "bp-res-03-academic-corpus-consolidation", "card": "BP-RES-03", "flagship": false, "stages": 9, "stage_kinds": ["fanout", "gate", "task"], "categories": ["research-and-evidence", "data-science-knowledge-and-creative"], "acquisition": "ADAPT", "test": null},
+    {"id": "bp-res-04-claim-decomposition-verification", "card": "BP-RES-04", "flagship": true, "stages": 7, "stage_kinds": ["fanout", "gate", "task"], "categories": ["research-and-evidence", "collective-intelligence-and-meta"], "acquisition": "REPAIR", "test": "test_bp_res_04_claim_decomposition_verification.py"},
+    {"id": "bp-res-05-briefed-fact-reprobe-council", "card": "BP-RES-05", "flagship": true, "stages": 10, "stage_kinds": ["barrier", "fanout", "gate", "human_checkpoint", "task"], "categories": ["research-and-evidence", "collective-intelligence-and-meta"], "acquisition": "BUILD-NEW", "test": "test_bp_res_05_briefed_fact_reprobe_council.py"},
+    {"id": "bp-res-06-longitudinal-verdict-refresh", "card": "BP-RES-06", "flagship": false, "stages": 7, "stage_kinds": ["gate", "loop", "subworkflow", "task"], "categories": ["data-science-knowledge-and-creative", "research-and-evidence"], "acquisition": "COMPOSE", "test": null},
+    {"id": "bp-gem-01-wide-lens-gem-sweep", "card": "BP-GEM-01", "flagship": false, "stages": 9, "stage_kinds": ["fanout", "gate", "human_checkpoint", "subworkflow", "task"], "categories": ["collective-intelligence-and-meta"], "acquisition": "MERGE", "test": null},
+    {"id": "bp-gem-02-anti-overfit-candidate-gate", "card": "BP-GEM-02", "flagship": true, "stages": 8, "stage_kinds": ["gate", "task"], "categories": ["collective-intelligence-and-meta", "security-governance-and-risk"], "acquisition": "DISTILL", "test": "test_bp_gem_02_anti_overfit_candidate_gate.py"},
+    {"id": "bp-gem-03-obscure-channel-miner", "card": "BP-GEM-03", "flagship": false, "stages": 5, "stage_kinds": ["gate", "loop", "task"], "categories": ["research-and-evidence"], "acquisition": "TRANSLATE", "test": null},
+    {"id": "bp-gem-04-marketplace-catalogue-tax-audit", "card": "BP-GEM-04", "flagship": false, "stages": 10, "stage_kinds": ["fanout", "gate", "human_checkpoint", "task"], "categories": ["security-governance-and-risk", "collective-intelligence-and-meta"], "acquisition": "COMPOSE", "test": null},
+    {"id": "bp-gem-05-executed-corpus-archaeology-mine", "card": "BP-GEM-05", "flagship": true, "stages": 10, "stage_kinds": ["gate", "task"], "categories": ["data-science-knowledge-and-creative", "collective-intelligence-and-meta"], "acquisition": "BUILD-NEW", "test": "test_bp_gem_05_executed_corpus_archaeology_mine.py"},
+    {"id": "bp-brn-01-two-peer-cross-vendor-idea-fanout", "card": "BP-BRN-01", "flagship": true, "stages": 7, "stage_kinds": ["fanout", "gate", "repair_loop", "task"], "categories": ["collective-intelligence-and-meta"], "acquisition": "REPAIR", "test": "test_bp_brn_01_two_peer_cross_vendor_idea_fanout.py"}
+  ],
+
+  "category_span": {
+    "note": "The spec's six-category span is a requirement on the 96 COLLECTIVELY, not on any 12-blueprint slice. This slice contributes 4 of the 6.",
+    "covered_by_this_slice": ["research-and-evidence", "data-science-knowledge-and-creative", "collective-intelligence-and-meta", "security-governance-and-risk"],
+    "not_covered_by_this_slice": ["engineering-and-reliability", "product-design-and-strategy"]
+  },
+
+  "required_elements_per_blueprint": {
+    "all_12_carry": ["params (typed)", "roles", "gates", "stages", "stopping_rules", "tool_policy", "failure_policy", "retry_policy", "model_routing", "dry_run", "estimate", "portability", "lineage", "resume", "replay", "cache", "outputs", "x_extensions.worked_example", "x_extensions.mechanism_signature", "x_extensions.contraindications", "x_extensions.unverified"],
+    "measured": "12/12 present for every element listed above; worked_example and mechanism_signature verified non-empty on all 12."
+  },
+
+  "cross_slice_defect_reported_not_fixed": {
+    "finding": "The corpus-wide category vocabulary has DRIFTED into two spellings for two of the six categories, so a naive token census reports 8 categories instead of 6.",
+    "variants": {
+      "collective-intelligence-and-meta (17 docs, this slice's form)": "vs collective-intelligence-and-meta-workflows (9 docs)",
+      "data-science-knowledge-and-creative (12 docs, this slice's form)": "vs data-science-knowledge-and-creative-work (5 docs)"
+    },
+    "affected_sibling_files": ["bp-brn-02-diverge-then-converge.json", "bp-brn-03-constraint-inversion.json", "bp-brn-04-analogy-transfer.json", "bp-cnc-01..07 (7 files)", "bp-req-01-program-scale-extensive-grill.json", "memory-temporal-validity-curation.json", "shared-grounding-pack-emission.json"],
+    "why_not_fixed_here": "14 of the affected documents belong to sibling units; unilaterally rewriting another unit's categories would be an out-of-scope edit. Escalated to the orchestrator to pick ONE token per category corpus-wide.",
+    "impact_if_unfixed": "Any gate that asserts 'the 96 span exactly six categories' by counting distinct tokens will report 8 and fail, or will pass while the taxonomy is inconsistent."
+  },
+
+  "probes": {
+    "platform/lib/workflows/_bp1_reverify.py": "independent re-validation of all 12 + 6-mutation both-states control on the validator -> SUCCESS:bp1-reverify",
+    "platform/lib/workflows/_bp1_distinctness.py": "mechanism-fingerprint near-duplicate detector + renamed-exact-copy control -> SUCCESS:bp1-distinctness"
+  },
+  "artifacts": {
+    "platform/workflows/BLUEPRINTS-BP1-REVERIFY.json": "per-file validator exit code, stdout, structural census, both-states control",
+    "platform/workflows/BLUEPRINTS-BP1-DISTINCTNESS.json": "66 pairwise mechanism similarities, flagged set, control result"
+  },
+
+  "residual_unverified": [
+    "UNVERIFIED that a runner executes these 12 end-to-end: no workflow RUNNER exists yet in this repo, so 'executable' here means schema-valid + semantically clean + mechanism-tested, NOT observed-running. Settling experiment = implement the DSL interpreter and replay each blueprint's worked_example, asserting expected_stage_order and expected_artifact_count.",
+    "UNVERIFIED that each blueprint's own inline x_extensions.unverified claim has been settled; those 13 tags (1-2 per blueprint) name their own settling experiments and are carried forward deliberately, not silently."
+  ]
+}

@@ -1,0 +1,370 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s25-war-room-5-incident",
+  "preset": "incident_war_room",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Mitigate a live incident. Entry requires a NAMED failing detector; exit requires that detector green or an explicit commander stand-down.",
+    "charter": "Incident war room. The commander decides unilaterally - this is not a deliberative body. Deliberation cost during an incident is measured in downtime.",
+    "risk_tier": "critical",
+    "desired_output": "decision",
+    "success_criteria": [
+      "entry named a specific failing detector, not a vague symptom",
+      "the named detector went green, or the commander explicitly stood the room down",
+      "a postmortem id was scheduled at OPEN, not at close"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "force-push to main",
+        "credential rotation",
+        "irreversible data deletion"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "commander",
+        "display_name": "Incident commander (decides unilaterally)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:incident_commander",
+        "authority": "judge",
+        "effort": "xhigh",
+        "expertise": [
+          "incident command"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_call_experiment": true,
+          "may_recruit": true
+        }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE (mitigation and rollback)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:sre",
+        "authority": "contributor",
+        "effort": "xhigh",
+        "expertise": [
+          "rollback",
+          "observability"
+        ],
+        "source_access": [
+          "repo",
+          "transcripts"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security (blast radius and exposure)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "effort": "high",
+        "expertise": [
+          "blast radius",
+          "secret exposure"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_veto": true
+        }
+      },
+      {
+        "participant_id": "scribe",
+        "display_name": "Scribe (timeline with timestamps)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "scribe",
+        "authority": "observer",
+        "effort": "medium",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "comms",
+        "display_name": "Comms (owner-facing status, human)",
+        "kind": "human",
+        "vendor": "human",
+        "role": "custom:comms",
+        "authority": "observer",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "role_collapse"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": false,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": false,
+    "required_artifacts": [
+      "evidence_pack"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "commander"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "entry-gate",
+        "custom_name": "name the failing detector and schedule the postmortem id",
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "evidence_items",
+              "op": ">=",
+              "value": 1,
+              "note": "the named failing detector output - entry is refused without it"
+            },
+            {
+              "metric": "quality_gate",
+              "op": "!=",
+              "value": "NOT_CHECKED",
+              "note": "an unrun detector cannot open a war room"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "war_game",
+        "stage_id": "mitigate"
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "stand-down",
+        "participants": [
+          "commander",
+          "scribe"
+        ]
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 1,
+      "max": 48
+    },
+    "turn": {
+      "max_words": 250,
+      "time_limit_seconds": 60
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 40,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "max",
+    "tool_calls": 600,
+    "turns": 200,
+    "max_inactivity_rounds": 1,
+    "min_engagement_turns": 1
+  },
+  "targets": {
+    "evidence_items": 6
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 1,
+      "on_failure": "escalate_to_owner"
+    },
+    "veto": {
+      "holders": [
+        "security"
+      ],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    }
+  },
+  "stopping": {
+    "source_expression": "quality_gate == PASS OR owner_approved == true",
+    "expression": {
+      "any_of": [
+        {
+          "metric": "quality_gate",
+          "op": "==",
+          "value": "PASS"
+        },
+        {
+          "metric": "owner_approved",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_evidence_items": 1
+    },
+    "hard_caps": {
+      "max_rounds": 48,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision"
+    ],
+    "conditional_decision_requires": [
+      "the mitigation is reversible and its rollback is named"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 3
+    },
+    "resolution": [
+      "run_experiment",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "moderator_capture",
+      "evidence_free_majority",
+      "silence",
+      "consensus_failing_executable_tests",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "evidence_map",
+      "experiments",
+      "action_plan",
+      "resumable_state",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 365
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Incident war room (commander + 4)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S25 war-room-5-incident",
+      "P47 incident-war-room"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1500-1514"
+    ],
+    "notes": "DESIGN LINEAGE: C-S25 war-room-5-incident in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: incident_commander,sre,security,scribe,comms).\nPRESET LABEL: incident_war_room - exact archetype match.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): PROCEED->decision, MITIGATED->conditional_decision, DEFER->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.participants.roster[0] : commander dial - who holds unilateral authority\n  - $.protocol.turn.time_limit_seconds : heartbeat dial (card default 60s)\n  - $.stopping.expression : the exit condition. quality_gate == PASS is the named detector going green; owner_approved == true is the commander stand-down\n  - $.protocol.rounds.max + $.stopping.hard_caps.max_rounds : the card says wall time is UNBOUNDED; an unbounded council cannot be expressed, so 48 heartbeat rounds is a stand-in cap that escalates to the owner rather than deciding\nDEVIATION FROM CARD (disclosed): the card says rounds:0 and wall<=unbounded. The schema has no unbounded form, and stopping.hard_caps.on_cap must name a behaviour, so this instance uses 48 rounds with on_cap=escalate_to_owner. That is a cap the owner sees, not a decision the council makes. The card's 'binding' default is expressed as voting.method=judge with the commander as the sole judge - there is no unilateral method in the schema enum.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

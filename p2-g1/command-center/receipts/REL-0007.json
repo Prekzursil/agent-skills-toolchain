@@ -1,0 +1,560 @@
+{
+ "schema_version": 1,
+ "unit_id": "REL-0007",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:REL-0007",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json REL-0007; _USER-PROMPTS.md:10836 (uninstall) and 11330 (skill in repo but not in live directory) — _USER-PROMPTS.md is ABSENT on this worktree",
+ "min_bytes_threshold": 1000,
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "systems-auditor / P2-deliver worker",
+  "execution_substrate": "linux-local /opt/p2/ast-integrate"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/schema/release-gate-receipt.schema.json",
+   "bytes": 1121,
+   "sha256": "ae15caeb59b8e8acf5d9207b9f5b4cab98600b0242e837a95866b14036354a96",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/sweep.py",
+   "bytes": 8414,
+   "sha256": "16c7e0ae3927b154ebc76912ebe3de511b701922288012cc3518a9369fd9832d",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/profile.py",
+   "bytes": 7173,
+   "sha256": "e51d2b4d20b394da2ab8524def77e42b68720a96c9b636e421790dc305737e53",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/surfaces.py",
+   "bytes": 3964,
+   "sha256": "be4b19806d17df6ecd3150291009489f88ac88ccb89e763c332a6ab6074515a0",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/overclaim.py",
+   "bytes": 4306,
+   "sha256": "6e0541acaac30c944787516b404cbf23f1541410014eadc53c7b26bcbb86414c",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/controls.py",
+   "bytes": 5749,
+   "sha256": "afc018c061b45bb4e8cf99ae2e19f221512b881872b0b1a112843bdb5c1f4ba9",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/REL-0007/schema_local.py",
+   "bytes": 1977,
+   "sha256": "88e50ae3e38c5c540c1764097bb5f795517335aec11fee483e4e2c9c7971efec",
+   "exists": true,
+   "eol": "CRLF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/receipts/REL-0002.json",
+   "bytes": 30132,
+   "sha256": "6003782ef2391b65b05e5d1d40c799a6e30f628800f4de0d883e018cc33e8728",
+   "exists": true,
+   "eol": "CRLF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "On a disposable canary profile the sweep fires on a planted leftover hook, finds a detector registration before trusting zeros, reports zero orphans on CHECKED fixture surfaces after clean uninstall, and lists unqueryable surfaces as NOT-CHECKED.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0007/controls.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0, 'command-center/p2-wave/probes/REL-0007'); import controls; print(controls.run_all())\"",
+     "raw_output": "plant-orphan-hook result=PASS orphans=['rel0007-canary.pre-tool'] payload_present=False\ndetector-control result=PASS found=True refuses_zero_when_absent=True err= seen=['rel0007-canary.detector']\nclean-uninstall-zero result=PASS owner_intact=True zero=True ids_ok=True det=True orphans=[] hash_delta={}\nunqueryable-not-checked result=PASS missing=[] not_checked=8 induced_settings=NOT-CHECKED\npayload-dir-is-not-the-verdict result=PASS honest=8 liar=0 payload=False",
+     "fingerprint": "325b1f5fc37ce4300a1772a238a1957e522aa87d36c1b4ef3c320673c07a04b3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "read enumerated[].id,status,query from in-memory trusted_zero_sweep report",
+     "raw_output": "enumerated=16 not_checked=8 orphans=[] detector={'required': True, 'planted': 'rel0007-canary.detector', 'found_before_zero': True, 'planted_orphan_ids': ['rel0007-canary.detector'], 'zeros_trusted': True}",
+     "fingerprint": "f20a029a1dc489fa8462437088541e777359382aed5ac2bbd9e91b1383541c80",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "The catalog output_schema, resolved on disk via RefResolver (shim + artifact-class-profiles + receipt_core), rejects garbage documents, and reviewer mutations each turn the overclaim gate red.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0007/schema_local.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema-validate",
+     "command": "schema_local.iter_errors(garbage)",
+     "raw_output": "garbage_error_counts=[11, 12, 12]",
+     "fingerprint": "c553c08f75e85e8f3d3fe1365fee48d4d4ed903d972e29147d813bc1533886dc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "controls.reviewer_mutations(doc)",
+     "raw_output": "[{\"id\": \"omit-not-checked\", \"gate_red\": true, \"why\": \"omitted-surfaces:['windows_task_scheduler', 'windows_registry', 'live_user_settings_json', 'live_user_mcp_json', 'live_host_PATH', 'macos_launchd', 'live_systemd_user', 'production_packaged_uninstaller']\", \"result\": \"PASS\"}, {\"id\": \"zero-without-detector\", \"gate_red\": true, \"why\": \"zero-without-detector-control\", \"result\": \"PASS\"}, {\"id\": \"payload-as-verdict\", \"gate_red\": true, \"why\": \"payload-dir-used-as-orphan-verdict\", \"result\": \"PASS\"}, {\"id\": \"leave-hook-live\", \"gate_red\": true, \"why\": \"orphans=['rel0007-canary.pre-tool'] payload_present=False\", \"result\": \"PASS\"}]",
+     "fingerprint": "1229e142d6d4722bbac267dedfb6f4945cb16ced9710da128494decfcc449360",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "plant-orphan-hook",
+   "name": "plant-orphan-hook",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0007/probe1_orphan_sweep.py",
+   "result": "PASS",
+   "assertions": 1,
+   "output_tail": "orphans=['rel0007-canary.pre-tool'] payload_present=False"
+  },
+  {
+   "id": "detector-control",
+   "name": "detector-control",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0007/probe1_orphan_sweep.py",
+   "result": "PASS",
+   "assertions": 1,
+   "output_tail": "found=True refuses_zero_when_absent=True err= seen=['rel0007-canary.detector']"
+  },
+  {
+   "id": "clean-uninstall-zero",
+   "name": "clean-uninstall-zero",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0007/probe1_orphan_sweep.py",
+   "result": "PASS",
+   "assertions": 1,
+   "output_tail": "owner_intact=True zero=True ids_ok=True det=True orphans=[] hash_delta={}"
+  },
+  {
+   "id": "unqueryable-not-checked",
+   "name": "unqueryable-not-checked",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0007/probe1_orphan_sweep.py",
+   "result": "PASS",
+   "assertions": 1,
+   "output_tail": "missing=[] not_checked=8 induced_settings=NOT-CHECKED"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "omit-not-checked",
+   "kind": "mutation",
+   "description": "Reviewer re-ran omit-not-checked; the gate must go red. why=omitted-surfaces:['windows_task_scheduler', 'windows_registry', 'live_user_settings_json', 'live_user_mcp_json', 'live_host_PATH', 'macos_launchd', 'live_systemd_user', 'production_packaged_uninstaller']",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "omitted-surfaces:['windows_task_scheduler', 'windows_registry', 'live_user_settings_json', 'live_user_mcp_json', 'live_host_PATH', 'macos_launchd', 'live_systemd_user', 'production_packaged_uninstaller']",
+   "good_state_output": "clean receipt overclaim_ok=True"
+  },
+  {
+   "id": "zero-without-detector",
+   "kind": "mutation",
+   "description": "Reviewer re-ran zero-without-detector; the gate must go red. why=zero-without-detector-control",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "zero-without-detector-control",
+   "good_state_output": "clean receipt overclaim_ok=True"
+  },
+  {
+   "id": "payload-as-verdict",
+   "kind": "mutation",
+   "description": "Reviewer re-ran payload-as-verdict; the gate must go red. why=payload-dir-used-as-orphan-verdict",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "payload-dir-used-as-orphan-verdict",
+   "good_state_output": "clean receipt overclaim_ok=True"
+  },
+  {
+   "id": "leave-hook-live",
+   "kind": "known-broken-fixture",
+   "description": "Reviewer re-ran leave-hook-live; the gate must go red. why=orphans=['rel0007-canary.pre-tool'] payload_present=False",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "orphans=['rel0007-canary.pre-tool'] payload_present=False",
+   "good_state_output": "clean receipt overclaim_ok=True"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "REL-0007-mutation-rerun",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "xai",
+  "notes": "Reviewer role is to re-run mutation controls (omit NOT-CHECKED, zero without detector, payload-dir as verdict, leave-hook-live) and confirm each turns the gate red. Did not accept a re-read of the campaign transcript as review. Did not run global unit_manifest.py --write."
+ },
+ "defects": [],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0007/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0007"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/REL-0007/schema_local.py iter_errors (Draft202012Validator + on-disk RefResolver)",
+   "artifact_path": "command-center/receipts/REL-0007.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "schema_local.iter_errors(doc)",
+    "raw_output": "schema_errors=[]",
+    "fingerprint": "f3d1487779dbe209804324854adb2d46f1f176241dda6ce971d0863cead11983",
+    "exit_code": 0
+   }
+  },
+  {
+   "consumer": "command-center/p2-wave/probes/REL-0007/overclaim.py check_receipt",
+   "artifact_path": "command-center/receipts/REL-0007.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "static-analysis",
+    "command": "overclaim.check_receipt(doc)",
+    "raw_output": "overclaim_ok=True ok",
+    "fingerprint": "b26e28894efc4f494f6f25cc5c80a830f4e0ec03f147b74aa47ba859564c398d",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:48:57Z",
+  "ended_at": "2026-08-25T00:48:57Z",
+  "duration_seconds": 0.018
+ },
+ "retry": {
+  "count": 0,
+  "policy": "no blind retry. Re-runs count as flake measurement and every outcome is recorded; a green on run 5 of 5 does not overwrite the 4 reds, it is reported as 1/5",
+  "attempts": [
+   {
+    "attempt": 1,
+    "outcome": "SUCCESS",
+    "started_at": "2026-08-25T00:48:57Z"
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Live Windows Task Scheduler and HKCU uninstall/App Paths keys were not queried.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Re-run the sweep on a Windows host with schtasks.exe and winreg against a disposable profile."
+  },
+  {
+   "claim": "Live user ~/.claude/settings.json, ~/.mcp.json, and host PATH were not queried.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Owner-authorized read of those live files on a machine without secrets in settings, or a dedicated canary login."
+  },
+  {
+   "claim": "Production packaged uninstall was not claimed clean of Claude registration surfaces.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Install a canary Claude-plugin package, run astplugin uninstall in a disposable prefix, then sweep the catalog-named surfaces if that installer actually writes them."
+  },
+  {
+   "claim": "_USER-PROMPTS.md lines 10836 and 11330 were not readable.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Mount _USER-PROMPTS.md and quote those lines next to the sweep queries."
+  }
+ ],
+ "report": {
+  "kind": "release-gate-receipt",
+  "gate_verdict": "PASS",
+  "question": "After uninstalling, does the machine retain any dangling registration of the package -- hook entry, MCP server record, scheduled task, settings key, mirror entry, or PATH shim -- proven by querying each registry surface directly rather than inferring emptiness from a missing install directory?",
+  "claim": "On a disposable canary profile, the sweep reports a planted leftover hook, refuses to trust zeros until a known-present registration is seen, reports zero orphans on every CHECKED fixture surface after a clean inverse uninstall, and lists every unqueryable surface as NOT-CHECKED. A missing payload directory is not treated as a zero-orphan proof. REL-0002 typed inverses were read from command-center/receipts/REL-0002.json when present. This receipt does not claim the production packaged uninstaller is clean of Claude registration surfaces, nor that live Windows scheduler/registry, live user settings/MCP/PATH, launchd, or host systemd were queried.",
+  "enumerated": [
+   {
+    "id": "hooks",
+    "query": "read /tmp/rel0007-qpp1rb_f/hooks.json ; select hooks[i].id containing rel0007-canary",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "mcp",
+    "query": "read /tmp/rel0007-qpp1rb_f/.mcp.json ; select mcpServers keys containing rel0007-canary",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "settings",
+    "query": "read /tmp/rel0007-qpp1rb_f/settings.json ; select key rel0007Canary and enabledPlugins[rel0007-canary]",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "live_skill_tree",
+    "query": "stat /tmp/rel0007-qpp1rb_f/skills/skill.rel0007-canary (live skill tree entry skill.rel0007-canary)",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "path_shim",
+    "query": "stat /tmp/rel0007-qpp1rb_f/bin/rel0007-canary and read /tmp/rel0007-qpp1rb_f/path.env for fixture PATH",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "mirror",
+    "query": "read /tmp/rel0007-qpp1rb_f/mirror/index.json ; select entries[i].id == rel0007-canary",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "scheduled_tasks_fixture",
+    "query": "read /tmp/rel0007-qpp1rb_f/scheduled-tasks.json ; select tasks[i].name == REL0007-Canary-Task",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "rel0002_typed_inverses_on_disk",
+    "query": "read command-center/receipts/REL-0002.json; require INV-PATH and INV-PREDATE",
+    "status": "CHECKED",
+    "orphans": []
+   },
+   {
+    "id": "windows_task_scheduler",
+    "query": "schtasks /Query /FO LIST",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "This runner is Linux; schtasks.exe is absent. Live Windows Task Scheduler is not queried."
+   },
+   {
+    "id": "windows_registry",
+    "query": "winreg.QueryValue HKCU\\Software and App Paths",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "No Windows registry on this Linux worktree; HKCU uninstall/App Paths keys are not queried."
+   },
+   {
+    "id": "live_user_settings_json",
+    "query": "read ~/.claude/settings.json",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "Wave floor forbids wholesale read of live settings.json (credentials in env). Disposable fixture profile used instead."
+   },
+   {
+    "id": "live_user_mcp_json",
+    "query": "read ~/.mcp.json",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "Live ~/.mcp.json may hold secrets; not opened. Fixture .mcp.json under the disposable profile is queried instead."
+   },
+   {
+    "id": "live_host_PATH",
+    "query": "os.environ['PATH'] of this process",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "Host PATH mixes runner tools with any real shims; the fixture path.env / bin/ is the PATH surface under test."
+   },
+   {
+    "id": "macos_launchd",
+    "query": "launchctl list",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "This runner is Linux, not macOS; launchd jobs are not queried."
+   },
+   {
+    "id": "live_systemd_user",
+    "query": "systemctl --user list-units",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "Host systemd is outside the disposable profile; observing it would mix machine state into a fixture drill."
+   },
+   {
+    "id": "production_packaged_uninstaller",
+    "query": "python -m platform.plugin.cli uninstall --prefix <p> --retain-user-data",
+    "status": "NOT-CHECKED",
+    "orphans": [],
+    "reason": "platform/plugin/cli.py uninstall exists but removes a --prefix version tree and provenance-tracked live files. It does not register or deregister the catalog-named Claude surfaces (hooks.json, .mcp.json, settings keys, skill tree, PATH shim, mirror). Live-host uninstall is out of scope. This receipt does not claim production uninstall is clean of those surfaces."
+   }
+  ],
+  "not_checked": [
+   {
+    "id": "windows_task_scheduler",
+    "reason": "This runner is Linux; schtasks.exe is absent. Live Windows Task Scheduler is not queried.",
+    "query": "schtasks /Query /FO LIST"
+   },
+   {
+    "id": "windows_registry",
+    "reason": "No Windows registry on this Linux worktree; HKCU uninstall/App Paths keys are not queried.",
+    "query": "winreg.QueryValue HKCU\\Software and App Paths"
+   },
+   {
+    "id": "live_user_settings_json",
+    "reason": "Wave floor forbids wholesale read of live settings.json (credentials in env). Disposable fixture profile used instead.",
+    "query": "read ~/.claude/settings.json"
+   },
+   {
+    "id": "live_user_mcp_json",
+    "reason": "Live ~/.mcp.json may hold secrets; not opened. Fixture .mcp.json under the disposable profile is queried instead.",
+    "query": "read ~/.mcp.json"
+   },
+   {
+    "id": "live_host_PATH",
+    "reason": "Host PATH mixes runner tools with any real shims; the fixture path.env / bin/ is the PATH surface under test.",
+    "query": "os.environ['PATH'] of this process"
+   },
+   {
+    "id": "macos_launchd",
+    "reason": "This runner is Linux, not macOS; launchd jobs are not queried.",
+    "query": "launchctl list"
+   },
+   {
+    "id": "live_systemd_user",
+    "reason": "Host systemd is outside the disposable profile; observing it would mix machine state into a fixture drill.",
+    "query": "systemctl --user list-units"
+   },
+   {
+    "id": "production_packaged_uninstaller",
+    "reason": "platform/plugin/cli.py uninstall exists but removes a --prefix version tree and provenance-tracked live files. It does not register or deregister the catalog-named Claude surfaces (hooks.json, .mcp.json, settings keys, skill tree, PATH shim, mirror). Live-host uninstall is out of scope. This receipt does not claim production uninstall is clean of those surfaces.",
+    "query": "python -m platform.plugin.cli uninstall --prefix <p> --retain-user-data"
+   }
+  ],
+  "detector_control": {
+   "required": true,
+   "planted": "rel0007-canary.detector",
+   "found_before_zero": true,
+   "planted_orphan_ids": [
+    "rel0007-canary.detector"
+   ],
+   "zeros_trusted": true
+  },
+  "payload_used_as_orphan_verdict": false,
+  "zero_orphans_on_checked_surfaces": true,
+  "orphan_ids_after_clean": [],
+  "extra_controls": [
+   {
+    "id": "payload-dir-is-not-the-verdict",
+    "result": "PASS",
+    "detail": "honest=8 liar=0 payload=False"
+   }
+  ],
+  "observations": [
+   {
+    "name": "planted-orphan-detected",
+    "measured": true,
+    "method": "fixture sweep after uninstall_leave_hook",
+    "anchor": "command-center/p2-wave/probes/REL-0007/controls.py:test_plant_orphan_hook"
+   },
+   {
+    "name": "checked-orphan-count-after-clean",
+    "measured": 0,
+    "method": "trusted_zero_sweep with detector plant-then-remove",
+    "anchor": "command-center/p2-wave/probes/REL-0007/sweep.py:trusted_zero_sweep"
+   },
+   {
+    "name": "not-checked-surface-count",
+    "measured": 8,
+    "method": "enumerate surfaces the runner cannot or must not query",
+    "anchor": "command-center/p2-wave/probes/REL-0007/surfaces.py"
+   },
+   {
+    "name": "payload-used-as-orphan-verdict",
+    "measured": false,
+    "method": "sweep records payload_present without using it as the zero proof",
+    "anchor": "command-center/p2-wave/probes/REL-0007/sweep.py:sweep"
+   },
+   {
+    "name": "rel0002-receipt-present",
+    "measured": true,
+    "method": "Path.is_file command-center/receipts/REL-0002.json",
+    "anchor": "command-center/receipts/REL-0002.json"
+   },
+   {
+    "name": "platform-plugin-cli-present",
+    "measured": true,
+    "method": "Path.is_file platform/plugin/cli.py",
+    "anchor": "platform/plugin/cli.py"
+   }
+  ],
+  "control_ids": [
+   "plant-orphan-hook",
+   "detector-control",
+   "clean-uninstall-zero",
+   "unqueryable-not-checked",
+   "payload-dir-is-not-the-verdict",
+   "omit-not-checked",
+   "zero-without-detector",
+   "payload-as-verdict",
+   "leave-hook-live"
+  ],
+  "mutations_re_run": [
+   {
+    "id": "omit-not-checked",
+    "gate_red": true,
+    "why": "omitted-surfaces:['windows_task_scheduler', 'windows_registry', 'live_user_settings_json', 'live_user_mcp_json', 'live_host_PATH', 'macos_launchd', 'live_systemd_user', 'production_packaged_uninstaller']",
+    "result": "PASS"
+   },
+   {
+    "id": "zero-without-detector",
+    "gate_red": true,
+    "why": "zero-without-detector-control",
+    "result": "PASS"
+   },
+   {
+    "id": "payload-as-verdict",
+    "gate_red": true,
+    "why": "payload-dir-used-as-orphan-verdict",
+    "result": "PASS"
+   },
+   {
+    "id": "leave-hook-live",
+    "gate_red": true,
+    "why": "orphans=['rel0007-canary.pre-tool'] payload_present=False",
+    "result": "PASS"
+   }
+  ]
+ },
+ "mutations_re_run": [
+  {
+   "id": "omit-not-checked",
+   "gate_red": true,
+   "why": "omitted-surfaces:['windows_task_scheduler', 'windows_registry', 'live_user_settings_json', 'live_user_mcp_json', 'live_host_PATH', 'macos_launchd', 'live_systemd_user', 'production_packaged_uninstaller']",
+   "result": "PASS"
+  },
+  {
+   "id": "zero-without-detector",
+   "gate_red": true,
+   "why": "zero-without-detector-control",
+   "result": "PASS"
+  },
+  {
+   "id": "payload-as-verdict",
+   "gate_red": true,
+   "why": "payload-dir-used-as-orphan-verdict",
+   "result": "PASS"
+  },
+  {
+   "id": "leave-hook-live",
+   "gate_red": true,
+   "why": "orphans=['rel0007-canary.pre-tool'] payload_present=False",
+   "result": "PASS"
+  }
+ ]
+}

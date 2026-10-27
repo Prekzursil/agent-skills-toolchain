@@ -1,0 +1,1410 @@
+{
+ "answer": "Watcher wake signal is class-specific: canonical content-hash for HTML and plain specs, entry-id set for feeds and VCS atoms, release-tag set for releases.atom, version plus file digests for registries. ETag and Last-Modified are cheap prechecks; they do not wake HTML by themselves. Both-states control passed=True: genuine edits wake; ad/timestamp/lastBuildDate/published_at-only edits do not. A raw-byte poller wakes on both plants. Live paired sample n=20 over 9.1s of real elapsed time (not a mutated local copy): watcher false-wake rate=0.0, poller false-wake rate=0.0. Source-native timestamps in those payloads counted 109 load-bearing events in the prior 7 UTC days (true-wake opportunities). A standing 7-day daemon was not run. A wake appends a WatchEvent and enqueues claim revalidation only for claims citing that source_id; it does not refetch the rest of the watchlist. SUCCESS:RES-0180",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/research/sources-frontier/RES-0180-watchlist-standing-recheck.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0180/captures.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0180/watchlist.py",
+   "role": "supporting"
+  }
+ ],
+ "claims": [
+  {
+   "claim": "Per-class wake signals are content-hash (html/plain), feed-entry ids, release tags, and registry version+digests; ETag/Last-Modified do not wake HTML by themselves.",
+   "confidence_band": "almost-certain",
+   "id": "C1-signal-map",
+   "lineage": {
+    "fetch_timestamp": "2026-09-02T00:42:48Z",
+    "resolved_url": "https://fixture.local/watchlist/html-base",
+    "sha256": "e230f3fa3f594bfc0cf2c522784a61ff35cff1a9b5d1c70d038c677ea249af74"
+   },
+   "signals": [
+    {
+     "id": "S1-fixture-both-states",
+     "kind": "planted-control"
+    },
+    {
+     "id": "S2-live-classify-fingerprint",
+     "kind": "http-fetch"
+    }
+   ],
+   "verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe1_both_states.py"
+  },
+  {
+   "claim": "A watcher that wakes on genuine content/tag/entry change and stays silent on ad markup, timestamps, and channel lastBuildDate is not a poller; the naive raw-sha256 poller wakes on both plants.",
+   "confidence_band": "almost-certain",
+   "id": "C2-not-a-poller",
+   "lineage": {
+    "fetch_timestamp": "2026-09-02T00:42:48Z",
+    "resolved_url": "https://fixture.local/watchlist/html-base",
+    "sha256": "e230f3fa3f594bfc0cf2c522784a61ff35cff1a9b5d1c70d038c677ea249af74"
+   },
+   "signals": [
+    {
+     "id": "S1-html-parser-canonical",
+     "kind": "html-parser"
+    },
+    {
+     "id": "S2-html-regex-canonical",
+     "kind": "regex-strip"
+    }
+   ],
+   "verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe1_both_states.py"
+  },
+  {
+   "claim": "On 20 real sources fetched twice with real elapsed seconds between rounds (no local-body mutation), watcher false-wake rate was 0.0 and poller false-wake rate was 0.0. A standing 7-day daemon was not run; 7-day true-wake opportunities were counted from source-native timestamps in the live payloads.",
+   "confidence_band": "likely",
+   "id": "C3-false-wake-live",
+   "lineage": {
+    "fetch_timestamp": "2026-08-24T19:10:30Z",
+    "resolved_url": "https://example.com/",
+    "sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d"
+   },
+   "signals": [
+    {
+     "id": "S1-paired-live-http",
+     "kind": "http-fetch"
+    },
+    {
+     "id": "S2-native-week-stamps",
+     "kind": "payload-timestamps"
+    }
+   ],
+   "verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe2_live_sample.py"
+  },
+  {
+   "claim": "A wake records a WatchEvent and enqueues claim revalidation only for claims whose lineage cites that source; it does not poll the rest of the watchlist.",
+   "confidence_band": "likely",
+   "id": "C4-on-wake",
+   "lineage": {
+    "fetch_timestamp": "2026-09-02T00:42:48Z",
+    "resolved_url": "https://fixture.local/watchlist/html-base",
+    "sha256": "e230f3fa3f594bfc0cf2c522784a61ff35cff1a9b5d1c70d038c677ea249af74"
+   },
+   "signals": [
+    {
+     "id": "S1-on-wake-contract",
+     "kind": "mechanism-spec"
+    },
+    {
+     "id": "S2-both-states-not-poller",
+     "kind": "planted-control"
+    }
+   ],
+   "verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe1_both_states.py"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0180",
+ "controls": [
+  {
+   "id": "html-genuine",
+   "plant": "change load-bearing paragraph",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": true
+  },
+  {
+   "id": "html-cosmetic",
+   "plant": "change ad markup, time element, and Last-Modified/ETag",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": false
+  },
+  {
+   "id": "feed-genuine",
+   "plant": "new atom entry id / release tag",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": true
+  },
+  {
+   "id": "feed-cosmetic",
+   "plant": "channel <updated> / lastBuildDate only",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": false
+  },
+  {
+   "id": "release-genuine",
+   "plant": "new tag_name in release set",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": true
+  },
+  {
+   "id": "release-cosmetic",
+   "plant": "published_at change, same tag_name",
+   "poller_wake": true,
+   "verdict": "PASS",
+   "watcher_wake": false
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "class-specific wake signals and both-states fixtures",
+   "kind": "mechanism",
+   "path": "command-center/p2-wave/probes/RES-0180/watchlist.py"
+  },
+  {
+   "claim": "paired live fetches with lineage headers and hashes",
+   "kind": "measurement",
+   "path": "command-center/p2-wave/probes/RES-0180/captures.json"
+  }
+ ],
+ "live_ended_at": "2026-08-24T19:10:39Z",
+ "live_started_at": "2026-08-24T19:10:30Z",
+ "measurements": {
+  "chosen_ids": [
+   "html-example-com",
+   "html-example-org",
+   "html-python-org",
+   "html-pep-8",
+   "html-docs-hashlib",
+   "plain-rfc7232",
+   "rel-pip-atom",
+   "rel-cpython-atom",
+   "rel-numpy-atom",
+   "rel-requests-atom",
+   "vcs-pip-commits",
+   "feed-pypi-updates",
+   "reg-pypi-pip",
+   "reg-pypi-requests",
+   "reg-pypi-packaging",
+   "reg-pypi-setuptools",
+   "reg-pypi-wheel",
+   "reg-npm-lodash",
+   "reg-crates-serde",
+   "plain-pip-readme-pin"
+  ],
+  "elapsed_seconds": 9.112,
+  "failures": [],
+  "false_wake_rate": 0.0,
+  "method": "Two live GET rounds of the same URLs with sleep between rounds; false-wake is poller-only raw-byte change with stable canonical wake_value. Not simulated by mutating a local copy.",
+  "pairs": [
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "html-example-com",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "r1_wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "r2_wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "reason": "unchanged",
+    "source_class": "html-docs",
+    "url": "https://example.com/",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "html-example-org",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "r1_wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "r2_wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "reason": "unchanged",
+    "source_class": "html-docs",
+    "url": "https://example.org/",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "html-python-org",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "bfe3a1db017cc01d699dfb759eefb5b9838dc6ddab6a42a42f746d783f57e134",
+    "r1_wake_value": "8524b55fa9a5a7628d4ffe2f961089f8c39a92cd359ec88faf77234ab83a7676",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "bfe3a1db017cc01d699dfb759eefb5b9838dc6ddab6a42a42f746d783f57e134",
+    "r2_wake_value": "8524b55fa9a5a7628d4ffe2f961089f8c39a92cd359ec88faf77234ab83a7676",
+    "reason": "unchanged",
+    "source_class": "html-docs",
+    "url": "https://www.python.org/",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "html-pep-8",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "df129ae1aec987c78297963ed7cd662ce41a84c643898435342d0429de28dae5",
+    "r1_wake_value": "b2a9beb5d105ff4e1213b2a14dcdbdf4135c01969ab7c4936f1cc7e3dcdcb1c0",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "df129ae1aec987c78297963ed7cd662ce41a84c643898435342d0429de28dae5",
+    "r2_wake_value": "b2a9beb5d105ff4e1213b2a14dcdbdf4135c01969ab7c4936f1cc7e3dcdcb1c0",
+    "reason": "unchanged",
+    "source_class": "html-docs",
+    "url": "https://peps.python.org/pep-0008/",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "html-docs-hashlib",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "9f68ccafc2ea19e49decdb94219580243fd23b382ee1ff4ce3c4de663147dffb",
+    "r1_wake_value": "76696c429f363fba5a73e7e65282153635eacaa127ea1f374862a063aad2bb64",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "9f68ccafc2ea19e49decdb94219580243fd23b382ee1ff4ce3c4de663147dffb",
+    "r2_wake_value": "76696c429f363fba5a73e7e65282153635eacaa127ea1f374862a063aad2bb64",
+    "reason": "unchanged",
+    "source_class": "html-docs",
+    "url": "https://docs.python.org/3/library/hashlib.html",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "plain-rfc7232",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "3788e183becfbdaf93121082cd90ac7c1324e871fe425438805942a10207b1b4",
+    "r1_wake_value": "7fb2868ab8c194386f3d59a1bedc721b5d5f20d036788d79f8e93fb6d7deff94",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "3788e183becfbdaf93121082cd90ac7c1324e871fe425438805942a10207b1b4",
+    "r2_wake_value": "7fb2868ab8c194386f3d59a1bedc721b5d5f20d036788d79f8e93fb6d7deff94",
+    "reason": "unchanged",
+    "source_class": "plain-spec",
+    "url": "https://www.rfc-editor.org/rfc/rfc7232.txt",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 7.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "rel-pip-atom",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:30Z",
+    "r1_sha256": "3523c0d132e5976c2ac68fc33aaa2b04e572f17cc5be343bd4e704b3bf3c36ad",
+    "r1_wake_value": "bb5afd2907e7723ce120f44ad69076e34e125c6107049c1e0d910350392f6cd9",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "3523c0d132e5976c2ac68fc33aaa2b04e572f17cc5be343bd4e704b3bf3c36ad",
+    "r2_wake_value": "bb5afd2907e7723ce120f44ad69076e34e125c6107049c1e0d910350392f6cd9",
+    "reason": "unchanged",
+    "source_class": "release",
+    "url": "https://github.com/pypa/pip/releases.atom",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 6.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "rel-cpython-atom",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:31Z",
+    "r1_sha256": "8c679a795a3d7ad6bfd249184114c462a88db5fca5c2144283e457cea5df5c5c",
+    "r1_wake_value": "534594c1174e5cce616aced446abf991c66cabdecac24975f783c08b2787152c",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "8c679a795a3d7ad6bfd249184114c462a88db5fca5c2144283e457cea5df5c5c",
+    "r2_wake_value": "534594c1174e5cce616aced446abf991c66cabdecac24975f783c08b2787152c",
+    "reason": "unchanged",
+    "source_class": "release",
+    "url": "https://github.com/python/cpython/releases.atom",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 6.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "rel-numpy-atom",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:31Z",
+    "r1_sha256": "1dd1dd794f0efc32ede944952ec58c62c79ac65185e0264756222ee6e6d1e66e",
+    "r1_wake_value": "6ca7cd25c344d22f4a36bb5f5dee903eb7d67dc2c086be6a5ab54a9e6b1643e3",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "1dd1dd794f0efc32ede944952ec58c62c79ac65185e0264756222ee6e6d1e66e",
+    "r2_wake_value": "6ca7cd25c344d22f4a36bb5f5dee903eb7d67dc2c086be6a5ab54a9e6b1643e3",
+    "reason": "unchanged",
+    "source_class": "release",
+    "url": "https://github.com/numpy/numpy/releases.atom",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "rel-requests-atom",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:32Z",
+    "r1_sha256": "150d96b56054699620163d3df887e6b1220a142a16479d81b15f2ac1a324b99a",
+    "r1_wake_value": "5941e55e39f6c9ea33cdd549bd1011e39336e60557b582b4b526fc9fe5d14c6d",
+    "r2_observed_at": "2026-08-24T19:10:37Z",
+    "r2_sha256": "150d96b56054699620163d3df887e6b1220a142a16479d81b15f2ac1a324b99a",
+    "r2_wake_value": "5941e55e39f6c9ea33cdd549bd1011e39336e60557b582b4b526fc9fe5d14c6d",
+    "reason": "unchanged",
+    "source_class": "release",
+    "url": "https://github.com/psf/requests/releases.atom",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "vcs-pip-commits",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "55d8da0db17f8b0cdf1e1e2063f68d31b0aa4b7a7dc50f7ba6d99a0052b2f841",
+    "r1_wake_value": "d24d761f141d981c71852e6a1a548f6559241c629f8ea184cc6900fe7512d41c",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "55d8da0db17f8b0cdf1e1e2063f68d31b0aa4b7a7dc50f7ba6d99a0052b2f841",
+    "r2_wake_value": "d24d761f141d981c71852e6a1a548f6559241c629f8ea184cc6900fe7512d41c",
+    "reason": "unchanged",
+    "source_class": "vcs",
+    "url": "https://github.com/pypa/pip/commits/main.atom",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": true,
+    "false_wake_if_poller": false,
+    "id": "feed-pypi-updates",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": true,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "3f55b2639fd2dc488a97a3a2c49b2ed5fb5c4881215a0ece9c37e035b7e4caa7",
+    "r1_wake_value": "888494f7bcc5f3cc7398962ad6fdc94469c19d928dd4a43598001bceea6eb264",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "8e6f3820aba823a63792e2498ed37d1437e06c0f710f1067496e149ebe70925f",
+    "r2_wake_value": "ea825e45200c5d46879ad463fd127a47b3e0d260c175ff4a5e875d621ee3671f",
+    "reason": "wake-signal:feed-entry",
+    "source_class": "feed",
+    "url": "https://pypi.org/rss/updates.xml",
+    "watcher_wake": true
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-pypi-pip",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "6e11a831a6a7c5aac56ee8634c4041a4d86b19380f43879a76a1903dcde9d814",
+    "r1_wake_value": "26.2.1|527e5a1689cacf9a7ac9c7d671d2ce27a80202cefe653521f4ee283a088f414e",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "6e11a831a6a7c5aac56ee8634c4041a4d86b19380f43879a76a1903dcde9d814",
+    "r2_wake_value": "26.2.1|527e5a1689cacf9a7ac9c7d671d2ce27a80202cefe653521f4ee283a088f414e",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://pypi.org/pypi/pip/json",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-pypi-requests",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "bcfc6a202592e4e90f5a28ff002694eaa7c58ba741b76077f432b8bee1480111",
+    "r1_wake_value": "2.34.2|10b1b5a78b5e8c71110b79ea72f2e1f41ffcc4c450d45ac3efdd13cb08e37f8d",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "bcfc6a202592e4e90f5a28ff002694eaa7c58ba741b76077f432b8bee1480111",
+    "r2_wake_value": "2.34.2|10b1b5a78b5e8c71110b79ea72f2e1f41ffcc4c450d45ac3efdd13cb08e37f8d",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://pypi.org/pypi/requests/json",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-pypi-packaging",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "9d7a2885e9e79296598f8c943e0a94c2468e21c800abd26ed13c633465a78835",
+    "r1_wake_value": "26.3|4be86452d48689f980fe9fe4f8d3d442271cc5c5385dbeb7074c5cf1937deebd",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "9d7a2885e9e79296598f8c943e0a94c2468e21c800abd26ed13c633465a78835",
+    "r2_wake_value": "26.3|4be86452d48689f980fe9fe4f8d3d442271cc5c5385dbeb7074c5cf1937deebd",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://pypi.org/pypi/packaging/json",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-pypi-setuptools",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "b17d794d3d3176216e3aabb872735d5e2d7aa16f62b374694af32ee6287ca73f",
+    "r1_wake_value": "84.0.0|ac221b5f82d2ef345fab8f38a3c64ce3cc219682ddadc9d989fa7bd36afa5aef",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "b17d794d3d3176216e3aabb872735d5e2d7aa16f62b374694af32ee6287ca73f",
+    "r2_wake_value": "84.0.0|ac221b5f82d2ef345fab8f38a3c64ce3cc219682ddadc9d989fa7bd36afa5aef",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://pypi.org/pypi/setuptools/json",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-pypi-wheel",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "113f8abc907676e530c9dca238f3b2bd26e2b142747d16d7d4775810e1155980",
+    "r1_wake_value": "0.48.0|48967394b029c24c21b7556d5842d2c2ea01a7712ef9179372710167406d8513",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "113f8abc907676e530c9dca238f3b2bd26e2b142747d16d7d4775810e1155980",
+    "r2_wake_value": "0.48.0|48967394b029c24c21b7556d5842d2c2ea01a7712ef9179372710167406d8513",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://pypi.org/pypi/wheel/json",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-npm-lodash",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "54a227825f8aa5d56e0241ddb02ebb787c48b3ecdab6b1bb8fe855267ec0d51f",
+    "r1_wake_value": "4.18.1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "54a227825f8aa5d56e0241ddb02ebb787c48b3ecdab6b1bb8fe855267ec0d51f",
+    "r2_wake_value": "4.18.1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://registry.npmjs.org/lodash/latest",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "reg-crates-serde",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:33Z",
+    "r1_sha256": "8ebade105d80794f9475e0b1c16e808580b69762c8fa5a143c3071875ec8cdc1",
+    "r1_wake_value": "1.0.229|d95093d9a32a74874c9e9a88d7c0f4525342ee144b961337da6838b6bc587618",
+    "r2_observed_at": "2026-08-24T19:10:38Z",
+    "r2_sha256": "8ebade105d80794f9475e0b1c16e808580b69762c8fa5a143c3071875ec8cdc1",
+    "r2_wake_value": "1.0.229|d95093d9a32a74874c9e9a88d7c0f4525342ee144b961337da6838b6bc587618",
+    "reason": "unchanged",
+    "source_class": "registry",
+    "url": "https://crates.io/api/v1/crates/serde",
+    "watcher_wake": false
+   },
+   {
+    "channel_stamp_changed": false,
+    "elapsed_s": 5.0,
+    "etag_changed": false,
+    "false_wake_if_poller": false,
+    "id": "plain-pip-readme-pin",
+    "last_modified_changed": false,
+    "paired": true,
+    "poller_wake": false,
+    "r1_observed_at": "2026-08-24T19:10:34Z",
+    "r1_sha256": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "r1_wake_value": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "r2_observed_at": "2026-08-24T19:10:39Z",
+    "r2_sha256": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "r2_wake_value": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "reason": "unchanged",
+    "source_class": "plain-spec",
+    "url": "https://raw.githubusercontent.com/pypa/pip/24.2/README.rst",
+    "watcher_wake": false
+   }
+  ],
+  "poller_false_wake_rate": 0.0,
+  "poller_false_wakes": 0,
+  "poller_wakes": 1,
+  "round1": [
+   {
+    "body_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "bytes": 559,
+    "content_type": "text/html",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "",
+    "final_url": "https://example.com/",
+    "id": "html-example-com",
+    "last_modified": "Tue, 18 Aug 2026 20:06:42 GMT",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "html-docs",
+    "status": 200,
+    "url": "https://example.com/",
+    "wake_signal": "content-hash",
+    "wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "ff67a9d764d6a2367a187734e697f6a53217db9a21c101d410a113ca871a299d",
+    "bytes": 559,
+    "content_type": "text/html",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "",
+    "final_url": "https://example.org/",
+    "id": "html-example-org",
+    "last_modified": "Wed, 12 Aug 2026 20:17:18 GMT",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "html-docs",
+    "status": 200,
+    "url": "https://example.org/",
+    "wake_signal": "content-hash",
+    "wake_value": "a987d254f3767b277763262226be86e36f34226c96064c7e4214e2dbc78b4a81",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "bfe3a1db017cc01d699dfb759eefb5b9838dc6ddab6a42a42f746d783f57e134",
+    "bytes": 11546,
+    "content_type": "text/html; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "",
+    "final_url": "https://www.python.org/",
+    "id": "html-python-org",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "html-docs",
+    "status": 200,
+    "url": "https://www.python.org/",
+    "wake_signal": "content-hash",
+    "wake_value": "8524b55fa9a5a7628d4ffe2f961089f8c39a92cd359ec88faf77234ab83a7676",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "df129ae1aec987c78297963ed7cd662ce41a84c643898435342d0429de28dae5",
+    "bytes": 121628,
+    "content_type": "text/html; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"6a8c1404-1db1c\"",
+    "final_url": "https://peps.python.org/pep-0008/",
+    "id": "html-pep-8",
+    "last_modified": "Mon, 24 Aug 2026 09:51:00 GMT",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "html-docs",
+    "status": 200,
+    "url": "https://peps.python.org/pep-0008/",
+    "wake_signal": "content-hash",
+    "wake_value": "b2a9beb5d105ff4e1213b2a14dcdbdf4135c01969ab7c4936f1cc7e3dcdcb1c0",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "9f68ccafc2ea19e49decdb94219580243fd23b382ee1ff4ce3c4de663147dffb",
+    "bytes": 120831,
+    "content_type": "text/html",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"6a8c058b-1d7ff\"",
+    "final_url": "https://docs.python.org/3/library/hashlib.html",
+    "id": "html-docs-hashlib",
+    "last_modified": "Mon, 24 Aug 2026 08:49:15 GMT",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "html-docs",
+    "status": 200,
+    "url": "https://docs.python.org/3/library/hashlib.html",
+    "wake_signal": "content-hash",
+    "wake_value": "76696c429f363fba5a73e7e65282153635eacaa127ea1f374862a063aad2bb64",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "3788e183becfbdaf93121082cd90ac7c1324e871fe425438805942a10207b1b4",
+    "bytes": 56696,
+    "content_type": "text/plain;charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:30 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "W/\"88553a3287150e694565cde2bd24c15c\"",
+    "final_url": "https://www.rfc-editor.org/rfc/rfc7232.txt",
+    "id": "plain-rfc7232",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "plain-spec",
+    "status": 200,
+    "url": "https://www.rfc-editor.org/rfc/rfc7232.txt",
+    "wake_signal": "content-hash",
+    "wake_value": "7fb2868ab8c194386f3d59a1bedc721b5d5f20d036788d79f8e93fb6d7deff94",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "3523c0d132e5976c2ac68fc33aaa2b04e572f17cc5be343bd4e704b3bf3c36ad",
+    "bytes": 5378,
+    "content_type": "application/atom+xml; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:31 GMT",
+    "entry_id_count": 10,
+    "error": "",
+    "etag": "W/\"3523c0d132e5976c2ac68fc33aaa2b04\"",
+    "final_url": "https://github.com/pypa/pip/releases.atom",
+    "id": "rel-pip-atom",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:30Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 10,
+    "source_class": "release",
+    "status": 200,
+    "url": "https://github.com/pypa/pip/releases.atom",
+    "wake_signal": "release-tag",
+    "wake_value": "bb5afd2907e7723ce120f44ad69076e34e125c6107049c1e0d910350392f6cd9",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:30Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "8c679a795a3d7ad6bfd249184114c462a88db5fca5c2144283e457cea5df5c5c",
+    "bytes": 5501,
+    "content_type": "application/atom+xml; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:31 GMT",
+    "entry_id_count": 10,
+    "error": "",
+    "etag": "W/\"8c679a795a3d7ad6bfd249184114c462\"",
+    "final_url": "https://github.com/python/cpython/releases.atom",
+    "id": "rel-cpython-atom",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:31Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 10,
+    "source_class": "release",
+    "status": 200,
+    "url": "https://github.com/python/cpython/releases.atom",
+    "wake_signal": "release-tag",
+    "wake_value": "534594c1174e5cce616aced446abf991c66cabdecac24975f783c08b2787152c",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:31Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "1dd1dd794f0efc32ede944952ec58c62c79ac65185e0264756222ee6e6d1e66e",
+    "bytes": 160400,
+    "content_type": "application/atom+xml; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:32 GMT",
+    "entry_id_count": 10,
+    "error": "",
+    "etag": "W/\"1dd1dd794f0efc32ede944952ec58c62\"",
+    "final_url": "https://github.com/numpy/numpy/releases.atom",
+    "id": "rel-numpy-atom",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:31Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 10,
+    "source_class": "release",
+    "status": 200,
+    "url": "https://github.com/numpy/numpy/releases.atom",
+    "wake_signal": "release-tag",
+    "wake_value": "6ca7cd25c344d22f4a36bb5f5dee903eb7d67dc2c086be6a5ab54a9e6b1643e3",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:31Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "150d96b56054699620163d3df887e6b1220a142a16479d81b15f2ac1a324b99a",
+    "bytes": 39304,
+    "content_type": "application/atom+xml; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 10,
+    "error": "",
+    "etag": "W/\"150d96b56054699620163d3df887e6b1\"",
+    "final_url": "https://github.com/psf/requests/releases.atom",
+    "id": "rel-requests-atom",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:32Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 10,
+    "source_class": "release",
+    "status": 200,
+    "url": "https://github.com/psf/requests/releases.atom",
+    "wake_signal": "release-tag",
+    "wake_value": "5941e55e39f6c9ea33cdd549bd1011e39336e60557b582b4b526fc9fe5d14c6d",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:32Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "55d8da0db17f8b0cdf1e1e2063f68d31b0aa4b7a7dc50f7ba6d99a0052b2f841",
+    "bytes": 17381,
+    "content_type": "application/atom+xml; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 20,
+    "error": "",
+    "etag": "\"a100b989cb2d89d4d561349931e9b080\"",
+    "final_url": "https://github.com/pypa/pip/commits/main.atom",
+    "id": "vcs-pip-commits",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "vcs",
+    "status": 200,
+    "url": "https://github.com/pypa/pip/commits/main.atom",
+    "wake_signal": "feed-entry",
+    "wake_value": "d24d761f141d981c71852e6a1a548f6559241c629f8ea184cc6900fe7512d41c",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 9,
+     "events_head": [
+      "tag:github.com,2008:Grit::Commit/6154f1191dcc7c4bc32f69e4ad10602a1de4d098",
+      "tag:github.com,2008:Grit::Commit/6d309205789d368b2749d93fd6193d584811efd5",
+      "tag:github.com,2008:Grit::Commit/0268b0aa084332f5d3cc044810b5958d0c2d1894",
+      "tag:github.com,2008:Grit::Commit/83cbbc5cdb6b424d5f125f0074f233646077ea1b",
+      "tag:github.com,2008:Grit::Commit/d13a5b369958b25ff2f92172506469817d54dd6c",
+      "tag:github.com,2008:Grit::Commit/5f4d824b7e4a565d8ffb811018557821e6748a3d",
+      "tag:github.com,2008:Grit::Commit/c9f8e0055219fc09f9679b1ae12353c0b7df0a2b",
+      "tag:github.com,2008:Grit::Commit/0d950bc437d8c15d0ae31605f1b263ab1880be05"
+     ],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "3f55b2639fd2dc488a97a3a2c49b2ed5fb5c4881215a0ece9c37e035b7e4caa7",
+    "bytes": 32680,
+    "content_type": "text/xml; charset=UTF-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 100,
+    "error": "",
+    "etag": "\"JtpZ/DeqeY8fCEoiQY1s2A\"",
+    "final_url": "https://pypi.org/rss/updates.xml",
+    "id": "feed-pypi-updates",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "feed",
+    "status": 200,
+    "url": "https://pypi.org/rss/updates.xml",
+    "wake_signal": "feed-entry",
+    "wake_value": "888494f7bcc5f3cc7398962ad6fdc94469c19d928dd4a43598001bceea6eb264",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 100,
+     "events_head": [
+      "Mon, 24 Aug 2026 19:09:22 GMT",
+      "Mon, 24 Aug 2026 19:09:21 GMT",
+      "Mon, 24 Aug 2026 19:09:19 GMT",
+      "Mon, 24 Aug 2026 19:09:17 GMT",
+      "Mon, 24 Aug 2026 19:09:09 GMT",
+      "Mon, 24 Aug 2026 19:09:00 GMT",
+      "Mon, 24 Aug 2026 19:08:56 GMT",
+      "Mon, 24 Aug 2026 19:08:51 GMT"
+     ],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "6e11a831a6a7c5aac56ee8634c4041a4d86b19380f43879a76a1903dcde9d814",
+    "bytes": 228494,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"BHPxlxJCF2oWYKn1hp8Jkw\"",
+    "final_url": "https://pypi.org/pypi/pip/json",
+    "id": "reg-pypi-pip",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "26.2.1",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://pypi.org/pypi/pip/json",
+    "wake_signal": "release-tag",
+    "wake_value": "26.2.1|527e5a1689cacf9a7ac9c7d671d2ce27a80202cefe653521f4ee283a088f414e",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "bcfc6a202592e4e90f5a28ff002694eaa7c58ba741b76077f432b8bee1480111",
+    "bytes": 192973,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"PIda7csZtWyaGzro3RbDQA\"",
+    "final_url": "https://pypi.org/pypi/requests/json",
+    "id": "reg-pypi-requests",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "2.34.2",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://pypi.org/pypi/requests/json",
+    "wake_signal": "release-tag",
+    "wake_value": "2.34.2|10b1b5a78b5e8c71110b79ea72f2e1f41ffcc4c450d45ac3efdd13cb08e37f8d",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "9d7a2885e9e79296598f8c943e0a94c2468e21c800abd26ed13c633465a78835",
+    "bytes": 90241,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"eKp1KglacZYE0B9cfw6uyw\"",
+    "final_url": "https://pypi.org/pypi/packaging/json",
+    "id": "reg-pypi-packaging",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "26.3",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://pypi.org/pypi/packaging/json",
+    "wake_signal": "release-tag",
+    "wake_value": "26.3|4be86452d48689f980fe9fe4f8d3d442271cc5c5385dbeb7074c5cf1937deebd",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "b17d794d3d3176216e3aabb872735d5e2d7aa16f62b374694af32ee6287ca73f",
+    "bytes": 1179626,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"10SqQVrrfY8QuF/9kjiLVw\"",
+    "final_url": "https://pypi.org/pypi/setuptools/json",
+    "id": "reg-pypi-setuptools",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "84.0.0",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://pypi.org/pypi/setuptools/json",
+    "wake_signal": "release-tag",
+    "wake_value": "84.0.0|ac221b5f82d2ef345fab8f38a3c64ce3cc219682ddadc9d989fa7bd36afa5aef",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "113f8abc907676e530c9dca238f3b2bd26e2b142747d16d7d4775810e1155980",
+    "bytes": 125190,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"8o59jrPcBtxG3qEJ+5oP8w\"",
+    "final_url": "https://pypi.org/pypi/wheel/json",
+    "id": "reg-pypi-wheel",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "0.48.0",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://pypi.org/pypi/wheel/json",
+    "wake_signal": "release-tag",
+    "wake_value": "0.48.0|48967394b029c24c21b7556d5842d2c2ea01a7712ef9179372710167406d8513",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "54a227825f8aa5d56e0241ddb02ebb787c48b3ecdab6b1bb8fe855267ec0d51f",
+    "bytes": 1669,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:33 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "",
+    "final_url": "https://registry.npmjs.org/lodash/latest",
+    "id": "reg-npm-lodash",
+    "last_modified": "Mon, 24 Aug 2026 19:09:08 GMT",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "4.18.1",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://registry.npmjs.org/lodash/latest",
+    "wake_signal": "release-tag",
+    "wake_value": "4.18.1|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "8ebade105d80794f9475e0b1c16e808580b69762c8fa5a143c3071875ec8cdc1",
+    "bytes": 432647,
+    "content_type": "application/json",
+    "date_header": "Mon, 24 Aug 2026 19:10:34 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "",
+    "final_url": "https://crates.io/api/v1/crates/serde",
+    "id": "reg-crates-serde",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:33Z",
+    "ok": true,
+    "registry_version": "1.0.229",
+    "release_tag_count": 0,
+    "source_class": "registry",
+    "status": 200,
+    "url": "https://crates.io/api/v1/crates/serde",
+    "wake_signal": "release-tag",
+    "wake_value": "1.0.229|d95093d9a32a74874c9e9a88d7c0f4525342ee144b961337da6838b6bc587618",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:33Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   },
+   {
+    "body_sha256": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "bytes": 2375,
+    "content_type": "text/plain; charset=utf-8",
+    "date_header": "Mon, 24 Aug 2026 19:10:34 GMT",
+    "entry_id_count": 0,
+    "error": "",
+    "etag": "\"2197e2666f2520a71d06ca635c89927a8862e327c05566d79a41ebc8e3f3b5d0\"",
+    "final_url": "https://raw.githubusercontent.com/pypa/pip/24.2/README.rst",
+    "id": "plain-pip-readme-pin",
+    "last_modified": "",
+    "observed_at": "2026-08-24T19:10:34Z",
+    "ok": true,
+    "registry_version": "",
+    "release_tag_count": 0,
+    "source_class": "plain-spec",
+    "status": 200,
+    "url": "https://raw.githubusercontent.com/pypa/pip/24.2/README.rst",
+    "wake_signal": "content-hash",
+    "wake_value": "76a50de07ff2a98521838791461d56bb0e7e19d4c25ba4cd294b11b1d083d08a",
+    "week_native": {
+     "cutoff": "2026-08-17T19:10:34Z",
+     "event_count": 0,
+     "events_head": [],
+     "window_days": 7
+    }
+   }
+  ],
+  "sample_size": 20,
+  "standing_7d_daemon": false,
+  "watcher_wakes": 1,
+  "wayback": [
+   {
+    "error": "TimeoutError: The read operation timed out",
+    "ok": false,
+    "url": "https://example.com/"
+   },
+   {
+    "error": "TimeoutError: The read operation timed out",
+    "ok": false,
+    "url": "https://www.python.org/"
+   },
+   {
+    "error": "HTTPError: HTTP Error 503: Service Unavailable",
+    "ok": false,
+    "url": "https://peps.python.org/pep-0008/"
+   }
+  ],
+  "week_native_events": [
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "html-example-com",
+    "source_class": "html-docs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "html-example-org",
+    "source_class": "html-docs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "html-python-org",
+    "source_class": "html-docs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "html-pep-8",
+    "source_class": "html-docs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "html-docs-hashlib",
+    "source_class": "html-docs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "plain-rfc7232",
+    "source_class": "plain-spec"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:30Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "rel-pip-atom",
+    "source_class": "release"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:31Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "rel-cpython-atom",
+    "source_class": "release"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:31Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "rel-numpy-atom",
+    "source_class": "release"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:32Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "rel-requests-atom",
+    "source_class": "release"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 9,
+    "events_head": [
+     "tag:github.com,2008:Grit::Commit/6154f1191dcc7c4bc32f69e4ad10602a1de4d098",
+     "tag:github.com,2008:Grit::Commit/6d309205789d368b2749d93fd6193d584811efd5",
+     "tag:github.com,2008:Grit::Commit/0268b0aa084332f5d3cc044810b5958d0c2d1894",
+     "tag:github.com,2008:Grit::Commit/83cbbc5cdb6b424d5f125f0074f233646077ea1b",
+     "tag:github.com,2008:Grit::Commit/d13a5b369958b25ff2f92172506469817d54dd6c",
+     "tag:github.com,2008:Grit::Commit/5f4d824b7e4a565d8ffb811018557821e6748a3d",
+     "tag:github.com,2008:Grit::Commit/c9f8e0055219fc09f9679b1ae12353c0b7df0a2b",
+     "tag:github.com,2008:Grit::Commit/0d950bc437d8c15d0ae31605f1b263ab1880be05"
+    ],
+    "id": "vcs-pip-commits",
+    "source_class": "vcs"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 100,
+    "events_head": [
+     "Mon, 24 Aug 2026 19:09:22 GMT",
+     "Mon, 24 Aug 2026 19:09:21 GMT",
+     "Mon, 24 Aug 2026 19:09:19 GMT",
+     "Mon, 24 Aug 2026 19:09:17 GMT",
+     "Mon, 24 Aug 2026 19:09:09 GMT",
+     "Mon, 24 Aug 2026 19:09:00 GMT",
+     "Mon, 24 Aug 2026 19:08:56 GMT",
+     "Mon, 24 Aug 2026 19:08:51 GMT"
+    ],
+    "id": "feed-pypi-updates",
+    "source_class": "feed"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-pypi-pip",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-pypi-requests",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-pypi-packaging",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-pypi-setuptools",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-pypi-wheel",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-npm-lodash",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:33Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "reg-crates-serde",
+    "source_class": "registry"
+   },
+   {
+    "cutoff": "2026-08-17T19:10:34Z",
+    "event_count": 0,
+    "events_head": [],
+    "id": "plain-pip-readme-pin",
+    "source_class": "plain-spec"
+   }
+  ],
+  "week_native_total": 109
+ },
+ "mechanism": {
+  "name": "standing-watchlist-evented-recheck",
+  "on_wake": [
+   "append WatchEvent {source_id, source_class, wake_signal, prev_wake_value, curr_wake_value, observed_at, body_sha256, etag}",
+   "enqueue claim-revalidation only for claims whose lineage cites this source_id",
+   "do not refetch the rest of the watchlist (that would be polling everything)",
+   "after revalidation, store the new fingerprint as the standing snapshot"
+  ],
+  "signals_by_class": [
+   {
+    "cheap_precheck": "If-None-Match / If-Modified-Since (304 skips body; 200 still canonicalizes)",
+    "ignore_signal": "ETag, Last-Modified, Date, ads, <time>, generated-at stamps",
+    "source_class": "html-docs",
+    "wake_signal": "content-hash of ad/time-stripped canonical body"
+   },
+   {
+    "cheap_precheck": "ETag",
+    "ignore_signal": "Last-Modified/Date headers; generated-at banner lines",
+    "source_class": "plain-spec",
+    "wake_signal": "content-hash of newline-normalized text"
+   },
+   {
+    "cheap_precheck": "ETag on the feed document",
+    "ignore_signal": "channel lastBuildDate / updated without new entry ids",
+    "source_class": "feed",
+    "wake_signal": "feed-entry id/guid set"
+   },
+   {
+    "cheap_precheck": "ETag on releases.atom or API",
+    "ignore_signal": "published_at / html cosmetics for an unchanged tag",
+    "source_class": "release",
+    "wake_signal": "release-tag set"
+   },
+   {
+    "cheap_precheck": "ETag on JSON",
+    "ignore_signal": "last_serial / upload timestamps when version and digests match",
+    "source_class": "registry",
+    "wake_signal": "published version string plus file digest set"
+   },
+   {
+    "cheap_precheck": "ETag",
+    "ignore_signal": "feed updated stamp without new commit ids",
+    "source_class": "vcs",
+    "wake_signal": "commit / entry-id set from the commits atom"
+   }
+  ]
+ },
+ "observed_at": "2026-09-02T00:42:48Z",
+ "question": "Design and validate the watchlist the spec requires as a first-class workflow: which change signal per source class (ETag, Last-Modified, content hash, feed entry, release tag), what the false-wake rate is on a 20-source sample over a week, and what a wake actually triggers. Distinct from RES-0006 (freshness half-life); this is the event-driven recheck itself.",
+ "report_kind": "measurement-run",
+ "reviewer": {
+  "independent": true,
+  "notes": "Defaults to REFUTED if the live sample is missing, both-states fail, or stored pairs recompute as a poller (watcher wakes when wake_value is stable).",
+  "reviewer_id": "RES-0180-probe2-live-recompute",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:RES-0180",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe1_both_states.py",
+   "id": "both-states-control",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0180/probe2_live_sample.py",
+   "id": "live-20-source-sample",
+   "result": "PASS"
+  }
+ ],
+ "unit_id": "RES-0180"
+}

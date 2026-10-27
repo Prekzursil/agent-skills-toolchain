@@ -1,0 +1,404 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p43-premortem",
+  "preset": "risk_committee",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Assert the decision has already failed catastrophically, then convert the specific causes into tripwires with named detectors.",
+    "charter": "Klein premortem. The output is a TRIPWIRE SET, not a risk register: every tripwire names the probe that would fire it and the owner who answers it.",
+    "risk_tier": "high",
+    "desired_output": "risk_register",
+    "success_criteria": [
+      "each seat writes a specific failure narrative, not a generic risk",
+      "causes clustered into categories",
+      "every top cause converted to a tripwire with a named detector and owner"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": false,
+      "anchor_style": "any",
+      "min_independent_sources": 0
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "stakeholder_balanced",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "narrator-a",
+        "role": "risk_officer",
+        "expertise": [
+          "operational failure"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "anonymous": true
+      },
+      {
+        "participant_id": "narrator-b",
+        "role": "security_reviewer",
+        "expertise": [
+          "security failure"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter",
+        "anonymous": true
+      },
+      {
+        "participant_id": "narrator-c",
+        "role": "architect",
+        "expertise": [
+          "architectural decay"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter",
+        "anonymous": true
+      },
+      {
+        "participant_id": "narrator-d",
+        "role": "user_advocate",
+        "expertise": [
+          "adoption failure"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "anonymous": true
+      },
+      {
+        "participant_id": "tripwire-clerk",
+        "role": "scribe",
+        "expertise": [
+          "detector design",
+          "tripwire registry"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "tools": [
+          "tripwire_registry"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_call_experiment": true
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "blind_to_peers",
+      "reveal_after_round": 1
+    },
+    "recruitment": {
+      "dynamic": true,
+      "triggers": [
+        "low_novelty",
+        "fast_unanimity"
+      ],
+      "max_recruits": 2
+    }
+  },
+  "topology": {
+    "kind": "delphi"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "failure-narratives",
+        "rounds": 2,
+        "independent": true,
+        "anonymous": true,
+        "quotas": {
+          "ideas_per_participant": 4,
+          "novel_ideas_per_round": 2
+        }
+      },
+      {
+        "kind": "delphi_round",
+        "stage_id": "cluster",
+        "rounds": 2,
+        "anonymous": true
+      },
+      {
+        "kind": "steelman_before_rebuttal",
+        "stage_id": "steelman-narratives",
+        "rounds": 1
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "challenge-detectors",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2,
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "tripwires",
+        "custom_name": "cause-to-tripwire-conversion",
+        "rounds": 1,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:tripwires_without_detector",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "tripwire_registry",
+              "note": "Card failure mode: a tripwire with no detector is decoration."
+            },
+            {
+              "metric": "custom:tripwires_without_owner",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "tripwire_registry"
+            },
+            {
+              "metric": "custom:detectors_proven_both_states",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "tripwire_registry.both_states_probe",
+              "note": "Card proof gate: each detector must be shown to FIRE in a synthetic failure state. A detector silent in both states measures nothing."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "tripwire-set"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 5,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 400
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "declare_confidence": true,
+      "forced_dissent": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 6,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 60,
+    "turns": 25,
+    "speaking_quota_per_participant": 6,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "unique_ideas": 18,
+    "raw_ideas": 24,
+    "categories": 4,
+    "novelty_ratio": 0.6,
+    "diversity_index": 0.6,
+    "objections": 5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.78,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "ranked_choice",
+    "belief_aggregation": {
+      "method": "trimmed_mean",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": false,
+      "evidence_outranks_majority": true
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "unique_ideas >= 15 AND categories_covered >= 4 AND every_objection_addressed == true AND all_participants_spoke == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 15
+        },
+        {
+          "metric": "categories_covered",
+          "op": ">=",
+          "value": 4
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 60,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "minority_report",
+      "dissent",
+      "irreducible_disagreement"
+    ],
+    "conditional_decision_requires": [
+      "every tripwire detector demonstrated firing in a synthetic failure state"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "rotate_roles",
+      "forced_dissent",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "premature_convergence",
+      "echo_chamber",
+      "instant_unanimity",
+      "silence",
+      "lost_dissent",
+      "weak_synthesis",
+      "participant_dominance",
+      "minority_suppression"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "recruit_independent_critic",
+      "role_rotation",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_ledger",
+      "idea_catalog",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "action_plan",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P43 premortem",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:800-814",
+      "_USER-PROMPTS.md:10929",
+      "_USER-PROMPTS.md:11236-11237"
+    ],
+    "lineage": [
+      "P43 premortem",
+      "Klein premortem",
+      "estate: metaswarm plan-review-gate adversarial lens"
+    ],
+    "notes": "Idea-count gaming is the live risk for any narrative-generating protocol, so dedup.trivial_variant_policy is REJECT (not merge) and novelty_ratio 0.6 is a target, while the stopping rule gates on unique_ideas (deduplicated) and categories_covered - four near-identical narratives cannot satisfy it. Anonymity is blind_to_peers during generation so narratives do not converge socially. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

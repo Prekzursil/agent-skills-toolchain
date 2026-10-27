@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0033",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0033 closed by INDEPENDENT REVIEWER wave-2 shard-0: delivery gate SUCCESS:delivered (both named probes re-run live by the reviewer, exit 0); artifact strict-validates against catalog output_schema command-center/schema/threat-model.schema.json (0 errors); CRLF-normalized sha256 9485898b684ea6e5349dc6d73ad63f020ee8b22fb8b75818a33cd095a9726ebe matches UNIT-ARTIFACT-MANIFEST.json row and receipt artifact row.",
+  "spec_anchor": "_USER-PROMPTS.md:10574-10581, 11049",
+  "min_bytes_threshold": 1024,
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json",
+      "bytes": 50282,
+      "sha256": "9485898b684ea6e5349dc6d73ad63f020ee8b22fb8b75818a33cd095a9726ebe",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "role": "probe1",
+      "method": "test-run",
+      "command": "python3 -B command-center/p2-wave/probes/ADV-0033/probe1_control.py",
+      "raw_output": "targets\": [{\"target_id\": \"isolation:local-process\", \"verdict\": \"REFUTED\"}, {\"target_id\": \"isolation:worktree\", \"verdict\": \"REFUTED\"}, {\"target_id\": \"isolation:wsl2\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"isolation:docker\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"isolation:cloud-sandbox\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"control:isolator-can-go-red\", \"verdict\": \"NOT-CHECKED\"}, {\"target_id\": \"control:unisolated-capability-detection\", \"verdict\": \"CONFIRMED\"}]}\nlocal-process executed=True verdict=REFUTED reason=None credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True\nworktree executed=True verdict=REFUTED reason=None credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True\nwsl2 executed=False verdict=NOT-CHECKED reason=binary-absent-native-linux credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\ndocker executed=False verdict=NOT-CHECKED reason=binary-absent credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\ncloud-sandbox executed=False verdict=NOT-CHECKED reason=cli-absent-and-cloud-hub-mcp-not-in-session credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\nisolator executed=False verdict=NOT-CHECKED reason=binary-absent credential_read=None,process_list=None,write_outside_root=None,outbound_socket=None\ncontrol_unisolated_all_four=True isolator_detects_block=False\nSUCCESS:ADV-0033-probe1 identical-payload-matrix",
+      "fingerprint": "47712e1300704a4c6bf3790c489a193f"
+    },
+    {
+      "role": "probe2",
+      "method": "test-run",
+      "command": "python3 -B command-center/p2-wave/probes/ADV-0033/probe2_router.py",
+      "raw_output": "Probe 2 (mechanically different): read the router's selection logic and identify which substrate untrusted/third-party code is actually routed to, then check that cell of the matrix - a strong sandbox that untrusted code is never routed to provides zero protection.\n{\"catalog_execution_substrate_is_metadata\": true, \"cell\": {\"credential_read\": true, \"outbound_socket\": true, \"process_list\": true, \"write_outside_root\": true}, \"completeness_default_substrates\": [\"local-windows-pwsh7\", \"local-parallel\", \"local-serialized\", \"worktree-isolated\", \"cloud-batch\"], \"imp0064_exec_policy_schema_present\": true, \"imp0064_exec_policy_test_present\": true, \"instrument\": \"static-router-then-matrix-cell\", \"os_substrate_dispatcher_present\": false, \"plugin_hooks_spawn_local_subprocess\": true, \"plugin_longrun_spawn_local_subprocess\": true, \"routing_verdict\": \"REFUTED\", \"untrusted_routed_to\": \"local-process\", \"unused_sandbox_protects\": false, \"why\": \"routed-to-unisolated-local-process\"}\nuntrusted_routed_to=local-process dispatcher=False routing_verdict=REFUTED why=routed-to-unisolated-local-process\ncell credential_read=True,process_list=True,write_outside_root=True,outbound_socket=True unused_sandbox_protects=False\nspawn hooks=True longrun=True exec_policy_schema=True\nSUCCESS:ADV-0033-probe2 router-then-matrix-cell",
+      "fingerprint": "1e471e501eccf308e1eb42ba46a1b15a"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-10-25T15:56:26Z",
+    "ended_at": "2026-10-25T17:17:57Z",
+    "duration_seconds": 0,
+    "review_closed_at": "2026-10-25T17:17:57Z",
+    "builder_ended_at": "2026-10-25T15:56:26Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "reviewer": {
+    "reviewer_id": "p2-independent-reviewer-w2s0",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "anthropic",
+    "notes": "Reviewer did not build this unit. Live re-verification in ~/p2-g1: (1) artifact exists/non-empty/parses, state=SUCCESS, not self-blocked; (2) _measure_one_delivered.py re-ran probe1_delivery_predicate.py + probe2_router.py plus probe1_control/probe2_router live, all exit 0 (SUCCESS:delivered ADV-0033); (3) recomputed CRLF-normalized sha256 matches UNIT-ARTIFACT-MANIFEST.json and the receipt artifact row; (4) jsonschema Draft202012 strict validation vs catalog output_schema: 0 errors; (5) adversarial content pass: 8 targets carry legal verdicts, NOT-CHECKED cells correspond to genuinely absent isolator binary (honest downgrade, residual recorded in-artifact), probe2 REFUTED routing finding matches the live re-run, instrument-level reviewer block honestly defers program closure to this receipt."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0033/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0033",
+    "registered_at": "2026-10-25T15:56:26Z"
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "claude-opus-5-5",
+    "role": "builder-shard0-w2",
+    "execution_substrate": "local-windows-pwsh7"
+  },
+  "extensions": {
+    "builder": "shard0 wave-2 (resume) 2026-10-25",
+    "prior_builder": "dependency-absent 2026-10-24; predecessor rework landed graceful-degradation probes",
+    "prior_builder_state": {
+      "state": "BLOCKED",
+      "failure": {
+        "classification": [
+          "reviewer-absent"
+        ],
+        "reason": "Builder-side delivery complete and live-verified. History: prior attempt failed dependency-absent (TST-0082 fixture + ARC-0083 completeness.py); predecessor reworked probes to record ABSENT-not-guessed and live re-derivations; ARC-0083 stays catalog-forensics-owned. Independent reviewer closure unavailable in builder shard."
+      },
+      "closed_by": "p2-independent-reviewer-w2s0",
+      "closed_at": "2026-10-25T17:17:57Z"
+    }
+  }
+}

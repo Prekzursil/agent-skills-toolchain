@@ -1,0 +1,710 @@
+{
+  "artifacts": [
+    {
+      "bytes": 31028,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/phase3/[REDACTED]/MIGRATION.json",
+      "role": "primary",
+      "sha256": "19ac0642ea50d464d72d38cfc4d0defbe451aef6c49b7dd7ec82288962f93c3d"
+    },
+    {
+      "bytes": 1091,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/migration-plan.schema.json",
+      "role": "supporting",
+      "sha256": "42139a8cd8a91a399b0020a9b05056965bef52f8a877d19c0d79a830e03b45a5"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/phase3/[REDACTED]/MIGRATION.json",
+      "consumer": "command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+        "fingerprint": "consumer-probe1-differential",
+        "method": "command",
+        "raw_output": "sample=6",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+      "claim": "Portable payload of two real catalog units (IMP-0421, IMP-0422) is byte-identical across old rail and [REDACTED]-common/v1 wrap on all three rails, with vendor remainder queued.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+          "fingerprint": "src-python-payload-sha256",
+          "method": "byte-compare",
+          "raw_output": "{\"byte_identical_payload\": 6, \"files_checked\": 6}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.py",
+          "fingerprint": "ver-awk-differential-sha256",
+          "method": "command",
+          "raw_output": "{\"awk_sha256\": \"531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809\", \"python_sha256\": \"531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.py",
+      "claim": "Old-rail retirement is refused unless the removal record cites the passing differential run id and sha256; awk Differential-Sha256 agrees with the python rail digest.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+          "fingerprint": "src-refuse-drop-remainder",
+          "method": "command",
+          "raw_output": "{\"refuse_drop\": true}",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/[REDACTED]/fixtures/retirement.note",
+          "fingerprint": "ver-retirement-note-awk-field",
+          "method": "file-read",
+          "raw_output": "Differential-Sha256 fields awk-read by probe2",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "registered": true
+  },
+  "manifest_registration": {
+    "entry_id": "[REDACTED]",
+    "manifest_path": "command-center/p2-wave/probes/[REDACTED]/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T00:59:45Z"
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"decision\": \"REFUSE-DROP-REMAINDER\", \"held_fields\": [\"mcp_reply_tool\", \"mcp_thread_id\", \"mcp_tool\"], \"id\": \"neg-drop-remainder\", \"pass\": true, \"reason\": \"vendor-only remainder is queued for adjudication; TAKE-NEW-DROP-REMAINDER would lose working-rail fields\", \"refused\": true, \"requested\": \"TAKE-NEW-DROP-REMAINDER\"}",
+      "description": "TAKE-NEW-DROP-REMAINDER while vendor remainder is nonempty",
+      "fired_on_bad_state": true,
+      "good_state_output": "WRAP accepted; remainder queued",
+      "id": "neg-drop-remainder",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "ImportRefused dispatch.fire-and-forget|background-flagged",
+      "description": "IMP-0161 fire-and-forget.json must stay ImportRefused",
+      "fired_on_bad_state": true,
+      "good_state_output": "blocking IMP-0421/IMP-0422 profiles imported",
+      "id": "keep-refusal-fire-and-forget",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "RETIRE-WITHOUT-PROOF",
+      "description": "removal record with a non-matching differential sha256",
+      "fired_on_bad_state": true,
+      "good_state_output": "PROOF-CITED",
+      "id": "retire-without-proof",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "[REDACTED]",
+    "role": "migration-engineer",
+    "vendor": "[REDACTED]"
+  },
+  "report": {
+    "adjudication_queue": [
+      {
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "held_fields": [
+          "mcp_reply_tool",
+          "mcp_thread_id",
+          "mcp_tool"
+        ],
+        "held_new_unique_fields": 0,
+        "held_old_unique_fields": 3,
+        "path": "rail:mcp-thread/remainder",
+        "preview_is_union": true,
+        "why_queued": "vendor-only fields are not [REDACTED]-common/v1 portable keys; an opaque passthrough would reintroduce adapter leakage, so the fields are held for adjudication instead of being dropped or stuffed"
+      },
+      {
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "held_fields": [
+          "adapter",
+          "source_schema"
+        ],
+        "held_new_unique_fields": 0,
+        "held_old_unique_fields": 2,
+        "path": "rail:exec-fanout/remainder",
+        "preview_is_union": true,
+        "why_queued": "vendor-only fields are not [REDACTED]-common/v1 portable keys; an opaque passthrough would reintroduce adapter leakage, so the fields are held for adjudication instead of being dropped or stuffed"
+      },
+      {
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "held_fields": [
+          "mailbox",
+          "peer_channel",
+          "peer_route"
+        ],
+        "held_new_unique_fields": 0,
+        "held_old_unique_fields": 3,
+        "path": "rail:agent-mail/remainder",
+        "preview_is_union": true,
+        "why_queued": "vendor-only fields are not [REDACTED]-common/v1 portable keys; an opaque passthrough would reintroduce adapter leakage, so the fields are held for adjudication instead of being dropped or stuffed"
+      }
+    ],
+    "architecture_id": "[REDACTED]",
+    "completion_sentinel": "SUCCESS:[REDACTED]",
+    "control_ids": [
+      "neg-drop-remainder",
+      "keep-refusal-fire-and-forget",
+      "retire-without-proof"
+    ],
+    "evidence": {
+      "byte_compared": true,
+      "live_codex_binary_spawned": false,
+      "notes": "Six differentials on ['IMP-0421', 'IMP-0422'] across ['mcp-thread', 'exec-fanout', 'agent-mail']. Fire-and-forget fixture refused reason_id=dispatch.fire-and-forget. [REDACTED] DESIGN.json is not on this tree; this is not a claim that a live [REDACTED] MCP thread was opened.",
+      "sample_size": 6,
+      "two_independent_signals": true,
+      "units_per_rail": 2
+    },
+    "kind": "migration-plan",
+    "min_bytes_threshold": 2048,
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+        "id": "probe1",
+        "role": "differential-equivalence"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.py",
+        "id": "probe2",
+        "role": "no-retirement-before-proof"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+        "measured": 6,
+        "method": "python hashlib sha256 of [REDACTED]-common/v1 portable payload",
+        "name": "byte-identical-portable-payload"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.sh",
+        "measured": "531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809",
+        "method": "bash awk Differential-Sha256 vs python rail digest",
+        "name": "awk-python-retirement-sha-agreement"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/IMP-0161/fixtures/fire-and-forget.json",
+        "measured": true,
+        "method": "import_fanout_path on IMP-0161 fire-and-forget.json",
+        "name": "fire-and-forget-keep-refusal"
+      }
+    ],
+    "provenance_procedure": {
+      "decision_table": [
+        {
+          "do": "ACCEPT-WRAP",
+          "when": "PAYLOAD-IDENTICAL and empty remainder"
+        },
+        {
+          "do": "ACCEPT-WRAP; hold vendor-only fields on the adjudication queue",
+          "when": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED"
+        },
+        {
+          "do": "BLOCKED with both readings; do not pick a winner",
+          "when": "sha256 mismatch xor key-set mismatch"
+        },
+        {
+          "do": "REFUSE-DROP-REMAINDER",
+          "when": "requested TAKE-NEW-DROP-REMAINDER while remainder nonempty"
+        },
+        {
+          "do": "KEEP-REFUSAL (import_fanout_path ImportRefused); not WRAP, not REPLACE",
+          "when": "fire-and-forget / background fan-out profile"
+        },
+        {
+          "do": "RETIRE-WITHOUT-PROOF (refuse)",
+          "when": "retire old rail without citing passing differential sha256"
+        }
+      ],
+      "notes": "Signal 1 is a payload digest. Signal 2 is a key-set (and, on the retirement probe, an awk Differential-Sha256 line). Neither mtime nor 'new rail is canonical' authorises dropping remainder or retiring the old path.",
+      "signals": [
+        {
+          "command_or_method": "sha256(canonical(portable(old))) vs wrap.payload_sha256 (Python hashlib in probe1_differential.py)",
+          "id": "signal-1-payload-sha256",
+          "reads": "byte identity of the portable payload across old and wrapped rails"
+        },
+        {
+          "command_or_method": "awk '/^Differential-Sha256: /' on fixtures/retirement.note (bash probe2_retire_gate.sh); also portable key-set equality",
+          "id": "signal-2-awk-differential-sha256",
+          "reads": "retirement citation digest and portable key-set; a second shell and a different field than signal 1"
+        }
+      ],
+      "timestamps_do_not_authorise_overwrite": true
+    },
+    "question": "Design the migration of the existing [REDACTED] integrations (the MCP thread tools, the exec fan-out scripts, the agent-mail peer channel) onto the common contract WITHOUT losing rails that currently work: decide per rail whether it is wrapped or replaced, and define the equivalence proof a new rail must pass BEFORE the old path is retired.",
+    "rails": [
+      {
+        "decision": "WRAP",
+        "new_surface": "[REDACTED]-common/v1 wrap of the same last-message portable payload",
+        "old_surface": "agentspec.argv.build_argv [REDACTED] exec plan (blocking, --prompt-file, --ignore-user-config) + MCP last-message remainder",
+        "rail_id": "mcp-thread",
+        "reason": "The working MCP-thread contract is blocking prompt-by-file argv via agentspec.argv.build_argv (tools/work-unit-adapters/[REDACTED].py is absent on this tree). Replacing that rail would lose reply-continuation and the --ignore-user-config hardening. Wrap the last-message as [REDACTED]-common/v1; queue mcp_thread_id as remainder.",
+        "units": [
+          "IMP-0421",
+          "IMP-0422"
+        ]
+      },
+      {
+        "decision": "WRAP",
+        "keep_refusal": "IMP-0161 fire-and-forget.json stays KEEP-REFUSAL (dispatch.fire-and-forget / dispatch.background-flagged)",
+        "new_surface": "[REDACTED]-common/v1 wrap of planned (id, timeout, prompt_file, argv)",
+        "old_surface": "agentspec.argv.build_argv on per-unit fan-out profiles + IMP-0161 fire-and-forget KEEP-REFUSAL",
+        "rail_id": "exec-fanout",
+        "reason": "The working fan-out contract is agentspec.argv.build_argv plus KEEP-REFUSAL of fire-and-forget / background profiles (tools/import-adapters/codex_fanout.py is absent on this tree). Wrap the imported plan; do not replace the refusal with a wrap that would succeed.",
+        "units": [
+          "IMP-0421",
+          "IMP-0422"
+        ]
+      },
+      {
+        "decision": "WRAP",
+        "new_surface": "[REDACTED]-common/v1 wrap of the peer-receipt portable payload",
+        "old_surface": "agent-mail peer-receipt envelope (protected name agent-mail; no live 127.0.0.1:8765 assumed)",
+        "rail_id": "agent-mail",
+        "reason": "agent-mail is the protected peer channel (memory_guard PROTECTED_NAMES). Replacing it would turn a slowdown into an outage. Wrap the peer-receipt JSON; keep mailbox identity as remainder.",
+        "units": [
+          "IMP-0421",
+          "IMP-0422"
+        ]
+      }
+    ],
+    "report_kind": "migration-plan",
+    "retirement_gate": {
+      "does_not_reject": "a removal record whose Differential-Run and Differential-Sha256 match the live per-rail digest",
+      "hook": "command-center/p2-wave/probes/[REDACTED]/retire_gate.py",
+      "id": "[REDACTED]-NO-RETIRE-BEFORE-PROOF",
+      "rejects": "removal of mcp-thread / exec-fanout / agent-mail whose differential_run_id or differential_sha256 does not match the passing live digest",
+      "requires_cited_differential": true,
+      "when": "after wrap+differential of two real units per rail: the old rail stays until a removal record cites the passing run"
+    },
+    "rollback": {
+      "forbids": [
+        "replacing mcp__codex__codex / agent-mail / codex_fanout while they still pass the differential",
+        "adding opaque_body/passthrough to [REDACTED]-common/v1 to hide remainder",
+        "retiring an old rail because a timestamp is newer",
+        "importing fire-and-forget fan-out as a 'new rail'"
+      ],
+      "restore_command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.py",
+      "steps": [
+        "1. Keep old-rail artifacts (MCP last-message, imported Workflow, peer-receipt) beside the wrap.",
+        "2. Attempting to retire an old rail without a cited differential sha256 must return RETIRE-WITHOUT-PROOF.",
+        "3. unwrap(wrap(old)) restores the portable payload; remainder stays queued rather than stuffed back as opaque_body.",
+        "4. Fire-and-forget profiles remain refused at import after rollback. Never replace a working refusal with a wrap that would succeed."
+      ],
+      "unit": "keep the old rail in service; unwrap [REDACTED]-common/v1 to the portable payload and continue dispatching on the original surface"
+    },
+    "sample": [
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "0a36b3eb1533d39b192d99bc15d143d2dc3e62b6855103e32fce8fc33d75db69",
+        "old_sha256": "5586312794c7067d24fd364d7cadc3882ee308409cf132d230b8a819bd992084",
+        "payload_sha256": "6f4a71dec92f6fb900c6f553a6a7db382cc67cb6e02e03d3753d950f370d5081",
+        "rail_id": "mcp-thread",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "6f4a71dec92f6fb900c6f553a6a7db382cc67cb6e02e03d3753d950f370d5081",
+          "old": "6f4a71dec92f6fb900c6f553a6a7db382cc67cb6e02e03d3753d950f370d5081"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 3,
+          "remainder_keys": [
+            "mcp_reply_tool",
+            "mcp_thread_id",
+            "mcp_tool"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0421"
+      },
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "90a14dd8f7f689f2d95843b5f11d4edc9d10659478c569056e6b8f59b0d6b0e7",
+        "old_sha256": "cde82b60eb7733c1540497d84139e6955bd42fccfc552770c069ea4b9a2c1281",
+        "payload_sha256": "b0267925bff6e1030a326fe49dbf236026734616ff22874bba93e03c14deea67",
+        "rail_id": "mcp-thread",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "b0267925bff6e1030a326fe49dbf236026734616ff22874bba93e03c14deea67",
+          "old": "b0267925bff6e1030a326fe49dbf236026734616ff22874bba93e03c14deea67"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 3,
+          "remainder_keys": [
+            "mcp_reply_tool",
+            "mcp_thread_id",
+            "mcp_tool"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0422"
+      },
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "1edf85611599627e1c68d1b38107c045456f8d6afcd47b8b1c0c84d4deb386ba",
+        "old_sha256": "144b6d9bc7a6841b5abc362f092a0db7fa189ffa6573f90179574cf1982f53c2",
+        "payload_sha256": "abb7d106500e61e478f21e612e2cd2f9566660112d0c9256deb3e2fd0018fe8e",
+        "rail_id": "exec-fanout",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "abb7d106500e61e478f21e612e2cd2f9566660112d0c9256deb3e2fd0018fe8e",
+          "old": "abb7d106500e61e478f21e612e2cd2f9566660112d0c9256deb3e2fd0018fe8e"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 2,
+          "remainder_keys": [
+            "adapter",
+            "source_schema"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0421"
+      },
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "067eeefd928f7a0dcebc892c053e4073ab0d5862239686dbf7848272c3b74291",
+        "old_sha256": "8e4ea8dcd69cc000daece96e7acc533ff752dca4eff9a5d30348b3364fbe35ba",
+        "payload_sha256": "7c259f59fffbdbd9d000cb9b0a849f60d3d539336746b76948413efdd1fac8c6",
+        "rail_id": "exec-fanout",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "7c259f59fffbdbd9d000cb9b0a849f60d3d539336746b76948413efdd1fac8c6",
+          "old": "7c259f59fffbdbd9d000cb9b0a849f60d3d539336746b76948413efdd1fac8c6"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 2,
+          "remainder_keys": [
+            "adapter",
+            "source_schema"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0422"
+      },
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "b1f90b2fcf883d5e50367d32af6061a407d8b9eea2e8adec6bf927c1e36f19b5",
+        "old_sha256": "0cc7fe40278ade64a10451dc925c50fe175a98b3274c477d86331f443f63dbad",
+        "payload_sha256": "f811b449f1efbf23478129e6618cf209c9bfdd37fe23ee14326c07df77d8bcb2",
+        "rail_id": "agent-mail",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "f811b449f1efbf23478129e6618cf209c9bfdd37fe23ee14326c07df77d8bcb2",
+          "old": "f811b449f1efbf23478129e6618cf209c9bfdd37fe23ee14326c07df77d8bcb2"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 3,
+          "remainder_keys": [
+            "mailbox",
+            "peer_channel",
+            "peer_route"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0421"
+      },
+      {
+        "both_directions": true,
+        "byte_identical_payload": true,
+        "classification": "PAYLOAD-IDENTICAL-REMAINDER-QUEUED",
+        "decision": "WRAP",
+        "new_sha256": "6d8eda3aae092034614585cbee41d72449c26816b7fcaf44ee08bb06ca56cbb6",
+        "old_sha256": "a5ff336d391b53a32ddb3bd96e9065127bb85930af37b562e9d5cbb64ad492ce",
+        "payload_sha256": "19274b99902f117c496011dc8e7c7ed0b709b1acb86b72e4732a738173cd4da6",
+        "rail_id": "agent-mail",
+        "reason": "portable payload byte-identical in both directions; vendor remainder queued",
+        "remainder_queued": true,
+        "signal1_sha256_compare": {
+          "match": true,
+          "new": "19274b99902f117c496011dc8e7c7ed0b709b1acb86b72e4732a738173cd4da6",
+          "old": "19274b99902f117c496011dc8e7c7ed0b709b1acb86b72e4732a738173cd4da6"
+        },
+        "signal2_field_set": {
+          "portable_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ],
+          "portable_match": true,
+          "remainder_count": 3,
+          "remainder_keys": [
+            "mailbox",
+            "peer_channel",
+            "peer_route"
+          ],
+          "wrapped_payload_keys": [
+            "body",
+            "sentinel",
+            "unit_id"
+          ]
+        },
+        "unique_lines_preserved": true,
+        "unit_id": "IMP-0422"
+      }
+    ],
+    "schema_version": 1,
+    "scope": {
+      "a6_design_present": false,
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "command-center/phase3/[REDACTED]/DESIGN.json exists",
+        "a live [REDACTED] binary was spawned",
+        "live agent-mail on 127.0.0.1:8765 or :8812 was used",
+        "vendor interchangeability (that is [REDACTED])",
+        "tools/work-unit-adapters/[REDACTED].py exists on this tree",
+        "tools/import-adapters/codex_fanout.py exists on this tree"
+      ],
+      "proof_surface": "executable wrap+byte-compare on two real catalog units per rail; awk/python retirement citation; fire-and-forget KEEP-REFUSAL. Not a claim that mcp__codex__codex was invoked or that 127.0.0.1:8765 answered.",
+      "working_rails_present": false
+    },
+    "sentinel": "SUCCESS:[REDACTED]",
+    "source_layout": {
+      "absent_on_this_tree": [
+        "tools/work-unit-adapters/[REDACTED].py",
+        "tools/import-adapters/codex_fanout.py",
+        "command-center/phase3/[REDACTED]/DESIGN.json"
+      ],
+      "roots": [
+        "tools/agentspec/agentspec/argv.py",
+        "command-center/p2-wave/probes/[REDACTED]/[REDACTED].py",
+        "command-center/p2-wave/probes/[REDACTED]/codex_fanout.py",
+        "command-center/p2-wave/probes/IMP-0161/fixtures/fire-and-forget.json"
+      ],
+      "working_rails": [
+        "mcp-thread: agentspec.argv.build_argv blocking prompt-by-file (no live [REDACTED] spawn)",
+        "exec-fanout: agentspec.argv.build_argv + IMP-0161 fire-and-forget KEEP-REFUSAL",
+        "agent-mail: protected peer-receipt envelope (no live listener assumed)"
+      ]
+    },
+    "state": "SUCCESS",
+    "target_layout": {
+      "load_order": [
+        "command-center/schema/migration-plan.schema.json",
+        "tools/agentspec/agentspec/argv.py",
+        "command-center/p2-wave/probes/[REDACTED]/[REDACTED].py",
+        "command-center/p2-wave/probes/[REDACTED]/codex_fanout.py",
+        "[REDACTED]-common/v1 wrap in command-center/p2-wave/probes/[REDACTED]/contract.py"
+      ],
+      "mapping": [
+        {
+          "decision": "WRAP",
+          "from": "mcp__codex__codex last-message (incl. mcp_thread_id remainder)",
+          "to": "[REDACTED]-common/v1 payload + queued remainder"
+        },
+        {
+          "decision": "WRAP",
+          "from": "[REDACTED] fan-out profile -> typed Workflow plan",
+          "to": "[REDACTED]-common/v1 payload of planned argv/prompt_file/timeout"
+        },
+        {
+          "decision": "WRAP",
+          "from": "agent-mail peer-receipt JSON",
+          "to": "[REDACTED]-common/v1 payload; mailbox remainder queued"
+        }
+      ],
+      "root": "command-center/p2-wave/probes/[REDACTED]/"
+    },
+    "tests": {
+      "differential_equivalence": {
+        "adjudicated": 3,
+        "byte_identical_payload": 6,
+        "files_checked": 6,
+        "files_failed": [],
+        "pass": true,
+        "rails_checked": 3,
+        "units_per_rail": 2
+      },
+      "negative_control": {
+        "decision": "REFUSE-DROP-REMAINDER",
+        "held_fields": [
+          "mcp_reply_tool",
+          "mcp_thread_id",
+          "mcp_tool"
+        ],
+        "id": "neg-drop-remainder",
+        "pass": true,
+        "reason": "vendor-only remainder is queued for adjudication; TAKE-NEW-DROP-REMAINDER would lose working-rail fields",
+        "refused": true,
+        "requested": "TAKE-NEW-DROP-REMAINDER"
+      },
+      "no_retirement_before_proof": {
+        "allowed_when_cited": true,
+        "awk_sha256": "531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809",
+        "cited_run_id": "mcp-thread:IMP-0421+IMP-0422",
+        "cited_sha256": "531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809",
+        "pass": true,
+        "python_sha256": "531947d2514d46438514f9d29f58f112dba2b67108a09d2ea2fcb096e497e809",
+        "refused_when_uncited": true
+      }
+    },
+    "title": "[REDACTED] wrap of working [REDACTED] rails (MCP thread, exec fan-out, agent-mail) with equivalence proof before retirement",
+    "unit_id": "[REDACTED]",
+    "wrapping_procedure": {
+      "notes": "[REDACTED] DESIGN.json is absent on this tree ([REDACTED] undelivered). tools/work-unit-adapters/[REDACTED].py and tools/import-adapters/codex_fanout.py are also absent (IMP-0161/IMP-0421 undelivered). This plan wraps the live agentspec.argv dispatch-safety rail and the agent-mail peer-receipt envelope. CodexAdapter does not spawn a live [REDACTED] binary; MCP artifacts are the last-message plan, not a cloud thread.",
+      "opaque_passthrough_forbidden": true,
+      "replace_forbidden_while_working": true,
+      "round_trip_rule": "wrap then unwrap must reproduce the portable payload bytes of the old rail; vendor-only remainder is queued, never dropped, and never stuffed into an opaque field. REPLACE is forbidden while the old rail still passes the differential.",
+      "steps": [
+        "Load two real catalog units (IMP-0421, IMP-0422) as the sample.",
+        "Produce the old-rail artifact: MCP last-message via local CodexAdapter.build_plan (agentspec.argv); fan-out via import_fanout_path on per-unit profiles; agent-mail peer-receipt envelope.",
+        "Wrap with [REDACTED]-common/v1 (portable unit_id/sentinel/body). Remainder keys are held, not forwarded.",
+        "Signal 1: sha256(portable old) vs wrap.payload_sha256. Signal 2: portable key-set vs wrap.payload keys. Disagreement is BLOCKED with both readings.",
+        "Both directions: unwrap(wrap(old)) must match portable(old).",
+        "Retirement of an old rail requires a removal record citing the passing differential run id and sha256 (awk-readable commit-message note). Uncited removal is refused."
+      ]
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "command-center/phase3/[REDACTED]/DESIGN.json is absent on this worktree; this plan is not a claim that [REDACTED] delivered a dossier.",
+      "settling_experiment": "Deliver [REDACTED], then re-run probe1 against DESIGN.json rails.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "tools/work-unit-adapters/[REDACTED].py and tools/import-adapters/codex_fanout.py are absent; wrap is of live agentspec.argv, not of those undelivered trees.",
+      "settling_experiment": "After IMP-0161/IMP-0421 deliver those files, re-run the same two units through the delivered adapters and byte-compare.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one"
+  },
+  "reviewer": {
+    "independent": true,
+    "notes": "Named probe1 re-wraps and byte-compares portable payloads in both directions (sha256 + key-set). Named probe2 awk-reads Differential-Sha256 from a commit-message note and refuses uncited retirement. Catalog scoring by a second human migration engineer is independent of G-1 probe-green.",
+    "reviewer_id": "[REDACTED]-probe1-differential",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:[REDACTED]",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:[REDACTED]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 6,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_differential.py",
+      "id": "differential-equivalence",
+      "name": "two units per rail, both directions",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_retire_gate.py",
+      "id": "no-retirement-before-proof",
+      "name": "awk vs python retirement citation",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:59:45Z",
+    "started_at": "2026-08-25T00:59:45Z"
+  },
+  "unit_id": "[REDACTED]"
+}

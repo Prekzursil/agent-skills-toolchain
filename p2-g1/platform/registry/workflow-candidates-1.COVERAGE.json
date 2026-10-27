@@ -1,0 +1,119 @@
+{
+  "unit": "build/wfa-1",
+  "phase": "2A - WORKFLOW ARCHAEOLOGY",
+  "range": "candidates 1-32 of the 160-candidate program floor",
+  "registry_file": "platform/registry/workflow-candidates-1.json",
+  "count_read_back_off_disk": 32,
+  "partition_rule": "Index-based, non-overlapping: rows 0..31 of the prior archaeology registry's own candidate order (families A-saved-workflow 1-10, B-repo-workflow 11-14, C-repo-tool 15-32). Sibling units wfa-2..wfa-5 can take 32..63, 64..95, 96..127, 128..159 with zero overlap by construction.",
+
+  "sources_read": {
+    "prior_prose": "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-ARCHAEOLOGY-AND-SOURCE-CATALOG.md (3300 lines) - READ FIRST as instructed",
+    "prior_machine_readable": "C:/Users/Prekzursil/.claude/harness-restore-20260806/08-WORKFLOW-CANDIDATE-REGISTRY.json (261589 bytes, 284 candidates, 13 fields) - the companion JSON the prose names in its own header",
+    "primary_bodies": "All 32 candidate bodies were read at source: 13 from the live filesystem (10 saved workflows + 3 .agents YAML), and 19 from the bare mirror C:/Users/Prekzursil/.claude/harness-restore-20260806/main-mirror.git at ref 07f465f37d49710f7060dcc7b567d6c58213177b (1 blob = workflows/rtv-pdr.js, 18 trees = the C-family tools)"
+  },
+
+  "what_this_unit_ADDED_over_the_prior_pass": [
+    "8 new fields per candidate that the prior 13-field registry did not carry: license_source, maintenance_state (structured), task_fit, stages, roles, tools, stop_rules, failure_behaviour, benchmark_evidence.",
+    "Independent provenance resolution: 32/32 anchors re-resolved from scratch (14 via os.stat, 18 via `git cat-file -t <ref>:<path>`), with both-states detector controls on each probe family.",
+    "The 18 C-family anchors were TREES, not files. The prior pass's byte figures for them were tree-object sizes (50-386 bytes), which is why they looked like tiny files. This unit enumerated them: 18 trees / 328 files / 2,971,166 bytes total, and read 129 selected blobs in a single batched `git cat-file --batch` pass.",
+    "Real maintenance dates: per-path `git log -1` at the pinned ref, replacing the prior pass's 'live-on-disk; last modified' prose. Range 2026-06-15 (otel-traces) to 2026-07-31 (monitorcore, event-ledger).",
+    "A measured license SOURCE. The prior pass asserted 'owner-authored / private estate' with no anchor; this unit probed for LICENSE/LICENSE.md/LICENSE.txt/COPYING at the pinned ref (all absent, rc=128) and found 07f465f3:package.json declares \"private\": true with NO \"license\" key. So: no license declared = all rights reserved. Not an OSI grant.",
+    "4 candidates promoted out of UNKNOWN-NEEDS-PROBE by actually reading them (the prior pass recorded 'present; unread' / 'no README'): tool-harness-drift, tool-mcpctl, tool-mcpapply, tool-otel-traces.",
+    "Exact stop rules quoted with file:line instead of paraphrased, for the 7 candidates where guessing would have been fabrication (rtv-pdr, ese-gate, plan-gate, design-gate, agentspec oracle, agentrail runner, codex-auth-research-fanout)."
+  ],
+
+  "claims_this_unit_INDEPENDENTLY_VERIFIED": [
+    {
+      "claim": "agentspec README: 'the closed 28-id violation set over a Workflow'",
+      "verdict": "CONFIRMED",
+      "how": "ast.parse of the VIOLATIONS tuple in tools/agentspec/agentspec/validate.py:25 -> exactly 28 ids; a mechanically different regex slice of the same literal block -> the same 28 (AGREE: True). Detector history disclosed: my FIRST counter returned 0 because it assumed ALL-CAPS ids; that zero was a detector failure, not a finding, and is recorded rather than hidden."
+    },
+    {
+      "claim": "memory-bench README: '13/16 = 81.25%'",
+      "verdict": "CONFIRMED",
+      "how": "tools/memory-bench/results.json parses to overall_pass_rate=0.8125, passed=13, total=16. Second independent signal: probes.jsonl has exactly 16 non-blank rows, matching total=16."
+    },
+    {
+      "claim": "fanout-schema README: '22.7% StructuredOutput failure rate'",
+      "verdict": "PARTIAL",
+      "how": "Arithmetic CONFIRMED: 849/3735 = 22.73%. The README also carries a second, independent implementation at 3694/846/22.9% (agreement within 1.1%). NOT CONFIRMED: the underlying 11,693-transcript / 10.65 GB mine was NOT re-run by this unit - out of scope. I verified the arithmetic and the presence of a second signal, not the raw corpus."
+    },
+    {
+      "claim": "ese-gate emits a DETERMINISTIC escalate/accept decision",
+      "verdict": "CONFIRMED (scoped)",
+      "how": "Neither the string 'random' nor 'time.time' appears anywhere in tools/ese-gate/ese_gate.py, so the decision path has no entropy source. DEFAULT_THRESHOLD=0.5 (:34); escalate = entropy >= threshold (:307). Scope: absence of those two tokens is the measurement; I did not execute the tool."
+    },
+    {
+      "claim": "prior doc's per-candidate 'N lines' evidence figures",
+      "verdict": "CONFIRMED as a convention difference, NOT a discrepancy",
+      "how": "5 of 10 comparable rows initially differed by exactly 1. Probe: for all 10 rows, claim == (newline_count + 1) -> 10/10. The prior pass counted the phantom final line; I counted newlines. No real disagreement. My own first summary line printed '5 mismatches of 0 comparable' - a self-contradicting output, i.e. a detector failure in my counter (a double-escaped \\\\d in an f-string), fixed and disclosed."
+    }
+  ],
+
+  "claims_NOT_verified": [
+    "arXiv ids cited by candidates are recorded VERBATIM and NOT RESOLVED - this unit ran no network probe. Ids: 2604.16529 (rtv-pdr), 2604.07494 (triage-router), 2410.10813 (memory-bench/LongMemEval), 2603.27098 (ese-gate). Settling experiment: fetch each id from arxiv.org and confirm title/abstract match the citing README's description.",
+    "No candidate was EXECUTED by this unit. Every 'it works' statement is a read of code, tests-on-disk, or a committed results file - never a run. Settling experiment: `python -m pytest` inside each of the 18 tool trees after a checkout.",
+    "Prior-pass run-record claims (e.g. 'workspace-gem-hunt executed at 43 agents', 'lane4-agentrail 9 agents') are forwarded as prior-pass attributions, not re-measured. Settling experiment: re-scan ~/.claude/projects/*/*/workflows/*.json."
+  ],
+
+  "material_distinctness": {
+    "artifact_level": "32 of 32 distinct. 0 exact body-hash collisions and 0 whitespace-normalised collisions across all 32 bodies, so no trivial fork or renamed copy is being counted (the spec's prohibition is satisfied mechanically, not by assertion).",
+    "mechanism_level_HONEST_CAVEAT": "Artifact distinctness is NOT mechanism distinctness. Measured redundancy inside this range: (a) wf-saved-harness-self-improve-sweep, wf-saved-uiux-tooling-consolidation and wf-saved-workspace-gem-hunt are three instances of ONE topology (Ground -> Fan-out -> Synthesize, opus-pinned, codex-assisted) differing mainly in lens count and target domain - which is why #9 is classified MERGE; (b) plan-gate and design-gate are the same schema-typed SHADOW council with a different persona list; (c) mcpctl and mcpapply are a DELIBERATE read/write split of one domain (disjoint module sets, opposite AST assertions) - siblings by design, not forks. Counting mechanism FAMILIES rather than artifacts, this range yields roughly 28, not 32. Both numbers are stated so a later phase does not over-credit the 32."
+  },
+
+  "known_defects_found_in_the_substrate": [
+    "wf-saved-harness-self-improve-sweep: filename carries a typo, 'harness-self-improve-sweep-imporant.js'. Rename on adoption.",
+    "wf-saved-trainer-gui-mega-plan: 280 lines, 6 phases, 8 agents, 5 parallel() sites and ZERO schema: keys - the estate's largest saved workflow has no typed fan-in at all.",
+    "wf-saved-bc-stage-compendium-enrichment: ZERO schema: keys - untyped fan-in.",
+    "design-gate and plan-gate: filter(Boolean) drops a throwing reviewer, so a 5-persona council can silently degrade to 4 or 3. NO QUORUM FLOOR is enforced. Relevant to any council this program ships.",
+    "wf-saved-reconcile-all-branches-prs: PR numbers hardcoded to the 2026-07-18 landscape.",
+    "wf-agents-lifecycle-yaml and wf-agents-roles-core: limits.max_threads=4 and claude worker=sonnet both contradict standing owner preferences ('fan out LARGE 50-100 agents'; 'Opus for ALL substantive subagents'). Flagged needs_owner, NOT silently resolved.",
+    "tool-otel-traces: its own notes state native batching can lose the trace tail if the CLI is killed mid-run, and prescribe the cc-trace hook instead for long/killable loops - i.e. it is weakest exactly in this program's use case.",
+    "tool-monitorcore: a vendored duplicate exists at .agents/skills/workflow-monitor/monitorcore/, so adoption must pick ONE home or create a third copy.",
+    "tool-event-ledger: two-copy artifact by design ('Deployed at ~/.claude/hooks/event-ledger/; this is the versioned copy - keep in sync')."
+  ],
+
+  "findings_the_orchestrator_should_act_on": [
+    {
+      "severity": "P1",
+      "finding": "RIVAL DIALECT: tools/agentspec already IS a portable vendor-neutral agent-workflow spec (frozen WorkUnit/FanOut/Barrier/Pipeline/Workflow/ReceiptSpec types), a closed 28-id validator, and a SIX-CLAUSE completion AND-gate oracle - stdlib-only, no I/O on the dispatch path, no wall clock, no entropy, with a mutation suite and a JS port. Phase 4 authored platform/lib/wfdsl + platform/lib/completion_predicate.py + platform/schema/receipt.schema.json this wave without consuming it. agentspec's own README states why it exists: 'two independent plans were building the same argv guard, the same completion oracle and the same progress-stream rejection twice... any runtime or vendor adapter now CONSUMES these functions; it must not reimplement them.' That is recurring right now.",
+      "anchor": "07f465f3:tools/agentspec/README.md; tools/agentspec/agentspec/oracle.py:3-10; tools/agentspec/agentspec/validate.py:25-57"
+    },
+    {
+      "severity": "P1",
+      "finding": "The 'two gate-A reducers disagree' failure class already reported by contracts/completion-predicate is WIDER than two. Counting only what this unit read, the estate now holds at least FIVE completion-gate implementations: platform/lib/completion_predicate.py (12 conditions), the legacy reducer it differs from, platform/lib/receipt_schema_gate.py, agentspec.oracle (6 named clauses, fail-closed on a vacuous ReceiptSpec), and codex-auth-research-fanout's disk AND-gate (artifact >=1024 bytes AND tail contains 'UNIT-COMPLETE: <id>'). agentrail adds a sixth surface via error.stop_condition. This needs one ruling, not six gates.",
+      "anchor": "tools/agentspec/agentspec/oracle.py:3-27; C:/Users/Prekzursil/.claude/workflows/codex-auth-research-fanout.mjs:27,63,171; tools/agentrail/agentrail/runner.py:309,313"
+    },
+    {
+      "severity": "P1",
+      "finding": "A NAMED SUBSTRATE DEFECT IN THE BRIEF IS ALREADY SOLVED ON DISK. The brief records 'rules/ live-vs-repo drift is TWO-DIRECTIONAL (5/88 identical); no safe sync direction exists yet.' tools/harness-drift is exactly the deterministic two-directional differ for that question: it normalises line endings first (so a CRLF working tree vs an LF blob does not manufacture phantom diffs), runs difflib.SequenceMatcher on every non-identical pair, records BOTH only_repo and only_live counts, requires only_live==0 for REPO-AHEAD and only_repo==0 for LIVE-AHEAD, and errs toward DIVERGED. The prior archaeology pass marked it UNKNOWN-NEEDS-PROBE solely because it has no README. Its docstring cites the measurement that justifies it: an LLM fan-out over the same 338 files scored 86% with 100% of errors in the DANGEROUS direction (31 files called deploy-safe that were two-way DIVERGED).",
+      "anchor": "07f465f3:tools/harness-drift/harness_drift.py module docstring (GUARANTEES 1-3)"
+    },
+    {
+      "severity": "P2",
+      "finding": "COMPOSE candidate: workflows/rtv-pdr.js explicitly instructs that it be gated behind tools/ese-gate ('Gate this workflow behind the ESE (Ensemble Semantic Entropy) escalation gate - fire only on hard/contentious work-units'), because it costs N parallel Opus rollouts per invocation. ESE decides cheaply (deterministic, threshold 0.5, fail-toward-escalation on every degenerate input); rtv-pdr pays only when the unit is contentious. Two already-built halves of one mechanism.",
+      "anchor": "07f465f3:workflows/rtv-pdr.js:5-8; 07f465f3:tools/ese-gate/ese_gate.py:34,301,307,309"
+    },
+    {
+      "severity": "P2",
+      "finding": "MECHANICAL-GATE-BEFORE-LLM is the cheapest high-value pattern in the range and is already implemented twice: plan-gate runs a ~1 ms python stage-0 lint before N Opus reviewers, and tools/mcpctl asserts read-only-BY-CONSTRUCTION over the AST of every module rather than trusting a sentence. Both are directly applicable to a 2,007-unit run (pre-filter units mechanically; enforce read-only agent scope mechanically instead of by prompt).",
+      "anchor": "C:/Users/Prekzursil/.claude/workflows/plan-gate.mjs:6-7; 07f465f3:tools/mcpctl/README.md"
+    }
+  ],
+
+  "detector_failures_disclosed_in_this_unit": [
+    "My VIOLATIONS-id counter returned 0 against a true value of 28 (regex assumed ALL-CAPS ids). Caught by running it against a claim I could cross-check, then re-probed with ast.parse plus a second regex; both agree at 28. An unproven zero is a detector failure, not a finding.",
+    "My line-count summary printed '5 mismatches of 0 comparable' - two statements that cannot both be true, caused by a double-escaped \\\\d inside an f-string while the per-row loop used the correct pattern. Self-contradicting output = instrument failure; fixed before any number was reported.",
+    "My first deep-scan spawned one `git cat-file` per tree file and exceeded the 600 s tool timeout (Windows process-spawn bound, not code bound). Rewritten to resolve all 129 blobs in ONE `git cat-file --batch` pipe. No data was reported from the timed-out run.",
+    "THIS SIDECAR shipped three wrong numbers in its first version, caught by my own closing self-audit (command-center/_wfa1_final_check.py) before reporting: I wrote '331 files / 2,838,997 bytes' for the C-family trees (measured: 328 files / 2,971,166 bytes) and '14 live / 18 mirror' for the provenance split (measured: 13 live / 19 mirror -- I had miscounted workflows/rtv-pdr.js as a live file when it is a mirror blob). Both are corrected above. The lesson is the one this program already knows: a hand-totalled figure in prose is an unverified claim even when every underlying measurement was correct. The date-range claim (2026-06-15 .. 2026-07-31) was re-checked in the same pass and CONFIRMED."
+  ],
+
+  "cross_unit_check_run_by_this_unit": {
+    "why": "The 160-candidate program floor is only met if the five units' sets are DISJOINT. That is a set-membership question, so it was answered with an exact algorithm (command-center/_wfa1_cross_unit_overlap.py), not by assumption.",
+    "measured": "Per-unit rows: wfa-1=32, wfa-2=32, wfa-3=35, wfa-4=33, wfa-5=32. Sum=164. Union of ids=164. Collisions=0. All 10 pairwise intersections are empty. FLOOR MET: 164 >= 160.",
+    "P2_FINDING_container_shape_inconsistency": "workflow-candidates-2.json is a JSON OBJECT with the rows under a 'candidates' key; workflow-candidates-1/3/4/5.json are bare JSON ARRAYS. A consumer that iterates the five files uniformly will break on unit 2 or silently skip it. EVIDENCE THAT THIS IS NOT THEORETICAL: my own first cross-unit checker did exactly that -- it printed 'workflow-candidates-2.json: top-level is dict, not a list -- skipped' and reported union=132, which would have shown the program MISSING its own 160 floor by 28. Recommend the orchestrator normalise all five to one container shape (or publish a documented loader) before any phase counts them.",
+    "note": "This is a report about sibling artifacts, not a modification of them. This unit changed nothing outside platform/registry/workflow-candidates-1*.json and command-center/_wfa1_*."
+  },
+
+  "honest_scope_statement": "This unit met its 32-candidate target from EXISTING catalogued assets with zero invented candidates, and every one carries a provenance anchor that was independently re-resolved. It did NOT need to search beyond the prior corpus to reach 32, so no 'could not yield 32' shortfall applies. What it did NOT do: execute anything, resolve any external citation, or read the ~250 further candidates in families D-I that fall outside index 0..31."
+}

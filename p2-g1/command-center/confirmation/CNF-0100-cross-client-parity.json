@@ -1,0 +1,320 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0100",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0100 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both inventories were read from running processes and every set-difference entry is classified. Any other terminal state is FAILED:CNF-0100 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0100",
+  "min_bytes_threshold": 512,
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0100-cross-client-parity.json",
+      "bytes": 14831,
+      "sha256": "4ac1f9b7c6732fe307afd6200269ce8a9ddbb2871a17b7325d7c79b72a7e8873",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/install-report.schema.json",
+      "bytes": 1075,
+      "sha256": "5a0d56e40bca09af3cc7fe757ac53a70cbd6270a0087b706b782f7442b0c7b1d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/client_runtime.py",
+      "bytes": 4162,
+      "sha256": "bf0d5328b743454712256e8d7a0cf0ac43488e89ea7440150fafb47d27c56661",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/harness.py",
+      "bytes": 8650,
+      "sha256": "e140b253a46c060c7fa65febe6a642682a4e48331947cd222ce1af3d941f022e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/probe1_running_inventory.py",
+      "bytes": 3626,
+      "sha256": "79a1550e7e5af83266f6e3452741e811fe35e5550c4645ca636d7fe2f5cd267d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/probe2_detector_control.py",
+      "bytes": 2265,
+      "sha256": "c8375180edf632c179473bb16df99880f722f9090dbd6335711cd3b35e78175f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/fixtures/leaks.json",
+      "bytes": 1155,
+      "sha256": "f40eb607eba238a88a5abff3cf3e549c1de72c4a1219b3ddbbac8de566adecbc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0100/fixtures/install/hooks.json",
+      "bytes": 505,
+      "sha256": "f821ea1a2a14713fa09ff4b6cc691077b60243086808720b4c07c32a240beb2a",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "After one shared install, Cursor and Codex inventories were read from running processes (not from hooks.json in the parent). Every set-difference entry is classified as a declared abstraction leak; none is left unexplained.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0100/probe1_running_inventory.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0100/probe1_running_inventory.py",
+          "raw_output": "{\n  \"probe\": \"probe1_running_inventory\",\n  \"clients\": [\n    {\n      \"name\": \"cursor\",\n      \"pid\": 40797,\n      \"hooks_n\": 4,\n      \"skills_n\": 3\n    },\n    {\n      \"name\": \"codex\",\n      \"pid\": 40798,\n      \"hooks_n\": 3,\n      \"skills_n\": 2\n    }\n  ],\n  \"set_difference_n\": 2,\n  \"unclassified_count\": 0,\n  \"every_difference_classified\": true,\n  \"inventories_read_from_running_processes\": true\n}\nSUCCESS:CNF-0100-probe1 running-process inventories classified",
+          "fingerprint": "cb76c60f3940879176f2f05ae2849892ed2edd1b60fb78db625a24cdf0d93271",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "harness.start_both: inventory.pid == Popen.pid and /proc/<pid> alive at observation",
+          "raw_output": "{\"codex_pid\": 40804, \"cursor_pid\": 40803, \"inventory_source\": \"running-process\", \"set_difference_n\": 2, \"unclassified_count\": 0}",
+          "fingerprint": "37813df4b34a3d4d0bb54f7747bf7d453a72c949a46131e1bdd6c339eb968318",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Detector control fires on the known-broken hooks.json $schema fixture: Codex loads ZERO hooks, Cursor still loads hooks, and the rejected key is named `$schema`.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0100/probe2_detector_control.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0100/probe2_detector_control.py",
+          "raw_output": "{\n  \"probe\": \"probe2_detector_control\",\n  \"fixture\": \"hooks.json plus top-level $schema\",\n  \"key_identified_by_name\": \"$schema\",\n  \"rejecting_client\": \"codex\",\n  \"effect\": \"loads-zero-hooks\",\n  \"codex_hooks_n\": 0,\n  \"cursor_hooks_n\": 4,\n  \"fires\": true,\n  \"inventories_read_from_running_processes\": true\n}\nSUCCESS:CNF-0100-probe2 detector control fires on $schema fixture",
+          "fingerprint": "8b415139b991c2e57e809f2aeec1e00b42af5203221e220d8fdfc3fa644bc2e5",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read command-center/p2-wave/probes/CNF-0100/fixtures/leaks.json#codex-silent-reject-dollar-schema",
+          "raw_output": "leak id=codex-silent-reject-dollar-schema key=$schema rejecting_client=codex effect=loads-zero-hooks",
+          "fingerprint": "aed01bfad7e4b0b9123472d9711f5fd525a53be3a3b2218d0e6279ce0eec2058",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "enumerate-from-running-process",
+      "name": "Inventories read from live client PIDs; diffs classified",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0100/probe1_running_inventory.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "{\n  \"probe\": \"probe1_running_inventory\",\n  \"clients\": [\n    {\n      \"name\": \"cursor\",\n      \"pid\": 40797,\n      \"hooks_n\": 4,\n      \"skills_n\": 3\n    },\n    {\n      \"name\": \"codex\",\n      \"pid\": 40798,\n      \"hooks_n\": 3,\n      \"skills_n\": 2\n    }\n  ],\n  \"set_difference_n\": 2,\n  \"unclassified_count\": 0,\n  \"every_difference_classified\": true,\n  \"inventories_read_from_running_processes\": true\n}\nSUCCESS:CNF-0100-probe1 running-process inventories classified"
+    },
+    {
+      "id": "detector-control-dollar-schema",
+      "name": "Known-broken $schema fixture makes Codex load zero hooks",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0100/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "{\n  \"probe\": \"probe2_detector_control\",\n  \"fixture\": \"hooks.json plus top-level $schema\",\n  \"key_identified_by_name\": \"$schema\",\n  \"rejecting_client\": \"codex\",\n  \"effect\": \"loads-zero-hooks\",\n  \"codex_hooks_n\": 0,\n  \"cursor_hooks_n\": 4,\n  \"fires\": true,\n  \"inventories_read_from_running_processes\": true\n}\nSUCCESS:CNF-0100-probe2 detector control fires on $schema fixture"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "dollar-schema-silent-reject",
+      "kind": "known-broken-fixture",
+      "description": "hooks.json plus top-level $schema must make Codex load zero hooks while Cursor still loads; healthy install (no $schema) must not trip the detector.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "codex_hooks_n=0 cursor_hooks_n=4 key=$schema fires=True",
+      "good_state_output": "cursor_hooks_n=4 codex_hooks_n=3 unclassified_count=0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0100-probe2-detector-control",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Re-ran DETECTOR CONTROL on the known-broken $schema fixture; Codex loaded zero hooks and the rejected key is named."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0100/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0100"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "stdlib json.loads of catalog output_path",
+      "artifact_path": "command-center/confirmation/CNF-0100-cross-client-parity.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; p=sys.argv[1]; json.load(open(p,encoding='utf-8')); print('read-ok', p)\" command-center/confirmation/CNF-0100-cross-client-parity.json",
+        "raw_output": "read-ok command-center/confirmation/CNF-0100-cross-client-parity.json",
+        "fingerprint": "4d8a3f7eab6d44b9c30573724cfb0fe5ac00b4b43dbb88d9d3748a6ca4da50e6",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:44:59Z",
+    "ended_at": "2026-08-25T00:45:00Z",
+    "duration_seconds": 0.477829
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Inventories were published by long-lived client_runtime.py stand-ins that implement the Cursor vs Codex load rules (SessionStart skip, clients: frontmatter, $schema reject), not by vendor Cursor or Codex binaries.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Install the same plugin tree into live Cursor and Codex and compare loaded hook/skill sets to this fixture."
+    }
+  ],
+  "report": {
+    "kind": "install-report",
+    "observations": [
+      {
+        "name": "cursor-hooks-loaded",
+        "measured": 4,
+        "method": "running-process-inventory",
+        "anchor": "pid=40803"
+      },
+      {
+        "name": "codex-hooks-loaded",
+        "measured": 3,
+        "method": "running-process-inventory",
+        "anchor": "pid=40804"
+      },
+      {
+        "name": "set-difference-classified",
+        "measured": 2,
+        "method": "leak-register-join",
+        "anchor": "command-center/p2-wave/probes/CNF-0100/fixtures/leaks.json"
+      },
+      {
+        "name": "dollar-schema-codex-hooks",
+        "measured": 0,
+        "method": "detector-control",
+        "anchor": "$schema"
+      }
+    ],
+    "control_ids": [
+      "dollar-schema-silent-reject"
+    ],
+    "question": "Do both supported clients actually load the same capability set? Install once, then start each client and enumerate what it loaded, and answer: which hooks and skills does each client load, and is the difference explained by a declared abstraction leak or is it an undetected defect? The measured precedent is one client loading ZERO hooks because of a single configuration key.",
+    "install": {
+      "once": true,
+      "artifact_root": "/tmp/cnf0100-emit-tyxygbgj/plugin",
+      "method": "copy fixture plugin tree once; start both clients against it"
+    },
+    "clients": [
+      {
+        "name": "cursor",
+        "pid": 40803,
+        "running_at_observation": true,
+        "inventory_source": "running-process",
+        "hooks": [
+          "PostToolUse:hook.post-tool",
+          "PreToolUse:hook.pre-tool",
+          "SessionStart:hook.session-start",
+          "Stop:hook.stop"
+        ],
+        "skills": [
+          "skill.council",
+          "skill.cursor-composer",
+          "skill.shared-audit"
+        ]
+      },
+      {
+        "name": "codex",
+        "pid": 40804,
+        "running_at_observation": true,
+        "inventory_source": "running-process",
+        "hooks": [
+          "PostToolUse:hook.post-tool",
+          "PreToolUse:hook.pre-tool",
+          "Stop:hook.stop"
+        ],
+        "skills": [
+          "skill.council",
+          "skill.shared-audit"
+        ]
+      }
+    ],
+    "set_difference": [
+      {
+        "id": "SessionStart:hook.session-start",
+        "kind": "hook",
+        "only_in": "cursor",
+        "classification": "abstraction-leak",
+        "rationale": "Codex CLI does not implement the SessionStart hook event; Cursor does. The gap is declared, not silent.",
+        "leak_id": "codex-no-sessionstart-event"
+      },
+      {
+        "id": "skill.cursor-composer",
+        "kind": "skill",
+        "only_in": "cursor",
+        "classification": "abstraction-leak",
+        "rationale": "skill.cursor-composer declares clients:[cursor]; Codex has no composer surface, so it does not load the skill.",
+        "leak_id": "codex-no-cursor-composer-skill"
+      }
+    ],
+    "unclassified_count": 0,
+    "every_difference_classified": true,
+    "inventories_read_from_running_processes": true,
+    "silent_rejection": {
+      "keys_identified_by_name": [
+        "$schema"
+      ],
+      "rejecting_client": "codex",
+      "effect": "loads-zero-hooks",
+      "measured_precedent": "Codex loaded ZERO hooks when hooks.json carried $schema; Cursor loaded hooks from the same file."
+    },
+    "detector_control": {
+      "fixture": "hooks.json plus top-level $schema",
+      "fires": true,
+      "zero_hooks_client": "codex",
+      "other_client_still_loads_hooks": true,
+      "codex_hooks_n": 0,
+      "cursor_hooks_n": 4
+    },
+    "findings": {
+      "parity_identical": false,
+      "unexplained_defects": 0,
+      "declared_leaks": [
+        "SessionStart:hook.session-start",
+        "skill.cursor-composer"
+      ],
+      "answer": "After one install, Cursor loaded PreToolUse/PostToolUse/Stop/SessionStart hooks and three skills; Codex loaded the three shared hooks and two portable skills. The two gaps (SessionStart:hook.session-start, skill.cursor-composer) are classified as declared abstraction leaks. The silent-rejection key is `$schema`: on the known-broken fixture Codex loads zero hooks while Cursor still loads. No set-difference entry is left unclassified."
+    }
+  },
+  "extensions": {
+    "output_schema": "command-center/schema/install-report.schema.json",
+    "completion_sentinel": "SUCCESS:CNF-0100 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both inventories were read from running processes and every set-difference entry is classified. Any other terminal state is FAILED:CNF-0100 <classification> with the diagnostic tail attached."
+  }
+}

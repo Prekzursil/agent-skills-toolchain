@@ -1,0 +1,907 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "design-first-ui-intake",
+  "name": "Design-first UI intake with an admission gate before implementation",
+  "description": "Route any UI request to a design direction BEFORE any code is written. Nothing is built here - the mechanism is ROUTING plus one structural property: the implement stage depends on an ADMISSION gate that passes only when a design direction is recorded on disk, so no implementation agent can be spawned first. The second mechanism is a false-routing control: a non-UI request must pass through untouched, because a router that captures everything is worse than no router. When the design tools are unavailable the workflow proceeds to code and RECORDS THE GAP, so a repeatedly-flagged behaviour becomes visible rather than silently repeated.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "bp-ux-05",
+    "intake",
+    "admission-gate",
+    "routing",
+    "false-routing-control"
+  ],
+  "flagship": true,
+  "params": {
+    "ui_request": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The incoming request, verbatim. May or may not be UI-shaped - deciding that is stage one's job."
+    },
+    "stack": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "Target stack, so the recommendation is implementable rather than abstract."
+    },
+    "brand_constraints": {
+      "type": "object",
+      "description": "Optional brand lock. Absent means the recommender is free to propose.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "palette_locked": {
+            "type": "boolean"
+          },
+          "type_locked": {
+            "type": "boolean"
+          },
+          "reference_url": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "skip_canvas": {
+      "type": "boolean",
+      "default": false,
+      "description": "For a tiny component, go from direction straight to code - but the skip is RECORDED, not silent."
+    },
+    "design_tools_available": {
+      "type": "boolean",
+      "default": true,
+      "description": "When false the workflow still proceeds, but records the gap explicitly instead of quietly reverting to code-first."
+    }
+  },
+  "roles": {
+    "intake-router": {
+      "description": "Decides whether the request is UI-shaped. Must let a non-UI request pass through untouched.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "direction-recommender": {
+      "description": "Produces a ranked style, palette and type recommendation with a rationale.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "canvas-producer": {
+      "description": "Turns the direction into a canvas artifact or a .design record.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__create_new_file"
+      ]
+    },
+    "implementer": {
+      "description": "Writes the code - and is structurally unreachable until the admission gate passes.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Write(command-center/design/**)"
+      ],
+      "write_paths": [
+        "app/**",
+        "src/**"
+      ]
+    },
+    "owner": {
+      "description": "The human owner - decides whether this intake is enforced by a hook or left a documented default.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Edit",
+      "Read",
+      "Write(command-center/design/**)",
+      "mcp__figma__create_new_file"
+    ],
+    "network": "read-only",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "mcp__figma__generate_figma_design"
+    ],
+    "write_paths": [
+      "command-center/design/ui-intake/**",
+      "app/**",
+      "src/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "require_provenance": true,
+      "paywalled": "skip",
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "no-false-routing": {
+      "predicate": "custom-expression",
+      "expression": "false_routing_detected == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "direction-admitted": {
+      "predicate": "custom-expression",
+      "expression": "design_direction_recorded == true OR request_is_ui == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "gap-recorded-when-degraded": {
+      "predicate": "custom-expression",
+      "expression": "design_tools_available == true OR design_gap_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "detect-ui-shape",
+      "title": "S0 - is this request UI-shaped at all",
+      "kind": "task",
+      "role": "intake-router",
+      "timeout_seconds": 600,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8101",
+        "title": "Classify the request as UI-shaped or not, and record the classification",
+        "phase": "2B",
+        "question_or_target": "Decide whether the request asks for a screen, page or component, and record the decision with its reason - so a false capture is visible and a genuine UI request cannot slip past.",
+        "inputs": [
+          "params.ui_request",
+          "params.stack"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "intake-router",
+          "basis": "the routing judgement is the entire contribution of this blueprint; nothing else is built"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/design/ui-intake/intake-classification.json",
+        "output_schema": "command-center/schema/router-explanation.schema.json",
+        "evidence_requirement": "the verbatim request, the UI-or-not verdict, and the specific phrase that drove it, so a misfire can be diagnosed rather than argued",
+        "tests_required": [
+          "a 'build me a settings screen' request classifies as UI",
+          "a 'fix the CSV parser' request classifies as NOT UI and passes through untouched",
+          "both-states control: a one-line colour tweak classifies as NOT requiring the full intake, so the router does not tax trivial work"
+        ],
+        "reviewer_requirement": "the direction-recommender, which refuses to run on a request the router misclassified",
+        "completion_sentinel": "SUCCESS:UX-8101 emitted only when a UI-or-not verdict is recorded with the driving phrase cited; otherwise FAILED:UX-8101 <reason>",
+        "retry_policy": "two strikes then classify as NOT UI and record the ambiguity, since over-capturing is the worse failure",
+        "failure_classification": [
+          "false-routing",
+          "classification-ambiguous",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "request classification with the driving phrase recorded for misfire diagnosis"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/intake-classification.json",
+          "schema_ref": "command-center/schema/router-explanation.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8101",
+          "consumers": [
+            "routing-control",
+            "recommend-direction",
+            "admission-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "routing-control",
+      "title": "A non-UI request must pass through untouched",
+      "kind": "gate",
+      "depends_on": [
+        "detect-ui-shape"
+      ],
+      "gate_ref": "no-false-routing"
+    },
+    {
+      "id": "recommend-direction",
+      "title": "S1 - recommend a style, palette and type direction",
+      "kind": "task",
+      "depends_on": [
+        "routing-control"
+      ],
+      "role": "direction-recommender",
+      "when": "request_is_ui == true AND design_tools_available == true",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8102",
+        "title": "Produce a ranked design direction with a rationale",
+        "phase": "2B",
+        "question_or_target": "Recommend a style, a palette and a type pairing ranked against the stack and any brand constraints, with a rationale, so a later audit can score against the INTENDED design rather than against taste.",
+        "inputs": [
+          "params.ui_request",
+          "params.stack",
+          "params.brand_constraints"
+        ],
+        "dependencies": [
+          "UX-8101"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "direction-recommender",
+          "basis": "ranked design recommendation is judgement work drawing on a style and palette corpus"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/ui-intake/design-direction.json",
+        "output_schema": "command-center/schema/design-spec.schema.json",
+        "evidence_requirement": "the ranked options with concrete palette values and type pairings, and the rationale tying the top choice to the request and the stack",
+        "tests_required": [
+          "a locked brand palette is respected rather than re-proposed",
+          "the recorded direction is specific enough for a later audit to score against it - a direction naming no values is not a direction"
+        ],
+        "reviewer_requirement": "the intake-router, chairing, which checks the direction actually answers the classified request",
+        "completion_sentinel": "SUCCESS:UX-8102 emitted only when a direction with concrete values and a rationale is on disk; otherwise FAILED:UX-8102 <reason>",
+        "retry_policy": "two strikes then narrow to one surface and record the reduced scope",
+        "failure_classification": [
+          "direction-unrecorded",
+          "brand-constraint-violated",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "ranked style/palette/type recommendation recorded as a scoreable artifact"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/design-direction.json",
+          "schema_ref": "command-center/schema/design-spec.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8102",
+          "consumers": [
+            "produce-canvas",
+            "admission-gate",
+            "implement"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "record-design-gap",
+      "title": "Tools unavailable: proceed to code, but RECORD the gap",
+      "kind": "task",
+      "depends_on": [
+        "routing-control"
+      ],
+      "role": "intake-router",
+      "when": "request_is_ui == true AND design_tools_available == false",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8103",
+        "title": "Record that a UI request proceeded without a design direction, and why",
+        "phase": "2B",
+        "question_or_target": "When the design tools are unavailable, write an explicit gap record naming the request, the missing tool and the consequence, so the recurring code-first pattern becomes countable instead of invisible.",
+        "inputs": [
+          "params.ui_request",
+          "command-center/design/ui-intake/intake-classification.json"
+        ],
+        "dependencies": [
+          "UX-8101"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "intake-router",
+          "basis": "the chair records the degradation because it is the role accountable for the routing decision"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/design/ui-intake/design-gap.json",
+        "output_schema": "command-center/schema/negative-evidence-audit.schema.json",
+        "evidence_requirement": "the request, the specific unavailable tool, and the statement that implementation proceeded without a recorded direction",
+        "tests_required": [
+          "the gap record exists whenever design_tools_available is false and the request was UI-shaped",
+          "the gap record is NOT written when the tools were available, so the count means something"
+        ],
+        "reviewer_requirement": "the owner at the enforcement decision, who is the audience for the gap count",
+        "completion_sentinel": "SUCCESS:UX-8103 emitted only when a gap record naming the request and the missing tool exists; otherwise FAILED:UX-8103 <reason>",
+        "retry_policy": "two strikes then fail: an unrecorded gap defeats the only purpose of this branch",
+        "failure_classification": [
+          "design-gap-unrecorded",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "explicit degradation record that makes the code-first fallback countable",
+        "not_a_duplicate_because": "the recommend branch produces a DIRECTION; this branch produces the ABSENCE of one as a first-class artifact, which is what makes the flagged gap measurable"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/design-gap.json",
+          "schema_ref": "command-center/schema/negative-evidence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8103",
+          "consumers": [
+            "degradation-gate",
+            "enforcement-decision"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "degradation-gate",
+      "title": "A degraded run must be visible, not silent",
+      "kind": "gate",
+      "depends_on": [
+        "record-design-gap"
+      ],
+      "gate_ref": "gap-recorded-when-degraded"
+    },
+    {
+      "id": "produce-canvas",
+      "title": "S2 - produce a canvas artifact or a .design record",
+      "kind": "task",
+      "depends_on": [
+        "recommend-direction"
+      ],
+      "role": "canvas-producer",
+      "when": "request_is_ui == true AND skip_canvas == false",
+      "timeout_seconds": 2400,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)",
+        "mcp__figma__create_new_file"
+      ],
+      "work_unit": {
+        "id": "UX-8104",
+        "title": "Turn the direction into a canvas artifact or a .design record",
+        "phase": "2B",
+        "question_or_target": "Materialise the direction as something a human can look at and a later audit can compare against, so the intent is inspectable rather than only described.",
+        "inputs": [
+          "command-center/design/ui-intake/design-direction.json",
+          "params.stack"
+        ],
+        "dependencies": [
+          "UX-8102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "canvas-producer",
+          "basis": "translating a direction into a concrete layout is design work"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)",
+          "mcp__figma__create_new_file"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/design/ui-intake/canvas-artifact.json",
+        "output_schema": "command-center/schema/design-spec.schema.json",
+        "evidence_requirement": "the canvas file reference or the .design record path, plus the token values it encodes",
+        "tests_required": [
+          "the artifact encodes the direction's concrete values, so a later audit can compare against them",
+          "when skip_canvas is true this stage does not run and the skip is recorded by the admission gate instead"
+        ],
+        "reviewer_requirement": "the direction-recommender, checking the artifact matches the direction it authored",
+        "completion_sentinel": "SUCCESS:UX-8104 emitted only when a canvas artifact or .design record exists carrying the direction's values; otherwise FAILED:UX-8104 <reason>",
+        "retry_policy": "two strikes then fall back to a .design record rather than blocking on the canvas tool",
+        "failure_classification": [
+          "canvas-unavailable",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "direction materialised as an inspectable canvas or .design record"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/canvas-artifact.json",
+          "schema_ref": "command-center/schema/design-spec.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8104",
+          "consumers": [
+            "admission-gate",
+            "implement"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "record-canvas-skip",
+      "title": "S2b - a skipped canvas is recorded, not assumed",
+      "kind": "task",
+      "depends_on": [
+        "recommend-direction"
+      ],
+      "role": "intake-router",
+      "when": "request_is_ui == true AND skip_canvas == true",
+      "timeout_seconds": 600,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8105",
+        "title": "Record that the canvas step was skipped for a small component",
+        "phase": "2B",
+        "question_or_target": "Note that the request went from direction straight to code and why it was small enough to justify it, so the shortcut is a decision with a record rather than a habit.",
+        "inputs": [
+          "command-center/design/ui-intake/design-direction.json",
+          "params.skip_canvas"
+        ],
+        "dependencies": [
+          "UX-8102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "intake-router",
+          "basis": "the chair owns the shortcut decision because it is accountable for the intake"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/design/ui-intake/canvas-skip.json",
+        "output_schema": "command-center/schema/decision-record.schema.json",
+        "evidence_requirement": "the size justification and an explicit statement that no canvas artifact exists for this direction",
+        "tests_required": [
+          "the skip record exists whenever skip_canvas is true",
+          "the admission gate still passes on the direction alone, so the shortcut does not bypass the gate"
+        ],
+        "reviewer_requirement": "the direction-recommender",
+        "completion_sentinel": "SUCCESS:UX-8105 emitted only when a skip record with a size justification exists; otherwise FAILED:UX-8105 <reason>",
+        "retry_policy": "two strikes then produce the canvas after all rather than leaving the skip unrecorded",
+        "failure_classification": [
+          "skip-unrecorded",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "recorded canvas shortcut that still satisfies the admission gate through the direction"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/canvas-skip.json",
+          "schema_ref": "command-center/schema/decision-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8105",
+          "consumers": [
+            "admission-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "admission-gate",
+      "title": "THE gate - no implementation agent may be spawned before a direction exists",
+      "kind": "gate",
+      "depends_on": [
+        "produce-canvas",
+        "record-canvas-skip",
+        "degradation-gate"
+      ],
+      "gate_ref": "direction-admitted",
+      "checkpoint": true
+    },
+    {
+      "id": "implement",
+      "title": "S3 - ONLY THEN implement",
+      "kind": "task",
+      "depends_on": [
+        "admission-gate"
+      ],
+      "role": "implementer",
+      "when": "request_is_ui == true",
+      "timeout_seconds": 7200,
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-8106",
+        "title": "Implement the request against the recorded direction",
+        "phase": "2B",
+        "question_or_target": "Write the code, citing the recorded direction for every visual decision, so a later audit scores the result against the INTENDED design rather than against the reviewer's preference.",
+        "inputs": [
+          "command-center/design/ui-intake/design-direction.json",
+          "command-center/design/ui-intake/canvas-artifact.json",
+          "params.stack"
+        ],
+        "dependencies": [
+          "UX-8102",
+          "UX-8104"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "implementer",
+          "basis": "implementation is substantive and must be able to read the direction it is bound to"
+        },
+        "tool_permissions": [
+          "Read",
+          "Edit",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "worktree-isolated",
+        "timeout_seconds": 7200,
+        "output_path": "command-center/design/ui-intake/implementation-trace.json",
+        "output_schema": "command-center/schema/decision-trace.schema.json",
+        "evidence_requirement": "each visual decision in the code mapped to the direction clause that authorised it",
+        "tests_required": [
+          "this stage is UNREACHABLE without the admission gate: its depends_on names the gate, so no implementation can start before a direction is on disk",
+          "every visual value in the implementation traces to the recorded direction or is listed as a deviation with a reason"
+        ],
+        "reviewer_requirement": "one independent reviewer in a fresh context who scores the implementation against the recorded direction, not against taste",
+        "completion_sentinel": "SUCCESS:UX-8106 emitted only when the implementation exists and every visual value traces to the direction or a recorded deviation; otherwise FAILED:UX-8106 <reason>",
+        "retry_policy": "two strikes then return to the direction rather than improvising a third visual approach",
+        "failure_classification": [
+          "direction-deviation-unrecorded",
+          "scope-escape",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "direction-bound implementation reachable only through the admission gate"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/ui-intake/implementation-trace.json",
+          "schema_ref": "command-center/schema/decision-trace.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-8106",
+          "consumers": [
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "enforcement-decision",
+      "title": "Owner decision - hook-enforced intake, or a documented default",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "implement"
+      ],
+      "prompt": "Design-first intake is currently routing rather than enforcement. Should it be enforced by a hook that injects on UI keywords, or left as a documented default that a session can skip? The design_gap count from this workflow is the evidence.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": false,
+      "options": [
+        "enforce-with-hook",
+        "documented-default",
+        "revisit-after-more-data"
+      ],
+      "decision_artifact": {
+        "path": "command-center/design/ui-intake/enforcement-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "command-center/MANIFEST.json"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "direction-recorded",
+      "expression": "design_direction_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "request_is_ui == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "non-ui-request-passes-through",
+      "expression": "request_is_ui == false AND false_routing_detected == false",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "degraded-but-recorded",
+      "expression": "design_tools_available == false AND design_gap_recorded == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 10,
+    "jitter": true,
+    "retry_on": [
+      "canvas-unavailable",
+      "classification-ambiguous"
+    ],
+    "no_retry_on": [
+      "false-routing",
+      "design-gap-unrecorded"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "enforcement-decision"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "false-routing",
+      "direction-unrecorded",
+      "design-gap-unrecorded"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "enforcement-decision",
+    "quarantine_path": "command-center/design/ui-intake/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/design/ui-intake/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/design/ui-intake/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/design/ui-intake/dry-run-plan.json",
+    "forbid_tools": [
+      "Edit",
+      "mcp__figma__create_new_file",
+      "Write(command-center/design/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.8,
+      "max": 5.0
+    },
+    "wallclock_seconds": {
+      "expected": 1800,
+      "max": 10800
+    },
+    "tokens": {
+      "expected": 150000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "the intake stages write only under the design root; the implement stage writes app source and is reachable only through the admission gate",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/design/ui-intake/export/design-first-ui-intake.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-UX-05",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/ui-ux-pro-max",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/design-system",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "feedback_uiux_figma_first",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "design_direction": {
+      "path": "command-center/design/ui-intake/design-direction.json",
+      "schema_ref": "command-center/schema/design-spec.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "two-track-ui-audit-rubric-verdict"
+      ]
+    },
+    "design_gap": {
+      "path": "command-center/design/ui-intake/design-gap.json",
+      "schema_ref": "command-center/schema/negative-evidence-audit.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-UX-05",
+      "card_index_in_library": 81,
+      "family": "D15-ux",
+      "primary_category": "product-design-and-strategy",
+      "mechanism_signature": [
+        "ui-shape-classification-with-driving-phrase",
+        "false-routing-passthrough-control",
+        "admission-gate-blocking-implementation",
+        "recorded-canvas-skip",
+        "explicit-degradation-gap-record"
+      ],
+      "worked_example": {
+        "scenario": "Two requests arrive in sequence: 'build me a settings screen for the export presets' and 'fix the CSV parser off-by-one'.",
+        "params": {
+          "ui_request": "build me a settings screen for the export presets",
+          "stack": "react+vite+tailwind",
+          "skip_canvas": false,
+          "design_tools_available": true
+        },
+        "expected_trace": [
+          "request 1: detect-ui-shape -> UI (driving phrase 'settings screen'); routing-control PASS",
+          "recommend-direction -> a ranked direction with concrete palette values and an 8pt spacing scale",
+          "produce-canvas -> a .design record encoding those values",
+          "admission-gate PASS (direction recorded) -> implement runs, every visual value traced to the direction",
+          "request 2: detect-ui-shape -> NOT UI (driving phrase 'CSV parser off-by-one'); routing-control PASS with false_routing_detected false",
+          "recommend-direction, produce-canvas and implement all carry `when request_is_ui == true` and do not run; the request passes through untouched"
+        ],
+        "expected_terminal_state": "SUCCESS:UX-8106 for request 1; request 2 stops at the routing control having consumed one classification call"
+      },
+      "unverified": "UNVERIFIED that routing alone changes behaviour without a hook - confidence very-likely (80-90%) that it closes the flagged gap, only likely (55-80%) that routing suffices unaided. Settling experiment = tag the next ten UI requests and count how many reached code without a recorded direction; the design_gap artifact is the counter, and the enforcement-decision checkpoint is where that count is spent.",
+      "distinct_from": {
+        "bp-ux-01": "that acts on a RUNNING app; this acts before one exists",
+        "bp-ux-04": "that mirrors existing code to the canvas; this creates a direction before any code",
+        "bp-ux-02": "that scores an existing UI against a rubric; this records the intent a later audit will score against"
+      },
+      "flagship_test": "platform/lib/workflows/test_design_first_ui_intake.py"
+    }
+  }
+}

@@ -1,0 +1,957 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1091,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/migration-plan.schema.json",
+      "role": "supporting",
+      "sha256": "42139a8cd8a91a399b0020a9b05056965bef52f8a877d19c0d79a830e03b45a5"
+    },
+    {
+      "bytes": 6928,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/observe.py",
+      "role": "supporting",
+      "sha256": "b549de47590eab408507bb42197b383440c4fc19266a28fbb90b9d98ba246784"
+    },
+    {
+      "bytes": 4649,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/derive.py",
+      "role": "supporting",
+      "sha256": "e14d932b9caf6b49b7e53e90a3ae3f8d6032bfd0f3f861fdb6cd0b38e957b041"
+    },
+    {
+      "bytes": 2965,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/shadow.py",
+      "role": "supporting",
+      "sha256": "67d7c2848f3a3cff324518f164d32ea383b983d35780d681877f207842c3f7ac"
+    },
+    {
+      "bytes": 2054,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/rollback.py",
+      "role": "supporting",
+      "sha256": "b1dab1720a43f6c64345dd57e555ce5446302a32de34d85f7b3c5ff17b9ba1dd"
+    },
+    {
+      "bytes": 313,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/perm.py",
+      "role": "supporting",
+      "sha256": "23f542109658fa5cba4f5dddf0b31f82f312f56fb97b3c65901e1cbb899ad669"
+    },
+    {
+      "bytes": 927,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/payload.py",
+      "role": "supporting",
+      "sha256": "0ec41fd324e4eaee5e3055e169811d9f8b876f5ad38e6964c048e00512e0e339"
+    },
+    {
+      "bytes": 4313,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/probe1_shadow_deny_log.py",
+      "role": "supporting",
+      "sha256": "760fb05d3e516c80c19d63f068da4b678a05e90abb3d5e1e5532a3b2812bcfe3"
+    },
+    {
+      "bytes": 2961,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/probe2_rollback.py",
+      "role": "supporting",
+      "sha256": "5e35d905f997c4a758148431fee2cd5c8d760b3a4ec6659c906aaefdcdf91df1"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/phase3/[REDACTED]/MIGRATION.json",
+      "consumer": "python3 json.load",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; from pathlib import Path; p=Path('command-center/phase3/[REDACTED]/MIGRATION.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d.get('unit_id')=='[REDACTED]'; print('parsed', d.get('unit_id'), d.get('state'))\"",
+        "fingerprint": "e3e1644e76fe26c8a6e624e6",
+        "method": "command",
+        "raw_output": "json.load: ok",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/shadow.py",
+      "claim": "Dropping PowerShell from ARC-0094 would-have-blocked 0 live mapped calls across the stated window, while dropping Bash is refused.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 -c 'import observe as O; print(O.scan_transcripts()[\"files\"])'",
+          "fingerprint": "d50a3e92ce6f515b381ce0a8",
+          "method": "file-read",
+          "raw_output": "{\"files\": 113, \"tool_events\": 7213, \"window\": [\"2026-08-25T00:49:00Z\", \"2026-08-25T01:00:05Z\"]}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_shadow_deny_log.py",
+          "fingerprint": "20b196ca6b9d598430c28e2b",
+          "method": "command",
+          "raw_output": "named probe1 re-runs deny-log event counts on live logs",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/rollback.py",
+      "claim": "A snapshot of the ARC-0094 grant restores in one assignment with matching sha256 after a PowerShell drop rehearsal.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 -c 'import rollback as R; print(R.grant_digest([\"Read\"]))'",
+          "fingerprint": "d6c23dae6b07eec8d7cddbf0",
+          "method": "byte-compare",
+          "raw_output": "{\"one_step\": true, \"restored_sha256\": \"80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f\", \"snapshot_sha256\": \"80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f\"}",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_rollback.py",
+          "fingerprint": "bcc15a4f8df05626d16a3386",
+          "method": "test-run",
+          "raw_output": "named probe2 re-hashes restored grant vs snapshot",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "[REDACTED]",
+    "manifest_path": "command-center/p2-wave/probes/[REDACTED]/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"capability_id\": \"ARC-0094\", \"fired_on_injected\": true, \"injected\": \"PowerShell\", \"injected_refused\": true, \"injected_would_have_blocked\": 1, \"live_allowed\": true, \"live_would_have_blocked\": 0}",
+      "description": "Inject one PowerShell call into the ARC-0094 replay; the deny-log must fire. Live replay without the injection stays at zero would-have-blocked for that drop.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"allowed\": true, \"capability_id\": \"ARC-0094\", \"deny_log\": [], \"reason\": \"zero would-have-blocked across the window\", \"would_have_blocked\": 0}",
+      "id": "NC-injected-powershell",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "garbage documents produce schema errors",
+      "description": "Empty object and unrelated blobs must be rejected by platform/lib/schema_resolver.validate_artifact against migration-plan.schema.json.",
+      "fired_on_bad_state": true,
+      "good_state_output": "receipt_core migration-plan validates",
+      "id": "NC-schema-garbage",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "[REDACTED]",
+    "role": "migration-engineer",
+    "vendor": "[REDACTED]"
+  },
+  "report": {
+    "architecture_id": "[REDACTED]",
+    "architecture_name": "[REDACTED]",
+    "cloud_ok": false,
+    "control_ids": [
+      "NC-injected-powershell",
+      "NC-schema-garbage"
+    ],
+    "derivation_procedure": {
+      "decision_table": [
+        {
+          "do": "keep; label OBSERVED",
+          "when": "either signal observed the permission"
+        },
+        {
+          "do": "candidate-drop; stage behind shadow deny-log",
+          "when": "both signals unused and coverage_ok"
+        },
+        {
+          "do": "INFERRED-KEEP; do not tighten",
+          "when": "unused but transcript_events < coverage threshold"
+        },
+        {
+          "do": "keep the wider grant; record both counts; do not pick",
+          "when": "signals disagree used vs unused"
+        },
+        {
+          "do": "refuse tighten",
+          "when": "shadow would-have-blocked > 0"
+        },
+        {
+          "do": "allow tighten of that candidate drop",
+          "when": "shadow would-have-blocked == 0 across the window"
+        },
+        {
+          "do": "record underdeclared OBSERVED addition; do not claim least-privilege complete",
+          "when": "observed call is absent from declared grant"
+        },
+        {
+          "do": "one-step restore of the snapshot taken before tighten",
+          "when": "tightened grant breaks a live workflow"
+        }
+      ],
+      "notes": "This unit does not rewrite WORK-UNIT-CATALOG.json. The plan names the procedure, proves it on ten live capabilities, and refuses to arm a drop while the deny-log is non-empty.",
+      "observed_vs_inferred": "OBSERVED means a count on signal 1 or signal 2. OBSERVED-ABSENT means both counts are zero with coverage_ok. INFERRED means the catalog still lists the permission but traces are too thin to treat absence as unused.",
+      "signals": [
+        {
+          "command_or_method": "parse agent-transcripts/*.jsonl tool_use.name keyed by P2-deliver unit id",
+          "id": "signal-1-transcript-tool-use-name",
+          "reads": "jsonl tool_use.name counts (not command strings)"
+        },
+        {
+          "command_or_method": "SUBAGENT-RETURN.json named_probes[].command token scan (python3 vs pwsh)",
+          "id": "signal-2-named-probe-command-tokens",
+          "reads": "probe command strings (different field than jsonl names)"
+        }
+      ]
+    },
+    "kind": "migration-plan",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_shadow_deny_log.py",
+        "id": "probe1",
+        "role": "shadow-deny-log"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_rollback.py",
+        "id": "probe2",
+        "role": "rollback-rehearsal"
+      }
+    ],
+    "observation_window": {
+      "coverage_threshold_events": 10,
+      "end": "2026-08-25T01:00:05Z",
+      "notes": "Signal 1 attributes jsonl tool_use.name to the P2-deliver unit id in that transcript. Signal 2 counts python3/pwsh tokens in that unit's named-probe command strings. Shell maps to Bash; StrReplace maps to Edit. Unmapped tools (TodoWrite, GetDynamicTools) are unmodeled, not would-have-blocked events.",
+      "sample_size": 10,
+      "sources": [
+        "/root/.[REDACTED]/projects/opt-p2-ast-integrate/agent-transcripts",
+        "command-center/p2-wave/probes/<id>/SUBAGENT-RETURN.json named_probes.command"
+      ],
+      "start": "2026-08-25T00:49:00Z",
+      "tool_events_in_window": 7213,
+      "transcript_files": 113
+    },
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/shadow.py",
+        "measured": 0,
+        "method": "shadow deny-log replay of mapped observed calls (transcript tool_use.name + named-probe command tokens)",
+        "name": "would_have_blocked_on_live_candidate"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/shadow.py",
+        "measured": 5,
+        "method": "same deny-log with Bash dropped instead of PowerShell",
+        "name": "early_tighten_would_have_blocked"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/rollback.py",
+        "measured": true,
+        "method": "one-assignment restore of grant snapshot",
+        "name": "rollback_sha256_match"
+      }
+    ],
+    "question": "Design the migration to least privilege WITHOUT breaking working automation: derive each capability's ACTUAL required permission set from observed tool use over a stated window, stage the tightening behind a shadow-mode deny-log that records what WOULD have been blocked, and specify the rollback for a tightened grant that breaks a live workflow.",
+    "rollback": {
+      "forbids": [
+        "tightening while would-have-blocked > 0",
+        "re-deriving the tighter grant as a substitute for restore",
+        "mutating WORK-UNIT-CATALOG.json as the rollback path"
+      ],
+      "rehearsal": {
+        "one_step": true,
+        "restored_capability": "ARC-0094",
+        "restored_sha256": "80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f",
+        "sha256_match": true,
+        "snapshot_sha256": "80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f"
+      },
+      "restore_command": "python3 -c \"import sys; from pathlib import Path; sys.path.insert(0,'command-center/p2-wave/probes/[REDACTED]'); import rollback as R; print(R.rehearse('ARC-0094', ['Read','Grep','Glob','Write','Edit','Bash','PowerShell'], ['Read','Grep','Glob','Write','Edit','Bash']))\"",
+      "steps": [
+        "1. snapshot grant list + sha256 before any tighten",
+        "2. apply the shadow-armed drop only after the snapshot exists",
+        "3. on breakage, restore by one assignment of the snapshot grant; never re-run the forward drop as rollback"
+      ],
+      "unit": "snapshot of ARC-0094 declared grant taken BEFORE the PowerShell drop is applied"
+    },
+    "sample": [
+      {
+        "candidate_drops": [
+          "Write",
+          "Edit",
+          "PowerShell"
+        ],
+        "capability_id": "ARC-0094",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash",
+          "PowerShell"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED-ABSENT",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "PowerShell": "OBSERVED-ABSENT",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED-ABSENT"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 3,
+          "Glob": 6,
+          "Grep": 3,
+          "Read": 11
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 23,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [
+          "Write",
+          "PowerShell"
+        ],
+        "capability_id": "CNL-0051",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash",
+          "PowerShell"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Bash"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "PowerShell": "OBSERVED-ABSENT",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED-ABSENT"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 4,
+          "Edit": 5,
+          "Glob": 7,
+          "Grep": 13,
+          "Read": 35
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Edit",
+          "Bash"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 64,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [
+          "PowerShell"
+        ],
+        "capability_id": "IMP-0087",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Write",
+          "Edit",
+          "Bash",
+          "PowerShell"
+        ],
+        "derived_required": [
+          "Read",
+          "Write",
+          "Edit",
+          "Bash",
+          "Glob",
+          "Grep"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "PowerShell": "OBSERVED-ABSENT",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 4,
+          "Edit": 1,
+          "Glob": 27,
+          "Grep": 22,
+          "Read": 38,
+          "Write": 7
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Write",
+          "Edit",
+          "Bash",
+          "Glob",
+          "Grep"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 99,
+        "underdeclared_additions": [
+          "Glob",
+          "Grep"
+        ]
+      },
+      {
+        "candidate_drops": [
+          "Write",
+          "Edit",
+          "PowerShell"
+        ],
+        "capability_id": "TST-0066",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash",
+          "PowerShell"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED-ABSENT",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "PowerShell": "OBSERVED-ABSENT",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED-ABSENT"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Glob": 17,
+          "Grep": 33,
+          "Read": 53
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "signal_disagreement": [
+          {
+            "permission": "Bash",
+            "signal1": 0,
+            "signal2": 2
+          }
+        ],
+        "transcript_events": 103,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [],
+        "capability_id": "ADV-0026",
+        "coverage_ok": false,
+        "decision": "INFERRED-KEEP",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write",
+          "mcp__cloud-hub__modal_sandbox_create",
+          "mcp__cloud-hub__modal_sandbox_exec",
+          "mcp__cloud-hub__modal_sandbox_terminate"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write",
+          "mcp__cloud-hub__modal_sandbox_create",
+          "mcp__cloud-hub__modal_sandbox_exec",
+          "mcp__cloud-hub__modal_sandbox_terminate"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Glob": "INFERRED",
+          "Grep": "INFERRED",
+          "Read": "INFERRED",
+          "Write": "INFERRED",
+          "mcp__cloud-hub__modal_sandbox_create": "INFERRED",
+          "mcp__cloud-hub__modal_sandbox_exec": "INFERRED",
+          "mcp__cloud-hub__modal_sandbox_terminate": "INFERRED"
+        },
+        "inferred_keep": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "mcp__cloud-hub__modal_sandbox_create",
+          "mcp__cloud-hub__modal_sandbox_exec",
+          "mcp__cloud-hub__modal_sandbox_terminate"
+        ],
+        "observed_signal1": {},
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write",
+          "mcp__cloud-hub__modal_sandbox_create",
+          "mcp__cloud-hub__modal_sandbox_exec",
+          "mcp__cloud-hub__modal_sandbox_terminate"
+        ],
+        "signal_disagreement": [
+          {
+            "permission": "Bash",
+            "signal1": 0,
+            "signal2": 2
+          }
+        ],
+        "transcript_events": 0,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [
+          "WebFetch",
+          "WebSearch",
+          "mcp__search-hub__tavily_search",
+          "mcp__search-hub__web_search_exa"
+        ],
+        "capability_id": "ADV-0053",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "WebFetch",
+          "WebSearch",
+          "mcp__search-hub__tavily_search",
+          "mcp__search-hub__web_search_exa"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "evidence_class": {
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "Read": "OBSERVED",
+          "WebFetch": "OBSERVED-ABSENT",
+          "WebSearch": "OBSERVED-ABSENT",
+          "mcp__search-hub__tavily_search": "OBSERVED-ABSENT",
+          "mcp__search-hub__web_search_exa": "OBSERVED-ABSENT"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Glob": 10,
+          "Grep": 8,
+          "Read": 21
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 39,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [],
+        "capability_id": "ADV-0035",
+        "coverage_ok": false,
+        "decision": "INFERRED-KEEP",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Glob": "INFERRED",
+          "Grep": "INFERRED",
+          "Read": "INFERRED"
+        },
+        "inferred_keep": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "observed_signal1": {},
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "signal_disagreement": [
+          {
+            "permission": "Bash",
+            "signal1": 0,
+            "signal2": 2
+          }
+        ],
+        "transcript_events": 0,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [],
+        "capability_id": "ARC-0085",
+        "coverage_ok": true,
+        "decision": "KEEP",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 4,
+          "Edit": 8,
+          "Glob": 18,
+          "Grep": 10,
+          "Read": 30,
+          "Write": 1
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write",
+          "Edit",
+          "Bash"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 71,
+        "underdeclared_additions": []
+      },
+      {
+        "candidate_drops": [],
+        "capability_id": "CNF-0048",
+        "coverage_ok": true,
+        "decision": "KEEP",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 10,
+          "Glob": 6,
+          "Grep": 20,
+          "Read": 32,
+          "Write": 1
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 69,
+        "underdeclared_additions": [
+          "Write"
+        ]
+      },
+      {
+        "candidate_drops": [
+          "Write",
+          "mcp__codex__codex"
+        ],
+        "capability_id": "[REDACTED]",
+        "coverage_ok": true,
+        "decision": "TIGHTEN-BEHIND-SHADOW",
+        "declared": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Write",
+          "mcp__codex__codex"
+        ],
+        "derived_required": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Edit"
+        ],
+        "evidence_class": {
+          "Bash": "OBSERVED",
+          "Edit": "OBSERVED",
+          "Glob": "OBSERVED",
+          "Grep": "OBSERVED",
+          "Read": "OBSERVED",
+          "Write": "OBSERVED-ABSENT",
+          "mcp__codex__codex": "OBSERVED-ABSENT"
+        },
+        "inferred_keep": [],
+        "observed_signal1": {
+          "Bash": 6,
+          "Edit": 3,
+          "Glob": 11,
+          "Grep": 23,
+          "Read": 43
+        },
+        "observed_signal2": {
+          "Bash": 2
+        },
+        "proposed_grant": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash",
+          "Edit"
+        ],
+        "signal_disagreement": [],
+        "transcript_events": 86,
+        "underdeclared_additions": [
+          "Edit"
+        ]
+      }
+    ],
+    "scope": {
+      "a7_design_present": false,
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "WORK-UNIT-CATALOG.json grants were mutated",
+        "[REDACTED] live estate was read",
+        "every catalog work unit is now least-privilege",
+        "unmapped tools (TodoWrite, GetDynamicTools) are in the grant model",
+        "[REDACTED] DESIGN.json was present and scored"
+      ],
+      "live_transcripts_present": true,
+      "proof_surface": "ten live catalog capabilities; shadow deny-log plus injected-PowerShell detector; one-step grant snapshot restore in-process"
+    },
+    "shadow_mode": {
+      "arming_rule": "no grant is tightened until the deny-log shows zero would-have-blocked events across the stated window",
+      "deny_log": {
+        "capability_id": "ARC-0094",
+        "detector_control": {
+          "capability_id": "ARC-0094",
+          "fired_on_injected": true,
+          "injected": "PowerShell",
+          "injected_refused": true,
+          "injected_would_have_blocked": 1,
+          "live_allowed": true,
+          "live_would_have_blocked": 0
+        },
+        "dropped_permission": "PowerShell",
+        "early_tighten_bash": {
+          "allowed": false,
+          "reason": "shadow deny-log is non-empty; refuse tighten",
+          "would_have_blocked": 5
+        },
+        "live": {
+          "allowed": true,
+          "capability_id": "ARC-0094",
+          "deny_log": [],
+          "reason": "zero would-have-blocked across the window",
+          "would_have_blocked": 0
+        }
+      },
+      "mode": "deny-log-would-have-blocked",
+      "notes": "Replay uses observed calls whose mapped name is already in the declared grant (transcript counts plus named-probe tokens). Injected PowerShell is the known-present path that must fire before a zero claim is accepted.",
+      "tighten_forbidden_until_zero": true
+    },
+    "tests": {
+      "rollback_rehearsal": {
+        "one_step": true,
+        "pass": true,
+        "restored_capability": "ARC-0094",
+        "restored_sha256": "80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f",
+        "sha256_match": true,
+        "snapshot_sha256": "80872d34ea19eb0fabf393f77e7a446641cf0f533a971783e81e4e15a2c2ee1f"
+      },
+      "shadow_mode_gate": {
+        "capability_id": "ARC-0094",
+        "detector_fired_on_injected": true,
+        "dropped_permission": "PowerShell",
+        "pass": true,
+        "refused_early_tighten": true,
+        "would_have_blocked_on_live_candidate": 0
+      }
+    },
+    "title": "Least-privilege migration: observed-use grants staged behind a shadow deny-log"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This Linux worktree's live agent-transcripts corpus is smaller than a 143-file estate dump; unused PowerShell on thin traces is labelled INFERRED-KEEP, not OBSERVED-ABSENT.",
+      "settling_experiment": "Re-run observe.scan_transcripts against a 143-file P2-deliver jsonl dump and compare candidate_drops.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Named probe1 re-runs deny-log event counts. Named probe2 rehearses grant sha256 restore (different field). Catalog scoring by a second human migration engineer is independent of G-1 probe-green.",
+    "reviewer_id": "[REDACTED]-probe1-shadow-deny-log",
+    "vendor": "[REDACTED]",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:[REDACTED]",
+  "spec_anchor": "_USER-PROMPTS.md:10769-10795",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 4,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_shadow_deny_log.py",
+      "id": "T-shadow-deny-log",
+      "name": "Shadow deny-log zero-gate plus injected PowerShell detector",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_rollback.py",
+      "id": "T-rollback-rehearsal",
+      "name": "One-step grant snapshot restore",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0,
+    "ended_at": "2026-08-25T01:00:05Z",
+    "started_at": "2026-08-25T01:00:05Z"
+  },
+  "unit_id": "[REDACTED]"
+}

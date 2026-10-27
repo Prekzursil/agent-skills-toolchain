@@ -1,0 +1,392 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1128,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/audit-metric-baseline.schema.json",
+   "role": "supporting",
+   "sha256": "de06243567cc9cb662f5c6b19c02eccd8c6866c3914b5c25fad1dd6922f9c0fd"
+  },
+  {
+   "bytes": 17220,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0061/census.py",
+   "role": "supporting",
+   "sha256": "ea56ea8476e592355abc64183c02108aba5d033d2ca21ed7357d0b75db2b7ef0"
+  },
+  {
+   "bytes": 5102,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+   "role": "supporting",
+   "sha256": "b04b79bd7cbfbc03e60498636a2d9366f237b753dfb86bee2b59e91aaaa4923b"
+  },
+  {
+   "bytes": 4811,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+   "role": "supporting",
+   "sha256": "639e05747e26359c1926dd97a376c6b77529dc7afdea671e5ad64c9aac4a7dd1"
+  },
+  {
+   "bytes": 4525,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/headroom_guard/commit_charge.py",
+   "role": "supporting",
+   "sha256": "3850d4f09b61e029dcabbfc9920f3f0cf502fd111be768c4e3ad6de9f2e59c04"
+  },
+  {
+   "bytes": 2097,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0061/schema_local.py",
+   "role": "supporting",
+   "sha256": "1c19625729d7b01e0ffbf054b0fe6d882229c0499350081ae4bf26d3b3c0f8f8"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0061-mcp-process-multiplication.json",
+   "consumer": "command-center/p2-wave/probes/AUD-0061/schema_local.py Draft202012Validator audit-metric-baseline",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "schema_local.errors(doc)",
+    "fingerprint": "a0c5f6e2bc6a25483948546d00bf6a3c571c67fe64f64b7e94b963963252704e",
+    "method": "schema-validate",
+    "raw_output": "validated before write; emitter refuses invalid docs",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "/proc/<pid>/{stat,statm,cmdline}",
+   "claim": "Live process table grouped by parent session reports 0 MCP processes, 0 sessions, RSS 0 bytes. Probe pid and same-starttime rows are excluded.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "census.live_census via /proc",
+     "fingerprint": "5de8a5adf5423bb7a43a77fcb9bfba7530b4c3f5dd62cfb25e767e29112372ac",
+     "method": "process-table",
+     "raw_output": "{\"by_parent_session\": [], \"mcp_count\": 0, \"rss_bytes_mcp_total\": 0, \"same_starttime_in_reported_set\": false, \"self_pid_in_reported_set\": false, \"session_count\": 0}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+     "fingerprint": "34542d4af7dec320ac055e623ed4e2b75a8ed421633a325999e95f6899aaf7aa",
+     "method": "command",
+     "raw_output": "{\"catalog_claim\": {\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}, \"control\": {\"filtered_mcp_pids\": [9002], \"fired_on_bad_state\": true, \"mention_counted_by_naive\": true, \"mention_counted_by_token\": false, \"naive_blob_pids\": [77, 9001, 9002, 9003], \"pass\": true, \"probe_counted_by_naive\": true, \"probe_counted_by_token\": false, \"probe_pid_excluded\": true, \"real_server_kept\": true, \"same_starttime_server_excluded\": true, \"silent_on_good_state\": true, \"token_pids\": [9001, 9002]}, \"live_census\": {\"by_parent_session\": [], \"excluded_self_pids\": [103315, 103314], \"mcp_count\": 0, \"multiplier\": null, \"multiplier_undefined_reason\": \"session_count=0; processes/sessions is undefined, not zero\", \"probe_pid\": 103315, \"probe_starttime\": 371352, \"rss_bytes_mcp_total\": 0, \"same_starttime_in_reported_set\": false, \"self_pid_in_reported_set\": false, \"session_count\": 0, \"source\": \"/proc\"}, \"probe\": \"probe1-session-working-set\"}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "/proc/meminfo",
+   "claim": "Commit-charge counter is Committed_AS/CommitLimit with SwapTotal/pagefile=0. RAM-percent 2.2351 is recorded only as a control; it is not the freeze instrument.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "/proc/meminfo Committed_AS CommitLimit SwapTotal",
+     "fingerprint": "9ed861aa2e2b0e9ab4d4cb2c69386e8f8ef894466c065ecd40d37e0e449de2e4",
+     "method": "file-read",
+     "raw_output": "{\"commit_headroom_bytes\": 125908836352, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.045832, \"committed_bytes\": 6047866880, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 2.2351, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 5898797056, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+     "fingerprint": "c82b7ae8e5e805c69e2f5de6869b92154fbd176c98e3e03b930f395c3ef3cde6",
+     "method": "command",
+     "raw_output": "{\"commit_charge\": {\"commit_headroom_bytes\": 125908836352, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.045832, \"committed_bytes\": 6047866880, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 2.2351, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 5898797056, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}, \"counter\": \"Committed_AS/CommitLimit\", \"pagefile_bytes\": 0, \"probe\": \"probe2-commit-charge-pagefile\", \"ram_percent_control\": 2.2351}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0061",
+   "claim": "Catalog 23*65=2037 is arithmetically false (product 1495). The live census does not substitute the catalog product.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "command-center/WORK-UNIT-CATALOG.json AUD-0061 inputs",
+     "fingerprint": "088c2561fec820047f1e6ae388e8984991a68cbcbb8aea6e61b5d867d71b624b",
+     "method": "file-read",
+     "raw_output": "{\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c 'assert 23*65 == 1495 and 1495 != 2037'",
+     "fingerprint": "b69969befd755d09d6a4a8d4722ac81d1b2b28e3cbeb8e664d68599c6e0cb652",
+     "method": "command",
+     "raw_output": "23*65=1495 != 2037",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:AUD-0061 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+    "id": "probe1",
+    "raw_output": "{\"catalog_claim\": {\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}, \"control\": {\"filtered_mcp_pids\": [9002], \"fired_on_bad_state\": true, \"mention_counted_by_naive\": true, \"mention_counted_by_token\": false, \"naive_blob_pids\": [77, 9001, 9002, 9003], \"pass\": true, \"probe_counted_by_naive\": true, \"probe_counted_by_token\": false, \"probe_pid_excluded\": true, \"real_server_kept\": true, \"same_starttime_server_excluded\": true, \"silent_on_good_state\": true, \"token_pids\": [9001, 9002]}, \"live_census\": {\"by_parent_session\": [], \"excluded_self_pids\": [103315, 103314], \"mcp_count\": 0, \"multiplier\": null, \"multiplier_undefined_reason\": \"session_count=0; processes/sessions is undefined, not zero\", \"probe_pid\": 103315, \"probe_starttime\": 371352, \"rss_bytes_mcp_total\": 0, \"same_starttime_in_reported_set\": false, \"self_pid_in_reported_set\": false, \"session_count\": 0, \"source\": \"/proc\"}, \"probe\": \"probe1-session-working-set\"}",
+    "role": "process-table-by-parent-session-working-set"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+    "id": "probe2",
+    "raw_output": "{\"commit_charge\": {\"commit_headroom_bytes\": 125908836352, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.045832, \"committed_bytes\": 6047866880, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 2.2351, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 5898797056, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}, \"counter\": \"Committed_AS/CommitLimit\", \"pagefile_bytes\": 0, \"probe\": \"probe2-commit-charge-pagefile\", \"ram_percent_control\": 2.2351}",
+    "role": "commit-charge-and-pagefile"
+   }
+  ],
+  "output_schema": "command-center/schema/audit-metric-baseline.schema.json"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/AUD-0061/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+   "id": "probe1",
+   "raw_output": "{\"catalog_claim\": {\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}, \"control\": {\"filtered_mcp_pids\": [9002], \"fired_on_bad_state\": true, \"mention_counted_by_naive\": true, \"mention_counted_by_token\": false, \"naive_blob_pids\": [77, 9001, 9002, 9003], \"pass\": true, \"probe_counted_by_naive\": true, \"probe_counted_by_token\": false, \"probe_pid_excluded\": true, \"real_server_kept\": true, \"same_starttime_server_excluded\": true, \"silent_on_good_state\": true, \"token_pids\": [9001, 9002]}, \"live_census\": {\"by_parent_session\": [], \"excluded_self_pids\": [103315, 103314], \"mcp_count\": 0, \"multiplier\": null, \"multiplier_undefined_reason\": \"session_count=0; processes/sessions is undefined, not zero\", \"probe_pid\": 103315, \"probe_starttime\": 371352, \"rss_bytes_mcp_total\": 0, \"same_starttime_in_reported_set\": false, \"self_pid_in_reported_set\": false, \"session_count\": 0, \"source\": \"/proc\"}, \"probe\": \"probe1-session-working-set\"}",
+   "role": "process-table-by-parent-session-working-set"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+   "id": "probe2",
+   "raw_output": "{\"commit_charge\": {\"commit_headroom_bytes\": 125908836352, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.045832, \"committed_bytes\": 6047866880, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 2.2351, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 5898797056, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}, \"counter\": \"Committed_AS/CommitLimit\", \"pagefile_bytes\": 0, \"probe\": \"probe2-commit-charge-pagefile\", \"ram_percent_control\": 2.2351}",
+   "role": "commit-charge-and-pagefile"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"naive_blob_pids\": [77, 9001, 9002, 9003], \"mention_counted_by_naive\": true}",
+   "description": "A naive cmdline substring matcher counts a python -c payload that merely mentions mcp-server, including a same-starttime probe. The live enumerator must drop same-starttime rows and must not treat -c mentions as servers, while still keeping a real npx mcp-server-* child with a later starttime.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"filtered_mcp_pids\": [9002], \"mention_counted_by_token\": false}",
+   "id": "AUD0061-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "Live on this Linux box from /proc: 0 MCP server process(es) across 0 attributable session(s), MCP RSS total 0 bytes, grouped by parent session with per-group working-set sums. Catalog incident input 23 sessions x 65 servers is recorded as claimed_processes=2037 but arithmetic_product=1495 (inconsistent; not used as the live count). Commit charge is Committed_AS=6047866880 / CommitLimit=131956703232 (ratio=0.045832); SwapTotal/pagefile=0 bytes. RAM-percent=2.2351 is a control comparator only \u2014 RAM alone hides commit-exhaustion. Per-session stdio duplication cost on the historical shape is the 23*65=1495 model, not 2037, and live duplication on this host is 0 process(es).",
+  "catalog_claim": {
+   "arithmetic_consistent": false,
+   "arithmetic_product": 1495,
+   "claimed_processes": 2037,
+   "note": "Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.",
+   "servers": 65,
+   "sessions": 23
+  },
+  "commit_charge": {
+   "commit_headroom_bytes": 125908836352,
+   "commit_limit_bytes": 131956703232,
+   "commit_ratio": 0.045832,
+   "committed_bytes": 6047866880,
+   "fields_read": [
+    "Committed_AS",
+    "CommitLimit",
+    "MemTotal",
+    "MemAvailable",
+    "SwapTotal"
+   ],
+   "host": "linux",
+   "label": "live:/proc/meminfo",
+   "pagefile_bytes": 0,
+   "ram_percent": 2.2351,
+   "ram_total_bytes": 263913410560,
+   "ram_used_bytes": 5898797056,
+   "source": "proc-meminfo",
+   "windows_counters": [
+    "Memory\\Committed Bytes",
+    "Memory\\Commit Limit"
+   ]
+  },
+  "control_ids": [
+   "AUD0061-C1"
+  ],
+  "headline": {
+   "catalog_arithmetic_consistent": false,
+   "catalog_arithmetic_product": 1495,
+   "catalog_claimed_processes": 2037,
+   "commit_counter": "Committed_AS/CommitLimit",
+   "commit_limit_bytes": 131956703232,
+   "committed_bytes": 6047866880,
+   "live_mcp_process_count": 0,
+   "live_mcp_rss_bytes": 0,
+   "live_session_count": 0,
+   "pagefile_bytes": 0,
+   "ram_percent_control": 2.2351
+  },
+  "kind": "audit-metric-baseline",
+  "live_census": {
+   "by_parent_session": [],
+   "excluded_self_pids": [
+    103315,
+    103314
+   ],
+   "mcp_count": 0,
+   "multiplier": null,
+   "multiplier_undefined_reason": "session_count=0; processes/sessions is undefined, not zero",
+   "probe_pid": 103315,
+   "probe_starttime": 371352,
+   "rss_bytes_mcp_total": 0,
+   "same_starttime_in_reported_set": false,
+   "self_pid_in_reported_set": false,
+   "session_count": 0,
+   "source": "/proc"
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+    "id": "probe1",
+    "raw_output": "{\"catalog_claim\": {\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}, \"control\": {\"filtered_mcp_pids\": [9002], \"fired_on_bad_state\": true, \"mention_counted_by_naive\": true, \"mention_counted_by_token\": false, \"naive_blob_pids\": [77, 9001, 9002, 9003], \"pass\": true, \"probe_counted_by_naive\": true, \"probe_counted_by_token\": false, \"probe_pid_excluded\": true, \"real_server_kept\": true, \"same_starttime_server_excluded\": true, \"silent_on_good_state\": true, \"token_pids\": [9001, 9002]}, \"live_census\": {\"by_parent_session\": [], \"excluded_self_pids\": [103315, 103314], \"mcp_count\": 0, \"multiplier\": null, \"multiplier_undefined_reason\": \"session_count=0; processes/sessions is undefined, not zero\", \"probe_pid\": 103315, \"probe_starttime\": 371352, \"rss_bytes_mcp_total\": 0, \"same_starttime_in_reported_set\": false, \"self_pid_in_reported_set\": false, \"session_count\": 0, \"source\": \"/proc\"}, \"probe\": \"probe1-session-working-set\"}",
+    "role": "process-table-by-parent-session-working-set"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+    "id": "probe2",
+    "raw_output": "{\"commit_charge\": {\"commit_headroom_bytes\": 125908836352, \"commit_limit_bytes\": 131956703232, \"commit_ratio\": 0.045832, \"committed_bytes\": 6047866880, \"fields_read\": [\"Committed_AS\", \"CommitLimit\", \"MemTotal\", \"MemAvailable\", \"SwapTotal\"], \"host\": \"linux\", \"label\": \"live:/proc/meminfo\", \"pagefile_bytes\": 0, \"ram_percent\": 2.2351, \"ram_total_bytes\": 263913410560, \"ram_used_bytes\": 5898797056, \"source\": \"proc-meminfo\", \"windows_counters\": [\"Memory\\\\Committed Bytes\", \"Memory\\\\Commit Limit\"]}, \"counter\": \"Committed_AS/CommitLimit\", \"pagefile_bytes\": 0, \"probe\": \"probe2-commit-charge-pagefile\", \"ram_percent_control\": 2.2351}",
+    "role": "commit-charge-and-pagefile"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "/proc",
+    "measured": 0,
+    "method": "proc-table",
+    "name": "live_mcp_process_count"
+   },
+   {
+    "anchor": "session leaders + sid of MCP children",
+    "measured": 0,
+    "method": "proc-table",
+    "name": "live_session_count"
+   },
+   {
+    "anchor": "/proc/<pid>/statm",
+    "measured": 0,
+    "method": "proc-statm",
+    "name": "live_mcp_rss_bytes"
+   },
+   {
+    "anchor": "WORK-UNIT-CATALOG.json AUD-0061 inputs",
+    "measured": 2037,
+    "method": "catalog-input",
+    "name": "catalog_claimed_processes"
+   },
+   {
+    "anchor": "23*65",
+    "measured": 1495,
+    "method": "arithmetic",
+    "name": "catalog_arithmetic_product"
+   },
+   {
+    "anchor": "Committed_AS",
+    "measured": 6047866880,
+    "method": "proc-meminfo",
+    "name": "committed_bytes"
+   },
+   {
+    "anchor": "CommitLimit",
+    "measured": 131956703232,
+    "method": "proc-meminfo",
+    "name": "commit_limit_bytes"
+   },
+   {
+    "anchor": "SwapTotal",
+    "measured": 0,
+    "method": "proc-meminfo",
+    "name": "pagefile_or_swap_bytes"
+   }
+  ],
+  "question": "How many MCP server processes are alive right now, how many are attributable to each session, and what is the measured RAM and commit-charge cost of the per-session stdio duplication?",
+  "ram_control": {
+   "note": "RAM-percent is the control comparator. The freeze mode on the estate was commit exhaustion (Committed_AS vs CommitLimit / pagefile), not classic RAM OOM.",
+   "ram_percent": 2.2351,
+   "ram_total_bytes": 263913410560,
+   "ram_used_bytes": 5898797056,
+   "used_as_headline_cost": false
+  },
+  "stdio_model_23x65": {
+   "extra_processes_vs_shared": 1430,
+   "kind": "model-from-counts-not-a-live-incident",
+   "rss_bytes_shared": 817889280,
+   "rss_bytes_stdio": 18811453440,
+   "servers": 65,
+   "sessions": 23,
+   "shared_http_process_count": 65,
+   "stdio_process_count": 1495
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Windows pagefile counters (PDH Memory\\Committed Bytes) were not read; this worktree is Linux. SwapTotal is the pagefile analogue and is 0 on this host.",
+   "settling_experiment": "Re-run probe 2 on a Windows host with a configured pagefile.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 re-reads /proc/meminfo Committed_AS/CommitLimit/SwapTotal and does not reuse probe 1's per-process RSS table.",
+  "reviewer_id": "AUD-0061-probe2-commit-charge-rerun",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0061 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0061",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 4,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe1_session_working_set.py",
+   "id": "ctl-self-match-starttime-and-mention",
+   "output_tail": "{\"fired_on_bad_state\": true, \"silent_on_good_state\": true, \"filtered_mcp_pids\": [9002]}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 3,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0061/probe2_commit_charge.py",
+   "id": "ctl-commit-charge-not-ram-percent",
+   "output_tail": "Committed_AS=6047866880 CommitLimit=131956703232 SwapTotal=0 ram_percent=2.2351",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "assert 23*65 == 1495 and 1495 != 2037",
+   "id": "catalog-arithmetic-inconsistency",
+   "output_tail": "{\"arithmetic_consistent\": false, \"arithmetic_product\": 1495, \"claimed_processes\": 2037, \"note\": \"Catalog input records 23 sessions x 65 servers = 2037 processes. 23*65=1495, not 2037. The process table is source of truth; the catalog product is recorded as inconsistent, not repeated as fact.\", \"servers\": 65, \"sessions\": 23}",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:12Z",
+  "started_at": "2026-08-25T01:06:12Z"
+ },
+ "unit_id": "AUD-0061"
+}

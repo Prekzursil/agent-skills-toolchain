@@ -1,0 +1,901 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0395",
+  "state": "SUCCESS",
+  "sentinel": "SENTINEL:IMP-0395:EXPLANATION-RECONSTRUCTIBLE",
+  "completion_sentinel": "SENTINEL:IMP-0395:EXPLANATION-RECONSTRUCTIBLE",
+  "title": "Selection-explanation emitter with near-miss disclosure",
+  "question": "Implement the explanation record: for each selection, why this capability, which rule or score produced it, and which capabilities were near-misses that did NOT make the cut. Exact question: can an owner reading only the explanation reconstruct the decision without re-running the router?",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0395]",
+  "claim_under_test": "An owner given only the explanation record and the capability index can reproduce the selected set without re-running the router; near-misses that did not make the cut are named with a cutoff reason.",
+  "decision_procedure": [
+    "1. BAN beats every fusion score; a banned capability is never selected.",
+    "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+    "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+    "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+    "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+    "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+  ],
+  "explanations": [
+    {
+      "query_id": "Q1-lint-secrets-ci",
+      "query": "lint python and scan CI logs for planted secrets",
+      "min_score": 0.55,
+      "budget_tokens": 300,
+      "near_miss_margin": 0.2,
+      "overrides": {
+        "banned": [],
+        "pinned": []
+      },
+      "decision_procedure": [
+        "1. BAN beats every fusion score; a banned capability is never selected.",
+        "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+        "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+        "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+        "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+        "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+      ],
+      "candidates": [
+        {
+          "capability_id": "cap.secrets-scan",
+          "fusion_score": 0.92,
+          "token_cost": 120,
+          "rule_id": "R-SECRETS",
+          "title": "Secrets scanner",
+          "description": "Scan repo and CI logs for planted credentials. Do NOT use for generic lint."
+        },
+        {
+          "capability_id": "cap.python-lint",
+          "fusion_score": 0.88,
+          "token_cost": 140,
+          "rule_id": "R-LINT",
+          "title": "Python linter",
+          "description": "Style and error lint for Python. Do NOT use for secret redaction."
+        },
+        {
+          "capability_id": "cap.generic-review",
+          "fusion_score": 0.71,
+          "token_cost": 200,
+          "rule_id": null,
+          "title": "Generic review",
+          "description": "Broad code-review commentary. Negative scope: not a specialist scanner."
+        },
+        {
+          "capability_id": "cap.deploy-k8s",
+          "fusion_score": 0.12,
+          "token_cost": 90,
+          "rule_id": null,
+          "title": "Kubernetes deploy",
+          "description": "Apply manifests to a cluster. Do NOT use for local lint."
+        }
+      ],
+      "selected": [
+        {
+          "capability_id": "cap.secrets-scan",
+          "fusion_score": 0.92,
+          "token_cost": 120,
+          "rule_id": "R-SECRETS",
+          "producing_rule": "R-SECRETS",
+          "reason": "cap.secrets-scan admitted by R-SECRETS at fusion_score=0.92 (min_score=0.55); token_cost=120 fit remaining budget 300.",
+          "title": "Secrets scanner",
+          "description": "Scan repo and CI logs for planted credentials. Do NOT use for generic lint."
+        },
+        {
+          "capability_id": "cap.python-lint",
+          "fusion_score": 0.88,
+          "token_cost": 140,
+          "rule_id": "R-LINT",
+          "producing_rule": "R-LINT",
+          "reason": "cap.python-lint admitted by R-LINT at fusion_score=0.88 (min_score=0.55); token_cost=140 fit remaining budget 180.",
+          "title": "Python linter",
+          "description": "Style and error lint for Python. Do NOT use for secret redaction."
+        }
+      ],
+      "near_misses": [
+        {
+          "capability_id": "cap.generic-review",
+          "fusion_score": 0.71,
+          "token_cost": 200,
+          "cutoff_reason": "budget-ceiling: token_cost 200 exceeds remaining budget 40",
+          "producing_rule": "fusion.score",
+          "title": "Generic review",
+          "description": "Broad code-review commentary. Negative scope: not a specialist scanner."
+        }
+      ],
+      "remaining_budget": 40
+    },
+    {
+      "query_id": "Q2-ban-beats-score",
+      "query": "fetch this URL and parse it; do not scrape the site",
+      "min_score": 0.5,
+      "budget_tokens": 200,
+      "near_miss_margin": 0.2,
+      "overrides": {
+        "banned": [
+          "cap.web-scrape"
+        ],
+        "pinned": []
+      },
+      "decision_procedure": [
+        "1. BAN beats every fusion score; a banned capability is never selected.",
+        "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+        "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+        "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+        "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+        "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+      ],
+      "candidates": [
+        {
+          "capability_id": "cap.web-scrape",
+          "fusion_score": 0.99,
+          "token_cost": 100,
+          "rule_id": "R-SCRAPE",
+          "title": "Web scraper",
+          "description": "Fetch and parse arbitrary HTML. Owner may ban this in a project."
+        },
+        {
+          "capability_id": "cap.http-fetch",
+          "fusion_score": 0.81,
+          "token_cost": 90,
+          "rule_id": "R-HTTP",
+          "title": "HTTP fetch",
+          "description": "GET/HEAD a URL and return bytes. Do NOT crawl a site."
+        },
+        {
+          "capability_id": "cap.url-parse",
+          "fusion_score": 0.64,
+          "token_cost": 80,
+          "rule_id": "R-URL",
+          "title": "URL parser",
+          "description": "Parse and normalize URLs. Do NOT fetch them."
+        },
+        {
+          "capability_id": "cap.image-gen",
+          "fusion_score": 0.2,
+          "token_cost": 70,
+          "rule_id": null,
+          "title": "Image generator",
+          "description": "Generate raster images. Do NOT use for HTTP."
+        }
+      ],
+      "selected": [
+        {
+          "capability_id": "cap.http-fetch",
+          "fusion_score": 0.81,
+          "token_cost": 90,
+          "rule_id": "R-HTTP",
+          "producing_rule": "R-HTTP",
+          "reason": "cap.http-fetch admitted by R-HTTP at fusion_score=0.81 (min_score=0.5); token_cost=90 fit remaining budget 200.",
+          "title": "HTTP fetch",
+          "description": "GET/HEAD a URL and return bytes. Do NOT crawl a site."
+        },
+        {
+          "capability_id": "cap.url-parse",
+          "fusion_score": 0.64,
+          "token_cost": 80,
+          "rule_id": "R-URL",
+          "producing_rule": "R-URL",
+          "reason": "cap.url-parse admitted by R-URL at fusion_score=0.64 (min_score=0.5); token_cost=80 fit remaining budget 110.",
+          "title": "URL parser",
+          "description": "Parse and normalize URLs. Do NOT fetch them."
+        }
+      ],
+      "near_misses": [
+        {
+          "capability_id": "cap.web-scrape",
+          "fusion_score": 0.99,
+          "token_cost": 100,
+          "cutoff_reason": "owner.ban: BAN beats every fusion score; a banned capability is never selected.",
+          "producing_rule": "owner.ban",
+          "title": "Web scraper",
+          "description": "Fetch and parse arbitrary HTML. Owner may ban this in a project."
+        }
+      ],
+      "remaining_budget": 30
+    },
+    {
+      "query_id": "Q3-pin-survives-budget",
+      "query": "summarize these logs and keep the audit trail on",
+      "min_score": 0.55,
+      "budget_tokens": 280,
+      "near_miss_margin": 0.2,
+      "overrides": {
+        "banned": [],
+        "pinned": [
+          "cap.pinned-audit"
+        ]
+      },
+      "decision_procedure": [
+        "1. BAN beats every fusion score; a banned capability is never selected.",
+        "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+        "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+        "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+        "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+        "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+      ],
+      "candidates": [
+        {
+          "capability_id": "cap.pinned-audit",
+          "fusion_score": 0.41,
+          "token_cost": 100,
+          "rule_id": null,
+          "title": "Pinned audit trail",
+          "description": "Always-on audit logger. May score below threshold; pin must survive budget."
+        },
+        {
+          "capability_id": "cap.high-a",
+          "fusion_score": 0.95,
+          "token_cost": 150,
+          "rule_id": "R-LOG-A",
+          "title": "High-score helper A",
+          "description": "Strong lexical+semantic match for 'summarize logs'."
+        },
+        {
+          "capability_id": "cap.high-b",
+          "fusion_score": 0.9,
+          "token_cost": 150,
+          "rule_id": "R-LOG-B",
+          "title": "High-score helper B",
+          "description": "Near sibling of helper A; usually a budget near-miss."
+        },
+        {
+          "capability_id": "cap.high-c",
+          "fusion_score": 0.85,
+          "token_cost": 150,
+          "rule_id": "R-LOG-C",
+          "title": "High-score helper C",
+          "description": "Third high scorer; must be disclosed when the ceiling cuts it."
+        }
+      ],
+      "selected": [
+        {
+          "capability_id": "cap.pinned-audit",
+          "fusion_score": 0.41,
+          "token_cost": 100,
+          "rule_id": null,
+          "producing_rule": "owner.pin",
+          "reason": "cap.pinned-audit is owner-pinned (fusion_score=0.41, min_score=0.55); pin is reserved against the budget before score-order admission.",
+          "title": "Pinned audit trail",
+          "description": "Always-on audit logger. May score below threshold; pin must survive budget."
+        },
+        {
+          "capability_id": "cap.high-a",
+          "fusion_score": 0.95,
+          "token_cost": 150,
+          "rule_id": "R-LOG-A",
+          "producing_rule": "R-LOG-A",
+          "reason": "cap.high-a admitted by R-LOG-A at fusion_score=0.95 (min_score=0.55); token_cost=150 fit remaining budget 180.",
+          "title": "High-score helper A",
+          "description": "Strong lexical+semantic match for 'summarize logs'."
+        }
+      ],
+      "near_misses": [
+        {
+          "capability_id": "cap.high-b",
+          "fusion_score": 0.9,
+          "token_cost": 150,
+          "cutoff_reason": "budget-ceiling: token_cost 150 exceeds remaining budget 30",
+          "producing_rule": "R-LOG-B",
+          "title": "High-score helper B",
+          "description": "Near sibling of helper A; usually a budget near-miss."
+        },
+        {
+          "capability_id": "cap.high-c",
+          "fusion_score": 0.85,
+          "token_cost": 150,
+          "cutoff_reason": "budget-ceiling: token_cost 150 exceeds remaining budget 30",
+          "producing_rule": "R-LOG-C",
+          "title": "High-score helper C",
+          "description": "Third high scorer; must be disclosed when the ceiling cuts it."
+        }
+      ],
+      "remaining_budget": 30
+    }
+  ],
+  "reconstruction": {
+    "script": "tools/router/reconstruct.py",
+    "all_match": true,
+    "cases": [
+      {
+        "query_id": "Q1-lint-secrets-ci",
+        "gold_selected": [
+          "cap.secrets-scan",
+          "cap.python-lint"
+        ],
+        "reconstructed_selected": [
+          "cap.secrets-scan",
+          "cap.python-lint"
+        ],
+        "gold_near_misses": [
+          "cap.generic-review"
+        ],
+        "disclosed_near_misses": [
+          "cap.generic-review"
+        ],
+        "match": true,
+        "near_miss_disclosed": true
+      },
+      {
+        "query_id": "Q2-ban-beats-score",
+        "gold_selected": [
+          "cap.http-fetch",
+          "cap.url-parse"
+        ],
+        "reconstructed_selected": [
+          "cap.http-fetch",
+          "cap.url-parse"
+        ],
+        "gold_near_misses": [
+          "cap.web-scrape"
+        ],
+        "disclosed_near_misses": [
+          "cap.web-scrape"
+        ],
+        "match": true,
+        "near_miss_disclosed": true
+      },
+      {
+        "query_id": "Q3-pin-survives-budget",
+        "gold_selected": [
+          "cap.pinned-audit",
+          "cap.high-a"
+        ],
+        "reconstructed_selected": [
+          "cap.pinned-audit",
+          "cap.high-a"
+        ],
+        "gold_near_misses": [
+          "cap.high-b",
+          "cap.high-c"
+        ],
+        "disclosed_near_misses": [
+          "cap.high-b",
+          "cap.high-c"
+        ],
+        "match": true,
+        "near_miss_disclosed": true
+      }
+    ],
+    "reviewer_inputs": "explanation JSON + capability index; no fusion ranks, no override tables, no gold labels"
+  },
+  "report": {
+    "kind": "router-explanation",
+    "observations": [
+      {
+        "name": "labelled-cases-reconstructed",
+        "measured": 3,
+        "method": "reconstruct.py on explanation-only JSON",
+        "anchor": "tools/router/reconstruct.py"
+      },
+      {
+        "name": "near-miss-disclosure",
+        "measured": true,
+        "method": "discloses_near_misses vs frozen gold",
+        "anchor": "tools/router/explain.py:discloses_near_misses"
+      }
+    ],
+    "control_ids": [
+      "omit-near-misses",
+      "strip-near-miss-candidate-rows"
+    ],
+    "explanations": [
+      {
+        "query_id": "Q1-lint-secrets-ci",
+        "query": "lint python and scan CI logs for planted secrets",
+        "min_score": 0.55,
+        "budget_tokens": 300,
+        "near_miss_margin": 0.2,
+        "overrides": {
+          "banned": [],
+          "pinned": []
+        },
+        "decision_procedure": [
+          "1. BAN beats every fusion score; a banned capability is never selected.",
+          "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+          "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+          "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+          "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+          "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+        ],
+        "candidates": [
+          {
+            "capability_id": "cap.secrets-scan",
+            "fusion_score": 0.92,
+            "token_cost": 120,
+            "rule_id": "R-SECRETS",
+            "title": "Secrets scanner",
+            "description": "Scan repo and CI logs for planted credentials. Do NOT use for generic lint."
+          },
+          {
+            "capability_id": "cap.python-lint",
+            "fusion_score": 0.88,
+            "token_cost": 140,
+            "rule_id": "R-LINT",
+            "title": "Python linter",
+            "description": "Style and error lint for Python. Do NOT use for secret redaction."
+          },
+          {
+            "capability_id": "cap.generic-review",
+            "fusion_score": 0.71,
+            "token_cost": 200,
+            "rule_id": null,
+            "title": "Generic review",
+            "description": "Broad code-review commentary. Negative scope: not a specialist scanner."
+          },
+          {
+            "capability_id": "cap.deploy-k8s",
+            "fusion_score": 0.12,
+            "token_cost": 90,
+            "rule_id": null,
+            "title": "Kubernetes deploy",
+            "description": "Apply manifests to a cluster. Do NOT use for local lint."
+          }
+        ],
+        "selected": [
+          {
+            "capability_id": "cap.secrets-scan",
+            "fusion_score": 0.92,
+            "token_cost": 120,
+            "rule_id": "R-SECRETS",
+            "producing_rule": "R-SECRETS",
+            "reason": "cap.secrets-scan admitted by R-SECRETS at fusion_score=0.92 (min_score=0.55); token_cost=120 fit remaining budget 300.",
+            "title": "Secrets scanner",
+            "description": "Scan repo and CI logs for planted credentials. Do NOT use for generic lint."
+          },
+          {
+            "capability_id": "cap.python-lint",
+            "fusion_score": 0.88,
+            "token_cost": 140,
+            "rule_id": "R-LINT",
+            "producing_rule": "R-LINT",
+            "reason": "cap.python-lint admitted by R-LINT at fusion_score=0.88 (min_score=0.55); token_cost=140 fit remaining budget 180.",
+            "title": "Python linter",
+            "description": "Style and error lint for Python. Do NOT use for secret redaction."
+          }
+        ],
+        "near_misses": [
+          {
+            "capability_id": "cap.generic-review",
+            "fusion_score": 0.71,
+            "token_cost": 200,
+            "cutoff_reason": "budget-ceiling: token_cost 200 exceeds remaining budget 40",
+            "producing_rule": "fusion.score",
+            "title": "Generic review",
+            "description": "Broad code-review commentary. Negative scope: not a specialist scanner."
+          }
+        ],
+        "remaining_budget": 40
+      },
+      {
+        "query_id": "Q2-ban-beats-score",
+        "query": "fetch this URL and parse it; do not scrape the site",
+        "min_score": 0.5,
+        "budget_tokens": 200,
+        "near_miss_margin": 0.2,
+        "overrides": {
+          "banned": [
+            "cap.web-scrape"
+          ],
+          "pinned": []
+        },
+        "decision_procedure": [
+          "1. BAN beats every fusion score; a banned capability is never selected.",
+          "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+          "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+          "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+          "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+          "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+        ],
+        "candidates": [
+          {
+            "capability_id": "cap.web-scrape",
+            "fusion_score": 0.99,
+            "token_cost": 100,
+            "rule_id": "R-SCRAPE",
+            "title": "Web scraper",
+            "description": "Fetch and parse arbitrary HTML. Owner may ban this in a project."
+          },
+          {
+            "capability_id": "cap.http-fetch",
+            "fusion_score": 0.81,
+            "token_cost": 90,
+            "rule_id": "R-HTTP",
+            "title": "HTTP fetch",
+            "description": "GET/HEAD a URL and return bytes. Do NOT crawl a site."
+          },
+          {
+            "capability_id": "cap.url-parse",
+            "fusion_score": 0.64,
+            "token_cost": 80,
+            "rule_id": "R-URL",
+            "title": "URL parser",
+            "description": "Parse and normalize URLs. Do NOT fetch them."
+          },
+          {
+            "capability_id": "cap.image-gen",
+            "fusion_score": 0.2,
+            "token_cost": 70,
+            "rule_id": null,
+            "title": "Image generator",
+            "description": "Generate raster images. Do NOT use for HTTP."
+          }
+        ],
+        "selected": [
+          {
+            "capability_id": "cap.http-fetch",
+            "fusion_score": 0.81,
+            "token_cost": 90,
+            "rule_id": "R-HTTP",
+            "producing_rule": "R-HTTP",
+            "reason": "cap.http-fetch admitted by R-HTTP at fusion_score=0.81 (min_score=0.5); token_cost=90 fit remaining budget 200.",
+            "title": "HTTP fetch",
+            "description": "GET/HEAD a URL and return bytes. Do NOT crawl a site."
+          },
+          {
+            "capability_id": "cap.url-parse",
+            "fusion_score": 0.64,
+            "token_cost": 80,
+            "rule_id": "R-URL",
+            "producing_rule": "R-URL",
+            "reason": "cap.url-parse admitted by R-URL at fusion_score=0.64 (min_score=0.5); token_cost=80 fit remaining budget 110.",
+            "title": "URL parser",
+            "description": "Parse and normalize URLs. Do NOT fetch them."
+          }
+        ],
+        "near_misses": [
+          {
+            "capability_id": "cap.web-scrape",
+            "fusion_score": 0.99,
+            "token_cost": 100,
+            "cutoff_reason": "owner.ban: BAN beats every fusion score; a banned capability is never selected.",
+            "producing_rule": "owner.ban",
+            "title": "Web scraper",
+            "description": "Fetch and parse arbitrary HTML. Owner may ban this in a project."
+          }
+        ],
+        "remaining_budget": 30
+      },
+      {
+        "query_id": "Q3-pin-survives-budget",
+        "query": "summarize these logs and keep the audit trail on",
+        "min_score": 0.55,
+        "budget_tokens": 280,
+        "near_miss_margin": 0.2,
+        "overrides": {
+          "banned": [],
+          "pinned": [
+            "cap.pinned-audit"
+          ]
+        },
+        "decision_procedure": [
+          "1. BAN beats every fusion score; a banned capability is never selected.",
+          "2. PIN is admitted first and its token_cost is reserved against the budget even when fusion_score is below min_score.",
+          "3. Remaining unbanned, unpinned candidates are considered in fusion_score descending order (capability_id tie-break).",
+          "4. A candidate with fusion_score < min_score is skipped unless it was pinned in step 2.",
+          "5. A candidate whose token_cost would exceed remaining budget is skipped.",
+          "6. Near-misses that did NOT make the cut are every non-selected candidate that was banned or scored at or above min_score; each carries cutoff_reason."
+        ],
+        "candidates": [
+          {
+            "capability_id": "cap.pinned-audit",
+            "fusion_score": 0.41,
+            "token_cost": 100,
+            "rule_id": null,
+            "title": "Pinned audit trail",
+            "description": "Always-on audit logger. May score below threshold; pin must survive budget."
+          },
+          {
+            "capability_id": "cap.high-a",
+            "fusion_score": 0.95,
+            "token_cost": 150,
+            "rule_id": "R-LOG-A",
+            "title": "High-score helper A",
+            "description": "Strong lexical+semantic match for 'summarize logs'."
+          },
+          {
+            "capability_id": "cap.high-b",
+            "fusion_score": 0.9,
+            "token_cost": 150,
+            "rule_id": "R-LOG-B",
+            "title": "High-score helper B",
+            "description": "Near sibling of helper A; usually a budget near-miss."
+          },
+          {
+            "capability_id": "cap.high-c",
+            "fusion_score": 0.85,
+            "token_cost": 150,
+            "rule_id": "R-LOG-C",
+            "title": "High-score helper C",
+            "description": "Third high scorer; must be disclosed when the ceiling cuts it."
+          }
+        ],
+        "selected": [
+          {
+            "capability_id": "cap.pinned-audit",
+            "fusion_score": 0.41,
+            "token_cost": 100,
+            "rule_id": null,
+            "producing_rule": "owner.pin",
+            "reason": "cap.pinned-audit is owner-pinned (fusion_score=0.41, min_score=0.55); pin is reserved against the budget before score-order admission.",
+            "title": "Pinned audit trail",
+            "description": "Always-on audit logger. May score below threshold; pin must survive budget."
+          },
+          {
+            "capability_id": "cap.high-a",
+            "fusion_score": 0.95,
+            "token_cost": 150,
+            "rule_id": "R-LOG-A",
+            "producing_rule": "R-LOG-A",
+            "reason": "cap.high-a admitted by R-LOG-A at fusion_score=0.95 (min_score=0.55); token_cost=150 fit remaining budget 180.",
+            "title": "High-score helper A",
+            "description": "Strong lexical+semantic match for 'summarize logs'."
+          }
+        ],
+        "near_misses": [
+          {
+            "capability_id": "cap.high-b",
+            "fusion_score": 0.9,
+            "token_cost": 150,
+            "cutoff_reason": "budget-ceiling: token_cost 150 exceeds remaining budget 30",
+            "producing_rule": "R-LOG-B",
+            "title": "High-score helper B",
+            "description": "Near sibling of helper A; usually a budget near-miss."
+          },
+          {
+            "capability_id": "cap.high-c",
+            "fusion_score": 0.85,
+            "token_cost": 150,
+            "cutoff_reason": "budget-ceiling: token_cost 150 exceeds remaining budget 30",
+            "producing_rule": "R-LOG-C",
+            "title": "High-score helper C",
+            "description": "Third high scorer; must be disclosed when the ceiling cuts it."
+          }
+        ],
+        "remaining_budget": 30
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "claim": "Precedence is printed in the emitter, not implied: BAN beats every fusion score.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/router/explain.py:12",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "tools/router/explain.py:PROCEDURE",
+          "raw_output": "1. BAN beats every fusion score; a banned capability is never selected.",
+          "fingerprint": "22312687731605b7"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py",
+          "raw_output": "Q2-ban-beats-score near_miss includes banned cap.web-scrape",
+          "fingerprint": "83f486982d5aab86"
+        }
+      ]
+    },
+    {
+      "claim": "Three labelled traces reconstruct selected sets exactly; near-misses carry cutoff_reason.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0395/fixtures/labelled.json:50",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py",
+          "raw_output": "[{\"disclosed_near_misses\": [\"cap.generic-review\"], \"gold_near_misses\": [\"cap.generic-review\"], \"gold_selected\": [\"cap.secrets-scan\", \"cap.python-lint\"], \"match\": true, \"near_miss_disclosed\": true, \"query_id\": \"Q1-lint-secrets-ci\", \"reconstructed_selected\": [\"cap.secrets-scan\", \"cap.python-lint\"]}, {\"disclosed_near_misses\": [\"cap.web-scrape\"], \"gold_near_misses\": [\"cap.web-scrape\"], \"gold_selected\": [\"cap.http-fetch\", \"cap.url-parse\"], \"match\": true, \"near_miss_disclosed\": true, \"query_id\": \"Q2-ban-beats-score\", \"reconstructed_selected\": [\"cap.http-fetch\", \"cap.url-parse\"]}, {\"disclosed_near_misses\": [\"cap.high-b\", \"cap.high-c\"], \"gold_near_misses\": [\"cap.high-b\", \"cap.high-c\"], \"gold_selected\": [\"cap.pinned-audit\", \"cap.high-a\"], \"match\": true, \"near_miss_disclosed\": true, \"query_id\": \"Q3-pin-survives-budget\", \"reconstructed_selected\": [\"cap.pinned-audit\", \"cap.high-a\"]}]",
+          "fingerprint": "2e0686d9e9e6c9b7"
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "tools/router/reconstruct.py:Does not load the labelled corpus",
+          "raw_output": "reconstruct.py line 4: Does not load the labelled corpus or re-run fusion/overrides.",
+          "fingerprint": "f1c722d79f4ce866"
+        }
+      ]
+    },
+    {
+      "claim": "The emitter records near_misses with cutoff_reason (explain.py:17); the catalog schema path is a generated shim.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/router/explain.py:17",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "tools/router/explain.py:discloses_near_misses",
+          "raw_output": "near_misses require cutoff_reason",
+          "fingerprint": "d4bcb571fb9131a0"
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "command-center/schema/router-explanation.schema.json",
+          "raw_output": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://ast-integrate.invalid/command-center/schema/router-explanation.schema.json\",\n  \"title\": \"router-explanation receipt (logical artifact class)\",\n  \"$comment\": \"GENERATED SHIM -- carries NO constraints of its own. The catalog declares this path in output_schema for 1 unit(s); this file exists so the declared path resolves on disk, and delegates by $ref to the single physical control plane. Do not add rules here: edit p",
+          "fingerprint": "6f32c532e9d3bf9f"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-reconstruct",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-near-miss-omit-mutant",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "omit-near-misses",
+      "kind": "mutation",
+      "description": "Emptying near_misses, or stripping those candidate rows from the explanation, must fail disclosure while selected reconstruction may still pass.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "dependencies_note": {
+    "IMP-0391": "receipt absent on this worktree; labelled fusion scores stand in",
+    "IMP-0394": "receipt absent on this worktree; labelled ban/pin overrides stand in",
+    "does_not_claim": [
+      "live IMP-0391 fusion calibration was re-run",
+      "live IMP-0394 override layer was imported",
+      "cloud ok=true is delivery"
+    ]
+  },
+  "reviewer": {
+    "reviewer_id": "IMP-0395-probe1-reconstruct",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Blind reconstruction is a subprocess of reconstruct.py given only the explanation file. Probe2 is a second field: omit-near-miss mutant."
+  },
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "tooling-implementer",
+    "execution_substrate": "linux-local"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "max 2 attempts, backoff 30s/120s"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0395/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py",
+      "artifact_path": "command-center/receipts/IMP-0395.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py",
+        "raw_output": "receipt reconstruct compared to gold selected sets",
+        "fingerprint": "9dc3443d3d67e769"
+      }
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py",
+      "artifact_path": "command-center/receipts/IMP-0395.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py",
+        "raw_output": "receipt near_misses checked; omit mutant rejected",
+        "fingerprint": "14bca90244732761"
+      }
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "reconstruction",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py"
+    },
+    {
+      "id": "probe2",
+      "role": "near-miss-disclosure",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/schema/router-explanation.schema.json",
+      "bytes": 1047,
+      "sha256": "dc09c234ad11a8efd8173f3f9f6695704d12ed26572d1a20a0b5eb93990651df",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/router/explain.py",
+      "bytes": 9362,
+      "sha256": "c444f945c6ed45cf3ffc365eeab827660e35d38c9108bb924569ff00c08a65f8",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/router/reconstruct.py",
+      "bytes": 2181,
+      "sha256": "9c94b10e7adf6cb39cbd11b8b61c18a5b0d0d375522899d7c3b20673b0a4683e",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0395/scenario.py",
+      "bytes": 1414,
+      "sha256": "a4c0848630f204e7ddae703628057c9463b84e160469567efc0e8f2a1b2b36cd",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0395/fixtures/labelled.json",
+      "bytes": 3606,
+      "sha256": "79ee6de564e6afef3a2326801ab1c2bd3e3c21a7707e12ceb70e83214bdb0753",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0395/fixtures/index.json",
+      "bytes": 2079,
+      "sha256": "bca86a1bd60f022370e9d0a526e9dcb4fc00f9f6e04609bc23c5cd9770369d44",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0395/probe1_reconstruct.py",
+      "bytes": 4684,
+      "sha256": "995c7c3ce39d2c484d7e8034be88de4e97f4b7641dea33eef320f2a8857b9263",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0395/probe2_near_miss.py",
+      "bytes": 4316,
+      "sha256": "0c7c375d10d1c5fb0bfc503bbc3201d4bb74d053271f67cff7ee5f65f0f2eccf",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "min_bytes_threshold": 2048,
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:47Z",
+    "ended_at": "2026-08-25T00:58:47Z"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The labelled traces equal production IMP-0391/IMP-0394 outputs.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run explain_one against live IMP-0391 fusion and IMP-0394 override receipts when those files exist on this worktree."
+    }
+  ],
+  "output_schema": "command-center/schema/router-explanation.schema.json",
+  "schema_note": "Catalog output_schema is a generated shim that $ref's generic_report; near_misses live on the explanation payload in tools/router/explain.py."
+}

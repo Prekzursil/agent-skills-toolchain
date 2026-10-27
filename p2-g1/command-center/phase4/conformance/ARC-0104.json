@@ -1,0 +1,944 @@
+{
+  "schema_version": 1,
+  "unit_id": "ARC-0104",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0104",
+  "profile": "conformance-report",
+  "spec_anchor": "_USER-PROMPTS.md:10822",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "test-engineer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:45Z",
+    "ended_at": "2026-08-25T00:57:45Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "retry once after fixing validator input; a second schema-invalid result closes the unit FAILED and files a defect against the contract unit"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/conformance-report.schema.json",
+      "bytes": 1113,
+      "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0104/gate.py",
+      "bytes": 6933,
+      "sha256": "cb03bb92ff9727cb93e0af3de2a33cbdf61158f4cf53461e2a89dfee66d2cd45",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0104/surfaces.py",
+      "bytes": 19255,
+      "sha256": "45ca5626323b1ae1369eed7e058ba1cdbdb6444c544a71cdb4d7f283780aedf4",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0104/fixtures/control.json",
+      "bytes": 959,
+      "sha256": "c79d7aef62c3cd07b372613c9273814c9d985939984a945e81a44be7608ebacf",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A planted documented-but-absent field is found in both docs_not_schema and docs_not_impl; the clean fixture is silent; an uncontrolled zero is DETECTOR-FAILURE.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0104/fixtures/control.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0104/probe1_detector_control.py",
+          "raw_output": "{\"clean_silent\": true, \"default_mismatch_control_count\": 1, \"fired\": true, \"found_in\": [\"docs_not_schema\", \"docs_not_impl\"], \"planted_field\": \"planted_canary_field\", \"uncontrolled_zero_is_detector_failure\": true, \"uncontrolled_zero_verdict\": \"DETECTOR-FAILURE\"}",
+          "fingerprint": "654ce9e11d5e4066a4cf98c28120da11",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "command-center/p2-wave/probes/ARC-0104/fixtures/control.json",
+          "raw_output": "planted_canary_field present on docs, absent on schema and impl",
+          "fingerprint": "1081ae812f991af6c31d0fa1504ee652",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The live tree fails today in named directions, dominant docs_not_schema=41; divergences are stored per direction, never as one number.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/command-center/catalog.py:30",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0104/surfaces.py",
+          "raw_output": "{\"caption_sum\": 127, \"detector_control_fired\": true, \"direction_counts\": {\"default_mismatch\": 3, \"docs_not_impl\": 36, \"docs_not_schema\": 41, \"impl_not_docs\": 17, \"impl_not_schema\": 10, \"schema_not_docs\": 16, \"schema_not_impl\": 4}, \"tree_fails_today\": \"docs_not_schema\", \"verdict\": \"DIVERGENT\"}",
+          "fingerprint": "33ef53716aca4021a70a8532229fd483",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0104/probe2_direction_reporting.py",
+          "raw_output": "direction object byte-compared after emit",
+          "fingerprint": "db3c621b779a5186a4dbe5c1ad5bf7a4",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-detector-control",
+      "name": "Plant a documented-but-absent field and assert the gate finds it",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0104/probe1_detector_control.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-direction-reporting",
+      "name": "Divergences are reported per direction, never as one number",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0104/probe2_direction_reporting.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "planted-documented-but-absent",
+      "kind": "known-broken-fixture",
+      "description": "Fixture docs list planted_canary_field; schema and impl omit it. The gate must fire in docs_not_schema and docs_not_impl.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "docs_not_schema,docs_not_impl",
+      "good_state_output": "clean fixture silent on planted_canary_field"
+    },
+    {
+      "id": "uncontrolled-zero-is-detector-failure",
+      "kind": "mutation",
+      "description": "Three identical surfaces with no planted control must not be scored CLEAN.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "DETECTOR-FAILURE"
+    },
+    {
+      "id": "default-mismatch-fixture",
+      "kind": "known-broken-fixture",
+      "description": "Same field, unequal canonical defaults, must land in default_mismatch.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "1"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ARC-0104-probe2-direction-reporting",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 re-runs the live gate and byte-compares the seven named direction counts against this artifact. It does not re-author the gate."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ARC-0104/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "ARC-0104-probe2-direction-reporting",
+      "artifact_path": "command-center/phase4/conformance/ARC-0104.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "file-read",
+        "command": "command-center/phase4/conformance/ARC-0104.json",
+        "raw_output": "emit writes then json.loads the catalog output_path",
+        "fingerprint": "035a3ea4a372e09cda1d4aeac527e3c7",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Frozen phase-4 contracts ARC-0082/0083/0084/0087 are absent on this worktree and were not invented.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver those contract units, then re-run surfaces.py so the schema surface is the frozen file rather than the on-tree stand-in."
+    },
+    {
+      "claim": "_measure_one_delivered.py implements a subset of the twelve completion conditions and weakens min-size plus schema-parse.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver ARC-0087 plus COMPLETION-GATES.json and re-score the G-1 measure against the twelve named conditions."
+    }
+  ],
+  "report": {
+    "kind": "conformance-report",
+    "title": "Contract-to-code parity gate: docs, schema and implementation must agree",
+    "question": "Program stopping condition 12 requires docs and code to agree. Build the gate that detects divergence between a contract schema, its documentation, and the implementation that consumes it - and determine which direction the current tree fails today. Define what counts as a divergence (a field documented but absent, present but undocumented, or with a different default).",
+    "observations": [
+      {
+        "name": "dominant_direction",
+        "measured": "docs_not_schema",
+        "method": "seven-direction merge of ARC-0082/0083/0084/0087",
+        "anchor": "command-center/p2-wave/probes/ARC-0104/gate.py:dominant_direction"
+      },
+      {
+        "name": "caption_sum",
+        "measured": 126,
+        "method": "arithmetic total of named direction counts; not a stored verdict",
+        "anchor": "command-center/p2-wave/probes/ARC-0104/gate.py:direction_total"
+      },
+      {
+        "name": "detector_control_fired",
+        "measured": true,
+        "method": "planted documented-but-absent fixture plus clean twin",
+        "anchor": "command-center/p2-wave/probes/ARC-0104/fixtures/control.json"
+      }
+    ],
+    "control_ids": [
+      "planted-documented-but-absent",
+      "uncontrolled-zero-is-detector-failure",
+      "default-mismatch-fixture"
+    ],
+    "divergence_definition": {
+      "documented_but_absent": "A field name listed on the documentation surface (catalog contract field list or the contract unit's question) that is missing from the schema surface (docs_not_schema) or from the consumer/instance surface (docs_not_impl). These two directions are stored separately.",
+      "present_but_undocumented": "A field present on the schema (schema_not_docs) or on the implementation (impl_not_docs) that documentation never names.",
+      "different_default": "The same field name appears on two or more surfaces with unequal canonical JSON defaults (default_mismatch). A renamed field is not a default mismatch; it is documented-but-absent plus present-but-undocumented.",
+      "uncontrolled_zero": "A tree that has never had this gate reporting zero findings is DETECTOR-FAILURE until a planted documented-but-absent control fires."
+    },
+    "directions": {
+      "docs_not_schema": {
+        "count": 41,
+        "fields": [
+          "ARC-0082.artifact_caching",
+          "ARC-0082.barriers",
+          "ARC-0082.cost_estimate",
+          "ARC-0082.deterministic_replay",
+          "ARC-0082.dry_run",
+          "ARC-0082.dynamic_fan_out",
+          "ARC-0082.export_import",
+          "ARC-0082.failure_policy",
+          "ARC-0082.gates",
+          "ARC-0082.human_checkpoints",
+          "ARC-0082.loops",
+          "ARC-0082.model_routing",
+          "ARC-0082.repair_loops",
+          "ARC-0082.resume",
+          "ARC-0082.retries",
+          "ARC-0082.roles",
+          "ARC-0082.subworkflows",
+          "ARC-0082.time_estimate",
+          "ARC-0082.tool_policy",
+          "ARC-0082.typed_parameters",
+          "ARC-0084.artifact_id",
+          "ARC-0084.byte_size",
+          "ARC-0084.content_hash",
+          "ARC-0084.evidence_anchors",
+          "ARC-0084.manifest_registration",
+          "ARC-0084.producing_unit",
+          "ARC-0084.retention_class",
+          "ARC-0084.schema_reference",
+          "ARC-0084.sentinel",
+          "ARC-0087.artifact_exists",
+          "ARC-0087.downstream_consumers_can_read",
+          "ARC-0087.evidence_anchors",
+          "ARC-0087.manifest_registration",
+          "ARC-0087.min_meaningful_size",
+          "ARC-0087.negative_controls",
+          "ARC-0087.no_unresolved_p0_p1",
+          "ARC-0087.reviewer_pass",
+          "ARC-0087.schema_parse",
+          "ARC-0087.sentinel",
+          "ARC-0087.terminal_state",
+          "ARC-0087.tests_passed"
+        ]
+      },
+      "docs_not_impl": {
+        "count": 36,
+        "fields": [
+          "ARC-0082.artifact_caching",
+          "ARC-0082.barriers",
+          "ARC-0082.cost_estimate",
+          "ARC-0082.deterministic_replay",
+          "ARC-0082.dry_run",
+          "ARC-0082.dynamic_fan_out",
+          "ARC-0082.export_import",
+          "ARC-0082.failure_policy",
+          "ARC-0082.gates",
+          "ARC-0082.human_checkpoints",
+          "ARC-0082.loops",
+          "ARC-0082.model_routing",
+          "ARC-0082.repair_loops",
+          "ARC-0082.resume",
+          "ARC-0082.retries",
+          "ARC-0082.roles",
+          "ARC-0082.subworkflows",
+          "ARC-0082.time_estimate",
+          "ARC-0082.tool_policy",
+          "ARC-0082.typed_parameters",
+          "ARC-0083.assignment",
+          "ARC-0083.target",
+          "ARC-0084.artifact_id",
+          "ARC-0084.byte_size",
+          "ARC-0084.content_hash",
+          "ARC-0084.evidence_anchors",
+          "ARC-0084.manifest_registration",
+          "ARC-0084.producing_unit",
+          "ARC-0084.retention_class",
+          "ARC-0084.schema_reference",
+          "ARC-0084.sentinel",
+          "ARC-0087.downstream_consumers_can_read",
+          "ARC-0087.evidence_anchors",
+          "ARC-0087.negative_controls",
+          "ARC-0087.no_unresolved_p0_p1",
+          "ARC-0087.reviewer_pass"
+        ]
+      },
+      "schema_not_docs": {
+        "count": 16,
+        "fields": [
+          "ARC-0082.discovery_only",
+          "ARC-0082.id",
+          "ARC-0082.kind",
+          "ARC-0082.stages.id",
+          "ARC-0082.stages.inputs",
+          "ARC-0082.stages.kind",
+          "ARC-0082.stages.outputs",
+          "ARC-0082.stopping",
+          "ARC-0082.stopping.max_stages",
+          "ARC-0082.stopping.on_error",
+          "ARC-0084.bytes",
+          "ARC-0084.path",
+          "ARC-0084.present",
+          "ARC-0084.receipt_path",
+          "ARC-0084.sha256",
+          "ARC-0084.unit_id"
+        ]
+      },
+      "impl_not_docs": {
+        "count": 17,
+        "fields": [
+          "ARC-0082.discovery_only",
+          "ARC-0082.id",
+          "ARC-0082.kind",
+          "ARC-0082.stages.id",
+          "ARC-0082.stages.inputs",
+          "ARC-0082.stages.kind",
+          "ARC-0082.stages.outputs",
+          "ARC-0082.stopping",
+          "ARC-0082.stopping.max_stages",
+          "ARC-0082.stopping.on_error",
+          "ARC-0083._source_slice_file",
+          "ARC-0083.assigned_model_vendor_role",
+          "ARC-0083.question_or_target",
+          "ARC-0084.path",
+          "ARC-0084.present",
+          "ARC-0084.sha256",
+          "ARC-0084.unit_id"
+        ]
+      },
+      "schema_not_impl": {
+        "count": 4,
+        "fields": [
+          "ARC-0083.assignment",
+          "ARC-0083.target",
+          "ARC-0084.bytes",
+          "ARC-0084.receipt_path"
+        ]
+      },
+      "impl_not_schema": {
+        "count": 10,
+        "fields": [
+          "ARC-0083._source_slice_file",
+          "ARC-0083.assigned_model_vendor_role",
+          "ARC-0083.question_or_target",
+          "ARC-0087.artifact_exists",
+          "ARC-0087.manifest_registration",
+          "ARC-0087.min_meaningful_size",
+          "ARC-0087.schema_parse",
+          "ARC-0087.sentinel",
+          "ARC-0087.terminal_state",
+          "ARC-0087.tests_passed"
+        ]
+      },
+      "default_mismatch": {
+        "count": 2,
+        "fields": [
+          "ARC-0087.min_meaningful_size",
+          "ARC-0087.schema_parse"
+        ]
+      }
+    },
+    "caption_sum_not_a_result": {
+      "sum": 126,
+      "note": "Arithmetic total of the seven named counts. Not a stored verdict."
+    },
+    "contracts": [
+      {
+        "id": "ARC-0083",
+        "title": "Contract: Work-unit schema with per-unit mandatory fields and a defaults-are-not-completeness validator",
+        "frozen_contract_path": "command-center/phase4/contracts/ARC-0083.json",
+        "frozen_contract_present": false,
+        "docs_fields": [
+          "assignment",
+          "completion_sentinel",
+          "dependencies",
+          "evidence_requirement",
+          "execution_substrate",
+          "failure_classification",
+          "id",
+          "inputs",
+          "output_path",
+          "output_schema",
+          "owner_approval_required",
+          "phase",
+          "retry_policy",
+          "reviewer_requirement",
+          "target",
+          "tests_required",
+          "timeout_seconds",
+          "title",
+          "tool_permissions"
+        ],
+        "schema_fields": [
+          "assignment",
+          "completion_sentinel",
+          "dependencies",
+          "evidence_requirement",
+          "execution_substrate",
+          "failure_classification",
+          "id",
+          "inputs",
+          "output_path",
+          "output_schema",
+          "owner_approval_required",
+          "phase",
+          "retry_policy",
+          "reviewer_requirement",
+          "target",
+          "tests_required",
+          "timeout_seconds",
+          "title",
+          "tool_permissions"
+        ],
+        "impl_fields": [
+          "_source_slice_file",
+          "assigned_model_vendor_role",
+          "completion_sentinel",
+          "dependencies",
+          "evidence_requirement",
+          "execution_substrate",
+          "failure_classification",
+          "id",
+          "inputs",
+          "output_path",
+          "output_schema",
+          "owner_approval_required",
+          "phase",
+          "question_or_target",
+          "retry_policy",
+          "reviewer_requirement",
+          "tests_required",
+          "timeout_seconds",
+          "title",
+          "tool_permissions"
+        ],
+        "impl_source": "work_units keys present on >=90% of 2007 catalogued units",
+        "validator_walks": "catalog.items (R-* backlog), not work_units",
+        "validator_walks_work_units": false,
+        "docs_not_on_items_except_defaults": [
+          "assignment",
+          "evidence_requirement",
+          "execution_substrate",
+          "failure_classification",
+          "output_schema",
+          "owner_approval_required",
+          "retry_policy",
+          "reviewer_requirement",
+          "tests_required",
+          "timeout_seconds",
+          "tool_permissions"
+        ],
+        "possible_renames": [
+          {
+            "docs": "target",
+            "impl": "question_or_target"
+          },
+          {
+            "docs": "assignment",
+            "impl": "assigned_model_vendor_role"
+          }
+        ],
+        "directions": {
+          "docs_not_schema": {
+            "count": 0,
+            "fields": []
+          },
+          "docs_not_impl": {
+            "count": 2,
+            "fields": [
+              "ARC-0083.assignment",
+              "ARC-0083.target"
+            ]
+          },
+          "schema_not_docs": {
+            "count": 0,
+            "fields": []
+          },
+          "impl_not_docs": {
+            "count": 3,
+            "fields": [
+              "ARC-0083._source_slice_file",
+              "ARC-0083.assigned_model_vendor_role",
+              "ARC-0083.question_or_target"
+            ]
+          },
+          "schema_not_impl": {
+            "count": 2,
+            "fields": [
+              "ARC-0083.assignment",
+              "ARC-0083.target"
+            ]
+          },
+          "impl_not_schema": {
+            "count": 3,
+            "fields": [
+              "ARC-0083._source_slice_file",
+              "ARC-0083.assigned_model_vendor_role",
+              "ARC-0083.question_or_target"
+            ]
+          },
+          "default_mismatch": {
+            "count": 0,
+            "fields": []
+          }
+        },
+        "notes": [
+          "catalog.py WORK_UNIT_FIELDS is the in-code schema; phase4/contracts/ARC-0083.json is absent.",
+          "validate.py V-FIELDS walks items() (103 backlog rows) and defaults ON; --no-require-complete disarms.",
+          "The 2007 work_units array is the Prompt Two catalog the contract names, and it uses renamed keys."
+        ]
+      },
+      {
+        "id": "ARC-0084",
+        "title": "Contract: Artifact envelope schema, integrity digest and manifest registration",
+        "frozen_contract_path": "command-center/phase4/contracts/ARC-0084.json",
+        "frozen_contract_present": false,
+        "docs_fields": [
+          "artifact_id",
+          "byte_size",
+          "content_hash",
+          "evidence_anchors",
+          "manifest_registration",
+          "producing_unit",
+          "retention_class",
+          "schema_reference",
+          "sentinel"
+        ],
+        "schema_fields": [
+          "bytes",
+          "path",
+          "present",
+          "receipt_path",
+          "sha256",
+          "unit_id"
+        ],
+        "impl_fields": [
+          "path",
+          "present",
+          "sha256",
+          "unit_id"
+        ],
+        "impl_source": "unit_manifest.py row shape consumed by _measure_one_delivered.py",
+        "possible_renames": [
+          {
+            "docs": "content_hash",
+            "impl": "sha256"
+          },
+          {
+            "docs": "byte_size",
+            "impl": "bytes"
+          },
+          {
+            "docs": "producing_unit",
+            "impl": "unit_id"
+          },
+          {
+            "docs": "artifact_id",
+            "impl": "path"
+          }
+        ],
+        "directions": {
+          "docs_not_schema": {
+            "count": 9,
+            "fields": [
+              "ARC-0084.artifact_id",
+              "ARC-0084.byte_size",
+              "ARC-0084.content_hash",
+              "ARC-0084.evidence_anchors",
+              "ARC-0084.manifest_registration",
+              "ARC-0084.producing_unit",
+              "ARC-0084.retention_class",
+              "ARC-0084.schema_reference",
+              "ARC-0084.sentinel"
+            ]
+          },
+          "docs_not_impl": {
+            "count": 9,
+            "fields": [
+              "ARC-0084.artifact_id",
+              "ARC-0084.byte_size",
+              "ARC-0084.content_hash",
+              "ARC-0084.evidence_anchors",
+              "ARC-0084.manifest_registration",
+              "ARC-0084.producing_unit",
+              "ARC-0084.retention_class",
+              "ARC-0084.schema_reference",
+              "ARC-0084.sentinel"
+            ]
+          },
+          "schema_not_docs": {
+            "count": 6,
+            "fields": [
+              "ARC-0084.bytes",
+              "ARC-0084.path",
+              "ARC-0084.present",
+              "ARC-0084.receipt_path",
+              "ARC-0084.sha256",
+              "ARC-0084.unit_id"
+            ]
+          },
+          "impl_not_docs": {
+            "count": 4,
+            "fields": [
+              "ARC-0084.path",
+              "ARC-0084.present",
+              "ARC-0084.sha256",
+              "ARC-0084.unit_id"
+            ]
+          },
+          "schema_not_impl": {
+            "count": 2,
+            "fields": [
+              "ARC-0084.bytes",
+              "ARC-0084.receipt_path"
+            ]
+          },
+          "impl_not_schema": {
+            "count": 0,
+            "fields": []
+          },
+          "default_mismatch": {
+            "count": 0,
+            "fields": []
+          }
+        },
+        "notes": [
+          "No frozen artifact-envelope schema file. The on-tree schema is the unit_manifest row.",
+          "The G-1 measure checks path/sha256/present/unit_id and does not read bytes, receipt_path, sentinel, retention_class, or evidence_anchors."
+        ]
+      },
+      {
+        "id": "ARC-0087",
+        "title": "Contract: Executable completion predicate over all twelve conditions with per-condition applicability",
+        "frozen_contract_path": "command-center/phase4/contracts/ARC-0087.json",
+        "frozen_contract_present": false,
+        "completion_gates_present": true,
+        "docs_fields": [
+          "artifact_exists",
+          "downstream_consumers_can_read",
+          "evidence_anchors",
+          "manifest_registration",
+          "min_meaningful_size",
+          "negative_controls",
+          "no_unresolved_p0_p1",
+          "reviewer_pass",
+          "schema_parse",
+          "sentinel",
+          "terminal_state",
+          "tests_passed"
+        ],
+        "schema_fields": [],
+        "impl_fields": [
+          "artifact_exists",
+          "manifest_registration",
+          "min_meaningful_size",
+          "schema_parse",
+          "sentinel",
+          "terminal_state",
+          "tests_passed"
+        ],
+        "impl_source": "command-center/p2-wave/_measure_one_delivered.py",
+        "directions": {
+          "docs_not_schema": {
+            "count": 12,
+            "fields": [
+              "ARC-0087.artifact_exists",
+              "ARC-0087.downstream_consumers_can_read",
+              "ARC-0087.evidence_anchors",
+              "ARC-0087.manifest_registration",
+              "ARC-0087.min_meaningful_size",
+              "ARC-0087.negative_controls",
+              "ARC-0087.no_unresolved_p0_p1",
+              "ARC-0087.reviewer_pass",
+              "ARC-0087.schema_parse",
+              "ARC-0087.sentinel",
+              "ARC-0087.terminal_state",
+              "ARC-0087.tests_passed"
+            ]
+          },
+          "docs_not_impl": {
+            "count": 5,
+            "fields": [
+              "ARC-0087.downstream_consumers_can_read",
+              "ARC-0087.evidence_anchors",
+              "ARC-0087.negative_controls",
+              "ARC-0087.no_unresolved_p0_p1",
+              "ARC-0087.reviewer_pass"
+            ]
+          },
+          "schema_not_docs": {
+            "count": 0,
+            "fields": []
+          },
+          "impl_not_docs": {
+            "count": 0,
+            "fields": []
+          },
+          "schema_not_impl": {
+            "count": 0,
+            "fields": []
+          },
+          "impl_not_schema": {
+            "count": 7,
+            "fields": [
+              "ARC-0087.artifact_exists",
+              "ARC-0087.manifest_registration",
+              "ARC-0087.min_meaningful_size",
+              "ARC-0087.schema_parse",
+              "ARC-0087.sentinel",
+              "ARC-0087.terminal_state",
+              "ARC-0087.tests_passed"
+            ]
+          },
+          "default_mismatch": {
+            "count": 2,
+            "fields": [
+              "ARC-0087.min_meaningful_size",
+              "ARC-0087.schema_parse"
+            ]
+          }
+        },
+        "notes": [
+          "COMPLETION-GATES.json and the frozen ARC-0087 contract are both absent; schema surface is empty.",
+          "The live G-1 measure implements a subset of the twelve conditions and weakens min-size plus schema-parse."
+        ]
+      },
+      {
+        "id": "ARC-0082",
+        "title": "Contract: Workflow DSL: declarative schema for stages, gates, fan-out, resume and replay",
+        "frozen_contract_path": "command-center/phase4/contracts/ARC-0082.json",
+        "frozen_contract_present": false,
+        "on_tree_schema": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+        "docs_fields": [
+          "artifact_caching",
+          "barriers",
+          "cost_estimate",
+          "deterministic_replay",
+          "dry_run",
+          "dynamic_fan_out",
+          "export_import",
+          "failure_policy",
+          "gates",
+          "human_checkpoints",
+          "loops",
+          "model_routing",
+          "repair_loops",
+          "resume",
+          "retries",
+          "roles",
+          "stages",
+          "subworkflows",
+          "time_estimate",
+          "tool_policy",
+          "typed_parameters"
+        ],
+        "schema_fields": [
+          "discovery_only",
+          "id",
+          "kind",
+          "stages",
+          "stages.id",
+          "stages.inputs",
+          "stages.kind",
+          "stages.outputs",
+          "stopping",
+          "stopping.max_stages",
+          "stopping.on_error"
+        ],
+        "impl_fields": [
+          "discovery_only",
+          "id",
+          "kind",
+          "stages",
+          "stages.id",
+          "stages.inputs",
+          "stages.kind",
+          "stages.outputs",
+          "stopping",
+          "stopping.max_stages",
+          "stopping.on_error"
+        ],
+        "impl_source": "ARC-0010 registry.schema.json workflow_blueprint + generator.py",
+        "directions": {
+          "docs_not_schema": {
+            "count": 20,
+            "fields": [
+              "ARC-0082.artifact_caching",
+              "ARC-0082.barriers",
+              "ARC-0082.cost_estimate",
+              "ARC-0082.deterministic_replay",
+              "ARC-0082.dry_run",
+              "ARC-0082.dynamic_fan_out",
+              "ARC-0082.export_import",
+              "ARC-0082.failure_policy",
+              "ARC-0082.gates",
+              "ARC-0082.human_checkpoints",
+              "ARC-0082.loops",
+              "ARC-0082.model_routing",
+              "ARC-0082.repair_loops",
+              "ARC-0082.resume",
+              "ARC-0082.retries",
+              "ARC-0082.roles",
+              "ARC-0082.subworkflows",
+              "ARC-0082.time_estimate",
+              "ARC-0082.tool_policy",
+              "ARC-0082.typed_parameters"
+            ]
+          },
+          "docs_not_impl": {
+            "count": 20,
+            "fields": [
+              "ARC-0082.artifact_caching",
+              "ARC-0082.barriers",
+              "ARC-0082.cost_estimate",
+              "ARC-0082.deterministic_replay",
+              "ARC-0082.dry_run",
+              "ARC-0082.dynamic_fan_out",
+              "ARC-0082.export_import",
+              "ARC-0082.failure_policy",
+              "ARC-0082.gates",
+              "ARC-0082.human_checkpoints",
+              "ARC-0082.loops",
+              "ARC-0082.model_routing",
+              "ARC-0082.repair_loops",
+              "ARC-0082.resume",
+              "ARC-0082.retries",
+              "ARC-0082.roles",
+              "ARC-0082.subworkflows",
+              "ARC-0082.time_estimate",
+              "ARC-0082.tool_policy",
+              "ARC-0082.typed_parameters"
+            ]
+          },
+          "schema_not_docs": {
+            "count": 10,
+            "fields": [
+              "ARC-0082.discovery_only",
+              "ARC-0082.id",
+              "ARC-0082.kind",
+              "ARC-0082.stages.id",
+              "ARC-0082.stages.inputs",
+              "ARC-0082.stages.kind",
+              "ARC-0082.stages.outputs",
+              "ARC-0082.stopping",
+              "ARC-0082.stopping.max_stages",
+              "ARC-0082.stopping.on_error"
+            ]
+          },
+          "impl_not_docs": {
+            "count": 10,
+            "fields": [
+              "ARC-0082.discovery_only",
+              "ARC-0082.id",
+              "ARC-0082.kind",
+              "ARC-0082.stages.id",
+              "ARC-0082.stages.inputs",
+              "ARC-0082.stages.kind",
+              "ARC-0082.stages.outputs",
+              "ARC-0082.stopping",
+              "ARC-0082.stopping.max_stages",
+              "ARC-0082.stopping.on_error"
+            ]
+          },
+          "schema_not_impl": {
+            "count": 0,
+            "fields": []
+          },
+          "impl_not_schema": {
+            "count": 0,
+            "fields": []
+          },
+          "default_mismatch": {
+            "count": 0,
+            "fields": []
+          }
+        },
+        "notes": [
+          "Frozen workflow DSL contract is absent. The only on-tree schema is the A2 typed registry subset (stages + stopping).",
+          "Documented constructs (fan-out, resume, replay, cost, routing, ...) have no schema and no consumer on this tree."
+        ]
+      }
+    ],
+    "tree_fails_today": {
+      "dominant_direction": "docs_not_schema",
+      "count": 41,
+      "summary": "The live tree's largest named direction is docs_not_schema with 41 qualified fields. Frozen phase-4 contracts ARC-0082/0083/0084/0087 are absent; docs and the thin on-tree consumers disagree in both directions."
+    },
+    "gate_verdict_on_live_tree": "DIVERGENT",
+    "detector_control": {
+      "planted_field": "planted_canary_field",
+      "found_in": [
+        "docs_not_schema",
+        "docs_not_impl"
+      ],
+      "clean_silent": true,
+      "uncontrolled_zero_is_detector_failure": true,
+      "uncontrolled_zero_verdict": "DETECTOR-FAILURE",
+      "default_mismatch_control_count": 1,
+      "fired": true
+    },
+    "live_anchors": [
+      "tools/command-center/catalog.py:30",
+      "tools/command-center/validate.py:340",
+      "command-center/WORK-UNIT-CATALOG.json:5",
+      "tools/command-center/unit_manifest.py:102",
+      "command-center/p2-wave/_measure_one_delivered.py:178",
+      "command-center/p2-wave/probes/ARC-0010/registry.schema.json:121"
+    ],
+    "scope": {
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "phase4/contracts/ARC-0082.json through ARC-0087.json were authored",
+        "the live tree is parity-clean",
+        "ADV rebuild of A2 or the missing frozen contracts"
+      ],
+      "proof_surface": "Executable three-way field compare over ARC-0082/0083/0084/0087 against catalog.py, validate.py, unit_manifest.py, _measure_one_delivered.py, and the A2 workflow registry schema."
+    }
+  }
+}

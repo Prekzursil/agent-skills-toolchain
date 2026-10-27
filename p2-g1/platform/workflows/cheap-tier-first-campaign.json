@@ -1,0 +1,1157 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "cheap-tier-first-campaign",
+  "name": "Cheap-tier-first campaign with per-tier output-validity gates",
+  "description": "Order an expensive, metered investigation so cheap filters run first and every expensive tier is entered only on survivors. The transferable idea is the INPUT/OUTPUT guard split: a preflight guards what goes in, and a separate validity gate guards what comes out, because a candidate can score well and still be an impossible result. The funnel also validates itself: a correlation probe on a held-out sample can declare the cheap tier uninformative, in which case the funnel is reported WORTHLESS rather than assumed useful.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative"
+  ],
+  "tags": [
+    "bp-dat-04",
+    "cost-funnel",
+    "validity-gate",
+    "metered",
+    "correlation-control"
+  ],
+  "flagship": false,
+  "params": {
+    "candidates": {
+      "type": "array",
+      "required": true,
+      "min_items": 2,
+      "items": {
+        "type": "string"
+      },
+      "description": "The candidate set entering the cheap tier. A single-item question has no funnel."
+    },
+    "cheap_tier": {
+      "type": "object",
+      "required": true,
+      "description": "The cheap filter: its name, unit cost and expected filter strength.",
+      "schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "unit_cost_usd",
+          "filter_strength"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "unit_cost_usd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "filter_strength": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "expensive_tier": {
+      "type": "object",
+      "required": true,
+      "description": "The metered or licence-gated tier. Entered only by survivors.",
+      "schema": {
+        "type": "object",
+        "required": [
+          "name",
+          "unit_cost_usd"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 2
+          },
+          "unit_cost_usd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "licence_tokens_per_call": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "budget_usd": {
+      "type": "number",
+      "required": true,
+      "minimum": 0,
+      "description": "Hard cost ceiling. Fanning out a metered tier without one is how credits vanish."
+    },
+    "target_survivors": {
+      "type": "integer",
+      "default": 10,
+      "minimum": 1,
+      "description": "Stop when the funnel is narrow enough to answer the question."
+    },
+    "correlation_holdout": {
+      "type": "integer",
+      "default": 12,
+      "minimum": 4,
+      "description": "How many candidates go through BOTH tiers regardless of the cheap verdict, so the correlation can be measured."
+    },
+    "backend_credential": {
+      "type": "secret_ref",
+      "secret": true,
+      "description": "Reference NAME of the metered backend credential. The value never enters an artifact, a log, an export bundle or the replay journal."
+    }
+  },
+  "roles": {
+    "preflight-guard": {
+      "description": "Guards the INPUT: rejects malformed or out-of-domain candidates before any tier is paid for.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/campaign/**)"
+      ]
+    },
+    "tier-runner": {
+      "description": "Invokes a tier backend for one candidate and records its cost.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/campaign/**)",
+        "mcp__cloud-hub__compute_exec"
+      ]
+    },
+    "validity-auditor": {
+      "description": "Guards the OUTPUT: a good SCORE is not a valid RESULT. Holds a veto on tier promotion.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may authorise spending against the metered tier.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Read",
+      "Write(command-center/campaign/**)",
+      "mcp__cloud-hub__compute_exec",
+      "mcp__codex__codex"
+    ],
+    "network": "read-only",
+    "deny": [
+      "Bash",
+      "WebFetch"
+    ],
+    "require_owner_approval": [
+      "mcp__cloud-hub__compute_exec"
+    ],
+    "write_paths": [
+      "command-center/campaign/cheap-tier-first/**"
+    ],
+    "source_policy": {
+      "require_provenance": true,
+      "license_allowlist": [
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "owner-licensed-backend"
+      ],
+      "paywalled": "fail",
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == validity-auditor",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the output-validity veto must not be held by the same vendor that produced the score"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "reviewer-refuted",
+        "failure"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "input-preflight": {
+      "predicate": "custom-expression",
+      "expression": "malformed_candidates == 0 AND out_of_domain_candidates == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "cheap-output-valid": {
+      "predicate": "custom-expression",
+      "expression": "cheap_tier_invalid_results == 0 AND cheap_tier_scores_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "funnel-is-informative": {
+      "predicate": "custom-expression",
+      "expression": "tier_rank_correlation >= minimum_useful_correlation",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "expensive-output-valid": {
+      "predicate": "custom-expression",
+      "expression": "expensive_tier_invalid_results == 0 AND cost_per_survivor_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "preflight-inputs",
+      "title": "S0 - guard the INPUT before anything is paid for",
+      "kind": "task",
+      "role": "preflight-guard",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/campaign/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7501",
+        "title": "Preflight every candidate against the tier's input domain",
+        "phase": "2B",
+        "question_or_target": "Reject malformed and out-of-domain candidates before any metered call, and record why each was rejected so the funnel's input loss is auditable rather than invisible.",
+        "inputs": [
+          "params.candidates",
+          "params.cheap_tier",
+          "params.expensive_tier"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "preflight-guard",
+          "basis": "deciding what is in-domain requires the backend's contract, which is judgement not a regex"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/campaign/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/campaign/cheap-tier-first/preflight.json",
+        "output_schema": "command-center/schema/sampling-plan.schema.json",
+        "evidence_requirement": "a per-candidate admit/reject decision with the domain rule cited for every rejection",
+        "tests_required": [
+          "a candidate the backend cannot accept is rejected BEFORE the tier runs",
+          "both-states control: a valid candidate is admitted, proving the guard is not rejecting everything"
+        ],
+        "reviewer_requirement": "the validity-auditor, who checks that no rejection is a silent drop",
+        "completion_sentinel": "SUCCESS:DAT-7501 emitted only when every candidate carries an admit or reject decision with a cited rule; otherwise FAILED:DAT-7501 <reason>",
+        "retry_policy": "two strikes then pivot to a narrower declared domain",
+        "failure_classification": [
+          "input-out-of-domain",
+          "candidate-malformed",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "input-domain preflight, distinct from and prior to every output-validity gate"
+      },
+      "produces": [
+        {
+          "path": "command-center/campaign/cheap-tier-first/preflight.json",
+          "schema_ref": "command-center/schema/sampling-plan.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7501",
+          "consumers": [
+            "preflight-gate",
+            "cheap-tier"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preflight-gate",
+      "title": "No metered call until the input guard passes",
+      "kind": "gate",
+      "depends_on": [
+        "preflight-inputs"
+      ],
+      "gate_ref": "input-preflight"
+    },
+    {
+      "id": "cheap-tier",
+      "title": "S1 - the cheap tier over ALL admitted candidates",
+      "kind": "fanout",
+      "depends_on": [
+        "preflight-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/campaign/cheap-tier-first/preflight.json",
+        "item_var": "candidate",
+        "key_field": "candidate_id"
+      },
+      "max_concurrency": 32,
+      "arrival_stagger_ms": 60,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "cheap-score",
+          "title": "Score one candidate on the cheap tier",
+          "kind": "task",
+          "role": "tier-runner",
+          "timeout_seconds": 1200,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/campaign/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/campaign/cheap-tier-first/cache/cheap",
+            "ttl_seconds": 2592000,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "DAT-7502",
+            "title": "Run the cheap tier for one candidate and record its unit cost",
+            "phase": "2B",
+            "question_or_target": "Produce a cheap-tier score for one candidate and record the actual cost incurred, so cost per surviving candidate can be computed rather than estimated.",
+            "inputs": [
+              "item.candidate",
+              "params.cheap_tier"
+            ],
+            "dependencies": [
+              "DAT-7501"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "tier-runner",
+              "basis": "the call is mechanical; interpreting a backend error as retryable or terminal is not"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/campaign/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/campaign/cheap-tier-first/cheap-tier/scores.jsonl",
+            "output_schema": "platform/schema/artifact-class-profiles.schema.json#/$defs/tier-ledger",
+            "evidence_requirement": "the score, the backend invocation identifier, and the measured cost - never an assumed cost",
+            "tests_required": [
+              "a backend error is classified as retryable or terminal and never recorded as a score of zero",
+              "the recorded cost is the measured one; a cache hit records cost zero and says so"
+            ],
+            "reviewer_requirement": "the validity-auditor",
+            "completion_sentinel": "SUCCESS:DAT-7502 emitted only when a score and a measured cost exist for this candidate, or a classified failure does; otherwise FAILED:DAT-7502 <reason>",
+            "retry_policy": "exponential, three attempts on a transient backend error only",
+            "failure_classification": [
+              "backend-unavailable",
+              "quota-429-storm",
+              "result-invalid"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "cheap-tier scoring with measured per-call cost accounting"
+          },
+          "produces": [
+            {
+              "path": "command-center/campaign/cheap-tier-first/cheap-tier/scores.jsonl",
+              "schema_ref": "platform/schema/artifact-class-profiles.schema.json#/$defs/tier-ledger",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7502",
+              "consumers": [
+                "cheap-validity",
+                "correlation-probe"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "deadline",
+        "deadline_seconds": 7200,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "cheap-validity",
+      "title": "S2 - a good SCORE is not a valid RESULT: gate the cheap tier's OUTPUT",
+      "kind": "task",
+      "depends_on": [
+        "cheap-tier"
+      ],
+      "role": "validity-auditor",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "DAT-7503",
+        "title": "Validate every cheap-tier result for structural or physical possibility",
+        "phase": "2B",
+        "question_or_target": "Reject results that score well but are impossible under the domain's own constraints, so an impossible candidate cannot earn an expensive tier.",
+        "inputs": [
+          "command-center/campaign/cheap-tier-first/cheap-tier/scores.jsonl",
+          "params.cheap_tier"
+        ],
+        "dependencies": [
+          "DAT-7502"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "validity-auditor",
+          "basis": "a same-vendor reviewer shares the scorer's blind spots, so the output veto is cross-vendor"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/campaign/cheap-tier-first/cheap-tier/validity.json",
+        "output_schema": "command-center/schema/audit-finding.schema.json",
+        "evidence_requirement": "for each rejected result, the specific constraint it violates - not a confidence score",
+        "tests_required": [
+          "a candidate that scores in the top decile and violates a hard domain constraint is REJECTED",
+          "both-states control: a valid top-decile candidate is not rejected, so the gate is not simply discarding high scores"
+        ],
+        "reviewer_requirement": "the preflight-guard, cross-examining whether a rejection is really an OUTPUT problem and not an input one it should have caught",
+        "completion_sentinel": "SUCCESS:DAT-7503 emitted only when every cheap-tier result carries a validity verdict with a cited constraint for each rejection; otherwise FAILED:DAT-7503 <reason>",
+        "retry_policy": "none: a validity verdict is a conclusion",
+        "failure_classification": [
+          "result-invalid",
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "output-validity audit that can reject a high-scoring result on a domain constraint",
+        "not_a_duplicate_because": "the preflight guards the INPUT domain; this guards the OUTPUT, and a result can pass one and fail the other"
+      },
+      "produces": [
+        {
+          "path": "command-center/campaign/cheap-tier-first/cheap-tier/validity.json",
+          "schema_ref": "command-center/schema/audit-finding.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7503",
+          "consumers": [
+            "cheap-validity-gate",
+            "expensive-tier"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cheap-validity-gate",
+      "title": "Only valid cheap-tier results earn the next tier",
+      "kind": "gate",
+      "depends_on": [
+        "cheap-validity"
+      ],
+      "gate_ref": "cheap-output-valid"
+    },
+    {
+      "id": "correlation-probe",
+      "title": "S2b - is the cheap tier informative at all, or is the funnel worthless",
+      "kind": "task",
+      "depends_on": [
+        "cheap-validity-gate"
+      ],
+      "role": "tier-runner",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/campaign/**)",
+        "mcp__cloud-hub__compute_exec"
+      ],
+      "work_unit": {
+        "id": "DAT-7504",
+        "title": "Measure cheap-vs-expensive rank correlation on a held-out sample",
+        "phase": "2B",
+        "question_or_target": "Push correlation_holdout candidates through BOTH tiers regardless of the cheap verdict and measure rank correlation, so the funnel's usefulness is measured rather than assumed.",
+        "inputs": [
+          "command-center/campaign/cheap-tier-first/cheap-tier/scores.jsonl",
+          "params.correlation_holdout",
+          "params.expensive_tier"
+        ],
+        "dependencies": [
+          "DAT-7502",
+          "DAT-7503"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "tier-runner",
+          "basis": "choosing a holdout that is not biased by the cheap score is a sampling judgement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/campaign/**)",
+          "mcp__cloud-hub__compute_exec"
+        ],
+        "execution_substrate": "cloud-batch",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/campaign/cheap-tier-first/tier-correlation.json",
+        "output_schema": "command-center/schema/calibration-report.schema.json",
+        "evidence_requirement": "the holdout membership, both tiers' ranks for each member, the correlation coefficient and its confidence interval",
+        "tests_required": [
+          "a cheap tier with zero correlation to the expensive one yields a WORTHLESS funnel verdict rather than a silent pass",
+          "the holdout includes candidates the cheap tier REJECTED, or the correlation is measured only on candidates the cheap tier already liked and is circular"
+        ],
+        "reviewer_requirement": "the validity-auditor, who checks the holdout is not conditioned on the cheap score",
+        "completion_sentinel": "SUCCESS:DAT-7504 emitted only when a correlation coefficient with an interval is recorded on a holdout that includes cheap-tier rejects; otherwise FAILED:DAT-7504 <reason>",
+        "retry_policy": "fixed, two attempts on backend unavailability",
+        "failure_classification": [
+          "backend-unavailable",
+          "sampling-bias",
+          "funnel-uninformative"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "held-out cheap-vs-expensive rank-correlation probe that can declare the funnel worthless"
+      },
+      "produces": [
+        {
+          "path": "command-center/campaign/cheap-tier-first/tier-correlation.json",
+          "schema_ref": "command-center/schema/calibration-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7504",
+          "consumers": [
+            "correlation-gate",
+            "cost-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "correlation-gate",
+      "title": "An uninformative cheap tier means the funnel is discarding good candidates",
+      "kind": "gate",
+      "depends_on": [
+        "correlation-probe"
+      ],
+      "gate_ref": "funnel-is-informative"
+    },
+    {
+      "id": "spend-approval",
+      "title": "Owner authorisation before the metered tier fans out",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "correlation-gate"
+      ],
+      "prompt": "The cheap tier left N survivors and the measured cheap-vs-expensive correlation is R. Authorise spending up to budget_usd on the metered tier, reduce the budget, or stop with the cheap-tier result?",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "authorise-full-budget",
+        "authorise-reduced-budget",
+        "stop-at-cheap-tier"
+      ],
+      "decision_artifact": {
+        "path": "command-center/campaign/cheap-tier-first/spend-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "expensive-tier"
+        ]
+      }
+    },
+    {
+      "id": "expensive-tier",
+      "title": "S3 - the metered tier over SURVIVORS ONLY",
+      "kind": "fanout",
+      "depends_on": [
+        "spend-approval"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/campaign/cheap-tier-first/cheap-tier/validity.json",
+        "item_var": "survivor",
+        "key_field": "candidate_id"
+      },
+      "max_concurrency": 4,
+      "arrival_stagger_ms": 500,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "expensive-score",
+          "title": "Run the metered tier for one survivor",
+          "kind": "task",
+          "role": "tier-runner",
+          "timeout_seconds": 7200,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/campaign/**)",
+            "mcp__cloud-hub__compute_exec"
+          ],
+          "work_unit": {
+            "id": "DAT-7505",
+            "title": "Run the expensive tier for one surviving candidate under the cost ceiling",
+            "phase": "2B",
+            "question_or_target": "Invoke the metered backend for one survivor, charge it against the remaining budget, and halt the tier the moment the ceiling is reached rather than after it is exceeded.",
+            "inputs": [
+              "item.survivor",
+              "params.expensive_tier",
+              "params.budget_usd",
+              "params.backend_credential"
+            ],
+            "dependencies": [
+              "DAT-7503",
+              "DAT-7504"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "tier-runner",
+              "basis": "cost-ceiling arithmetic is mechanical; deciding whether a partial result is usable is not"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/campaign/**)",
+              "mcp__cloud-hub__compute_exec"
+            ],
+            "execution_substrate": "cloud-batch",
+            "timeout_seconds": 7200,
+            "output_path": "command-center/campaign/cheap-tier-first/expensive-tier/results.jsonl",
+            "output_schema": "command-center/schema/benchmark-result.schema.json",
+            "evidence_requirement": "the backend run id, the measured cost, and the remaining budget after the call - the credential is referenced by NAME and never recorded",
+            "tests_required": [
+              "the tier stops at the budget ceiling with survivors unprocessed listed as UNEVALUATED, not as failed",
+              "the secret_ref value never appears in the artifact, the log or the replay journal"
+            ],
+            "reviewer_requirement": "the validity-auditor",
+            "completion_sentinel": "SUCCESS:DAT-7505 emitted only when a result and a measured cost exist, or the candidate is recorded UNEVALUATED with the budget state that caused it; otherwise FAILED:DAT-7505 <reason>",
+            "retry_policy": "exponential, two attempts, transient backend errors only - a retry spends real money",
+            "failure_classification": [
+              "backend-unavailable",
+              "budget-exhausted",
+              "result-invalid"
+            ],
+            "owner_approval_required": true,
+            "mechanism": "survivors-only metered execution with a hard cost ceiling and UNEVALUATED accounting"
+          },
+          "produces": [
+            {
+              "path": "command-center/campaign/cheap-tier-first/expensive-tier/results.jsonl",
+              "schema_ref": "command-center/schema/benchmark-result.schema.json",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7505",
+              "consumers": [
+                "expensive-validity",
+                "cost-report"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.6,
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "expensive-validity",
+      "title": "S4 - gate the expensive tier's OUTPUT too, on the same principle",
+      "kind": "task",
+      "depends_on": [
+        "expensive-tier"
+      ],
+      "role": "validity-auditor",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "DAT-7506",
+        "title": "Validate every expensive-tier result and compute cost per surviving candidate",
+        "phase": "2B",
+        "question_or_target": "Apply the same output-validity standard to the expensive tier and report cost per ACCEPTED result, so the funnel's economics are visible instead of implied.",
+        "inputs": [
+          "command-center/campaign/cheap-tier-first/expensive-tier/results.jsonl",
+          "command-center/campaign/cheap-tier-first/tier-correlation.json"
+        ],
+        "dependencies": [
+          "DAT-7505"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "validity-auditor",
+          "basis": "cross-vendor output veto at every tier, not only the cheap one"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/campaign/cheap-tier-first/expensive-tier/validity.json",
+        "output_schema": "command-center/schema/audit-finding.schema.json",
+        "evidence_requirement": "per-result validity verdicts plus total spend divided by accepted results, with UNEVALUATED candidates excluded from the denominator and counted separately",
+        "tests_required": [
+          "an impossible high-scoring expensive result is rejected",
+          "cost per survivor excludes UNEVALUATED candidates from the denominator, so a truncated run does not flatter the economics"
+        ],
+        "reviewer_requirement": "the preflight-guard",
+        "completion_sentinel": "SUCCESS:DAT-7506 emitted only when every expensive result has a validity verdict and cost per accepted result is recorded; otherwise FAILED:DAT-7506 <reason>",
+        "retry_policy": "none: a validity verdict is a conclusion about a result, not an operation to repeat",
+        "failure_classification": [
+          "result-invalid",
+          "overclaim",
+          "cost-accounting-error"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "second output-validity gate plus cost-per-accepted-result economics"
+      },
+      "produces": [
+        {
+          "path": "command-center/campaign/cheap-tier-first/expensive-tier/validity.json",
+          "schema_ref": "command-center/schema/audit-finding.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7506",
+          "consumers": [
+            "expensive-validity-gate",
+            "cost-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "expensive-validity-gate",
+      "title": "The funnel never reports survivors it did not validate",
+      "kind": "gate",
+      "depends_on": [
+        "expensive-validity"
+      ],
+      "gate_ref": "expensive-output-valid"
+    },
+    {
+      "id": "cost-report",
+      "title": "S5 - report cost per surviving candidate and the tier ledger",
+      "kind": "task",
+      "depends_on": [
+        "expensive-validity-gate"
+      ],
+      "role": "preflight-guard",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/campaign/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7507",
+        "title": "Emit the per-tier entered/survived/cost ledger",
+        "phase": "2B",
+        "question_or_target": "State for each tier how many candidates entered, how many survived, what it cost, and what the funnel would have cost unfunnelled - the comparison that decides whether the funnel earned its complexity.",
+        "inputs": [
+          "command-center/campaign/cheap-tier-first/cheap-tier/validity.json",
+          "command-center/campaign/cheap-tier-first/expensive-tier/validity.json",
+          "command-center/campaign/cheap-tier-first/tier-correlation.json"
+        ],
+        "dependencies": [
+          "DAT-7503",
+          "DAT-7504",
+          "DAT-7506"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "preflight-guard",
+          "basis": "the economic comparison is the deliverable and is authored by a role with no stake in the tiers"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/campaign/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/campaign/cheap-tier-first/campaign-report.json",
+        "output_schema": "platform/schema/artifact-class-profiles.schema.json#/$defs/tier-ledger",
+        "evidence_requirement": "entered, survived and measured cost per tier, plus the counterfactual unfunnelled cost computed from the expensive tier's unit cost times the admitted candidate count",
+        "tests_required": [
+          "the unfunnelled counterfactual is computed, so a funnel that saved nothing is visible",
+          "validity_failures are reported as their own count and never folded into survivors"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who recomputes the arithmetic",
+        "completion_sentinel": "SUCCESS:DAT-7507 emitted only when per-tier counts, measured costs and the unfunnelled counterfactual are all present and reconcile; otherwise FAILED:DAT-7507 <reason>",
+        "retry_policy": "none: a cost-per-survivor reconciliation failure is the finding, not a transient error",
+        "failure_classification": [
+          "cost-accounting-error",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "per-tier economics with an explicit unfunnelled counterfactual"
+      },
+      "produces": [
+        {
+          "path": "command-center/campaign/cheap-tier-first/campaign-report.json",
+          "schema_ref": "platform/schema/artifact-class-profiles.schema.json#/$defs/tier-ledger",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7507",
+          "consumers": [
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "budget-exhausted",
+      "expression": "budget_remaining_usd <= 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "narrow-enough",
+      "expression": "surviving_candidates <= target_survivors AND expensive_tier_invalid_results == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "cheap_tier_scores_recorded == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "funnel-worthless",
+      "expression": "tier_rank_correlation < minimum_useful_correlation",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "exponential",
+    "max_attempts": 3,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": [
+      "backend-unavailable",
+      "quota-429-storm"
+    ],
+    "no_retry_on": [
+      "budget-exhausted",
+      "result-invalid",
+      "funnel-uninformative"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "backend-unavailable",
+      "budget-exhausted",
+      "result-invalid",
+      "funnel-uninformative"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "spend-approval",
+    "quarantine_path": "command-center/campaign/cheap-tier-first/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/campaign/cheap-tier-first/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/campaign/cheap-tier-first/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy",
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "process-id"
+    ]
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "params_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/campaign/cheap-tier-first/cache",
+    "ttl_seconds": 2592000,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/campaign/cheap-tier-first/dry-run-plan.json",
+    "forbid_tools": [
+      "mcp__cloud-hub__compute_exec",
+      "mcp__codex__codex",
+      "Write(command-center/campaign/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "expected": 45.0,
+      "max": 400.0
+    },
+    "wallclock_seconds": {
+      "expected": 14400,
+      "max": 86400
+    },
+    "tokens": {
+      "expected": 400000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "spends real credits and licence tokens against a metered backend; artifacts stay under the campaign root",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/campaign/cheap-tier-first/export/cheap-tier-first-campaign.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-04",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/compchem-validators",
+        "relation": "GENERALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/structure-based-screening",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/biomedical-paper-triage",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/compchem-validators@current"
+    ]
+  },
+  "outputs": {
+    "campaign_report": {
+      "path": "command-center/campaign/cheap-tier-first/campaign-report.json",
+      "schema_ref": "platform/schema/artifact-class-profiles.schema.json#/$defs/tier-ledger",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "validity_failures": {
+      "path": "command-center/campaign/cheap-tier-first/expensive-tier/validity.json",
+      "schema_ref": "command-center/schema/audit-finding.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DAT-04",
+      "card_index_in_library": 75,
+      "family": "D14-data",
+      "primary_category": "data-science-knowledge-and-creative",
+      "mechanism_signature": [
+        "cost-ordered-tier-funnel",
+        "input-preflight-separate-from-output-validity",
+        "per-tier-output-validity-veto-cross-vendor",
+        "held-out-tier-correlation-probe",
+        "cost-per-accepted-result-with-unfunnelled-counterfactual"
+      ],
+      "worked_example": {
+        "scenario": "Rank 4,000 ligands against one receptor. The cheap tier is a GPU-Vina screen at $0.004/candidate; the expensive tier is a licence-token-gated FEP run at $9.50/candidate.",
+        "params": {
+          "candidates": [
+            "LIG-0001",
+            "LIG-0002",
+            "... 3998 more"
+          ],
+          "cheap_tier": {
+            "name": "gpu-vina",
+            "unit_cost_usd": 0.004,
+            "filter_strength": 0.97
+          },
+          "expensive_tier": {
+            "name": "fep-plus",
+            "unit_cost_usd": 9.5,
+            "licence_tokens_per_call": 4
+          },
+          "budget_usd": 1200,
+          "target_survivors": 20,
+          "correlation_holdout": 24
+        },
+        "expected_trace": [
+          "preflight-inputs -> 3,961 admitted, 39 rejected out-of-domain (cited rule per rejection)",
+          "cheap-tier -> 3,961 scored for $15.84",
+          "cheap-validity -> 114 top-decile poses REJECTED for a hard geometry violation; a score-only funnel would have promoted them at $9.50 each",
+          "correlation-probe -> Spearman 0.61 on a 24-candidate holdout that INCLUDES cheap-tier rejects",
+          "correlation-gate -> PASS (0.61 >= 0.35 minimum_useful_correlation)",
+          "spend-approval -> owner authorises the full budget",
+          "expensive-tier -> 118 survivors, 118 runs, $1,121; barrier quorum 0.6 met",
+          "expensive-validity -> 6 invalid; cost per accepted result = $1,121 / 112 = $10.01",
+          "cost-report -> unfunnelled counterfactual 3,961 x $9.50 = $37,630 versus $1,137 actual"
+        ],
+        "expected_terminal_state": "SUCCESS:DAT-7507"
+      },
+      "unverified": "UNVERIFIED outside chemistry - the pattern currently exists only inside the compchem skills, and confidence that it transfers cleanly is only likely (55-80%). Settling experiment = run the funnel on a paid research campaign and measure cost per accepted result against an unfunnelled arm; the correlation-probe stage exists so that experiment is part of the workflow rather than external to it.",
+      "distinct_from": {
+        "BP-PDS-04": "that one paces AGENT quota across subscriptions; this orders an INVESTIGATION's tiers by cost",
+        "bp-dat-05": "that one runs a FIXED case set hermetically for a pass rate; this narrows a candidate set under a spend ceiling",
+        "bp-dat-02": "bounds by tokens with no notion of cost, tiers, or survivors"
+      },
+      "flagship_test": null,
+      "flagship_rationale": "NOT flagship: its load-bearing claim (the pattern transfers outside chemistry) is UNVERIFIED at likely 55-80%, and an end-to-end test would need a metered backend this repo does not have. The structural properties (a validity gate between every tier pair, cost-per-survivor arithmetic) ARE asserted by test_bp7_slice.py."
+    }
+  }
+}

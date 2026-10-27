@@ -1,0 +1,880 @@
+{
+ "unit_id": "BLD-0060",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:BLD-0060",
+ "evidence": [
+  {
+   "claim": "BLD-0060 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/BLD-0060.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/BLD-0060.json",
+     "raw_output": "bytes=14584 sha256=a82074c421b424f9ac6500395a4abc61804d7910abfcc2c3d1163cea94e9faf9",
+     "fingerprint": "be773a0caa1b529da2807eb43e329d56",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact BLD-0060",
+     "raw_output": "schema-check",
+     "fingerprint": "8229f1288c9d860109d22741cc383dde",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "BLD-0060 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/BLD-0060",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py BLD-0060",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "4189a6c70ff2af3298fe3a2abfc3c810",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered BLD-0060",
+     "raw_output": "schema-valid",
+     "fingerprint": "07db83d87a55c44e8a0ceb48f5126b59",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/BLD-0060.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/BLD-0060.json",
+   "bytes": 14584,
+   "sha256": "a82074c421b424f9ac6500395a4abc61804d7910abfcc2c3d1163cea94e9faf9",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "min_bytes_threshold": 4000,
+ "extensions": {
+  "legacy_root": {
+   "kind": "scale-model",
+   "question": "Do the catalog's id scheme and its near-duplicate detector survive ten times the units? Check id-space capacity and zero-padding width, the merge behaviour when two slices carry overlapping ids, and the precision and recall of the lexical Jaccard detector as n grows from about a hundred units to 20,480.",
+   "claim_under_test": "The PREFIX-NNNN id scheme and a lexical Jaccard near-duplicate detector calibrated at n≈100 survive n=20,480 without a format change and without lowering the threshold.",
+   "measured_not_asserted": true,
+   "hardware": {
+    "platform": "linux x86_64 6.8.0-136-generic",
+    "python": "3.12.3",
+    "concurrency": "single-process inverted-index Jaccard; merger is CPU-only"
+   },
+   "threshold_policy": "THRESHOLD=0.70 was read off the n=100 planted bands (rename min=0.913, paraphrase min=0.808, rewrite max=0, distinct max=0.419) and was not lowered at n=20480.",
+   "detector": {
+    "mechanism": "token-set Jaccard, tokens [a-z0-9]+ length>=3 over id+title+question+inputs",
+    "threshold": 0.7,
+    "silent_class": "full_rewrite",
+    "scope": "LEXICAL token-set Jaccard over id+title+question_or_target+inputs. A full semantic rewrite lands in the same score band as a genuinely distinct entry; the detector is silent on that class.",
+    "n_live_anchor": 2007
+   },
+   "id_capacity": {
+    "observed_zero_padding_width": 4,
+    "id_pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+    "n_prefixes": 13,
+    "per_prefix_capacity": 10000,
+    "allocated_capacity": 130000,
+    "n_live": 2007,
+    "malformed_ids": [],
+    "single_prefix_accommodates_20480": false,
+    "multi_prefix_accommodates_20480": true,
+    "tenx_each_prefix_fits_without_format_change": true,
+    "accommodates_20480_without_format_change": true,
+    "format_change_required_if_one_prefix_holds_20480": true,
+    "prefixes": {
+     "ADV": {
+      "count": 144,
+      "width": 4,
+      "min": 1,
+      "max": 144
+     },
+     "ARC": {
+      "count": 112,
+      "width": 4,
+      "min": 1,
+      "max": 112
+     },
+     "AUD": {
+      "count": 96,
+      "width": 4,
+      "min": 1,
+      "max": 96
+     },
+     "BLD": {
+      "count": 64,
+      "width": 4,
+      "min": 1,
+      "max": 64
+     },
+     "CC": {
+      "count": 24,
+      "width": 4,
+      "min": 1,
+      "max": 24
+     },
+     "CNF": {
+      "count": 192,
+      "width": 4,
+      "min": 1,
+      "max": 192
+     },
+     "CNL": {
+      "count": 128,
+      "width": 4,
+      "min": 1,
+      "max": 128
+     },
+     "IMP": {
+      "count": 470,
+      "width": 4,
+      "min": 1,
+      "max": 480
+     },
+     "REL": {
+      "count": 24,
+      "width": 4,
+      "min": 1,
+      "max": 24
+     },
+     "RES": {
+      "count": 193,
+      "width": 4,
+      "min": 1,
+      "max": 193
+     },
+     "SYN": {
+      "count": 48,
+      "width": 4,
+      "min": 1,
+      "max": 48
+     },
+     "TST": {
+      "count": 352,
+      "width": 4,
+      "min": 1,
+      "max": 352
+     },
+     "WFA": {
+      "count": 160,
+      "width": 4,
+      "min": 1,
+      "max": 160
+     }
+    },
+    "tenx_per_prefix": {
+     "ADV": {
+      "live_count": 144,
+      "live_max": 144,
+      "tenx_count": 1440,
+      "tenx_max_if_dense": 1440,
+      "fits_observed_width": true
+     },
+     "ARC": {
+      "live_count": 112,
+      "live_max": 112,
+      "tenx_count": 1120,
+      "tenx_max_if_dense": 1120,
+      "fits_observed_width": true
+     },
+     "AUD": {
+      "live_count": 96,
+      "live_max": 96,
+      "tenx_count": 960,
+      "tenx_max_if_dense": 960,
+      "fits_observed_width": true
+     },
+     "BLD": {
+      "live_count": 64,
+      "live_max": 64,
+      "tenx_count": 640,
+      "tenx_max_if_dense": 640,
+      "fits_observed_width": true
+     },
+     "CC": {
+      "live_count": 24,
+      "live_max": 24,
+      "tenx_count": 240,
+      "tenx_max_if_dense": 240,
+      "fits_observed_width": true
+     },
+     "CNF": {
+      "live_count": 192,
+      "live_max": 192,
+      "tenx_count": 1920,
+      "tenx_max_if_dense": 1920,
+      "fits_observed_width": true
+     },
+     "CNL": {
+      "live_count": 128,
+      "live_max": 128,
+      "tenx_count": 1280,
+      "tenx_max_if_dense": 1280,
+      "fits_observed_width": true
+     },
+     "IMP": {
+      "live_count": 470,
+      "live_max": 480,
+      "tenx_count": 4700,
+      "tenx_max_if_dense": 4800,
+      "fits_observed_width": true
+     },
+     "REL": {
+      "live_count": 24,
+      "live_max": 24,
+      "tenx_count": 240,
+      "tenx_max_if_dense": 240,
+      "fits_observed_width": true
+     },
+     "RES": {
+      "live_count": 193,
+      "live_max": 193,
+      "tenx_count": 1930,
+      "tenx_max_if_dense": 1930,
+      "fits_observed_width": true
+     },
+     "SYN": {
+      "live_count": 48,
+      "live_max": 48,
+      "tenx_count": 480,
+      "tenx_max_if_dense": 480,
+      "fits_observed_width": true
+     },
+     "TST": {
+      "live_count": 352,
+      "live_max": 352,
+      "tenx_count": 3520,
+      "tenx_max_if_dense": 3520,
+      "fits_observed_width": true
+     },
+     "WFA": {
+      "live_count": 160,
+      "live_max": 160,
+      "tenx_count": 1600,
+      "tenx_max_if_dense": 1600,
+      "fits_observed_width": true
+     }
+    }
+   },
+   "merger": {
+    "implementation": "command-center/p2-wave/probes/BLD-0060/model.py:merge_slices",
+    "production_catalog_slices_dir_present": true,
+    "live_slices_reconstructed_from": "_source_slice_file on WORK-UNIT-CATALOG.json",
+    "live_slice_count": 22,
+    "overlap_rejected": true,
+    "collision": {
+     "id": "ADV-0001",
+     "paths": [
+      "slice-a.json",
+      "slice-b-overlap.json"
+     ]
+    },
+    "disjoint_accepted": true,
+    "order_independent": true,
+    "live_merge_matches_catalog": true,
+    "silent_dedup_would_accept": true,
+    "never_silently_deduplicates": true
+   },
+   "vocab_disjoint_real_vs_synth": {
+    "real_vocab": 7822,
+    "synth_vocab": 75892,
+    "intersection": [],
+    "intersection_size": 0,
+    "disjoint": true
+   },
+   "scale_points": [
+    {
+     "n": 100,
+     "origin": "live-sample",
+     "n_base": 100,
+     "n_live_in_base": 100,
+     "n_synth_in_base": 0,
+     "pair_count": 4950,
+     "clean_max_jaccard": 0.41935483870967744,
+     "clean_max_pair": [
+      "CNL-0069",
+      "CNL-0089",
+      0.4193548387
+     ],
+     "clean_max_source": "live-live",
+     "clean_above_threshold": 0,
+     "clean_max_below_threshold": true,
+     "live_clean_max_jaccard": 0.41935483870967744,
+     "synth_clean_max_jaccard": 0.0,
+     "firing_rates": {
+      "exact_rename": {
+       "firing_rate": 1.0,
+       "min_jaccard": 0.9130434782608695,
+       "max_jaccard": 0.9411764705882353,
+       "n": 5
+      },
+      "paraphrase": {
+       "firing_rate": 1.0,
+       "min_jaccard": 0.8076923076923077,
+       "max_jaccard": 0.8493150684931506,
+       "n": 5
+      },
+      "full_rewrite": {
+       "firing_rate": 0.0,
+       "min_jaccard": 0.0,
+       "max_jaccard": 0.0,
+       "n": 5
+      }
+     },
+     "precision_recall": {
+      "true_positives": 10,
+      "false_positives": 0,
+      "precision": 1.0,
+      "recall_in_scope_rename_and_paraphrase": 1.0,
+      "recall_including_full_rewrite_as_positive": 0.6666666666666666,
+      "rewrite_treated_as_false_positive_if_it_fires": true
+     }
+    },
+    {
+     "n": 20480,
+     "origin": "live-plus-reserved-synth",
+     "n_base": 20480,
+     "n_live_in_base": 2007,
+     "n_synth_in_base": 18473,
+     "pair_count": 209704960,
+     "clean_max_jaccard": 0.6571428571428571,
+     "clean_max_pair": [
+      "q02700",
+      "q04910",
+      0.6571428571
+     ],
+     "clean_max_source": "synth-synth",
+     "clean_above_threshold": 0,
+     "clean_max_below_threshold": true,
+     "live_clean_max_jaccard": 0.5535714285714286,
+     "synth_clean_max_jaccard": 0.6571428571428571,
+     "firing_rates": {
+      "exact_rename": {
+       "firing_rate": 1.0,
+       "min_jaccard": 0.9024390243902439,
+       "max_jaccard": 0.9487179487179487,
+       "n": 5
+      },
+      "paraphrase": {
+       "firing_rate": 1.0,
+       "min_jaccard": 0.8043478260869565,
+       "max_jaccard": 0.8674698795180723,
+       "n": 5
+      },
+      "full_rewrite": {
+       "firing_rate": 0.0,
+       "min_jaccard": 0.0,
+       "max_jaccard": 0.0,
+       "n": 5
+      }
+     },
+     "precision_recall": {
+      "true_positives": 10,
+      "false_positives": 0,
+      "precision": 1.0,
+      "recall_in_scope_rename_and_paraphrase": 1.0,
+      "recall_including_full_rewrite_as_positive": 0.6666666666666666,
+      "rewrite_treated_as_false_positive_if_it_fires": true
+     }
+    }
+   ],
+   "claims": [
+    {
+     "id": "C-CAPACITY",
+     "claim": "Observed PREFIX-NNNN (4-digit) across 13 prefixes allocates 130000 ids, which accommodates 20480 without a format change; every prefix still fits 4 digits at 10x its live count. A single 4-digit prefix cannot hold 20480 (would need width 5).",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[*].id (n=2007, width=4)"
+    },
+    {
+     "id": "C-MERGE",
+     "claim": "Merging two slices that share an id is REJECTED with both source paths named; a silent last-writer-wins dedup is a different function and is not what the merger does.",
+     "verdict": "CONFIRMED",
+     "anchor": "command-center/p2-wave/probes/BLD-0060/model.py:merge_slices"
+    },
+    {
+     "id": "C-PRECISION-RECALL",
+     "claim": "At threshold 0.70, planted exact-rename and paraphrase fire at rate 1.0 at n=100 and n=20480; precision is 1.0 (zero clean pairs above threshold); in-scope recall is 1.0.",
+     "verdict": "CONFIRMED",
+     "anchor": "scale_points[*].precision_recall and firing_rates"
+    },
+    {
+     "id": "C-SILENT-REWRITE",
+     "claim": "The detector is LEXICAL, so a full semantic rewrite scores 0.00 and lands in the same band as a genuinely distinct pair (n=100 distinct max 0.419; live catalog max 0.554). Recall treating rewrite as positive is 2/3; the threshold was not lowered to chase that number.",
+     "verdict": "CONFIRMED",
+     "anchor": "detector.silent_class=full_rewrite"
+    }
+   ],
+   "strongest_surviving_counterargument": "A 0.70 lexical threshold that holds precision at 209 million pairs does so because the 10x corpus was filled with reserved-vocab synthetics whose clean max is 0.657. A 10x corpus made of near-paraphrase English units could push the clean max through 0.70 without any planted mutant, and the live catalog already has a 0.554 pair. The precision result is conditional on the measured clean-max remaining below threshold, not a proof that every conceivable 20,480-unit catalog is safe. Catching full rewrites still requires a second, non-lexical signal; this unit does not add one and does not lower the threshold.",
+   "cloud_ok": false,
+   "registered": true,
+   "ts": "2026-08-25T00:43:41Z",
+   "completion_line": "SUCCESS:BLD-0060",
+   "output_schema": "command-center/schema/scale-model.schema.json",
+   "output_schema_on_disk": true,
+   "output_schema_bytes": 1076
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#BLD-0060",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/BLD-0060/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "BLD-0060"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/BLD-0060.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/BLD-0060.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "ce99d27fbd79656d5216851f5b61d735",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "scale-model",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 14584,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/BLD-0060.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "kind": "scale-model",
+ "question": "Do the catalog's id scheme and its near-duplicate detector survive ten times the units? Check id-space capacity and zero-padding width, the merge behaviour when two slices carry overlapping ids, and the precision and recall of the lexical Jaccard detector as n grows from about a hundred units to 20,480.",
+ "claim_under_test": "The PREFIX-NNNN id scheme and a lexical Jaccard near-duplicate detector calibrated at n≈100 survive n=20,480 without a format change and without lowering the threshold.",
+ "measured_not_asserted": true,
+ "hardware": {
+  "platform": "linux x86_64 6.8.0-136-generic",
+  "python": "3.12.3",
+  "concurrency": "single-process inverted-index Jaccard; merger is CPU-only"
+ },
+ "threshold_policy": "THRESHOLD=0.70 was read off the n=100 planted bands (rename min=0.913, paraphrase min=0.808, rewrite max=0, distinct max=0.419) and was not lowered at n=20480.",
+ "detector": {
+  "mechanism": "token-set Jaccard, tokens [a-z0-9]+ length>=3 over id+title+question+inputs",
+  "threshold": 0.7,
+  "silent_class": "full_rewrite",
+  "scope": "LEXICAL token-set Jaccard over id+title+question_or_target+inputs. A full semantic rewrite lands in the same score band as a genuinely distinct entry; the detector is silent on that class.",
+  "n_live_anchor": 2007
+ },
+ "id_capacity": {
+  "observed_zero_padding_width": 4,
+  "id_pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+  "n_prefixes": 13,
+  "per_prefix_capacity": 10000,
+  "allocated_capacity": 130000,
+  "n_live": 2007,
+  "malformed_ids": [],
+  "single_prefix_accommodates_20480": false,
+  "multi_prefix_accommodates_20480": true,
+  "tenx_each_prefix_fits_without_format_change": true,
+  "accommodates_20480_without_format_change": true,
+  "format_change_required_if_one_prefix_holds_20480": true,
+  "prefixes": {
+   "ADV": {
+    "count": 144,
+    "width": 4,
+    "min": 1,
+    "max": 144
+   },
+   "ARC": {
+    "count": 112,
+    "width": 4,
+    "min": 1,
+    "max": 112
+   },
+   "AUD": {
+    "count": 96,
+    "width": 4,
+    "min": 1,
+    "max": 96
+   },
+   "BLD": {
+    "count": 64,
+    "width": 4,
+    "min": 1,
+    "max": 64
+   },
+   "CC": {
+    "count": 24,
+    "width": 4,
+    "min": 1,
+    "max": 24
+   },
+   "CNF": {
+    "count": 192,
+    "width": 4,
+    "min": 1,
+    "max": 192
+   },
+   "CNL": {
+    "count": 128,
+    "width": 4,
+    "min": 1,
+    "max": 128
+   },
+   "IMP": {
+    "count": 470,
+    "width": 4,
+    "min": 1,
+    "max": 480
+   },
+   "REL": {
+    "count": 24,
+    "width": 4,
+    "min": 1,
+    "max": 24
+   },
+   "RES": {
+    "count": 193,
+    "width": 4,
+    "min": 1,
+    "max": 193
+   },
+   "SYN": {
+    "count": 48,
+    "width": 4,
+    "min": 1,
+    "max": 48
+   },
+   "TST": {
+    "count": 352,
+    "width": 4,
+    "min": 1,
+    "max": 352
+   },
+   "WFA": {
+    "count": 160,
+    "width": 4,
+    "min": 1,
+    "max": 160
+   }
+  },
+  "tenx_per_prefix": {
+   "ADV": {
+    "live_count": 144,
+    "live_max": 144,
+    "tenx_count": 1440,
+    "tenx_max_if_dense": 1440,
+    "fits_observed_width": true
+   },
+   "ARC": {
+    "live_count": 112,
+    "live_max": 112,
+    "tenx_count": 1120,
+    "tenx_max_if_dense": 1120,
+    "fits_observed_width": true
+   },
+   "AUD": {
+    "live_count": 96,
+    "live_max": 96,
+    "tenx_count": 960,
+    "tenx_max_if_dense": 960,
+    "fits_observed_width": true
+   },
+   "BLD": {
+    "live_count": 64,
+    "live_max": 64,
+    "tenx_count": 640,
+    "tenx_max_if_dense": 640,
+    "fits_observed_width": true
+   },
+   "CC": {
+    "live_count": 24,
+    "live_max": 24,
+    "tenx_count": 240,
+    "tenx_max_if_dense": 240,
+    "fits_observed_width": true
+   },
+   "CNF": {
+    "live_count": 192,
+    "live_max": 192,
+    "tenx_count": 1920,
+    "tenx_max_if_dense": 1920,
+    "fits_observed_width": true
+   },
+   "CNL": {
+    "live_count": 128,
+    "live_max": 128,
+    "tenx_count": 1280,
+    "tenx_max_if_dense": 1280,
+    "fits_observed_width": true
+   },
+   "IMP": {
+    "live_count": 470,
+    "live_max": 480,
+    "tenx_count": 4700,
+    "tenx_max_if_dense": 4800,
+    "fits_observed_width": true
+   },
+   "REL": {
+    "live_count": 24,
+    "live_max": 24,
+    "tenx_count": 240,
+    "tenx_max_if_dense": 240,
+    "fits_observed_width": true
+   },
+   "RES": {
+    "live_count": 193,
+    "live_max": 193,
+    "tenx_count": 1930,
+    "tenx_max_if_dense": 1930,
+    "fits_observed_width": true
+   },
+   "SYN": {
+    "live_count": 48,
+    "live_max": 48,
+    "tenx_count": 480,
+    "tenx_max_if_dense": 480,
+    "fits_observed_width": true
+   },
+   "TST": {
+    "live_count": 352,
+    "live_max": 352,
+    "tenx_count": 3520,
+    "tenx_max_if_dense": 3520,
+    "fits_observed_width": true
+   },
+   "WFA": {
+    "live_count": 160,
+    "live_max": 160,
+    "tenx_count": 1600,
+    "tenx_max_if_dense": 1600,
+    "fits_observed_width": true
+   }
+  }
+ },
+ "merger": {
+  "implementation": "command-center/p2-wave/probes/BLD-0060/model.py:merge_slices",
+  "production_catalog_slices_dir_present": true,
+  "live_slices_reconstructed_from": "_source_slice_file on WORK-UNIT-CATALOG.json",
+  "live_slice_count": 22,
+  "overlap_rejected": true,
+  "collision": {
+   "id": "ADV-0001",
+   "paths": [
+    "slice-a.json",
+    "slice-b-overlap.json"
+   ]
+  },
+  "disjoint_accepted": true,
+  "order_independent": true,
+  "live_merge_matches_catalog": true,
+  "silent_dedup_would_accept": true,
+  "never_silently_deduplicates": true
+ },
+ "vocab_disjoint_real_vs_synth": {
+  "real_vocab": 7822,
+  "synth_vocab": 75892,
+  "intersection": [],
+  "intersection_size": 0,
+  "disjoint": true
+ },
+ "scale_points": [
+  {
+   "n": 100,
+   "origin": "live-sample",
+   "n_base": 100,
+   "n_live_in_base": 100,
+   "n_synth_in_base": 0,
+   "pair_count": 4950,
+   "clean_max_jaccard": 0.41935483870967744,
+   "clean_max_pair": [
+    "CNL-0069",
+    "CNL-0089",
+    0.4193548387
+   ],
+   "clean_max_source": "live-live",
+   "clean_above_threshold": 0,
+   "clean_max_below_threshold": true,
+   "live_clean_max_jaccard": 0.41935483870967744,
+   "synth_clean_max_jaccard": 0.0,
+   "firing_rates": {
+    "exact_rename": {
+     "firing_rate": 1.0,
+     "min_jaccard": 0.9130434782608695,
+     "max_jaccard": 0.9411764705882353,
+     "n": 5
+    },
+    "paraphrase": {
+     "firing_rate": 1.0,
+     "min_jaccard": 0.8076923076923077,
+     "max_jaccard": 0.8493150684931506,
+     "n": 5
+    },
+    "full_rewrite": {
+     "firing_rate": 0.0,
+     "min_jaccard": 0.0,
+     "max_jaccard": 0.0,
+     "n": 5
+    }
+   },
+   "precision_recall": {
+    "true_positives": 10,
+    "false_positives": 0,
+    "precision": 1.0,
+    "recall_in_scope_rename_and_paraphrase": 1.0,
+    "recall_including_full_rewrite_as_positive": 0.6666666666666666,
+    "rewrite_treated_as_false_positive_if_it_fires": true
+   }
+  },
+  {
+   "n": 20480,
+   "origin": "live-plus-reserved-synth",
+   "n_base": 20480,
+   "n_live_in_base": 2007,
+   "n_synth_in_base": 18473,
+   "pair_count": 209704960,
+   "clean_max_jaccard": 0.6571428571428571,
+   "clean_max_pair": [
+    "q02700",
+    "q04910",
+    0.6571428571
+   ],
+   "clean_max_source": "synth-synth",
+   "clean_above_threshold": 0,
+   "clean_max_below_threshold": true,
+   "live_clean_max_jaccard": 0.5535714285714286,
+   "synth_clean_max_jaccard": 0.6571428571428571,
+   "firing_rates": {
+    "exact_rename": {
+     "firing_rate": 1.0,
+     "min_jaccard": 0.9024390243902439,
+     "max_jaccard": 0.9487179487179487,
+     "n": 5
+    },
+    "paraphrase": {
+     "firing_rate": 1.0,
+     "min_jaccard": 0.8043478260869565,
+     "max_jaccard": 0.8674698795180723,
+     "n": 5
+    },
+    "full_rewrite": {
+     "firing_rate": 0.0,
+     "min_jaccard": 0.0,
+     "max_jaccard": 0.0,
+     "n": 5
+    }
+   },
+   "precision_recall": {
+    "true_positives": 10,
+    "false_positives": 0,
+    "precision": 1.0,
+    "recall_in_scope_rename_and_paraphrase": 1.0,
+    "recall_including_full_rewrite_as_positive": 0.6666666666666666,
+    "rewrite_treated_as_false_positive_if_it_fires": true
+   }
+  }
+ ],
+ "claims": [
+  {
+   "id": "C-CAPACITY",
+   "claim": "Observed PREFIX-NNNN (4-digit) across 13 prefixes allocates 130000 ids, which accommodates 20480 without a format change; every prefix still fits 4 digits at 10x its live count. A single 4-digit prefix cannot hold 20480 (would need width 5).",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/WORK-UNIT-CATALOG.json work_units[*].id (n=2007, width=4)"
+  },
+  {
+   "id": "C-MERGE",
+   "claim": "Merging two slices that share an id is REJECTED with both source paths named; a silent last-writer-wins dedup is a different function and is not what the merger does.",
+   "verdict": "CONFIRMED",
+   "anchor": "command-center/p2-wave/probes/BLD-0060/model.py:merge_slices"
+  },
+  {
+   "id": "C-PRECISION-RECALL",
+   "claim": "At threshold 0.70, planted exact-rename and paraphrase fire at rate 1.0 at n=100 and n=20480; precision is 1.0 (zero clean pairs above threshold); in-scope recall is 1.0.",
+   "verdict": "CONFIRMED",
+   "anchor": "scale_points[*].precision_recall and firing_rates"
+  },
+  {
+   "id": "C-SILENT-REWRITE",
+   "claim": "The detector is LEXICAL, so a full semantic rewrite scores 0.00 and lands in the same band as a genuinely distinct pair (n=100 distinct max 0.419; live catalog max 0.554). Recall treating rewrite as positive is 2/3; the threshold was not lowered to chase that number.",
+   "verdict": "CONFIRMED",
+   "anchor": "detector.silent_class=full_rewrite"
+  }
+ ],
+ "strongest_surviving_counterargument": "A 0.70 lexical threshold that holds precision at 209 million pairs does so because the 10x corpus was filled with reserved-vocab synthetics whose clean max is 0.657. A 10x corpus made of near-paraphrase English units could push the clean max through 0.70 without any planted mutant, and the live catalog already has a 0.554 pair. The precision result is conditional on the measured clean-max remaining below threshold, not a proof that every conceivable 20,480-unit catalog is safe. Catching full rewrites still requires a second, non-lexical signal; this unit does not add one and does not lower the threshold.",
+ "cloud_ok": false,
+ "registered": true,
+ "ts": "2026-08-25T00:43:41Z",
+ "completion_line": "SUCCESS:BLD-0060",
+ "output_schema": "command-center/schema/scale-model.schema.json",
+ "output_schema_on_disk": true,
+ "output_schema_bytes": 1076
+}

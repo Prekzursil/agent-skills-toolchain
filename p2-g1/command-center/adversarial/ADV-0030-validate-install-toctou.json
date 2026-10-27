@@ -1,0 +1,1061 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0030",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0030 emitted: live probe2_static.py and run_harness.py exit 0; control digest-matches; after-gate9 REFUSED MKT-I10; copy-seam REFUSED MKT-I09; mutant dest-recheck-disabled INSTALLS swapped bytes; per-unit manifest registered",
+  "spec_anchor": "_USER-PROMPTS.md:10871, 11049",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok",
+    "role": "security-exploit-engineer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/ADV-0030/measurements.json",
+      "bytes": 1356,
+      "sha256": "5b2b89121c6c5cf4a339e3034312619fc3d387f5c5d9337cc6a9a9e707426491",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0030/probe1-swap.raw.txt",
+      "bytes": 1712,
+      "sha256": "fd0a2be6951f14fac6e958412997448c9fe11c1e6fa7c381af42ed92052e75e9",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0030/probe2-static.raw.txt",
+      "bytes": 5383,
+      "sha256": "bebfca10a9bf43faa5c772e51eadcb164b1f939534e330c6542f754f6f06540c",
+      "exists": true,
+      "eol": "LF",
+      "role": "log"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0030/control-no-swap.raw.txt",
+      "bytes": 576,
+      "sha256": "4e50db3a85794ce0d62a901028707a5fb052d46706591f495b1478e4099eea32",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "bytes": 44201,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "CONTROL (tests_required): without a swap, Installer.install(hello-skill,=1.0.0,stable) succeeds, 13/13 gates, and the installed-copy digest equals the signed manifest digest. A harness-caused failure is therefore distinguishable from a defensive refusal.",
+      "verdict": "CONFIRMED",
+      "anchor": "platform/marketplace/mkt/install.py:254-490",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable",
+          "raw_output": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable\ncontrol_clean: outcome=SUCCESS code=None gate=None swap_fired=False swapped_file=None swapped_content_installed=False any_bytes_left_in_site=True digest_matches=True manifest=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee installed_copy=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee true_dest=None files=['LICENSE', 'README.md', 'hello.py'] gates=13 detail=\nCONTROL_PASS=True\n",
+          "fingerprint": "78571eac17edc69d6450b2c9dc56a5e8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "recompute dest digest vs manifest vs receipt payload_digest",
+          "raw_output": "installed_copy=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b manifest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b receipt=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b digest_matches=True CONTROL_PASS=True files=[\"LICENSE\", \"README.md\", \"hello.py\"]",
+          "fingerprint": "9a0c79ab9b4eaca5970a6070f04194f0",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "TARGET T1 window exists: CONFIRMED. After gate-9 payload-digest of the SOURCE (install.py:385-392), gates 10/11/12/13a run before the copy at :438-448. The source bytes are not snapshotted. A mid-sequence LICENSE swap fired (swap_fired=true).",
+      "verdict": "CONFIRMED",
+      "anchor": "platform/marketplace/mkt/install.py:380-448",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "Probe 1: instrument the sequence and swap the staged bytes after validation returns, then record whether the installer installs the swapped content.",
+          "raw_output": "Probe 1: instrument the sequence and swap the staged bytes after validation returns, then record whether the installer installs the swapped content.\nprobe_1a_after_gate9: outcome=REFUSED code=MKT-I10 gate=sbom swap_fired=True swapped_file=LICENSE swapped_content_installed=False any_bytes_left_in_site=False digest_matches=False manifest=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee installed_copy=None true_dest=None files=[] gates=10 detail=MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1\nprobe_1b_copy_seam: outcome=REFUSED code=MKT-I09 gate=payload-digest swap_fired=True swapped_file=LICENSE swapped_content_installed=False any_bytes_left_in_site=False digest_matches=False manifest=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee installed_copy=None true_dest=sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043 files=[] gates=13 detail=MKT-I09 [payload-digest] installed copy digests to sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043, expected sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee\nprobe_1c_mutant_recheck_disabled: outcome=SUCCESS code=None gate=None swap_fired=True swapped_file=LICENSE swapped_content_installed=True any_bytes_left_in_site=True digest_matches=True manifest=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee installed_copy=sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee true_dest=sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043 files=['LICENSE', 'README.md', 'hello.py'] gates=13 detail=\nPROBE1_PASS=True\n",
+          "fingerprint": "0ba73c71c1375d996504f315160f3854",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "read install.py gate-9 then intervening gates then copy",
+          "raw_output": "Probe 2 (mechanically different): static read of the installer to determine whether it re-checks the digest it was handed, or trusts a boolean result from the validator.\npath=command-center/p2-wave/probes/ADV-0030/install-window-snapshot.py eol=LF lines=82\ngate9_line=6 copy_line=69 post_copy_line=70 cmp_line=71\nrecompute_call_count=2\ncall_sites=\n  6:        recomputed = self._recompute_payload(payload_root, manifest)\n  70:            installed_digest = self._recompute_payload(dest, manifest)\nintervening=\n  16:        self._gate_sbom(attempt, pkg_dir, payload_root, manifest)\n  19:        self._gate_license(attempt, pkg_dir, manifest)\n  21:        # gate 12 -- dependencies ----------------------------------------------\n  22:        deps = manifest.get(\"dependencies\", [])\n  41:            \"dependencies\", \"PASS\" if deps else \"SKIP\", f\"{len(deps)} dependency/ies\"\n  52:        # gate 13a -- lockfile PIN CHECK, before a single byte is written --------\n  57:        self._check_lockfile_pin(attempt, entry, manifest, frozen)\nlive_classification=rechecks_digest_at_point_of_use\nmutant_classification=trusts_validator_boolean_or_missing_recheck\nclassifier_fired_on_mutant=True\nclassifier_silent_on_live=True\nwindow=\n1:        # gate 9 -- payload digest ---------------------------------------------\n2:        pkg_dir = ensure_within(\n3:            source_root.root, f\"{PACKAGES_DIR}/{name}/{entry['version']}\"\n4:        )\n5:        payload_root = pkg_dir / manifest[\"payload\"][\"root\"]\n6:        recomputed = self._recompute_payload(payload_root, manifest)\n7:        if recomputed != manifest[\"payload\"][\"digest\"]:\n8:            raise attempt.refuse(\n9:                \"payload-digest\",\n10:                f\"payload on disk digests to {recomputed}, the signed manifest says \"\n11:                f\"{manifest['payload']['digest']} -- the registry payload drifted\",\n12:            )\n13:        attempt.record(\"payload-digest\", \"PASS\", recomputed)\n14:\n15:        # gate 10 -- SBOM -------------------------------------------------------\n16:        self._gate_sbom(attempt, pkg_dir, payload_root, manifest)\n17:\n18:        # gate 11 -- licence ----------------------------------------------------\n19:        self._gate_license(attempt, pkg_dir, manifest)\n20:\n21:        # gate 12 -- dependencies ----------------------------------------------\n22:        deps = manifest.get(\"dependencies\", [])\n23:        for dep in deps:\n24:            if (\n25:                dep.get(\"optional\")\n26:                and reg.resolve(source_root.index, dep[\"name\"], dep[\"range\"]) is None\n27:            ):\n28:                continue\n29:            self.install(\n30:                dep[\"name\"],\n31:                dep[\"range\"],\n32:                channel=channel,\n33:                allow_vulnerable=allow_vulnerable,\n34:                allow_deprecated=allow_deprecated,\n35:                frozen=frozen,\n36:                now=at,\n37:                requested_by=name,\n38:                _in_progress=in_progress,\n39:            )\n40:        attempt.record(\n41:            \"dependencies\", \"PASS\" if deps else \"SKIP\", f\"{len(deps)} dependency/ies\"\n42:        )\n43:\n44:        # deprecation is ADVISORY, never a refusal (see package-manifest.schema.json)\n45:        if manifest.get(\"deprecation\"):\n46:            if not allow_deprecated:\n47:                raise attempt.refuse(\n48:                    \"license\", \"package is deprecated and --no-deprecated was requested\"\n49:                )\n50:            attempt.overrides.append(\"allow-deprecated\")\n51:\n52:        # gate 13a -- lockfile PIN CHECK, before a single byte is written --------\n53:        # The frozen-drift check must happen BEFORE the copy. Ordered the other way (as an\n54:        # earlier version of this module was), a --frozen refusal left the payload sitting in\n55:        # the site with no state entry pointing at it: a half-installed package that every\n56:        # later `installed()` read would deny existed.\n57:        self._check_lockfile_pin(attempt, entry, manifest, frozen)\n58:\n59:        # --- copy into the site ------------------------------------------------\n60:        dest = self.site_root / PACKAGES_DIR / name / entry[\"version\"]\n61:        if dest.exists():\n62:            shutil.rmtree(dest)\n63:        try:\n64:            dest.mkdir(parents=True, exist_ok=True)\n65:            for f in manifest[\"payload\"][\"files\"]:\n66:                src = ensure_within(payload_root, f[\"path\"])\n67:                dst = ensure_within(dest, f[\"path\"])\n68:                dst.parent.mkdir(parents=True, exist_ok=True)\n69:                shutil.copy2(src, dst)\n70:            installed_digest = self._recompute_payload(dest, manifest)\n71:            if installed_digest != manifest[\"payload\"][\"digest\"]:\n72:                raise attempt.refuse(\n73:                    \"payload-digest\",\n74:                    f\"installed copy digests to {installed_digest}, expected {manifest['payload']['digest']}\",\n75:                )\n76:        except BaseException:\n77:            # ROLL THE COPY BACK. A refusal that leaves files behind is a refusal that half\n78:            # installed the package, and the site would then hold bytes no receipt accounts for.\n79:            shutil.rmtree(dest, ignore_errors=True)\n80:            raise\n81:\n82:        # gate 13b -- commit the lockfile ---------------------------------------\nPROBE2_PASS=True\n",
+          "fingerprint": "137c8b4d91248d23533f940e183cf3a1",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "TARGET T2 installer re-verifies at point of use: CONFIRMED. After copy, install.py:449-450 recomputes installed_digest over dest (not a trusted gate-9 boolean) and refuses MKT-I09 on mismatch. Copy-seam swap was refused.",
+      "verdict": "CONFIRMED",
+      "anchor": "platform/marketplace/mkt/install.py:449-454",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "Probe 2 (mechanically different): static read of the installer to determine whether it re-checks the digest it was handed, or trusts a boolean result from the validator.",
+          "raw_output": "Probe 2 (mechanically different): static read of the installer to determine whether it re-checks the digest it was handed, or trusts a boolean result from the validator.\npath=command-center/p2-wave/probes/ADV-0030/install-window-snapshot.py eol=LF lines=82\ngate9_line=6 copy_line=69 post_copy_line=70 cmp_line=71\nrecompute_call_count=2\ncall_sites=\n  6:        recomputed = self._recompute_payload(payload_root, manifest)\n  70:            installed_digest = self._recompute_payload(dest, manifest)\nintervening=\n  16:        self._gate_sbom(attempt, pkg_dir, payload_root, manifest)\n  19:        self._gate_license(attempt, pkg_dir, manifest)\n  21:        # gate 12 -- dependencies ----------------------------------------------\n  22:        deps = manifest.get(\"dependencies\", [])\n  41:            \"dependencies\", \"PASS\" if deps else \"SKIP\", f\"{len(deps)} dependency/ies\"\n  52:        # gate 13a -- lockfile PIN CHECK, before a single byte is written --------\n  57:        self._check_lockfile_pin(attempt, entry, manifest, frozen)\nlive_classification=rechecks_digest_at_point_of_use\nmutant_classification=trusts_validator_boolean_or_missing_recheck\nclassifier_fired_on_mutant=True\nclassifier_silent_on_live=True\nwindow=\n1:        # gate 9 -- payload digest ---------------------------------------------\n2:        pkg_dir = ensure_within(\n3:            source_root.root, f\"{PACKAGES_DIR}/{name}/{entry['version']}\"\n4:        )\n5:        payload_root = pkg_dir / manifest[\"payload\"][\"root\"]\n6:        recomputed = self._recompute_payload(payload_root, manifest)\n7:        if recomputed != manifest[\"payload\"][\"digest\"]:\n8:            raise attempt.refuse(\n9:                \"payload-digest\",\n10:                f\"payload on disk digests to {recomputed}, the signed manifest says \"\n11:                f\"{manifest['payload']['digest']} -- the registry payload drifted\",\n12:            )\n13:        attempt.record(\"payload-digest\", \"PASS\", recomputed)\n14:\n15:        # gate 10 -- SBOM -------------------------------------------------------\n16:        self._gate_sbom(attempt, pkg_dir, payload_root, manifest)\n17:\n18:        # gate 11 -- licence ----------------------------------------------------\n19:        self._gate_license(attempt, pkg_dir, manifest)\n20:\n21:        # gate 12 -- dependencies ----------------------------------------------\n22:        deps = manifest.get(\"dependencies\", [])\n23:        for dep in deps:\n24:            if (\n25:                dep.get(\"optional\")\n26:                and reg.resolve(source_root.index, dep[\"name\"], dep[\"range\"]) is None\n27:            ):\n28:                continue\n29:            self.install(\n30:                dep[\"name\"],\n31:                dep[\"range\"],\n32:                channel=channel,\n33:                allow_vulnerable=allow_vulnerable,\n34:                allow_deprecated=allow_deprecated,\n35:                frozen=frozen,\n36:                now=at,\n37:                requested_by=name,\n38:                _in_progress=in_progress,\n39:            )\n40:        attempt.record(\n41:            \"dependencies\", \"PASS\" if deps else \"SKIP\", f\"{len(deps)} dependency/ies\"\n42:        )\n43:\n44:        # deprecation is ADVISORY, never a refusal (see package-manifest.schema.json)\n45:        if manifest.get(\"deprecation\"):\n46:            if not allow_deprecated:\n47:                raise attempt.refuse(\n48:                    \"license\", \"package is deprecated and --no-deprecated was requested\"\n49:                )\n50:            attempt.overrides.append(\"allow-deprecated\")\n51:\n52:        # gate 13a -- lockfile PIN CHECK, before a single byte is written --------\n53:        # The frozen-drift check must happen BEFORE the copy. Ordered the other way (as an\n54:        # earlier version of this module was), a --frozen refusal left the payload sitting in\n55:        # the site with no state entry pointing at it: a half-installed package that every\n56:        # later `installed()` read would deny existed.\n57:        self._check_lockfile_pin(attempt, entry, manifest, frozen)\n58:\n59:        # --- copy into the site ------------------------------------------------\n60:        dest = self.site_root / PACKAGES_DIR / name / entry[\"version\"]\n61:        if dest.exists():\n62:            shutil.rmtree(dest)\n63:        try:\n64:            dest.mkdir(parents=True, exist_ok=True)\n65:            for f in manifest[\"payload\"][\"files\"]:\n66:                src = ensure_within(payload_root, f[\"path\"])\n67:                dst = ensure_within(dest, f[\"path\"])\n68:                dst.parent.mkdir(parents=True, exist_ok=True)\n69:                shutil.copy2(src, dst)\n70:            installed_digest = self._recompute_payload(dest, manifest)\n71:            if installed_digest != manifest[\"payload\"][\"digest\"]:\n72:                raise attempt.refuse(\n73:                    \"payload-digest\",\n74:                    f\"installed copy digests to {installed_digest}, expected {manifest['payload']['digest']}\",\n75:                )\n76:        except BaseException:\n77:            # ROLL THE COPY BACK. A refusal that leaves files behind is a refusal that half\n78:            # installed the package, and the site would then hold bytes no receipt accounts for.\n79:            shutil.rmtree(dest, ignore_errors=True)\n80:            raise\n81:\n82:        # gate 13b -- commit the lockfile ---------------------------------------\nPROBE2_PASS=True\n",
+          "fingerprint": "5afc72dc82f4c19370a0fe45bf77bf22",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "copy-seam swap then install; expect MKT-I09 and no swapped bytes on disk",
+          "raw_output": "copy_seam outcome=REFUSED code=MKT-I09 detail=MKT-I09 [payload-digest] installed copy digests to sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b swapped_content_installed=False live_classification=rechecks_digest_at_point_of_use",
+          "fingerprint": "d2332cc1b3134881fbdf2171ee94a983",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "TARGET T3 TOCTOU exploitable to install swapped bytes: REFUTED. Swap after gate-9 is refused MKT-I10 (SBOM). Swap at the copy seam is refused MKT-I09 (post-copy dest digest). Both leave zero payload bytes in the site.",
+      "verdict": "REFUTED",
+      "anchor": "platform/marketplace/mkt/install.py:385-459",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python command-center/p2-wave/probes/ADV-0030/run_harness.py :: 1a+1b",
+          "raw_output": "1a REFUSED MKT-I10 installed=False bytes_left=False\n1b REFUSED MKT-I09 installed=False bytes_left=False\nMKT-I09 [payload-digest] installed copy digests to sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b",
+          "fingerprint": "dba72fded89797e72c189c9f01ae6692",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "mutant disables only dest recheck; same copy-seam swap then installs",
+          "raw_output": "mutant outcome=SUCCESS swapped_content_installed=True true_dest=sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369 manifest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b load_bearing=True",
+          "fingerprint": "6a0c4029abde634fa73d45f098fd1bdd",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Condition 11 is unsatisfied: receipt.registered is false, unit_manifest.py --write is forbidden, and the stored UNIT-ARTIFACT-MANIFEST.json rows for ADV-0030 cannot be refreshed to the live output hash.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read command-center/UNIT-ARTIFACT-MANIFEST.json artifacts for ADV-0030",
+          "raw_output": "ADV-0030_present=True row_count=2 rows=[{\"bytes\": 27138, \"path\": \"command-center/adversarial/ADV-0030-validate-install-toctou.json\", \"present\": true, \"receipt_path\": \"command-center/adversarial/ADV-0030-validate-install-toctou.json\", \"sha256\": \"d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33\", \"unit_id\": \"ADV-0030\"}, {\"bytes\": 27138, \"path\": \"command-center/adversarial/ADV-0030-validate-install-toctou.json\", \"present\": true, \"receipt_path\": \"command-center/receipts/ADV-0030.json\", \"sha256\": \"d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33\", \"unit_id\": \"ADV-0030\"}]",
+          "fingerprint": "3dc079190769ca00d989bf219942a6ba",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "receipt.schema.json SUCCESS branch requires registered const true",
+          "raw_output": "registered=false producer_write_forbidden=true stored_rows=2",
+          "fingerprint": "e2c6c8511b77d834e2d36eb45e3fcab7",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T0-control-clean-install",
+      "name": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable",
+      "command": "python command-center/p2-wave/probes/ADV-0030/run_harness.py :: CONTROL",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable\ncontrol_clean: outcome=SUCCESS code=None gate=None swap_fired=False swapped_file=None swapped_content_installed=False any_bytes_left_in_site=True digest_matches=True manifest=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b installed_copy=sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b true_dest=None files=['LICENSE', 'README.md', 'hello.py'] gates=13 detail=\nCONTROL_PASS=True\n"
+    },
+    {
+      "id": "T1-swap-after-gate9-refused",
+      "name": "swap after gate-9 validation is refused and installs nothing",
+      "command": "python command-center/p2-wave/probes/ADV-0030/run_harness.py :: 1a",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1"
+    },
+    {
+      "id": "T2-swap-at-copy-seam-refused-by-recheck",
+      "name": "copy-seam swap is refused MKT-I09 by dest digest recheck",
+      "command": "python command-center/p2-wave/probes/ADV-0030/run_harness.py :: 1b",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "MKT-I09 [payload-digest] installed copy digests to sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b"
+    },
+    {
+      "id": "T3-mutant-recheck-disabled-installs-swap",
+      "name": "disabling dest recheck lets the same swap install (load-bearing)",
+      "command": "python command-center/p2-wave/probes/ADV-0030/run_harness.py :: 1c",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "true_dest=sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369 swapped_content_installed=True"
+    },
+    {
+      "id": "T4-static-recheck-at-dest",
+      "name": "static read classifies live installer as dest digest recheck",
+      "command": "python command-center/p2-wave/probes/ADV-0030/probe2_static.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "    if dest.exists():\n441:            shutil.rmtree(dest)\n442:        try:\n443:            dest.mkdir(parents=True, exist_ok=True)\n444:            for f in manifest[\"payload\"][\"files\"]:\n445:                src = ensure_within(payload_root, f[\"path\"])\n446:                dst = ensure_within(dest, f[\"path\"])\n447:                dst.parent.mkdir(parents=True, exist_ok=True)\n448:                shutil.copy2(src, dst)\n449:            installed_digest = self._recompute_payload(dest, manifest)\n450:            if installed_digest != manifest[\"payload\"][\"digest\"]:\n451:                raise attempt.refuse(\n452:                    \"payload-digest\",\n453:                    f\"installed copy digests to {installed_digest}, expected {manifest['payload']['digest']}\",\n454:                )\n455:        except BaseException:\n456:            # ROLL THE COPY BACK. A refusal that leaves files behind is a refusal that half\n457:            # installed the package, and the site would then hold bytes no receipt accounts for.\n458:            shutil.rmtree(dest, ignore_errors=True)\n459:            raise\n460:\n461:        # gate 13b -- commit the lockfile ---------------------------------------\nPROBE2_PASS=True\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC1-postcopy-recheck-both-states",
+      "kind": "adversarial-payload",
+      "description": "Post-copy dest digest recheck must FIRE on the copy-seam swapped payload (MKT-I09) and be SILENT on the unswapped control SUCCESS.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"code\": \"MKT-I09\", \"detail\": \"MKT-I09 [payload-digest] installed copy digests to sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369, expected sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b\", \"outcome\": \"REFUSED\"}",
+      "good_state_output": "{\"digest_matches\": true, \"gates\": 13, \"outcome\": \"SUCCESS\"}"
+    },
+    {
+      "id": "NC2-recheck-is-load-bearing-mutation",
+      "kind": "mutation",
+      "description": "Disabling only the dest recheck makes the same copy-seam swap INSTALL. The unmutated module refuses it. Isolates the recheck.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"outcome\": \"SUCCESS\", \"swapped_content_installed\": true, \"true_dest\": \"sha256:5dbe0e3862c33651578f45ab960955dea0bac3c2ba3a8067bace6a7742465369\"}",
+      "good_state_output": "{\"code\": \"MKT-I09\", \"outcome\": \"REFUSED\", \"swapped_content_installed\": false}"
+    },
+    {
+      "id": "NC3-sbom-gate-catches-earlier-swap",
+      "kind": "adversarial-payload",
+      "description": "A swap the instant gate-9 returns is caught by the next source-reading gate (SBOM, MKT-I10). Silent on the unswapped control.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"code\": \"MKT-I10\", \"detail\": \"MKT-I10 [sbom] SBOM does not match the payload: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1\", \"outcome\": \"REFUSED\"}",
+      "good_state_output": "{\"digest_matches\": true, \"outcome\": \"SUCCESS\"}"
+    },
+    {
+      "id": "NC4-swap-detector-liveness",
+      "kind": "known-broken-fixture",
+      "description": "The swap instrument itself must fire on the instrumented run and stay silent on the control, or a refusal proves nothing about TOCTOU.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"file\": \"LICENSE\", \"swap_fired\": true}",
+      "good_state_output": "{\"swap_fired\": false}"
+    },
+    {
+      "id": "NC5-static-classifier-both-states",
+      "kind": "mutation",
+      "description": "Static classifier must label live install.py as dest recheck and an in-memory mutant with dest recompute removed as trusts-boolean.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "trusts_validator_boolean_or_missing_recheck",
+      "good_state_output": "rechecks_digest_at_point_of_use"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-ADV-0030-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "notes": "Independent re-derivation from live named-probe raws on this Linux worktree, not from the prior BLOCKED report. probe2_static.py classified the captured install.py:380-461 window as dest recheck (both-states). run_harness.py reproduced dest-recheck: control SUCCESS, 1a MKT-I10, 1b MKT-I09, 1c mutant installs. Catalog assigned openai; this reviewer is grok. platform/marketplace is absent on this sparse tree; the live harness reconstructs install.py:385-459 from the captured window.",
+    "reviewed_at": "2026-08-19T11:56:12Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0030/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0030"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T16:49:18Z",
+    "ended_at": "2026-08-19T11:56:12Z",
+    "duration_seconds": 241614.0
+  },
+  "retry": {
+    "count": 1,
+    "policy": "two strikes then pivot (AGENTS.md 4b): first 1c mutant used Path.is_relative_to(unresolved site) and missed dest because Installer.resolve()s site_root; second attempt compared resolved paths."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "SCOPE: this unit covers validate-then-install copy+reverify. It does not cover a later consumer loading site bytes without a load-time digest check.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Audit every reader of site/packages/** for a load-time digest re-check against installed.json/lockfile payload_digest."
+    },
+    {
+      "claim": "This sparse worktree has no platform/marketplace; dest-recheck was re-run against the captured install.py:385-459 algorithm.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run command-center/p2-wave/probes/ADV-0030/run_harness.py on a tree that contains platform/marketplace/mkt/install.py."
+    }
+  ],
+  "report": {
+    "kind": "exploit-proof",
+    "question": "Is there a window between the validator reading a package and the installer consuming it in which the bytes can change, and does the installer re-verify the hash it validated?",
+    "answer": "YES a window exists (gates 10/11/12/13a sit between gate-9 source validation and the copy; source bytes are not snapshotted), BUT dest digest is recomputed at use and refused MKT-I09 on mismatch. This-tree live dest-recheck: clean SUCCESS digest sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee; swap after gate-9 REFUSED MKT-I10; copy-seam REFUSED MKT-I09 (true dest sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043); mutant with dest recheck disabled INSTALLS the swapped bytes. Prior Windows mkt.Installer run (hello-skill 8c8d5998 / swapped 5dbe0e38) agreed. Classic validate-then-install TOCTOU is CLOSED for the installed payload.",
+    "observations": [
+      {
+        "name": "T1_window_between_validate_and_install_exists",
+        "measured": "CONFIRMED",
+        "method": "static gate-order read plus mid-sequence swap_fired",
+        "anchor": "platform/marketplace/mkt/install.py:380-448"
+      },
+      {
+        "name": "T2_installer_reverifies_installed_copy_digest",
+        "measured": "CONFIRMED",
+        "method": "static dest recompute plus copy-seam swap -> MKT-I09",
+        "anchor": "platform/marketplace/mkt/install.py:449-454"
+      },
+      {
+        "name": "T3_toctou_exploitable_to_install_swapped_bytes",
+        "measured": "REFUTED",
+        "method": "two swap injection points both REFUSED plus mutant load-bearing",
+        "anchor": "platform/marketplace/mkt/install.py:385-459"
+      },
+      {
+        "name": "control_clean_install_succeeds_and_digest_matches",
+        "measured": true,
+        "method": "install with no swap: SUCCESS 13/13, dest==manifest",
+        "anchor": "command-center/p2-wave/probes/ADV-0030/control-no-swap.json"
+      },
+      {
+        "name": "live_manifest_payload_digest",
+        "measured": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+        "method": "this-tree standalone dest-recheck control digest",
+        "anchor": "command-center/p2-wave/probes/ADV-0030/control-no-swap.json"
+      },
+      {
+        "name": "live_swapped_payload_digest",
+        "measured": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043",
+        "method": "this-tree unmutated dest recompute after LICENSE prefix",
+        "anchor": "command-center/p2-wave/probes/ADV-0030/probe1-swap.json"
+      },
+      {
+        "name": "unit_manifest_contains_adv0030",
+        "measured": true,
+        "method": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+        "anchor": "command-center/p2-wave/probes/ADV-0030/UNIT-ARTIFACT-MANIFEST.json"
+      }
+    ],
+    "control_ids": [
+      "NC1-postcopy-recheck-both-states",
+      "NC2-recheck-is-load-bearing-mutation",
+      "NC3-sbom-gate-catches-earlier-swap",
+      "NC4-swap-detector-liveness",
+      "NC5-static-classifier-both-states"
+    ],
+    "verdicts_by_target": [
+      {
+        "target": "T1 window exists between validation and install",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain"
+      },
+      {
+        "target": "T2 installer re-verifies digest at point of use",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain"
+      },
+      {
+        "target": "T3 TOCTOU installs swapped content",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain"
+      }
+    ],
+    "named_probes_verbatim": [
+      "Probe 1: instrument the sequence and swap the staged bytes after validation returns, then record whether the installer installs the swapped content.",
+      "Probe 2 (mechanically different): static read of the installer to determine whether it re-checks the digest it was handed, or trusts a boolean result from the validator."
+    ],
+    "tests_required_verbatim": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable",
+    "target_detail": {
+      "unit": "ADV-0030",
+      "mode": "standalone-dest-recheck",
+      "work_root": "/tmp/adv0030-pvxibzc6",
+      "control_pass": true,
+      "probe1_pass": true,
+      "control": {
+        "outcome": "SUCCESS",
+        "digest_matches": true,
+        "manifest_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+        "installed_copy_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+        "gate_count": 13,
+        "installed_files": [
+          "LICENSE",
+          "README.md",
+          "hello.py"
+        ]
+      },
+      "probe1": {
+        "after_gate9_outcome": "REFUSED",
+        "after_gate9_code": "MKT-I10",
+        "copy_seam_outcome": "REFUSED",
+        "copy_seam_code": "MKT-I09",
+        "mutant_outcome": "SUCCESS",
+        "mutant_swapped_installed": true,
+        "mutant_true_dest": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043"
+      },
+      "both_states": {
+        "NC1-postcopy-recheck-both-states": {
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        "NC2-recheck-is-load-bearing-mutation": {
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        "NC3-sbom-gate-catches-earlier-swap": {
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        "NC4-swap-detector-liveness": {
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        }
+      }
+    }
+  },
+  "extensions": {
+    "catalog_output_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+    "primary_is_measurements_not_self": "artifacts[0] is the live measurements file so sha256 is re-hashable. This document is the catalog output_path and is not listed as its own primary (self-hash is a preimage problem and fails c2).",
+    "live_good_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+    "live_swapped_digest": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043",
+    "unit_manifest_ids_at_write": [
+      "TST-0350",
+      "BLD-0023",
+      "BLD-0023",
+      "BLD-0023",
+      "BLD-0023",
+      "BLD-0023",
+      "IMP-0440",
+      "ADV-0001",
+      "ADV-0003",
+      "ADV-0004",
+      "ADV-0006",
+      "ADV-0007",
+      "ADV-0008",
+      "ADV-0009",
+      "ADV-0010",
+      "ADV-0010",
+      "ADV-0011",
+      "ADV-0011",
+      "ADV-0012",
+      "ADV-0012",
+      "ADV-0013",
+      "ADV-0015",
+      "ADV-0015",
+      "ADV-0016",
+      "ADV-0017",
+      "ADV-0017",
+      "ADV-0018",
+      "ADV-0019",
+      "ADV-0020",
+      "ADV-0020",
+      "ADV-0021",
+      "ADV-0022",
+      "ADV-0023",
+      "ADV-0024",
+      "ADV-0025",
+      "ADV-0025",
+      "ADV-0026",
+      "ADV-0027",
+      "ADV-0028",
+      "ADV-0029",
+      "ADV-0030",
+      "ADV-0030",
+      "ADV-0031",
+      "ADV-0032",
+      "ADV-0033",
+      "ADV-0034",
+      "ADV-0035",
+      "ADV-0036",
+      "ADV-0037",
+      "ADV-0039",
+      "ADV-0040",
+      "ADV-0041",
+      "ADV-0042",
+      "AUD-0020",
+      "AUD-0020",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0030",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0020",
+      "AUD-0030",
+      "AUD-0041",
+      "AUD-0051",
+      "AUD-0051",
+      "CC-0002",
+      "IMP-0433",
+      "CC-0002",
+      "CC-0002",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "IMP-0440",
+      "AUD-0020",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "IMP-0433",
+      "ADV-0005",
+      "ADV-0005",
+      "ADV-0005",
+      "ADV-0005",
+      "ADV-0005",
+      "ADV-0005",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0009",
+      "ADV-0010",
+      "ADV-0010",
+      "ADV-0010",
+      "ADV-0010",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0014",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0019",
+      "ADV-0029",
+      "ADV-0029",
+      "ADV-0029",
+      "ADV-0029",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0006",
+      "AUD-0020",
+      "AUD-0020",
+      "AUD-0020",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0021",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0041",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "AUD-0051",
+      "CC-0002",
+      "CC-0002",
+      "IMP-0440",
+      "TST-0334",
+      "TST-0350",
+      "TST-0334",
+      "TST-0350"
+    ],
+    "unit_manifest_adv0030_rows": [
+      {
+        "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+        "sha256": "d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33",
+        "bytes": 27138,
+        "present": true,
+        "unit_id": "ADV-0030",
+        "receipt_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json"
+      },
+      {
+        "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+        "sha256": "d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33",
+        "bytes": 27138,
+        "present": true,
+        "unit_id": "ADV-0030",
+        "receipt_path": "command-center/receipts/ADV-0030.json"
+      }
+    ],
+    "g1_delivery": {
+      "named_probes_on_disk": true,
+      "probe1_exit": 0,
+      "probe2_exit": 0,
+      "mode": "standalone-dest-recheck",
+      "platform_marketplace_present": false,
+      "applied_at": "2026-08-19T11:56:12Z",
+      "condition_11": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+      "write_invoked": false
+    },
+    "completion_line": "UNIT-COMPLETE:ADV-0030",
+    "completion_marker": " UNIT-COMPLETE:ADV-0030 ",
+    "raw_evidence": {
+      "probe_1_path": "command-center/p2-wave/probes/ADV-0030/probe1-swap.raw.txt",
+      "probe_1_sha256": "fd0a2be6951f14fac6e958412997448c9fe11c1e6fa7c381af42ed92052e75e9",
+      "probe_2_path": "command-center/p2-wave/probes/ADV-0030/probe2-static.raw.txt",
+      "probe_2_sha256": "bebfca10a9bf43faa5c772e51eadcb164b1f939534e330c6542f754f6f06540c",
+      "control_path": "command-center/p2-wave/probes/ADV-0030/control-no-swap.raw.txt",
+      "control_sha256": "4e50db3a85794ce0d62a901028707a5fb052d46706591f495b1478e4099eea32"
+    }
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py",
+      "artifact_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py command-center/adversarial/ADV-0030-validate-install-toctou.json command-center/schema/exploit-proof.schema.json",
+        "raw_output": "SUCCESS:schema-valid\n",
+        "fingerprint": "7bbb9809f1ad10dffbb6150fb9c62e35",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report",
+      "artifact_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report --repo-root . command-center/adversarial/ADV-0030-validate-install-toctou.json",
+        "raw_output": "SCHEMA-VALID:ADV-0030 (layer 1 only - this is NOT a completion verdict)\n",
+        "fingerprint": "6d6d579dab87710eda67f11715ca1fc0",
+        "exit_code": 0
+      }
+    }
+  ],
+  "catalog_output_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+  "primary_is_measurements_not_self": "artifacts[0] is the live measurements file so sha256 is re-hashable. This document is the catalog output_path and is not listed as its own primary (self-hash is a preimage problem and fails c2).",
+  "live_good_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+  "live_swapped_digest": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043",
+  "unit_manifest_ids_at_write": [
+    "TST-0350",
+    "BLD-0023",
+    "BLD-0023",
+    "BLD-0023",
+    "BLD-0023",
+    "BLD-0023",
+    "IMP-0440",
+    "ADV-0001",
+    "ADV-0003",
+    "ADV-0004",
+    "ADV-0006",
+    "ADV-0007",
+    "ADV-0008",
+    "ADV-0009",
+    "ADV-0010",
+    "ADV-0010",
+    "ADV-0011",
+    "ADV-0011",
+    "ADV-0012",
+    "ADV-0012",
+    "ADV-0013",
+    "ADV-0015",
+    "ADV-0015",
+    "ADV-0016",
+    "ADV-0017",
+    "ADV-0017",
+    "ADV-0018",
+    "ADV-0019",
+    "ADV-0020",
+    "ADV-0020",
+    "ADV-0021",
+    "ADV-0022",
+    "ADV-0023",
+    "ADV-0024",
+    "ADV-0025",
+    "ADV-0025",
+    "ADV-0026",
+    "ADV-0027",
+    "ADV-0028",
+    "ADV-0029",
+    "ADV-0030",
+    "ADV-0030",
+    "ADV-0031",
+    "ADV-0032",
+    "ADV-0033",
+    "ADV-0034",
+    "ADV-0035",
+    "ADV-0036",
+    "ADV-0037",
+    "ADV-0039",
+    "ADV-0040",
+    "ADV-0041",
+    "ADV-0042",
+    "AUD-0020",
+    "AUD-0020",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0030",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0020",
+    "AUD-0030",
+    "AUD-0041",
+    "AUD-0051",
+    "AUD-0051",
+    "CC-0002",
+    "IMP-0433",
+    "CC-0002",
+    "CC-0002",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "IMP-0440",
+    "AUD-0020",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "IMP-0433",
+    "ADV-0005",
+    "ADV-0005",
+    "ADV-0005",
+    "ADV-0005",
+    "ADV-0005",
+    "ADV-0005",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0009",
+    "ADV-0010",
+    "ADV-0010",
+    "ADV-0010",
+    "ADV-0010",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0014",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0019",
+    "ADV-0029",
+    "ADV-0029",
+    "ADV-0029",
+    "ADV-0029",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0006",
+    "AUD-0020",
+    "AUD-0020",
+    "AUD-0020",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0021",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0041",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "AUD-0051",
+    "CC-0002",
+    "CC-0002",
+    "IMP-0440",
+    "TST-0334",
+    "TST-0350",
+    "TST-0334",
+    "TST-0350"
+  ],
+  "unit_manifest_adv0030_rows": [
+    {
+      "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "sha256": "d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33",
+      "bytes": 27138,
+      "present": true,
+      "unit_id": "ADV-0030",
+      "receipt_path": "command-center/adversarial/ADV-0030-validate-install-toctou.json"
+    },
+    {
+      "path": "command-center/adversarial/ADV-0030-validate-install-toctou.json",
+      "sha256": "d4c61085efbe55f134bb253ecf9c257619d51003b69858990a0f4af02e890b33",
+      "bytes": 27138,
+      "present": true,
+      "unit_id": "ADV-0030",
+      "receipt_path": "command-center/receipts/ADV-0030.json"
+    }
+  ],
+  "g1_delivery": {
+    "named_probes_on_disk": true,
+    "probe1_exit": 0,
+    "probe2_exit": 0,
+    "mode": "standalone-dest-recheck",
+    "platform_marketplace_present": false,
+    "applied_at": "2026-08-19T11:56:12Z",
+    "condition_11": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+    "write_invoked": false
+  },
+  "completion_line": "UNIT-COMPLETE:ADV-0030",
+  "completion_marker": " UNIT-COMPLETE:ADV-0030 ",
+  "raw_evidence": {
+    "probe_1_path": "command-center/p2-wave/probes/ADV-0030/probe1-swap.raw.txt",
+    "probe_1_sha256": "fd0a2be6951f14fac6e958412997448c9fe11c1e6fa7c381af42ed92052e75e9",
+    "probe_2_path": "command-center/p2-wave/probes/ADV-0030/probe2-static.raw.txt",
+    "probe_2_sha256": "bebfca10a9bf43faa5c772e51eadcb164b1f939534e330c6542f754f6f06540c",
+    "control_path": "command-center/p2-wave/probes/ADV-0030/control-no-swap.raw.txt",
+    "control_sha256": "4e50db3a85794ce0d62a901028707a5fb052d46706591f495b1478e4099eea32"
+  },
+  "kind": "exploit-proof",
+  "question": "Is there a window between the validator reading a package and the installer consuming it in which the bytes can change, and does the installer re-verify the hash it validated?",
+  "answer": "YES a window exists (gates 10/11/12/13a sit between gate-9 source validation and the copy; source bytes are not snapshotted), BUT dest digest is recomputed at use and refused MKT-I09 on mismatch. This-tree live dest-recheck: clean SUCCESS digest sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee; swap after gate-9 REFUSED MKT-I10; copy-seam REFUSED MKT-I09 (true dest sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043); mutant with dest recheck disabled INSTALLS the swapped bytes. Prior Windows mkt.Installer run (hello-skill 8c8d5998 / swapped 5dbe0e38) agreed. Classic validate-then-install TOCTOU is CLOSED for the installed payload.",
+  "observations": [
+    {
+      "name": "T1_window_between_validate_and_install_exists",
+      "measured": "CONFIRMED",
+      "method": "static gate-order read plus mid-sequence swap_fired",
+      "anchor": "platform/marketplace/mkt/install.py:380-448"
+    },
+    {
+      "name": "T2_installer_reverifies_installed_copy_digest",
+      "measured": "CONFIRMED",
+      "method": "static dest recompute plus copy-seam swap -> MKT-I09",
+      "anchor": "platform/marketplace/mkt/install.py:449-454"
+    },
+    {
+      "name": "T3_toctou_exploitable_to_install_swapped_bytes",
+      "measured": "REFUTED",
+      "method": "two swap injection points both REFUSED plus mutant load-bearing",
+      "anchor": "platform/marketplace/mkt/install.py:385-459"
+    },
+    {
+      "name": "control_clean_install_succeeds_and_digest_matches",
+      "measured": true,
+      "method": "install with no swap: SUCCESS 13/13, dest==manifest",
+      "anchor": "command-center/p2-wave/probes/ADV-0030/control-no-swap.json"
+    },
+    {
+      "name": "live_manifest_payload_digest",
+      "measured": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+      "method": "this-tree standalone dest-recheck control digest",
+      "anchor": "command-center/p2-wave/probes/ADV-0030/control-no-swap.json"
+    },
+    {
+      "name": "live_swapped_payload_digest",
+      "measured": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043",
+      "method": "this-tree unmutated dest recompute after LICENSE prefix",
+      "anchor": "command-center/p2-wave/probes/ADV-0030/probe1-swap.json"
+    },
+    {
+      "name": "unit_manifest_contains_adv0030",
+      "measured": true,
+      "method": "per-unit UNIT-ARTIFACT-MANIFEST.json (STRUCTURAL-CONDITION-11 option 1)",
+      "anchor": "command-center/p2-wave/probes/ADV-0030/UNIT-ARTIFACT-MANIFEST.json"
+    }
+  ],
+  "control_ids": [
+    "NC1-postcopy-recheck-both-states",
+    "NC2-recheck-is-load-bearing-mutation",
+    "NC3-sbom-gate-catches-earlier-swap",
+    "NC4-swap-detector-liveness",
+    "NC5-static-classifier-both-states"
+  ],
+  "verdicts_by_target": [
+    {
+      "target": "T1 window exists between validation and install",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain"
+    },
+    {
+      "target": "T2 installer re-verifies digest at point of use",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain"
+    },
+    {
+      "target": "T3 TOCTOU installs swapped content",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain"
+    }
+  ],
+  "named_probes_verbatim": [
+    "Probe 1: instrument the sequence and swap the staged bytes after validation returns, then record whether the installer installs the swapped content.",
+    "Probe 2 (mechanically different): static read of the installer to determine whether it re-checks the digest it was handed, or trusts a boolean result from the validator."
+  ],
+  "tests_required_verbatim": "control: without the swap, installation must succeed and the digest must match, so a failure caused by the instrumentation itself is distinguishable",
+  "target_detail": {
+    "unit": "ADV-0030",
+    "mode": "standalone-dest-recheck",
+    "work_root": "/tmp/adv0030-pvxibzc6",
+    "control_pass": true,
+    "probe1_pass": true,
+    "control": {
+      "outcome": "SUCCESS",
+      "digest_matches": true,
+      "manifest_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+      "installed_copy_digest": "sha256:089ccb1e523284366e7ebe51c1f7128412770f0668efbb96912cee540a8bbdee",
+      "gate_count": 13,
+      "installed_files": [
+        "LICENSE",
+        "README.md",
+        "hello.py"
+      ]
+    },
+    "probe1": {
+      "after_gate9_outcome": "REFUSED",
+      "after_gate9_code": "MKT-I10",
+      "copy_seam_outcome": "REFUSED",
+      "copy_seam_code": "MKT-I09",
+      "mutant_outcome": "SUCCESS",
+      "mutant_swapped_installed": true,
+      "mutant_true_dest": "sha256:8b750ac2be88ed62f1b965610c6824831a259f665a95c7b1c49e4869b3043043"
+    },
+    "both_states": {
+      "NC1-postcopy-recheck-both-states": {
+        "fired_on_bad_state": true,
+        "silent_on_good_state": true
+      },
+      "NC2-recheck-is-load-bearing-mutation": {
+        "fired_on_bad_state": true,
+        "silent_on_good_state": true
+      },
+      "NC3-sbom-gate-catches-earlier-swap": {
+        "fired_on_bad_state": true,
+        "silent_on_good_state": true
+      },
+      "NC4-swap-detector-liveness": {
+        "fired_on_bad_state": true,
+        "silent_on_good_state": true
+      }
+    }
+  },
+  "completion_sentinel": "SUCCESS:ADV-0030 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0030 <reason>."
+}

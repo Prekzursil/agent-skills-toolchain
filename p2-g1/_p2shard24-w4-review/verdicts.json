@@ -1,0 +1,70 @@
+{
+  "reviewer": "claude-opus-5-5-independent-reviewer-w4s24-2026-10-26",
+  "wave": 4,
+  "shard": 24,
+  "mandate": "adversarial per-unit verification; PASS closes (reviewer.verdict=PASS, independent=true, state=SUCCESS); ANY failing check => verdict FAIL, receipt unchanged",
+  "instrument": "_p2shard24-w4-review/review_battery.py (fresh, own probe invocation, canonical env discipline); raw results in battery_results.json",
+  "calibration": [
+    "gate-A calibration: ADV-0005 = COMPLETE 12/12 (bar reachable); RES-0158 (w4s16 peer closure), TST-0007, TST-0012 = INCOMPLETE => gate-A treated as drift-honesty context, NOT the verdict bar",
+    "schema resolution: catalog declares command-center/schema/receipt.schema.json = generated shim ($ref) -> platform/schema/receipt.schema.json#$defs/receipt_core; shim target and deployed physical schema byte-identical (sha256 prefix b258d8c9fed74de1 in both ~/source/ast-integrate and ~/p2-g1)",
+    "fleet conformance sample (24 random SUCCESS receipts): 13/24 receipt_core-strict-clean, 11/24 carry 4-47 errors => strict schema validation is the majority-operating standard, applied as verdict-deciding"
+  ],
+  "receipts_modified": false,
+  "units_closed_by_this_review": 0,
+  "verdicts": {
+    "TST-0328": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=19 (required props missing: downstream_consumers, residual_unknowns, retry; artifacts/0 role='implementation' not in enum; evidence shape violations)",
+      "passing": ["artifact parses, SUCCESS-state, not self-blocked", "both probes re-run by reviewer exit 0 with SUCCESS terminal markers", "manifest primary row sha256 (LF-normalized) matches live", "closure form present (PASS+independent=True) but NOT confirmed by this reviewer"],
+      "notes": "reviewer_id on the closure is the unit's own probe2 script (builder-stamped, not a fresh independent context); gate-A unsatisfied=[2,5,6,7,8,11,12] not_checked=[4] (context)"
+    },
+    "TST-0330": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=14 (artifacts/0 missing bytes+sha256 with unexpected 'note'; evidence probes rows violate $defs/probe)",
+      "passing": ["probes exit 0 (reviewer re-run)", "manifest primary row matches", "all manifest rows match", "spot checks: corpus_size=25, malformed_count=9 recorded (zero-disagreement result is legitimate on a corpus WITH malformed inputs)"],
+      "notes": "gate-A unsatisfied=[4,6] (context)"
+    },
+    "TST-0332": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=13 (artifacts/0 missing bytes+sha256; artifacts/1 role='implementation' not in enum; unexpected keys)",
+      "passing": ["probes exit 0 (reviewer re-run)", "manifest primary row matches", "spot checks: declared/executed/unexecuted recorded"],
+      "notes": "manifest supporting-row drift: probes/TST-0332/harness.py and probe1_setdiff.py sha256 no longer match disk (post-closure refactor of registered evidence); gate-A unsatisfied=[4] (context)"
+    },
+    "TST-0334": {
+      "verdict": "FAIL",
+      "state_on_disk": "BLOCKED",
+      "failing_check": "live probes exit 1 pre-closure (probe1: self-declared:BLOCKED, state-gated) AND closure itself is barred: gate-A has 5 unsatisfied conditions NOT fixable by reviewer closure - c2 declared bytes 8757 != 9112 on disk for primary tools/measure-guard/blobread.py (stale artifact row; drift WORSENED past the receipt's own open defect TST-0334-D1 which recorded 8757), c5 sentinel absent from artifact text, c7 test TST-0334-T7 = NOT-RUN, c11 primary not registered in command-center/ARTIFACT-MANIFEST.json, c12 consumer unitgate.py could not read the artifact",
+      "passing": ["output_schema: receipt_core-strict errors=0 (the only strict-clean receipt in the shard)", "manifest primary row matches", "prior cross-vendor independent PASS present (openai/gpt-5.2 C5 wave 2026-08-21) but explicitly 'not a current-revision approval'"],
+      "notes": "receipt left untouched (sha256 unchanged); closing would stamp SUCCESS over 5 provably-unsatisfied conditions; manifest supporting rows drifted on 4 tools/command-center/* files; receipt internal rows stale for measure-guard/blobread.py (9112 live vs 8757 recorded) and test_blobread.py (10766 vs 9424)"
+    },
+    "TST-0335": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=26 (required props missing: downstream_consumers, manifest_registration, min_bytes_threshold, negative_controls, residual_unknowns) PLUS a manifest-registered artifact MISSING from disk: tools/harness_walker/tests/test_harness_walker.py (registered in UNIT-ARTIFACT-MANIFEST.json, absent on filesystem)",
+      "passing": ["probes exit 0 (reviewer re-run)", "manifest primary row matches", "spot checks: reserved-name/300-char/junction outcomes recorded"],
+      "notes": "worst integrity break in the shard: 10 of 12 manifest supporting rows drifted AND one registered file deleted after closure; receipt internal rows stale on 9 rows (e.g. tools/harness_walker/__init__.py recorded 1113 bytes, live 152); gate-A unsatisfied=[3,4,6,11,12] not_checked=[8] (context)"
+    },
+    "TST-0336": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=16 (downstream_consumers missing; artifacts/0 missing bytes+sha256; roles 'ledger-under-test'/'planted-suite' not in enum)",
+      "passing": ["probes exit 0 (reviewer re-run)", "manifest primary row matches", "all manifest rows match", "spot checks: repetitions + provisional labelling recorded"],
+      "notes": "gate-A unsatisfied=[4,6,12] (context)"
+    },
+    "TST-0337": {
+      "verdict": "FAIL",
+      "state_on_disk": "SUCCESS",
+      "failing_check": "output_schema validation: receipt_core-strict errors=24 (required props missing: downstream_consumers, manifest_registration, min_bytes_threshold, residual_unknowns, retry; artifacts/0 missing bytes+sha256)",
+      "passing": ["probes exit 0 (reviewer re-run)", "manifest primary row matches", "all manifest rows match", "spot checks: full/subset/miss/time-saved recorded"],
+      "notes": "receipt artifacts[] rows for selector.py and fixtures/coverage_map.json carry NO sha256/bytes at all (undeclared, not merely stale); gate-A unsatisfied=[3,4,6,7,11,12] (context)"
+    }
+  },
+  "program_level_findings": [
+    "wave-4 builder-era receipts (this shard: 6/7) systematically violate receipt_core strict form while stamping state=SUCCESS with reviewer blocks whose reviewer_id is the unit's own probe2 script - closure provenance is builder self-certification, only form-compliant",
+    "post-closure evidence drift: 3 of 7 manifests (TST-0328, TST-0332, TST-0335) have stale supporting rows, and TST-0335's registered test file was deleted after registration; the primary-row contract holds everywhere but supporting provenance is largely stale",
+    "fleet-wide receipt_core conformance measured at 13/24 on a random SUCCESS sample - consistent with the w4s16 census (31/80); a receipt-repair lane (strict re-emit + manifest refresh + probe re-run, w4s16 emit_closures.py pattern) is the remediation path before these units can re-enter review"
+  ]
+}

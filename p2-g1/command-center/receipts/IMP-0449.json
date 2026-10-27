@@ -1,0 +1,656 @@
+{
+ "unit_id": "IMP-0449",
+ "state": "SUCCESS",
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0449:TAXONOMY-CLOSED",
+ "min_bytes_threshold": 2048,
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0449.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "IMP-0449 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0449.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0449.json",
+     "raw_output": "bytes=12146 sha256=4e9633cda55949230c92387b3891bd07b41e8dfd5e58a066ad486d37b74279f1",
+     "fingerprint": "94b5d379438d1bc9a5372d7ad562eb2d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0449",
+     "raw_output": "schema-check",
+     "fingerprint": "a8d0835ceb979c13975c2efc1a331952",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0449 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0449",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0449",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "692ddbb64d1ebef015a2c0132c62eb9f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0449",
+     "raw_output": "schema-valid",
+     "fingerprint": "d5338bdac3bc1de4e4b48aa797d19936",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0449.json",
+   "bytes": 12146,
+   "sha256": "4e9633cda55949230c92387b3891bd07b41e8dfd5e58a066ad486d37b74279f1",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "report_kind": "failure-taxonomy",
+   "title": "Failure taxonomy and terminal-state result formatter",
+   "question": "Implement the closed failure taxonomy (severed-stream, adapter-exit-n, win-arg-limit, timeout, schema-invalid, partial-artifact, degraded, blocked) and a formatter that emits every tool result as an explicit terminal state. Exact target: an open-ended prose result must be structurally impossible; every result carries SUCCESS with an id or FAILED with an id and a reason.",
+   "taxonomy_closed": true,
+   "prose_result_structurally_impossible": true,
+   "unclassified_becomes_success": false,
+   "empty_return_forbidden": true,
+   "taxonomy": {
+    "classes": [
+     "severed-stream",
+     "adapter-exit-n",
+     "win-arg-limit",
+     "timeout",
+     "schema-invalid",
+     "partial-artifact",
+     "degraded",
+     "blocked"
+    ],
+    "unclassified_sink": "UNCLASSIFIED",
+    "count": 8
+   },
+   "formatter": {
+    "module": "tools/command-center/failure_taxonomy.py",
+    "success_shape": "status=SUCCESS + id + marker SUCCESS:<id> + class=null",
+    "failed_shape": "status=FAILED + id + reason + class + marker FAILED:<id> <reason>",
+    "marker_success": "SUCCESS:<id>",
+    "marker_failed": "FAILED:<id> <reason>",
+    "classify_never_returns_success": true
+   },
+   "coverage_table": [
+    {
+     "class": "severed-stream",
+     "observed_error_string": "\"a dispatch returning only a progress stream or a job receipt is classified severed-stream and must not count\",",
+     "source": "command-center/WORK-UNIT-CATALOG.json",
+     "line": 25542,
+     "corpus_kind": "REAL",
+     "classified_as": "severed-stream",
+     "speculative": false,
+     "fingerprint": "adc091e22a331d9844f1c40485af431aa168cf4d8b8023bfab4025bf53a87bf6"
+    },
+    {
+     "class": "adapter-exit-n",
+     "observed_error_string": "\"current_launch_exit_code\": 127,",
+     "source": "command-center/p2-wave/probes/AUD-0064/_validate_out.json",
+     "line": 92,
+     "corpus_kind": "REAL",
+     "classified_as": "adapter-exit-n",
+     "speculative": false,
+     "fingerprint": "169be7decf009530b2226494081ef4af52ae8fe31fa1b914bf9ddc381783cbe2"
+    },
+    {
+     "class": "win-arg-limit",
+     "observed_error_string": "\"question_or_target\": \"Question: does a different vendor, starting from raw source and tests only, reach the same verdict on every P0 claim? Dispatch each P0 claim to Codex through mcp__codex__codex with --ignore-user-config, prompt-by-file (never inline - the Windows command line caps at 32,767 chars and an inline prompt measured 34,472 and died with os error 206), blocking foreground only, and an AND-gate of exit 0 plus a non-empty parsable output file plus schema validity before any SUCCESS.\",",
+     "source": "command-center/WORK-UNIT-CATALOG.json",
+     "line": 32477,
+     "corpus_kind": "REAL",
+     "classified_as": "win-arg-limit",
+     "speculative": false,
+     "fingerprint": "1f93751371e38653c0d90c4861234441ff10f0903442e927c9b04e3afa348e4c"
+    },
+    {
+     "class": "timeout",
+     "observed_error_string": "return 124, f\"TIMEOUT after {timeout}s: {' '.join(cmd)}\"",
+     "source": "command-center/p2-wave/_p2lib.py",
+     "line": 133,
+     "corpus_kind": "REAL",
+     "classified_as": "timeout",
+     "speculative": false,
+     "fingerprint": "8bf38479b40c9888e8ab2aaf0af5728f5c470cbd250b342cf66d0327e9b45061"
+    },
+    {
+     "class": "schema-invalid",
+     "observed_error_string": "return False, f\"schema-invalid:{len(errs)}\"",
+     "source": "command-center/ready_units.py",
+     "line": 368,
+     "corpus_kind": "REAL",
+     "classified_as": "schema-invalid",
+     "speculative": false,
+     "fingerprint": "6092bf8f0939fb018043114209d5a814b6f820fa6fb05963ed03137bbe84e80a"
+    },
+    {
+     "class": "partial-artifact",
+     "observed_error_string": "\"title\": \"Zero-byte file at the mapped path treated as present\",",
+     "source": "command-center/p2-wave/probes/ARC-0012/emit_failure_modes.py",
+     "line": 103,
+     "corpus_kind": "REAL",
+     "classified_as": "partial-artifact",
+     "speculative": false,
+     "fingerprint": "bbcb30af52e0b7221c985dc9396f1a43e5f6981c68562742c5471e1437d71b5e"
+    },
+    {
+     "class": "degraded",
+     "observed_error_string": "\"resolver_line\": \"resolver: UNAVAILABLE (contract check degraded)\",",
+     "source": "command-center/p2-wave/_i1_dark_probe2.out.json",
+     "line": 17,
+     "corpus_kind": "REAL",
+     "classified_as": "degraded",
+     "speculative": false,
+     "fingerprint": "b47e8b6fe2d1a7f0e847cd2832a02fe474c6abaccd73ad6516c6484fdc81c53e"
+    },
+    {
+     "class": "blocked",
+     "observed_error_string": "\"why\": \"self-declared:BLOCKED\",",
+     "source": "command-center/p2-wave/probes/IMP-0433/_measure_out.json",
+     "line": 34,
+     "corpus_kind": "REAL",
+     "classified_as": "blocked",
+     "speculative": false,
+     "fingerprint": "8ba86833fc17ecee62f43405fe09b7e92df715f3f0c534ab8a3a1410804ce64f"
+    }
+   ],
+   "formatter_examples": [
+    {
+     "role": "explicit-success",
+     "result": {
+      "status": "SUCCESS",
+      "id": "IMP-0449",
+      "marker": "SUCCESS:IMP-0449",
+      "class": null
+     }
+    },
+    {
+     "role": "failed-severed-stream",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 severed-stream",
+      "reason": "severed-stream",
+      "class": "severed-stream"
+     }
+    },
+    {
+     "role": "failed-adapter-exit-n",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 adapter-exit-n: current_launch_exit_code: 127",
+      "reason": "adapter-exit-n: current_launch_exit_code: 127",
+      "class": "adapter-exit-n"
+     }
+    },
+    {
+     "role": "failed-win-arg-limit",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 win-arg-limit: CreateProcess os error 206",
+      "reason": "win-arg-limit: CreateProcess os error 206",
+      "class": "win-arg-limit"
+     }
+    },
+    {
+     "role": "failed-timeout",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 timeout: TIMEOUT after 30s",
+      "reason": "timeout: TIMEOUT after 30s",
+      "class": "timeout"
+     }
+    },
+    {
+     "role": "failed-schema-invalid",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 schema-invalid",
+      "reason": "schema-invalid",
+      "class": "schema-invalid"
+     }
+    },
+    {
+     "role": "failed-partial-artifact",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 partial-artifact",
+      "reason": "partial-artifact",
+      "class": "partial-artifact"
+     }
+    },
+    {
+     "role": "failed-degraded",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 degraded: resolver: UNAVAILABLE (contract check degraded)",
+      "reason": "degraded: resolver: UNAVAILABLE (contract check degraded)",
+      "class": "degraded"
+     }
+    },
+    {
+     "role": "failed-blocked",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 blocked: self-declared:BLOCKED",
+      "reason": "blocked: self-declared:BLOCKED",
+      "class": "blocked"
+     }
+    },
+    {
+     "role": "failed-UNCLASSIFIED",
+     "result": {
+      "status": "FAILED",
+      "id": "IMP-0449",
+      "marker": "FAILED:IMP-0449 UNCLASSIFIED: the adapter seemed fine overall",
+      "reason": "UNCLASSIFIED: the adapter seemed fine overall",
+      "class": "UNCLASSIFIED"
+     }
+    }
+   ],
+   "input_status": {
+    "user_prompts": {
+     "cited": "_USER-PROMPTS.md:11298-11347",
+     "present": false,
+     "status": "ABSENT"
+    },
+    "adapter_error_corpus": {
+     "cited": "adapter error corpus",
+     "present": false,
+     "status": "ABSENT"
+    },
+    "coverage_source": "Live worktree strings (catalog, ready_units, _p2lib, FAILURE-MODES, AUD-0064, IMP-0433 measure, dark-probe). Not the named adapter-error-corpus file, which is absent."
+   },
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "exhaustiveness",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0449/probe1_exhaustiveness.py"
+    },
+    {
+     "id": "probe2",
+     "role": "coverage-and-shape",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0449/probe2_coverage_and_shape.py"
+    }
+   ],
+   "scope": {
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+     "_USER-PROMPTS.md was read",
+     "a vendor adapter was invoked live"
+    ],
+    "proof_surface": "typed classifier + closed JSON result + eight live harvested strings plus exhaustiveness cases"
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0449",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0449/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0449"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0449.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0449.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "be6830c32e5120d9537d64b0425b9b57",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "failure-taxonomy",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 12146,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0449.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "report_kind": "failure-taxonomy",
+ "title": "Failure taxonomy and terminal-state result formatter",
+ "question": "Implement the closed failure taxonomy (severed-stream, adapter-exit-n, win-arg-limit, timeout, schema-invalid, partial-artifact, degraded, blocked) and a formatter that emits every tool result as an explicit terminal state. Exact target: an open-ended prose result must be structurally impossible; every result carries SUCCESS with an id or FAILED with an id and a reason.",
+ "taxonomy_closed": true,
+ "prose_result_structurally_impossible": true,
+ "unclassified_becomes_success": false,
+ "empty_return_forbidden": true,
+ "taxonomy": {
+  "classes": [
+   "severed-stream",
+   "adapter-exit-n",
+   "win-arg-limit",
+   "timeout",
+   "schema-invalid",
+   "partial-artifact",
+   "degraded",
+   "blocked"
+  ],
+  "unclassified_sink": "UNCLASSIFIED",
+  "count": 8
+ },
+ "formatter": {
+  "module": "tools/command-center/failure_taxonomy.py",
+  "success_shape": "status=SUCCESS + id + marker SUCCESS:<id> + class=null",
+  "failed_shape": "status=FAILED + id + reason + class + marker FAILED:<id> <reason>",
+  "marker_success": "SUCCESS:<id>",
+  "marker_failed": "FAILED:<id> <reason>",
+  "classify_never_returns_success": true
+ },
+ "coverage_table": [
+  {
+   "class": "severed-stream",
+   "observed_error_string": "\"a dispatch returning only a progress stream or a job receipt is classified severed-stream and must not count\",",
+   "source": "command-center/WORK-UNIT-CATALOG.json",
+   "line": 25542,
+   "corpus_kind": "REAL",
+   "classified_as": "severed-stream",
+   "speculative": false,
+   "fingerprint": "adc091e22a331d9844f1c40485af431aa168cf4d8b8023bfab4025bf53a87bf6"
+  },
+  {
+   "class": "adapter-exit-n",
+   "observed_error_string": "\"current_launch_exit_code\": 127,",
+   "source": "command-center/p2-wave/probes/AUD-0064/_validate_out.json",
+   "line": 92,
+   "corpus_kind": "REAL",
+   "classified_as": "adapter-exit-n",
+   "speculative": false,
+   "fingerprint": "169be7decf009530b2226494081ef4af52ae8fe31fa1b914bf9ddc381783cbe2"
+  },
+  {
+   "class": "win-arg-limit",
+   "observed_error_string": "\"question_or_target\": \"Question: does a different vendor, starting from raw source and tests only, reach the same verdict on every P0 claim? Dispatch each P0 claim to Codex through mcp__codex__codex with --ignore-user-config, prompt-by-file (never inline - the Windows command line caps at 32,767 chars and an inline prompt measured 34,472 and died with os error 206), blocking foreground only, and an AND-gate of exit 0 plus a non-empty parsable output file plus schema validity before any SUCCESS.\",",
+   "source": "command-center/WORK-UNIT-CATALOG.json",
+   "line": 32477,
+   "corpus_kind": "REAL",
+   "classified_as": "win-arg-limit",
+   "speculative": false,
+   "fingerprint": "1f93751371e38653c0d90c4861234441ff10f0903442e927c9b04e3afa348e4c"
+  },
+  {
+   "class": "timeout",
+   "observed_error_string": "return 124, f\"TIMEOUT after {timeout}s: {' '.join(cmd)}\"",
+   "source": "command-center/p2-wave/_p2lib.py",
+   "line": 133,
+   "corpus_kind": "REAL",
+   "classified_as": "timeout",
+   "speculative": false,
+   "fingerprint": "8bf38479b40c9888e8ab2aaf0af5728f5c470cbd250b342cf66d0327e9b45061"
+  },
+  {
+   "class": "schema-invalid",
+   "observed_error_string": "return False, f\"schema-invalid:{len(errs)}\"",
+   "source": "command-center/ready_units.py",
+   "line": 368,
+   "corpus_kind": "REAL",
+   "classified_as": "schema-invalid",
+   "speculative": false,
+   "fingerprint": "6092bf8f0939fb018043114209d5a814b6f820fa6fb05963ed03137bbe84e80a"
+  },
+  {
+   "class": "partial-artifact",
+   "observed_error_string": "\"title\": \"Zero-byte file at the mapped path treated as present\",",
+   "source": "command-center/p2-wave/probes/ARC-0012/emit_failure_modes.py",
+   "line": 103,
+   "corpus_kind": "REAL",
+   "classified_as": "partial-artifact",
+   "speculative": false,
+   "fingerprint": "bbcb30af52e0b7221c985dc9396f1a43e5f6981c68562742c5471e1437d71b5e"
+  },
+  {
+   "class": "degraded",
+   "observed_error_string": "\"resolver_line\": \"resolver: UNAVAILABLE (contract check degraded)\",",
+   "source": "command-center/p2-wave/_i1_dark_probe2.out.json",
+   "line": 17,
+   "corpus_kind": "REAL",
+   "classified_as": "degraded",
+   "speculative": false,
+   "fingerprint": "b47e8b6fe2d1a7f0e847cd2832a02fe474c6abaccd73ad6516c6484fdc81c53e"
+  },
+  {
+   "class": "blocked",
+   "observed_error_string": "\"why\": \"self-declared:BLOCKED\",",
+   "source": "command-center/p2-wave/probes/IMP-0433/_measure_out.json",
+   "line": 34,
+   "corpus_kind": "REAL",
+   "classified_as": "blocked",
+   "speculative": false,
+   "fingerprint": "8ba86833fc17ecee62f43405fe09b7e92df715f3f0c534ab8a3a1410804ce64f"
+  }
+ ],
+ "formatter_examples": [
+  {
+   "role": "explicit-success",
+   "result": {
+    "status": "SUCCESS",
+    "id": "IMP-0449",
+    "marker": "SUCCESS:IMP-0449",
+    "class": null
+   }
+  },
+  {
+   "role": "failed-severed-stream",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 severed-stream",
+    "reason": "severed-stream",
+    "class": "severed-stream"
+   }
+  },
+  {
+   "role": "failed-adapter-exit-n",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 adapter-exit-n: current_launch_exit_code: 127",
+    "reason": "adapter-exit-n: current_launch_exit_code: 127",
+    "class": "adapter-exit-n"
+   }
+  },
+  {
+   "role": "failed-win-arg-limit",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 win-arg-limit: CreateProcess os error 206",
+    "reason": "win-arg-limit: CreateProcess os error 206",
+    "class": "win-arg-limit"
+   }
+  },
+  {
+   "role": "failed-timeout",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 timeout: TIMEOUT after 30s",
+    "reason": "timeout: TIMEOUT after 30s",
+    "class": "timeout"
+   }
+  },
+  {
+   "role": "failed-schema-invalid",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 schema-invalid",
+    "reason": "schema-invalid",
+    "class": "schema-invalid"
+   }
+  },
+  {
+   "role": "failed-partial-artifact",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 partial-artifact",
+    "reason": "partial-artifact",
+    "class": "partial-artifact"
+   }
+  },
+  {
+   "role": "failed-degraded",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 degraded: resolver: UNAVAILABLE (contract check degraded)",
+    "reason": "degraded: resolver: UNAVAILABLE (contract check degraded)",
+    "class": "degraded"
+   }
+  },
+  {
+   "role": "failed-blocked",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 blocked: self-declared:BLOCKED",
+    "reason": "blocked: self-declared:BLOCKED",
+    "class": "blocked"
+   }
+  },
+  {
+   "role": "failed-UNCLASSIFIED",
+   "result": {
+    "status": "FAILED",
+    "id": "IMP-0449",
+    "marker": "FAILED:IMP-0449 UNCLASSIFIED: the adapter seemed fine overall",
+    "reason": "UNCLASSIFIED: the adapter seemed fine overall",
+    "class": "UNCLASSIFIED"
+   }
+  }
+ ],
+ "input_status": {
+  "user_prompts": {
+   "cited": "_USER-PROMPTS.md:11298-11347",
+   "present": false,
+   "status": "ABSENT"
+  },
+  "adapter_error_corpus": {
+   "cited": "adapter error corpus",
+   "present": false,
+   "status": "ABSENT"
+  },
+  "coverage_source": "Live worktree strings (catalog, ready_units, _p2lib, FAILURE-MODES, AUD-0064, IMP-0433 measure, dark-probe). Not the named adapter-error-corpus file, which is absent."
+ },
+ "cloud_ok": false,
+ "registered": true,
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "exhaustiveness",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0449/probe1_exhaustiveness.py"
+  },
+  {
+   "id": "probe2",
+   "role": "coverage-and-shape",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0449/probe2_coverage_and_shape.py"
+  }
+ ],
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+   "_USER-PROMPTS.md was read",
+   "a vendor adapter was invoked live"
+  ],
+  "proof_surface": "typed classifier + closed JSON result + eight live harvested strings plus exhaustiveness cases"
+ }
+}

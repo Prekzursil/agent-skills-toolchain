@@ -1,0 +1,322 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s18-oxford-4-plus-judge",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Resolve a single binary motion by formal debate with a judge scoring the pre/post position delta.",
+    "charter": "Oxford-style debate. Two seats for the proposition, two against, one judge. Token budget is equal by construction so neither side wins on volume.",
+    "risk_tier": "moderate",
+    "desired_output": "decision",
+    "success_criteria": [
+      "all four debate phases ran: opening, cross-examination, rebuttal, closing",
+      "both sides consumed within 10% of the same token budget",
+      "the judge scored the delta between pre-debate and post-debate positions"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2
+    },
+    "roster": [
+      {
+        "participant_id": "prop-1",
+        "display_name": "Proposition 1 (lead)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "prop-2",
+        "display_name": "Proposition 2 (second)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "steelman",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "opp-1",
+        "display_name": "Opposition 1 (lead)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "critic",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "opp-2",
+        "display_name": "Opposition 2 (second)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "devils_advocate",
+        "authority": "contributor",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "judge",
+        "display_name": "Judge (scores the delta)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "judge",
+        "authority": "judge",
+        "effort": "xhigh",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2
+  },
+  "topology": {
+    "kind": "proposer_critic_judge"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "oxford",
+        "stage_id": "opening",
+        "independent": true
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "crossexam",
+        "rounds": 1
+      },
+      {
+        "kind": "steelman_before_rebuttal",
+        "stage_id": "rebuttal",
+        "rounds": 1
+      },
+      {
+        "kind": "jury",
+        "stage_id": "closing",
+        "participants": [
+          "judge"
+        ]
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 4,
+      "max": 4
+    },
+    "turn": {
+      "max_words": 500,
+      "max_tokens": 3000
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 35,
+    "turns": 20,
+    "speaking_quota_per_participant": 4,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "objections": 6,
+    "counterexamples": 2
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 1,
+      "on_failure": "escalate_to_owner"
+    },
+    "belief_aggregation": {
+      "method": "none",
+      "require_confidence_per_vote": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 4 AND all_participants_spoke == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 4
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 4,
+      "every_participant_spoke": true,
+      "min_independent_positions": 2
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 35,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "no_decision",
+      "conditional_decision"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "judge_ruling",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "judge"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "circular_debate",
+      "participant_dominance",
+      "strategic_voting",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_ledger",
+      "confidence_trajectory",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 60
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Oxford debate, four debaters plus a judge",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S18 oxford-4-plus-judge",
+      "P07 oxford-debate",
+      "P14 judge-and-jury"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1401-1414"
+    ],
+    "notes": "DESIGN LINEAGE: C-S18 oxford-4-plus-judge in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: proposition_x2,opposition_x2,judge).\nPRESET LABEL: custom - the 24 required archetypes have no formal-debate entry; the nearest, code_review_tribunal, is a different decision type.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.objective.statement : the motion dial - a debate needs ONE binary motion\n  - $.protocol.rounds + $.stopping.hard_caps.max_rounds : rounds dial (keep them equal)\n  - $.protocol.turn.max_tokens + $.budgets.speaking_quota_per_participant : token_parity dial\nAnti-sycophancy is deliberately NOT armed: the card records fast_unanimity as n/a because the protocol is adversarial by construction. $.consensus.fast_unanimity_is_suspicious is therefore false here, unlike most presets.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

@@ -1,0 +1,1624 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0115-fused-worse-than-source-detector.json",
+   "bytes": 22064,
+   "sha256": "b784c22cc0a7ec712e7cb78fb274be70a04a5fb32ced0f5bb76ba222e62169a7",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0115 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0115-fused-worse-than-source-detector.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0115-fused-worse-than-source-detector.json",
+     "raw_output": "bytes=22064 sha256=b784c22cc0a7ec712e7cb78fb274be70a04a5fb32ced0f5bb76ba222e62169a7",
+     "fingerprint": "501ed07e22cdce05c9492ad856d43941",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0115",
+     "raw_output": "schema-check",
+     "fingerprint": "d7256a46c05b011a084b919050e30227",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0115 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0115",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0115",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "d9128dcb0df494391ecda6f96e70c77d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0115",
+     "raw_output": "schema-valid",
+     "fingerprint": "9a3bf3161fb8d644514884e46ef7f362",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2000,
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:WFA-0115",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0115-fused-worse-than-source-detector.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "WFA-0115",
+ "extensions": {
+  "legacy_root": {
+   "both_states": {
+    "discriminates": true,
+    "known_broken": {
+     "blocked": true,
+     "exit_code": 0,
+     "name": "planted-degraded",
+     "verdict": "REJECT"
+    },
+    "known_good": {
+     "blocked": false,
+     "exit_code": 0,
+     "name": "good-fusion",
+     "verdict": "CLEAR"
+    }
+   },
+   "completion_sentinel": "SUCCESS:WFA-0115",
+   "controls": [
+    {
+     "description": "Planted degraded fusion must be REJECT; a gate that has only ever seen good fusions has not been shown to detect a bad one.",
+     "fired_on_bad_state": true,
+     "id": "NC-planted-degraded-fusion",
+     "silent_on_good_state": true
+    },
+    {
+     "description": "Fusion inside the variance floor of its best source is INCONCLUSIVE, not a pass, even when raw points are below all sources.",
+     "fired_on_bad_state": true,
+     "id": "NC-inside-floor-is-inconclusive",
+     "silent_on_good_state": true
+    },
+    {
+     "description": "Certification without a prior gate run is refused; a post-certification gate call is refused; INCONCLUSIVE is not a pass.",
+     "fired_on_bad_state": true,
+     "id": "NC-gate-before-certification",
+     "silent_on_good_state": true
+    }
+   ],
+   "dependencies_on_disk": {
+    "WFA-0001-schema-pack": true,
+    "WFA-0113-matched-pair-harness": false,
+    "WFA-0114-headtohead-rubric": false
+   },
+   "detector": {
+    "comparison_against": "measured_variance_floor",
+    "fires_on": "planted degraded fusion below all sources beyond the variance floor",
+    "inconclusive_rule": "inside variance floor of best source -> INCONCLUSIVE, not a pass",
+    "module": "command-center/p2-wave/probes/WFA-0115/detector.py",
+    "name": "fused-worse-than-every-source",
+    "not_against": "raw_point_scores",
+    "runs_when": "before_certification",
+    "silent_on": "fusion that is not below every source beyond the variance floor",
+    "variance_floor": 0.010000000000000009
+   },
+   "failure_class": {
+    "catalog_anchor": "command-center/phase3/A1/FAILURE-MODES.json",
+    "id": "FC-11333",
+    "name": "fused workflow performs worse than every source",
+    "spec": 11333
+   },
+   "fixture_standing_in_for": "WFA-0113 matched-pair records and WFA-0114 composite scores are not on disk in this worktree. This unit uses local eight-case fixtures whose composite is the mean of correctness, coverage, recovery and usability, plus a same-workflow control pair for the variance floor. That is a detector proof, not a claim that the production harness artifacts exist.",
+   "gate_ordering": {
+    "certify_after_clear": {
+     "raised": false,
+     "record": {
+      "experiment_id": "good-fusion",
+      "gate_ran_before_certification": true,
+      "record_type": "CertificationRecord",
+      "state": "CERTIFIED",
+      "worse_than_source_gate": "CLEAR"
+     }
+    },
+    "certify_after_inconclusive": {
+     "msg": "certification refused: gate verdict INCONCLUSIVE is not CLEAR (fusion is inside the variance floor of its best source; INCONCLUSIVE, not a pass)",
+     "raised": true,
+     "type": "CertificationRefused",
+     "verdict": "INCONCLUSIVE"
+    },
+    "certify_after_reject": {
+     "msg": "certification refused: gate verdict REJECT is not CLEAR (fused candidate scores below ALL sources beyond the variance floor (FC-11333))",
+     "raised": true,
+     "type": "CertificationRefused"
+    },
+    "certify_without_gate": {
+     "msg": "WFA-0115 gate must run before certification",
+     "raised": true,
+     "type": "OrderError"
+    },
+    "gate_after_certification": {
+     "msg": "WFA-0115 gate cannot run as a post-certification report",
+     "raised": true,
+     "type": "OrderError"
+    },
+    "pass": true
+   },
+   "id": "WFA-0115",
+   "kind": "RegressionFixture",
+   "matched_comparisons": {
+    "complement": {
+     "abs_delta_vs_best": 0.050000000000000044,
+     "below_all_sources_beyond_floor": false,
+     "below_source_beyond_floor": {
+      "source-strong": true,
+      "source-weak": false
+     },
+     "best_source_id": "source-strong",
+     "best_source_mean": 0.8,
+     "blocks_certification": false,
+     "case_ids": [
+      "case-01",
+      "case-02",
+      "case-03",
+      "case-04",
+      "case-05",
+      "case-06",
+      "case-07",
+      "case-08"
+     ],
+     "experiment_id": "complement-not-all",
+     "floor_measured_before_comparison": true,
+     "fusion_arm_id": "fusion-complement",
+     "fusion_mean": 0.75,
+     "mean_delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "n_cases": 8,
+     "pass_claimed": false,
+     "per_case": [
+      {
+       "case_id": "case-01",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-02",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-03",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-04",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-05",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-06",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-07",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-08",
+       "delta_vs_source": {
+        "source-strong": -0.050000000000000044,
+        "source-weak": 0.050000000000000044
+       },
+       "fusion": 0.75,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      }
+     ],
+     "reason": "named failure class did not fire: fusion is not below every source beyond the variance floor",
+     "source_means": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     },
+     "used_raw_point_scores": false,
+     "variance_floor": 0.010000000000000009,
+     "verdict": "CLEAR",
+     "within_floor_of_best": false
+    },
+    "degraded": {
+     "abs_delta_vs_best": 0.4,
+     "below_all_sources_beyond_floor": true,
+     "below_source_beyond_floor": {
+      "source-strong": true,
+      "source-weak": true
+     },
+     "best_source_id": "source-strong",
+     "best_source_mean": 0.8,
+     "blocks_certification": true,
+     "case_ids": [
+      "case-01",
+      "case-02",
+      "case-03",
+      "case-04",
+      "case-05",
+      "case-06",
+      "case-07",
+      "case-08"
+     ],
+     "experiment_id": "planted-degraded",
+     "floor_measured_before_comparison": true,
+     "fusion_arm_id": "fusion-degraded",
+     "fusion_mean": 0.4,
+     "mean_delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "n_cases": 8,
+     "pass_claimed": false,
+     "per_case": [
+      {
+       "case_id": "case-01",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-02",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-03",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-04",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-05",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-06",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-07",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-08",
+       "delta_vs_source": {
+        "source-strong": -0.4,
+        "source-weak": -0.29999999999999993
+       },
+       "fusion": 0.4,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      }
+     ],
+     "reason": "fused candidate scores below ALL sources beyond the variance floor (FC-11333)",
+     "source_means": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     },
+     "used_raw_point_scores": false,
+     "variance_floor": 0.010000000000000009,
+     "verdict": "REJECT",
+     "within_floor_of_best": false
+    },
+    "good": {
+     "abs_delta_vs_best": 0.05999999999999994,
+     "below_all_sources_beyond_floor": false,
+     "below_source_beyond_floor": {
+      "source-strong": false,
+      "source-weak": false
+     },
+     "best_source_id": "source-strong",
+     "best_source_mean": 0.8,
+     "blocks_certification": false,
+     "case_ids": [
+      "case-01",
+      "case-02",
+      "case-03",
+      "case-04",
+      "case-05",
+      "case-06",
+      "case-07",
+      "case-08"
+     ],
+     "experiment_id": "good-fusion",
+     "floor_measured_before_comparison": true,
+     "fusion_arm_id": "fusion-good",
+     "fusion_mean": 0.86,
+     "mean_delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "n_cases": 8,
+     "pass_claimed": false,
+     "per_case": [
+      {
+       "case_id": "case-01",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-02",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-03",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-04",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-05",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-06",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-07",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      },
+      {
+       "case_id": "case-08",
+       "delta_vs_source": {
+        "source-strong": 0.05999999999999994,
+        "source-weak": 0.16000000000000003
+       },
+       "fusion": 0.86,
+       "sources": {
+        "source-strong": 0.8,
+        "source-weak": 0.7
+       }
+      }
+     ],
+     "reason": "named failure class did not fire: fusion is not below every source beyond the variance floor",
+     "source_means": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     },
+     "used_raw_point_scores": false,
+     "variance_floor": 0.010000000000000009,
+     "verdict": "CLEAR",
+     "within_floor_of_best": false
+    },
+    "incomplete": {
+     "abs_delta_vs_best": null,
+     "below_all_sources_beyond_floor": false,
+     "below_source_beyond_floor": {},
+     "best_source_id": null,
+     "best_source_mean": null,
+     "blocks_certification": true,
+     "case_ids": [
+      "case-01",
+      "case-02",
+      "case-03",
+      "case-04",
+      "case-05",
+      "case-06",
+      "case-07",
+      "case-08"
+     ],
+     "experiment_id": "incomplete-arm",
+     "floor_measured_before_comparison": false,
+     "fusion_arm_id": "fusion-dropped-case",
+     "fusion_mean": null,
+     "mean_delta_vs_source": {},
+     "n_cases": 8,
+     "pass_claimed": false,
+     "per_case": [],
+     "reason": "incomplete arms (never dropped): fusion-dropped-case:case-08",
+     "source_means": {},
+     "used_raw_point_scores": false,
+     "variance_floor": null,
+     "verdict": "REFUSE",
+     "within_floor_of_best": false
+    },
+    "inconclusive": {
+     "abs_delta_vs_best": 0.0050000000000000044,
+     "below_all_sources_beyond_floor": false,
+     "below_source_beyond_floor": {
+      "source-near": false,
+      "source-strong": false
+     },
+     "best_source_id": "source-strong",
+     "best_source_mean": 0.8,
+     "blocks_certification": true,
+     "case_ids": [
+      "case-01",
+      "case-02",
+      "case-03",
+      "case-04",
+      "case-05",
+      "case-06",
+      "case-07",
+      "case-08"
+     ],
+     "experiment_id": "inconclusive-inside-floor",
+     "floor_measured_before_comparison": true,
+     "fusion_arm_id": "fusion-near-best",
+     "fusion_mean": 0.795,
+     "mean_delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "n_cases": 8,
+     "pass_claimed": false,
+     "per_case": [
+      {
+       "case_id": "case-01",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-02",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-03",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-04",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-05",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-06",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-07",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      },
+      {
+       "case_id": "case-08",
+       "delta_vs_source": {
+        "source-near": -0.0040000000000000036,
+        "source-strong": -0.0050000000000000044
+       },
+       "fusion": 0.795,
+       "sources": {
+        "source-near": 0.799,
+        "source-strong": 0.8
+       }
+      }
+     ],
+     "reason": "fusion is inside the variance floor of its best source; INCONCLUSIVE, not a pass",
+     "source_means": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     },
+     "used_raw_point_scores": false,
+     "variance_floor": 0.010000000000000009,
+     "verdict": "INCONCLUSIVE",
+     "within_floor_of_best": true
+    }
+   },
+   "observations": [
+    {
+     "exit_code": 0,
+     "id": "obs-good-fusion",
+     "outcome": "CLEAR"
+    },
+    {
+     "exit_code": 0,
+     "id": "obs-planted-degraded",
+     "outcome": "REJECT"
+    },
+    {
+     "exit_code": 0,
+     "id": "obs-inconclusive-near-best",
+     "outcome": "INCONCLUSIVE"
+    },
+    {
+     "exit_code": 0,
+     "id": "obs-complement-not-worse-than-all",
+     "outcome": "CLEAR"
+    },
+    {
+     "exit_code": 0,
+     "id": "obs-incomplete-arm-refused",
+     "outcome": "REFUSE"
+    }
+   ],
+   "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+   "per_source_deltas_listed": true,
+   "planted_fixture": {
+    "caught": true,
+    "description": "Deliberately degraded fusion scored 0.40 against sources 0.80 and 0.70 on eight matched cases; must be REJECT.",
+    "id": "planted-degraded",
+    "verdict": "REJECT"
+   },
+   "question": "Implementation target: a gate that fails certification when a fused candidate scores below ALL of its sources on the matched cases - the spec's named failure class - with the comparison made against the measured variance floor rather than against raw point scores.",
+   "raw_point_mutant": {
+    "description": "Same inconclusive fixture evaluated with use_raw_points=True must REJECT; proving the floor, not raw means, is load-bearing.",
+    "floor_prevents_raw_reject": true,
+    "inconclusive_live_verdict": "INCONCLUSIVE",
+    "inconclusive_raw_verdict": "REJECT"
+   },
+   "record_type": "RegressionFixture",
+   "reviewer_verdict": "PASS",
+   "schema_pack_present": true,
+   "tests_required": [
+    "the planted degraded fusion must be rejected (both-states control)",
+    "a fusion inside the variance floor of its best source is INCONCLUSIVE, not a pass",
+    "the gate must run before certification, not as a post-certification report"
+   ],
+   "title": "Detector for the fused workflow that performs worse than every one of its sources"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0115",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0115/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0115"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0115-fused-worse-than-source-detector.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0115-fused-worse-than-source-detector.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "d0c11e8997ba9102bf4c879917ef4602",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "RegressionFixture",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 22064,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0115-fused-worse-than-source-detector.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "both_states": {
+  "discriminates": true,
+  "known_broken": {
+   "blocked": true,
+   "exit_code": 0,
+   "name": "planted-degraded",
+   "verdict": "REJECT"
+  },
+  "known_good": {
+   "blocked": false,
+   "exit_code": 0,
+   "name": "good-fusion",
+   "verdict": "CLEAR"
+  }
+ },
+ "completion_sentinel": "SUCCESS:WFA-0115",
+ "controls": [
+  {
+   "description": "Planted degraded fusion must be REJECT; a gate that has only ever seen good fusions has not been shown to detect a bad one.",
+   "fired_on_bad_state": true,
+   "id": "NC-planted-degraded-fusion",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Fusion inside the variance floor of its best source is INCONCLUSIVE, not a pass, even when raw points are below all sources.",
+   "fired_on_bad_state": true,
+   "id": "NC-inside-floor-is-inconclusive",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Certification without a prior gate run is refused; a post-certification gate call is refused; INCONCLUSIVE is not a pass.",
+   "fired_on_bad_state": true,
+   "id": "NC-gate-before-certification",
+   "silent_on_good_state": true
+  }
+ ],
+ "dependencies_on_disk": {
+  "WFA-0001-schema-pack": true,
+  "WFA-0113-matched-pair-harness": false,
+  "WFA-0114-headtohead-rubric": false
+ },
+ "detector": {
+  "comparison_against": "measured_variance_floor",
+  "fires_on": "planted degraded fusion below all sources beyond the variance floor",
+  "inconclusive_rule": "inside variance floor of best source -> INCONCLUSIVE, not a pass",
+  "module": "command-center/p2-wave/probes/WFA-0115/detector.py",
+  "name": "fused-worse-than-every-source",
+  "not_against": "raw_point_scores",
+  "runs_when": "before_certification",
+  "silent_on": "fusion that is not below every source beyond the variance floor",
+  "variance_floor": 0.010000000000000009
+ },
+ "failure_class": {
+  "catalog_anchor": "command-center/phase3/A1/FAILURE-MODES.json",
+  "id": "FC-11333",
+  "name": "fused workflow performs worse than every source",
+  "spec": 11333
+ },
+ "fixture_standing_in_for": "WFA-0113 matched-pair records and WFA-0114 composite scores are not on disk in this worktree. This unit uses local eight-case fixtures whose composite is the mean of correctness, coverage, recovery and usability, plus a same-workflow control pair for the variance floor. That is a detector proof, not a claim that the production harness artifacts exist.",
+ "gate_ordering": {
+  "certify_after_clear": {
+   "raised": false,
+   "record": {
+    "experiment_id": "good-fusion",
+    "gate_ran_before_certification": true,
+    "record_type": "CertificationRecord",
+    "state": "CERTIFIED",
+    "worse_than_source_gate": "CLEAR"
+   }
+  },
+  "certify_after_inconclusive": {
+   "msg": "certification refused: gate verdict INCONCLUSIVE is not CLEAR (fusion is inside the variance floor of its best source; INCONCLUSIVE, not a pass)",
+   "raised": true,
+   "type": "CertificationRefused",
+   "verdict": "INCONCLUSIVE"
+  },
+  "certify_after_reject": {
+   "msg": "certification refused: gate verdict REJECT is not CLEAR (fused candidate scores below ALL sources beyond the variance floor (FC-11333))",
+   "raised": true,
+   "type": "CertificationRefused"
+  },
+  "certify_without_gate": {
+   "msg": "WFA-0115 gate must run before certification",
+   "raised": true,
+   "type": "OrderError"
+  },
+  "gate_after_certification": {
+   "msg": "WFA-0115 gate cannot run as a post-certification report",
+   "raised": true,
+   "type": "OrderError"
+  },
+  "pass": true
+ },
+ "id": "WFA-0115",
+ "kind": "RegressionFixture",
+ "matched_comparisons": {
+  "complement": {
+   "abs_delta_vs_best": 0.050000000000000044,
+   "below_all_sources_beyond_floor": false,
+   "below_source_beyond_floor": {
+    "source-strong": true,
+    "source-weak": false
+   },
+   "best_source_id": "source-strong",
+   "best_source_mean": 0.8,
+   "blocks_certification": false,
+   "case_ids": [
+    "case-01",
+    "case-02",
+    "case-03",
+    "case-04",
+    "case-05",
+    "case-06",
+    "case-07",
+    "case-08"
+   ],
+   "experiment_id": "complement-not-all",
+   "floor_measured_before_comparison": true,
+   "fusion_arm_id": "fusion-complement",
+   "fusion_mean": 0.75,
+   "mean_delta_vs_source": {
+    "source-strong": -0.050000000000000044,
+    "source-weak": 0.050000000000000044
+   },
+   "n_cases": 8,
+   "pass_claimed": false,
+   "per_case": [
+    {
+     "case_id": "case-01",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-02",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-03",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-04",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-05",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-06",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-07",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-08",
+     "delta_vs_source": {
+      "source-strong": -0.050000000000000044,
+      "source-weak": 0.050000000000000044
+     },
+     "fusion": 0.75,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    }
+   ],
+   "reason": "named failure class did not fire: fusion is not below every source beyond the variance floor",
+   "source_means": {
+    "source-strong": 0.8,
+    "source-weak": 0.7
+   },
+   "used_raw_point_scores": false,
+   "variance_floor": 0.010000000000000009,
+   "verdict": "CLEAR",
+   "within_floor_of_best": false
+  },
+  "degraded": {
+   "abs_delta_vs_best": 0.4,
+   "below_all_sources_beyond_floor": true,
+   "below_source_beyond_floor": {
+    "source-strong": true,
+    "source-weak": true
+   },
+   "best_source_id": "source-strong",
+   "best_source_mean": 0.8,
+   "blocks_certification": true,
+   "case_ids": [
+    "case-01",
+    "case-02",
+    "case-03",
+    "case-04",
+    "case-05",
+    "case-06",
+    "case-07",
+    "case-08"
+   ],
+   "experiment_id": "planted-degraded",
+   "floor_measured_before_comparison": true,
+   "fusion_arm_id": "fusion-degraded",
+   "fusion_mean": 0.4,
+   "mean_delta_vs_source": {
+    "source-strong": -0.4,
+    "source-weak": -0.29999999999999993
+   },
+   "n_cases": 8,
+   "pass_claimed": false,
+   "per_case": [
+    {
+     "case_id": "case-01",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-02",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-03",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-04",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-05",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-06",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-07",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-08",
+     "delta_vs_source": {
+      "source-strong": -0.4,
+      "source-weak": -0.29999999999999993
+     },
+     "fusion": 0.4,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    }
+   ],
+   "reason": "fused candidate scores below ALL sources beyond the variance floor (FC-11333)",
+   "source_means": {
+    "source-strong": 0.8,
+    "source-weak": 0.7
+   },
+   "used_raw_point_scores": false,
+   "variance_floor": 0.010000000000000009,
+   "verdict": "REJECT",
+   "within_floor_of_best": false
+  },
+  "good": {
+   "abs_delta_vs_best": 0.05999999999999994,
+   "below_all_sources_beyond_floor": false,
+   "below_source_beyond_floor": {
+    "source-strong": false,
+    "source-weak": false
+   },
+   "best_source_id": "source-strong",
+   "best_source_mean": 0.8,
+   "blocks_certification": false,
+   "case_ids": [
+    "case-01",
+    "case-02",
+    "case-03",
+    "case-04",
+    "case-05",
+    "case-06",
+    "case-07",
+    "case-08"
+   ],
+   "experiment_id": "good-fusion",
+   "floor_measured_before_comparison": true,
+   "fusion_arm_id": "fusion-good",
+   "fusion_mean": 0.86,
+   "mean_delta_vs_source": {
+    "source-strong": 0.05999999999999994,
+    "source-weak": 0.16000000000000003
+   },
+   "n_cases": 8,
+   "pass_claimed": false,
+   "per_case": [
+    {
+     "case_id": "case-01",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-02",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-03",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-04",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-05",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-06",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-07",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    },
+    {
+     "case_id": "case-08",
+     "delta_vs_source": {
+      "source-strong": 0.05999999999999994,
+      "source-weak": 0.16000000000000003
+     },
+     "fusion": 0.86,
+     "sources": {
+      "source-strong": 0.8,
+      "source-weak": 0.7
+     }
+    }
+   ],
+   "reason": "named failure class did not fire: fusion is not below every source beyond the variance floor",
+   "source_means": {
+    "source-strong": 0.8,
+    "source-weak": 0.7
+   },
+   "used_raw_point_scores": false,
+   "variance_floor": 0.010000000000000009,
+   "verdict": "CLEAR",
+   "within_floor_of_best": false
+  },
+  "incomplete": {
+   "abs_delta_vs_best": null,
+   "below_all_sources_beyond_floor": false,
+   "below_source_beyond_floor": {},
+   "best_source_id": null,
+   "best_source_mean": null,
+   "blocks_certification": true,
+   "case_ids": [
+    "case-01",
+    "case-02",
+    "case-03",
+    "case-04",
+    "case-05",
+    "case-06",
+    "case-07",
+    "case-08"
+   ],
+   "experiment_id": "incomplete-arm",
+   "floor_measured_before_comparison": false,
+   "fusion_arm_id": "fusion-dropped-case",
+   "fusion_mean": null,
+   "mean_delta_vs_source": {},
+   "n_cases": 8,
+   "pass_claimed": false,
+   "per_case": [],
+   "reason": "incomplete arms (never dropped): fusion-dropped-case:case-08",
+   "source_means": {},
+   "used_raw_point_scores": false,
+   "variance_floor": null,
+   "verdict": "REFUSE",
+   "within_floor_of_best": false
+  },
+  "inconclusive": {
+   "abs_delta_vs_best": 0.0050000000000000044,
+   "below_all_sources_beyond_floor": false,
+   "below_source_beyond_floor": {
+    "source-near": false,
+    "source-strong": false
+   },
+   "best_source_id": "source-strong",
+   "best_source_mean": 0.8,
+   "blocks_certification": true,
+   "case_ids": [
+    "case-01",
+    "case-02",
+    "case-03",
+    "case-04",
+    "case-05",
+    "case-06",
+    "case-07",
+    "case-08"
+   ],
+   "experiment_id": "inconclusive-inside-floor",
+   "floor_measured_before_comparison": true,
+   "fusion_arm_id": "fusion-near-best",
+   "fusion_mean": 0.795,
+   "mean_delta_vs_source": {
+    "source-near": -0.0040000000000000036,
+    "source-strong": -0.0050000000000000044
+   },
+   "n_cases": 8,
+   "pass_claimed": false,
+   "per_case": [
+    {
+     "case_id": "case-01",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-02",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-03",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-04",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-05",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-06",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-07",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    },
+    {
+     "case_id": "case-08",
+     "delta_vs_source": {
+      "source-near": -0.0040000000000000036,
+      "source-strong": -0.0050000000000000044
+     },
+     "fusion": 0.795,
+     "sources": {
+      "source-near": 0.799,
+      "source-strong": 0.8
+     }
+    }
+   ],
+   "reason": "fusion is inside the variance floor of its best source; INCONCLUSIVE, not a pass",
+   "source_means": {
+    "source-near": 0.799,
+    "source-strong": 0.8
+   },
+   "used_raw_point_scores": false,
+   "variance_floor": 0.010000000000000009,
+   "verdict": "INCONCLUSIVE",
+   "within_floor_of_best": true
+  }
+ },
+ "observations": [
+  {
+   "exit_code": 0,
+   "id": "obs-good-fusion",
+   "outcome": "CLEAR"
+  },
+  {
+   "exit_code": 0,
+   "id": "obs-planted-degraded",
+   "outcome": "REJECT"
+  },
+  {
+   "exit_code": 0,
+   "id": "obs-inconclusive-near-best",
+   "outcome": "INCONCLUSIVE"
+  },
+  {
+   "exit_code": 0,
+   "id": "obs-complement-not-worse-than-all",
+   "outcome": "CLEAR"
+  },
+  {
+   "exit_code": 0,
+   "id": "obs-incomplete-arm-refused",
+   "outcome": "REFUSE"
+  }
+ ],
+ "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+ "per_source_deltas_listed": true,
+ "planted_fixture": {
+  "caught": true,
+  "description": "Deliberately degraded fusion scored 0.40 against sources 0.80 and 0.70 on eight matched cases; must be REJECT.",
+  "id": "planted-degraded",
+  "verdict": "REJECT"
+ },
+ "question": "Implementation target: a gate that fails certification when a fused candidate scores below ALL of its sources on the matched cases - the spec's named failure class - with the comparison made against the measured variance floor rather than against raw point scores.",
+ "raw_point_mutant": {
+  "description": "Same inconclusive fixture evaluated with use_raw_points=True must REJECT; proving the floor, not raw means, is load-bearing.",
+  "floor_prevents_raw_reject": true,
+  "inconclusive_live_verdict": "INCONCLUSIVE",
+  "inconclusive_raw_verdict": "REJECT"
+ },
+ "record_type": "RegressionFixture",
+ "reviewer_verdict": "PASS",
+ "schema_pack_present": true,
+ "tests_required": [
+  "the planted degraded fusion must be rejected (both-states control)",
+  "a fusion inside the variance floor of its best source is INCONCLUSIVE, not a pass",
+  "the gate must run before certification, not as a post-certification report"
+ ],
+ "title": "Detector for the fused workflow that performs worse than every one of its sources"
+}

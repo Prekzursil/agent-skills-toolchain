@@ -1,0 +1,615 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/phase4/contracts/ARC-0093.json",
+  "title": "Contract: Migration record format and the transformation obligation",
+  "description": "ARC-0093 formal contract. A Migration Record is the only object that may authorise a versioned-artifact shape change after freeze. Required fields: from_version, to_version, transform, reversibility, dry_run. REVERSIBLE means canonical-json-v1(reverse(forward(doc))) recovers doc and no step is lossy. Untransformable records are QUARANTINED and reported; silent drop is a contract violation. SUCCESS:ARC-0093",
+  "unit_id": "ARC-0093",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0093",
+  "completion_sentinel": "SUCCESS:ARC-0093",
+  "question": "Specify the migration record: its required fields (from-version, to-version, the transform itself, the reversibility statement, the dry-run result), the forward and backward compatibility obligations a versioned artifact must meet, and the transformation obligation - an artifact written under version N must either still validate under version N+1 or be mechanically transformable to it. Define what makes a migration REVERSIBLE, and what a migration must do with a record it cannot transform.",
+  "cloud_ok": false,
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "from_version",
+    "to_version",
+    "transform",
+    "reversibility",
+    "dry_run",
+    "forward_compatibility",
+    "backward_compatibility",
+    "transformation_obligation",
+    "untransformable_policy",
+    "evidence"
+  ],
+  "properties": {
+    "from_version": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "to_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "engine",
+        "encoding",
+        "steps"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 4
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 8
+        },
+        "encoding": {
+          "type": "string",
+          "const": "canonical-json-v1"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      }
+    },
+    "reversibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "statement",
+        "byte_recovery_encoding",
+        "reverse_steps"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "REVERSIBLE",
+            "IRREVERSIBLE"
+          ]
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 64
+        },
+        "byte_recovery_encoding": {
+          "type": "string",
+          "const": "canonical-json-v1"
+        },
+        "reverse_steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "REVERSIBLE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reverse_steps": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "dry_run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "executed",
+        "records_in",
+        "would_transform",
+        "would_quarantine",
+        "would_drop",
+        "evidence_status"
+      ],
+      "properties": {
+        "executed": {
+          "type": "boolean"
+        },
+        "records_in": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "would_transform": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "would_quarantine": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "would_drop": {
+          "type": "integer",
+          "const": 0
+        },
+        "evidence_status": {
+          "type": "string",
+          "enum": [
+            "CHECKED",
+            "NOT-CHECKED"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "executed": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_status": {
+                "const": "NOT-CHECKED"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "executed": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "evidence_status": {
+                "const": "CHECKED"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "forward_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "n_still_validates_under_n_plus_1",
+        "therefore"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 32
+        },
+        "n_still_validates_under_n_plus_1": {
+          "type": "boolean"
+        },
+        "therefore": {
+          "type": "string",
+          "enum": [
+            "still-validates",
+            "mechanically-transformable"
+          ]
+        }
+      }
+    },
+    "backward_compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "n_plus_1_validates_under_n",
+        "return_path"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 32
+        },
+        "n_plus_1_validates_under_n": {
+          "type": "boolean"
+        },
+        "return_path": {
+          "type": "string",
+          "minLength": 8
+        }
+      }
+    },
+    "transformation_obligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "this_pair"
+      ],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "minLength": 32
+        },
+        "this_pair": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "untransformable_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "report",
+        "silent_drop",
+        "rule"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "const": "QUARANTINE"
+        },
+        "report": {
+          "type": "boolean",
+          "const": true
+        },
+        "silent_drop": {
+          "type": "boolean",
+          "const": false
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 32
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "from_version",
+          "to_version",
+          "byte_recovered",
+          "n_plus_1_valid_before",
+          "n_plus_1_valid_after",
+          "original_canonical_sha256",
+          "forward_canonical_sha256",
+          "recovered_canonical_sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 8
+          },
+          "from_version": {
+            "type": "integer"
+          },
+          "to_version": {
+            "type": "integer"
+          },
+          "byte_recovered": {
+            "type": "boolean"
+          },
+          "n_plus_1_valid_before": {
+            "type": "boolean"
+          },
+          "n_plus_1_valid_after": {
+            "type": "boolean"
+          },
+          "original_canonical_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "forward_canonical_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "recovered_canonical_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "path"
+      ],
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": [
+            "set",
+            "add",
+            "remove"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+        },
+        "value": true
+      }
+    }
+  },
+  "examples": [
+    {
+      "from_version": 1,
+      "to_version": 2,
+      "transform": {
+        "id": "schema_version-1-to-2-format_family",
+        "engine": "command-center/p2-wave/probes/ARC-0093/transform.py",
+        "encoding": "canonical-json-v1",
+        "steps": [
+          {
+            "op": "set",
+            "path": "schema_version",
+            "value": 2
+          },
+          {
+            "op": "add",
+            "path": "format_family",
+            "value": "ast-integrate-json-v2"
+          }
+        ]
+      },
+      "reversibility": {
+        "status": "REVERSIBLE",
+        "statement": "A migration is REVERSIBLE when every forward step has a declared inverse, no step is lossy (remove without a prior copy is irreversible unless the migration is explicitly declared IRREVERSIBLE), and canonical-json-v1(reverse(forward(doc))) equals canonical-json-v1(doc) for every TRANSFORMED record. This record's forward set/add pair inverts by remove/set and is therefore REVERSIBLE.",
+        "byte_recovery_encoding": "canonical-json-v1",
+        "reverse_steps": [
+          {
+            "op": "remove",
+            "path": "format_family"
+          },
+          {
+            "op": "set",
+            "path": "schema_version",
+            "value": 1
+          }
+        ]
+      },
+      "dry_run": {
+        "executed": true,
+        "records_in": 3,
+        "would_transform": 3,
+        "would_quarantine": 0,
+        "would_drop": 0,
+        "evidence_status": "CHECKED"
+      },
+      "forward_compatibility": {
+        "rule": "An N+1 reader MUST either accept an N artifact because it still validates under the N+1 schema, or refuse it and require this migration record. Silent reinterpretation of N as N+1 is forbidden.",
+        "n_still_validates_under_n_plus_1": false,
+        "therefore": "mechanically-transformable"
+      },
+      "backward_compatibility": {
+        "rule": "An N reader MUST refuse an N+1 artifact until the declared reverse runs. Unknown required N+1 fields must not be ignored.",
+        "n_plus_1_validates_under_n": false,
+        "return_path": "declared-reverse"
+      },
+      "transformation_obligation": {
+        "rule": "An artifact written under version N must either still validate under version N+1 or be mechanically transformable to it. If neither holds, the change is not a version bump; it is a break and must not ship.",
+        "this_pair": "N does not still validate under strict N+1; transform is required and executed"
+      },
+      "untransformable_policy": {
+        "action": "QUARANTINE",
+        "report": true,
+        "silent_drop": false,
+        "rule": "A record the transform cannot handle is copied into quarantine with original bytes and a reason, and is listed in the dry-run / apply report. It is never omitted from the accounting identity records_in == transformed + quarantined."
+      },
+      "evidence": [
+        {
+          "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "73ec259f3d7a69c02439cb5865ac618b2363612be1abfc12b2a9e3cd2068bf11",
+          "forward_canonical_sha256": "813139d0e2ce4e23dbcce5de055784668cebf7e636ee40705ad4e7877c800782",
+          "recovered_canonical_sha256": "73ec259f3d7a69c02439cb5865ac618b2363612be1abfc12b2a9e3cd2068bf11"
+        },
+        {
+          "path": "command-center/p2-wave/probes/ARC-0012/fixtures/complete/registry.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "c8a7e878ec51fd0c8899070bab8d68b2fcf6c2d955b58890910c3142d0cfdb65",
+          "forward_canonical_sha256": "60791084f87084efa4ee2175cc50865d9f9fadd4a46ea346404b997889feeae9",
+          "recovered_canonical_sha256": "c8a7e878ec51fd0c8899070bab8d68b2fcf6c2d955b58890910c3142d0cfdb65"
+        },
+        {
+          "path": "command-center/p2-wave/probes/ARC-0026/fixtures/index.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "8e9b5790f55e6613032f5a6da2c1d751d8d453181ad1bab2e3c57d4ed70bbc1d",
+          "forward_canonical_sha256": "3610c92e838dad1fab2c52bbbac15b1718c94546ff0512b71cdfce59dd0c09bf",
+          "recovered_canonical_sha256": "8e9b5790f55e6613032f5a6da2c1d751d8d453181ad1bab2e3c57d4ed70bbc1d"
+        }
+      ]
+    }
+  ],
+  "x-arc-0093": {
+    "report_kind": "phase4-formal-contract",
+    "from_version": 1,
+    "to_version": 2,
+    "format_family": "ast-integrate-json-v2",
+    "forward_steps": [
+      {
+        "op": "set",
+        "path": "schema_version",
+        "value": 2
+      },
+      {
+        "op": "add",
+        "path": "format_family",
+        "value": "ast-integrate-json-v2"
+      }
+    ],
+    "reverse_steps": [
+      {
+        "op": "remove",
+        "path": "format_family"
+      },
+      {
+        "op": "set",
+        "path": "schema_version",
+        "value": 1
+      }
+    ],
+    "consumer_call_site": "command-center/p2-wave/probes/ARC-0093/transform.py:apply_bytes",
+    "inputs_on_this_tree": {
+      "command-center/phase3/WINNING-ARCHITECTURE.json": false,
+      "command-center/phase3/ARCHITECTURE-RATIFICATION.json": false,
+      "command-center/phase3/A2/DESIGN.json": false,
+      "command-center/p2-wave/probes/ARC-0010/registry.json": true,
+      "command-center/p2-wave/probes/ARC-0026/fixtures/index.json": true
+    },
+    "notes": "Backward compatibility demonstrated by transforming three REAL on-disk schema_version=1 artifacts (command-center/p2-wave/probes/ARC-0010/registry.json, command-center/p2-wave/probes/ARC-0012/fixtures/complete/registry.json, command-center/p2-wave/probes/ARC-0026/fixtures/index.json) and validating canonical-json-v1 round-trip recovery. Transform was executed, not assumed. ARC-0010/registry.json is the live generator registry; ARC-0012 complete/registry.json is a second live registry; ARC-0026 fixtures/index.json is a live schema_version=1 capabilities index. phase3/A2/DESIGN.json is absent on this tree (recorded false), so it is not claimed as a transformed source. Missing phase-3 ratification files are recorded false, not invented.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "WINNING-ARCHITECTURE.json was read (absent on this tree)",
+      "ARCHITECTURE-RATIFICATION.json was read (absent on this tree)",
+      "ADV units were rebuilt"
+    ],
+    "reviewer": {
+      "independent_contract_reviewer": "ARC-0093-probe1-roundtrip",
+      "consumer_call_site_reviewer": "ARC-0093-probe2-quarantine",
+      "verdict": "PASS"
+    },
+    "executed_record": {
+      "from_version": 1,
+      "to_version": 2,
+      "transform": {
+        "id": "schema_version-1-to-2-format_family",
+        "engine": "command-center/p2-wave/probes/ARC-0093/transform.py",
+        "encoding": "canonical-json-v1",
+        "steps": [
+          {
+            "op": "set",
+            "path": "schema_version",
+            "value": 2
+          },
+          {
+            "op": "add",
+            "path": "format_family",
+            "value": "ast-integrate-json-v2"
+          }
+        ]
+      },
+      "reversibility": {
+        "status": "REVERSIBLE",
+        "statement": "A migration is REVERSIBLE when every forward step has a declared inverse, no step is lossy (remove without a prior copy is irreversible unless the migration is explicitly declared IRREVERSIBLE), and canonical-json-v1(reverse(forward(doc))) equals canonical-json-v1(doc) for every TRANSFORMED record. This record's forward set/add pair inverts by remove/set and is therefore REVERSIBLE.",
+        "byte_recovery_encoding": "canonical-json-v1",
+        "reverse_steps": [
+          {
+            "op": "remove",
+            "path": "format_family"
+          },
+          {
+            "op": "set",
+            "path": "schema_version",
+            "value": 1
+          }
+        ]
+      },
+      "dry_run": {
+        "executed": true,
+        "records_in": 3,
+        "would_transform": 3,
+        "would_quarantine": 0,
+        "would_drop": 0,
+        "evidence_status": "CHECKED"
+      },
+      "forward_compatibility": {
+        "rule": "An N+1 reader MUST either accept an N artifact because it still validates under the N+1 schema, or refuse it and require this migration record. Silent reinterpretation of N as N+1 is forbidden.",
+        "n_still_validates_under_n_plus_1": false,
+        "therefore": "mechanically-transformable"
+      },
+      "backward_compatibility": {
+        "rule": "An N reader MUST refuse an N+1 artifact until the declared reverse runs. Unknown required N+1 fields must not be ignored.",
+        "n_plus_1_validates_under_n": false,
+        "return_path": "declared-reverse"
+      },
+      "transformation_obligation": {
+        "rule": "An artifact written under version N must either still validate under version N+1 or be mechanically transformable to it. If neither holds, the change is not a version bump; it is a break and must not ship.",
+        "this_pair": "N does not still validate under strict N+1; transform is required and executed"
+      },
+      "untransformable_policy": {
+        "action": "QUARANTINE",
+        "report": true,
+        "silent_drop": false,
+        "rule": "A record the transform cannot handle is copied into quarantine with original bytes and a reason, and is listed in the dry-run / apply report. It is never omitted from the accounting identity records_in == transformed + quarantined."
+      },
+      "evidence": [
+        {
+          "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "73ec259f3d7a69c02439cb5865ac618b2363612be1abfc12b2a9e3cd2068bf11",
+          "forward_canonical_sha256": "813139d0e2ce4e23dbcce5de055784668cebf7e636ee40705ad4e7877c800782",
+          "recovered_canonical_sha256": "73ec259f3d7a69c02439cb5865ac618b2363612be1abfc12b2a9e3cd2068bf11"
+        },
+        {
+          "path": "command-center/p2-wave/probes/ARC-0012/fixtures/complete/registry.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "c8a7e878ec51fd0c8899070bab8d68b2fcf6c2d955b58890910c3142d0cfdb65",
+          "forward_canonical_sha256": "60791084f87084efa4ee2175cc50865d9f9fadd4a46ea346404b997889feeae9",
+          "recovered_canonical_sha256": "c8a7e878ec51fd0c8899070bab8d68b2fcf6c2d955b58890910c3142d0cfdb65"
+        },
+        {
+          "path": "command-center/p2-wave/probes/ARC-0026/fixtures/index.json",
+          "from_version": 1,
+          "to_version": 2,
+          "byte_recovered": true,
+          "n_plus_1_valid_before": false,
+          "n_plus_1_valid_after": true,
+          "original_canonical_sha256": "8e9b5790f55e6613032f5a6da2c1d751d8d453181ad1bab2e3c57d4ed70bbc1d",
+          "forward_canonical_sha256": "3610c92e838dad1fab2c52bbbac15b1718c94546ff0512b71cdfce59dd0c09bf",
+          "recovered_canonical_sha256": "8e9b5790f55e6613032f5a6da2c1d751d8d453181ad1bab2e3c57d4ed70bbc1d"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,868 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0065.json",
+   "bytes": 20922,
+   "sha256": "7a3e654abbc40825a0524f7a0914f3ea639fbad56bb1ebfd1ab60ace3a1767db",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0065 in the receipt AND a mechanism-to-requirement mapping citing this repo's workflows at file:line",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0065.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0065",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Reusable workflows version a whole job graph behind `workflow_call` + `uses: path@ref`. Composite actions version a local steps[] package via `runs.using: composite`. SHA pins buy immutability against tag retargeting, not against SHA-1 collision. On this tree those map onto REQ-BP-STABLE-ID (catalog member ids), REQ-BP-TYPED-IO (stage IO), and REQ-BP-CONTENT-DIGEST (registry_entry_sha256). GitHub Environments required reviewers have no blueprint analogue. SUCCESS:RES-0065 in the receipt AND a mechanism-to-requirement mapping citing this repo's workflows at file:line",
+   "claims": [
+    {
+     "claim": "GitHub Actions reusable workflows exist as a first-class reuse primitive: the callee declares `on.workflow_call`, the caller job sets `uses` to a workflow YAML path plus ref, and `{ref}` may be a SHA, tag, or branch with SHA recommended.",
+     "evidence_grade": "E2",
+     "id": "C-REUSABLE-WORKFLOW-CALL",
+     "maps_to": "REQ-BP-STABLE-ID",
+     "rails": [
+      {
+       "bytes": 113558,
+       "capture_id": "r1-github-workflow-schema",
+       "fetched_at": "2026-08-24T18:45:27Z",
+       "http_status": 200,
+       "kind": "structured-api",
+       "must_contain": "reusableWorkflowCallJob",
+       "note": "JSON Schema Store github-workflow.json defines reusableWorkflowCallJob.uses",
+       "permalink": "https://www.schemastore.org/github-workflow.json",
+       "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+      },
+      {
+       "bytes": 15196,
+       "capture_id": "r2-reuse-workflows-md",
+       "fetched_at": "2026-08-24T18:48:27Z",
+       "http_status": 200,
+       "kind": "prose-source",
+       "must_contain": "workflow_call",
+       "note": "github/docs commit-pinned how-to: on.workflow_call is required",
+       "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+       "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+      }
+     ],
+     "strongest_caveat": "The schema and docs describe GitHub's hosted YAML runtime. They do not imply this repo executes reusable workflows.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "Composite actions are a distinct reuse unit from reusable workflows: action metadata sets `runs.using` to the const `composite` and lists steps, not a callee workflow file.",
+     "evidence_grade": "E2",
+     "id": "C-COMPOSITE-RUNS-USING",
+     "maps_to": "REQ-BP-TYPED-IO",
+     "rails": [
+      {
+       "bytes": 30627,
+       "capture_id": "r1-github-action-schema",
+       "fetched_at": "2026-08-24T18:48:28Z",
+       "http_status": 200,
+       "kind": "structured-api",
+       "must_contain": "\"const\": \"composite\"",
+       "note": "JSON Schema Store github-action.json runs-composite.using const",
+       "permalink": "https://www.schemastore.org/github-action.json",
+       "sha256": "83bd3bf0c4122ceb764927bc189d9e3794931306b53cdf89816f6f3472cadf88"
+      },
+      {
+       "bytes": 9354,
+       "capture_id": "r2-composite-action-md",
+       "fetched_at": "2026-08-24T18:48:28Z",
+       "http_status": 200,
+       "kind": "prose-source",
+       "must_contain": "using: \"composite\"",
+       "note": "github/docs composite tutorial action.yml sample",
+       "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/tutorials/create-actions/create-a-composite-action.md",
+       "sha256": "8a8622f756804021d719ff4dbd599f95106c6eebaba5031a6f61f2bcdc8ff825"
+      }
+     ],
+     "strongest_caveat": "The tutorial sample is instructional YAML, not a marketplace audit of every composite action. The schema const is the mechanical constraint.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "Pinning to a full-length commit SHA is documented as the only current way to consume an action as an immutable release; a tag can be moved. The Git refs API shows `refs/tags/v4` as a pointer to a commit object, not as the frozen bytes themselves.",
+     "evidence_grade": "E2",
+     "id": "C-SHA-PIN-VS-MOVABLE-TAG",
+     "maps_to": "REQ-BP-CONTENT-DIGEST",
+     "rails": [
+      {
+       "bytes": 329,
+       "capture_id": "r1-gitref-checkout-v4",
+       "fetched_at": "2026-08-24T18:45:27Z",
+       "http_status": 200,
+       "kind": "structured-api",
+       "must_contain": "refs/tags/v4",
+       "note": "GET /repos/actions/checkout/git/ref/tags/v4 returns object.sha",
+       "permalink": "https://api.github.com/repos/actions/checkout/git/ref/tags/v4",
+       "sha256": "b4be54231ed94c642aaca0da52e6aa598a58f041b39bb887da8efa6e9e9c5826"
+      },
+      {
+       "bytes": 38202,
+       "capture_id": "r2-secure-use-md",
+       "fetched_at": "2026-08-24T18:48:29Z",
+       "http_status": 200,
+       "kind": "prose-source",
+       "must_contain": "Pin actions to a full-length commit SHA",
+       "note": "github/docs secure-use: SHA pin vs movable tags",
+       "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/reference/security/secure-use.md",
+       "sha256": "ebbd06fd04523e5abb376bd02470dc23dedc8063e352f4f33366ad8c91f0b77c"
+      }
+     ],
+     "strongest_caveat": "The v4 tag SHA recorded in the snapshot can change later; that mutability is the finding, so a later live SHA mismatch on the tag refutes tag-immutability, not this claim. SHA-1 collision remains a theoretical residual GitHub itself names.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "GitHub Environments (required reviewers / wait timers) and `permissions:` / GITHUB_TOKEN scoping have no analogue in this repo's workflow_blueprint schema or the cited workflow JSON files.",
+     "control": true,
+     "evidence_grade": "E2",
+     "id": "C-CONTROL-NO-ENV-REVIEWERS",
+     "maps_to": null,
+     "rails": [
+      {
+       "bytes": 113558,
+       "capture_id": "r1-github-workflow-schema",
+       "fetched_at": "2026-08-24T18:45:27Z",
+       "http_status": 200,
+       "kind": "structured-api",
+       "must_contain": "\"$ref\": \"#/definitions/permissions\"",
+       "note": "Workflow schema defines permissions objects",
+       "permalink": "https://www.schemastore.org/github-workflow.json",
+       "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+      },
+      {
+       "bytes": 15196,
+       "capture_id": "r2-reuse-workflows-md",
+       "fetched_at": "2026-08-24T18:48:27Z",
+       "http_status": 200,
+       "kind": "prose-source",
+       "must_contain": "Environment secrets cannot be passed from the caller workflow",
+       "note": "Docs: workflow_call does not support the environment keyword for secret pass-through",
+       "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+       "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+      }
+     ],
+     "strongest_caveat": "Absence of a field in today's closed schema is not a forever-ban; a later schema revision could add environments. The control is about this tree's current workflow_blueprint, not GitHub's product.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "claim": "This repository's workflow_blueprint JSON files are GitHub Actions reusable workflow YAML and can be invoked with `uses: ...@sha`.",
+     "defect_locus": "SENTENCE",
+     "evidence_grade": "E1",
+     "id": "C-OVERCLAIM-JSON-IS-GHA-YAML",
+     "local_disproof": [
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:54",
+       "line_text": "\"kind\": \"workflow_blueprint\",",
+       "snippet": "\"kind\": \"workflow_blueprint\""
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:121",
+       "line_text": "\"kind\": { \"const\": \"workflow_blueprint\" },",
+       "snippet": "\"kind\": { \"const\": \"workflow_blueprint\" }"
+      }
+     ],
+     "rails": [
+      {
+       "bytes": 113558,
+       "capture_id": "r1-github-workflow-schema",
+       "fetched_at": "2026-08-24T18:45:27Z",
+       "http_status": 200,
+       "kind": "structured-api",
+       "must_contain": "workflow_call",
+       "note": "GHA reusable workflows are YAML with on.workflow_call",
+       "permalink": "https://www.schemastore.org/github-workflow.json",
+       "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+      },
+      {
+       "bytes": 15196,
+       "capture_id": "r2-reuse-workflows-md",
+       "fetched_at": "2026-08-24T18:48:27Z",
+       "http_status": 200,
+       "kind": "prose-source",
+       "must_contain": ".github/workflows",
+       "note": "Callee files live under .github/workflows; this repo's analogue is JSON blueprints",
+       "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+       "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+      }
+     ],
+     "strongest_caveat": "REFUTED is the drop-in-runtime claim only. Partial conceptual mapping to catalog ids and typed stages still stands on the CONFIRMED rows.",
+     "verdict": "REFUTED"
+    }
+   ],
+   "completion_sentinel": "SUCCESS:RES-0065 in the receipt AND a mechanism-to-requirement mapping citing this repo's workflows at file:line",
+   "control": {
+    "blueprint_analogue": null,
+    "ci_mechanism": "GitHub Environments required reviewers / GITHUB_TOKEN permissions",
+    "id": "GHA-ENVIRONMENTS-REQUIRED-REVIEWERS",
+    "reason": "ARC-0010 `workflow_blueprint` sets additionalProperties=false and required=[id, kind, discovery_only, stages, stopping]. There is no environment, permissions, concurrency, or runs-on field. Inventing that mapping would be an overclaim."
+   },
+   "declared_output_schema": "command-center/schema/research-claim-record.schema.json",
+   "declared_output_schema_present": true,
+   "docs_commit": "6bfa7ccbecb1420c790605335e4b8823776018ef",
+   "evidence_rule": "A claim cited as measured fact has two mechanically independent rails (structured API/schema JSON AND commit-pinned prose), each with permalink, fetch timestamp, HTTP status, and sha256 of captured bytes. One rail is E3.",
+   "freshness_stamp": "2026-08-24T18:48:29Z",
+   "mechanism_to_requirement_mapping": [
+    {
+     "also_satisfies": [
+      "REQ-BP-CALL-PARAMS"
+     ],
+     "analogue": "partial",
+     "gap": "GitHub's caller syntax is a git ref to a YAML path. This library's analogue is in-tree `id` + `workflow_catalog.member_ids`, with no `@sha` caller form.",
+     "mechanism": "Reusable workflows: callee YAML whose `on` includes `workflow_call`, invoked as a job via `uses: owner/repo/.github/workflows/file.yml@ref` with `with:` inputs.",
+     "mechanism_id": "GHA-REUSABLE-WORKFLOW",
+     "repo_citations": [
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:53",
+       "line_text": "\"id\": \"wf.catalog-class.discovery-only\",",
+       "snippet": "\"id\": \"wf.catalog-class.discovery-only\""
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:91",
+       "line_text": "\"member_ids\": [\"wf.catalog-class.discovery-only\"]",
+       "snippet": "\"member_ids\": [\"wf.catalog-class.discovery-only\"]"
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/typed/workflows/wf.catalog-class.discovery-only.json:11",
+       "line_text": "\"id\": \"wf.catalog-class.discovery-only\",",
+       "snippet": "\"id\": \"wf.catalog-class.discovery-only\""
+      }
+     ],
+     "requirement": "A workflow blueprint library must give each reusable graph a stable id and list it in a catalog so callers compose by identity, not by copy.",
+     "requirement_id": "REQ-BP-STABLE-ID"
+    },
+    {
+     "analogue": "partial",
+     "gap": "Composite actions are step-scoped and execute on a runner. Blueprint stages are catalog typed IO with `kind` strings; they do not encode `shell:` / `run:`.",
+     "mechanism": "Composite actions: `runs.using: composite` packages a local steps[] graph with named inputs/outputs for reuse inside a job.",
+     "mechanism_id": "GHA-COMPOSITE-ACTION",
+     "repo_citations": [
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:58",
+       "line_text": "\"id\": \"discover\",",
+       "snippet": "\"id\": \"discover\""
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:128",
+       "line_text": "\"required\": [\"id\", \"kind\", \"inputs\", \"outputs\"],",
+       "snippet": "\"required\": [\"id\", \"kind\", \"inputs\", \"outputs\"]"
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/CNF-0084/fixtures/workflows/wf.param-mix.json:7",
+       "line_text": "\"params\": { \"seed\": \"fixed-seed-0001\", \"mode\": \"fold\" },",
+       "snippet": "\"params\": { \"seed\": \"fixed-seed-0001\", \"mode\": \"fold\" }"
+      }
+     ],
+     "requirement": "Reusable fragments must declare typed stage identity plus inputs and outputs so composition is a dataflow, not an opaque script blob.",
+     "requirement_id": "REQ-BP-TYPED-IO"
+    },
+    {
+     "analogue": "partial",
+     "gap": "`registry_entry_sha256` pins the local registry object, not a GitHub Actions marketplace `owner/action@<40-hex>`. It does not freeze a remote git ref.",
+     "mechanism": "Pinning `uses:` to a full-length commit SHA is the documented way to treat a third-party action or reusable workflow as an immutable release; tags can be moved.",
+     "mechanism_id": "GHA-SHA-PIN",
+     "repo_citations": [
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/typed/workflows/wf.catalog-class.discovery-only.json:6",
+       "line_text": "\"registry_entry_sha256\": \"149c8f07114e2636b0a3fb7c4677aadb5bec4c4349783cf3ad45d344a4b4104d\",",
+       "snippet": "\"registry_entry_sha256\":"
+      },
+      {
+       "file_line": "command-center/p2-wave/probes/ARC-0010/generator.py:79",
+       "line_text": "\"registry_entry_sha256\": entry_digest(entry),",
+       "snippet": "\"registry_entry_sha256\": entry_digest(entry),"
+      }
+     ],
+     "requirement": "A generated workflow artifact must pin the exact registry-entry bytes it was rendered from, so retargeting the source is a visible digest change.",
+     "requirement_id": "REQ-BP-CONTENT-DIGEST"
+    },
+    {
+     "analogue": "none",
+     "closed_schema_citation": {
+      "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:121",
+      "line_text": "\"kind\": { \"const\": \"workflow_blueprint\" },",
+      "snippet": "\"kind\": { \"const\": \"workflow_blueprint\" }"
+     },
+     "control": true,
+     "mechanism": "GitHub Environments with required reviewers / wait timers, plus `jobs.<id>.environment` and `permissions:` / `GITHUB_TOKEN` scoping, are CI-platform admission controls.",
+     "mechanism_id": "GHA-ENVIRONMENTS-REQUIRED-REVIEWERS",
+     "repo_citations": [],
+     "requirement": null,
+     "requirement_id": null,
+     "why_no_analogue": "ARC-0010 `workflow_blueprint` sets additionalProperties=false and required=[id, kind, discovery_only, stages, stopping]. There is no environment, permissions, concurrency, or runs-on field. Inventing that mapping would be an overclaim."
+    }
+   ],
+   "named_blueprint_library_requirements": [
+    {
+     "id": "REQ-BP-STABLE-ID",
+     "text": "Stable cataloged workflow id for call-by-identity."
+    },
+    {
+     "id": "REQ-BP-TYPED-IO",
+     "text": "Typed stage fragments with id, kind, inputs, outputs."
+    },
+    {
+     "id": "REQ-BP-CONTENT-DIGEST",
+     "text": "Content digest pin of the registry entry used to generate a workflow artifact."
+    },
+    {
+     "id": "REQ-BP-CALL-PARAMS",
+     "text": "Parameterized reuse surface (inputs/params), not only copy-paste YAML."
+    }
+   ],
+   "question": "How do reusable workflows, composite actions and pinned action versions solve the reuse-with-versioning problem, what does the pinning-to-SHA practice actually buy, and which of those mechanics maps onto a workflow blueprint library?",
+   "source_lineage": [
+    {
+     "fetched_at": "2026-08-24T18:48:27Z",
+     "http_status": 200,
+     "id": "r2-reuse-workflows-md",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/docs-reuse-workflows.md",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+     "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+    },
+    {
+     "fetched_at": "2026-08-24T18:48:28Z",
+     "http_status": 200,
+     "id": "r2-composite-action-md",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/docs-composite-action.md",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/tutorials/create-actions/create-a-composite-action.md",
+     "sha256": "8a8622f756804021d719ff4dbd599f95106c6eebaba5031a6f61f2bcdc8ff825"
+    },
+    {
+     "fetched_at": "2026-08-24T18:48:29Z",
+     "http_status": 200,
+     "id": "r2-secure-use-md",
+     "kind": "prose-source",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/docs-secure-use.md",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/reference/security/secure-use.md",
+     "sha256": "ebbd06fd04523e5abb376bd02470dc23dedc8063e352f4f33366ad8c91f0b77c"
+    },
+    {
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "id": "r1-github-workflow-schema",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/github-workflow.schema.json",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+    },
+    {
+     "fetched_at": "2026-08-24T18:48:28Z",
+     "http_status": 200,
+     "id": "r1-github-action-schema",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/github-action.schema.json",
+     "permalink": "https://www.schemastore.org/github-action.json",
+     "sha256": "83bd3bf0c4122ceb764927bc189d9e3794931306b53cdf89816f6f3472cadf88"
+    },
+    {
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "id": "r1-gitref-checkout-v4",
+     "kind": "structured-api",
+     "path": "command-center/p2-wave/probes/RES-0065/captures/gitref-checkout-v4.json",
+     "permalink": "https://api.github.com/repos/actions/checkout/git/ref/tags/v4",
+     "sha256": "b4be54231ed94c642aaca0da52e6aa598a58f041b39bb887da8efa6e9e9c5826"
+    }
+   ],
+   "strongest_surviving_counterargument": "Mapping is conceptual, not a runtime port. A reader who treats catalog member_ids as `uses: ...@sha` would overclaim; C-OVERCLAIM-JSON-IS-GHA-YAML is REFUTED for that reason."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0065",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0065 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0065.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0065.json",
+     "raw_output": "bytes=20922 sha256=7a3e654abbc40825a0524f7a0914f3ea639fbad56bb1ebfd1ab60ace3a1767db",
+     "fingerprint": "c1a7a6a18929859deccd603bfd7b27e0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0065",
+     "raw_output": "schema-check",
+     "fingerprint": "54d19dd07f103dc6323331c8ab0409af",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0065 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0065",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0065",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "e50c3d2c03a17fc7d81a50d485bc398f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0065",
+     "raw_output": "schema-valid",
+     "fingerprint": "b847f08046d664ee386b68747e02013a",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0065/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0065"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0065.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0065.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "d6933605865d879588a6ed42d0ce398b",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 20922,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0065.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Reusable workflows version a whole job graph behind `workflow_call` + `uses: path@ref`. Composite actions version a local steps[] package via `runs.using: composite`. SHA pins buy immutability against tag retargeting, not against SHA-1 collision. On this tree those map onto REQ-BP-STABLE-ID (catalog member ids), REQ-BP-TYPED-IO (stage IO), and REQ-BP-CONTENT-DIGEST (registry_entry_sha256). GitHub Environments required reviewers have no blueprint analogue. SUCCESS:RES-0065 in the receipt AND a mechanism-to-requirement mapping citing this repo's workflows at file:line",
+ "claims": [
+  {
+   "claim": "GitHub Actions reusable workflows exist as a first-class reuse primitive: the callee declares `on.workflow_call`, the caller job sets `uses` to a workflow YAML path plus ref, and `{ref}` may be a SHA, tag, or branch with SHA recommended.",
+   "evidence_grade": "E2",
+   "id": "C-REUSABLE-WORKFLOW-CALL",
+   "maps_to": "REQ-BP-STABLE-ID",
+   "rails": [
+    {
+     "bytes": 113558,
+     "capture_id": "r1-github-workflow-schema",
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "kind": "structured-api",
+     "must_contain": "reusableWorkflowCallJob",
+     "note": "JSON Schema Store github-workflow.json defines reusableWorkflowCallJob.uses",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+    },
+    {
+     "bytes": 15196,
+     "capture_id": "r2-reuse-workflows-md",
+     "fetched_at": "2026-08-24T18:48:27Z",
+     "http_status": 200,
+     "kind": "prose-source",
+     "must_contain": "workflow_call",
+     "note": "github/docs commit-pinned how-to: on.workflow_call is required",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+     "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+    }
+   ],
+   "strongest_caveat": "The schema and docs describe GitHub's hosted YAML runtime. They do not imply this repo executes reusable workflows.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Composite actions are a distinct reuse unit from reusable workflows: action metadata sets `runs.using` to the const `composite` and lists steps, not a callee workflow file.",
+   "evidence_grade": "E2",
+   "id": "C-COMPOSITE-RUNS-USING",
+   "maps_to": "REQ-BP-TYPED-IO",
+   "rails": [
+    {
+     "bytes": 30627,
+     "capture_id": "r1-github-action-schema",
+     "fetched_at": "2026-08-24T18:48:28Z",
+     "http_status": 200,
+     "kind": "structured-api",
+     "must_contain": "\"const\": \"composite\"",
+     "note": "JSON Schema Store github-action.json runs-composite.using const",
+     "permalink": "https://www.schemastore.org/github-action.json",
+     "sha256": "83bd3bf0c4122ceb764927bc189d9e3794931306b53cdf89816f6f3472cadf88"
+    },
+    {
+     "bytes": 9354,
+     "capture_id": "r2-composite-action-md",
+     "fetched_at": "2026-08-24T18:48:28Z",
+     "http_status": 200,
+     "kind": "prose-source",
+     "must_contain": "using: \"composite\"",
+     "note": "github/docs composite tutorial action.yml sample",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/tutorials/create-actions/create-a-composite-action.md",
+     "sha256": "8a8622f756804021d719ff4dbd599f95106c6eebaba5031a6f61f2bcdc8ff825"
+    }
+   ],
+   "strongest_caveat": "The tutorial sample is instructional YAML, not a marketplace audit of every composite action. The schema const is the mechanical constraint.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Pinning to a full-length commit SHA is documented as the only current way to consume an action as an immutable release; a tag can be moved. The Git refs API shows `refs/tags/v4` as a pointer to a commit object, not as the frozen bytes themselves.",
+   "evidence_grade": "E2",
+   "id": "C-SHA-PIN-VS-MOVABLE-TAG",
+   "maps_to": "REQ-BP-CONTENT-DIGEST",
+   "rails": [
+    {
+     "bytes": 329,
+     "capture_id": "r1-gitref-checkout-v4",
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "kind": "structured-api",
+     "must_contain": "refs/tags/v4",
+     "note": "GET /repos/actions/checkout/git/ref/tags/v4 returns object.sha",
+     "permalink": "https://api.github.com/repos/actions/checkout/git/ref/tags/v4",
+     "sha256": "b4be54231ed94c642aaca0da52e6aa598a58f041b39bb887da8efa6e9e9c5826"
+    },
+    {
+     "bytes": 38202,
+     "capture_id": "r2-secure-use-md",
+     "fetched_at": "2026-08-24T18:48:29Z",
+     "http_status": 200,
+     "kind": "prose-source",
+     "must_contain": "Pin actions to a full-length commit SHA",
+     "note": "github/docs secure-use: SHA pin vs movable tags",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/reference/security/secure-use.md",
+     "sha256": "ebbd06fd04523e5abb376bd02470dc23dedc8063e352f4f33366ad8c91f0b77c"
+    }
+   ],
+   "strongest_caveat": "The v4 tag SHA recorded in the snapshot can change later; that mutability is the finding, so a later live SHA mismatch on the tag refutes tag-immutability, not this claim. SHA-1 collision remains a theoretical residual GitHub itself names.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "GitHub Environments (required reviewers / wait timers) and `permissions:` / GITHUB_TOKEN scoping have no analogue in this repo's workflow_blueprint schema or the cited workflow JSON files.",
+   "control": true,
+   "evidence_grade": "E2",
+   "id": "C-CONTROL-NO-ENV-REVIEWERS",
+   "maps_to": null,
+   "rails": [
+    {
+     "bytes": 113558,
+     "capture_id": "r1-github-workflow-schema",
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "kind": "structured-api",
+     "must_contain": "\"$ref\": \"#/definitions/permissions\"",
+     "note": "Workflow schema defines permissions objects",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+    },
+    {
+     "bytes": 15196,
+     "capture_id": "r2-reuse-workflows-md",
+     "fetched_at": "2026-08-24T18:48:27Z",
+     "http_status": 200,
+     "kind": "prose-source",
+     "must_contain": "Environment secrets cannot be passed from the caller workflow",
+     "note": "Docs: workflow_call does not support the environment keyword for secret pass-through",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+     "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+    }
+   ],
+   "strongest_caveat": "Absence of a field in today's closed schema is not a forever-ban; a later schema revision could add environments. The control is about this tree's current workflow_blueprint, not GitHub's product.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "This repository's workflow_blueprint JSON files are GitHub Actions reusable workflow YAML and can be invoked with `uses: ...@sha`.",
+   "defect_locus": "SENTENCE",
+   "evidence_grade": "E1",
+   "id": "C-OVERCLAIM-JSON-IS-GHA-YAML",
+   "local_disproof": [
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:54",
+     "line_text": "\"kind\": \"workflow_blueprint\",",
+     "snippet": "\"kind\": \"workflow_blueprint\""
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:121",
+     "line_text": "\"kind\": { \"const\": \"workflow_blueprint\" },",
+     "snippet": "\"kind\": { \"const\": \"workflow_blueprint\" }"
+    }
+   ],
+   "rails": [
+    {
+     "bytes": 113558,
+     "capture_id": "r1-github-workflow-schema",
+     "fetched_at": "2026-08-24T18:45:27Z",
+     "http_status": 200,
+     "kind": "structured-api",
+     "must_contain": "workflow_call",
+     "note": "GHA reusable workflows are YAML with on.workflow_call",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+    },
+    {
+     "bytes": 15196,
+     "capture_id": "r2-reuse-workflows-md",
+     "fetched_at": "2026-08-24T18:48:27Z",
+     "http_status": 200,
+     "kind": "prose-source",
+     "must_contain": ".github/workflows",
+     "note": "Callee files live under .github/workflows; this repo's analogue is JSON blueprints",
+     "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+     "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+    }
+   ],
+   "strongest_caveat": "REFUTED is the drop-in-runtime claim only. Partial conceptual mapping to catalog ids and typed stages still stands on the CONFIRMED rows.",
+   "verdict": "REFUTED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0065 in the receipt AND a mechanism-to-requirement mapping citing this repo's workflows at file:line",
+ "control": {
+  "blueprint_analogue": null,
+  "ci_mechanism": "GitHub Environments required reviewers / GITHUB_TOKEN permissions",
+  "id": "GHA-ENVIRONMENTS-REQUIRED-REVIEWERS",
+  "reason": "ARC-0010 `workflow_blueprint` sets additionalProperties=false and required=[id, kind, discovery_only, stages, stopping]. There is no environment, permissions, concurrency, or runs-on field. Inventing that mapping would be an overclaim."
+ },
+ "declared_output_schema": "command-center/schema/research-claim-record.schema.json",
+ "declared_output_schema_present": true,
+ "docs_commit": "6bfa7ccbecb1420c790605335e4b8823776018ef",
+ "evidence_rule": "A claim cited as measured fact has two mechanically independent rails (structured API/schema JSON AND commit-pinned prose), each with permalink, fetch timestamp, HTTP status, and sha256 of captured bytes. One rail is E3.",
+ "freshness_stamp": "2026-08-24T18:48:29Z",
+ "mechanism_to_requirement_mapping": [
+  {
+   "also_satisfies": [
+    "REQ-BP-CALL-PARAMS"
+   ],
+   "analogue": "partial",
+   "gap": "GitHub's caller syntax is a git ref to a YAML path. This library's analogue is in-tree `id` + `workflow_catalog.member_ids`, with no `@sha` caller form.",
+   "mechanism": "Reusable workflows: callee YAML whose `on` includes `workflow_call`, invoked as a job via `uses: owner/repo/.github/workflows/file.yml@ref` with `with:` inputs.",
+   "mechanism_id": "GHA-REUSABLE-WORKFLOW",
+   "repo_citations": [
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:53",
+     "line_text": "\"id\": \"wf.catalog-class.discovery-only\",",
+     "snippet": "\"id\": \"wf.catalog-class.discovery-only\""
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:91",
+     "line_text": "\"member_ids\": [\"wf.catalog-class.discovery-only\"]",
+     "snippet": "\"member_ids\": [\"wf.catalog-class.discovery-only\"]"
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/typed/workflows/wf.catalog-class.discovery-only.json:11",
+     "line_text": "\"id\": \"wf.catalog-class.discovery-only\",",
+     "snippet": "\"id\": \"wf.catalog-class.discovery-only\""
+    }
+   ],
+   "requirement": "A workflow blueprint library must give each reusable graph a stable id and list it in a catalog so callers compose by identity, not by copy.",
+   "requirement_id": "REQ-BP-STABLE-ID"
+  },
+  {
+   "analogue": "partial",
+   "gap": "Composite actions are step-scoped and execute on a runner. Blueprint stages are catalog typed IO with `kind` strings; they do not encode `shell:` / `run:`.",
+   "mechanism": "Composite actions: `runs.using: composite` packages a local steps[] graph with named inputs/outputs for reuse inside a job.",
+   "mechanism_id": "GHA-COMPOSITE-ACTION",
+   "repo_citations": [
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.json:58",
+     "line_text": "\"id\": \"discover\",",
+     "snippet": "\"id\": \"discover\""
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:128",
+     "line_text": "\"required\": [\"id\", \"kind\", \"inputs\", \"outputs\"],",
+     "snippet": "\"required\": [\"id\", \"kind\", \"inputs\", \"outputs\"]"
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/CNF-0084/fixtures/workflows/wf.param-mix.json:7",
+     "line_text": "\"params\": { \"seed\": \"fixed-seed-0001\", \"mode\": \"fold\" },",
+     "snippet": "\"params\": { \"seed\": \"fixed-seed-0001\", \"mode\": \"fold\" }"
+    }
+   ],
+   "requirement": "Reusable fragments must declare typed stage identity plus inputs and outputs so composition is a dataflow, not an opaque script blob.",
+   "requirement_id": "REQ-BP-TYPED-IO"
+  },
+  {
+   "analogue": "partial",
+   "gap": "`registry_entry_sha256` pins the local registry object, not a GitHub Actions marketplace `owner/action@<40-hex>`. It does not freeze a remote git ref.",
+   "mechanism": "Pinning `uses:` to a full-length commit SHA is the documented way to treat a third-party action or reusable workflow as an immutable release; tags can be moved.",
+   "mechanism_id": "GHA-SHA-PIN",
+   "repo_citations": [
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/typed/workflows/wf.catalog-class.discovery-only.json:6",
+     "line_text": "\"registry_entry_sha256\": \"149c8f07114e2636b0a3fb7c4677aadb5bec4c4349783cf3ad45d344a4b4104d\",",
+     "snippet": "\"registry_entry_sha256\":"
+    },
+    {
+     "file_line": "command-center/p2-wave/probes/ARC-0010/generator.py:79",
+     "line_text": "\"registry_entry_sha256\": entry_digest(entry),",
+     "snippet": "\"registry_entry_sha256\": entry_digest(entry),"
+    }
+   ],
+   "requirement": "A generated workflow artifact must pin the exact registry-entry bytes it was rendered from, so retargeting the source is a visible digest change.",
+   "requirement_id": "REQ-BP-CONTENT-DIGEST"
+  },
+  {
+   "analogue": "none",
+   "closed_schema_citation": {
+    "file_line": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:121",
+    "line_text": "\"kind\": { \"const\": \"workflow_blueprint\" },",
+    "snippet": "\"kind\": { \"const\": \"workflow_blueprint\" }"
+   },
+   "control": true,
+   "mechanism": "GitHub Environments with required reviewers / wait timers, plus `jobs.<id>.environment` and `permissions:` / `GITHUB_TOKEN` scoping, are CI-platform admission controls.",
+   "mechanism_id": "GHA-ENVIRONMENTS-REQUIRED-REVIEWERS",
+   "repo_citations": [],
+   "requirement": null,
+   "requirement_id": null,
+   "why_no_analogue": "ARC-0010 `workflow_blueprint` sets additionalProperties=false and required=[id, kind, discovery_only, stages, stopping]. There is no environment, permissions, concurrency, or runs-on field. Inventing that mapping would be an overclaim."
+  }
+ ],
+ "named_blueprint_library_requirements": [
+  {
+   "id": "REQ-BP-STABLE-ID",
+   "text": "Stable cataloged workflow id for call-by-identity."
+  },
+  {
+   "id": "REQ-BP-TYPED-IO",
+   "text": "Typed stage fragments with id, kind, inputs, outputs."
+  },
+  {
+   "id": "REQ-BP-CONTENT-DIGEST",
+   "text": "Content digest pin of the registry entry used to generate a workflow artifact."
+  },
+  {
+   "id": "REQ-BP-CALL-PARAMS",
+   "text": "Parameterized reuse surface (inputs/params), not only copy-paste YAML."
+  }
+ ],
+ "question": "How do reusable workflows, composite actions and pinned action versions solve the reuse-with-versioning problem, what does the pinning-to-SHA practice actually buy, and which of those mechanics maps onto a workflow blueprint library?",
+ "source_lineage": [
+  {
+   "fetched_at": "2026-08-24T18:48:27Z",
+   "http_status": 200,
+   "id": "r2-reuse-workflows-md",
+   "kind": "prose-source",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/docs-reuse-workflows.md",
+   "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/how-tos/reuse-automations/reuse-workflows.md",
+   "sha256": "36ccf26cce42ba7af08f8eccaf3cc567de336eb4f5b696de3cea744cb3ebd257"
+  },
+  {
+   "fetched_at": "2026-08-24T18:48:28Z",
+   "http_status": 200,
+   "id": "r2-composite-action-md",
+   "kind": "prose-source",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/docs-composite-action.md",
+   "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/tutorials/create-actions/create-a-composite-action.md",
+   "sha256": "8a8622f756804021d719ff4dbd599f95106c6eebaba5031a6f61f2bcdc8ff825"
+  },
+  {
+   "fetched_at": "2026-08-24T18:48:29Z",
+   "http_status": 200,
+   "id": "r2-secure-use-md",
+   "kind": "prose-source",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/docs-secure-use.md",
+   "permalink": "https://raw.githubusercontent.com/github/docs/6bfa7ccbecb1420c790605335e4b8823776018ef/content/actions/reference/security/secure-use.md",
+   "sha256": "ebbd06fd04523e5abb376bd02470dc23dedc8063e352f4f33366ad8c91f0b77c"
+  },
+  {
+   "fetched_at": "2026-08-24T18:45:27Z",
+   "http_status": 200,
+   "id": "r1-github-workflow-schema",
+   "kind": "structured-api",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/github-workflow.schema.json",
+   "permalink": "https://www.schemastore.org/github-workflow.json",
+   "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c"
+  },
+  {
+   "fetched_at": "2026-08-24T18:48:28Z",
+   "http_status": 200,
+   "id": "r1-github-action-schema",
+   "kind": "structured-api",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/github-action.schema.json",
+   "permalink": "https://www.schemastore.org/github-action.json",
+   "sha256": "83bd3bf0c4122ceb764927bc189d9e3794931306b53cdf89816f6f3472cadf88"
+  },
+  {
+   "fetched_at": "2026-08-24T18:45:27Z",
+   "http_status": 200,
+   "id": "r1-gitref-checkout-v4",
+   "kind": "structured-api",
+   "path": "command-center/p2-wave/probes/RES-0065/captures/gitref-checkout-v4.json",
+   "permalink": "https://api.github.com/repos/actions/checkout/git/ref/tags/v4",
+   "sha256": "b4be54231ed94c642aaca0da52e6aa598a58f041b39bb887da8efa6e9e9c5826"
+  }
+ ],
+ "strongest_surviving_counterargument": "Mapping is conceptual, not a runtime port. A reader who treats catalog member_ids as `uses: ...@sha` would overclaim; C-OVERCLAIM-JSON-IS-GHA-YAML is REFUTED for that reason."
+}

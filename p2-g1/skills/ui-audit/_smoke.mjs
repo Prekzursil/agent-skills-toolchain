@@ -1,0 +1,21 @@
+import { chromium } from 'playwright';
+import { resolveMock } from './_mock-data.mjs';
+const b = await chromium.launch();
+const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+await ctx.route('**/api/**', r => {
+  const u = new URL(r.request().url());
+  const p = u.pathname.replace(/^.*\/api\/v1/, '') || '/';
+  const body = resolveMock(r.request().method(), p);
+  r.fulfill({ status: 200, contentType: 'application/json', body: body === null ? 'null' : JSON.stringify(body) });
+});
+const pg = await ctx.newPage();
+const errs = [];
+pg.on('pageerror', e => errs.push(e.message.slice(0, 200)));
+await pg.goto('http://127.0.0.1:4200/admin/dashboard', { waitUntil: 'domcontentloaded', timeout: 30000 });
+await pg.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
+await new Promise(r => setTimeout(r, 1500));
+const url = pg.url().replace('http://127.0.0.1:4200', '');
+const txt = await pg.evaluate(() => document.body.innerText.trim().length);
+const h = await pg.evaluate(() => { const x = document.querySelector('h1,h2'); return x ? x.textContent.trim().slice(0, 60) : null; });
+console.log('URL:', url, '| textLen:', txt, '| heading:', JSON.stringify(h), '| pageErrors:', errs.length, errs[0] || '');
+await b.close();

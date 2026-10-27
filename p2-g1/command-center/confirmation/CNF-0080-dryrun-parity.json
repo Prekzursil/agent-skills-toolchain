@@ -1,0 +1,515 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1113,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/conformance-report.schema.json",
+   "role": "supporting",
+   "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190"
+  },
+  {
+   "bytes": 2049,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/fs_tracer.py",
+   "role": "supporting",
+   "sha256": "2e0a7e2daf80e0a3798c5df64900b7a667460d097217921db4c1d7af51bd3041"
+  },
+  {
+   "bytes": 1925,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/mutator.py",
+   "role": "supporting",
+   "sha256": "07939bcc20be50f4ff6772a1425be120885d2cab65e37b038fa1382a69c3a46c"
+  },
+  {
+   "bytes": 3943,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/close_subject.py",
+   "role": "supporting",
+   "sha256": "edd0c41687244d642542628554300bfa2c36c9b7ab1aa63cf4cad53f4ffac3ec"
+  },
+  {
+   "bytes": 6322,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/suite.py",
+   "role": "supporting",
+   "sha256": "acd94284e04a52954826a9ea22925f9efb4bc2c7ad8f5a0ae8407d5456c3c7e5"
+  },
+  {
+   "bytes": 2751,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/probe1_extra_write.py",
+   "role": "supporting",
+   "sha256": "d0e31834078bc37e225459d4aa713f4aaef12de8deefcbd28a57a3db85aa8f0e"
+  },
+  {
+   "bytes": 2087,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/probe2_detector_control.py",
+   "role": "supporting",
+   "sha256": "8028ba52e9c421d68efdeac4f03db9642114c3982986b69eff86c7cb52d2fb97"
+  },
+  {
+   "bytes": 20648,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0080/emit_report.py",
+   "role": "supporting",
+   "sha256": "d9f6b099bb89c4f64234406bdce32f3e5c1a9abf400cb4ecc0157404f86c98df"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0080-dryrun-parity.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0080/probe1_extra_write.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "jsonschema Draft7Validator + disk RefResolver on conformance-report.schema.json",
+    "exit_code": 0,
+    "fingerprint": "cnf0080:schema-validate",
+    "method": "schema-validate",
+    "raw_output": "0 errors; garbage probes rejected",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0080/mutator.py:apply_extra_write",
+   "claim": "Filesystem census captured sneak.txt; the dry-run plan never named that path.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0080/suite.py extra_write_control",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:suite-extra-write",
+     "method": "test-run",
+     "raw_output": "{\"captured\": true, \"predicted\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\"}], \"traced\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\", \"sha256\": \"299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd\"}, {\"bytes\": 24, \"op\": \"create\", \"path\": \"sneak.txt\", \"sha256\": \"a008c59d316858d8644ae0f6bc5b0f2bd04fdb1d9ba0dfb9f5f0d4e1491fe779\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\", \"sha256\": \"188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}]}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0080/mutator.py:apply_extra_write",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:mutator-sneak-read",
+     "method": "file-read",
+     "raw_output": "apply_extra_write writes sneak.txt after the shared plan; dry_run never names it",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0080/mutator.py:lying_plan",
+   "claim": "A delete present in the real run and absent from the dry-run plan is detected as P0 (victim.txt).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0080/suite.py lying_detector",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:suite-lying-delete",
+     "method": "test-run",
+     "raw_output": "{\"omitted\": [{\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}], \"p0_filed\": true, \"predicted\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\"}], \"traced\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\", \"sha256\": \"299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\", \"sha256\": \"188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}]}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0080/mutator.py:lying_plan",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:mutator-lying-read",
+     "method": "file-read",
+     "raw_output": "lying_plan omits victim.txt delete; apply_lying still deletes it",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0080/fs_tracer.py:diff_census",
+   "claim": "Honest shared-plan dry-run matches the traced apply keyset and writes nothing.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0080/suite.py honest_parity",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:suite-honest-parity",
+     "method": "test-run",
+     "raw_output": "{\"dry_zero\": true, \"keys_match\": true, \"predicted\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\"}], \"traced\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\", \"sha256\": \"299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\", \"sha256\": \"188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}]}",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0080/fs_tracer.py:diff_census",
+     "exit_code": 0,
+     "fingerprint": "cnf0080:census-honest-compare",
+     "method": "byte-compare",
+     "raw_output": "before/after sha256 census keyset equals shared dry_run plan",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "CNF-0080",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0080/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"omitted\": [{\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}], \"p0_filed\": true, \"predicted\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\"}], \"traced\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\", \"sha256\": \"299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\", \"sha256\": \"188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}]}",
+   "description": "Lying dry-run omits the victim.txt delete that apply still performs. The detector must fire. Honest shared-plan dry-run must stay silent (exact key match).",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"dry_zero\": true, \"keys_match\": true, \"predicted\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\"}], \"traced\": [{\"bytes\": 17, \"op\": \"create\", \"path\": \"new.txt\", \"sha256\": \"299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd\"}, {\"bytes\": 9, \"op\": \"overwrite\", \"path\": \"stale.txt\", \"sha256\": \"188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c\"}, {\"bytes\": 10, \"op\": \"delete\", \"path\": \"victim.txt\", \"sha256\": \"ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f\"}]}",
+   "id": "CNF0080-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "schema-invalid on garbage",
+   "description": "conformance-report schema must reject empty and unrelated objects when $ref is resolved from disk.",
+   "fired_on_bad_state": true,
+   "good_state_output": "schema-valid conformance-report receipt",
+   "id": "CNF0080-C2",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "gpt-5-codex",
+  "role": "dry-run-verification-engineer",
+  "vendor": "openai"
+ },
+ "report": {
+  "adv_rebuild_circle": false,
+  "answers": {
+   "dry_run_zero_writes_on_honest_operator": true,
+   "extra_write_captured_by_tracer": true,
+   "omitted_destructive_delete_is_p0": true,
+   "production_close_py_dry_run_understates": true,
+   "shared_plan_dry_run_matches_trace": true
+  },
+  "checks": [
+   {
+    "captured_by_tracer": true,
+    "id": "extra-write-control",
+    "method": "before/after sha256 census of the disposable target; not a log of intentions",
+    "sneak_path": "sneak.txt",
+    "title": "tracer census sees one extra write the plan never named",
+    "verdict": "PASS"
+   },
+   {
+    "dry_run_zero_writes": true,
+    "id": "honest-plan-parity",
+    "keys_match": true,
+    "title": "shared-plan dry-run matches traced apply action for action",
+    "verdict": "PASS"
+   },
+   {
+    "classification": "dryrun-understates",
+    "id": "known-broken-omitted-delete",
+    "p0_filed": true,
+    "title": "detector fires when dry-run omits a destructive delete the real run performs",
+    "verdict": "PASS"
+   },
+   {
+    "dry_run_zero_writes": true,
+    "id": "production-close-dryrun",
+    "note": "Dry-run writes nothing (correct) but its stdout does not list the catalog.json / graph.json / events.jsonl mutations the real run performs. Predicted action list is therefore empty; the traced list is attached. Filed as dryrun-understates.",
+    "subject": "tools/command-center/close.py",
+    "title": "tools/command-center/close.py --dry-run vs real --note on a disposable catalog",
+    "understates": true,
+    "verdict": "FAIL"
+   }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:CNF-0080 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the extra-write control was captured by the tracer and both action lists are attached. Any other terminal state is FAILED:CNF-0080 <classification> with the diagnostic tail attached.",
+  "control_ids": [
+   "extra-write-control",
+   "known-broken-omitted-delete",
+   "honest-shared-plan-parity"
+  ],
+  "extra_write_control": {
+   "captured_by_tracer": true,
+   "predicted_actions": [
+    {
+     "bytes": 17,
+     "op": "create",
+     "path": "new.txt"
+    },
+    {
+     "bytes": 9,
+     "op": "overwrite",
+     "path": "stale.txt"
+    },
+    {
+     "bytes": 10,
+     "op": "delete",
+     "path": "victim.txt"
+    }
+   ],
+   "sneak_path": "sneak.txt",
+   "traced_actions": [
+    {
+     "bytes": 17,
+     "op": "create",
+     "path": "new.txt",
+     "sha256": "299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd"
+    },
+    {
+     "bytes": 24,
+     "op": "create",
+     "path": "sneak.txt",
+     "sha256": "a008c59d316858d8644ae0f6bc5b0f2bd04fdb1d9ba0dfb9f5f0d4e1491fe779"
+    },
+    {
+     "bytes": 9,
+     "op": "overwrite",
+     "path": "stale.txt",
+     "sha256": "188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c"
+    },
+    {
+     "bytes": 10,
+     "op": "delete",
+     "path": "victim.txt",
+     "sha256": "ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f"
+    }
+   ]
+  },
+  "findings": [
+   {
+    "classification": "dryrun-understates",
+    "detail": "Real --note on a disposable catalog overwrites catalog.json and graph.json and creates events.jsonl. The dry-run prints 'nothing written' and does not name those mutations, so the predicted action list understates the real run.",
+    "severity": "P0",
+    "subject": "tools/command-center/close.py --dry-run"
+   }
+  ],
+  "kind": "conformance-report",
+  "known_broken_fixture": {
+   "omitted_destructive": [
+    {
+     "bytes": 10,
+     "op": "delete",
+     "path": "victim.txt",
+     "sha256": "ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f"
+    }
+   ],
+   "p0_filed": true,
+   "predicted_actions": [
+    {
+     "bytes": 17,
+     "op": "create",
+     "path": "new.txt"
+    },
+    {
+     "bytes": 9,
+     "op": "overwrite",
+     "path": "stale.txt"
+    }
+   ],
+   "traced_actions": [
+    {
+     "bytes": 17,
+     "op": "create",
+     "path": "new.txt",
+     "sha256": "299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd"
+    },
+    {
+     "bytes": 9,
+     "op": "overwrite",
+     "path": "stale.txt",
+     "sha256": "188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c"
+    },
+    {
+     "bytes": 10,
+     "op": "delete",
+     "path": "victim.txt",
+     "sha256": "ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f"
+    }
+   ]
+  },
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0080/probe1_extra_write.py",
+    "id": "probe1",
+    "role": "extra-write-control"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0080/probe2_detector_control.py",
+    "id": "probe2",
+    "role": "detector-control"
+   }
+  ],
+  "notes": "G-1 for CNF-0080: live named probes exit 0, confirmation artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Extra-write control captured by census tracer; both action lists attached. close.py --dry-run understates and is filed in report.findings; the shared-plan fixture dry-run matches the trace.",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0080/fs_tracer.py",
+    "measured": true,
+    "method": "before/after sha256 census",
+    "name": "extra_write_captured_by_tracer"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0080/mutator.py",
+    "measured": true,
+    "method": "plan keyset vs census keyset",
+    "name": "honest_shared_plan_keys_match"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0080/suite.py",
+    "measured": true,
+    "method": "lying_plan vs apply_lying census",
+    "name": "omitted_delete_detector_fired"
+   },
+   {
+    "anchor": "tools/command-center/close.py",
+    "measured": true,
+    "method": "close.py --dry-run vs real --note census",
+    "name": "production_close_py_dry_run_understates"
+   }
+  ],
+  "output_path": "command-center/confirmation/CNF-0080-dryrun-parity.json",
+  "output_schema": "command-center/schema/conformance-report.schema.json",
+  "parser": {
+   "method": "before/after sha256+byte census of a disposable tree",
+   "name": "cnf-0080-fs-census-tracer",
+   "path": "command-center/p2-wave/probes/CNF-0080/fs_tracer.py",
+   "version": "sha256-census-2026-08-24"
+  },
+  "predicted_actions": [
+   {
+    "bytes": 17,
+    "op": "create",
+    "path": "new.txt"
+   },
+   {
+    "bytes": 9,
+    "op": "overwrite",
+    "path": "stale.txt"
+   },
+   {
+    "bytes": 10,
+    "op": "delete",
+    "path": "victim.txt"
+   }
+  ],
+  "production_close_py": {
+   "classification": "dryrun-understates",
+   "dry_run_wrote": [],
+   "dry_stdout": "SUCCESS:cc-close dry-run note R-T01 (nothing written)",
+   "omitted_from_dry_run": [
+    {
+     "bytes": 446,
+     "op": "overwrite",
+     "path": "catalog.json",
+     "sha256": "326565b70199ee8a320744557e779cb29ee16be347e1884aeab35fba16fe2334"
+    },
+    {
+     "bytes": 94,
+     "op": "create",
+     "path": "events.jsonl",
+     "sha256": "049a826587b6dfdd61d0ce281650da8b6c1e94c1232af74a98398b9b94e130f4"
+    },
+    {
+     "bytes": 510,
+     "op": "overwrite",
+     "path": "graph.json",
+     "sha256": "d2728f4e8d192fd3c08da7dd9594c9702db04f00b7e83382cc00e7538ba959f0"
+    }
+   ],
+   "predicted_actions": [],
+   "real_stdout": "SUCCESS:cc-close note R-T01 open=1 total=1",
+   "subject": "tools/command-center/close.py",
+   "traced_actions": [
+    {
+     "bytes": 446,
+     "op": "overwrite",
+     "path": "catalog.json",
+     "sha256": "326565b70199ee8a320744557e779cb29ee16be347e1884aeab35fba16fe2334"
+    },
+    {
+     "bytes": 94,
+     "op": "create",
+     "path": "events.jsonl",
+     "sha256": "049a826587b6dfdd61d0ce281650da8b6c1e94c1232af74a98398b9b94e130f4"
+    },
+    {
+     "bytes": 510,
+     "op": "overwrite",
+     "path": "graph.json",
+     "sha256": "d2728f4e8d192fd3c08da7dd9594c9702db04f00b7e83382cc00e7538ba959f0"
+    }
+   ],
+   "understates": true
+  },
+  "question": "Does the dry run tell the truth? Capture the plan a dry run predicts and the actions a real run performs, then answer: do the two match action for action, and does the dry run ever omit a destructive step that the real run performs?",
+  "title": "Dry-run versus real-run plan parity",
+  "traced_actions": [
+   {
+    "bytes": 17,
+    "op": "create",
+    "path": "new.txt",
+    "sha256": "299705a791004ece33891da453d1bd81bba2c9ec6af614eed7e0abf54f35a7fd"
+   },
+   {
+    "bytes": 9,
+    "op": "overwrite",
+    "path": "stale.txt",
+    "sha256": "188522440c66655d2ad5470ab44a32b111ddc9065d5484c76e64441300dc1f8c"
+   },
+   {
+    "bytes": 10,
+    "op": "delete",
+    "path": "victim.txt",
+    "sha256": "ccca539f681463fb3b513a2298ee091f2c461f74175c099ab489d571dc41eb4f"
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Only the disposable shared-plan operator and tools/command-center/close.py --note were traced. Other dry-run verbs in this repo were not measured.",
+   "settling_experiment": "Add one extra dry-run operator per remaining CLI verb and repeat the census vs predicted-plan comparison.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Named probe2 re-runs the DETECTOR CONTROL on the known-broken omitted-delete fixture and does not re-read this conclusion as evidence.",
+  "reviewer_id": "CNF-0080-probe2-detector-control",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0080 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the extra-write control was captured by the tracer and both action lists are attached. Any other terminal state is FAILED:CNF-0080 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0080",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0080/probe1_extra_write.py",
+   "id": "T1-extra-write-control",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0080/probe2_detector_control.py",
+   "id": "T2-detector-control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:00Z",
+  "started_at": "2026-08-25T00:56:59Z"
+ },
+ "unit_id": "CNF-0080"
+}

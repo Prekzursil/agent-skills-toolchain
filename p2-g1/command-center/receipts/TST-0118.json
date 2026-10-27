@@ -1,0 +1,242 @@
+{
+ "answer": "Grammar campaign seed=118 produced 80 documents; 80 reached the semantic layer (reach_rate=1.0). The same seed's byte-level mutants reached the semantic layer 0/80 (reach_rate=0.0). Cyclic subworkflow -> CYCLIC_SUBWORKFLOW in 0.015ms (naive expander -> HANG_BOUND_EXCEEDED). Zero-producer barrier -> BARRIER_ZERO_PRODUCERS. The valid twin is accepted in the same run.",
+ "artifacts": [
+  {
+   "bytes": 4417,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/grammar.json",
+   "role": "supporting",
+   "sha256": "83778b1ab6efd29abbf4590fa79b84d7fc776fcfc9ffd21631b8314d0117e9e1"
+  },
+  {
+   "bytes": 5615,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/classify.py",
+   "role": "supporting",
+   "sha256": "6751d43c3afecb49d0e8c25f64df32fcc2ed8c25e0256649be9ad530de3189d9"
+  },
+  {
+   "bytes": 9043,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/generator.py",
+   "role": "supporting",
+   "sha256": "6d0e15146a92b82375622e80d5941778d159d89a5e768d596d203cba20328ea4"
+  },
+  {
+   "bytes": 7011,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/semantic.py",
+   "role": "supporting",
+   "sha256": "c9fd970dd0cb2bc97b301da223e60d3e1c1bf05b0929d4530c4a22a7098bc1fe"
+  },
+  {
+   "bytes": 6254,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/campaign.py",
+   "role": "supporting",
+   "sha256": "dc3090400733cf410696c70762189bf8329cbfdf8de18f49111f48acb8809bfa"
+  },
+  {
+   "bytes": 1594,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/probe1_reach_rate.py",
+   "role": "supporting",
+   "sha256": "3145297ec19c1649c7ed91cf126ee6258dfb86e121a5e8962a8826ed4660ff6f"
+  },
+  {
+   "bytes": 2133,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0118/probe2_hostile_rejects.py",
+   "role": "supporting",
+   "sha256": "ea9a8c7eaa34627bea1ee30a90d96546f5531386212e7897c52c730b7465ca41"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0118",
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0118.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py TST-0118",
+   "executed": false,
+   "exit_code": 0,
+   "note": "measure runs after this receipt is on disk",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0118/grammar.json",
+   "claim": "The committed grammar plus a seed-118 generator produced 80/80 documents that reached the semantic layer; byte-level mutants of the valid twin reached 0/80. Same seed reproduces the campaign fingerprint.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0118/probe1_reach_rate.py",
+     "exit_code": 0,
+     "fingerprint": "3e0cfc478e6cb3a0d8d72e8603db6e40",
+     "method": "command",
+     "raw_output": "{\"crashed\": 0, \"fingerprint\": \"43146ef53d8ad3bdac5dce705bb559e71da6d4ffc90263038fb2a326f90f5f85\", \"generated\": 80, \"grammar_sha256\": \"83778b1ab6efd29abbf4590fa79b84d7fc776fcfc9ffd21631b8314d0117e9e1\", \"hung\": 0, \"reach_rate\": 1.0, \"seed\": 118, \"semantic_layer_count\": 80}",
+     "role": "source"
+    },
+    {
+     "command": "test_semantic_reach_rate_is_reported(seed=118)",
+     "exit_code": 0,
+     "fingerprint": "3e7a29cbca3b534ed2ce2bf1619b2cdc",
+     "method": "in-process-campaign",
+     "raw_output": "{\"byte_semantic_layer_count\": 0, \"generated\": 80, \"repro_same_seed\": true, \"semantic_layer_count\": 80}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0118/semantic.py:analyze",
+   "claim": "A cyclic subworkflow library is rejected as CYCLIC_SUBWORKFLOW in 0.015ms with hung=false; a naive expander without a seen-set hits HANG_BOUND_EXCEEDED on the same fixture. A barrier with awaits=[] is BARRIER_ZERO_PRODUCERS. The valid twin is accepted.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0118/probe2_hostile_rejects.py",
+     "exit_code": 0,
+     "fingerprint": "9081e97905730c489ff12555e5690bc7",
+     "method": "command",
+     "raw_output": "{\"barrier\": [\"BARRIER_ZERO_PRODUCERS\"], \"cyclic\": [\"CYCLIC_SUBWORKFLOW\"], \"naive\": [\"HANG_BOUND_EXCEEDED\"]}",
+     "role": "source"
+    },
+    {
+     "command": "test_cyclic_subworkflow_is_rejected_not_hung + test_zero_producer_barrier_is_rejected",
+     "exit_code": 0,
+     "fingerprint": "8c4442546c95a0db6e5022377286bcb1",
+     "method": "in-process-hostile",
+     "raw_output": "{\"cyclic_elapsed_ms\": 0.015, \"cyclic_hung\": false, \"good_accepted\": true, \"loop\": [\"LOOP_NO_CONVERGENCE\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "grammar": {
+  "max_nesting": 8,
+  "path": "command-center/p2-wave/probes/TST-0118/grammar.json",
+  "sha256": "83778b1ab6efd29abbf4590fa79b84d7fc776fcfc9ffd21631b8314d0117e9e1",
+  "start_symbols": [
+   "Library",
+   "Manifest"
+  ]
+ },
+ "id": "TST-0118",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0118/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "byte_reach_rate=0.0",
+   "description": "Grammar-derived documents reach SEMANTIC; byte-mutated twins die in LEXER/SYNTAX. A campaign with low grammar reach-rate is testing the lexer, not the DSL.",
+   "fired_on_bad_state": true,
+   "good_state_output": "grammar_reach_rate=1.0",
+   "id": "TST-0118-C1-BYTE-LEVEL-LEXER",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "[\"HANG_BOUND_EXCEEDED\"]",
+   "description": "Naive expander without a seen-set hits HANG_BOUND_EXCEEDED on the cyclic fixture; production returns CYCLIC_SUBWORKFLOW and accepts the acyclic twin.",
+   "fired_on_bad_state": true,
+   "good_state_output": "[\"CYCLIC_SUBWORKFLOW\"]",
+   "id": "TST-0118-C2-NAIVE-CYCLE-HANG",
+   "kind": "known-broken-mutant",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "[\"BARRIER_ZERO_PRODUCERS\"]",
+   "description": "awaits=[] fires BARRIER_ZERO_PRODUCERS; the valid library's barrier with producers is accepted.",
+   "fired_on_bad_state": true,
+   "good_state_output": "accepted=True",
+   "id": "TST-0118-C3-BARRIER-BOTH-STATES",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+ "output_schema_present": true,
+ "question_or_target": "Byte-level fuzzing of a structured format spends its budget on lexer rejects. Target: a grammar-derived generator that emits syntactically valid but semantically hostile documents (deep nesting, cyclic subworkflow references, a barrier with zero producers, a loop with no convergence rule) and asserts a typed rejection rather than a hang or a crash.",
+ "report_kind": "fault-injection-receipt",
+ "residual_unknowns": [
+  {
+   "claim": "command-center/schema/fault-injection-receipt.schema.json is present (shim; G-1 does not consult schema validation). TST-0117 and TST-0037 receipts are absent on this worktree; this unit ships its own grammar and semantic checker rather than importing theirs. _USER-PROMPTS.md is absent; the catalog question_or_target is the spec used.",
+   "settling_experiment": "Re-run against TST-0037's workflow DSL conformance checker if that unit lands, and against TST-0117's grammar if it differs from this committed grammar.json.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "unlimited re-runs ONLY with a new recorded seed; same seed is reproduction"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 is mechanically different from probe 1: planted cyclic and zero-producer fixtures plus a naive expander watchdog, not the reach-rate table. Catalog asked for a cross-vendor reviewer; this headless worker records the independent probe as the available adversarial control.",
+  "reviewer_id": "TST-0118-probe2-hostile-typed-reject",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "seed": 118,
+ "semantic_reach": {
+  "byte_generated": 80,
+  "byte_reach_rate": 0.0,
+  "byte_semantic_layer_count": 0,
+  "crashed": 0,
+  "fingerprint": "43146ef53d8ad3bdac5dce705bb559e71da6d4ffc90263038fb2a326f90f5f85",
+  "generated": 80,
+  "hung": 0,
+  "reach_rate": 1.0,
+  "repro_same_seed": true,
+  "semantic_layer_count": 80
+ },
+ "sentinel": "SUCCESS:TST-0118",
+ "spec_anchor": "_USER-PROMPTS.md:11002,10805,10875-10896",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0118/probe1_reach_rate.py",
+   "id": "test_semantic_reach_rate_is_reported",
+   "reach_rate": 1.0,
+   "result": "PASS",
+   "semantic_layer_count": 80
+  },
+  {
+   "codes": [
+    "CYCLIC_SUBWORKFLOW"
+   ],
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0118/probe2_hostile_rejects.py",
+   "elapsed_ms": 0.015,
+   "hung": false,
+   "id": "test_cyclic_subworkflow_is_rejected_not_hung",
+   "result": "PASS"
+  },
+  {
+   "codes": [
+    "BARRIER_ZERO_PRODUCERS"
+   ],
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0118/probe2_hostile_rejects.py",
+   "id": "test_zero_producer_barrier_is_rejected",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:30Z",
+  "started_at": "2026-08-25T00:59:30Z"
+ },
+ "title": "Grammar-aware fuzzing of the workflow DSL and the manifest formats",
+ "unit_id": "TST-0118",
+ "valid_twin_bytes": 655
+}

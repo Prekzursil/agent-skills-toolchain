@@ -1,0 +1,2252 @@
+{
+  "artifacts": [
+    {
+      "bytes": 17395,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/census.py",
+      "role": "primary",
+      "sha256": "194df1af38acc48a53c741b16ca2ac8bc54e4b1949753e5b61c8384a79dfcfb7"
+    },
+    {
+      "bytes": 1697,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/scenario.py",
+      "role": "supporting",
+      "sha256": "c7119c4676ac78f5c638fb457805a4fad47aad25d75c4ed5a72ac94946d44841"
+    },
+    {
+      "bytes": 4779,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/probe1_planted_controls.py",
+      "role": "control",
+      "sha256": "6ae8ec998064f31be9aa0ec13680e19e40f14404e95654604744f6964d049204"
+    },
+    {
+      "bytes": 4914,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/probe2_overclaim.py",
+      "role": "control",
+      "sha256": "b0cfdbce4925daa25722bcad7386839562a49171689c07b631b553c41a79ae87"
+    },
+    {
+      "bytes": 3107,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/fixtures/registry.json",
+      "role": "fixture",
+      "sha256": "5b40b1db61c45e885223ecd4ffe8e4b50ac94c7e644961839adfe367ee9eae7b"
+    },
+    {
+      "bytes": 2961,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+      "role": "control",
+      "sha256": "98d29cd593b4d5475ce558fa9651c9b16577b20e97098be189da5c015287d6a4"
+    }
+  ],
+  "defects": [
+    {
+      "id": "TST-0349-D1",
+      "severity": "P2",
+      "status": "open",
+      "summary": "command-center/TEST-REGISTRY.json is present but declares no per-test patchable subject, so live overlap flags are UNDECLARED-SUBJECT not CLEAN. Conversion list for live tests cannot be ranked until subjects exist. live_tests=730 live_with_patches=116 live_flagged=0."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/TST-0349/census.py",
+      "consumer": "ast.parse of the overlap census detector",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -c \"import ast, pathlib; ast.parse(pathlib.Path('command-center/p2-wave/probes/TST-0349/census.py').read_text())\"",
+        "exit_code": 0,
+        "fingerprint": "fecc64da3149fdf348d2bebd30039330",
+        "method": "static-analysis",
+        "raw_output": "parsed command-center/p2-wave/probes/TST-0349/census.py bytes=16884",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0349/fixtures/tests",
+      "claim": "Planted tests that patch their declared HttpClient subject are DETECTED by subject-inside-patched-set overlap, not by raw mock count.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0349/census.py",
+          "exit_code": 0,
+          "fingerprint": "2e5775f22e932cf46d87b281018c3aad",
+          "method": "command",
+          "raw_output": "{\"neighbour_flagged\": false, \"overlap_names\": [\"test_context_manager_patches_own_subject\", \"test_http_client_patches_own_subject\", \"test_http_client_patches_own_subject_low\", \"test_mocker_patches_own_subject\", \"test_patch_object_own_subject\"], \"planted_flagged\": 5, \"triple_patch_call_count\": 3}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c ast.parse planted test_planted_controls.py and require overlap(subject, patch-target)",
+          "exit_code": 0,
+          "fingerprint": "52378b161667f303075378d5aa67fbf6",
+          "method": "static-analysis",
+          "raw_output": "{\"detected\": [\"test_context_manager_patches_own_subject\", \"test_http_client_patches_own_subject\", \"test_http_client_patches_own_subject_low\", \"test_mocker_patches_own_subject\", \"test_patch_object_own_subject\"], \"p0_score\": 141, \"p2_score\": 31}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0349/probe2_overclaim.py",
+      "claim": "A raw patch-count mutant would flag test_three_neighbour_mocks (patch_call_count=3); the overlap detector does not. String mention of patch() is not a Call.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -c 'overlap vs patch_call_count on planted corpus'",
+          "exit_code": 0,
+          "fingerprint": "5063a08a76bb3b48de9a988e8998890d",
+          "method": "command",
+          "raw_output": "{\"mention_patch_call_count\": 0, \"triple_flagged\": false, \"triple_patch_call_count\": 3}",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "exit_code": 0,
+          "fingerprint": "69591a686e6ff58441001080dc461f75",
+          "method": "file-read",
+          "raw_output": "{\"mention_patch_call_count\": 0, \"mention_string_present\": true}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "TST-0349",
+    "manifest_path": "command-center/p2-wave/probes/TST-0349/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "DETECTED test_http_client_patches_own_subject",
+      "description": "Self-patch DETECTED; a string/comment mention of patch(\"subject\") is not a patch Call and is not flagged.",
+      "fired_on_bad_state": true,
+      "good_state_output": "mention_not_use patch_call_count=0",
+      "id": "mention-is-not-use",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "count mutant would flag test_three_neighbour_mocks",
+      "description": "test_three_neighbour_mocks has patch_call_count>=3 and flagged=false; a count detector would have raised a finding.",
+      "fired_on_bad_state": true,
+      "good_state_output": "triple_flagged=false",
+      "id": "raw-count-is-not-overlap",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "opus",
+    "role": "test-engineer",
+    "vendor": "anthropic"
+  },
+  "report": {
+    "counts": {
+      "live_flagged": 0,
+      "live_tests": 730,
+      "live_undeclared_subject": 730,
+      "live_with_patches": 116,
+      "planted_flagged": 5,
+      "planted_tests": 8
+    },
+    "declared_inputs": {
+      "TEST-REGISTRY.json": {
+        "named_test_count": 19,
+        "note": "Present. Shape is a suite/invariant ledger, not per-test patchable subjects. Named tests without an object subject cannot be overlap-flagged.",
+        "object_subject_rows": 0,
+        "path": "command-center/TEST-REGISTRY.json",
+        "present": true,
+        "shape": "suite-invariant-ledger"
+      },
+      "contract_test_layer": {
+        "claimed_input": "the contract-test layer authored in slice part 1",
+        "note": "Not on this worktree. Conversion targets remain named, not executed.",
+        "present": false
+      },
+      "receipt_schema": {
+        "note": "Catalog output_schema resolves on disk (generated shim). Domain census is in report; receipt_core is the envelope.",
+        "path": "command-center/schema/receipt.schema.json",
+        "physical": "platform/schema/receipt.schema.json",
+        "present": true
+      }
+    },
+    "deletion_forbidden": true,
+    "detector": {
+      "method": "Python AST (not text search)",
+      "overlap_rule": "subject equals a patched target, or either is a dotted prefix of the other",
+      "patch_forms": [
+        "unittest.mock.patch / mock.patch / mocker.patch string target",
+        "patch.object / mocker.patch.object",
+        "monkeypatch.setattr",
+        "function and class decorators",
+        "with-context patch calls",
+        "same-class setUp/setup_method unioned onto test methods"
+      ],
+      "use_versus_mention": "A Constant string or comment containing patch(\"subject\") is not a patch Call"
+    },
+    "deviations": [
+      {
+        "explanation": "command-center/TEST-REGISTRY.json is present. It names suites and invariants, not a patchable object per test. Declared subjects for planted controls come from command-center/p2-wave/probes/TST-0349/fixtures/registry.json. Live tests were AST-scanned; without object subjects they are UNDECLARED, not CLEAN.",
+        "id": "DEV-LIVE-TEST-REGISTRY-NO-PER-TEST-SUBJECT",
+        "kind": "source-shape"
+      }
+    ],
+    "finding_definition": {
+      "is": "declared subject is inside the test's patched set",
+      "is_not": [
+        "raw mock or patch call count",
+        "C23 vacuous tests that assert nothing",
+        "an instruction to delete the flagged tests",
+        "a string mention of patch() or of the subject"
+      ],
+      "output": "prioritised conversion list (contract or integration), not a deletion list"
+    },
+    "kind": "subject-inside-patched-set-census",
+    "live_corpus": {
+      "flagged": 0,
+      "flagged_rows": [],
+      "honesty": "Live overlap flags require a declared patchable subject. TEST-REGISTRY.json is PRESENT as a suite/invariant ledger with object_subject_rows=0. Live flagged=0 is UNDECLARED-SUBJECT, not CLEAN. A raw patch-call count is not an overlap finding.",
+      "patched_undeclared_rows": [
+        {
+          "flagged": false,
+          "lineno": 102,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.dispatcher._modules.shadow_log"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_emit_shadow_swallows_a_failing_sink",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 223,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.dispatcher.read_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_load_breaker_falls_open_when_read_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 251,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.dispatcher.atomic_write_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_finalize_breaker_write_error_is_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 312,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.dispatcher.HarnessDispatcher",
+            "harness.dispatcher.render_output",
+            "sys.stdin"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_main_reads_dict_stdin_and_writes_native_for_terminal_event",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 333,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.dispatcher.HarnessDispatcher",
+            "harness.dispatcher.render_output",
+            "sys.stdin"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_main_coerces_non_dict_stdin_to_empty",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 355,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.dispatcher.HarnessDispatcher",
+            "harness.dispatcher.render_output",
+            "sys.stdin"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_main_bad_json_stdin_fails_open_to_empty",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 369,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.dispatcher.HarnessDispatcher",
+            "harness.dispatcher.render_output",
+            "sys.stdin"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_main_skips_write_when_no_native_and_not_terminal",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 383,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.dispatcher.HarnessDispatcher",
+            "harness.dispatcher.render_output",
+            "sys.stdin"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_main_inner_exception_returns_zero",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 395,
+          "patch_call_count": 1,
+          "patched_set": [
+            "sys.argv"
+          ],
+          "path": "agent-self/harness/tests/test_cov_dispatcher_adapters.py",
+          "subject": null,
+          "test": "test_module_main_guard_executes_as_entrypoint",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 18,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.stat"
+          ],
+          "path": "agent-self/harness/tests/test_cov_final.py",
+          "subject": null,
+          "test": "test_filelock_swallows_oserror_from_stale_lock_stat",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 138,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.unlink"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_atomic_write_text_swallows_unlink_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 211,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install._observe_symlink"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_reconcile_skills_symlink_reports_error_on_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 226,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install._observe_symlink"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_reconcile_skills_symlink_ok_when_pinned_without_target_and_is_symlink",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 250,
+          "patch_call_count": 4,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR",
+            "harness.install.CLAUDE_SETTINGS",
+            "harness.install.CODEX_HOOKS",
+            "harness.install.INSTALLED_MANIFEST"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_install_backs_up_existing_codex_hooks",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 307,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.HOME"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_default_live_skills_falls_back_to_home_agents_without_env",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 322,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.HOME"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_default_live_hooks_falls_back_to_claude_hooks_without_env",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 336,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.unlink"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_release_deploy_lock_swallows_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 356,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.subprocess.run"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_source_commit_returns_none_when_git_invocation_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 365,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.subprocess.run"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_source_commit_returns_stripped_hash_on_success",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 376,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.subprocess.run"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_source_commit_returns_none_when_stdout_is_blank",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 392,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_cov_install_small.py",
+          "subject": null,
+          "test": "test_deploy_parity_mismatch_on_new_target_fails_without_restore",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 37,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.exists"
+          ],
+          "path": "agent-self/harness/tests/test_cov_ledger.py",
+          "subject": null,
+          "test": "test_canonical_project_path_breaks_on_git_probe_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 428,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.ledger.os.fsync"
+          ],
+          "path": "agent-self/harness/tests/test_cov_ledger.py",
+          "subject": null,
+          "test": "test_ensure_append_boundary_fail_open_on_fsync_error",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 681,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.ledger._sanitize_value"
+          ],
+          "path": "agent-self/harness/tests/test_cov_ledger.py",
+          "subject": null,
+          "test": "test_legacy_events_skips_non_dict_sanitized",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 77,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.read_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_resolve_mode_falls_back_when_module_modes_read_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 96,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules._shadow_root"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_shadow_log_fail_open_when_root_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 133,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.replace"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_shadow_log_rotation_oserror_appends_in_place",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 170,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.resolve_mode"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_stage_fail_open_to_shadow_when_resolve_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 220,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.os.path.abspath"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_under_fails_closed_on_error",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 304,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules._canonical_tree"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_run_fail_open_when_canonical_guard_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 318,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.stage"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_run_fail_open_when_metered_stage_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 366,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._config_drift"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_config_drift_fail_open_when_check_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 429,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._append_mutation"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_post_tool_use_fail_open_when_mutation_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 450,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._injection_tripwire"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_post_tool_use_fail_open_when_tripwire_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 468,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.classify_receipt"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_classify_returns_none_when_receipt_classifier_absent",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 481,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.classify_receipt"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_classify_returns_none_when_classifier_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 494,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules._injection_scan"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_injection_tripwire_noop_when_grammar_absent",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 546,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._session_hazard"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_session_start_fail_open_when_hazard_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 555,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.glob"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_session_hazard_glob_oserror_is_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 589,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._postcompact_reanchor"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_goal_postcompact_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 641,
+          "patch_call_count": 1,
+          "patched_set": [
+            "mod._budget_pacing"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_goal_budget_pacing_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 724,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.exists"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_checkpoint_default_falls_back_when_d_drive_absent",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 766,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.glob"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_a.py",
+          "subject": null,
+          "test": "test_checkpoint_prune_oserror_is_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 150,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.RecallModule._stigmergic_prior"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_recall_fault_isolated_when_stigmergic_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 264,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.atomic_write_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_recall_remember_injected_survives_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 666,
+          "patch_call_count": 2,
+          "patched_set": [
+            "harness.modules.ClaimWarningModule._basic_memory_nudge",
+            "harness.modules.ClaimWarningModule._zero_diff"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_claim_detector_fault_isolation",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 687,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.CLAIM_RECEIPT_MAP"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_has_evidence_empty_classes_uses_verification",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 752,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.CLAIM_RECEIPT_MAP"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_receipt_gate_noop_when_no_classes",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 760,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.CLAIM_RECEIPT_MAP"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_receipt_gate_noop_on_exception",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 768,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.atomic_write_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_basic_memory_nudge_cooldown_write_survives_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 783,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.SubagentLifecycleModule._ipass_readback"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_subagent_start_fault_isolated_when_readback_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 791,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.SubagentLifecycleModule._stalled_sentinel"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_subagent_stalled_sentinel_fault_isolated",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 847,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.atomic_write_json"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_design_write_state_survives_oserror",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 871,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.DesignToolReminderModule._drift_detector"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_design_drift_detector_fault_isolated",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 918,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.BcOffsetGuardModule._check"
+          ],
+          "path": "agent-self/harness/tests/test_cov_modules_b.py",
+          "subject": null,
+          "test": "test_bc_offset_fault_isolated_when_check_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 156,
+          "patch_call_count": 1,
+          "patched_set": [
+            "pathlib.Path.rglob"
+          ],
+          "path": "agent-self/harness/tests/test_cov_recall_injection.py",
+          "subject": null,
+          "test": "test_build_index_skips_paths_outside_vault",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 246,
+          "patch_call_count": 1,
+          "patched_set": [
+            "sys.argv"
+          ],
+          "path": "agent-self/harness/tests/test_cov_recall_injection.py",
+          "subject": null,
+          "test": "test_module_run_as_main_exits_zero",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 210,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_deploy_command_center.py",
+          "subject": null,
+          "test": "test_targets_without_an_allowlist_still_deploy_their_whole_tree",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 226,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.shadow_log"
+          ],
+          "path": "agent-self/harness/tests/test_dispatcher_mixer_breaker.py",
+          "subject": null,
+          "test": "test_shadow_logs_delta_without_altering_output",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 385,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.shadow_log"
+          ],
+          "path": "agent-self/harness/tests/test_dispatcher_mixer_breaker.py",
+          "subject": null,
+          "test": "test_breaker_emits_telemetry_via_shadow_log",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 47,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_happy_path_writes_tree_and_receipt",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 92,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_cas_aborts_when_live_changes_since_plan",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 130,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_parity_mismatch_restores_backup",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 164,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_refuses_when_lock_held",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 190,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_steals_stale_lock",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 216,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_receipt_records_hashes_and_extends_existing",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 261,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_rejects_syntactically_invalid_harness_candidate",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 293,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_rejects_invalid_hooks_candidate_too",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 313,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_gate_reads_bytes_and_ignores_non_python",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 334,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_deploy.py",
+          "subject": null,
+          "test": "test_deploy_rejects_python_file_with_embedded_nul",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 58,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.CLAUDE_SETTINGS"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_desired_documents_reads_module_global_when_no_arg",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 186,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.build_reconcile_report"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_run_check_never_raises_even_when_report_builder_explodes",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 430,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.install"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_bootstrap_without_install_only_prepares_state",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 443,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.install"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_bootstrap_invokes_install_by_default",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 459,
+          "patch_call_count": 4,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR",
+            "harness.install.CLAUDE_SETTINGS",
+            "harness.install.CODEX_HOOKS",
+            "harness.install.INSTALLED_MANIFEST"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_install_write_path_preserves_manifest_shape",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 501,
+          "patch_call_count": 4,
+          "patched_set": [
+            "harness.install.CLAUDE_SETTINGS",
+            "harness.install.CODEX_HOOKS",
+            "harness.install.RECONCILE_BASELINE",
+            "harness.install.SKILLS_LINK"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_install_check_returns_zero_when_clean",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 514,
+          "patch_call_count": 4,
+          "patched_set": [
+            "harness.install.CLAUDE_SETTINGS",
+            "harness.install.CODEX_HOOKS",
+            "harness.install.RECONCILE_BASELINE",
+            "harness.install.SKILLS_LINK"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_install_check_returns_one_on_drift",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 542,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.install"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_main_routes_check",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 549,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.bootstrap"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_main_routes_bootstrap",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 610,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_deploy_backs_up_existing_live_tree",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 630,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_deploy_backup_excludes_runtime_state",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 650,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_deploy_is_idempotent",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 684,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_deploy_prints_copied_manifest",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 701,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_deploy_no_live_dir_skips_backup",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 716,
+          "patch_call_count": 3,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR",
+            "harness.install.HERE",
+            "harness.install.LIVE_HARNESS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_install_reconciler.py",
+          "subject": null,
+          "test": "test_main_deploy_subcommand",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 369,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger._scan_events"
+          ],
+          "path": "agent-self/harness/tests/test_ledger_receipts_and_taint.py",
+          "subject": null,
+          "test": "test_last_failed_fingerprint_is_fail_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 483,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger.append"
+          ],
+          "path": "agent-self/harness/tests/test_ledger_receipts_and_taint.py",
+          "subject": null,
+          "test": "test_taint_dependents_is_fail_open_when_append_raises",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 491,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger_module.atomic_write_json"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_ledger_exact_once_survives_state_write_crash",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 537,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger._shared_events"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_ledger_append_does_not_reparse_full_history",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 592,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger_module.os.fsync"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_ledger_handles_twenty_concurrent_idempotent_writers",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 1316,
+          "patch_call_count": 1,
+          "patched_set": [
+            "m.classify_receipt"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_ledger_emits_typed_receipt_fields_when_classifier_present",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 1772,
+          "patch_call_count": 4,
+          "patched_set": [
+            "install_mod.BACKUPS_DIR",
+            "install_mod.CLAUDE_SETTINGS",
+            "install_mod.CODEX_HOOKS",
+            "install_mod.INSTALLED_MANIFEST"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_config_drift_roundtrips_with_real_install_manifest",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 2055,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.modules.AntiDegenerationModule._stuck_signature"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_anti_degen_branch_fault_isolation",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 2145,
+          "patch_call_count": 1,
+          "patched_set": [
+            "m.CLAIM_RECEIPT_MAP"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_claim_receipt_gate_uses_claim_receipt_map",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 2724,
+          "patch_call_count": 1,
+          "patched_set": [
+            "ledger.replay"
+          ],
+          "path": "agent-self/harness/tests/test_modules.py",
+          "subject": null,
+          "test": "test_basic_memory_nudge_failopen_on_ledger_error",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 351,
+          "patch_call_count": 1,
+          "patched_set": [
+            "guarded._flag_path"
+          ],
+          "path": "agent-self/harness/tests/test_register_gate.py",
+          "subject": null,
+          "test": "test_an_unreadable_flag_store_does_not_break_the_gate",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 361,
+          "patch_call_count": 1,
+          "patched_set": [
+            "gate._load_catalog"
+          ],
+          "path": "agent-self/harness/tests/test_register_gate.py",
+          "subject": null,
+          "test": "test_an_internal_error_fails_open",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 234,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install._default_skill_surface_roots"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_reconcile_skills_cli_is_read_only_json",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 252,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_skills_deploy_routes_before_lock_backup_or_write",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 279,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_skills_deploy_conflict_does_not_pick_projection_mtime",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 304,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_clean_skill_surfaces_reach_the_existing_deploy_path",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 326,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_root_artifact_divergence_blocks_deploy_before_write",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 357,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_log_divergence_is_in_the_same_managed_universe_as_deploy",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 385,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_edit_after_first_reconcile_is_revalidated_under_lock",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 413,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.surface_reconciler.os.walk"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_walk_error_fails_inventory_instead_of_looking_clean",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 456,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_aligned_file_symlink_blocks_dereferencing_deploy",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 510,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.surface_reconciler.scan_surface"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_detector_control_runs_the_real_surface_scanner",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 530,
+          "patch_call_count": 2,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR",
+            "harness.install.os.walk"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_plan_walk_error_cannot_authorize_an_empty_deploy",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 575,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_eol_only_source_edit_is_never_copied_to_live",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 602,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_live_addition_after_plan_is_caught_before_write",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 627,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_daily_root_alias_retarget_changes_bound_snapshot",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 661,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.surface_reconciler.scan_surface"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_daily_alias_change_during_scan_forces_failed_report",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 692,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.surface_reconciler.scan_surface"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_symlinked_parent_change_during_scan_forces_failed_report",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 724,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_symlinked_parent_retarget_before_write_changes_bound_surface",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 757,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_skills_deploy_is_not_compile_gated",
+          "why_not_flagged": "no-declared-patchable-subject"
+        },
+        {
+          "flagged": false,
+          "lineno": 805,
+          "patch_call_count": 1,
+          "patched_set": [
+            "harness.install.BACKUPS_DIR"
+          ],
+          "path": "agent-self/harness/tests/test_surface_reconciler.py",
+          "subject": null,
+          "test": "test_projection_root_symlink_is_rejected_before_deploy",
+          "why_not_flagged": "no-declared-patchable-subject"
+        }
+      ],
+      "registry_inventory": {
+        "invariant_count": 9,
+        "keys": [
+          "counts_are_asserted_by",
+          "failure_classes",
+          "invariants",
+          "purpose",
+          "schema_version",
+          "suites"
+        ],
+        "named_test_count": 19,
+        "named_test_ids": [
+          "test_a_huge_paste_matching_everything_stays_silent",
+          "test_at_most_three_items_are_shown",
+          "test_cli_fails_closed_on_a_blank_register_digest",
+          "test_closing_every_open_item_leaves_a_valid_catalog",
+          "test_detects_a_blank_register_digest",
+          "test_detects_a_deleted_register_digest",
+          "test_detects_a_silently_dropped_item",
+          "test_detects_a_tampered_register_snapshot",
+          "test_fifty_identical_prompts_produce_exactly_one_injection",
+          "test_fixed_module_order_is_security_then_continuity_then_quality",
+          "test_fixed_point_the_gate_does_not_match_its_own_output",
+          "test_never_runs_on_the_stop_family",
+          "test_reentrant_trigger_is_allowed_on_accepted_events_too",
+          "test_subagent_stop_with_stop_hook_active_is_allowed",
+          "test_the_contract_records_a_measured_fire_rate",
+          "test_the_injection_always_leaves_a_legal_next_move",
+          "test_the_injection_never_quotes_the_evidence_column",
+          "test_the_injection_never_uses_coercive_words",
+          "test_the_module_is_actually_wired"
+        ],
+        "object_subject_rows": 0,
+        "shape": "suite-invariant-ledger",
+        "suite_count": 4
+      },
+      "roots_declared": [
+        "tools/command-center/tests",
+        "agent-self/harness/tests"
+      ],
+      "roots_present": {
+        "agent-self/harness/tests": true,
+        "tools/command-center/tests": true
+      },
+      "roots_walked": [
+        "tools/command-center/tests",
+        "agent-self/harness/tests"
+      ],
+      "tests_scanned": 730,
+      "tests_with_patch_calls": 116,
+      "tests_with_undeclared_subject": 730
+    },
+    "not_flagged_controls": [
+      {
+        "flagged": false,
+        "name": "test_http_client_patches_neighbour",
+        "patch_call_count": 1,
+        "patched_set": [
+          "subject_pkg.neighbour.DnsResolver.resolve"
+        ],
+        "reason": "neighbour dependency is outside the declared subject"
+      },
+      {
+        "flagged": false,
+        "name": "test_three_neighbour_mocks",
+        "patch_call_count": 3,
+        "patched_set": [
+          "os.environ.get",
+          "socket.create_connection",
+          "subject_pkg.neighbour.DnsResolver.resolve"
+        ],
+        "reason": "neighbour dependency is outside the declared subject"
+      },
+      {
+        "flagged": false,
+        "name": "test_mention_only_does_not_patch",
+        "patch_call_count": 0,
+        "patched_set": [],
+        "reason": "patch appears only as a string/comment mention, not a Call"
+      }
+    ],
+    "overlap_evidence": [
+      {
+        "all_overlaps": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "finding": "subject-inside-patched-set",
+        "overlapping_patched_target": "subject_pkg.http_client.HttpClient",
+        "patch_sites": [
+          {
+            "form": "patch",
+            "lineno": 75,
+            "target": "subject_pkg.http_client.HttpClient"
+          }
+        ],
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_context_manager_patches_own_subject"
+      },
+      {
+        "all_overlaps": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "finding": "subject-inside-patched-set",
+        "overlapping_patched_target": "subject_pkg.http_client.HttpClient",
+        "patch_sites": [
+          {
+            "form": "patch",
+            "lineno": 16,
+            "target": "subject_pkg.http_client.HttpClient"
+          }
+        ],
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_http_client_patches_own_subject"
+      },
+      {
+        "all_overlaps": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "finding": "subject-inside-patched-set",
+        "overlapping_patched_target": "subject_pkg.http_client.HttpClient.get",
+        "patch_sites": [
+          {
+            "form": "patch",
+            "lineno": 25,
+            "target": "subject_pkg.http_client.HttpClient.get"
+          }
+        ],
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_http_client_patches_own_subject_low"
+      },
+      {
+        "all_overlaps": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "finding": "subject-inside-patched-set",
+        "overlapping_patched_target": "subject_pkg.http_client.HttpClient",
+        "patch_sites": [
+          {
+            "form": "patch",
+            "lineno": 56,
+            "target": "subject_pkg.http_client.HttpClient"
+          }
+        ],
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_mocker_patches_own_subject"
+      },
+      {
+        "all_overlaps": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "finding": "subject-inside-patched-set",
+        "overlapping_patched_target": "subject_pkg.http_client.HttpClient.get",
+        "patch_sites": [
+          {
+            "form": "patch.object",
+            "lineno": 48,
+            "target": "subject_pkg.http_client.HttpClient.get"
+          }
+        ],
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_patch_object_own_subject"
+      }
+    ],
+    "planted_corpus": {
+      "flagged": 5,
+      "registry": "command-center/p2-wave/probes/TST-0349/fixtures/registry.json",
+      "rows": [
+        {
+          "claim_class": "contract",
+          "claimed_coverage": "HTTP client contract: GET /health returns 200",
+          "conversion": "convert-to-contract-or-integration; do-not-delete",
+          "corpus": "planted",
+          "flagged": true,
+          "lineno": 17,
+          "name": "test_http_client_patches_own_subject",
+          "overlaps": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 16,
+              "target": "subject_pkg.http_client.HttpClient"
+            }
+          ],
+          "patched": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_http_client_patches_own_subject",
+          "score": 141,
+          "severity": "P0",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "unit",
+          "claimed_coverage": "unit: HttpClient.get status code",
+          "conversion": "convert-to-contract-or-integration; do-not-delete",
+          "corpus": "planted",
+          "flagged": true,
+          "lineno": 26,
+          "name": "test_http_client_patches_own_subject_low",
+          "overlaps": [
+            "subject_pkg.http_client.HttpClient.get"
+          ],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 25,
+              "target": "subject_pkg.http_client.HttpClient.get"
+            }
+          ],
+          "patched": [
+            "subject_pkg.http_client.HttpClient.get"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_http_client_patches_own_subject_low",
+          "score": 31,
+          "severity": "P2",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "contract",
+          "claimed_coverage": "HTTP client contract: DNS lookup before connect",
+          "conversion": "not-flagged",
+          "corpus": "planted",
+          "flagged": false,
+          "lineno": 33,
+          "name": "test_http_client_patches_neighbour",
+          "overlaps": [],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 32,
+              "target": "subject_pkg.neighbour.DnsResolver.resolve"
+            }
+          ],
+          "patched": [
+            "subject_pkg.neighbour.DnsResolver.resolve"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_http_client_patches_neighbour",
+          "score": 0,
+          "severity": "P0",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "unit",
+          "claimed_coverage": "docs mention patching the client",
+          "conversion": "not-flagged",
+          "corpus": "planted",
+          "flagged": false,
+          "lineno": 39,
+          "name": "test_mention_only_does_not_patch",
+          "overlaps": [],
+          "patch_call_count": 0,
+          "patch_sites": [],
+          "patched": [],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_mention_only_does_not_patch",
+          "score": 0,
+          "severity": "P1",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "integration",
+          "claimed_coverage": "integration: HttpClient.get create path",
+          "conversion": "convert-to-contract-or-integration; do-not-delete",
+          "corpus": "planted",
+          "flagged": true,
+          "lineno": 49,
+          "name": "test_patch_object_own_subject",
+          "overlaps": [
+            "subject_pkg.http_client.HttpClient.get"
+          ],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch.object",
+              "lineno": 48,
+              "target": "subject_pkg.http_client.HttpClient.get"
+            }
+          ],
+          "patched": [
+            "subject_pkg.http_client.HttpClient.get"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_patch_object_own_subject",
+          "score": 76,
+          "severity": "P1",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "contract",
+          "claimed_coverage": "HTTP client contract via pytest-mock",
+          "conversion": "convert-to-contract-or-integration; do-not-delete",
+          "corpus": "planted",
+          "flagged": true,
+          "lineno": 55,
+          "name": "test_mocker_patches_own_subject",
+          "overlaps": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 56,
+              "target": "subject_pkg.http_client.HttpClient"
+            }
+          ],
+          "patched": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_mocker_patches_own_subject",
+          "score": 91,
+          "severity": "P1",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "contract",
+          "claimed_coverage": "HTTP client resilience under env, socket and DNS doubles",
+          "conversion": "not-flagged",
+          "corpus": "planted",
+          "flagged": false,
+          "lineno": 64,
+          "name": "test_three_neighbour_mocks",
+          "overlaps": [],
+          "patch_call_count": 3,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 61,
+              "target": "os.environ.get"
+            },
+            {
+              "form": "patch",
+              "lineno": 62,
+              "target": "socket.create_connection"
+            },
+            {
+              "form": "patch",
+              "lineno": 63,
+              "target": "subject_pkg.neighbour.DnsResolver.resolve"
+            }
+          ],
+          "patched": [
+            "os.environ.get",
+            "socket.create_connection",
+            "subject_pkg.neighbour.DnsResolver.resolve"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_three_neighbour_mocks",
+          "score": 0,
+          "severity": "P0",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        },
+        {
+          "claim_class": "contract",
+          "claimed_coverage": "HTTP client contract via context-manager patch",
+          "conversion": "convert-to-contract-or-integration; do-not-delete",
+          "corpus": "planted",
+          "flagged": true,
+          "lineno": 74,
+          "name": "test_context_manager_patches_own_subject",
+          "overlaps": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "patch_call_count": 1,
+          "patch_sites": [
+            {
+              "form": "patch",
+              "lineno": 75,
+              "target": "subject_pkg.http_client.HttpClient"
+            }
+          ],
+          "patched": [
+            "subject_pkg.http_client.HttpClient"
+          ],
+          "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+          "qualname": "test_context_manager_patches_own_subject",
+          "score": 141,
+          "severity": "P0",
+          "subject": "subject_pkg.http_client.HttpClient",
+          "subject_source": "planted-registry",
+          "unresolved_patch_forms": []
+        }
+      ],
+      "tests_dir": "command-center/p2-wave/probes/TST-0349/fixtures/tests",
+      "tests_scanned": 8
+    },
+    "prioritized_for_conversion": [
+      {
+        "claim_class": "contract",
+        "claimed_coverage": "HTTP client contract via context-manager patch",
+        "corpus": "planted",
+        "forbidden_action": "delete",
+        "lineno": 74,
+        "overlapping_patched_targets": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "patched_set": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+        "rank": 1,
+        "recommended_action": "convert-to-contract-or-integration",
+        "score": 141,
+        "severity": "P0",
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_context_manager_patches_own_subject"
+      },
+      {
+        "claim_class": "contract",
+        "claimed_coverage": "HTTP client contract: GET /health returns 200",
+        "corpus": "planted",
+        "forbidden_action": "delete",
+        "lineno": 17,
+        "overlapping_patched_targets": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "patched_set": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+        "rank": 2,
+        "recommended_action": "convert-to-contract-or-integration",
+        "score": 141,
+        "severity": "P0",
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_http_client_patches_own_subject"
+      },
+      {
+        "claim_class": "contract",
+        "claimed_coverage": "HTTP client contract via pytest-mock",
+        "corpus": "planted",
+        "forbidden_action": "delete",
+        "lineno": 55,
+        "overlapping_patched_targets": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "patched_set": [
+          "subject_pkg.http_client.HttpClient"
+        ],
+        "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+        "rank": 3,
+        "recommended_action": "convert-to-contract-or-integration",
+        "score": 91,
+        "severity": "P1",
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_mocker_patches_own_subject"
+      },
+      {
+        "claim_class": "integration",
+        "claimed_coverage": "integration: HttpClient.get create path",
+        "corpus": "planted",
+        "forbidden_action": "delete",
+        "lineno": 49,
+        "overlapping_patched_targets": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "patched_set": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+        "rank": 4,
+        "recommended_action": "convert-to-contract-or-integration",
+        "score": 76,
+        "severity": "P1",
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_patch_object_own_subject"
+      },
+      {
+        "claim_class": "unit",
+        "claimed_coverage": "unit: HttpClient.get status code",
+        "corpus": "planted",
+        "forbidden_action": "delete",
+        "lineno": 26,
+        "overlapping_patched_targets": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "patched_set": [
+          "subject_pkg.http_client.HttpClient.get"
+        ],
+        "path": "command-center/p2-wave/probes/TST-0349/fixtures/tests/test_planted_controls.py",
+        "rank": 5,
+        "recommended_action": "convert-to-contract-or-integration",
+        "score": 31,
+        "severity": "P2",
+        "subject": "subject_pkg.http_client.HttpClient",
+        "test": "test_http_client_patches_own_subject_low"
+      }
+    ],
+    "question": "A test of the HTTP client that mocks the HTTP client is verifying the mock. Build the census that, for each test, compares its declared subject against the set of objects it patches, and flags every case where the subject is inside the patched set. Distinct from C23 (tests that assert nothing): these tests assert plenty, just about a double. The output is a prioritised list for conversion to contract or integration tests, not an instruction to delete them.",
+    "raw_mock_count_is_not_the_finding": true,
+    "tests_required": [
+      {
+        "detected": [
+          "test_context_manager_patches_own_subject",
+          "test_http_client_patches_own_subject",
+          "test_http_client_patches_own_subject_low",
+          "test_mocker_patches_own_subject",
+          "test_patch_object_own_subject"
+        ],
+        "id": "planted-self-patch",
+        "requirement": "Planted control: a test that patches its own subject -> DETECTED.",
+        "result": "PASS"
+      },
+      {
+        "id": "neighbour-not-flagged",
+        "not_flagged": [
+          "test_http_client_patches_neighbour",
+          "test_three_neighbour_mocks"
+        ],
+        "requirement": "Legitimate mocking of a NEIGHBOUR dependency -> not flagged.",
+        "result": "PASS"
+      },
+      {
+        "id": "prioritisation",
+        "p0_contract_score": 141,
+        "p0_rank": 2,
+        "p2_rank": 5,
+        "p2_unit_score": 31,
+        "requirement": "Prioritisation: flagged tests ranked by the severity of what they claim to cover.",
+        "result": "PASS"
+      }
+    ],
+    "title": "Census tests that mock the very boundary they claim to verify"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live tests cannot be overlap-flagged until TEST-REGISTRY.json declares a patchable object subject per test.",
+      "settling_experiment": "Add subject/declared_subject object paths to command-center/TEST-REGISTRY.json, re-run the census, and rank any live subject-inside-patched-set rows for conversion.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "The contract-test layer authored in slice part 1 is not on this worktree, so conversion is named rather than executed.",
+      "settling_experiment": "Mount or author that contract-test layer and convert the prioritised planted self-patch rows against it.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture."
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 re-runs the census independently of emit and requires that a raw patch-count mutant would flag the neighbour control while the overlap detector does not. TEST-REGISTRY present-flag must match disk; live flagged=0 is UNDECLARED-SUBJECT, not CLEAN.",
+    "reviewer_id": "TST-0349-probe2-overclaim",
+    "vendor": "anthropic",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0349",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0349; command-center/COMPLETION-GATES.json:10631-10644",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 5,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0349/probe1_planted_controls.py",
+      "id": "planted-self-patch",
+      "name": "Planted control: a test that patches its own subject -> DETECTED.",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0349/probe1_planted_controls.py",
+      "id": "neighbour-not-flagged",
+      "name": "Legitimate mocking of a NEIGHBOUR dependency -> not flagged.",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0349/probe1_planted_controls.py",
+      "id": "prioritisation",
+      "name": "Prioritisation: flagged tests ranked by the severity of what they claim to cover.",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0.111635,
+    "ended_at": "2026-08-25T01:02:08Z",
+    "started_at": "2026-08-25T01:02:08Z"
+  },
+  "unit_id": "TST-0349"
+}

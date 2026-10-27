@@ -1,0 +1,1241 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1037,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/benchmark-result.schema.json",
+   "role": "supporting",
+   "sha256": "892dc5939afaa6eaa0f6fb25b03e38756f4555e5cac14d4a44c2dc617d34e028"
+  },
+  {
+   "bytes": 18000,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/bench.py",
+   "role": "supporting",
+   "sha256": "77f524f026aac015bbe765c13ffb1cf915b8841e19d8049345434bca4daa7567"
+  },
+  {
+   "bytes": 1305,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/live_baseline.py",
+   "role": "supporting",
+   "sha256": "387ece8feb8b39f0669cba1e37de1c18e50591d0a6ee90ae165fe8f52c9563a9"
+  },
+  {
+   "bytes": 2395,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/router.py",
+   "role": "supporting",
+   "sha256": "6d65ac13f35b16cc64a43af0228e53f4e6dbe162eb4f2d241d5fa1a8c6790a5e"
+  },
+  {
+   "bytes": 5455,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/probe1_paired_capture.py",
+   "role": "supporting",
+   "sha256": "b1493590f3f697bb63735f20896338260055f4935648a9133bbdaba4ae6821d5"
+  },
+  {
+   "bytes": 4005,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/probe2_determinism_rerun.py",
+   "role": "supporting",
+   "sha256": "c4dd868599232e4c985d198f9dbf6d57f7f8ffc4cfecf86d83213889b9d1b9c5"
+  },
+  {
+   "bytes": 2383,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0400/schema_local.py",
+   "role": "supporting",
+   "sha256": "537f3f860e82cd1a15f361b2d673a1cbc807b329c40bf957106ebaa0a662a6db"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0400.json",
+   "consumer": "IMP-0400-probe2-receipt-replay",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0400/probe2_determinism_rerun.py",
+    "exit_code": 0,
+    "fingerprint": "de18f37732b137fc60b254c5299dc9ce65ba0ab03dc050a3edd95ed99572cc82",
+    "method": "test-run",
+    "raw_output": "max_abs_diff=0.0 snapshot=a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0400/bench.py:run_protocol",
+   "claim": "Live baseline snapshot is captured and hashed before the router runs; sequence is capture-end then router-arm.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/IMP-0400/bench.py run_protocol",
+     "exit_code": 0,
+     "fingerprint": "21348d43311d2ac7de4acd8d7ffc20273687f8f448fb81a2992254cfb43e2f41",
+     "method": "test-run",
+     "raw_output": "{\"captured_before\": true, \"events\": [\"baseline_capture_start\", \"baseline_capture_end\", \"router_arm\", \"router_complete\"], \"snapshot\": \"a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3\"}",
+     "role": "source"
+    },
+    {
+     "command": "compare live snapshot sha256 to router-as-baseline reconstruction",
+     "exit_code": 0,
+     "fingerprint": "55e21b30c58f076360eb6f7de6010547cfc932b88775001d25dc4df9d7c0992a",
+     "method": "byte-compare",
+     "raw_output": "live=a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3 recon=3af5098c443d094935b58aad01be6f90abe336eacbbd326617535fc9e9c43ecb match=False",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "report.metrics.delta",
+   "claim": "The new router beats the live baseline on repertoire breadth without losing precision: breadth delta 0.583333, precision@k delta 0.750000, recall@k delta 0.750000. Trade: none: breadth up and precision did not fall.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0400/probe1_paired_capture.py",
+     "exit_code": 0,
+     "fingerprint": "9f521902d3d80d385ff41e8094553b91bb4a1e8a593d39338b74de6641246d6e",
+     "method": "command",
+     "raw_output": "{\"delta\":{\"breadth\":0.5833333333333333,\"precision_at_k\":0.75,\"recall_at_k\":0.75},\"live\":{\"breadth\":0.4166666666666667,\"precision_at_k\":0.25,\"recall_at_k\":0.25},\"router\":{\"breadth\":1.0,\"precision_at_k\":1.0,\"recall_at_k\":1.0}}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -B command-center/p2-wave/probes/IMP-0400/schema_local.py",
+     "exit_code": 0,
+     "fingerprint": "a1af419ac1fcf0fbfc4d85a6857da70807a3c773b7e99b75046021d3fc83f3c6",
+     "method": "schema-validate",
+     "raw_output": "max_abs_diff=0.0 snapshot=a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "dependency_status": {
+   "IMP-0398": "ABSENT-fixture-substituted",
+   "IMP-0399": "ABSENT-not-required-for-paired-metrics",
+   "live_selection_logs": "ABSENT",
+   "note": "Waiting for IMP-0398 before measuring IMP-0400 is a deadlock on this leftover worktree. The fixture corpus is labelled, >=25% negative, and always-top-3 scores below the floor."
+  }
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0400/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "easy_precision=0.333333 floor=0.20",
+   "description": "Always-top-3 popularity stub must score below 0.20 precision on the labelled corpus, and must score at or above that floor on an easy all-git gold mutant.",
+   "fired_on_bad_state": true,
+   "good_state_output": "labelled_precision=0.052083 floor=0.20",
+   "id": "NC-always-top3-corpus-floor",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutation_shifts=True",
+   "description": "Relabelling query 0 gold to a nonexistent capability must move metrics beyond DETERMINISM_TOLERANCE.",
+   "fired_on_bad_state": true,
+   "good_state_output": "two_run_diff=0.0",
+   "id": "NC-gold-mutation",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "live=a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3 recon=3af5098c443d094935b58aad01be6f90abe336eacbbd326617535fc9e9c43ecb match=False",
+   "description": "Copying router selections over the live snapshot must not reproduce the captured-before-arm hash.",
+   "fired_on_bad_state": true,
+   "good_state_output": "captured_before_router_armed=True",
+   "id": "NC-reconstruct-baseline",
+   "kind": "adversarial-payload",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-p2-deliver",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "report": {
+  "always_top3_control": {
+   "breadth": 0.25,
+   "corpus_too_easy": false,
+   "declared_floor": 0.2,
+   "precision_at_k": 0.05208333333333333,
+   "recall_at_k": 0.15625
+  },
+  "answer": "The new router beats the live baseline on repertoire breadth without losing precision: breadth delta 0.583333, precision@k delta 0.750000, recall@k delta 0.750000. Trade: none: breadth up and precision did not fall.",
+  "anti_reconstruct": {
+   "matches_captured_live": false,
+   "router_as_baseline_sha256": "3af5098c443d094935b58aad01be6f90abe336eacbbd326617535fc9e9c43ecb"
+  },
+  "baseline_capture": {
+   "captured_before_router_armed": true,
+   "live_arm": "trigger-substring else top-k popularity (current live)",
+   "live_selection_logs_on_disk": false,
+   "method": "trigger-substring-else-topk-popularity",
+   "sequence": 2,
+   "snapshot_sha256": "a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3"
+  },
+  "confidence_intervals": {
+   "level": 0.95,
+   "live": {
+    "precision_at_k": {
+     "hi": 0.40625,
+     "lo": 0.09375,
+     "mean": 0.25,
+     "normal_hi": 0.40243189912537247,
+     "normal_lo": 0.0975681008746275
+    },
+    "recall_at_k": {
+     "hi": 0.40625,
+     "lo": 0.09375,
+     "mean": 0.25
+    }
+   },
+   "method": "bootstrap-percentile plus normal-se",
+   "n_resamples": 5000,
+   "router": {
+    "precision_at_k": {
+     "hi": 1.0,
+     "lo": 1.0,
+     "mean": 1.0,
+     "normal_hi": 1.0,
+     "normal_lo": 1.0
+    },
+    "recall_at_k": {
+     "hi": 1.0,
+     "lo": 1.0,
+     "mean": 1.0
+    }
+   },
+   "seed": 400
+  },
+  "control_ids": [
+   "NC-always-top3-corpus-floor",
+   "NC-gold-mutation",
+   "NC-reconstruct-baseline"
+  ],
+  "corpus": {
+   "capability_n": 12,
+   "capability_sha256": "b7ffac1d6350866a2370d38898fc75eb5514fa9a4dac31ca227d8fe6f28a80cb",
+   "n": 32,
+   "negative_fraction": 0.3125,
+   "negative_n": 10,
+   "origin": "frozen labelled fixture in bench.py; IMP-0398 receipt absent",
+   "sha256": "4641b0f77b4d949357746869dee962d2667fdd0872822048885c96126784b960"
+  },
+  "determinism": {
+   "max_abs_diff": 0.0,
+   "pass": true,
+   "pinned_model_id": "imp0400-lexical-jaccard-v1",
+   "tolerance": 1e-12
+  },
+  "exact_answer": {
+   "beats_live_breadth_without_losing_precision": true,
+   "breadth_delta": 0.5833333333333333,
+   "precision_at_k_delta": 0.75,
+   "recall_at_k_delta": 0.75,
+   "trade": "none: breadth up and precision did not fall"
+  },
+  "input_non_empty": true,
+  "k": 3,
+  "kind": "benchmark-result",
+  "metrics": {
+   "delta": {
+    "breadth": 0.5833333333333333,
+    "precision_at_k": 0.75,
+    "recall_at_k": 0.75
+   },
+   "live": {
+    "breadth": 0.4166666666666667,
+    "precision_at_k": 0.25,
+    "recall_at_k": 0.25
+   },
+   "router": {
+    "breadth": 1.0,
+    "precision_at_k": 1.0,
+    "recall_at_k": 1.0
+   }
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/IMP-0400/bench.py:metrics_for",
+    "measured": 0.25,
+    "method": "mean-precision-at-k",
+    "name": "precision_at_k_live"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/IMP-0400/bench.py:metrics_for",
+    "measured": 1.0,
+    "method": "mean-precision-at-k",
+    "name": "precision_at_k_router"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/IMP-0400/bench.py:run_protocol",
+    "measured": 0.5833333333333333,
+    "method": "router-breadth-minus-live-breadth",
+    "name": "breadth_delta"
+   },
+   {
+    "anchor": "report.exact_answer",
+    "measured": true,
+    "method": "breadth_delta>0 and precision_delta>=0",
+    "name": "beats_live_breadth_without_losing_precision"
+   }
+  ],
+  "paired_rows": [
+   {
+    "gold": [
+     "git"
+    ],
+    "live": [
+     "git"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "git push origin main",
+    "query_id": "q01",
+    "router": [
+     "git"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "git"
+    ],
+    "live": [
+     "git"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "git commit the staged files",
+    "query_id": "q02",
+    "router": [
+     "git"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "search"
+    ],
+    "live": [
+     "search"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "search files for the token TODO",
+    "query_id": "q03",
+    "router": [
+     "search"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "test"
+    ],
+    "live": [
+     "test"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "run tests for this package",
+    "query_id": "q04",
+    "router": [
+     "test"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "test"
+    ],
+    "live": [
+     "test"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "run the test suite now",
+    "query_id": "q05",
+    "router": [
+     "test"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "budget"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "how do I cap injected skill tokens",
+    "query_id": "q06",
+    "router": [
+     "budget"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "budget"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "hard ceiling on injected capability tokens",
+    "query_id": "q07",
+    "router": [
+     "budget"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "privacy"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "scrub secrets and absolute paths from telemetry",
+    "query_id": "q08",
+    "router": [
+     "privacy"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "privacy"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "privacy scrub planted tokens in telemetry",
+    "query_id": "q09",
+    "router": [
+     "privacy"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "cache"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "rebuild capability index from content hash",
+    "query_id": "q10",
+    "router": [
+     "cache"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "cache"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "truncated cache file must rebuild the index",
+    "query_id": "q11",
+    "router": [
+     "cache"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "fusion"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "fuse lexical and semantic ranks with calibration",
+    "query_id": "q12",
+    "router": [
+     "fusion"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "fusion"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "calibrated confidence on fused ranks",
+    "query_id": "q13",
+    "router": [
+     "fusion"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "ban"
+    ],
+    "live": [
+     "ban"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "owner ban beats every router score",
+    "query_id": "q14",
+    "router": [
+     "ban"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "ban"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "ban this capability outright even at high score",
+    "query_id": "q15",
+    "router": [
+     "ban"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "nofit"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "emit typed no-capability-fits instead of weak match",
+    "query_id": "q16",
+    "router": [
+     "nofit"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "nofit"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "typed no-capability-fits verdict when nothing matches",
+    "query_id": "q17",
+    "router": [
+     "nofit"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "explain"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "explain why a capability was selected and near misses",
+    "query_id": "q18",
+    "router": [
+     "explain"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "explain"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "explain the selection and the near miss list",
+    "query_id": "q19",
+    "router": [
+     "explain"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "router"
+    ],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "route queries to capabilities by description overlap",
+    "query_id": "q20",
+    "router": [
+     "router"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "weather"
+    ],
+    "live": [
+     "weather"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "fetch the weather forecast for paris",
+    "query_id": "q21",
+    "router": [
+     "weather"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [
+     "weather"
+    ],
+    "live": [
+     "weather"
+    ],
+    "live_precision": 1.0,
+    "live_recall": 1.0,
+    "query": "weather forecast for a city",
+    "query_id": "q22",
+    "router": [
+     "weather"
+    ],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "what is the capital of france",
+    "query_id": "q23",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "boil an egg for breakfast",
+    "query_id": "q24",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "translate this sentence to latin",
+    "query_id": "q25",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "play a game of chess",
+    "query_id": "q26",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "how far is the moon in kilometers",
+    "query_id": "q27",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "write a haiku about mountains",
+    "query_id": "q28",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "count to ten in spanish",
+    "query_id": "q29",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "what year was the magna carta signed",
+    "query_id": "q30",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "name three colors of the rainbow",
+    "query_id": "q31",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   },
+   {
+    "gold": [],
+    "live": [
+     "git",
+     "search",
+     "test"
+    ],
+    "live_precision": 0.0,
+    "live_recall": 0.0,
+    "query": "who composed the four seasons violin concertos",
+    "query_id": "q32",
+    "router": [],
+    "router_precision": 1.0,
+    "router_recall": 1.0
+   }
+  ],
+  "pinned_model": {
+   "id": "imp0400-lexical-jaccard-v1",
+   "source": "command-center/p2-wave/probes/IMP-0400/router.py",
+   "source_sha256": "6d65ac13f35b16cc64a43af0228e53f4e6dbe162eb4f2d241d5fa1a8c6790a5e",
+   "threshold": 0.18
+  },
+  "protocol_events": [
+   {
+    "sequence": 1,
+    "step": "baseline_capture_start"
+   },
+   {
+    "sequence": 2,
+    "snapshot_sha256": "a15caff2088576cec0cba9ace933504c151c9185cb9f871c0c3c4cf2f32099e3",
+    "step": "baseline_capture_end"
+   },
+   {
+    "sequence": 3,
+    "step": "router_arm",
+    "threshold": 0.18
+   },
+   {
+    "sequence": 4,
+    "step": "router_complete"
+   }
+  ],
+  "question": "Measure the new router against the CURRENT live selection behavior on the same corpus: precision@k, recall of relevant capabilities, and repertoire breadth. Exact question: does the new router beat the live baseline on breadth WITHOUT losing precision, and if it trades one for the other, by exactly how much?",
+  "replay": {
+   "capabilities": [
+    {
+     "description": "git commit push pull branch staging",
+     "id": "git",
+     "popularity": 100,
+     "triggers": [
+      "git push",
+      "git commit",
+      "git"
+     ]
+    },
+    {
+     "description": "search workspace files for a token or pattern",
+     "id": "search",
+     "popularity": 90,
+     "triggers": [
+      "search files",
+      "search the workspace"
+     ]
+    },
+    {
+     "description": "run the package test suite",
+     "id": "test",
+     "popularity": 80,
+     "triggers": [
+      "run tests",
+      "run the test"
+     ]
+    },
+    {
+     "description": "fetch the weather forecast for a named city",
+     "id": "weather",
+     "popularity": 55,
+     "triggers": [
+      "weather forecast"
+     ]
+    },
+    {
+     "description": "cap injected skill tokens with a hard ceiling",
+     "id": "budget",
+     "popularity": 8,
+     "triggers": [
+      "injection budget"
+     ]
+    },
+    {
+     "description": "scrub secrets and absolute paths from telemetry",
+     "id": "privacy",
+     "popularity": 7,
+     "triggers": [
+      "scrub telemetry"
+     ]
+    },
+    {
+     "description": "rebuild capability index cache from content hash",
+     "id": "cache",
+     "popularity": 6,
+     "triggers": [
+      "invalidate cache"
+     ]
+    },
+    {
+     "description": "fuse lexical and semantic ranks with calibrated confidence",
+     "id": "fusion",
+     "popularity": 5,
+     "triggers": [
+      "rank fusion"
+     ]
+    },
+    {
+     "description": "owner ban beats every router score including a high one",
+     "id": "ban",
+     "popularity": 4,
+     "triggers": [
+      "owner ban"
+     ]
+    },
+    {
+     "description": "emit typed no-capability-fits instead of a weak match",
+     "id": "nofit",
+     "popularity": 3,
+     "triggers": [
+      "no capability fits"
+     ]
+    },
+    {
+     "description": "explain why a capability was selected and the near misses",
+     "id": "explain",
+     "popularity": 2,
+     "triggers": [
+      "selection explanation"
+     ]
+    },
+    {
+     "description": "route queries to capabilities by description overlap",
+     "id": "router",
+     "popularity": 2,
+     "triggers": [
+      "capability router"
+     ]
+    }
+   ],
+   "corpus": [
+    {
+     "gold": [
+      "git"
+     ],
+     "id": "q01",
+     "query": "git push origin main"
+    },
+    {
+     "gold": [
+      "git"
+     ],
+     "id": "q02",
+     "query": "git commit the staged files"
+    },
+    {
+     "gold": [
+      "search"
+     ],
+     "id": "q03",
+     "query": "search files for the token TODO"
+    },
+    {
+     "gold": [
+      "test"
+     ],
+     "id": "q04",
+     "query": "run tests for this package"
+    },
+    {
+     "gold": [
+      "test"
+     ],
+     "id": "q05",
+     "query": "run the test suite now"
+    },
+    {
+     "gold": [
+      "budget"
+     ],
+     "id": "q06",
+     "query": "how do I cap injected skill tokens"
+    },
+    {
+     "gold": [
+      "budget"
+     ],
+     "id": "q07",
+     "query": "hard ceiling on injected capability tokens"
+    },
+    {
+     "gold": [
+      "privacy"
+     ],
+     "id": "q08",
+     "query": "scrub secrets and absolute paths from telemetry"
+    },
+    {
+     "gold": [
+      "privacy"
+     ],
+     "id": "q09",
+     "query": "privacy scrub planted tokens in telemetry"
+    },
+    {
+     "gold": [
+      "cache"
+     ],
+     "id": "q10",
+     "query": "rebuild capability index from content hash"
+    },
+    {
+     "gold": [
+      "cache"
+     ],
+     "id": "q11",
+     "query": "truncated cache file must rebuild the index"
+    },
+    {
+     "gold": [
+      "fusion"
+     ],
+     "id": "q12",
+     "query": "fuse lexical and semantic ranks with calibration"
+    },
+    {
+     "gold": [
+      "fusion"
+     ],
+     "id": "q13",
+     "query": "calibrated confidence on fused ranks"
+    },
+    {
+     "gold": [
+      "ban"
+     ],
+     "id": "q14",
+     "query": "owner ban beats every router score"
+    },
+    {
+     "gold": [
+      "ban"
+     ],
+     "id": "q15",
+     "query": "ban this capability outright even at high score"
+    },
+    {
+     "gold": [
+      "nofit"
+     ],
+     "id": "q16",
+     "query": "emit typed no-capability-fits instead of weak match"
+    },
+    {
+     "gold": [
+      "nofit"
+     ],
+     "id": "q17",
+     "query": "typed no-capability-fits verdict when nothing matches"
+    },
+    {
+     "gold": [
+      "explain"
+     ],
+     "id": "q18",
+     "query": "explain why a capability was selected and near misses"
+    },
+    {
+     "gold": [
+      "explain"
+     ],
+     "id": "q19",
+     "query": "explain the selection and the near miss list"
+    },
+    {
+     "gold": [
+      "router"
+     ],
+     "id": "q20",
+     "query": "route queries to capabilities by description overlap"
+    },
+    {
+     "gold": [
+      "weather"
+     ],
+     "id": "q21",
+     "query": "fetch the weather forecast for paris"
+    },
+    {
+     "gold": [
+      "weather"
+     ],
+     "id": "q22",
+     "query": "weather forecast for a city"
+    },
+    {
+     "gold": [],
+     "id": "q23",
+     "query": "what is the capital of france"
+    },
+    {
+     "gold": [],
+     "id": "q24",
+     "query": "boil an egg for breakfast"
+    },
+    {
+     "gold": [],
+     "id": "q25",
+     "query": "translate this sentence to latin"
+    },
+    {
+     "gold": [],
+     "id": "q26",
+     "query": "play a game of chess"
+    },
+    {
+     "gold": [],
+     "id": "q27",
+     "query": "how far is the moon in kilometers"
+    },
+    {
+     "gold": [],
+     "id": "q28",
+     "query": "write a haiku about mountains"
+    },
+    {
+     "gold": [],
+     "id": "q29",
+     "query": "count to ten in spanish"
+    },
+    {
+     "gold": [],
+     "id": "q30",
+     "query": "what year was the magna carta signed"
+    },
+    {
+     "gold": [],
+     "id": "q31",
+     "query": "name three colors of the rainbow"
+    },
+    {
+     "gold": [],
+     "id": "q32",
+     "query": "who composed the four seasons violin concertos"
+    }
+   ],
+   "k": 3,
+   "threshold": 0.18
+  },
+  "router_arm": {
+   "after_baseline_capture": true,
+   "sequence": 3,
+   "threshold": 0.18
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0398 catalog receipt is absent on this leftover worktree; the corpus is a labelled fixture disclosed in report.corpus.origin.",
+   "settling_experiment": "Re-run IMP-0400 after command-center/receipts/IMP-0398.json exists and confirm snapshot hash and deltas still hold.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 3 attempts for provider transients only"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Re-run the benchmark from the receipt replay payload alone and recompute aggregates from paired_rows.",
+  "reviewer_id": "IMP-0400-probe2-receipt-replay",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0400:ROUTER-BENCHMARK-PAIRED",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:59358",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0400/probe1_paired_capture.py",
+   "id": "T1-paired-capture-before-arm",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0400/probe2_determinism_rerun.py",
+   "id": "T2-determinism-and-receipt-replay",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:47:47Z",
+  "started_at": "2026-08-25T00:47:46Z"
+ },
+ "unit_id": "IMP-0400"
+}

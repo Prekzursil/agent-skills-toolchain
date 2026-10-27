@@ -1,0 +1,223 @@
+{
+ "artifacts": [
+  {
+   "bytes": 7755,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/policy_as_code.py",
+   "role": "primary",
+   "sha256": "f4617cb94a8aa8ccf138e44f09c8fc934b1e0d7c300454b274fa0403c3239894"
+  },
+  {
+   "bytes": 6687,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/legal_compliance.py",
+   "role": "supporting",
+   "sha256": "8fd597684f52ec3cbb2d7b954f6c09cc124d2a174eeb5e91bb11300f08e8c0bc"
+  },
+  {
+   "bytes": 1282,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/ci_evaluate.py",
+   "role": "supporting",
+   "sha256": "f24917eaace07afdcdeb56d0acc52838f07cae073487c788a945e978f1aac490"
+  },
+  {
+   "bytes": 4008,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/privacy.py",
+   "role": "supporting",
+   "sha256": "936cdb3440006c7b4e5d1d1fbf0faca06dfd451aa8ce9bc60819075e23fc6f29"
+  },
+  {
+   "bytes": 3438,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/governance_proposal.py",
+   "role": "supporting",
+   "sha256": "aea8cd03cc715779ae436e45973c4a4e54f710d5e201acd91bf6ca1fc1fa3804"
+  },
+  {
+   "bytes": 6997,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/blueprints/contract.py",
+   "role": "supporting",
+   "sha256": "aef64c7421bbf0b8b93864e84042ebaf79b36f6f4a56300a901753abb748ea6d"
+  }
+ ],
+ "ci_entry_point": "command-center/blueprints/ci_evaluate.py:37",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0244.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0244/probe1_policy_both_states.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe1_policy_both_states.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "SUCCESS:IMP-0244-probe1",
+    "role": "verifier"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0244.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0244/probe2_jurisdiction_unknown.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe2_jurisdiction_unknown.py",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "SUCCESS:IMP-0244-probe2",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/blueprints/policy_as_code.py:93",
+   "claim": "policy-as-code emit() produced an executable program (executable-ops-v1, 2 ops). CI evaluation FAILs the violating egress fixture and PASSes the compliant twin. Prose-only markdown is refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe1_policy_both_states.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "ci_violating=FAIL ci_compliant=PASS",
+     "role": "source"
+    },
+    {
+     "command": "python3 -B command-center/blueprints/ci_evaluate.py --program <emitted> --subject command-center/p2-wave/probes/IMP-0244/fixtures/policy-violating.json",
+     "exit_code": 1,
+     "method": "command",
+     "raw_output": "{\"decision\": \"FAIL\", \"op_count\": 2, \"policy_id\": \"wf.policy-as-code.egress-undeclared-pii\", \"prose_consulted\": false, \"reason\": \"VIOLATION\", \"violations\": [{\"extra\": [\"email\"], \"id\": \"no-undeclared-pii\", \"reason\": \"SUBSET_VIOLATION\"}, {\"extra\": [\"ads.example.invalid:443\"], \"id\": \"destinations-allowlist\", \"reason\": \"SUBSET_VIOLATION\"}]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/blueprints/legal_compliance.py:96",
+   "claim": "legal-compliance returns UNKNOWN under jurisdictional uncertainty (JURISDICTION_UNCERTAIN) and for an external statute (FORUM_UNSUPPORTED). An internal executable rule returns RULE_SATISFIED, so UNKNOWN is not constant.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe2_jurisdiction_unknown.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "uncertain=UNKNOWN internal=RULE_SATISFIED gdpr=UNKNOWN",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0244",
+ "legal_compliance": {
+  "blueprint_id": "wf.legal-compliance.jurisdiction-gate",
+  "forbidden_confident_verdict_used": false,
+  "gdpr_verdict": "UNKNOWN",
+  "internal_verdict": "RULE_SATISFIED",
+  "uncertain_confidence": "none",
+  "uncertain_verdict": "UNKNOWN"
+ },
+ "library_entry_point": "command-center/blueprints/policy_as_code.py:142",
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0244/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "VIOLATION",
+   "description": "egress payload_fields includes email not on declared pii_fields",
+   "fired_on_bad_state": true,
+   "good_state_output": "ALL_RULES_PASS",
+   "id": "c-undeclared-pii-egress",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "PolicyNotExecutable",
+   "description": "markdown essay with no executable rules",
+   "fired_on_bad_state": true,
+   "good_state_output": "executable-ops-v1",
+   "id": "c-prose-only-policy",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "UNKNOWN",
+   "description": "two named regimes, no controlling forum",
+   "fired_on_bad_state": true,
+   "good_state_output": "RULE_SATISFIED",
+   "id": "c-uncertain-jurisdiction",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0244: live named probes re-run emit+CI and the jurisdiction gate. Did not run tools/command-center/unit_manifest.py --write. cloud ok=true is not delivery. Governance proposals do not auto-adopt (owner-gated).",
+ "policy_as_code": {
+  "ci_hook": "command-center/blueprints/ci_evaluate.py",
+  "compliant_ci_exit": 0,
+  "compliant_decision": "PASS",
+  "op_count": 2,
+  "policy_id": "wf.policy-as-code.egress-undeclared-pii",
+  "program_kind": "executable-ops-v1",
+  "prose_consulted": false,
+  "prose_refused": true,
+  "violating_ci_exit": 1,
+  "violating_decision": "FAIL"
+ },
+ "registered_blueprint_ids": [
+  "wf.privacy.egress-diff",
+  "wf.legal-compliance.jurisdiction-gate",
+  "wf.policy-as-code.egress-undeclared-pii",
+  "wf.governance-proposal.owner-gated"
+ ],
+ "residual_unknowns": [
+  "IMP-0230 global authoring-contract gate is not delivered on this worktree; these four blueprints carry the required elements locally.",
+  "QUALITY-CHARTER.md is not present on this worktree.",
+  "_USER-PROMPTS.md is not present on this worktree; catalog text was the spec."
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Adversarial check: AST of evaluate() returns UNKNOWN on jurisdiction_is_uncertain; forbidden confident-verdict literals are absent from evaluate() returns; GDPR stays UNKNOWN.",
+  "reviewer_id": "IMP-0244-probe2-jurisdiction-unknown",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0244",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0244",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe1_policy_both_states.py",
+   "id": "emitted-policy-both-states",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0244/probe2_jurisdiction_unknown.py",
+   "id": "jurisdiction-unknown",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:02:08Z",
+  "started_at": "2026-08-25T01:02:08Z"
+ },
+ "title": "Implement security blueprints 5-8: privacy, legal/compliance, policy-as-code, governance proposal",
+ "unit_id": "IMP-0244"
+}

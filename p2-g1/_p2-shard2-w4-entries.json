@@ -1,0 +1,610 @@
+{
+ "ADV-0127": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "platform-fault-injector",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0127 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0127 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: static audit classifying every timestamp as monotonic, UTC-aware, or naive-local, with file:line. Probe 2 (mechanically different): behavioural - run the affected paths under each clock scenario and record cache staleness, out-of-order event ids, and prematurely or never expiring leases; a naive timestamp that never crosses a boundary in testing is still a defect the static audit records.",
+  "execution_substrate": "worktree-isolated",
+  "failure_classification": [
+   "platform-portability",
+   "stale-premise",
+   "detector-failure"
+  ],
+  "id": "ADV-0127",
+  "inputs": [
+   "every timestamp write, comparison and TTL computation",
+   "a controlled clock harness offering DST transition, timezone change and backward step",
+   "the append-only event log's ordering guarantee"
+  ],
+  "mechanism": "clock-class static audit paired with scenario execution under a controlled clock",
+  "not_a_duplicate_because": "the only unit treating TIME as the adversary; freshness units (ADV-0011, ADV-0016) assume the clock is correct and their conclusions depend on it.",
+  "output_path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+  "output_schema": "command-center/schema/fault-injection-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "Does any decision depend on a local, naive or non-monotonic clock - cache TTL expiry, event ordering, lease expiry, freshness checks, retry backoff - and what happens across a DST transition, a timezone change, or a backward clock adjustment?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11055, 11007",
+  "tests_required": [
+   "control: under a stable UTC clock all paths must behave normally, so a scenario failure is attributable to the clock change",
+   "the backward-step case must be distinguished from the DST case; only one of them can be handled by UTC storage alone"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Clock skew, timezone and DST effects on timestamps, TTLs and ordering",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "Edit"
+  ]
+ },
+ "ADV-0128": {
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+   "model": "gpt-5-codex",
+   "role": "platform-fault-injector",
+   "vendor": "openai"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0128 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0128 <reason>.",
+  "dependencies": [
+   "B07"
+  ],
+  "evidence_requirement": "Probe 1: run each path fully offline and record whether the failure is explicit, cached-and-labelled, or a silent success. Probe 2 (mechanically different): mid-operation partition - cut connectivity after the request is sent but before the response, then check whether the unit's partial artifact survives and whether a resume completes it rather than restarting from zero.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "uncontrolled-silence",
+   "stale-premise",
+   "green-not-live"
+  ],
+  "id": "ADV-0128",
+  "inputs": [
+   "every remote-dependent path (registry, research, cloud dispatch, cross-vendor MCP)",
+   "a partition harness that cuts connectivity fully and mid-operation",
+   "_USER-PROMPTS.md:11007 (network-fault tests), 10983 (degrade loudly and preserve the work artifact)"
+  ],
+  "mechanism": "full-offline plus mid-operation partition, with cache-labelling and resume-from-partial as the acceptance criteria",
+  "not_a_duplicate_because": "ADV-0125 covers a provider that ANSWERS with a refusal; this covers no answer at all, where the dangerous outcome is a stale cache presented as fresh truth.",
+  "output_path": "command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json",
+  "output_schema": "command-center/schema/fault-injection-run.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "With no network, or with a partition that fails midway through a multi-step remote operation, does the program report a clear degraded state and preserve partial work - or does it report success from a cache, hang, or lose the in-flight unit?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11007, 10983",
+  "tests_required": [
+   "control: the same paths online must succeed, and any cached result served offline must be LABELLED as cached with its age; an unlabelled cache hit presented as a live result is the defect",
+   "partitions are applied to fixture endpoints only"
+  ],
+  "timeout_seconds": 5400,
+  "title": "Offline and network-partition behaviour must degrade loudly",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write",
+   "mcp__cloud-hub__modal_sandbox_create",
+   "mcp__cloud-hub__modal_sandbox_exec",
+   "mcp__cloud-hub__modal_sandbox_terminate"
+  ]
+ },
+ "ARC-0001": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0001",
+  "dependencies": [
+   "B01",
+   "B02"
+  ],
+  "evidence_requirement": "Two independent enumerations of doc 13's architecture headings (a regex over h2/h3 headings AND the section-3 hazard-matrix column headers) must agree on the candidate count before any mapping is written; every mapping row cites the candidate's heading line number and the spec line of its target class.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "duplicate-control-plane",
+   "spec-drift",
+   "overclaim",
+   "dependency-blocked"
+  ],
+  "id": "ARC-0001",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/07-OPTION-UNIVERSE.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/17-DECISION-LOG.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/PHASE-GRAPH.json"
+  ],
+  "output_path": "command-center/phase3/ROSTER.json",
+  "output_schema": "command-center/schema/decision-record.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Which of the 11 committed architectures in 13-ARCHITECTURE-CANDIDATES.md (A1-A11) map onto the nine architecture classes the spec mandates at C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10771-10783 (config-first minimal, generated SSOT, marketplace-first, gateway/lazy-activation, distributed workflow-runtime, cross-vendor adapter, security-first, UX/product-first, maximal hybrid); which candidates are left unmapped; and for EACH unmapped candidate is the disposition FULL-TEAM (add a 7-lens unit block), FOLD-INTO (name the target class and every mechanism carried across), or REJECT (with the falsifiable reason)? Emit the frozen tournament roster that every later Phase 3 unit consumes.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent reviewer re-runs the enumeration with a different regex anchor and must reproduce the same candidate set",
+  "tests_required": [
+   "Both-states control: inject a synthetic 12th candidate heading and assert the enumerator count rises to 12; remove it and assert it returns to 11",
+   "Set-completeness assertion: (mapped + folded + rejected) == enumerated candidate count, computed, not asserted in prose"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Tournament roster reconciliation: map Prompt One's 11 architecture candidates onto the 9 spec-mandated classes",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write"
+  ]
+ },
+ "ARC-0012": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0012",
+  "dependencies": [
+   "ARC-0010"
+  ],
+  "evidence_requirement": "Both directions are executed against the real tree and the two counts are reported separately; a single combined 'all consistent' number is rejected because it cannot distinguish the two failure directions.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal-verification",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "ARC-0012",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A2/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11300-11347 (47 seeded failure classes)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md"
+  ],
+  "output_path": "command-center/phase3/A2/FAILURE-MODES.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "What happens when the generator is wrong or stale? Design the generator-completeness test that FAILS when a registry entry produces no output artifact, AND the inverse test that fails when an output artifact has no registry entry - then determine which of the two directions the current repository would fail today, by running both against the existing tree.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent reliability reviewer who must add at least one failure mode the author missed or explicitly certify the enumeration complete against the 47 seeded classes",
+  "tests_required": [
+   "Both-states control per direction: delete one output and assert direction A fires; add an unregistered output and assert direction B fires",
+   "Detector-control precondition: prove each direction can find a KNOWN-present orphan before reporting zero orphans"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A2 (generated single-source-of-truth): Generator-completeness in both directions: orphan registry entries and orphan outputs",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "ARC-0013": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-reviewer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0013",
+  "dependencies": [
+   "ARC-0010"
+  ],
+  "evidence_requirement": "The threat model names the exact template files and the exact review or hash gate that would intercept an edit, and demonstrates the gate on a benign planted edit rather than describing it.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "fail-open-control",
+   "use-vs-mention",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "ARC-0013",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A2/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md",
+   "command-center/RISK-REGISTER.md"
+  ],
+  "output_path": "command-center/phase3/A2/SECURITY.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "In a generated architecture the generator and its templates are a code-execution supply-chain node: specify who may modify them, how a malicious template edit would be detected BEFORE it ships (review scope, signing, hash pinning), and whether every generated artifact must carry provenance back to its registry entry plus the generator version that produced it.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two reviewers, one of them cross-vendor (Codex), because a same-vendor reviewer shares the author's blind spots",
+  "tests_required": [
+   "Planted-edit test in a scratch clone: a template change that alters every generated output must be caught by the proposed gate",
+   "Negative control: an unrelated whitespace-only template change must NOT trip the gate, or the gate is too noisy to survive"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A2 (generated single-source-of-truth): The generator as a supply-chain node: template tampering and provenance",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "ARC-0015": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "test-architect",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0015",
+  "dependencies": [
+   "ARC-0010"
+  ],
+  "evidence_requirement": "The CRLF dimension is verified by comparing the git blob bytes obtained with git cat-file -p against the working-tree bytes; git archive is explicitly NOT used because it returns CRLF on this box.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "mutation-survives",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "ARC-0015",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A2/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10627-10648 (one completion predicate everywhere)",
+   "command-center/TEST-REGISTRY.json"
+  ],
+  "output_path": "command-center/phase3/A2/TEST-PLAN.json",
+  "output_schema": "command-center/schema/test-plan.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Specify the suite proving generator determinism and round-trip fidelity, including byte-identical regeneration across two runs AND across a CRLF working tree versus an LF blob checkout (the measured .gitattributes gap that makes the current command-center validator unrunnable on Windows) - plus the mutation control proving the determinism test fails when a timestamp or a dict iteration order leaks into output.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent test architect must name at least one mutation the proposed suite would NOT catch",
+  "tests_required": [
+   "Mutation control: inject a datetime.now() into a generator template and assert the determinism test goes red",
+   "Line-ending control: run the same test on a CRLF tree and an LF blob and assert identical verdicts, or the test is platform-dependent and must be fixed"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A2 (generated single-source-of-truth): Determinism and CRLF-stable round-trip tests for the generator",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "ARC-0019": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0019",
+  "dependencies": [
+   "ARC-0017"
+  ],
+  "evidence_requirement": "The reachable/unreachable split cites the owner decision line for PR-ONLY and, for each unreachable mode, names the condition that would make it reachable again.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal-verification",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "ARC-0019",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A3/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11300-11347 (47 seeded failure classes)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md"
+  ],
+  "output_path": "command-center/phase3/A3/FAILURE-MODES.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Enumerate the marketplace-first failure modes that exist with no network and no second publisher - stale index, offline install, revoked-but-cached package, lockfile drift, and a registry that disagrees with what is actually deployed - and specify which of these the binding PR-ONLY release mode makes UNREACHABLE versus merely untested, because an unreachable failure mode must not be counted as mitigated.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent reliability reviewer who must add at least one failure mode the author missed or explicitly certify the enumeration complete against the 47 seeded classes",
+  "tests_required": [
+   "Registry-versus-deployed reconciliation test executed against the current tree, reporting the disagreement count",
+   "Negative control: plant a deployed capability with no registry entry and assert the reconciliation reports it"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A3 (marketplace-first): Offline, stale-index and revoked-but-cached failure modes with no second publisher",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ },
+ "ARC-0020": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-reviewer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0020",
+  "dependencies": [
+   "ARC-0017"
+  ],
+  "evidence_requirement": "Prior art for each attack class is cited from a public advisory or ecosystem incident (dated, with URL) AND mapped onto a concrete path in the proposed design; a threat with no design path is dropped rather than listed decoratively.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "fail-open-control",
+   "use-vs-mention",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "ARC-0020",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A3/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md",
+   "command-center/RISK-REGISTER.md"
+  ],
+  "output_path": "command-center/phase3/A3/SECURITY.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Threat-model the marketplace as an attack surface: malicious or over-permissioned package, typosquatted id, unsigned or signature-stripped artifact, dependency confusion between a private mirror and a public one, and a revocation that never reaches an already-installed client. Specify the MANDATORY verification a client performs before executing ANY package content, and prove no install path skips it.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two reviewers, one of them cross-vendor (Codex), because a same-vendor reviewer shares the author's blind spots",
+  "tests_required": [
+   "Path-coverage assertion: enumerate every code path that can execute package content and show each crosses the verification choke point",
+   "Negative control: construct a package that passes metadata validation but fails signature verification and assert install is refused"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A3 (marketplace-first): Marketplace threat model: malicious package, typosquat, signature stripping, dependency confusion, unreachable revocation",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "WebSearch",
+   "WebFetch",
+   "Bash"
+  ]
+ },
+ "ARC-0021": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "migration-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0021",
+  "dependencies": [
+   "ARC-0017",
+   "B02"
+  ],
+  "evidence_requirement": "Adoption is demonstrated on one real tree by producing the package manifest that would claim the existing files, and by listing the files it would NOT claim and why.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "data-loss-risk",
+   "green-not-live",
+   "detector-failure",
+   "overclaim"
+  ],
+  "id": "ARC-0021",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A3/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/00-CURRENT-STATE-INVENTORY.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/03-PLUGIN-LIFECYCLE-MAP.md",
+   "command-center/BASELINE-SNAPSHOT.json"
+  ],
+  "output_path": "command-center/phase3/A3/MIGRATION.json",
+  "output_schema": "command-center/schema/migration-plan.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Design the packaging migration: which of today's live trees (two skills trees, hooks, rules, commands) become packages, where the package boundary falls, how already-deployed unpackaged content is ADOPTED in place rather than wiped and reinstalled, and what the uninstall contract must preserve (owner edits, user data, the curated MCP enable/disable state that must never be destroyed).",
+  "retry_policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one",
+  "reviewer_requirement": "one independent reviewer must confirm the plan is content-preserving in BOTH directions before it is scored",
+  "tests_required": [
+   "Preservation assertion: run the proposed uninstall against a scratch copy and diff owner-authored files before and after; any loss fails the unit",
+   "Negative control: an uninstall that would remove a hand-authored file must be caught by the preservation check"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A3 (marketplace-first): Package-boundary migration for five live trees without a wipe-and-reinstall",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "ARC-0047": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0047",
+  "dependencies": [
+   "ARC-0045"
+  ],
+  "evidence_requirement": "The audit runs each existing gate against a known-broken input AND a known-good input and records both outcomes; a gate that is silent in both states is reported as measuring nothing.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal-verification",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "ARC-0047",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A7/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11300-11347 (47 seeded failure classes)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md"
+  ],
+  "output_path": "command-center/phase3/A7/FAILURE-MODES.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Enumerate the ways a security control fails OPEN here: a guard matching payload TEXT instead of the tool VERB (the measured use-versus-mention class), a completeness check whose require-flag defaults to off in CI, a detector silent in both broken and fixed states, and a gate whose absent input normalizes to a passing value. Specify the both-states control EVERY security gate must ship with, and audit the existing gates against it.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent reliability reviewer who must add at least one failure mode the author missed or explicitly certify the enumeration complete against the 47 seeded classes",
+  "tests_required": [
+   "Both-states audit table for every gate found, with the two outcomes per gate",
+   "Use-versus-mention control: feed each text-matching gate a document that MENTIONS the forbidden pattern and assert it does not fire"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A7 (security-first): How security controls fail OPEN on this estate, and the both-states rule every gate must satisfy",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "ARC-0048": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-reviewer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0048",
+  "dependencies": [
+   "ARC-0045"
+  ],
+  "evidence_requirement": "Each escalation path is tested against the proposed design in a scratch environment with a benign marker payload, and the classification is justified by the mechanism, not by the rule text.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "fail-open-control",
+   "use-vs-mention",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "ARC-0048",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A7/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md",
+   "command-center/RISK-REGISTER.md"
+  ],
+  "output_path": "command-center/phase3/A7/SECURITY.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Red-team the security architecture: assume the attacker can author a skill, a workflow blueprint, a council transcript and a marketplace package. Enumerate every injection and privilege-escalation path into the agent's tool calls from those four surfaces, and classify each as STRUCTURALLY IMPOSSIBLE (the design cannot express it) versus MERELY POLICY-FORBIDDEN (a rule says no) - because only the first survives an adversary.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "two reviewers, one of them cross-vendor (Codex), because a same-vendor reviewer shares the author's blind spots",
+  "tests_required": [
+   "Marker-payload test per surface: a benign injected instruction must not reach a tool call",
+   "Classification discipline: any path classified structurally impossible must name the mechanism that forbids it, or it is reclassified as policy-forbidden"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A7 (security-first): Red-team the security architecture itself across four authorship surfaces",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell",
+   "Write"
+  ]
+ },
+ "ARC-0054": {
+  "_source_slice_file": "ARC-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "reliability-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:ARC-0054",
+  "dependencies": [
+   "ARC-0052"
+  ],
+  "evidence_requirement": "Each criterion is stated as a machine-checkable predicate over a real artifact (an error string, a blueprint field, a dry-run output) and is demonstrated passing and failing on real examples.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal-verification",
+   "green-not-live",
+   "overclaim"
+  ],
+  "id": "ARC-0054",
+  "inputs": [
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+   "command-center/phase3/ROSTER.json",
+   "command-center/phase3/RUBRIC.json",
+   "command-center/phase3/A8/DESIGN.json",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11300-11347 (47 seeded failure classes)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md"
+  ],
+  "output_path": "command-center/phase3/A8/FAILURE-MODES.json",
+  "output_schema": "command-center/schema/architecture-review.schema.json",
+  "owner_approval_required": false,
+  "phase": "3",
+  "question_or_target": "Enumerate the UX failure modes with real consequence - an error message naming no next action, a workflow whose stopping rule is undocumented, a catalog too large to browse, a dry-run that misrepresents cost, and a repair command that silently does nothing - and specify the OBSERVABLE acceptance criterion for each, so 'good UX' becomes testable rather than aesthetic.",
+  "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+  "reviewer_requirement": "one independent reliability reviewer who must add at least one failure mode the author missed or explicitly certify the enumeration complete against the 47 seeded classes",
+  "tests_required": [
+   "Silent-repair control: run the existing repair path against an already-healthy target and assert it reports NO-OP rather than success",
+   "Criterion executability: every criterion must be evaluated by a script in the unit, or it is downgraded to advisory"
+  ],
+  "timeout_seconds": 3600,
+  "title": "A8 (UX / product-first): UX failure modes with observable acceptance criteria",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "Write"
+  ]
+ }
+}

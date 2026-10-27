@@ -1,0 +1,285 @@
+{
+ "top_required": [
+  "schema_version",
+  "unit_id",
+  "state",
+  "sentinel",
+  "spec_anchor",
+  "min_bytes_threshold",
+  "artifacts",
+  "evidence",
+  "timestamps",
+  "retry"
+ ],
+ "allOf": [
+  {
+   "$comment": "Condition 10 for every state: an OPEN P0/P1 defect can never be attached to a receipt that is being offered as complete.",
+   "if": {
+    "properties": {
+     "state": {
+      "const": "SUCCESS"
+     }
+    },
+    "required": [
+     "state"
+    ]
+   },
+   "then": {
+    "required": [
+     "tests",
+     "negative_controls",
+     "reviewer",
+     "manifest_registration",
+     "downstream_consumers",
+     "residual_unknowns"
+    ],
+    "properties": {
+     "sentinel": {
+      "$comment": "A SUCCESS receipt may not carry a FAILED sentinel.",
+      "pattern": "^(?:SUCCESS:|SENTINEL:)"
+     },
+     "evidence": {
+      "$comment": "Two mechanically independent signals (source + verifier) are mandatory for a SUCCESS.",
+      "minItems": 2
+     },
+     "tests": {
+      "minItems": 1,
+      "not": {
+       "contains": {
+        "properties": {
+         "result": {
+          "enum": [
+           "FAIL",
+           "ERROR",
+           "SKIP",
+           "NOT-RUN"
+          ]
+         }
+        },
+        "required": [
+         "result"
+        ]
+       }
+      }
+     },
+     "negative_controls": {
+      "$comment": "Condition 8 plus the both-states rule. A control that did not fire on the bad state, or was not silent on the good state, measures nothing.",
+      "minItems": 1,
+      "allOf": [
+       {
+        "not": {
+         "contains": {
+          "properties": {
+           "fired_on_bad_state": {
+            "const": false
+           }
+          },
+          "required": [
+           "fired_on_bad_state"
+          ]
+         }
+        }
+       },
+       {
+        "not": {
+         "contains": {
+          "properties": {
+           "silent_on_good_state": {
+            "const": false
+           }
+          },
+          "required": [
+           "silent_on_good_state"
+          ]
+         }
+        }
+       }
+      ]
+     },
+     "reviewer": {
+      "properties": {
+       "verdict": {
+        "const": "PASS"
+       },
+       "independent": {
+        "const": true
+       }
+      },
+      "required": [
+       "verdict",
+       "independent"
+      ]
+     },
+     "manifest_registration": {
+      "properties": {
+       "registered": {
+        "const": true
+       }
+      },
+      "required": [
+       "registered"
+      ]
+     },
+     "downstream_consumers": {
+      "$comment": "Condition 12 made non-decorative: at least one consumer must have been executed and read the artifact.",
+      "minItems": 1,
+      "allOf": [
+       {
+        "not": {
+         "contains": {
+          "properties": {
+           "executed": {
+            "const": false
+           }
+          },
+          "required": [
+           "executed"
+          ]
+         }
+        }
+       },
+       {
+        "not": {
+         "contains": {
+          "properties": {
+           "read_ok": {
+            "const": false
+           }
+          },
+          "required": [
+           "read_ok"
+          ]
+         }
+        }
+       }
+      ]
+     },
+     "defects": {
+      "not": {
+       "contains": {
+        "allOf": [
+         {
+          "properties": {
+           "severity": {
+            "enum": [
+             "P0",
+             "P1"
+            ]
+           }
+          },
+          "required": [
+           "severity"
+          ]
+         },
+         {
+          "properties": {
+           "status": {
+            "const": "open"
+           }
+          },
+          "required": [
+           "status"
+          ]
+         }
+        ]
+       }
+      }
+     }
+    }
+   }
+  },
+  {
+   "$comment": "Every non-SUCCESS terminal state must classify itself. An unclassified failure becomes a silent success at the fan-in barrier.",
+   "if": {
+    "properties": {
+     "state": {
+      "enum": [
+       "FAILED",
+       "BLOCKED",
+       "SEVERED",
+       "TIMEOUT"
+      ]
+     }
+    },
+    "required": [
+     "state"
+    ]
+   },
+   "then": {
+    "required": [
+     "failure"
+    ]
+   }
+  },
+  {
+   "$comment": "A FAILED sentinel and a SUCCESS state are mutually exclusive.",
+   "if": {
+    "properties": {
+     "sentinel": {
+      "pattern": "^FAILED:"
+     }
+    },
+    "required": [
+     "sentinel"
+    ]
+   },
+   "then": {
+    "properties": {
+     "state": {
+      "not": {
+       "const": "SUCCESS"
+      }
+     }
+    }
+   }
+  },
+  {
+   "$comment": "SUPERSEDED and DROPPED-BY-OWNER must say by what, so a dead end is retired rather than re-walked.",
+   "if": {
+    "properties": {
+     "state": {
+      "enum": [
+       "SUPERSEDED",
+       "DROPPED-BY-OWNER"
+      ]
+     }
+    },
+    "required": [
+     "state"
+    ]
+   },
+   "then": {
+    "required": [
+     "disposition"
+    ]
+   }
+  }
+ ],
+ "if": null,
+ "then": null,
+ "props_keys": [
+  "artifacts",
+  "defects",
+  "disposition",
+  "downstream_consumers",
+  "evidence",
+  "extensions",
+  "failure",
+  "manifest_registration",
+  "min_bytes_threshold",
+  "negative_controls",
+  "produced_by",
+  "profile",
+  "report",
+  "residual_unknowns",
+  "retry",
+  "reviewer",
+  "schema_version",
+  "sentinel",
+  "spec_anchor",
+  "state",
+  "tests",
+  "timestamps",
+  "unit_id"
+ ]
+}

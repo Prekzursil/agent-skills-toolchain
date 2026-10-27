@@ -1,0 +1,737 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-pln-04.resume-safe-program-checkpointing",
+ "name": "Resume-Safe Program Checkpointing",
+ "description": "Structure a long program so a kill, a compaction or a session loss resumes from the last completed unit. Completion is a POSTCONDITION ON THE ARTIFACT, never 'the agent said done': a unit whose artifact still reads 'UNKNOWN - not yet measured' is not complete however green the run looked. Two repairs over the source design: the write-as-you-go mandate, which converts a total-loss risk into partial progress, and an explicit carve-out that no resumable boundary may be wrapped in a pipeline, because a stopped pipeline re-runs its first stage.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "resume",
+  "postcondition",
+  "write-as-you-go",
+  "pipeline-carve-out"
+ ],
+ "flagship": true,
+ "params": {
+  "program_units": {
+   "type": "array",
+   "required": true,
+   "items": {
+    "type": "string"
+   },
+   "min_items": 1,
+   "description": "The unit ids the program is decomposed into"
+  },
+  "artifact_root": {
+   "type": "path",
+   "required": true,
+   "description": "Where per-unit artifacts live. Partial artifacts live here, never in temp - they can carry sensitive intermediate data."
+  },
+  "min_artifact_bytes": {
+   "type": "integer",
+   "default": 256,
+   "minimum": 1,
+   "description": "A completion predicate floor: below this the artifact is a stub, not a result"
+  },
+  "heartbeat_seconds": {
+   "type": "integer",
+   "default": 900,
+   "minimum": 30,
+   "description": "Per-unit heartbeat so a FROZEN unit is distinguishable from a merely slow one"
+  }
+ },
+ "roles": {
+  "unit_runner": {
+   "description": "Runs one program unit and rewrites its artifact at every milestone",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "min_participants": 1,
+   "max_participants": 64,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Write(command-center/**)"
+   ],
+   "write_paths": [
+    "command-center/**"
+   ]
+  },
+  "checkpoint_keeper": {
+   "description": "Evaluates each unit's postcondition and owns the resume plan; it never asks a unit whether it finished",
+   "model": "none-deterministic-script",
+   "vendor": "any",
+   "effort": "low",
+   "authority": "judge",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Bash:python",
+    "Write(command-center/checkpoints/**)"
+   ],
+   "write_paths": [
+    "command-center/checkpoints/**"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Bash:python",
+   "Write(command-center/**)",
+   "Write(command-center/checkpoints/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/**"
+  ]
+ },
+ "model_routing": {
+  "strategy": "capability",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "subworkflows": {
+  "shared.write-as-you-go-artifact": {
+   "workflow_id": "shared.write-as-you-go-artifact",
+   "version_range": ">=1.0.0 <2.0.0",
+   "source": "platform/workflows/_shared/shared.write-as-you-go-artifact.subworkflow.json"
+  }
+ },
+ "gates": {
+  "postcondition-not-self-report": {
+   "predicate": "custom-expression",
+   "expression": "units_marked_complete_without_artifact_check == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unknown-marker-is-not-complete": {
+   "predicate": "custom-expression",
+   "expression": "units_complete_with_unknown_markers == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "no-pipeline-around-a-resumable-boundary": {
+   "predicate": "custom-expression",
+   "expression": "resumable_boundaries_wrapped_in_pipeline == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unit-complete": {
+   "predicate": "completion-predicate-v1",
+   "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+   "conditions_required": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "repair"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-define-predicates",
+   "title": "S0 DEFINE a machine-checkable completion predicate per unit",
+   "kind": "task",
+   "role": "checkpoint_keeper",
+   "timeout_seconds": 900,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-PLN04-S0",
+    "title": "Write one machine-checkable postcondition per program unit",
+    "phase": "2B",
+    "question_or_target": "For each unit define the artifact path, the minimum size, the schema it must satisfy, and the marker that disqualifies it.",
+    "inputs": [
+     "params.program_units",
+     "params.artifact_root",
+     "params.min_artifact_bytes"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "checkpoint_keeper",
+     "basis": "a predicate that needs judgement is not a predicate"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/checkpoints/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/checkpoints/pln04-predicates.json",
+    "output_schema": "command-center/schema/stopping-condition.schema.json",
+    "evidence_requirement": "each predicate is expressed as a file test - exists, size, parses, schema-valid, no UNKNOWN marker - with no prose condition",
+    "tests_required": [
+     "a predicate phrased as 'the agent reports success' must be REJECTED; that is self-report, not a postcondition",
+     "a predicate with no size floor must be rejected, since an empty file would satisfy exists-and-parses"
+    ],
+    "reviewer_requirement": "none - a predicate is either machine-checkable or it is not",
+    "completion_sentinel": "SUCCESS:BP3-PLN04-S0 only when every unit has a predicate composed only of file tests; otherwise FAILED:BP3-PLN04-S0 <reason>",
+    "retry_policy": "none; an unwritable predicate means the unit is not decomposable yet",
+    "failure_classification": [
+     "spec-underspecified"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/checkpoints/pln04-predicates.json",
+     "schema_ref": "command-center/schema/stopping-condition.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN04-S0",
+     "consumers": [
+      "s1-run",
+      "s2-mark",
+      "s3-resume"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-run",
+   "title": "S1 RUN units, each writing a truthful partial from the first second",
+   "kind": "fanout",
+   "depends_on": [
+    "s0-define-predicates"
+   ],
+   "over": {
+    "source": "param",
+    "ref": "program_units",
+    "item_var": "unit",
+    "key_field": "unit"
+   },
+   "max_concurrency": 8,
+   "arrival_stagger_ms": 500,
+   "max_items": 256,
+   "on_item_failure": "quarantine",
+   "body": [
+    {
+     "id": "write-as-you-go",
+     "kind": "subworkflow",
+     "workflow": {
+      "workflow_id": "shared.write-as-you-go-artifact",
+      "version_range": ">=1.0.0 <2.0.0"
+     },
+     "params": {
+      "artifact_root_from": "params.artifact_root"
+     },
+     "isolation": "worktree",
+     "propagate_failure": false
+    },
+    {
+     "id": "run-unit",
+     "kind": "task",
+     "role": "unit_runner",
+     "depends_on": [
+      "write-as-you-go"
+     ],
+     "timeout_seconds": 7200,
+     "work_unit": {
+      "id": "BP3-PLN04-S1",
+      "title": "Run one unit, rewriting its artifact at each milestone",
+      "phase": "2B",
+      "question_or_target": "Execute one program unit, keeping the on-disk artifact truthful at every point so a death mid-flight still leaves usable partial progress.",
+      "inputs": [
+       "command-center/checkpoints/pln04-predicates.json"
+      ],
+      "dependencies": [
+       "BP3-PLN04-S0"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "unit_runner",
+       "basis": "substantive work; the artifact discipline is what makes it survivable"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Write(command-center/**)"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 7200,
+      "output_path": "command-center/checkpoints/pln04-unit.json",
+      "output_schema": "command-center/schema/work-result.schema.json",
+      "evidence_requirement": "the artifact existed before the work started and was rewritten at each milestone; a heartbeat distinguishes frozen from slow",
+      "tests_required": [
+       "a unit killed mid-flight must leave a PARSEABLE artifact whose unmeasured rows still say UNKNOWN",
+       "a unit that wrote nothing must be classified NOT_STARTED, never inferred complete from its transcript length"
+      ],
+      "reviewer_requirement": "the checkpoint keeper's postcondition, which never reads the transcript",
+      "completion_sentinel": "SUCCESS:BP3-PLN04-S1 only when the artifact parses and its unmeasured rows still carry the UNKNOWN marker; otherwise FAILED:BP3-PLN04-S1 <reason>",
+      "retry_policy": "two strikes then pivot; a resumed unit must not re-run a completed sibling",
+      "failure_classification": [
+       "partial-artifact",
+       "agent-death-at-orchestrator-boundary"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "deadline",
+    "deadline_seconds": 28800,
+    "on_partial": "proceed-with-quarantine",
+    "reject_result_matching": [
+     "started in the background",
+     "Check /codex:status"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s2-mark",
+   "title": "S2 MARK completion only when the postcondition passes",
+   "kind": "task",
+   "role": "checkpoint_keeper",
+   "depends_on": [
+    "s1-run"
+   ],
+   "timeout_seconds": 900,
+   "work_unit": {
+    "id": "BP3-PLN04-S2",
+    "title": "Evaluate every unit's postcondition against its artifact on disk",
+    "phase": "2B",
+    "question_or_target": "For each unit evaluate exists, size, parses, schema-valid and no-UNKNOWN-marker, and record COMPLETE, PARTIAL or NOT_STARTED.",
+    "inputs": [
+     "command-center/checkpoints/pln04-predicates.json",
+     "command-center/checkpoints/pln04-unit.json"
+    ],
+    "dependencies": [
+     "BP3-PLN04-S1"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "checkpoint_keeper",
+     "basis": "the postcondition must never consult the agent that produced the artifact"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/checkpoints/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/checkpoints/pln04-state.json",
+    "output_schema": "command-center/schema/completion-census.schema.json",
+    "evidence_requirement": "each state records which sub-condition failed, so PARTIAL is actionable rather than a bare label",
+    "tests_required": [
+     "an artifact still carrying the UNKNOWN marker must be PARTIAL, never COMPLETE",
+     "an artifact below the size floor must be PARTIAL even when it parses",
+     "the checker must be run against a known-incomplete artifact and shown to say PARTIAL before its COMPLETE verdicts are trusted"
+    ],
+    "reviewer_requirement": "none - the predicate is the reviewer",
+    "completion_sentinel": "SUCCESS:BP3-PLN04-S2 only when every unit carries a state and, when not COMPLETE, the sub-condition that failed; otherwise FAILED:BP3-PLN04-S2 <reason>",
+    "retry_policy": "none; a deterministic check that fails is a defect",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/checkpoints/pln04-state.json",
+     "schema_ref": "command-center/schema/completion-census.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN04-S2",
+     "consumers": [
+      "s3-resume",
+      "the owner"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s2-gate",
+   "title": "S2 gate: no unit is marked complete without an artifact check",
+   "kind": "gate",
+   "depends_on": [
+    "s2-mark"
+   ],
+   "gate_ref": "postcondition-not-self-report"
+  },
+  {
+   "id": "s2b-gate",
+   "title": "S2b gate: an UNKNOWN marker disqualifies completion",
+   "kind": "gate",
+   "depends_on": [
+    "s2-gate"
+   ],
+   "gate_ref": "unknown-marker-is-not-complete"
+  },
+  {
+   "id": "s3-resume",
+   "title": "S3 On resume, SKIP units whose predicate already passes",
+   "kind": "task",
+   "role": "checkpoint_keeper",
+   "depends_on": [
+    "s2b-gate"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-PLN04-S3",
+    "title": "Emit the resume plan: which units to skip and which to run",
+    "phase": "2B",
+    "question_or_target": "Partition the units into skip and run purely from the recorded postcondition states, with no reference to any transcript.",
+    "inputs": [
+     "command-center/checkpoints/pln04-state.json"
+    ],
+    "dependencies": [
+     "BP3-PLN04-S2"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "checkpoint_keeper",
+     "basis": "the resume decision is a partition over recorded states"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/checkpoints/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/checkpoints/pln04-resume.json",
+    "output_schema": "command-center/schema/idempotency-report.schema.json",
+    "evidence_requirement": "skip and run partition the unit set exactly once, and the idempotency key for each unit is recorded",
+    "tests_required": [
+     "kill the program mid-unit and resume: COMPLETE units must NOT re-run",
+     "the killed unit's partial must be truthful and it must appear in the run set",
+     "skip and run together must cover every unit exactly once"
+    ],
+    "reviewer_requirement": "none - the partition is arithmetic",
+    "completion_sentinel": "SUCCESS:BP3-PLN04-S3 only when skip and run partition the unit set exactly once; otherwise FAILED:BP3-PLN04-S3 <reason>",
+    "retry_policy": "none; a deterministic partition that fails is a defect, not a flake",
+    "failure_classification": [
+     "detector-failure",
+     "pipeline-first-stage-rerun"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s4-pipeline-carveout",
+   "title": "S4 ASSERT no resumable boundary is wrapped in a pipeline",
+   "kind": "gate",
+   "depends_on": [
+    "s3-resume"
+   ],
+   "gate_ref": "no-pipeline-around-a-resumable-boundary"
+  },
+  {
+   "id": "s5-predicate",
+   "title": "S5 gate the program artifact on the shared 12-condition predicate",
+   "kind": "gate",
+   "depends_on": [
+    "s4-pipeline-carveout"
+   ],
+   "gate_ref": "unit-complete"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "all-units-complete",
+   "expression": "units_complete == units_total",
+   "applies_to": "workflow",
+   "minimum_conditions": "predicates_defined == units_total",
+   "on_stop": "complete"
+  },
+  {
+   "id": "died-but-truthful",
+   "expression": "units_partial >= 1 AND partial_artifacts_parse == true",
+   "applies_to": "workflow",
+   "on_stop": "emit-partial"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "agent-death-at-orchestrator-boundary",
+   "quota-429-storm"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "checkpoint-keeper"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "degrade-loudly",
+  "classify_as": [
+   "partial-artifact",
+   "agent-death-at-orchestrator-boundary",
+   "detector-failure"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "checkpoint-keeper",
+  "quarantine_path": "command-center/quarantine/pln04"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/pln04",
+  "granularity": "work-unit",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "params_hash",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/pln04.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "timings",
+   "env_fingerprint"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "schema-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "params_hash",
+   "inputs_hash"
+  ],
+  "store": "command-center/cache/pln04",
+  "ttl_seconds": 604800,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "graph",
+   "artifact-diff"
+  ],
+  "plan_artifact": "command-center/dry-run/pln04-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/**)",
+   "Write(command-center/checkpoints/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 600,
+   "expected": 14400,
+   "max": 86000
+  },
+  "tokens": {
+   "min": 50000,
+   "expected": 1000000,
+   "max": 6000000
+  },
+  "tool_calls": {
+   "expected": 40,
+   "max": 900
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "writes per-unit artifacts and checkpoint state under command-center/**; partial artifacts stay under the artifact root rather than in temp because they can carry sensitive intermediate data",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-pln-04.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "workflows/codex-auth-research-fanout.mjs",
+    "relation": "REPAIR",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/workflow-authoring",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/strategic-compact",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "rules/common/fan-out-contract.md#C1",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-04",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true,
+  "rollback_to": [
+   "workflows/codex-auth-research-fanout.mjs@current"
+  ]
+ },
+ "outputs": {
+  "state": {
+   "path": "command-center/checkpoints/pln04-state.json",
+   "schema_ref": "command-center/schema/completion-census.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the resume planner",
+    "the owner"
+   ]
+  },
+  "resume_plan": {
+   "path": "command-center/checkpoints/pln04-resume.json",
+   "schema_ref": "command-center/schema/idempotency-report.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the orchestrator on restart"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-04 (doc-order 36 of 96)",
+  "distinguishing_mechanism": "completion is a POSTCONDITION on the artifact evaluated by a party that never reads the transcript, plus the pipeline carve-out. BP-INC-03 RECOVERS a run that already died without checkpoints; this prevents the loss in the first place.",
+  "repairs_over_source": [
+   "the write-as-you-go mandate, referenced as a shared subworkflow rather than restated",
+   "the explicit carve-out that a resumable boundary is never wrapped in a pipeline, because a stopped pipeline re-runs its first stage"
+  ],
+  "unverified_inline": "UNVERIFIED that the pipeline first-stage-rerun defect still behaves as recorded on the current runtime; this blueprint carves around it unconditionally, which is safe either way. Settling experiment: wrap one unit in a pipeline, stop it, resume, and observe whether stage one re-runs - a both-states probe, not a single reading.",
+  "worked_example": {
+   "name": "an UNKNOWN marker keeps a unit out of the skip set",
+   "narrative": "Three units have artifacts on disk. u1 is fully measured and large enough: COMPLETE, and a resume must skip it. u2 parses and is large enough but still carries 'UNKNOWN - not yet measured': it is PARTIAL and must be re-run, which is the exact case where a transcript-based check would wrongly skip it. u3 is a two-byte stub: below the floor, so PARTIAL.",
+   "mechanism": "mechanisms.unit_complete + mechanisms.resume_plan",
+   "input": {
+    "min_bytes": 32,
+    "artifacts": {
+     "u1": "measured: pairs=12 groups=3 isolation=worktree; all rows measured and cited.",
+     "u2": "pairs=12; groups: UNKNOWN - not yet measured; isolation: UNKNOWN - not yet measured.",
+     "u3": "ok"
+    }
+   },
+   "expected": {
+    "skip": [
+     "u1"
+    ],
+    "run": [
+     "u2",
+     "u3"
+    ]
+   },
+   "controls": [
+    {
+     "mutate": "replace u2's UNKNOWN rows with measured values",
+     "expected_skip": [
+      "u1",
+      "u2"
+     ],
+     "why": "the marker, not the file size, is what held u2 back - removing it must move u2 into skip"
+    },
+    {
+     "mutate": "lower min_bytes to 1",
+     "expected_run_contains": "u2",
+     "why": "u2 must still be re-run on the marker alone, proving the two conditions are independent"
+    }
+   ]
+  }
+ }
+}

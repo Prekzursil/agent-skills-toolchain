@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/registry-index.schema.json",
+  "title": "Canonical marketplace registry index",
+  "description": "The canonical registry (spec 10846). Marketplace-first FM-1 rates the index a single point of TOTAL failure -- one malformed entry unresolves every package -- so the index is (a) itself signed, (b) validated before any entry is read, and (c) never partially applied: `mkt.index.load` either returns a fully validated index or raises. `entries` is a flat list of (name, version) coordinates; there is no per-name nesting because a nested shape lets the same version appear twice under different parents.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "generated_at", "entries", "publishers", "signature"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "title": { "type": "string", "maxLength": 200 },
+    "generated_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "entries": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "channel", "publisher", "manifest_path", "manifest_digest", "payload_digest", "signature", "license_spdx", "permissions", "conformance_score", "yanked"],
+        "properties": {
+          "name": { "$ref": "common.schema.json#/$defs/package_name" },
+          "version": { "$ref": "common.schema.json#/$defs/semver" },
+          "channel": { "$ref": "common.schema.json#/$defs/channel" },
+          "publisher": { "$ref": "common.schema.json#/$defs/publisher_id" },
+          "manifest_path": { "$ref": "common.schema.json#/$defs/relative_path" },
+          "manifest_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+          "payload_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+          "signature": { "$ref": "signature.schema.json" },
+          "license_spdx": { "$ref": "common.schema.json#/$defs/spdx" },
+          "permissions": {
+            "type": "array",
+            "items": { "$ref": "common.schema.json#/$defs/permission" },
+            "uniqueItems": true,
+            "description": "MIRRORED from the manifest so a client can refuse on permissions BEFORE fetching a payload. The linter asserts index.permissions == manifest.permissions exactly; a mirror that widens the manifest here is the cheapest possible supply-chain attack and MKT-L07 is the check that sees it."
+          },
+          "categories": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+          "summary": { "type": "string", "maxLength": 300 },
+          "conformance_score": { "$ref": "common.schema.json#/$defs/score_0_100" },
+          "deprecated": { "type": "boolean", "default": false },
+          "yanked": {
+            "type": "boolean",
+            "description": "A yank hides a version from RESOLUTION but leaves an explicit pin installable. Revocation (revocation.schema.json) blocks both. Two verbs, two strengths, no overlap."
+          }
+        }
+      }
+    },
+    "publishers": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "publisher.schema.json" }
+    },
+    "collections": {
+      "type": "array",
+      "items": { "$ref": "collection.schema.json" }
+    },
+    "mirrors": {
+      "type": "array",
+      "items": { "$ref": "mirror.schema.json" }
+    },
+    "revocation_path": {
+      "$ref": "common.schema.json#/$defs/relative_path",
+      "description": "Where the revocation list lives, relative to the registry root. REQUIRED in practice by mkt.install: if this key is absent, or the file it names is missing/unparseable, every install REFUSES. Fail-closed, because a revocation channel that can be removed to re-enable a revoked package is not a revocation channel."
+    },
+    "advisory_path": { "$ref": "common.schema.json#/$defs/relative_path" },
+    "signature": {
+      "$ref": "signature.schema.json",
+      "description": "Signature over the canonical form of this document with `signature` removed, by the registry maintainer key declared in trust-policy.schema.json."
+    }
+  }
+}

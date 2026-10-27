@@ -1,0 +1,61 @@
+{
+ "budget": 16,
+ "cases": ["case.shared", "case.alpha-only", "case.beta-only", "case.hard"],
+ "workflows": {
+  "wf.alpha": {
+   "stages": ["fetch", "verify"],
+   "handlers": {
+    "case.shared": "pass",
+    "case.alpha-only": "pass",
+    "case.beta-only": "fail",
+    "case.hard": "fail"
+   }
+  },
+  "wf.beta": {
+   "stages": ["handle"],
+   "handlers": {
+    "case.shared": "fail",
+    "case.alpha-only": "fail",
+    "case.beta-only": "pass",
+    "case.hard": "fail"
+   }
+  },
+  "fusion.padded": {
+   "stages": ["fetch", "verify", "noop-1", "noop-2", "noop-3"],
+   "handlers": {
+    "case.shared": "pass",
+    "case.alpha-only": "pass",
+    "case.beta-only": "fail",
+    "case.hard": "fail"
+   }
+  },
+  "fusion.degraded": {
+   "stages": ["fetch", "partial-verify"],
+   "handlers": {
+    "case.shared": "fail",
+    "case.alpha-only": "fail",
+    "case.beta-only": "fail",
+    "case.hard": "fail"
+   }
+  },
+  "fusion.complement": {
+   "stages": ["fetch", "verify", "beta-branch"],
+   "handlers": {
+    "case.shared": "pass",
+    "case.alpha-only": "pass",
+    "case.beta-only": "pass",
+    "case.hard": "fail"
+   }
+  }
+ },
+ "candidates": ["fusion.padded", "fusion.degraded", "fusion.complement"],
+ "sources": ["wf.alpha", "wf.beta"],
+ "named_complementarity_case": {
+  "fusion_id": "fusion.complement",
+  "rows": [
+   {"case_id": "case.beta-only", "source_id": "wf.alpha"},
+   {"case_id": "case.shared", "source_id": "wf.beta"},
+   {"case_id": "case.alpha-only", "source_id": "wf.beta"}
+  ]
+ }
+}

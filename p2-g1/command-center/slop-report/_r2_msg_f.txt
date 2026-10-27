@@ -1,0 +1,32 @@
+docs(slop): close the coverage gap a sibling opened, and fix a heading that contradicted its own table
+
+Two corrections to SLOP-BUILD-R2.md, both found by re-reading what I had actually
+shipped rather than what I meant to ship.
+
+1. COVERAGE GAP. Sibling 7aa86f16 landed between my commits C and D, so the pinned
+   window 61e69cf2..ebcd0bc1 covered only three of this round's five commits. Claiming
+   "this round added zero gate failures" on that evidence would have been an overclaim
+   of exactly the shape this round exists to fix. Measured the second window:
+
+     git log 7aa86f16..2ab835c3  = exactly commits D and E
+
+     7aa86f16   check rc 0  format rc 0, 0 reformat   2176 considered
+     2ab835c3   check rc 0  format rc 0, 0 reformat   2179 considered
+
+     0 new failures, 6/6 controls both sides, +3 considered = the 3 .py added.
+
+   All five commits are now covered by pinned before/after pairs: 20 .py added, zero
+   gate failures introduced.
+
+2. SELF-CONTRADICTING HEADING. The D1 section read "Four readings, four answers"
+   directly above a five-row table. A document that disagrees with itself one line
+   later is a detector failure, not a typo, and this round has spent its whole length
+   arguing that point at other people's documents.
+
+This commit is MARKDOWN-ONLY, deliberately. Every previous commit in this round was
+verified by a fresh-clone gate reading at a pinned rev, which raises the obvious
+regress: what verifies the commit that publishes the verification? Answer: ruff check
+and ruff format -- the gate measured throughout -- do not read .md, and no markdown
+literal appears in quality.yml, so a markdown-only commit cannot move the reading.
+Scoped honestly: I did not enumerate all ~86 gate steps, so the claim is about ruff,
+not about every gate in the workflow.

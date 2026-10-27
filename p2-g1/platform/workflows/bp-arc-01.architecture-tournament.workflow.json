@@ -1,0 +1,850 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-arc-01.architecture-tournament",
+ "name": "Architecture Tournament with Minority-Report Fold-In",
+ "description": "Generate N genuinely independent architectures, then run them head-to-head in a pairwise bracket scored on a rubric FROZEN before generation, so the winner beats a rival rather than a blank page. Three properties make this more than a beauty contest: a critical error eliminates in round one instead of being averaged away, a champion must beat its rival on a NAMED dimension, and the minority report of what the losers did better is mandatory and is folded back into the champion.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability",
+  "collective-intelligence-and-meta"
+ ],
+ "tags": [
+  "tournament",
+  "frozen-rubric",
+  "minority-report",
+  "independence"
+ ],
+ "flagship": true,
+ "params": {
+  "problem": {
+   "type": "string",
+   "required": true,
+   "min_length": 20,
+   "description": "The architecture question"
+  },
+  "n_architectures": {
+   "type": "integer",
+   "default": 4,
+   "minimum": 2,
+   "maximum": 16,
+   "description": "How many independent architectures to generate"
+  },
+  "rubric_weights": {
+   "type": "object",
+   "required": true,
+   "description": "dimension -> weight, FROZEN before S1; mutating it after generation is the failure this blueprint exists to prevent",
+   "schema": {
+    "type": "object",
+    "minProperties": 2,
+    "additionalProperties": {
+     "type": "number",
+     "minimum": 0,
+     "maximum": 1
+    }
+   }
+  },
+  "critical_error_dimensions": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "default": [],
+   "description": "Dimensions on which a zero is fatal rather than merely low-scoring"
+  },
+  "constraints": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "default": [],
+   "description": "Hard constraints every architecture must satisfy"
+  }
+ },
+ "roles": {
+  "architect": {
+   "description": "Produces ONE architecture in isolation, blind to every sibling's output",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "max",
+   "authority": "advisory",
+   "independence": "independent",
+   "min_participants": 2,
+   "max_participants": 16,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "bracket_judge": {
+   "description": "Scores one pair on the frozen rubric and must name the deciding dimension",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "judge",
+   "vote_weight": 1,
+   "independence": "cross-examining",
+   "tool_permissions": [
+    "Read",
+    "Bash:python"
+   ],
+   "speaking_rights": "always"
+  },
+  "cross_vendor_judge": {
+   "description": "Second judge from another vendor, so a shared blind spot cannot decide the bracket",
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "effort": "high",
+   "authority": "judge",
+   "independence": "independent",
+   "cross_vendor_required": true,
+   "tool_permissions": [
+    "Read",
+    "Bash:python"
+   ]
+  },
+  "minority_writer": {
+   "description": "Writes what each eliminated architecture did better, and what must be folded in",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Write(command-center/tournament/**)"
+   ],
+   "write_paths": [
+    "command-center/tournament/**"
+   ]
+  },
+  "owner": {
+   "description": "Decides whether the tournament cost is warranted for this decision size",
+   "vendor": "human",
+   "authority": "owner",
+   "speaking_rights": "on-request"
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:python",
+   "Write(command-center/tournament/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/tournament/**"
+  ],
+  "forbid_write_paths": [
+   "command-center/WORK-UNIT-CATALOG.json"
+  ]
+ },
+ "model_routing": {
+  "strategy": "vendor-diverse",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "routes": [
+   {
+    "when": "stage_role == cross_vendor_judge",
+    "target": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "effort": "high"
+    },
+    "reason": "cross-vendor diversity on the judging seat, not only on the generating seat"
+   }
+  ],
+  "escalation": {
+   "on": [
+    "low-confidence",
+    "reviewer-refuted"
+   ],
+   "target": {
+    "model": "opus",
+    "vendor": "anthropic",
+    "effort": "max"
+   },
+   "max_escalations": 2
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "rubric-frozen": {
+   "predicate": "custom-expression",
+   "expression": "rubric_hash_recorded == true AND rubric_changed_after_generation == false",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "independence": {
+   "predicate": "custom-expression",
+   "expression": "near_duplicate_pairs == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "retry"
+  },
+  "named-dimension": {
+   "predicate": "custom-expression",
+   "expression": "champion_selected == true AND deciding_dimension_named == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "minority-mandatory": {
+   "predicate": "custom-expression",
+   "expression": "minority_report_written == true AND fold_in_decisions_recorded == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "champion-artifact-complete": {
+   "predicate": "completion-predicate-v1",
+   "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+   "conditions_required": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "repair"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-freeze-rubric",
+   "title": "S0 FIX the rubric and weights, and hash them",
+   "kind": "gate",
+   "gate_ref": "rubric-frozen",
+   "produces": [
+    {
+     "path": "command-center/tournament/arc01-rubric.json",
+     "schema_ref": "command-center/schema/architecture-review.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "consumers": [
+      "s2-bracket"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-generate",
+   "title": "S1 GENERATE N architectures in isolation",
+   "kind": "fanout",
+   "depends_on": [
+    "s0-freeze-rubric"
+   ],
+   "over": {
+    "source": "param",
+    "ref": "n_architectures",
+    "item_var": "architect_slot",
+    "key_field": "architect_slot"
+   },
+   "max_concurrency": 8,
+   "arrival_stagger_ms": 400,
+   "max_items": 16,
+   "on_item_failure": "quarantine",
+   "body": [
+    {
+     "id": "generate-one",
+     "kind": "task",
+     "role": "architect",
+     "timeout_seconds": 3600,
+     "work_unit": {
+      "id": "BP3-ARC01-S1",
+      "title": "Produce one architecture without seeing any sibling",
+      "phase": "2B",
+      "question_or_target": "Design one complete architecture for the stated problem, scoring itself against no rubric dimension it invented.",
+      "inputs": [
+       "params.problem",
+       "params.constraints",
+       "command-center/tournament/arc01-rubric.json"
+      ],
+      "dependencies": [],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "architect",
+       "basis": "independent generation demands maximum effort per lens"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Glob"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 3600,
+      "output_path": "command-center/tournament/arc01-architecture.json",
+      "output_schema": "command-center/schema/architecture-dossier.schema.json",
+      "evidence_requirement": "every design claim anchors to a repo fact or an external source; a claim with neither is marked UNVERIFIED inline",
+      "tests_required": [
+       "an architecture whose fingerprint equals a sibling's must be re-run with a different seed constraint",
+       "an architecture violating a declared constraint must be rejected before scoring"
+      ],
+      "reviewer_requirement": "two bracket judges, one of them cross-vendor; never the sibling architects",
+      "completion_sentinel": "SUCCESS:BP3-ARC01-S1 only when the dossier declares a fingerprint and satisfies every declared constraint; otherwise FAILED:BP3-ARC01-S1 <reason>",
+      "retry_policy": "two strikes then pivot to a different seed constraint rather than a third identical run",
+      "failure_classification": [
+       "independence-violation",
+       "constraint-violation"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "quorum",
+    "quorum": 0.75,
+    "on_partial": "proceed-degraded",
+    "reject_result_matching": [
+     "started in the background",
+     "Check /codex:status"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s1b-independence",
+   "title": "S1b CHECK independence - a near-duplicate is a failed lens, not a consensus",
+   "kind": "gate",
+   "depends_on": [
+    "s1-generate"
+   ],
+   "gate_ref": "independence"
+  },
+  {
+   "id": "s2-bracket",
+   "title": "S2 BRACKET: pairwise comparisons on the frozen rubric",
+   "kind": "loop",
+   "depends_on": [
+    "s1b-independence"
+   ],
+   "loop_var": "bracket_round",
+   "body": [
+    {
+     "id": "judge-round",
+     "kind": "task",
+     "role": "bracket_judge",
+     "timeout_seconds": 2400,
+     "work_unit": {
+      "id": "BP3-ARC01-S2",
+      "title": "Judge one bracket round on the frozen rubric",
+      "phase": "2B",
+      "question_or_target": "For each pair, compute the weighted score, apply the critical-error override, and name the deciding dimension.",
+      "inputs": [
+       "command-center/tournament/arc01-architecture.json",
+       "command-center/tournament/arc01-rubric.json"
+      ],
+      "dependencies": [
+       "BP3-ARC01-S1"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "bracket_judge",
+       "basis": "scoring is arithmetic over declared scores; the judgement is only in assigning the scores"
+      },
+      "tool_permissions": [
+       "Read",
+       "Bash:python"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 2400,
+      "output_path": "command-center/tournament/arc01-bracket.json",
+      "output_schema": "command-center/schema/tournament-score.schema.json",
+      "evidence_requirement": "every round records both weighted totals, the deciding dimension, and what the loser scored higher on",
+      "tests_required": [
+       "a deliberately fatal architecture must be eliminated in round one by the critical-error override, not out-scored on average",
+       "a round whose winner names no deciding dimension must FAIL"
+      ],
+      "reviewer_requirement": "the cross-vendor judge re-scores any round decided by less than one rubric point",
+      "completion_sentinel": "SUCCESS:BP3-ARC01-S2 only when each round names a deciding dimension and records the loser's better dimensions; otherwise FAILED:BP3-ARC01-S2 <reason>",
+      "retry_policy": "two strikes then pivot to explicit re-scoring by the cross-vendor judge",
+      "failure_classification": [
+       "overclaim",
+       "detector-failure"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "convergence": {
+    "max_iterations": 5,
+    "min_iterations": 1,
+    "converged_when": "remaining_architectures == 1",
+    "no_progress_rounds": 1,
+    "metrics": [
+     {
+      "name": "remaining_architectures",
+      "direction": "decrease",
+      "target": 1
+     }
+    ],
+    "on_no_convergence": "escalate"
+   }
+  },
+  {
+   "id": "s2-gate",
+   "title": "S2 gate: a champion must beat a rival on a NAMED dimension",
+   "kind": "gate",
+   "depends_on": [
+    "s2-bracket"
+   ],
+   "gate_ref": "named-dimension"
+  },
+  {
+   "id": "s3-minority",
+   "title": "S3 WRITE the minority report of what the losers did better",
+   "kind": "task",
+   "role": "minority_writer",
+   "depends_on": [
+    "s2-gate"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-ARC01-S3",
+    "title": "Record every dimension on which an eliminated architecture beat the champion",
+    "phase": "2B",
+    "question_or_target": "Enumerate the losers' wins and propose, per win, whether it can be folded into the champion.",
+    "inputs": [
+     "command-center/tournament/arc01-bracket.json"
+    ],
+    "dependencies": [
+     "BP3-ARC01-S2"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "minority_writer",
+     "basis": "informed rather than independent - this role must read every dossier"
+    },
+    "tool_permissions": [
+     "Read",
+     "Write(command-center/tournament/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/tournament/arc01-minority.json",
+    "output_schema": "command-center/schema/dissent-audit.schema.json",
+    "evidence_requirement": "each entry names the losing architecture, the dimension, and the score gap that justifies the claim",
+    "tests_required": [
+     "a bracket in which some loser scored higher on some dimension must produce a non-empty minority report"
+    ],
+    "reviewer_requirement": "the cross-vendor judge checks that no loser win was omitted",
+    "completion_sentinel": "SUCCESS:BP3-ARC01-S3 only when every dimension on which a loser out-scored the champion appears in the report; otherwise FAILED:BP3-ARC01-S3 <reason>",
+    "retry_policy": "one retry then escalate; discarding the losers is not an acceptable outcome",
+    "failure_classification": [
+     "digest-loss",
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/tournament/arc01-minority.json",
+     "schema_ref": "command-center/schema/dissent-audit.schema.json",
+     "min_bytes": 192,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-ARC01-S3",
+     "consumers": [
+      "s4-fold-in"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s4-fold-in",
+   "title": "S4 FOLD the minority report's wins into the champion",
+   "kind": "task",
+   "role": "minority_writer",
+   "depends_on": [
+    "s3-minority"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-ARC01-S4",
+    "title": "Fold each accepted minority win into the champion architecture",
+    "phase": "2B",
+    "question_or_target": "Produce the champion-plus-fold-in dossier, recording for each minority win whether it was folded in and why.",
+    "inputs": [
+     "command-center/tournament/arc01-minority.json",
+     "command-center/tournament/arc01-bracket.json"
+    ],
+    "dependencies": [
+     "BP3-ARC01-S3"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "minority_writer",
+     "basis": "the fold-in is what makes a tournament worth more than a single design council"
+    },
+    "tool_permissions": [
+     "Read",
+     "Write(command-center/tournament/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/tournament/arc01-champion.json",
+    "output_schema": "command-center/schema/architecture-dossier.schema.json",
+    "evidence_requirement": "every minority win carries an explicit folded_in true/false with a reason",
+    "tests_required": [
+     "a champion dossier that records no fold-in decision for a listed minority win must FAIL"
+    ],
+    "reviewer_requirement": "the owner, who is the only role that can accept the champion",
+    "completion_sentinel": "SUCCESS:BP3-ARC01-S4 only when every minority win has an explicit folded_in decision with a reason; otherwise FAILED:BP3-ARC01-S4 <reason>",
+    "retry_policy": "one retry then escalate to the owner",
+    "failure_classification": [
+     "digest-loss"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s4-gate",
+   "title": "S4 gate: the minority report and its fold-in decisions both exist",
+   "kind": "gate",
+   "depends_on": [
+    "s4-fold-in"
+   ],
+   "gate_ref": "minority-mandatory"
+  },
+  {
+   "id": "s4b-predicate",
+   "title": "S4b gate the champion dossier on the shared 12-condition predicate",
+   "kind": "gate",
+   "depends_on": [
+    "s4-gate"
+   ],
+   "gate_ref": "champion-artifact-complete"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "champion-with-fold-in",
+   "expression": "champion_selected == true AND minority_report_written == true AND fold_in_decisions_recorded == true",
+   "applies_to": "workflow",
+   "minimum_conditions": "architectures_scored >= 2",
+   "on_stop": "complete"
+  },
+  {
+   "id": "criteria-not-fixable",
+   "expression": "rubric_fixable == false",
+   "applies_to": "workflow",
+   "on_stop": "escalate"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "independence-violation",
+   "schema-invalid"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "owner"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "degrade-loudly",
+  "classify_as": [
+   "independence-violation",
+   "constraint-violation",
+   "digest-loss"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "owner",
+  "quarantine_path": "command-center/quarantine/arc01"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/arc01",
+  "granularity": "fanout-item",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "params_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/arc01.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "model_outputs",
+   "timings"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "schema-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "params_hash",
+   "model_id"
+  ],
+  "store": "command-center/cache/arc01",
+  "ttl_seconds": 259200,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "graph"
+  ],
+  "plan_artifact": "command-center/dry-run/arc01-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/tournament/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 1800,
+   "expected": 9000,
+   "max": 28800
+  },
+  "tokens": {
+   "min": 300000,
+   "expected": 1400000,
+   "max": 4000000
+  },
+  "tool_calls": {
+   "expected": 80,
+   "max": 600
+  },
+  "impact": {
+   "risk": "medium",
+   "reversibility": "reversible",
+   "blast_radius": "writes only under command-center/tournament/**; produces a design decision, no code",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-arc-01.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "skills/execution-grounded-bon",
+    "relation": "GENERALIZE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/critique-panel",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "workflows/design-gate.mjs",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "workflows/trainer-gui-mega-plan",
+    "relation": "DISTILL",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-01",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "champion": {
+   "path": "command-center/tournament/arc01-champion.json",
+   "schema_ref": "command-center/schema/architecture-dossier.schema.json",
+   "min_bytes": 1024,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner",
+    "bp-arc-04.failure-domain-mapping-workshop"
+   ]
+  },
+  "bracket": {
+   "path": "command-center/tournament/arc01-bracket.json",
+   "schema_ref": "command-center/schema/tournament-score.schema.json",
+   "min_bytes": 512,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner"
+   ]
+  },
+  "minority": {
+   "path": "command-center/tournament/arc01-minority.json",
+   "schema_ref": "command-center/schema/dissent-audit.schema.json",
+   "min_bytes": 192,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner",
+    "the champion fold-in stage"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-01 (doc-order 28 of 96)",
+  "owner_decision": "OPEN: is a tournament worth 3-5x a single design council at this estate's typical decision size? Recorded here rather than silently answered.",
+  "distinguishing_mechanism": "pairwise bracket over GENERATED candidates with a critical-error override and a mandatory minority-report fold-in. BP-PLN-01 gates ONE artifact; this one selects among several and then re-imports what the losers did better.",
+  "worked_example": {
+   "name": "a fatal candidate eliminated in round one",
+   "narrative": "Four architectures are scored on a two-dimension frozen rubric. 'alpha' carries a critical error (it stores a credential in the repo) and is eliminated before any averaging. 'delta' is a near-duplicate of 'beta', which is an independence failure. Of the survivors the champion must name the dimension that decided its win, and 'gamma' beat it on recoverability, which must appear in the minority report.",
+   "mechanism": "mechanisms.eliminate_critical + mechanisms.near_duplicates + mechanisms.bracket",
+   "input": {
+    "weights": {
+     "correctness": 0.6,
+     "recoverability": 0.4
+    },
+    "architectures": [
+     {
+      "name": "alpha",
+      "scores": {
+       "correctness": 4,
+       "recoverability": 4
+      },
+      "critical_errors": [
+       "stores a credential in the repo"
+      ],
+      "fingerprint": "a"
+     },
+     {
+      "name": "beta",
+      "scores": {
+       "correctness": 4,
+       "recoverability": 1
+      },
+      "critical_errors": [],
+      "fingerprint": "b"
+     },
+     {
+      "name": "gamma",
+      "scores": {
+       "correctness": 2,
+       "recoverability": 4
+      },
+      "critical_errors": [],
+      "fingerprint": "c"
+     },
+     {
+      "name": "delta",
+      "scores": {
+       "correctness": 4,
+       "recoverability": 1
+      },
+      "critical_errors": [],
+      "fingerprint": "b"
+     }
+    ]
+   },
+   "expected": {
+    "eliminated": [
+     "alpha"
+    ],
+    "near_duplicate_pairs": [
+     [
+      "beta",
+      "delta"
+     ]
+    ],
+    "champion": "beta",
+    "minority_report_contains": [
+     "recoverability"
+    ]
+   },
+   "controls": [
+    {
+     "mutate": "clear alpha's critical_errors",
+     "expected_champion": "alpha",
+     "why": "the override is doing the work - without it the fatal design wins on score"
+    }
+   ]
+  }
+ }
+}

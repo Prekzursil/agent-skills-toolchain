@@ -1,0 +1,1328 @@
+{
+ "evidence": [
+  {
+   "claim": "RES-0062 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0062.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0062.json",
+     "raw_output": "bytes=37374 sha256=e9238672f4e8a09c036b8f7cb0a1df8b4948fa65d6fc605585881b803a2156e3",
+     "fingerprint": "7c76a8839d9253854f18d5b125e4a888",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0062",
+     "raw_output": "schema-check",
+     "fingerprint": "738b8c86c246716fc47f19af92eba372",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0062 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0062",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0062",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "6fccd737a4dfc96a57c36d16e613883f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0062",
+     "raw_output": "schema-valid",
+     "fingerprint": "d5d6cd6e3e98f85e9737ec5c92017759",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0062",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0062.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0062",
+ "extensions": {
+  "legacy_root": {
+   "answer": {
+    "costs": [
+     "history/journal growth from large LLM payloads",
+     "at-least-once execution of the wrapped model call (idempotency is a separate constraint)",
+     "workflow versioning required when control-flow around recorded results changes",
+     "NonDeterminismError / journal mismatch if the LLM is inlined in orchestration code"
+    ],
+    "deterministic_subset": {
+     "engine_rule": "Temporal: Activities aren't executed again during replay; recorded results are reused. Restate: if the journal has a previous result, skip executing that action. DBOS: if recorded_step_output exists, replay the checkpoint.",
+     "excludes": [
+      "LLM token sampling",
+      "raw HTTP inside the orchestration function",
+      "unrecorded wall-clock",
+      "unrecorded PRNG",
+      "process-local mutable globals"
+     ],
+     "id": "RECORDED_SIDE_EFFECT_RESULTS_PLUS_PURE_CONTROL_FLOW",
+     "includes": [
+      "SDK-journaled time/timers/UUIDs",
+      "pure control-flow over recorded activity/journal/step results",
+      "versioning or patch markers selecting a recorded path",
+      "scheduling of Activity/ctx.run/@DBOS.step wrappers (not live re-entry)"
+     ],
+     "name": "orchestration control-flow over recorded side-effect results, plus SDK-journaled time/UUID and versioned code-path markers"
+    },
+    "rejects_partial_replay_conclusion": true,
+    "violated_constraint": {
+     "engine_rule": "Temporal: 'Workflow code must be deterministic to support replay' and 'put [LLM/AI invocations] in Activities' so a re-executed Workflow Function issues the same sequence of Commands. Restate: non-deterministic operations must be wrapped (ctx.run) to ensure deterministic replay; replay skips executing journaled actions and uses the recorded result; the SDK schedules the run closure only if the run wasn't replayed. DBOS: a workflow function must invoke the same steps with the same inputs in the same order given recorded step return values; third-party API calls must not run directly in the workflow function.",
+     "engines_cited": [
+      "Temporal",
+      "Restate",
+      "DBOS"
+     ],
+     "id": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+     "name": "command-sequence (journal-entry / step-sequence) identity of the orchestration function under replay",
+     "property_llm_breaks": "An LLM call is not a function of recorded history: sampling and HTTP I/O can yield a different token sequence, hence a different subsequent command/journal/step sequence, when the orchestration function is re-executed. That is the determinism property Temporal, Restate and DBOS require of the replayed function."
+    },
+    "why_not_partial": "Calling replay 'partially possible' names no property. Engines do not replay a fraction of an LLM sample. They exclude the LLM invocation from the replayed function by wrapping it, then require the remaining orchestration to be fully command-sequence-identical given the recorded bytes. The LLM step therefore satisfies durability-of-recorded-result and does not satisfy orchestration-function determinism."
+   },
+   "claims": [
+    {
+     "canonical_mechanism": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+     "claim": "Temporal replay re-executes the Workflow Function against Event History and requires it to emit the same sequence of Commands; a mismatch is a non-determinism error. Workflow code must be deterministic to support replay.",
+     "confidence_band": "high",
+     "contradiction_support_edges": [],
+     "engine": "Temporal",
+     "engine_rule": "Workflow code must be deterministic to support replay. A re-executed Workflow Function will issue the same sequence of Commands.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:38Z",
+     "id": "C-TEMPORAL-COMMAND-SEQUENCE",
+     "named_settling_probe": "probe1_violated_constraint.py",
+     "rails": [
+      {
+       "bytes": 94604,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflow-definition",
+       "quote": "Workflow code must be deterministic to support replay",
+       "requested_url": "https://docs.temporal.io/workflow-definition",
+       "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+       "snapshot_id": "temporal-docs-workflow-definition",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+      },
+      {
+       "bytes": 94604,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflow-definition",
+       "quote": "same sequence of Commands",
+       "requested_url": "https://docs.temporal.io/workflow-definition",
+       "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+       "snapshot_id": "temporal-docs-workflow-definition",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+      },
+      {
+       "bytes": 164884,
+       "fetch_timestamp": "2026-08-24T18:58:39Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+       "quote": "def workflow_is_replaying(self) -> bool:",
+       "requested_url": "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+       "sha256": "86674cbe6f6eba2acc64049430fa1dedfada3b7d332b13633124c7acffdb26bc",
+       "snapshot_id": "temporal-sdk-python-workflow-instance",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-workflow-instance.bin"
+      },
+      {
+       "bytes": 228341,
+       "fetch_timestamp": "2026-08-24T18:59:30Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+       "quote": "\"path\":\"temporalio/worker/_workflow_instance.py\"",
+       "requested_url": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+       "sha256": "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+       "snapshot_id": "temporal-sdk-python-github-contents-instance",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-github-contents-instance.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+      "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+      "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+      "86674cbe6f6eba2acc64049430fa1dedfada3b7d332b13633124c7acffdb26bc"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+       "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.temporal.io/workflow-definition",
+       "https://docs.temporal.io/workflow-definition"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    },
+    {
+     "canonical_mechanism": "SIDE_EFFECT_WRAPPING_ACTIVITY",
+     "claim": "Temporal names LLM/AI invocations as non-deterministic operations that must be placed in Activities. Activities run once; the result is recorded in Event History and is reused, not recomputed, on replay. An LLM call inlined in Workflow code would take a network path that is not in history and can diverge on re-execution.",
+     "confidence_band": "high",
+     "contradiction_support_edges": [],
+     "engine": "Temporal",
+     "engine_rule": "To handle non-deterministic operations like API calls, LLM/AI invocations, database queries, and other external interactions, put them in Activities. Activities execute outside the replay path.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:38Z",
+     "id": "C-TEMPORAL-LLM-MUST-BE-ACTIVITY",
+     "named_settling_probe": "probe1_violated_constraint.py",
+     "rails": [
+      {
+       "bytes": 94604,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflow-definition",
+       "quote": "LLM/AI invocations",
+       "requested_url": "https://docs.temporal.io/workflow-definition",
+       "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+       "snapshot_id": "temporal-docs-workflow-definition",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+      },
+      {
+       "bytes": 94604,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflow-definition",
+       "quote": "put them in Activities",
+       "requested_url": "https://docs.temporal.io/workflow-definition",
+       "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+       "snapshot_id": "temporal-docs-workflow-definition",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+      },
+      {
+       "bytes": 48955,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflows",
+       "quote": "Activities aren't executed again during replay",
+       "requested_url": "https://docs.temporal.io/workflows",
+       "sha256": "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+       "snapshot_id": "temporal-docs-workflows",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflows.bin"
+      },
+      {
+       "bytes": 228341,
+       "fetch_timestamp": "2026-08-24T18:59:30Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+       "quote": "\"path\":\"temporalio/worker/_workflow_instance.py\"",
+       "requested_url": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+       "sha256": "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+       "snapshot_id": "temporal-sdk-python-github-contents-instance",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-github-contents-instance.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+      "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+      "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+      "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.temporal.io/workflow-definition",
+       "https://docs.temporal.io/workflow-definition",
+       "https://docs.temporal.io/workflows"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    },
+    {
+     "canonical_mechanism": "JOURNALED_SIDE_EFFECT_CTX_RUN",
+     "claim": "Restate journals Context operations. Non-deterministic operations must be wrapped (ctx.run / ctx.run_typed) so replay stores and reuses the result. The Python SDK schedules the run closure only if the run wasn't replayed. Official docs wrap an LLM call as ctx.run_typed(\"LLM call\", ...).",
+     "confidence_band": "high",
+     "contradiction_support_edges": [],
+     "engine": "Restate",
+     "engine_rule": "Non-deterministic operations (database calls, HTTP requests, UUID generation) must be wrapped to ensure deterministic replay. Use ctx.run to wrap them and have Restate store the result in the execution log. On replay, if the journal has a previous result, the SDK skips executing that action.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:38Z",
+     "id": "C-RESTATE-JOURNAL-RUN",
+     "named_settling_probe": "probe1_violated_constraint.py",
+     "rails": [
+      {
+       "bytes": 389019,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.restate.dev/develop/python/durable-steps",
+       "quote": "LLM call",
+       "requested_url": "https://docs.restate.dev/develop/python/durable-steps",
+       "sha256": "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+       "snapshot_id": "restate-docs-durable-steps-py",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-durable-steps-py.bin"
+      },
+      {
+       "bytes": 389019,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.restate.dev/develop/python/durable-steps",
+       "quote": "store its result in the execution log",
+       "requested_url": "https://docs.restate.dev/develop/python/durable-steps",
+       "sha256": "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+       "snapshot_id": "restate-docs-durable-steps-py",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-durable-steps-py.bin"
+      },
+      {
+       "bytes": 260377,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.restate.dev/guides/request-lifecycle",
+       "quote": "skips executing that action and uses the recorded result instead",
+       "requested_url": "https://docs.restate.dev/guides/request-lifecycle",
+       "sha256": "05616562f151bd144a75ef3f0f0ee03897f05fc5e3eb941f38ac704a5e7c352f",
+       "snapshot_id": "restate-docs-request-lifecycle",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-request-lifecycle.bin"
+      },
+      {
+       "bytes": 46917,
+       "fetch_timestamp": "2026-08-24T18:59:32Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "quote": "Schedule the run closure only if the run wasn't replayed.",
+       "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+       "snapshot_id": "restate-sdk-python-server-context",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+      },
+      {
+       "bytes": 44281,
+       "fetch_timestamp": "2026-08-24T18:59:31Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6",
+       "quote": "\"path\":\"python/restate/context.py\"",
+       "requested_url": "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6",
+       "sha256": "16049de71614978db15499014d647173b4a8575e8ab0bacac8a2d3c5c7ba080c",
+       "snapshot_id": "restate-sdk-python-github-contents-context",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-github-contents-context.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "05616562f151bd144a75ef3f0f0ee03897f05fc5e3eb941f38ac704a5e7c352f",
+      "16049de71614978db15499014d647173b4a8575e8ab0bacac8a2d3c5c7ba080c",
+      "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+      "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+      "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.restate.dev/develop/python/durable-steps",
+       "https://docs.restate.dev/develop/python/durable-steps",
+       "https://docs.restate.dev/guides/request-lifecycle"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    },
+    {
+     "canonical_mechanism": "CHECKPOINTED_STEP_SEQUENCE",
+     "claim": "DBOS requires a workflow function to be deterministic: given the same inputs and the same step return values, it must invoke the same steps with the same inputs in the same order. Third-party API calls must not run directly in the workflow function. Recovery uses check_operation_execution and, if recorded_step_output exists, replays the checkpoint instead of re-entering the step body.",
+     "confidence_band": "high",
+     "contradiction_support_edges": [],
+     "engine": "DBOS",
+     "engine_rule": "A workflow function must be deterministic: if called multiple times with the same inputs, it should invoke the same steps with the same inputs in the same order (given the same return values from those steps). Non-deterministic operations like calling a third-party API belong in steps.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:39Z",
+     "id": "C-DBOS-STEP-ORDER",
+     "named_settling_probe": "probe1_violated_constraint.py",
+     "rails": [
+      {
+       "bytes": 12014,
+       "fetch_timestamp": "2026-08-24T18:58:39Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "quote": "a workflow function must be **deterministic**",
+       "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+       "snapshot_id": "dbos-docs-workflow-tutorial-md",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+      },
+      {
+       "bytes": 12014,
+       "fetch_timestamp": "2026-08-24T18:58:39Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "quote": "calling a third-party API",
+       "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+       "snapshot_id": "dbos-docs-workflow-tutorial-md",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+      },
+      {
+       "bytes": 137951,
+       "fetch_timestamp": "2026-08-24T18:58:40Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+       "quote": "if recorded_step_output:",
+       "requested_url": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+       "sha256": "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+       "snapshot_id": "dbos-transact-py-core",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-core.bin"
+      },
+      {
+       "bytes": 191090,
+       "fetch_timestamp": "2026-08-24T18:59:32Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+       "quote": "\"path\":\"dbos/_core.py\"",
+       "requested_url": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+       "sha256": "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+       "snapshot_id": "dbos-transact-py-github-contents-core",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-github-contents-core.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+      "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+      "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+      "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+       "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    },
+    {
+     "canonical_mechanism": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+     "claim": "The specific determinism property an LLM step breaks is command-sequence (or journal-entry / step-sequence) identity of the orchestration function under replay. LLM sampling and HTTP I/O are not functions of recorded history; re-executing them inside the replayed function can emit a different command/journal/step sequence. Wrapping the call as an Activity, ctx.run, or @DBOS.step does not make the model deterministic — it moves the non-determinism off the replay path so the recorded bytes can be reused. Replay of an LLM workflow is therefore not 'partially possible': the LLM invocation is excluded from the replayed function, and the remaining orchestration is fully constrained to recorded results.",
+     "confidence_band": "high",
+     "contradiction_support_edges": [
+      {
+       "from": "C-TEMPORAL-LLM-MUST-BE-ACTIVITY",
+       "note": "LLM named as non-deterministic; must leave the replay path",
+       "type": "supports"
+      },
+      {
+       "note": "Engines split replayed orchestration from recorded side effects; they do not allow a half-deterministic LLM inside the workflow function",
+       "target_phrase": "replay is partially possible",
+       "type": "contradicts"
+      }
+     ],
+     "engine": "Temporal+Restate+DBOS",
+     "engine_rule": "Temporal: same sequence of Commands from the Workflow Function. Restate: skip executing journaled actions and reuse recorded results. DBOS: same steps, same inputs, same order given recorded step return values.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:38Z",
+     "id": "C-LLM-BREAKS-COMMAND-IDENTITY",
+     "named_settling_probe": "probe1_violated_constraint.py",
+     "rails": [
+      {
+       "bytes": 94604,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflow-definition",
+       "quote": "same sequence of Commands",
+       "requested_url": "https://docs.temporal.io/workflow-definition",
+       "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+       "snapshot_id": "temporal-docs-workflow-definition",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+      },
+      {
+       "bytes": 46917,
+       "fetch_timestamp": "2026-08-24T18:59:32Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "quote": "if not run.replayed:",
+       "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+       "snapshot_id": "restate-sdk-python-server-context",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+      },
+      {
+       "bytes": 12014,
+       "fetch_timestamp": "2026-08-24T18:58:39Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "quote": "a workflow function must be **deterministic**",
+       "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+       "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+       "snapshot_id": "dbos-docs-workflow-tutorial-md",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+      },
+      {
+       "bytes": 191090,
+       "fetch_timestamp": "2026-08-24T18:59:32Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+       "quote": "\"path\":\"dbos/_core.py\"",
+       "requested_url": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+       "sha256": "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+       "snapshot_id": "dbos-transact-py-github-contents-core",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-github-contents-core.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+      "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+      "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+      "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.temporal.io/workflow-definition",
+       "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    },
+    {
+     "canonical_mechanism": "RECORDED_SIDE_EFFECT_RESULTS_PLUS_PURE_CONTROL_FLOW",
+     "claim": "The subset that CAN be replayed deterministically is: (1) pure control-flow in the orchestration function that branches only on values already recorded in history/journal/checkpoints; (2) SDK-wrapped time, timers, and UUIDs whose results are journaled; (3) versioning/patch markers that select a recorded code path; (4) the scheduling of side-effect wrappers, not their live re-execution. Explicitly excluded: LLM token sampling, raw HTTP, unrecorded wall-clock, unrecorded PRNG, and process-local mutable globals.",
+     "confidence_band": "high",
+     "contradiction_support_edges": [],
+     "engine": "Temporal+Restate+DBOS",
+     "engine_rule": "Temporal Activities aren't executed again during replay; Restate skips journaled actions and uses the recorded result; DBOS if recorded_step_output replays the checkpoint. Restate time() is durably recorded and stable across retries and replays.",
+     "evidence_tier": "E1",
+     "freshness_stamp": "2026-08-24T18:58:38Z",
+     "id": "C-DETERMINISTIC-SUBSET",
+     "named_settling_probe": "probe2_deterministic_subset.py",
+     "rails": [
+      {
+       "bytes": 48955,
+       "fetch_timestamp": "2026-08-24T18:58:38Z",
+       "http_status": 200,
+       "kind": "prose",
+       "permalink": "https://docs.temporal.io/workflows",
+       "quote": "Activities aren't executed again during replay",
+       "requested_url": "https://docs.temporal.io/workflows",
+       "sha256": "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+       "snapshot_id": "temporal-docs-workflows",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflows.bin"
+      },
+      {
+       "bytes": 31364,
+       "fetch_timestamp": "2026-08-24T18:59:30Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+       "quote": "This timestamp will be stable across retries and replays.",
+       "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+       "sha256": "2018085ef72eb7f87f36e2decd6e1e3db547192446fd59287e611b6689354e97",
+       "snapshot_id": "restate-sdk-python-context",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-context.bin"
+      },
+      {
+       "bytes": 46917,
+       "fetch_timestamp": "2026-08-24T18:59:32Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "quote": "Schedule the run closure only if the run wasn't replayed.",
+       "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+       "snapshot_id": "restate-sdk-python-server-context",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+      },
+      {
+       "bytes": 137951,
+       "fetch_timestamp": "2026-08-24T18:58:40Z",
+       "http_status": 200,
+       "kind": "api",
+       "permalink": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+       "quote": "check_operation_execution",
+       "requested_url": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+       "sha256": "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+       "snapshot_id": "dbos-transact-py-core",
+       "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-core.bin"
+      }
+     ],
+     "snapshot_sha256": [
+      "2018085ef72eb7f87f36e2decd6e1e3db547192446fd59287e611b6689354e97",
+      "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+      "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+      "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73"
+     ],
+     "source_lineage": {
+      "api_urls": [
+       "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+       "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+       "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py"
+      ],
+      "kinds": [
+       "api",
+       "prose"
+      ],
+      "prose_urls": [
+       "https://docs.temporal.io/workflows"
+      ]
+     },
+     "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+    }
+   ],
+   "completion_sentinel": "SUCCESS:RES-0062 in the receipt AND a named violated constraint cited to an engine rule plus the identified deterministic subset",
+   "grader": {
+    "claim_count": 6,
+    "pass": true,
+    "reasons": []
+   },
+   "id": "RES-0062",
+   "notes": "G-1 technical contract for RES-0062. Live named probes exit 0. SUCCESS:RES-0062 in the receipt AND a named violated constraint cited to an engine rule plus the identified deterministic subset. Did not run global unit_manifest.py --write. No ADV rebuild.",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "question": "How do durable-execution engines achieve deterministic replay (event-sourced history, side-effect wrapping, versioned code paths), and which of those constraints can a workflow whose steps are non-deterministic LLM calls actually satisfy?",
+   "schema_gate": {
+    "classification": "ok",
+    "enforced": true,
+    "note": "Catalog schema file is authored by RES-0001. This record uses the RES-0001 field list from the catalog question (claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256).",
+    "schema_path": "command-center/schema/research-claim-record.schema.json",
+    "valid": true
+   },
+   "snapshot_index": "command-center/p2-wave/probes/RES-0062/snapshots/INDEX.json",
+   "status": "SUCCESS",
+   "title": "Extract the determinism mechanics of durable-execution engines and what they cost"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0062",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0062.json",
+   "bytes": 37374,
+   "sha256": "e9238672f4e8a09c036b8f7cb0a1df8b4948fa65d6fc605585881b803a2156e3",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0062/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0062"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0062.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0062.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "0c7efe80968d4f8a6e031fc36fe59ccd",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 37374,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0062.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": {
+  "costs": [
+   "history/journal growth from large LLM payloads",
+   "at-least-once execution of the wrapped model call (idempotency is a separate constraint)",
+   "workflow versioning required when control-flow around recorded results changes",
+   "NonDeterminismError / journal mismatch if the LLM is inlined in orchestration code"
+  ],
+  "deterministic_subset": {
+   "engine_rule": "Temporal: Activities aren't executed again during replay; recorded results are reused. Restate: if the journal has a previous result, skip executing that action. DBOS: if recorded_step_output exists, replay the checkpoint.",
+   "excludes": [
+    "LLM token sampling",
+    "raw HTTP inside the orchestration function",
+    "unrecorded wall-clock",
+    "unrecorded PRNG",
+    "process-local mutable globals"
+   ],
+   "id": "RECORDED_SIDE_EFFECT_RESULTS_PLUS_PURE_CONTROL_FLOW",
+   "includes": [
+    "SDK-journaled time/timers/UUIDs",
+    "pure control-flow over recorded activity/journal/step results",
+    "versioning or patch markers selecting a recorded path",
+    "scheduling of Activity/ctx.run/@DBOS.step wrappers (not live re-entry)"
+   ],
+   "name": "orchestration control-flow over recorded side-effect results, plus SDK-journaled time/UUID and versioned code-path markers"
+  },
+  "rejects_partial_replay_conclusion": true,
+  "violated_constraint": {
+   "engine_rule": "Temporal: 'Workflow code must be deterministic to support replay' and 'put [LLM/AI invocations] in Activities' so a re-executed Workflow Function issues the same sequence of Commands. Restate: non-deterministic operations must be wrapped (ctx.run) to ensure deterministic replay; replay skips executing journaled actions and uses the recorded result; the SDK schedules the run closure only if the run wasn't replayed. DBOS: a workflow function must invoke the same steps with the same inputs in the same order given recorded step return values; third-party API calls must not run directly in the workflow function.",
+   "engines_cited": [
+    "Temporal",
+    "Restate",
+    "DBOS"
+   ],
+   "id": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+   "name": "command-sequence (journal-entry / step-sequence) identity of the orchestration function under replay",
+   "property_llm_breaks": "An LLM call is not a function of recorded history: sampling and HTTP I/O can yield a different token sequence, hence a different subsequent command/journal/step sequence, when the orchestration function is re-executed. That is the determinism property Temporal, Restate and DBOS require of the replayed function."
+  },
+  "why_not_partial": "Calling replay 'partially possible' names no property. Engines do not replay a fraction of an LLM sample. They exclude the LLM invocation from the replayed function by wrapping it, then require the remaining orchestration to be fully command-sequence-identical given the recorded bytes. The LLM step therefore satisfies durability-of-recorded-result and does not satisfy orchestration-function determinism."
+ },
+ "claims": [
+  {
+   "canonical_mechanism": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+   "claim": "Temporal replay re-executes the Workflow Function against Event History and requires it to emit the same sequence of Commands; a mismatch is a non-determinism error. Workflow code must be deterministic to support replay.",
+   "confidence_band": "high",
+   "contradiction_support_edges": [],
+   "engine": "Temporal",
+   "engine_rule": "Workflow code must be deterministic to support replay. A re-executed Workflow Function will issue the same sequence of Commands.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:38Z",
+   "id": "C-TEMPORAL-COMMAND-SEQUENCE",
+   "named_settling_probe": "probe1_violated_constraint.py",
+   "rails": [
+    {
+     "bytes": 94604,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflow-definition",
+     "quote": "Workflow code must be deterministic to support replay",
+     "requested_url": "https://docs.temporal.io/workflow-definition",
+     "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+     "snapshot_id": "temporal-docs-workflow-definition",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+    },
+    {
+     "bytes": 94604,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflow-definition",
+     "quote": "same sequence of Commands",
+     "requested_url": "https://docs.temporal.io/workflow-definition",
+     "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+     "snapshot_id": "temporal-docs-workflow-definition",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+    },
+    {
+     "bytes": 164884,
+     "fetch_timestamp": "2026-08-24T18:58:39Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+     "quote": "def workflow_is_replaying(self) -> bool:",
+     "requested_url": "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+     "sha256": "86674cbe6f6eba2acc64049430fa1dedfada3b7d332b13633124c7acffdb26bc",
+     "snapshot_id": "temporal-sdk-python-workflow-instance",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-workflow-instance.bin"
+    },
+    {
+     "bytes": 228341,
+     "fetch_timestamp": "2026-08-24T18:59:30Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+     "quote": "\"path\":\"temporalio/worker/_workflow_instance.py\"",
+     "requested_url": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+     "sha256": "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+     "snapshot_id": "temporal-sdk-python-github-contents-instance",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-github-contents-instance.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+    "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+    "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+    "86674cbe6f6eba2acc64049430fa1dedfada3b7d332b13633124c7acffdb26bc"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://raw.githubusercontent.com/temporalio/sdk-python/main/temporalio/worker/_workflow_instance.py",
+     "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.temporal.io/workflow-definition",
+     "https://docs.temporal.io/workflow-definition"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  },
+  {
+   "canonical_mechanism": "SIDE_EFFECT_WRAPPING_ACTIVITY",
+   "claim": "Temporal names LLM/AI invocations as non-deterministic operations that must be placed in Activities. Activities run once; the result is recorded in Event History and is reused, not recomputed, on replay. An LLM call inlined in Workflow code would take a network path that is not in history and can diverge on re-execution.",
+   "confidence_band": "high",
+   "contradiction_support_edges": [],
+   "engine": "Temporal",
+   "engine_rule": "To handle non-deterministic operations like API calls, LLM/AI invocations, database queries, and other external interactions, put them in Activities. Activities execute outside the replay path.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:38Z",
+   "id": "C-TEMPORAL-LLM-MUST-BE-ACTIVITY",
+   "named_settling_probe": "probe1_violated_constraint.py",
+   "rails": [
+    {
+     "bytes": 94604,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflow-definition",
+     "quote": "LLM/AI invocations",
+     "requested_url": "https://docs.temporal.io/workflow-definition",
+     "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+     "snapshot_id": "temporal-docs-workflow-definition",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+    },
+    {
+     "bytes": 94604,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflow-definition",
+     "quote": "put them in Activities",
+     "requested_url": "https://docs.temporal.io/workflow-definition",
+     "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+     "snapshot_id": "temporal-docs-workflow-definition",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+    },
+    {
+     "bytes": 48955,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflows",
+     "quote": "Activities aren't executed again during replay",
+     "requested_url": "https://docs.temporal.io/workflows",
+     "sha256": "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+     "snapshot_id": "temporal-docs-workflows",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflows.bin"
+    },
+    {
+     "bytes": 228341,
+     "fetch_timestamp": "2026-08-24T18:59:30Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+     "quote": "\"path\":\"temporalio/worker/_workflow_instance.py\"",
+     "requested_url": "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985",
+     "sha256": "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+     "snapshot_id": "temporal-sdk-python-github-contents-instance",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-sdk-python-github-contents-instance.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "3628e30a95a1e431921deaf65455001dbf46bca25aae20d0e7602d6d21d8f8b1",
+    "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+    "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+    "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://api.github.com/repos/temporalio/sdk-python/contents/temporalio/worker/_workflow_instance.py?ref=78159d7735b2defc6493669f6c14a0fae6eab985"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.temporal.io/workflow-definition",
+     "https://docs.temporal.io/workflow-definition",
+     "https://docs.temporal.io/workflows"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  },
+  {
+   "canonical_mechanism": "JOURNALED_SIDE_EFFECT_CTX_RUN",
+   "claim": "Restate journals Context operations. Non-deterministic operations must be wrapped (ctx.run / ctx.run_typed) so replay stores and reuses the result. The Python SDK schedules the run closure only if the run wasn't replayed. Official docs wrap an LLM call as ctx.run_typed(\"LLM call\", ...).",
+   "confidence_band": "high",
+   "contradiction_support_edges": [],
+   "engine": "Restate",
+   "engine_rule": "Non-deterministic operations (database calls, HTTP requests, UUID generation) must be wrapped to ensure deterministic replay. Use ctx.run to wrap them and have Restate store the result in the execution log. On replay, if the journal has a previous result, the SDK skips executing that action.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:38Z",
+   "id": "C-RESTATE-JOURNAL-RUN",
+   "named_settling_probe": "probe1_violated_constraint.py",
+   "rails": [
+    {
+     "bytes": 389019,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.restate.dev/develop/python/durable-steps",
+     "quote": "LLM call",
+     "requested_url": "https://docs.restate.dev/develop/python/durable-steps",
+     "sha256": "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+     "snapshot_id": "restate-docs-durable-steps-py",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-durable-steps-py.bin"
+    },
+    {
+     "bytes": 389019,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.restate.dev/develop/python/durable-steps",
+     "quote": "store its result in the execution log",
+     "requested_url": "https://docs.restate.dev/develop/python/durable-steps",
+     "sha256": "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+     "snapshot_id": "restate-docs-durable-steps-py",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-durable-steps-py.bin"
+    },
+    {
+     "bytes": 260377,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.restate.dev/guides/request-lifecycle",
+     "quote": "skips executing that action and uses the recorded result instead",
+     "requested_url": "https://docs.restate.dev/guides/request-lifecycle",
+     "sha256": "05616562f151bd144a75ef3f0f0ee03897f05fc5e3eb941f38ac704a5e7c352f",
+     "snapshot_id": "restate-docs-request-lifecycle",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-docs-request-lifecycle.bin"
+    },
+    {
+     "bytes": 46917,
+     "fetch_timestamp": "2026-08-24T18:59:32Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "quote": "Schedule the run closure only if the run wasn't replayed.",
+     "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+     "snapshot_id": "restate-sdk-python-server-context",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+    },
+    {
+     "bytes": 44281,
+     "fetch_timestamp": "2026-08-24T18:59:31Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6",
+     "quote": "\"path\":\"python/restate/context.py\"",
+     "requested_url": "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6",
+     "sha256": "16049de71614978db15499014d647173b4a8575e8ab0bacac8a2d3c5c7ba080c",
+     "snapshot_id": "restate-sdk-python-github-contents-context",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-github-contents-context.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "05616562f151bd144a75ef3f0f0ee03897f05fc5e3eb941f38ac704a5e7c352f",
+    "16049de71614978db15499014d647173b4a8575e8ab0bacac8a2d3c5c7ba080c",
+    "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+    "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4",
+    "c57865c17dad2e4847182459c285e7509efa0c62231cf14a78058a22437b2fa4"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "https://api.github.com/repos/restatedev/sdk-python/contents/python/restate/context.py?ref=2739c42440c5e6a46c287ef2e9bbd9ee216f37e6"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.restate.dev/develop/python/durable-steps",
+     "https://docs.restate.dev/develop/python/durable-steps",
+     "https://docs.restate.dev/guides/request-lifecycle"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  },
+  {
+   "canonical_mechanism": "CHECKPOINTED_STEP_SEQUENCE",
+   "claim": "DBOS requires a workflow function to be deterministic: given the same inputs and the same step return values, it must invoke the same steps with the same inputs in the same order. Third-party API calls must not run directly in the workflow function. Recovery uses check_operation_execution and, if recorded_step_output exists, replays the checkpoint instead of re-entering the step body.",
+   "confidence_band": "high",
+   "contradiction_support_edges": [],
+   "engine": "DBOS",
+   "engine_rule": "A workflow function must be deterministic: if called multiple times with the same inputs, it should invoke the same steps with the same inputs in the same order (given the same return values from those steps). Non-deterministic operations like calling a third-party API belong in steps.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:39Z",
+   "id": "C-DBOS-STEP-ORDER",
+   "named_settling_probe": "probe1_violated_constraint.py",
+   "rails": [
+    {
+     "bytes": 12014,
+     "fetch_timestamp": "2026-08-24T18:58:39Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "quote": "a workflow function must be **deterministic**",
+     "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+     "snapshot_id": "dbos-docs-workflow-tutorial-md",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+    },
+    {
+     "bytes": 12014,
+     "fetch_timestamp": "2026-08-24T18:58:39Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "quote": "calling a third-party API",
+     "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+     "snapshot_id": "dbos-docs-workflow-tutorial-md",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+    },
+    {
+     "bytes": 137951,
+     "fetch_timestamp": "2026-08-24T18:58:40Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+     "quote": "if recorded_step_output:",
+     "requested_url": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+     "sha256": "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+     "snapshot_id": "dbos-transact-py-core",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-core.bin"
+    },
+    {
+     "bytes": 191090,
+     "fetch_timestamp": "2026-08-24T18:59:32Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+     "quote": "\"path\":\"dbos/_core.py\"",
+     "requested_url": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+     "sha256": "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+     "snapshot_id": "dbos-transact-py-github-contents-core",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-github-contents-core.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+    "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+    "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+    "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+     "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  },
+  {
+   "canonical_mechanism": "ORCHESTRATION_COMMAND_SEQUENCE_IDENTITY",
+   "claim": "The specific determinism property an LLM step breaks is command-sequence (or journal-entry / step-sequence) identity of the orchestration function under replay. LLM sampling and HTTP I/O are not functions of recorded history; re-executing them inside the replayed function can emit a different command/journal/step sequence. Wrapping the call as an Activity, ctx.run, or @DBOS.step does not make the model deterministic — it moves the non-determinism off the replay path so the recorded bytes can be reused. Replay of an LLM workflow is therefore not 'partially possible': the LLM invocation is excluded from the replayed function, and the remaining orchestration is fully constrained to recorded results.",
+   "confidence_band": "high",
+   "contradiction_support_edges": [
+    {
+     "from": "C-TEMPORAL-LLM-MUST-BE-ACTIVITY",
+     "note": "LLM named as non-deterministic; must leave the replay path",
+     "type": "supports"
+    },
+    {
+     "note": "Engines split replayed orchestration from recorded side effects; they do not allow a half-deterministic LLM inside the workflow function",
+     "target_phrase": "replay is partially possible",
+     "type": "contradicts"
+    }
+   ],
+   "engine": "Temporal+Restate+DBOS",
+   "engine_rule": "Temporal: same sequence of Commands from the Workflow Function. Restate: skip executing journaled actions and reuse recorded results. DBOS: same steps, same inputs, same order given recorded step return values.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:38Z",
+   "id": "C-LLM-BREAKS-COMMAND-IDENTITY",
+   "named_settling_probe": "probe1_violated_constraint.py",
+   "rails": [
+    {
+     "bytes": 94604,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflow-definition",
+     "quote": "same sequence of Commands",
+     "requested_url": "https://docs.temporal.io/workflow-definition",
+     "sha256": "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+     "snapshot_id": "temporal-docs-workflow-definition",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflow-definition.bin"
+    },
+    {
+     "bytes": 46917,
+     "fetch_timestamp": "2026-08-24T18:59:32Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "quote": "if not run.replayed:",
+     "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+     "snapshot_id": "restate-sdk-python-server-context",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+    },
+    {
+     "bytes": 12014,
+     "fetch_timestamp": "2026-08-24T18:58:39Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "quote": "a workflow function must be **deterministic**",
+     "requested_url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md",
+     "sha256": "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+     "snapshot_id": "dbos-docs-workflow-tutorial-md",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-docs-workflow-tutorial-md.bin"
+    },
+    {
+     "bytes": 191090,
+     "fetch_timestamp": "2026-08-24T18:59:32Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+     "quote": "\"path\":\"dbos/_core.py\"",
+     "requested_url": "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08",
+     "sha256": "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+     "snapshot_id": "dbos-transact-py-github-contents-core",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-github-contents-core.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "350f9fda89c90e80564e9ba8e9f1ee9365f8eb59738d60fbf2534200d4c7c45b",
+    "44118b79856aeb363f3dfd24bb41fccd175a8a3f05adc53a33f90f1ff39c9392",
+    "5d7d65f699c78b7b47eea7da3e31e0ffd199c2400dc4fceb108ebf76ff5a2c1c",
+    "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "https://api.github.com/repos/dbos-inc/dbos-transact-py/contents/dbos/_core.py?ref=6bc3032f8bd381718aa7ca7a986fcd2542637c08"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.temporal.io/workflow-definition",
+     "https://docs.dbos.dev/python/tutorials/workflow-tutorial.md"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  },
+  {
+   "canonical_mechanism": "RECORDED_SIDE_EFFECT_RESULTS_PLUS_PURE_CONTROL_FLOW",
+   "claim": "The subset that CAN be replayed deterministically is: (1) pure control-flow in the orchestration function that branches only on values already recorded in history/journal/checkpoints; (2) SDK-wrapped time, timers, and UUIDs whose results are journaled; (3) versioning/patch markers that select a recorded code path; (4) the scheduling of side-effect wrappers, not their live re-execution. Explicitly excluded: LLM token sampling, raw HTTP, unrecorded wall-clock, unrecorded PRNG, and process-local mutable globals.",
+   "confidence_band": "high",
+   "contradiction_support_edges": [],
+   "engine": "Temporal+Restate+DBOS",
+   "engine_rule": "Temporal Activities aren't executed again during replay; Restate skips journaled actions and uses the recorded result; DBOS if recorded_step_output replays the checkpoint. Restate time() is durably recorded and stable across retries and replays.",
+   "evidence_tier": "E1",
+   "freshness_stamp": "2026-08-24T18:58:38Z",
+   "id": "C-DETERMINISTIC-SUBSET",
+   "named_settling_probe": "probe2_deterministic_subset.py",
+   "rails": [
+    {
+     "bytes": 48955,
+     "fetch_timestamp": "2026-08-24T18:58:38Z",
+     "http_status": 200,
+     "kind": "prose",
+     "permalink": "https://docs.temporal.io/workflows",
+     "quote": "Activities aren't executed again during replay",
+     "requested_url": "https://docs.temporal.io/workflows",
+     "sha256": "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+     "snapshot_id": "temporal-docs-workflows",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/temporal-docs-workflows.bin"
+    },
+    {
+     "bytes": 31364,
+     "fetch_timestamp": "2026-08-24T18:59:30Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+     "quote": "This timestamp will be stable across retries and replays.",
+     "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+     "sha256": "2018085ef72eb7f87f36e2decd6e1e3db547192446fd59287e611b6689354e97",
+     "snapshot_id": "restate-sdk-python-context",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-context.bin"
+    },
+    {
+     "bytes": 46917,
+     "fetch_timestamp": "2026-08-24T18:59:32Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "quote": "Schedule the run closure only if the run wasn't replayed.",
+     "requested_url": "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "sha256": "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73",
+     "snapshot_id": "restate-sdk-python-server-context",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/restate-sdk-python-server-context.bin"
+    },
+    {
+     "bytes": 137951,
+     "fetch_timestamp": "2026-08-24T18:58:40Z",
+     "http_status": 200,
+     "kind": "api",
+     "permalink": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+     "quote": "check_operation_execution",
+     "requested_url": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py",
+     "sha256": "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+     "snapshot_id": "dbos-transact-py-core",
+     "snapshot_path": "command-center/p2-wave/probes/RES-0062/snapshots/dbos-transact-py-core.bin"
+    }
+   ],
+   "snapshot_sha256": [
+    "2018085ef72eb7f87f36e2decd6e1e3db547192446fd59287e611b6689354e97",
+    "84369c972ad5888ec710f6487247d1a37595c05ecb4b147a3046b0d951b5173b",
+    "a0dfe721dbcc4303caf8ce7b24bba74977a2be61fe8bfe47ae41475711340a02",
+    "c1688cfbc2afd845ec6eace06e3a3a0da7509ac781219460b8c39f8452f68f73"
+   ],
+   "source_lineage": {
+    "api_urls": [
+     "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/context.py",
+     "https://raw.githubusercontent.com/restatedev/sdk-python/2739c42440c5e6a46c287ef2e9bbd9ee216f37e6/python/restate/server_context.py",
+     "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/main/dbos/_core.py"
+    ],
+    "kinds": [
+     "api",
+     "prose"
+    ],
+    "prose_urls": [
+     "https://docs.temporal.io/workflows"
+    ]
+   },
+   "strongest_caveat": "Captured docs are HTML/markdown bytes at fetch_timestamp; vendor pages can change. GitHub contents JSON is a structured API rail pinned to a commit SHA. Wrapping an LLM as an Activity/step does not make sampling deterministic and does not imply at-most-once execution of the model call."
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0062 in the receipt AND a named violated constraint cited to an engine rule plus the identified deterministic subset",
+ "grader": {
+  "claim_count": 6,
+  "pass": true,
+  "reasons": []
+ },
+ "id": "RES-0062",
+ "notes": "G-1 technical contract for RES-0062. Live named probes exit 0. SUCCESS:RES-0062 in the receipt AND a named violated constraint cited to an engine rule plus the identified deterministic subset. Did not run global unit_manifest.py --write. No ADV rebuild.",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "question": "How do durable-execution engines achieve deterministic replay (event-sourced history, side-effect wrapping, versioned code paths), and which of those constraints can a workflow whose steps are non-deterministic LLM calls actually satisfy?",
+ "schema_gate": {
+  "classification": "ok",
+  "enforced": true,
+  "note": "Catalog schema file is authored by RES-0001. This record uses the RES-0001 field list from the catalog question (claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256).",
+  "schema_path": "command-center/schema/research-claim-record.schema.json",
+  "valid": true
+ },
+ "snapshot_index": "command-center/p2-wave/probes/RES-0062/snapshots/INDEX.json",
+ "status": "SUCCESS",
+ "title": "Extract the determinism mechanics of durable-execution engines and what they cost"
+}

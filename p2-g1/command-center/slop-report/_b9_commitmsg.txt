@@ -1,0 +1,59 @@
+fix(slop): 45 probe scripts a committed artifact cites existed on ONE disk -- carry them
+
+Bucket (b) of the SLOP census: evidence that must be kept and was NOT committed. This is the
+dangerous bucket, because it is invisible -- `git status` is silent about it and the routine
+cleanup command actively destroys it.
+
+MEASURED at 86dde6c1, re-derived from scratch rather than taken from the grounding brief:
+`.gitignore:76 command-center/_*.py` ignores 123 of 123 root-level probe scripts. 0 are
+tracked. 1,269,072 B exist only in this working tree. 45 of the 123 (403,870 B) are NAMED
+INSIDE COMMITTED ARTIFACTS, so on a fresh clone those 45 citations dangle: the artifact points
+at a probe the clone does not contain, and its evidence can be neither re-run nor read. The
+ignore rule contradicts its own header comment three lines above it, "the probe SCRIPTS are
+kept as provenance".
+
+Detector controlled BOTH ways before the count was trusted: one `git grep -F -f` over HEAD
+blobs (not the worktree, so a sibling's uncommitted edit cannot inflate it) returns 248 citers
+for the known-referenced `_gen_schema_substrate.py` -- including the expected
+`platform/lib/test_schema_resolver.py` -- and 0 for a name that exists nowhere. Most-cited:
+`_sub1_normalize_probe.py` (6), `_catalog_integrity.py` (5), then `_b2_m09_probe{,2}.py`,
+`_p14_manifest_verify.py`, `_proto3_probe_sem001_vs_sem012.py`, `_wave1_mutation_control.py`
+(3 each).
+
+Only the 45 CITED scripts are negated, per-path. The other 78 stay ignored: absence of a
+citation is not evidence of worthlessness, so they are left alone rather than swept up in
+either direction.
+
+Not a new policy -- commit d53485ce ("chore: commit six root-level probes a TRACKED audit
+cites but a clone lacks") already did exactly this once at repo root, and the existing
+`!platform/lib/_gen_schema_substrate.py` negation is the comment template.
+
+WHY BYTE-UNCHANGED PLUS A ruff EXCLUSION INSTEAD OF REFORMATTING
+Committing these 45 with no ruff exclusion turns gate-lint-format RED. Measured in a fresh
+LF clone of HEAD with both states run: with the exclusion, 0 files would be reformatted and
+`ruff check` passes; without it, 29 files would be reformatted and `ruff check` finds 9
+errors. The gate is repo-wide, so that would have blocked every sibling PR -- the exclusion is
+load-bearing, not decoration, and the pair of runs is what proves it rather than one green.
+
+Reformatting was considered and REJECTED on an honest negative. The check that would have
+licensed it -- "does any committed artifact declare a digest OF one of these files" -- FAILED
+its own positive control: the known provenance-locked `casualty/probes/adv0022_probe2.py` did
+not match any of the 5 digests published near its name (those turn out to be digests of probe
+OUTPUT, computed at _build_adv0022.py:57-58). A matcher that cannot find a lock it is pointed
+straight at cannot certify the absence of one. So "no receipt depends on these bytes" is
+UNVERIFIED, not established, and the byte-preserving route is the one that cannot destroy
+evidence. Settling experiment: find the casualty sha256 manifest and re-run the matcher
+against it; if it then finds the lock and still clears these 45, they can be formatted and the
+exclusion dropped.
+
+Same trade-off ruff.toml already settled two entries above for
+`command-center/casualty/probes`: there is no per-file escape from `ruff format` that does not
+itself change the bytes, so the choice is an exclusion or destroying provenance to satisfy a
+style gate.
+
+VERIFIED AFTER THE EDIT: 45 of 45 cited scripts are no longer ignored, 78 of 78 uncited ones
+still are -- no collateral flip in either direction. .gitignore stays LF and ruff.toml stays
+CRLF (each block adopted its host file's ending, so both diffs are single hunks, +80/-0).
+
+Files: .gitignore, ruff.toml, and the 45 scripts. Nothing deleted, nothing moved, nothing
+reformatted.

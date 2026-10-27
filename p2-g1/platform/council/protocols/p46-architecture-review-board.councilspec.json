@@ -1,0 +1,944 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p46-architecture-review-board",
+  "preset": "architecture_review_board",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "A standing board reviews cross-cutting submissions and tracks its conditions to closure.",
+    "charter": "Fixed seats, a submission template, and APPROVE / APPROVE-WITH-CONDITIONS / RETURN. Standing membership is the point: conditions carry ACROSS submissions, and an open condition from a prior review blocks the next one.",
+    "risk_tier": "high",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "a verdict of APPROVE, APPROVE-WITH-CONDITIONS or RETURN",
+      "every condition recorded with an owner and a closure test",
+      "no submission admitted while a prior condition is open"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "closing a condition without its closure test"
+      ]
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "stakeholder_balanced",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "board-chair",
+        "role": "chair",
+        "expertise": [
+          "architecture governance"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "chair",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_recruit": true
+        }
+      },
+      {
+        "participant_id": "security-chair",
+        "role": "security_reviewer",
+        "expertise": [
+          "threat modelling"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "veto_holder",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        }
+      },
+      {
+        "participant_id": "cost-chair",
+        "role": "custom:cost_officer",
+        "expertise": [
+          "run cost"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "sre-chair",
+        "role": "risk_officer",
+        "expertise": [
+          "operability"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "conditions-registrar",
+        "role": "scribe",
+        "expertise": [
+          "conditions register"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "tools": [
+          "conditions_register"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "conflict_of_interest",
+        "dominance"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "topology": {
+    "kind": "council_of_councils",
+    "chair": "board-chair",
+    "committees": [
+      {
+        "committee_id": "standing-board",
+        "mandate": "Standing seats that carry memory across submissions.",
+        "members": [
+          "board-chair",
+          "security-chair",
+          "cost-chair",
+          "sre-chair"
+        ]
+      }
+    ],
+    "fan_in": {
+      "reducer": "vote_of_chairs",
+      "require_all_subcouncils_complete": true
+    },
+    "subcouncils": [
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p46-sub-security-review",
+        "objective": {
+          "statement": "Assess the submission against the estate threat model and issue conditions.",
+          "risk_tier": "moderate",
+          "desired_output": "recommendation",
+          "success_criteria": [
+            "a domain verdict with itemised conditions"
+          ],
+          "consensus_intent": "seek_consensus",
+          "evidence_requirements": {
+            "citation_required": true,
+            "anchor_style": "any",
+            "min_independent_sources": 1,
+            "evidence_outranks_votes": true
+          }
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact",
+              "expertise_ranked"
+            ]
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 2
+          },
+          "roster": [
+            {
+              "participant_id": "sec-a",
+              "role": "security_reviewer",
+              "expertise": [
+                "threat modelling"
+              ],
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "authority": "voter"
+            },
+            {
+              "participant_id": "sec-b",
+              "role": "red_team",
+              "expertise": [
+                "attack paths"
+              ],
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "authority": "voter"
+            }
+          ]
+        },
+        "topology": {
+          "kind": "flat"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read",
+              "independent": true
+            },
+            {
+              "kind": "round_robin",
+              "stage_id": "discuss",
+              "rounds": 2,
+              "quotas": {
+                "objections_per_participant": 2
+              }
+            },
+            {
+              "kind": "synthesis",
+              "stage_id": "domain-verdict"
+            }
+          ],
+          "speaking_order": "round_robin",
+          "rounds": {
+            "min": 1,
+            "max": 3
+          },
+          "obligations": {
+            "must_respond_to_prior": true,
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "adversarial"
+        },
+        "voting": {
+          "method": "consent_no_objection",
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "evidence_outranks_majority": true,
+            "reject_evidence_free_majority": true
+          },
+          "tie_break": "extend_rounds"
+        },
+        "consensus": {
+          "threshold": 0.6,
+          "measure": "vote_share",
+          "minority_report": "optional",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": true,
+            "suppression_check": true
+          },
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "source_expression": "objections_open == 0 AND evidence_items >= 3",
+          "expression": {
+            "all_of": [
+              {
+                "metric": "objections_open",
+                "op": "==",
+                "value": 0
+              },
+              {
+                "metric": "evidence_items",
+                "op": ">=",
+                "value": 3
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 1,
+            "every_participant_spoke": true
+          },
+          "hard_caps": {
+            "max_rounds": 3,
+            "on_cap": "escalate_to_owner"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "conditional_decision",
+            "no_decision",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "sycophancy",
+            "instant_unanimity",
+            "evidence_free_majority",
+            "silence",
+            "missing_expertise"
+          ],
+          "fast_unanimity_response": [
+            "forced_dissent",
+            "strongest_counterexample"
+          ]
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "argument_ledger",
+            "final_recommendation"
+          ]
+        },
+        "metadata": {
+          "title": "ARB security subcouncil",
+          "notes": "Domain subcouncil of the ARB; its verdict feeds the chairs' vote."
+        }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p46-sub-cost-and-operability",
+        "objective": {
+          "statement": "Assess run cost, operability and rollback for the submission.",
+          "risk_tier": "moderate",
+          "desired_output": "recommendation",
+          "success_criteria": [
+            "a domain verdict with itemised conditions"
+          ],
+          "consensus_intent": "seek_consensus",
+          "evidence_requirements": {
+            "citation_required": true,
+            "anchor_style": "any",
+            "min_independent_sources": 1,
+            "evidence_outranks_votes": true
+          }
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact",
+              "expertise_ranked"
+            ]
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 2
+          },
+          "roster": [
+            {
+              "participant_id": "cost-analyst",
+              "role": "custom:cost_officer",
+              "expertise": [
+                "run cost",
+                "quota"
+              ],
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "authority": "voter"
+            },
+            {
+              "participant_id": "sre",
+              "role": "risk_officer",
+              "expertise": [
+                "operability",
+                "rollback"
+              ],
+              "model": "gemini-3-pro",
+              "vendor": "google",
+              "authority": "voter"
+            }
+          ]
+        },
+        "topology": {
+          "kind": "flat"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read",
+              "independent": true
+            },
+            {
+              "kind": "round_robin",
+              "stage_id": "discuss",
+              "rounds": 2,
+              "quotas": {
+                "objections_per_participant": 2
+              }
+            },
+            {
+              "kind": "synthesis",
+              "stage_id": "domain-verdict"
+            }
+          ],
+          "speaking_order": "round_robin",
+          "rounds": {
+            "min": 1,
+            "max": 3
+          },
+          "obligations": {
+            "must_respond_to_prior": true,
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "adversarial"
+        },
+        "voting": {
+          "method": "majority",
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "evidence_outranks_majority": true,
+            "reject_evidence_free_majority": true
+          },
+          "tie_break": "extend_rounds"
+        },
+        "consensus": {
+          "threshold": 0.6,
+          "measure": "vote_share",
+          "minority_report": "optional",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": true,
+            "suppression_check": true
+          },
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "source_expression": "objections_open == 0 AND confidence >= 0.7",
+          "expression": {
+            "all_of": [
+              {
+                "metric": "objections_open",
+                "op": "==",
+                "value": 0
+              },
+              {
+                "metric": "confidence",
+                "op": ">=",
+                "value": 0.7
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 1,
+            "every_participant_spoke": true
+          },
+          "hard_caps": {
+            "max_rounds": 3,
+            "on_cap": "escalate_to_owner"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "conditional_decision",
+            "no_decision",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "sycophancy",
+            "instant_unanimity",
+            "evidence_free_majority",
+            "silence",
+            "missing_expertise"
+          ],
+          "fast_unanimity_response": [
+            "forced_dissent",
+            "strongest_counterexample"
+          ]
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "argument_ledger",
+            "final_recommendation"
+          ]
+        },
+        "metadata": {
+          "title": "ARB cost and SRE subcouncil",
+          "notes": "Domain subcouncil of the ARB; its verdict feeds the chairs' vote."
+        }
+      },
+      {
+        "schema_version": "1.0.0",
+        "council_id": "p46-sub-product-fit",
+        "objective": {
+          "statement": "Assess whether the submission serves the stated user outcome.",
+          "risk_tier": "moderate",
+          "desired_output": "recommendation",
+          "success_criteria": [
+            "a domain verdict with itemised conditions"
+          ],
+          "consensus_intent": "seek_consensus",
+          "evidence_requirements": {
+            "citation_required": true,
+            "anchor_style": "any",
+            "min_independent_sources": 1,
+            "evidence_outranks_votes": true
+          }
+        },
+        "participants": {
+          "selection": {
+            "mode": "exact",
+            "strategies": [
+              "exact",
+              "expertise_ranked"
+            ]
+          },
+          "count": {
+            "mode": "exact",
+            "exact_n": 2
+          },
+          "roster": [
+            {
+              "participant_id": "pm",
+              "role": "product_manager",
+              "expertise": [
+                "outcome fit"
+              ],
+              "model": "opus-5",
+              "vendor": "anthropic",
+              "authority": "voter"
+            },
+            {
+              "participant_id": "advocate",
+              "role": "user_advocate",
+              "expertise": [
+                "owner workflow"
+              ],
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "authority": "voter"
+            }
+          ]
+        },
+        "topology": {
+          "kind": "flat"
+        },
+        "protocol": {
+          "sequence": [
+            {
+              "kind": "blind_independent_first_pass",
+              "stage_id": "read",
+              "independent": true
+            },
+            {
+              "kind": "round_robin",
+              "stage_id": "discuss",
+              "rounds": 2,
+              "quotas": {
+                "objections_per_participant": 2
+              }
+            },
+            {
+              "kind": "synthesis",
+              "stage_id": "domain-verdict"
+            }
+          ],
+          "speaking_order": "round_robin",
+          "rounds": {
+            "min": 1,
+            "max": 3
+          },
+          "obligations": {
+            "must_respond_to_prior": true,
+            "must_cite_evidence": true,
+            "declare_confidence": true,
+            "declare_conflicts": true
+          },
+          "critique_intensity": "adversarial"
+        },
+        "voting": {
+          "method": "consent_no_objection",
+          "evidence_gate": {
+            "votes_require_evidence": true,
+            "evidence_outranks_majority": true,
+            "reject_evidence_free_majority": true
+          },
+          "tie_break": "extend_rounds"
+        },
+        "consensus": {
+          "threshold": 0.6,
+          "measure": "vote_share",
+          "minority_report": "optional",
+          "dissent_policy": {
+            "preserve_verbatim": true,
+            "attributed": true,
+            "suppression_check": true
+          },
+          "fast_unanimity_is_suspicious": true
+        },
+        "stopping": {
+          "source_expression": "objections_open == 0 AND all_participants_spoke == true",
+          "expression": {
+            "all_of": [
+              {
+                "metric": "objections_open",
+                "op": "==",
+                "value": 0
+              },
+              {
+                "metric": "all_participants_spoke",
+                "op": "==",
+                "value": true
+              }
+            ]
+          },
+          "minimum_deliberation": {
+            "min_rounds": 1,
+            "every_participant_spoke": true
+          },
+          "hard_caps": {
+            "max_rounds": 3,
+            "on_cap": "escalate_to_owner"
+          }
+        },
+        "outcomes": {
+          "allowed": [
+            "decision",
+            "conditional_decision",
+            "no_decision",
+            "dissent"
+          ]
+        },
+        "anti_failure": {
+          "controls": [
+            "sycophancy",
+            "instant_unanimity",
+            "evidence_free_majority",
+            "silence",
+            "missing_expertise"
+          ],
+          "fast_unanimity_response": [
+            "forced_dissent",
+            "strongest_counterexample"
+          ]
+        },
+        "outputs": {
+          "required": [
+            "independent_opening_positions",
+            "argument_ledger",
+            "final_recommendation"
+          ]
+        },
+        "metadata": {
+          "title": "ARB product subcouncil",
+          "notes": "Domain subcouncil of the ARB; its verdict feeds the chairs' vote."
+        }
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "admission",
+        "custom_name": "prior-conditions-admission-gate",
+        "rounds": 1,
+        "participants": [
+          "conditions-registrar",
+          "board-chair"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:open_conditions_from_prior_review",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "conditions_register",
+              "note": "Card proof gate: open-condition count must GATE the next submission - tested with a deliberately unclosed condition."
+            },
+            {
+              "metric": "custom:conditions_without_owner",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "conditions_register",
+              "note": "Card failure mode: conditions are issued and never closed."
+            },
+            {
+              "metric": "custom:conditions_without_closure_test",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "conditions_register"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "fishbowl",
+        "stage_id": "subcouncil-readout"
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "board-questions",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "board-verdict"
+      }
+    ],
+    "speaking_order": "seniority",
+    "rounds": {
+      "min": 2,
+      "max": 5
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 3,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "turns": 30,
+    "speaking_quota_per_participant": 7,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 2
+  },
+  "targets": {
+    "evidence_items": 6,
+    "objections": 8,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "supermajority",
+    "supermajority_threshold": 0.6,
+    "quorum": {
+      "min_voters": 3,
+      "min_fraction": 0.75,
+      "on_failure": "extend_rounds"
+    },
+    "delegation": {
+      "allowed": true,
+      "max_chain_length": 2,
+      "cycles_forbidden": true,
+      "map": {
+        "cost-chair": "sre-chair"
+      }
+    },
+    "veto": {
+      "holders": [
+        "security-chair"
+      ],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": true,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "quorum_met == true AND consensus >= 0.6 AND objections_open == 0 AND subcouncils_complete >= 3",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "quorum_met",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "consensus",
+          "op": ">=",
+          "value": 0.6
+        },
+        {
+          "metric": "objections_open",
+          "op": "==",
+          "value": 0
+        },
+        {
+          "metric": "subcouncils_complete",
+          "op": ">=",
+          "value": 3
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "min_objections_addressed": 3,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 90,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every issued condition has an owner and a closure test",
+      "the conditions register shows zero open conditions before the next submission"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "chair_ruling",
+      "narrow_scope",
+      "split_question",
+      "recruit_independent_critic",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "moderator_capture",
+      "sycophancy",
+      "participant_dominance",
+      "instant_unanimity",
+      "strategic_voting",
+      "strategic_abstention",
+      "evidence_free_majority",
+      "lost_dissent",
+      "role_collapse",
+      "hidden_conflict_of_interest",
+      "minority_suppression"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "role_rotation",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "option_cards",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "action_plan",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P46 architecture-review-board",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:851-865",
+      "_USER-PROMPTS.md:11193",
+      "_USER-PROMPTS.md:11187-11188"
+    ],
+    "lineage": [
+      "P46 architecture-review-board",
+      "enterprise ARB",
+      "estate: metaswarm architect and CTO agents"
+    ],
+    "notes": "OWNER-DECISION on this card is YES and its recommended default is NO (adopt only above 1 architecture decision per week), so objective.owner_constraints.approval_required is true. speaking_order is seniority BECAUSE the card conflicts with P05 rotating-chair: standing memory is the mechanism. Delegation exists so an absent standing seat does not silently drop quorum, and the map is a single acyclic hop. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

@@ -1,0 +1,738 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.packaged-artifact-golden-journey-smoke",
+  "name": "Packaged-artifact golden-journey smoke with measured postconditions",
+  "description": "Prove the BUILT deliverable works, not that its source tree is CI-green. Install or launch the PACKAGED artifact in a clean environment, drive 3-5 golden journeys, and end each journey in a deterministic MEASUREMENT of what it produced - ffprobe container, codec, resolution and duration, or filesystem existence plus a minimum size. 'The app did not crash' is not a postcondition and is refused. A green source tree is not evidence for any journey.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "testing",
+    "packaging",
+    "golden-journey",
+    "postcondition",
+    "pre-release"
+  ],
+  "flagship": true,
+  "params": {
+    "artifact_path": {
+      "type": "path",
+      "required": true,
+      "description": "The packaged deliverable - a built binary, a wheel, an installer"
+    },
+    "artifact_kind": {
+      "type": "enum",
+      "enum": [
+        "electron",
+        "wheel",
+        "sdist",
+        "zip",
+        "installer"
+      ],
+      "required": true,
+      "description": "Decides the install/launch mechanism"
+    },
+    "journeys": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "max_items": 8,
+      "description": "3-5 golden journeys; each must end in a produced artifact"
+    },
+    "clean_env": {
+      "type": "enum",
+      "enum": [
+        "fresh-venv",
+        "container",
+        "fresh-machine"
+      ],
+      "default": "fresh-venv",
+      "description": "Ambient dependencies are exactly what this blueprint exists to catch"
+    },
+    "postcondition_probes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "default": [
+        "ffprobe-stream-properties",
+        "file-exists-and-min-size"
+      ],
+      "description": "Each must MEASURE the produced artifact, never assert absence of a crash"
+    }
+  },
+  "roles": {
+    "packager": {
+      "description": "Installs or launches the packaged artifact in the clean environment",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "chair",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Bash:npx",
+        "Write(command-center/smoke/**)"
+      ],
+      "write_paths": [
+        "command-center/smoke/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "journey-driver": {
+      "description": "Drives one golden journey against the packaged artifact",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:npx",
+        "Write(command-center/smoke/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "postcondition-prober": {
+      "description": "Measures the produced artifact; refuses non-measurement probes",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:ffprobe",
+        "Bash:python"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:ffprobe",
+      "Bash:npx",
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/smoke/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "command-center/smoke/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low"
+    },
+    "routes": [
+      {
+        "when": "stage_role == POSTCONDITION_PROBER",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "medium"
+        },
+        "reason": "refusing a non-measurement probe is the judgement call that keeps this honest"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "postcondition-is-a-measurement": {
+      "predicate": "custom-expression",
+      "expression": "probes_asserting_only_absence_of_crash == 0 AND probes_measuring_produced_artifact >= 1",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "source-green-not-evidence": {
+      "predicate": "custom-expression",
+      "expression": "source_tree_green_used_as_journey_evidence == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "clean-environment": {
+      "predicate": "custom-expression",
+      "expression": "ambient_dependency_leakage_checked == true AND env_kind_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "every-journey-attempted": {
+      "predicate": "custom-expression",
+      "expression": "journeys_attempted >= journeys_declared",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "install-or-launch",
+      "title": "Install or launch the PACKAGED artifact in a clean environment",
+      "kind": "task",
+      "role": "packager",
+      "checkpoint": true,
+      "timeout_seconds": 2700,
+      "on_failure": {
+        "on_failure": "fail-fast",
+        "classify_as": [
+          "packaging-defect",
+          "missing-runtime-dependency"
+        ],
+        "terminal_state_required": true,
+        "never_silent": true,
+        "preserve_partial_artifact": true,
+        "escalate_to": "emit-smoke-report"
+      },
+      "work_unit": {
+        "id": "QLT-5801",
+        "title": "Install or launch the packaged artifact in a clean environment and record what it pulled in",
+        "phase": "2B",
+        "question_or_target": "Bring the PACKAGED artifact up in a clean environment - pip install the wheel into a fresh venv, or launch the built binary with an explicit executablePath - and record every runtime dependency it needed. A launch failure here is the highest-value failure this blueprint exists to catch, because a green source tree cannot see it.",
+        "inputs": [
+          "params.artifact_path",
+          "params.artifact_kind",
+          "params.clean_env"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "packager",
+          "basis": "packaging failures are environment-shaped and need careful diagnosis, not a cheap retry"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Bash:npx",
+          "Write(command-center/smoke/**)"
+        ],
+        "execution_substrate": "container-sandbox",
+        "timeout_seconds": 2700,
+        "output_path": "command-center/smoke/qlt-58-install-receipt.json",
+        "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+        "evidence_requirement": "the install or launch command, its real exit code, and the resolved dependency list observed in the clean environment",
+        "tests_required": [
+          "remove a runtime dependency from the package and the smoke MUST fail - the both-states control for this whole blueprint",
+          "a healthy build must install and launch with exit code 0 and a recorded dependency list"
+        ],
+        "reviewer_requirement": "mechanical; the exit code and the dependency list are the evidence",
+        "completion_sentinel": "SUCCESS:QLT-5801 emitted only when the artifact installed or launched in the declared clean environment and its resolved dependency list is recorded; otherwise FAILED:QLT-5801 <reason>",
+        "retry_policy": "no retry on a packaging defect - a retry in the same environment is not a second signal",
+        "failure_classification": [
+          "packaging-defect",
+          "missing-runtime-dependency",
+          "timeout"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "clean-environment install or launch with dependency observation"
+      },
+      "retry": {
+        "strategy": "none",
+        "max_attempts": 1
+      },
+      "produces": [
+        {
+          "path": "command-center/smoke/qlt-58-install-receipt.json",
+          "schema_ref": "command-center/schema/release-gate-receipt.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5801",
+          "consumers": [
+            "run-journeys",
+            "emit-smoke-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "clean-environment",
+      "title": "Ambient-dependency leakage is checked, not assumed",
+      "kind": "gate",
+      "depends_on": [
+        "install-or-launch"
+      ],
+      "gate_ref": "clean-environment"
+    },
+    {
+      "id": "run-journeys",
+      "title": "Drive each golden journey against the packaged artifact",
+      "kind": "fanout",
+      "depends_on": [
+        "clean-environment"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "journeys",
+        "item_var": "journey",
+        "key_field": "journey"
+      },
+      "max_concurrency": 1,
+      "arrival_stagger_ms": 0,
+      "max_items": 8,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "drive-one-journey",
+          "kind": "task",
+          "role": "journey-driver",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:npx",
+            "Write(command-center/smoke/**)"
+          ],
+          "work_unit_ref": "CNF-0039",
+          "timeout_seconds": 3600
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "every-journey-attempted",
+      "title": "Every declared journey must at least be attempted",
+      "kind": "gate",
+      "depends_on": [
+        "run-journeys"
+      ],
+      "gate_ref": "every-journey-attempted"
+    },
+    {
+      "id": "probe-produced-artifacts",
+      "title": "MEASURE what each journey produced",
+      "kind": "task",
+      "depends_on": [
+        "every-journey-attempted"
+      ],
+      "role": "postcondition-prober",
+      "work_unit": {
+        "id": "QLT-5802",
+        "title": "Measure each produced artifact deterministically and refuse any non-measurement probe",
+        "phase": "2B",
+        "question_or_target": "For every journey output, run a deterministic MEASUREMENT: ffprobe container, codec, resolution and duration for media; existence plus a minimum byte size otherwise. Reject any probe whose assertion is merely that nothing crashed - that is not a postcondition and it is how a packaging smoke becomes theatre.",
+        "inputs": [
+          "command-center/smoke/qlt-58-install-receipt.json",
+          "command-center/smoke/qlt-58-journey-outputs/",
+          "params.postcondition_probes"
+        ],
+        "dependencies": [
+          "QLT-5801"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "postcondition-prober",
+          "basis": "deciding what counts as a measurement is the judgement this role exists for"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:ffprobe",
+          "Bash:python"
+        ],
+        "execution_substrate": "container-sandbox",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/smoke/qlt-58-postconditions.json",
+        "output_schema": "command-center/schema/benchmark-receipt.schema.json",
+        "evidence_requirement": "each probe records the exact command and its raw output alongside the expected value",
+        "tests_required": [
+          "a 16:9 to 9:16 export journey must measure exactly 1080x1920 - the Reframe precedent",
+          "both-states control: a probe whose only assertion is absence-of-crash must be REFUSED, not scored"
+        ],
+        "reviewer_requirement": "one reviewer re-runs one probe by hand and compares the raw output",
+        "completion_sentinel": "SUCCESS:QLT-5802 emitted only when every journey output carries at least one measured property with its raw probe output, and no probe asserts only absence of a crash; otherwise FAILED:QLT-5802 <reason>",
+        "retry_policy": "two strikes then pivot to reporting the journey as UNMEASURED rather than passed",
+        "failure_classification": [
+          "partial-artifact",
+          "overclaim",
+          "probe-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "deterministic property measurement of the produced artifact",
+        "not_a_duplicate_because": "the invariant walk asserts properties of the APP's interaction state; this measures properties of the FILE the app produced"
+      },
+      "produces": [
+        {
+          "path": "command-center/smoke/qlt-58-postconditions.json",
+          "schema_ref": "command-center/schema/benchmark-receipt.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "emit-smoke-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "postcondition-is-a-measurement",
+      "title": "Refuse absence-of-crash as a postcondition",
+      "kind": "gate",
+      "depends_on": [
+        "probe-produced-artifacts"
+      ],
+      "gate_ref": "postcondition-is-a-measurement"
+    },
+    {
+      "id": "source-green-not-evidence",
+      "title": "A green source tree is not evidence for any journey",
+      "kind": "gate",
+      "depends_on": [
+        "postcondition-is-a-measurement"
+      ],
+      "gate_ref": "source-green-not-evidence"
+    },
+    {
+      "id": "emit-smoke-report",
+      "title": "Emit the per-journey smoke report",
+      "kind": "task",
+      "depends_on": [
+        "source-green-not-evidence"
+      ],
+      "role": "packager",
+      "work_unit_ref": "TST-0115",
+      "produces": [
+        {
+          "path": "command-center/smoke/qlt-58-smoke-report.json",
+          "schema_ref": "command-center/schema/smoke-report.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-journeys-attempted",
+      "expression": "journeys_attempted >= journeys_declared AND probes_measuring_produced_artifact >= 1",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "journeys_declared >= 1"
+    },
+    {
+      "id": "artifact-will-not-launch",
+      "expression": "launch_succeeded == false AND launch_diagnostics_recorded == true",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "emit-smoke-report"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "packaging-defect",
+      "missing-runtime-dependency",
+      "partial-artifact"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "emit-smoke-report",
+    "quarantine_path": "command-center/quarantine/qlt-58"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-58",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260819,
+    "journal_path": "command-center/replay/qlt-58-smoke.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/qlt-58",
+    "ttl_seconds": 43200,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-58-plan.json",
+    "forbid_tools": [
+      "Bash:npx",
+      "Bash:python",
+      "Write(command-center/smoke/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.35,
+      "max": 1.4
+    },
+    "wallclock_seconds": {
+      "expected": 2400,
+      "max": 9000
+    },
+    "tokens": {
+      "expected": 70000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "RUNS the built binary in a clean environment; journey outputs land under command-center/smoke/**. Do it in a container where the artifact touches the OS",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-58-smoke.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/packaged-artifact-smoke",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/seed-golden-journey",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "reframe-v1.4-packaging-precedent",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/packaged-artifact-smoke"
+    ]
+  },
+  "outputs": {
+    "smoke-report": {
+      "path": "command-center/smoke/qlt-58-smoke-report.json",
+      "schema_ref": "command-center/schema/smoke-report.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-05",
+    "card_index": 58,
+    "family": "D11-testing",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "packaged-artifact",
+      "oracle": "deterministic-artifact-measurement",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "produced-output-vs-expected-measurement",
+      "output_type": "journey-postconditions",
+      "information_barrier": false
+    },
+    "mechanism": "Run the DELIVERABLE, not the tree, along fixed journeys, and measure the file each journey produced. The oracle is a property measurement of an output artifact.",
+    "contraindications": [
+      "NOT a unit or integration substitute",
+      "NOT for pixel critique",
+      "NOT applicable before a packaged artifact exists",
+      "NOT satisfied by 'it did not crash' - that probe is refused"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "removed-runtime-dependency",
+        "setup": "strip a runtime dep from the package",
+        "expected": "the smoke FAILS - the both-states control proving the smoke can see a packaging gap"
+      },
+      {
+        "name": "healthy-build",
+        "setup": "a correct package",
+        "expected": "every postcondition is a measurement (codec, resolution, byte size), not an absence claim"
+      }
+    ],
+    "why_not_a_duplicate": "BP-TST-04 drives interaction RANDOMLY and asserts invariants on app state; this drives FIXED journeys and measures the OUTPUT artifact. BP-TST-01 runs the source tree's own suite and never touches a package.",
+    "unverified": "UNVERIFIED (almost-certain for the Electron path from the Reframe precedent, unmeasured for the python-wheel path here); settling experiment = the removed-dependency both-states control on a wheel.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "pre-release smoke of a built Electron reframing app",
+      "params": {
+        "artifact_path": "dist/ReframeSetup-1.4.2.exe",
+        "artifact_kind": "electron",
+        "journeys": [
+          "import-clip",
+          "reframe-16x9-to-9x16",
+          "export-vertical"
+        ],
+        "clean_env": "container",
+        "postcondition_probes": [
+          "ffprobe-stream-properties",
+          "file-exists-and-min-size"
+        ]
+      },
+      "narrative": "The binary launched in a clean container with its resolved dependency list recorded. All 3 journeys ran. The export journey's output measured 1080x1920 h264, 12.04s - a measurement, not a no-crash assertion. The postcondition gate rejected a proposed fourth probe that only checked the process exit code.",
+      "context": {
+        "probes_asserting_only_absence_of_crash": 0,
+        "probes_measuring_produced_artifact": 3,
+        "source_tree_green_used_as_journey_evidence": false,
+        "ambient_dependency_leakage_checked": true,
+        "env_kind_recorded": true,
+        "journeys_attempted": 3,
+        "journeys_declared": 3,
+        "launch_succeeded": true,
+        "launch_diagnostics_recorded": false,
+        "stage_role": "POSTCONDITION_PROBER"
+      },
+      "expected_gate_pass": [
+        "postcondition-is-a-measurement",
+        "source-green-not-evidence",
+        "clean-environment",
+        "every-journey-attempted"
+      ],
+      "expected_stop": [
+        "all-journeys-attempted"
+      ],
+      "negative_control": {
+        "gate": "postcondition-is-a-measurement",
+        "overrides": {
+          "probes_asserting_only_absence_of_crash": 1,
+          "probes_measuring_produced_artifact": 0
+        },
+        "expected": false,
+        "why": "an absence-of-crash probe is exactly the theatre this blueprint exists to prevent and must fail the gate"
+      }
+    }
+  }
+}

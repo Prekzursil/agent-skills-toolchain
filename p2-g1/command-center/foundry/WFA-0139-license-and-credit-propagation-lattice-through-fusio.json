@@ -1,0 +1,4822 @@
+{
+ "unit_id": "WFA-0139",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0139",
+ "evidence": [
+  {
+   "claim": "WFA-0139 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+     "raw_output": "bytes=58397 sha256=69e91d8daf9df7a50df8f9c0cecb8a9b33764e6615fff64935ce2bd456442857",
+     "fingerprint": "223888359c03432dae755da93f4ebbec",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0139",
+     "raw_output": "schema-check",
+     "fingerprint": "0ec91f1da2bb52aa5a7d53adb8d6d9f0",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0139 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0139",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0139",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "1f80d0304ebcbd9831dd5e87f897ff98",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0139",
+     "raw_output": "schema-valid",
+     "fingerprint": "9b41c1648650474784581dadb4542722",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+   "bytes": 58397,
+   "sha256": "69e91d8daf9df7a50df8f9c0cecb8a9b33764e6615fff64935ce2bd456442857",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "title": "License and credit propagation lattice through fusion",
+   "question": "Implement most-restrictive-wins license propagation and credit carry-through for fusion, seeded by the 7 license_classification_rules and the 45-row license_risk_register in the provenance graph. Question: for every fusion whose sources span more than one license class, what is the resulting license, which combinations are prohibited outright, and does any fusion currently lose an attribution required by a source?",
+   "answer": "On the catalog-reconstructed-fixture corpus, 22 of 30 fusions span more than one effective license class: 16 ALLOWED (most-restrictive-wins), 4 PROHIBITED (copyleft+proprietary or any rider fusion; alternative CLEAN-ROOM-REIMPLEMENT), 2 BLOCKED (unresolved or UNKNOWN, never permissive). Credit loss on 2 fusion(s): ['MU-22', 'MU-29']. Copyleft+permissive control yields STRONG_COPYLEFT; unknown control is BLOCKED. Live 08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json and 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json are absent on this worktree; the 7 rules and 45-row register are reconstructed from the WFA-0033 catalog histogram (26/11/2/1/1) plus four seed-extension rows, and the 30 merge_units are fixtures with the documented field names. Results are computed by lattice.fuse, not asserted. Not legal advice; catalog owner_approval_required remains open for any redistribution decision. UNKNOWN never defaults to PERMISSIVE. SUCCESS:WFA-0139",
+   "mechanism": "most-restrictive-wins license lattice with fail-closed unknown handling",
+   "ts": "2026-08-25T00:55:49Z",
+   "output_path": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+   "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/license-lattice",
+   "owner_approval_required": true,
+   "owner_signoff": "pending",
+   "legal_advice": false,
+   "classification_rules": [
+    {
+     "index": 1,
+     "id": "R1-SPDX-CLASS",
+     "title": "Map a known SPDX token onto a lattice class",
+     "fail_closed": false
+    },
+    {
+     "index": 2,
+     "id": "R2-UNKNOWN-FAIL-CLOSED",
+     "title": "Missing, UNKNOWN, or UNCLASSIFIED license never defaults to permissive",
+     "fail_closed": true
+    },
+    {
+     "index": 3,
+     "id": "R3-RIDER-RESTRICTED",
+     "title": "A vendor rider or field-of-use restriction is RIDER-RESTRICTED regardless of SPDX",
+     "fail_closed": true
+    },
+    {
+     "index": 4,
+     "id": "R4-ATTRIBUTION-CREDIT",
+     "title": "Attribution, NOTICE, and CC-BY credits must carry through fusion",
+     "fail_closed": false
+    },
+    {
+     "index": 5,
+     "id": "R5-OWNER-INHERITS-DEPS",
+     "title": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY inherits the most-restrictive dependency class",
+     "fail_closed": false
+    },
+    {
+     "index": 6,
+     "id": "R6-MOST-RESTRICTIVE-WINS",
+     "title": "Join is max(rank); a copyleft+permissive pair yields copyleft",
+     "fail_closed": false
+    },
+    {
+     "index": 7,
+     "id": "R7-PROHIBITED-OR-UNRESOLVED",
+     "title": "Copyleft+proprietary and any rider fusion are PROHIBITED; unresolved source license BLOCKS",
+     "fail_closed": true
+    }
+   ],
+   "license_risk_register": [
+    {
+     "id": "LR-01",
+     "name": "third-party-01-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-02",
+     "name": "third-party-02-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-03",
+     "name": "third-party-03-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-04",
+     "name": "third-party-04-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-05",
+     "name": "third-party-05-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-06",
+     "name": "third-party-06-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-07",
+     "name": "third-party-07-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-08",
+     "name": "third-party-08-mit",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MIT",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-09",
+     "name": "third-party-09-apache-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "Apache-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-10",
+     "name": "third-party-10-apache-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "Apache-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-11",
+     "name": "third-party-11-apache-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "Apache-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-12",
+     "name": "third-party-12-apache-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "Apache-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-13",
+     "name": "third-party-13-bsd-3-clause",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "BSD-3-Clause",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-14",
+     "name": "third-party-14-bsd-3-clause",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "BSD-3-Clause",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-15",
+     "name": "third-party-15-bsd-3-clause",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "BSD-3-Clause",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-16",
+     "name": "third-party-16-gpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "GPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-17",
+     "name": "third-party-17-gpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "GPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-18",
+     "name": "third-party-18-gpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "GPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-19",
+     "name": "third-party-19-mpl-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MPL-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-20",
+     "name": "third-party-20-mpl-2-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "MPL-2.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-21",
+     "name": "third-party-21-agpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "AGPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-22",
+     "name": "third-party-22-agpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "AGPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-23",
+     "name": "third-party-23-cc0-1-0",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "CC0-1.0",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-24",
+     "name": "third-party-24-lgpl-3-0-only",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "LGPL-3.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-25",
+     "name": "third-party-25-isc",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "ISC",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-26",
+     "name": "third-party-26-all-rights-reserved",
+     "origin_class": "THIRD-PARTY",
+     "spdx": "ALL-RIGHTS-RESERVED",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-27",
+     "name": "owner-with-deps-27",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-01"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-28",
+     "name": "owner-with-deps-28",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-16"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-29",
+     "name": "owner-with-deps-29",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-21"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-30",
+     "name": "owner-with-deps-30",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-19"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-31",
+     "name": "owner-with-deps-31",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-09"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-32",
+     "name": "owner-with-deps-32",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-26"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-33",
+     "name": "owner-with-deps-33",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-01",
+      "LR-16"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-34",
+     "name": "owner-with-deps-34",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-23"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-35",
+     "name": "owner-with-deps-35",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-24"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-36",
+     "name": "owner-with-deps-36",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-13"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-37",
+     "name": "owner-with-deps-37",
+     "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [
+      "LR-18",
+      "LR-09"
+     ],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-38",
+     "name": "attribution-alice",
+     "origin_class": "ATTRIBUTION-REQUIRED",
+     "spdx": "CC-BY-4.0",
+     "rider": null,
+     "attribution_required": true,
+     "credits": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-39",
+     "name": "attribution-bob",
+     "origin_class": "ATTRIBUTION-REQUIRED",
+     "spdx": "CC-BY-4.0",
+     "rider": null,
+     "attribution_required": true,
+     "credits": [
+      {
+       "id": "credit-LR-39",
+       "holder": "Bob Example",
+       "notice": "Copyright Bob Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-39"
+      }
+     ],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-40",
+     "name": "rider-no-eval-folding",
+     "origin_class": "RIDER-RESTRICTED",
+     "spdx": "MIT",
+     "rider": "no-eval-folding / no-ML-training",
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-41",
+     "name": "unclassified-missing-license",
+     "origin_class": "UNCLASSIFIED",
+     "spdx": "",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": true
+    },
+    {
+     "id": "LR-42",
+     "name": "owner-first-party-alpha",
+     "origin_class": "OWNER-AUTHORED",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-43",
+     "name": "owner-first-party-beta",
+     "origin_class": "OWNER-AUTHORED",
+     "spdx": "OWNER",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-44",
+     "name": "sharealike-carol",
+     "origin_class": "SEED-EXTENSION",
+     "spdx": "CC-BY-SA-4.0",
+     "rider": null,
+     "attribution_required": true,
+     "credits": [
+      {
+       "id": "credit-LR-44",
+       "holder": "Carol Example",
+       "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+       "source_id": "LR-44"
+      }
+     ],
+     "external_deps": [],
+     "unresolved_license": false
+    },
+    {
+     "id": "LR-45",
+     "name": "third-party-gpl2",
+     "origin_class": "SEED-EXTENSION",
+     "spdx": "GPL-2.0-only",
+     "rider": null,
+     "attribution_required": false,
+     "credits": [],
+     "external_deps": [],
+     "unresolved_license": false
+    }
+   ],
+   "register_histogram": {
+    "THIRD-PARTY": 26,
+    "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY": 11,
+    "ATTRIBUTION-REQUIRED": 2,
+    "RIDER-RESTRICTED": 1,
+    "UNCLASSIFIED": 1,
+    "OWNER-AUTHORED": 2,
+    "SEED-EXTENSION": 2
+   },
+   "catalog_histogram_41": {
+    "THIRD-PARTY": 26,
+    "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY": 11,
+    "ATTRIBUTION-REQUIRED": 2,
+    "RIDER-RESTRICTED": 1,
+    "UNCLASSIFIED": 1
+   },
+   "lattice": {
+    "ranks": {
+     "PUBLIC_DOMAIN": 0,
+     "OWNER_AUTHORED": 0,
+     "PERMISSIVE": 1,
+     "ATTRIBUTION_REQUIRED": 2,
+     "WEAK_COPYLEFT": 3,
+     "STRONG_COPYLEFT": 4,
+     "NETWORK_COPYLEFT": 5,
+     "RIDER_RESTRICTED": 6,
+     "PROPRIETARY": 7,
+     "UNKNOWN": 8
+    },
+    "copyleft_classes": [
+     "NETWORK_COPYLEFT",
+     "STRONG_COPYLEFT",
+     "WEAK_COPYLEFT"
+    ],
+    "unknown_never_permissive": true,
+    "spdx_class": {
+     "CC0-1.0": "PUBLIC_DOMAIN",
+     "Unlicense": "PUBLIC_DOMAIN",
+     "0BSD": "PUBLIC_DOMAIN",
+     "MIT": "PERMISSIVE",
+     "MIT-0": "PERMISSIVE",
+     "Apache-2.0": "PERMISSIVE",
+     "BSD-2-Clause": "PERMISSIVE",
+     "BSD-3-Clause": "PERMISSIVE",
+     "ISC": "PERMISSIVE",
+     "CC-BY-4.0": "ATTRIBUTION_REQUIRED",
+     "CC-BY-SA-4.0": "WEAK_COPYLEFT",
+     "MPL-2.0": "WEAK_COPYLEFT",
+     "LGPL-2.1-only": "WEAK_COPYLEFT",
+     "LGPL-3.0-only": "WEAK_COPYLEFT",
+     "GPL-2.0-only": "STRONG_COPYLEFT",
+     "GPL-3.0-only": "STRONG_COPYLEFT",
+     "AGPL-3.0-only": "NETWORK_COPYLEFT"
+    }
+   },
+   "fusions": [
+    {
+     "fusion_id": "MU-01",
+     "status": "ALLOWED",
+     "result_class": "PERMISSIVE",
+     "result_rank": 1,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-02"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-02"
+     ]
+    },
+    {
+     "fusion_id": "MU-02",
+     "status": "ALLOWED",
+     "result_class": "PERMISSIVE",
+     "result_rank": 1,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-09"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-09"
+     ]
+    },
+    {
+     "fusion_id": "MU-03",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "result_rank": 4,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-16"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-16"
+     ]
+    },
+    {
+     "fusion_id": "MU-04",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "result_rank": 5,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "NETWORK_COPYLEFT"
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-09",
+      "LR-21"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-09",
+      "LR-21"
+     ]
+    },
+    {
+     "fusion_id": "MU-05",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "result_rank": 3,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-19"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-19"
+     ]
+    },
+    {
+     "fusion_id": "MU-06",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      6,
+      7
+     ],
+     "reason": "prohibited:STRONG_COPYLEFT+PROPRIETARY",
+     "unresolved_ids": [],
+     "source_classes": [
+      "STRONG_COPYLEFT",
+      "PROPRIETARY"
+     ],
+     "source_class_set": [
+      "PROPRIETARY",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": true,
+     "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+     "sources_declared": [
+      "LR-16",
+      "LR-26"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-16",
+      "LR-26"
+     ]
+    },
+    {
+     "fusion_id": "MU-07",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      6,
+      7
+     ],
+     "reason": "prohibited:NETWORK_COPYLEFT+PROPRIETARY",
+     "unresolved_ids": [],
+     "source_classes": [
+      "NETWORK_COPYLEFT",
+      "PROPRIETARY"
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PROPRIETARY"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": true,
+     "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+     "sources_declared": [
+      "LR-21",
+      "LR-26"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-21",
+      "LR-26"
+     ]
+    },
+    {
+     "fusion_id": "MU-08",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      3,
+      6,
+      7
+     ],
+     "reason": "prohibited:PERMISSIVE+RIDER_RESTRICTED",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "RIDER_RESTRICTED"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "RIDER_RESTRICTED"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": true,
+     "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+     "sources_declared": [
+      "LR-01",
+      "LR-40"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-40"
+     ]
+    },
+    {
+     "fusion_id": "MU-09",
+     "status": "BLOCKED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      2,
+      7
+     ],
+     "reason": "unknown-license-fail-closed",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "UNKNOWN"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "UNKNOWN"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-41"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-41"
+     ]
+    },
+    {
+     "fusion_id": "MU-10",
+     "status": "BLOCKED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      2,
+      7
+     ],
+     "reason": "unknown-license-fail-closed",
+     "unresolved_ids": [],
+     "source_classes": [
+      "STRONG_COPYLEFT",
+      "UNKNOWN"
+     ],
+     "source_class_set": [
+      "STRONG_COPYLEFT",
+      "UNKNOWN"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-16",
+      "LR-41"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-16",
+      "LR-41"
+     ]
+    },
+    {
+     "fusion_id": "MU-11",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "result_rank": 2,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "ATTRIBUTION_REQUIRED"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-38"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-38"
+     ]
+    },
+    {
+     "fusion_id": "MU-12",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "result_rank": 4,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "ATTRIBUTION_REQUIRED",
+      "STRONG_COPYLEFT"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-38",
+      "LR-16"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-38",
+      "LR-16"
+     ]
+    },
+    {
+     "fusion_id": "MU-13",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "result_rank": 4,
+     "rules_applied": [
+      1,
+      5,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "STRONG_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-28",
+      "LR-01"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-28",
+      "LR-01"
+     ]
+    },
+    {
+     "fusion_id": "MU-14",
+     "status": "ALLOWED",
+     "result_class": "PERMISSIVE",
+     "result_rank": 1,
+     "rules_applied": [
+      1,
+      5,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-27",
+      "LR-31"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-27",
+      "LR-31"
+     ]
+    },
+    {
+     "fusion_id": "MU-15",
+     "status": "ALLOWED",
+     "result_class": "PERMISSIVE",
+     "result_rank": 1,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-09",
+      "LR-13"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-09",
+      "LR-13"
+     ]
+    },
+    {
+     "fusion_id": "MU-16",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "result_rank": 3,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "ATTRIBUTION_REQUIRED",
+      "WEAK_COPYLEFT"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "WEAK_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      },
+      {
+       "id": "credit-LR-44",
+       "holder": "Carol Example",
+       "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+       "source_id": "LR-44"
+      }
+     ],
+     "credits_carried": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      },
+      {
+       "id": "credit-LR-44",
+       "holder": "Carol Example",
+       "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+       "source_id": "LR-44"
+      }
+     ],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-38",
+      "LR-44"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-38",
+      "LR-44"
+     ]
+    },
+    {
+     "fusion_id": "MU-17",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "result_rank": 4,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "WEAK_COPYLEFT",
+      "STRONG_COPYLEFT"
+     ],
+     "source_class_set": [
+      "STRONG_COPYLEFT",
+      "WEAK_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-19",
+      "LR-16"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-19",
+      "LR-16"
+     ]
+    },
+    {
+     "fusion_id": "MU-18",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "result_rank": 3,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "WEAK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-24",
+      "LR-01"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-24",
+      "LR-01"
+     ]
+    },
+    {
+     "fusion_id": "MU-19",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "result_rank": 4,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PUBLIC_DOMAIN",
+      "STRONG_COPYLEFT"
+     ],
+     "source_class_set": [
+      "PUBLIC_DOMAIN",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-23",
+      "LR-16"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-23",
+      "LR-16"
+     ]
+    },
+    {
+     "fusion_id": "MU-20",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "result_rank": 5,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT",
+      "NETWORK_COPYLEFT"
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-16",
+      "LR-21"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-16",
+      "LR-21"
+     ]
+    },
+    {
+     "fusion_id": "MU-21",
+     "status": "BLOCKED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      7,
+      2
+     ],
+     "reason": "unresolved-source-license",
+     "unresolved_ids": [
+      "LR-99"
+     ],
+     "source_classes": [],
+     "source_class_set": [],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-99"
+     ],
+     "sources_unresolved": [
+      "LR-99"
+     ],
+     "sources_resolved_in_registry": [
+      "LR-01"
+     ]
+    },
+    {
+     "fusion_id": "MU-22",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "result_rank": 2,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "ATTRIBUTION_REQUIRED"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [],
+     "credits_lost": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "attribution_lost": true,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-01",
+      "LR-38"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-01",
+      "LR-38"
+     ]
+    },
+    {
+     "fusion_id": "MU-23",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "result_rank": null,
+     "rules_applied": [
+      1,
+      3,
+      6,
+      7
+     ],
+     "reason": "prohibited:RIDER_RESTRICTED+STRONG_COPYLEFT",
+     "unresolved_ids": [],
+     "source_classes": [
+      "RIDER_RESTRICTED",
+      "STRONG_COPYLEFT"
+     ],
+     "source_class_set": [
+      "RIDER_RESTRICTED",
+      "STRONG_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": true,
+     "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+     "sources_declared": [
+      "LR-40",
+      "LR-16"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-40",
+      "LR-16"
+     ]
+    },
+    {
+     "fusion_id": "MU-24",
+     "status": "ALLOWED",
+     "result_class": "OWNER_AUTHORED",
+     "result_rank": 0,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "OWNER_AUTHORED",
+      "OWNER_AUTHORED"
+     ],
+     "source_class_set": [
+      "OWNER_AUTHORED"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-42",
+      "LR-43"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-42",
+      "LR-43"
+     ]
+    },
+    {
+     "fusion_id": "MU-25",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "result_rank": 2,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-38",
+      "LR-01",
+      "LR-09"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-38",
+      "LR-01",
+      "LR-09"
+     ]
+    },
+    {
+     "fusion_id": "MU-26",
+     "status": "ALLOWED",
+     "result_class": "PROPRIETARY",
+     "result_rank": 7,
+     "rules_applied": [
+      1,
+      5,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PROPRIETARY",
+      "PROPRIETARY"
+     ],
+     "source_class_set": [
+      "PROPRIETARY"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-26",
+      "LR-32"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-26",
+      "LR-32"
+     ]
+    },
+    {
+     "fusion_id": "MU-27",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "result_rank": 3,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "WEAK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "multi_class": true,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-19",
+      "LR-09"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-19",
+      "LR-09"
+     ]
+    },
+    {
+     "fusion_id": "MU-28",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "result_rank": 5,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE",
+      "ATTRIBUTION_REQUIRED"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-21",
+      "LR-01",
+      "LR-38"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-21",
+      "LR-01",
+      "LR-38"
+     ]
+    },
+    {
+     "fusion_id": "MU-29",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "result_rank": 5,
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE",
+      "ATTRIBUTION_REQUIRED"
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "multi_class": true,
+     "credits_required": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "credits_carried": [],
+     "credits_lost": [
+      {
+       "id": "credit-LR-38",
+       "holder": "Alice Example",
+       "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+       "source_id": "LR-38"
+      }
+     ],
+     "attribution_lost": true,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-21",
+      "LR-01",
+      "LR-38"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-21",
+      "LR-01",
+      "LR-38"
+     ]
+    },
+    {
+     "fusion_id": "MU-30",
+     "status": "ALLOWED",
+     "result_class": "PERMISSIVE",
+     "result_rank": 1,
+     "rules_applied": [
+      1,
+      6
+     ],
+     "reason": "most-restrictive-wins",
+     "unresolved_ids": [],
+     "source_classes": [
+      "PERMISSIVE",
+      "PERMISSIVE",
+      "PERMISSIVE"
+     ],
+     "source_class_set": [
+      "PERMISSIVE"
+     ],
+     "multi_class": false,
+     "credits_required": [],
+     "credits_carried": [],
+     "credits_lost": [],
+     "attribution_lost": false,
+     "prohibited": false,
+     "sources_declared": [
+      "LR-13",
+      "LR-25",
+      "LR-01"
+     ],
+     "sources_unresolved": [],
+     "sources_resolved_in_registry": [
+      "LR-13",
+      "LR-25",
+      "LR-01"
+     ]
+    }
+   ],
+   "multi_class_fusions": [
+    {
+     "fusion_id": "MU-03",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-04",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-05",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-06",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "reason": "prohibited:STRONG_COPYLEFT+PROPRIETARY",
+     "rules_applied": [
+      1,
+      6,
+      7
+     ],
+     "source_class_set": [
+      "PROPRIETARY",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-07",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "reason": "prohibited:NETWORK_COPYLEFT+PROPRIETARY",
+     "rules_applied": [
+      1,
+      6,
+      7
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PROPRIETARY"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-08",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "reason": "prohibited:PERMISSIVE+RIDER_RESTRICTED",
+     "rules_applied": [
+      1,
+      3,
+      6,
+      7
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "RIDER_RESTRICTED"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-09",
+     "status": "BLOCKED",
+     "result_class": null,
+     "reason": "unknown-license-fail-closed",
+     "rules_applied": [
+      1,
+      2,
+      7
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "UNKNOWN"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-10",
+     "status": "BLOCKED",
+     "result_class": null,
+     "reason": "unknown-license-fail-closed",
+     "rules_applied": [
+      1,
+      2,
+      7
+     ],
+     "source_class_set": [
+      "STRONG_COPYLEFT",
+      "UNKNOWN"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-11",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-12",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-13",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      5,
+      6
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-16",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "WEAK_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-17",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "STRONG_COPYLEFT",
+      "WEAK_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-18",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-19",
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "PUBLIC_DOMAIN",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-20",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-22",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": true
+    },
+    {
+     "fusion_id": "MU-23",
+     "status": "PROHIBITED",
+     "result_class": null,
+     "reason": "prohibited:RIDER_RESTRICTED+STRONG_COPYLEFT",
+     "rules_applied": [
+      1,
+      3,
+      6,
+      7
+     ],
+     "source_class_set": [
+      "RIDER_RESTRICTED",
+      "STRONG_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-25",
+     "status": "ALLOWED",
+     "result_class": "ATTRIBUTION_REQUIRED",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-27",
+     "status": "ALLOWED",
+     "result_class": "WEAK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "source_class_set": [
+      "PERMISSIVE",
+      "WEAK_COPYLEFT"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-28",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": false
+    },
+    {
+     "fusion_id": "MU-29",
+     "status": "ALLOWED",
+     "result_class": "NETWORK_COPYLEFT",
+     "reason": "most-restrictive-wins",
+     "rules_applied": [
+      1,
+      4,
+      6
+     ],
+     "source_class_set": [
+      "ATTRIBUTION_REQUIRED",
+      "NETWORK_COPYLEFT",
+      "PERMISSIVE"
+     ],
+     "attribution_lost": true
+    }
+   ],
+   "prohibited_combinations": [
+    [
+     "PUBLIC_DOMAIN",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "OWNER_AUTHORED",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "PERMISSIVE",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "ATTRIBUTION_REQUIRED",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "RIDER_RESTRICTED",
+     "WEAK_COPYLEFT"
+    ],
+    [
+     "PROPRIETARY",
+     "WEAK_COPYLEFT"
+    ],
+    [
+     "RIDER_RESTRICTED",
+     "STRONG_COPYLEFT"
+    ],
+    [
+     "PROPRIETARY",
+     "STRONG_COPYLEFT"
+    ],
+    [
+     "NETWORK_COPYLEFT",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "NETWORK_COPYLEFT",
+     "PROPRIETARY"
+    ],
+    [
+     "RIDER_RESTRICTED",
+     "RIDER_RESTRICTED"
+    ],
+    [
+     "PROPRIETARY",
+     "RIDER_RESTRICTED"
+    ]
+   ],
+   "credit_loss": {
+    "any": true,
+    "fusion_ids": [
+     "MU-22",
+     "MU-29"
+    ],
+    "note": "MU-22 and MU-29 drop required CC-BY credits by construction so the detector is shown in both states (loss vs carry)."
+   },
+   "both_states": {
+    "copyleft_plus_permissive": {
+     "sources": [
+      "LR-01",
+      "LR-16"
+     ],
+     "status": "ALLOWED",
+     "result_class": "STRONG_COPYLEFT",
+     "rules_applied": [
+      1,
+      6
+     ],
+     "expected": "STRONG_COPYLEFT"
+    },
+    "unknown_license": {
+     "sources": [
+      "LR-01",
+      "LR-41"
+     ],
+     "status": "BLOCKED",
+     "result_class": null,
+     "rules_applied": [
+      1,
+      2,
+      7
+     ],
+     "expected": "BLOCKED",
+     "silent_permissive_default": false
+    }
+   },
+   "live_source": {
+    "kind": "catalog-reconstructed-fixture",
+    "graph_path": null,
+    "maps_path": null,
+    "tried": [
+     {
+      "dir": "/mnt/c/Users/Prekzursil/.claude/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/c/Users/Prekzursil/.claude/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/root/.claude/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/home/ubuntu/.claude/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/opt/p2/ast-integrate/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/opt/p2/ast-integrate/command-center/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     },
+     {
+      "dir": "/opt/p2/ast-integrate/C:/Users/Prekzursil/.claude/harness-restore-20260806",
+      "graph_exists": false,
+      "maps_exists": false
+     }
+    ],
+    "documented_graph_bytes": 344197,
+    "documented_maps_bytes": 161920,
+    "catalog_histogram_anchor": "command-center/WORK-UNIT-CATALOG.json:94110"
+   },
+   "honesty": "Live 08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json and 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json are absent on this worktree; the 7 rules and 45-row register are reconstructed from the WFA-0033 catalog histogram (26/11/2/1/1) plus four seed-extension rows, and the 30 merge_units are fixtures with the documented field names. Results are computed by lattice.fuse, not asserted. Not legal advice; catalog owner_approval_required remains open for any redistribution decision. UNKNOWN never defaults to PERMISSIVE."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11334",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0139/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0139"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "78ab401fd3da760286ec312f5b5f348a",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "license-lattice",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 58397,
+    "method": "filesystem-stat",
+    "anchor": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "title": "License and credit propagation lattice through fusion",
+ "question": "Implement most-restrictive-wins license propagation and credit carry-through for fusion, seeded by the 7 license_classification_rules and the 45-row license_risk_register in the provenance graph. Question: for every fusion whose sources span more than one license class, what is the resulting license, which combinations are prohibited outright, and does any fusion currently lose an attribution required by a source?",
+ "answer": "On the catalog-reconstructed-fixture corpus, 22 of 30 fusions span more than one effective license class: 16 ALLOWED (most-restrictive-wins), 4 PROHIBITED (copyleft+proprietary or any rider fusion; alternative CLEAN-ROOM-REIMPLEMENT), 2 BLOCKED (unresolved or UNKNOWN, never permissive). Credit loss on 2 fusion(s): ['MU-22', 'MU-29']. Copyleft+permissive control yields STRONG_COPYLEFT; unknown control is BLOCKED. Live 08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json and 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json are absent on this worktree; the 7 rules and 45-row register are reconstructed from the WFA-0033 catalog histogram (26/11/2/1/1) plus four seed-extension rows, and the 30 merge_units are fixtures with the documented field names. Results are computed by lattice.fuse, not asserted. Not legal advice; catalog owner_approval_required remains open for any redistribution decision. UNKNOWN never defaults to PERMISSIVE. SUCCESS:WFA-0139",
+ "mechanism": "most-restrictive-wins license lattice with fail-closed unknown handling",
+ "ts": "2026-08-25T00:55:49Z",
+ "output_path": "command-center/foundry/WFA-0139-license-and-credit-propagation-lattice-through-fusio.json",
+ "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/license-lattice",
+ "owner_approval_required": true,
+ "owner_signoff": "pending",
+ "legal_advice": false,
+ "classification_rules": [
+  {
+   "index": 1,
+   "id": "R1-SPDX-CLASS",
+   "title": "Map a known SPDX token onto a lattice class",
+   "fail_closed": false
+  },
+  {
+   "index": 2,
+   "id": "R2-UNKNOWN-FAIL-CLOSED",
+   "title": "Missing, UNKNOWN, or UNCLASSIFIED license never defaults to permissive",
+   "fail_closed": true
+  },
+  {
+   "index": 3,
+   "id": "R3-RIDER-RESTRICTED",
+   "title": "A vendor rider or field-of-use restriction is RIDER-RESTRICTED regardless of SPDX",
+   "fail_closed": true
+  },
+  {
+   "index": 4,
+   "id": "R4-ATTRIBUTION-CREDIT",
+   "title": "Attribution, NOTICE, and CC-BY credits must carry through fusion",
+   "fail_closed": false
+  },
+  {
+   "index": 5,
+   "id": "R5-OWNER-INHERITS-DEPS",
+   "title": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY inherits the most-restrictive dependency class",
+   "fail_closed": false
+  },
+  {
+   "index": 6,
+   "id": "R6-MOST-RESTRICTIVE-WINS",
+   "title": "Join is max(rank); a copyleft+permissive pair yields copyleft",
+   "fail_closed": false
+  },
+  {
+   "index": 7,
+   "id": "R7-PROHIBITED-OR-UNRESOLVED",
+   "title": "Copyleft+proprietary and any rider fusion are PROHIBITED; unresolved source license BLOCKS",
+   "fail_closed": true
+  }
+ ],
+ "license_risk_register": [
+  {
+   "id": "LR-01",
+   "name": "third-party-01-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-02",
+   "name": "third-party-02-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-03",
+   "name": "third-party-03-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-04",
+   "name": "third-party-04-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-05",
+   "name": "third-party-05-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-06",
+   "name": "third-party-06-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-07",
+   "name": "third-party-07-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-08",
+   "name": "third-party-08-mit",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MIT",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-09",
+   "name": "third-party-09-apache-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "Apache-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-10",
+   "name": "third-party-10-apache-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "Apache-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-11",
+   "name": "third-party-11-apache-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "Apache-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-12",
+   "name": "third-party-12-apache-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "Apache-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-13",
+   "name": "third-party-13-bsd-3-clause",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "BSD-3-Clause",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-14",
+   "name": "third-party-14-bsd-3-clause",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "BSD-3-Clause",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-15",
+   "name": "third-party-15-bsd-3-clause",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "BSD-3-Clause",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-16",
+   "name": "third-party-16-gpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "GPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-17",
+   "name": "third-party-17-gpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "GPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-18",
+   "name": "third-party-18-gpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "GPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-19",
+   "name": "third-party-19-mpl-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MPL-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-20",
+   "name": "third-party-20-mpl-2-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "MPL-2.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-21",
+   "name": "third-party-21-agpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "AGPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-22",
+   "name": "third-party-22-agpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "AGPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-23",
+   "name": "third-party-23-cc0-1-0",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "CC0-1.0",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-24",
+   "name": "third-party-24-lgpl-3-0-only",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "LGPL-3.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-25",
+   "name": "third-party-25-isc",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "ISC",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-26",
+   "name": "third-party-26-all-rights-reserved",
+   "origin_class": "THIRD-PARTY",
+   "spdx": "ALL-RIGHTS-RESERVED",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-27",
+   "name": "owner-with-deps-27",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-01"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-28",
+   "name": "owner-with-deps-28",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-16"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-29",
+   "name": "owner-with-deps-29",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-21"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-30",
+   "name": "owner-with-deps-30",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-19"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-31",
+   "name": "owner-with-deps-31",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-09"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-32",
+   "name": "owner-with-deps-32",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-26"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-33",
+   "name": "owner-with-deps-33",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-01",
+    "LR-16"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-34",
+   "name": "owner-with-deps-34",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-23"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-35",
+   "name": "owner-with-deps-35",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-24"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-36",
+   "name": "owner-with-deps-36",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-13"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-37",
+   "name": "owner-with-deps-37",
+   "origin_class": "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [
+    "LR-18",
+    "LR-09"
+   ],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-38",
+   "name": "attribution-alice",
+   "origin_class": "ATTRIBUTION-REQUIRED",
+   "spdx": "CC-BY-4.0",
+   "rider": null,
+   "attribution_required": true,
+   "credits": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-39",
+   "name": "attribution-bob",
+   "origin_class": "ATTRIBUTION-REQUIRED",
+   "spdx": "CC-BY-4.0",
+   "rider": null,
+   "attribution_required": true,
+   "credits": [
+    {
+     "id": "credit-LR-39",
+     "holder": "Bob Example",
+     "notice": "Copyright Bob Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-39"
+    }
+   ],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-40",
+   "name": "rider-no-eval-folding",
+   "origin_class": "RIDER-RESTRICTED",
+   "spdx": "MIT",
+   "rider": "no-eval-folding / no-ML-training",
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-41",
+   "name": "unclassified-missing-license",
+   "origin_class": "UNCLASSIFIED",
+   "spdx": "",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": true
+  },
+  {
+   "id": "LR-42",
+   "name": "owner-first-party-alpha",
+   "origin_class": "OWNER-AUTHORED",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-43",
+   "name": "owner-first-party-beta",
+   "origin_class": "OWNER-AUTHORED",
+   "spdx": "OWNER",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-44",
+   "name": "sharealike-carol",
+   "origin_class": "SEED-EXTENSION",
+   "spdx": "CC-BY-SA-4.0",
+   "rider": null,
+   "attribution_required": true,
+   "credits": [
+    {
+     "id": "credit-LR-44",
+     "holder": "Carol Example",
+     "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+     "source_id": "LR-44"
+    }
+   ],
+   "external_deps": [],
+   "unresolved_license": false
+  },
+  {
+   "id": "LR-45",
+   "name": "third-party-gpl2",
+   "origin_class": "SEED-EXTENSION",
+   "spdx": "GPL-2.0-only",
+   "rider": null,
+   "attribution_required": false,
+   "credits": [],
+   "external_deps": [],
+   "unresolved_license": false
+  }
+ ],
+ "register_histogram": {
+  "THIRD-PARTY": 26,
+  "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY": 11,
+  "ATTRIBUTION-REQUIRED": 2,
+  "RIDER-RESTRICTED": 1,
+  "UNCLASSIFIED": 1,
+  "OWNER-AUTHORED": 2,
+  "SEED-EXTENSION": 2
+ },
+ "catalog_histogram_41": {
+  "THIRD-PARTY": 26,
+  "OWNER-AUTHORED-WITH-EXTERNAL-DEPENDENCY": 11,
+  "ATTRIBUTION-REQUIRED": 2,
+  "RIDER-RESTRICTED": 1,
+  "UNCLASSIFIED": 1
+ },
+ "lattice": {
+  "ranks": {
+   "PUBLIC_DOMAIN": 0,
+   "OWNER_AUTHORED": 0,
+   "PERMISSIVE": 1,
+   "ATTRIBUTION_REQUIRED": 2,
+   "WEAK_COPYLEFT": 3,
+   "STRONG_COPYLEFT": 4,
+   "NETWORK_COPYLEFT": 5,
+   "RIDER_RESTRICTED": 6,
+   "PROPRIETARY": 7,
+   "UNKNOWN": 8
+  },
+  "copyleft_classes": [
+   "NETWORK_COPYLEFT",
+   "STRONG_COPYLEFT",
+   "WEAK_COPYLEFT"
+  ],
+  "unknown_never_permissive": true,
+  "spdx_class": {
+   "CC0-1.0": "PUBLIC_DOMAIN",
+   "Unlicense": "PUBLIC_DOMAIN",
+   "0BSD": "PUBLIC_DOMAIN",
+   "MIT": "PERMISSIVE",
+   "MIT-0": "PERMISSIVE",
+   "Apache-2.0": "PERMISSIVE",
+   "BSD-2-Clause": "PERMISSIVE",
+   "BSD-3-Clause": "PERMISSIVE",
+   "ISC": "PERMISSIVE",
+   "CC-BY-4.0": "ATTRIBUTION_REQUIRED",
+   "CC-BY-SA-4.0": "WEAK_COPYLEFT",
+   "MPL-2.0": "WEAK_COPYLEFT",
+   "LGPL-2.1-only": "WEAK_COPYLEFT",
+   "LGPL-3.0-only": "WEAK_COPYLEFT",
+   "GPL-2.0-only": "STRONG_COPYLEFT",
+   "GPL-3.0-only": "STRONG_COPYLEFT",
+   "AGPL-3.0-only": "NETWORK_COPYLEFT"
+  }
+ },
+ "fusions": [
+  {
+   "fusion_id": "MU-01",
+   "status": "ALLOWED",
+   "result_class": "PERMISSIVE",
+   "result_rank": 1,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-02"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-02"
+   ]
+  },
+  {
+   "fusion_id": "MU-02",
+   "status": "ALLOWED",
+   "result_class": "PERMISSIVE",
+   "result_rank": 1,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-09"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-09"
+   ]
+  },
+  {
+   "fusion_id": "MU-03",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "result_rank": 4,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-16"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-16"
+   ]
+  },
+  {
+   "fusion_id": "MU-04",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "result_rank": 5,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "NETWORK_COPYLEFT"
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-09",
+    "LR-21"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-09",
+    "LR-21"
+   ]
+  },
+  {
+   "fusion_id": "MU-05",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "result_rank": 3,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-19"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-19"
+   ]
+  },
+  {
+   "fusion_id": "MU-06",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    6,
+    7
+   ],
+   "reason": "prohibited:STRONG_COPYLEFT+PROPRIETARY",
+   "unresolved_ids": [],
+   "source_classes": [
+    "STRONG_COPYLEFT",
+    "PROPRIETARY"
+   ],
+   "source_class_set": [
+    "PROPRIETARY",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": true,
+   "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+   "sources_declared": [
+    "LR-16",
+    "LR-26"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-16",
+    "LR-26"
+   ]
+  },
+  {
+   "fusion_id": "MU-07",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    6,
+    7
+   ],
+   "reason": "prohibited:NETWORK_COPYLEFT+PROPRIETARY",
+   "unresolved_ids": [],
+   "source_classes": [
+    "NETWORK_COPYLEFT",
+    "PROPRIETARY"
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PROPRIETARY"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": true,
+   "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+   "sources_declared": [
+    "LR-21",
+    "LR-26"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-21",
+    "LR-26"
+   ]
+  },
+  {
+   "fusion_id": "MU-08",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    3,
+    6,
+    7
+   ],
+   "reason": "prohibited:PERMISSIVE+RIDER_RESTRICTED",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "RIDER_RESTRICTED"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "RIDER_RESTRICTED"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": true,
+   "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+   "sources_declared": [
+    "LR-01",
+    "LR-40"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-40"
+   ]
+  },
+  {
+   "fusion_id": "MU-09",
+   "status": "BLOCKED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    2,
+    7
+   ],
+   "reason": "unknown-license-fail-closed",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "UNKNOWN"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "UNKNOWN"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-41"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-41"
+   ]
+  },
+  {
+   "fusion_id": "MU-10",
+   "status": "BLOCKED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    2,
+    7
+   ],
+   "reason": "unknown-license-fail-closed",
+   "unresolved_ids": [],
+   "source_classes": [
+    "STRONG_COPYLEFT",
+    "UNKNOWN"
+   ],
+   "source_class_set": [
+    "STRONG_COPYLEFT",
+    "UNKNOWN"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-16",
+    "LR-41"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-16",
+    "LR-41"
+   ]
+  },
+  {
+   "fusion_id": "MU-11",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "result_rank": 2,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "ATTRIBUTION_REQUIRED"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-38"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-38"
+   ]
+  },
+  {
+   "fusion_id": "MU-12",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "result_rank": 4,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "ATTRIBUTION_REQUIRED",
+    "STRONG_COPYLEFT"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-38",
+    "LR-16"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-38",
+    "LR-16"
+   ]
+  },
+  {
+   "fusion_id": "MU-13",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "result_rank": 4,
+   "rules_applied": [
+    1,
+    5,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "STRONG_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-28",
+    "LR-01"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-28",
+    "LR-01"
+   ]
+  },
+  {
+   "fusion_id": "MU-14",
+   "status": "ALLOWED",
+   "result_class": "PERMISSIVE",
+   "result_rank": 1,
+   "rules_applied": [
+    1,
+    5,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-27",
+    "LR-31"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-27",
+    "LR-31"
+   ]
+  },
+  {
+   "fusion_id": "MU-15",
+   "status": "ALLOWED",
+   "result_class": "PERMISSIVE",
+   "result_rank": 1,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-09",
+    "LR-13"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-09",
+    "LR-13"
+   ]
+  },
+  {
+   "fusion_id": "MU-16",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "result_rank": 3,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "ATTRIBUTION_REQUIRED",
+    "WEAK_COPYLEFT"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "WEAK_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    },
+    {
+     "id": "credit-LR-44",
+     "holder": "Carol Example",
+     "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+     "source_id": "LR-44"
+    }
+   ],
+   "credits_carried": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    },
+    {
+     "id": "credit-LR-44",
+     "holder": "Carol Example",
+     "notice": "Copyright Carol Example. CC-BY-SA-4.0 share-alike attribution required.",
+     "source_id": "LR-44"
+    }
+   ],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-38",
+    "LR-44"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-38",
+    "LR-44"
+   ]
+  },
+  {
+   "fusion_id": "MU-17",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "result_rank": 4,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "WEAK_COPYLEFT",
+    "STRONG_COPYLEFT"
+   ],
+   "source_class_set": [
+    "STRONG_COPYLEFT",
+    "WEAK_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-19",
+    "LR-16"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-19",
+    "LR-16"
+   ]
+  },
+  {
+   "fusion_id": "MU-18",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "result_rank": 3,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "WEAK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-24",
+    "LR-01"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-24",
+    "LR-01"
+   ]
+  },
+  {
+   "fusion_id": "MU-19",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "result_rank": 4,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PUBLIC_DOMAIN",
+    "STRONG_COPYLEFT"
+   ],
+   "source_class_set": [
+    "PUBLIC_DOMAIN",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-23",
+    "LR-16"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-23",
+    "LR-16"
+   ]
+  },
+  {
+   "fusion_id": "MU-20",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "result_rank": 5,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT",
+    "NETWORK_COPYLEFT"
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-16",
+    "LR-21"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-16",
+    "LR-21"
+   ]
+  },
+  {
+   "fusion_id": "MU-21",
+   "status": "BLOCKED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    7,
+    2
+   ],
+   "reason": "unresolved-source-license",
+   "unresolved_ids": [
+    "LR-99"
+   ],
+   "source_classes": [],
+   "source_class_set": [],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-99"
+   ],
+   "sources_unresolved": [
+    "LR-99"
+   ],
+   "sources_resolved_in_registry": [
+    "LR-01"
+   ]
+  },
+  {
+   "fusion_id": "MU-22",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "result_rank": 2,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "ATTRIBUTION_REQUIRED"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [],
+   "credits_lost": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "attribution_lost": true,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-01",
+    "LR-38"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-01",
+    "LR-38"
+   ]
+  },
+  {
+   "fusion_id": "MU-23",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "result_rank": null,
+   "rules_applied": [
+    1,
+    3,
+    6,
+    7
+   ],
+   "reason": "prohibited:RIDER_RESTRICTED+STRONG_COPYLEFT",
+   "unresolved_ids": [],
+   "source_classes": [
+    "RIDER_RESTRICTED",
+    "STRONG_COPYLEFT"
+   ],
+   "source_class_set": [
+    "RIDER_RESTRICTED",
+    "STRONG_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": true,
+   "suggested_alternative": "CLEAN-ROOM-REIMPLEMENT",
+   "sources_declared": [
+    "LR-40",
+    "LR-16"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-40",
+    "LR-16"
+   ]
+  },
+  {
+   "fusion_id": "MU-24",
+   "status": "ALLOWED",
+   "result_class": "OWNER_AUTHORED",
+   "result_rank": 0,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "OWNER_AUTHORED",
+    "OWNER_AUTHORED"
+   ],
+   "source_class_set": [
+    "OWNER_AUTHORED"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-42",
+    "LR-43"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-42",
+    "LR-43"
+   ]
+  },
+  {
+   "fusion_id": "MU-25",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "result_rank": 2,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-38",
+    "LR-01",
+    "LR-09"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-38",
+    "LR-01",
+    "LR-09"
+   ]
+  },
+  {
+   "fusion_id": "MU-26",
+   "status": "ALLOWED",
+   "result_class": "PROPRIETARY",
+   "result_rank": 7,
+   "rules_applied": [
+    1,
+    5,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PROPRIETARY",
+    "PROPRIETARY"
+   ],
+   "source_class_set": [
+    "PROPRIETARY"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-26",
+    "LR-32"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-26",
+    "LR-32"
+   ]
+  },
+  {
+   "fusion_id": "MU-27",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "result_rank": 3,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "WEAK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "multi_class": true,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-19",
+    "LR-09"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-19",
+    "LR-09"
+   ]
+  },
+  {
+   "fusion_id": "MU-28",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "result_rank": 5,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE",
+    "ATTRIBUTION_REQUIRED"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-21",
+    "LR-01",
+    "LR-38"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-21",
+    "LR-01",
+    "LR-38"
+   ]
+  },
+  {
+   "fusion_id": "MU-29",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "result_rank": 5,
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE",
+    "ATTRIBUTION_REQUIRED"
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "multi_class": true,
+   "credits_required": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "credits_carried": [],
+   "credits_lost": [
+    {
+     "id": "credit-LR-38",
+     "holder": "Alice Example",
+     "notice": "Copyright Alice Example. CC-BY-4.0 attribution required.",
+     "source_id": "LR-38"
+    }
+   ],
+   "attribution_lost": true,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-21",
+    "LR-01",
+    "LR-38"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-21",
+    "LR-01",
+    "LR-38"
+   ]
+  },
+  {
+   "fusion_id": "MU-30",
+   "status": "ALLOWED",
+   "result_class": "PERMISSIVE",
+   "result_rank": 1,
+   "rules_applied": [
+    1,
+    6
+   ],
+   "reason": "most-restrictive-wins",
+   "unresolved_ids": [],
+   "source_classes": [
+    "PERMISSIVE",
+    "PERMISSIVE",
+    "PERMISSIVE"
+   ],
+   "source_class_set": [
+    "PERMISSIVE"
+   ],
+   "multi_class": false,
+   "credits_required": [],
+   "credits_carried": [],
+   "credits_lost": [],
+   "attribution_lost": false,
+   "prohibited": false,
+   "sources_declared": [
+    "LR-13",
+    "LR-25",
+    "LR-01"
+   ],
+   "sources_unresolved": [],
+   "sources_resolved_in_registry": [
+    "LR-13",
+    "LR-25",
+    "LR-01"
+   ]
+  }
+ ],
+ "multi_class_fusions": [
+  {
+   "fusion_id": "MU-03",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-04",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-05",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-06",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "reason": "prohibited:STRONG_COPYLEFT+PROPRIETARY",
+   "rules_applied": [
+    1,
+    6,
+    7
+   ],
+   "source_class_set": [
+    "PROPRIETARY",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-07",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "reason": "prohibited:NETWORK_COPYLEFT+PROPRIETARY",
+   "rules_applied": [
+    1,
+    6,
+    7
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PROPRIETARY"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-08",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "reason": "prohibited:PERMISSIVE+RIDER_RESTRICTED",
+   "rules_applied": [
+    1,
+    3,
+    6,
+    7
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "RIDER_RESTRICTED"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-09",
+   "status": "BLOCKED",
+   "result_class": null,
+   "reason": "unknown-license-fail-closed",
+   "rules_applied": [
+    1,
+    2,
+    7
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "UNKNOWN"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-10",
+   "status": "BLOCKED",
+   "result_class": null,
+   "reason": "unknown-license-fail-closed",
+   "rules_applied": [
+    1,
+    2,
+    7
+   ],
+   "source_class_set": [
+    "STRONG_COPYLEFT",
+    "UNKNOWN"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-11",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-12",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-13",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    5,
+    6
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-16",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "WEAK_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-17",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "STRONG_COPYLEFT",
+    "WEAK_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-18",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-19",
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "PUBLIC_DOMAIN",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-20",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-22",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": true
+  },
+  {
+   "fusion_id": "MU-23",
+   "status": "PROHIBITED",
+   "result_class": null,
+   "reason": "prohibited:RIDER_RESTRICTED+STRONG_COPYLEFT",
+   "rules_applied": [
+    1,
+    3,
+    6,
+    7
+   ],
+   "source_class_set": [
+    "RIDER_RESTRICTED",
+    "STRONG_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-25",
+   "status": "ALLOWED",
+   "result_class": "ATTRIBUTION_REQUIRED",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-27",
+   "status": "ALLOWED",
+   "result_class": "WEAK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "source_class_set": [
+    "PERMISSIVE",
+    "WEAK_COPYLEFT"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-28",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": false
+  },
+  {
+   "fusion_id": "MU-29",
+   "status": "ALLOWED",
+   "result_class": "NETWORK_COPYLEFT",
+   "reason": "most-restrictive-wins",
+   "rules_applied": [
+    1,
+    4,
+    6
+   ],
+   "source_class_set": [
+    "ATTRIBUTION_REQUIRED",
+    "NETWORK_COPYLEFT",
+    "PERMISSIVE"
+   ],
+   "attribution_lost": true
+  }
+ ],
+ "prohibited_combinations": [
+  [
+   "PUBLIC_DOMAIN",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "OWNER_AUTHORED",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "PERMISSIVE",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "ATTRIBUTION_REQUIRED",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "RIDER_RESTRICTED",
+   "WEAK_COPYLEFT"
+  ],
+  [
+   "PROPRIETARY",
+   "WEAK_COPYLEFT"
+  ],
+  [
+   "RIDER_RESTRICTED",
+   "STRONG_COPYLEFT"
+  ],
+  [
+   "PROPRIETARY",
+   "STRONG_COPYLEFT"
+  ],
+  [
+   "NETWORK_COPYLEFT",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "NETWORK_COPYLEFT",
+   "PROPRIETARY"
+  ],
+  [
+   "RIDER_RESTRICTED",
+   "RIDER_RESTRICTED"
+  ],
+  [
+   "PROPRIETARY",
+   "RIDER_RESTRICTED"
+  ]
+ ],
+ "credit_loss": {
+  "any": true,
+  "fusion_ids": [
+   "MU-22",
+   "MU-29"
+  ],
+  "note": "MU-22 and MU-29 drop required CC-BY credits by construction so the detector is shown in both states (loss vs carry)."
+ },
+ "both_states": {
+  "copyleft_plus_permissive": {
+   "sources": [
+    "LR-01",
+    "LR-16"
+   ],
+   "status": "ALLOWED",
+   "result_class": "STRONG_COPYLEFT",
+   "rules_applied": [
+    1,
+    6
+   ],
+   "expected": "STRONG_COPYLEFT"
+  },
+  "unknown_license": {
+   "sources": [
+    "LR-01",
+    "LR-41"
+   ],
+   "status": "BLOCKED",
+   "result_class": null,
+   "rules_applied": [
+    1,
+    2,
+    7
+   ],
+   "expected": "BLOCKED",
+   "silent_permissive_default": false
+  }
+ },
+ "live_source": {
+  "kind": "catalog-reconstructed-fixture",
+  "graph_path": null,
+  "maps_path": null,
+  "tried": [
+   {
+    "dir": "/mnt/c/Users/Prekzursil/.claude/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/c/Users/Prekzursil/.claude/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/root/.claude/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/home/ubuntu/.claude/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/opt/p2/ast-integrate/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/opt/p2/ast-integrate/command-center/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   },
+   {
+    "dir": "/opt/p2/ast-integrate/C:/Users/Prekzursil/.claude/harness-restore-20260806",
+    "graph_exists": false,
+    "maps_exists": false
+   }
+  ],
+  "documented_graph_bytes": 344197,
+  "documented_maps_bytes": 161920,
+  "catalog_histogram_anchor": "command-center/WORK-UNIT-CATALOG.json:94110"
+ },
+ "honesty": "Live 08-WORKFLOW-PROVENANCE-AND-LICENSE-GRAPH.json and 10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json are absent on this worktree; the 7 rules and 45-row register are reconstructed from the WFA-0033 catalog histogram (26/11/2/1/1) plus four seed-extension rows, and the 30 merge_units are fixtures with the documented field names. Results are computed by lattice.fuse, not asserted. Not legal advice; catalog owner_approval_required remains open for any redistribution decision. UNKNOWN never defaults to PERMISSIVE."
+}

@@ -1,0 +1,505 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/phase4/contracts/ARC-0090.json",
+  "$comment": "SUCCESS:ARC-0090 \u2014 MCP adapter: declaration, transport, lifecycle, per-session stdio cap, namespacing, enable/disable scope. scope_decision_table is computed by resolve_enabled, not authored.",
+  "title": "MCP adapter: transport, lifecycle ownership and per-session multiplication limits",
+  "unit_id": "ARC-0090",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0090",
+  "completion_sentinel": "SUCCESS:ARC-0090",
+  "phase": "4",
+  "owner_approval_required": false,
+  "question": "Specify the MCP adapter contract: server declaration, transport choice between per-session stdio and a shared HTTP endpoint, lifecycle ownership (who starts, who reaps), the hard limit on processes per session, tool-name namespacing to prevent collisions, and the enable/disable SCOPE semantics - given the measured trap that a disable written at the wrong scope is inert while appearing correct, and that the curated enable state must never be destroyed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "server_id",
+    "transport",
+    "declaration",
+    "lifecycle_owner"
+  ],
+  "properties": {
+    "server_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*$",
+      "description": "Adapter-facing server id. Must not contain __."
+    },
+    "transport": {
+      "type": "string",
+      "enum": [
+        "stdio",
+        "http"
+      ]
+    },
+    "declaration": {
+      "$ref": "#/$defs/declaration"
+    },
+    "lifecycle_owner": {
+      "type": "string",
+      "const": "adapter"
+    },
+    "stdio_process_cap": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 8,
+      "default": 8
+    },
+    "exposed_tools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*__[A-Za-z0-9][A-Za-z0-9_.-]*$"
+      }
+    },
+    "enable": {
+      "$ref": "#/$defs/enable_map"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "transport"
+        ],
+        "properties": {
+          "transport": {
+            "const": "stdio"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "declaration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "command"
+            ],
+            "properties": {
+              "command": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "declaration"
+        ]
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "required": [
+          "transport"
+        ],
+        "properties": {
+          "transport": {
+            "const": "http"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "declaration": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "url"
+            ],
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 4096,
+                "pattern": "^https?://"
+              }
+            }
+          }
+        },
+        "required": [
+          "declaration"
+        ]
+      }
+    }
+  ],
+  "$defs": {
+    "declaration": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https?://"
+        }
+      }
+    },
+    "enable_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "local",
+        "project",
+        "user"
+      ],
+      "properties": {
+        "local": {
+          "$ref": "#/$defs/scope_enable"
+        },
+        "project": {
+          "$ref": "#/$defs/scope_enable"
+        },
+        "user": {
+          "$ref": "#/$defs/scope_enable"
+        }
+      }
+    },
+    "scope_enable": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    }
+  },
+  "vocabulary": {
+    "transports": [
+      "stdio",
+      "http"
+    ],
+    "scopes_most_specific_first": [
+      "local",
+      "project",
+      "user"
+    ],
+    "lifecycle_owner": "adapter",
+    "stdio_process_cap_per_session": 8,
+    "namespace_separator": "__",
+    "default_enabled_when_unnamed": true
+  },
+  "server_declaration": {
+    "rule": "Mount requires a declaration. stdio names command[]; http names url.",
+    "stdio": {
+      "required": [
+        "command"
+      ],
+      "forbidden": [
+        "url"
+      ]
+    },
+    "http": {
+      "required": [
+        "url"
+      ],
+      "forbidden": [
+        "command"
+      ]
+    },
+    "missing_declaration": "ContractError; the server must not spawn."
+  },
+  "transport": {
+    "stdio": {
+      "process_model": "one OS child per (session, server)",
+      "multiplication": "N sessions \u00d7 M stdio servers = N\u00d7M processes",
+      "historic_driver": "eager per-session stdio MCP multiplication; catalog MEMORY 23 sessions \u00d7 65 servers. IMP-0065 reproduced N sessions \u2192 N stdio children vs 1 shared HTTP child on this worktree."
+    },
+    "http": {
+      "process_model": "one shared child per server_id across sessions",
+      "multiplication": "N sessions \u00d7 1 shared HTTP server = 1 process",
+      "preferred_when": "the same server is used by more than one session"
+    },
+    "choice_rule": "The declaration selects transport. The adapter records stdio vs http on every mount. Unrecorded transport is a contract failure."
+  },
+  "lifecycle": {
+    "owner": "adapter",
+    "starts": "Adapter.mount is the only start path",
+    "reaps": "Adapter.unmount / Adapter.close reaps the child",
+    "session_code_must_not": "spawn or kill MCP children directly",
+    "shared_http_dead": "A dead shared child is a loud error. The session must not hang on stdin or look like a healthy empty tool list (IMP-0065).",
+    "memory_guard": "A kill-based memory guard must not select a shared-service PID (IMP-0066 / TST-0242)."
+  },
+  "process_cap": {
+    "applies_to": "stdio children of one session",
+    "does_not_count": "shared HTTP children",
+    "limit": 8,
+    "on_exceed": "ContractError; refuse to start the extra stdio child",
+    "rationale": "Hard cap stops per-session multiplication from reproducing the commit-exhaustion class even when a caller ignores shared HTTP."
+  },
+  "namespacing": {
+    "form": "{server_id}__{tool_name}",
+    "why": "Bare echo collides when two servers advertise it.",
+    "bare_name_forbidden_on_the_adapter_surface": true,
+    "collision": "Two exposed names equal \u2192 ContractError"
+  },
+  "scope_semantics": {
+    "order_most_specific_first": [
+      "local",
+      "project",
+      "user"
+    ],
+    "rule": "Walk local, then project, then user. The first scope that names the server_id wins. Unnamed servers default to enabled.",
+    "trap": "A disable written at user (root-scoped disabledMcpServers analog) is inert when project or local already names the server. The config file still shows the disable, so the write looks correct.",
+    "effective_disable_example": "project enabled=false",
+    "inert_disable_example": "project enabled=true and user enabled=false \u2014 process table still shows the server",
+    "two_signals": [
+      "the configuration file that holds the setting",
+      "the live process table showing whether the server actually spawned"
+    ],
+    "must_not": "treat any-scope disable as effective (mutant any_scope_disable)"
+  },
+  "enable_preservation": {
+    "rule": "Any migration must capture and restore the curated enable/disable map byte-identically (canonical JSON, sorted keys).",
+    "must_not": "wipe, reshape, or drop user-authored enable entries",
+    "estate_precedent": "TST-0071: root-scoped disabledMcpServers dumps were inert; live curation lived per-project. A schema rename must relocate those values, never destroy them."
+  },
+  "evaluation_semantics_source": "command-center/p2-wave/probes/ARC-0090/model.py",
+  "consumer_call_site": {
+    "this_unit": "command-center/p2-wave/probes/ARC-0090/probe1_scope_control.py",
+    "existing_conformance": "command-center/p2-wave/probes/TST-0044/",
+    "notes": "Probes call Adapter.mount against this draft. TST-0044 is the catalog conformance suite written before broad implementation; its missing ARC-0090.json note is residual, not BLOCKED."
+  },
+  "missing_inputs": {
+    "command-center/phase3/WINNING-ARCHITECTURE.json": false,
+    "command-center/phase3/ARCHITECTURE-RATIFICATION.json": false,
+    "command-center/phase3/A6/DESIGN.json": false,
+    "_USER-PROMPTS.md": false,
+    "00-CURRENT-STATE-INVENTORY.md": false,
+    "note": "ARC-0077 (owner ratification) is not on this worktree. This contract is specified from the catalog question, TST-0044 executable adapter rules, IMP-0065 process-multiplication measurement, and TST-0071 inert-scope curation. It is not a claim that the owner has ratified a winning architecture."
+  },
+  "negative_controls": [
+    {
+      "id": "NC-user-disable-inert",
+      "setup": "project enable=true plus user enable=false",
+      "must": "process table still lists the server; config file shows the user disable"
+    },
+    {
+      "id": "NC-project-disable-effective",
+      "setup": "then project enable=false",
+      "must": "process table does not list the server; project file shows disable"
+    },
+    {
+      "id": "NC-any-scope-disable-mutant",
+      "setup": "same as NC-user-disable-inert on Policy(any_scope_disable=True)",
+      "must": "mutant refuses to spawn \u2014 proving first-scope-wins is what kept the process alive"
+    },
+    {
+      "id": "NC-migrate-destroy",
+      "setup": "Policy(preserve_enable_on_migrate=False)",
+      "must": "canonical enable bytes differ after migrate"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-scope-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0090/probe1_scope_control.py",
+      "result": "PASS",
+      "name": "Disable at ineffective scope: config shows it, process table still has the server; effective-scope disable: process gone"
+    },
+    {
+      "id": "T2-enable-preservation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0090/probe2_enable_preservation.py",
+      "result": "PASS",
+      "name": "Curated enable map captured and restored byte-identically"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ARC-0090-probe1-scope-control",
+    "verdict": "PASS",
+    "independent": true,
+    "role": "consumer-call-site",
+    "notes": "Probes are the consumer-side call site against this draft. An independent human contract reviewer is residual (catalog owner_approval_required=false)."
+  },
+  "artifacts": [
+    {
+      "path": "command-center/phase4/contracts/ARC-0090.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0090/model.py",
+      "exists": true,
+      "role": "choke-point"
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "contract-author",
+    "execution_substrate": "linux-local"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "owner ratification (ARC-0077) exists",
+      "a production MCP client already wires every path through Adapter",
+      "live mcp.json servers were mounted on this box",
+      "secret values were read or printed"
+    ]
+  },
+  "scope_decision_table": [
+    {
+      "id": "project-enable-user-disable",
+      "family": "inert-wrong-scope",
+      "notes": "User/root disable is inert while project has an entry. This is the measured trap: a disable that looks correct at the wrong scope.",
+      "enable": {
+        "local": {},
+        "project": {
+          "alpha": true
+        },
+        "user": {
+          "alpha": false
+        }
+      },
+      "computed_enabled": true,
+      "computed_effective_scope": "project",
+      "computed_inert_user_disable": true,
+      "computed_reason": "first-listed-scope-with-entry",
+      "expect_enabled": true,
+      "expect_effective_scope": "project",
+      "mutant_any_scope_disable_enabled": false
+    },
+    {
+      "id": "project-disable",
+      "family": "effective-scope",
+      "notes": "Project disable is the effective scope; process must not spawn.",
+      "enable": {
+        "local": {},
+        "project": {
+          "alpha": false
+        },
+        "user": {
+          "alpha": true
+        }
+      },
+      "computed_enabled": false,
+      "computed_effective_scope": "project",
+      "computed_inert_user_disable": false,
+      "computed_reason": "first-listed-scope-with-entry",
+      "expect_enabled": false,
+      "expect_effective_scope": "project",
+      "mutant_any_scope_disable_enabled": false
+    },
+    {
+      "id": "user-disable-only",
+      "family": "user-effective-when-no-inner",
+      "notes": "With no local/project entry, user disable is effective.",
+      "enable": {
+        "local": {},
+        "project": {},
+        "user": {
+          "alpha": false
+        }
+      },
+      "computed_enabled": false,
+      "computed_effective_scope": "user",
+      "computed_inert_user_disable": false,
+      "computed_reason": "first-listed-scope-with-entry",
+      "expect_enabled": false,
+      "expect_effective_scope": "user",
+      "mutant_any_scope_disable_enabled": false
+    },
+    {
+      "id": "local-enable-over-project-disable",
+      "family": "local-wins",
+      "notes": "Local overlay is most specific.",
+      "enable": {
+        "local": {
+          "alpha": true
+        },
+        "project": {
+          "alpha": false
+        },
+        "user": {}
+      },
+      "computed_enabled": true,
+      "computed_effective_scope": "local",
+      "computed_inert_user_disable": false,
+      "computed_reason": "first-listed-scope-with-entry",
+      "expect_enabled": true,
+      "expect_effective_scope": "local",
+      "mutant_any_scope_disable_enabled": false
+    },
+    {
+      "id": "empty-default-enabled",
+      "family": "default",
+      "notes": "Unmentioned servers default to enabled.",
+      "enable": {
+        "local": {},
+        "project": {},
+        "user": {}
+      },
+      "computed_enabled": true,
+      "computed_effective_scope": null,
+      "computed_inert_user_disable": false,
+      "computed_reason": "default-enabled",
+      "expect_enabled": true,
+      "expect_effective_scope": null,
+      "mutant_any_scope_disable_enabled": true
+    },
+    {
+      "id": "local-disable",
+      "family": "local-wins",
+      "notes": "Local disable wins over project enable.",
+      "enable": {
+        "local": {
+          "alpha": false
+        },
+        "project": {
+          "alpha": true
+        },
+        "user": {
+          "alpha": true
+        }
+      },
+      "computed_enabled": false,
+      "computed_effective_scope": "local",
+      "computed_inert_user_disable": false,
+      "computed_reason": "first-listed-scope-with-entry",
+      "expect_enabled": false,
+      "expect_effective_scope": "local",
+      "mutant_any_scope_disable_enabled": false
+    }
+  ],
+  "scope_decision_table_row_count": 6,
+  "preservation": {
+    "canonical_utf8_bytes": 135,
+    "byte_identical_restore": true,
+    "destroyed_map_differs": true,
+    "map": {
+      "local": {
+        "scratch": true
+      },
+      "project": {
+        "alpha": false,
+        "beta": true
+      },
+      "user": {
+        "legacy": false
+      }
+    }
+  },
+  "namespacing_examples": {
+    "separator": "__",
+    "alpha_echo": "alpha__echo",
+    "beta_echo": "beta__echo",
+    "bare_echo_would_collide": true,
+    "namespaced_distinct": true
+  }
+}

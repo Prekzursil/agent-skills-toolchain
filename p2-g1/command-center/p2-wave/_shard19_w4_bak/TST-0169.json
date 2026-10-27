@@ -1,0 +1,212 @@
+{
+  "answer": "Yes. A new process with a wiped session temp dir, a fresh TMPDIR, and previous-session env traps (PREVIOUS_RUN_PID, SESSION_CHECKPOINT, HANDLED_LEDGER_PATH) still resumes from durable_root/checkpoint.json and finishes fetch/reduce/emit. The live catalog input tools/lib/handled-ledger.mjs likewise round-trips isHandled after the same cold start. Warm resume in the same session also passes. Planting a tempfile.gettempdir() / os.tmpdir() sidecar makes that same cold start fail with TEMP-DEPENDENCY, so the detector is not a blanket pass.",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0169/cold_resume.py",
+      "role": "sut"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0169/handled_ledger.py",
+      "role": "sut-ledger"
+    },
+    {
+      "exists": true,
+      "path": "tools/lib/handled-ledger.mjs",
+      "role": "catalog-input"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0169/ledger_cli.mjs",
+      "role": "catalog-input-driver"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0169/probe1-cold-resume.raw.json",
+      "role": "signal-a"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0169/probe2-durability-scan.raw.json",
+      "role": "signal-b"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0169",
+  "evidence": [
+    {
+      "id": "a",
+      "instrument": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe1_cold_resume_outcome.py",
+      "raw_path": "command-center/p2-wave/probes/TST-0169/probe1-cold-resume.raw.json",
+      "signal": "the cold-resume run's outcome",
+      "summary": {
+        "catalog_ledger": {
+          "catalog_input": "tools/lib/handled-ledger.mjs",
+          "cold_resume_pass": true,
+          "cold_stdout_tail": "{\"action\":\"resume\",\"stateDir\":\"/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0169/runtime/probe1/mjs_durable\",\"key\":\"tst-0169\",\"id\":\"run-mjs\",\"handled\":true}\nSUCCESS:mjs-cold-resume action=resume\n",
+          "detector_fired": true,
+          "node": "/root/.local/share/cursor-agent/versions/2026.08.11-e8db854/node",
+          "present": true
+        },
+        "cold_resume_pass": true,
+        "detector_temp_dependency_fired": true,
+        "durable_not_under_temp": true,
+        "warm_resume_pass": true
+      },
+      "verdict": "PASS"
+    },
+    {
+      "id": "b",
+      "instrument": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe2_durability_scan.py",
+      "raw_path": "command-center/p2-wave/probes/TST-0169/probe2-durability-scan.raw.json",
+      "signal": "a static scan enumerating every state read at resume time and its durability class",
+      "summary": {
+        "catalog_input": {
+          "bytes": 5925,
+          "note": "live catalog input scanned; production persist/load is caller stateDir + sibling tmp rename, not os.tmpdir / session env / /proc",
+          "path": "tools/lib/handled-ledger.mjs",
+          "present": true,
+          "production_state_reads": [
+            {
+              "durability_class": "DURABLE-DISK",
+              "function": "handledPath",
+              "kind": "durable-ledger-read",
+              "line": 81,
+              "name": "handled.json via caller stateDir"
+            },
+            {
+              "durability_class": "DURABLE-DISK",
+              "function": "atomicWriteJson",
+              "kind": "durable-ledger-read",
+              "line": 61,
+              "name": "atomicWriteJson sibling tmp + rename"
+            },
+            {
+              "durability_class": "DURABLE-DISK",
+              "function": "loadHandled",
+              "kind": "durable-ledger-read",
+              "line": 97,
+              "name": "loadHandled reads handledPath(stateDir)"
+            }
+          ],
+          "sibling_tmp_next_to_target": true,
+          "volatile_hits": []
+        },
+        "durability_classes_seen_production": [
+          "DURABLE-DISK"
+        ],
+        "mutant_volatile_count": 1,
+        "production_functions": [
+          "_finish",
+          "durable_checkpoint_path",
+          "load_durable_checkpoint",
+          "resume_from_durable"
+        ],
+        "production_volatile_count": 0
+      },
+      "verdict": "PASS"
+    }
+  ],
+  "id": "TST-0169",
+  "manifest_path": "command-center/p2-wave/probes/TST-0169/UNIT-ARTIFACT-MANIFEST.json",
+  "min_bytes_threshold": 1024,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe1_cold_resume_outcome.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "name": "(a) the cold-resume run's outcome",
+      "raw_output": "warm_ok=True cold_ok=True detector_fired=True mjs_ok=True durable=command-center/p2-wave/probes/TST-0169/runtime/probe1/durable\nSUCCESS:TST-0169-probe1 cold-resume outcome"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe2_durability_scan.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "name": "(b) a static scan enumerating every state read at resume time and its durability class",
+      "raw_output": "prod_volatile=0 mutant_volatile=1 durable_reads=3 mjs_present=True mjs_volatile=0\nSUCCESS:TST-0169-probe2 durability scan"
+    }
+  ],
+  "negative_controls": [
+    {
+      "fired_on_bad_state": true,
+      "id": "TST-0169-NC-TEMP-SIDECAR",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+  "overall_verdict": "PASS",
+  "produced_by": {
+    "execution_substrate": "local-serialized-linux",
+    "model": "grok-4.6",
+    "role": "resume-tester",
+    "vendor": "cursor"
+  },
+  "question": "After a full machine reboot, does resume work with no reliance on process tables, environment variables set only by the previous session, or a temp directory that reboot clears? PASS requires a successful cold resume from a clean shell.",
+  "registered": true,
+  "report": {
+    "control_ids": [
+      "TST-0169-BOTH-STATES",
+      "TST-0169-DETECTOR"
+    ],
+    "kind": "resume_report",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0169/probe1-cold-resume.raw.json",
+        "measured": true,
+        "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe1_cold_resume_outcome.py",
+        "name": "cold_resume_from_clean_shell"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0169/probe2-durability-scan.raw.json",
+        "measured": 0,
+        "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0169/probe2_durability_scan.py",
+        "name": "production_resume_volatile_reads"
+      }
+    ]
+  },
+  "report_kind": "resume_report",
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 is an AST durability classification, not a rerun of the cold-resume subprocess. It independently requires production resume_from_durable to have zero VOLATILE reads and the planted temp sidecar path to exhibit VOLATILE-TMP.",
+    "reviewer_id": "TST-0169-probe2-durability-scan",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0169",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0169",
+  "state": "SUCCESS",
+  "sut": {
+    "catalog_input": "tools/lib/handled-ledger.mjs",
+    "catalog_input_present": true,
+    "live_engine": "command-center/p2-wave/probes/TST-0169/cold_resume.py",
+    "live_ledger": "command-center/p2-wave/probes/TST-0169/handled_ledger.py",
+    "live_mjs_cli": "command-center/p2-wave/probes/TST-0169/ledger_cli.mjs",
+    "note": "tools/lib/handled-ledger.mjs is the live catalog input: probe1 cold-resumes it from a clean shell (wiped TMPDIR, previous-session env traps) and probe2 classifies its store-path sources as DURABLE-DISK (caller stateDir + sibling tmp rename). The Python engine is the resume workflow SUT (fetch/reduce/emit checkpoint) plus the planted temp-sidecar detector control."
+  },
+  "tests": [
+    {
+      "id": "TST-0169-COLD-RESUME",
+      "name": "successful cold resume from a clean shell",
+      "result": "PASS"
+    },
+    {
+      "id": "TST-0169-BOTH-STATES",
+      "name": "both-states control: a warm resume in the same session also passes",
+      "result": "PASS"
+    },
+    {
+      "id": "TST-0169-DETECTOR",
+      "name": "detector control: plant one temp-dir dependency and confirm the cold resume fails",
+      "result": "PASS"
+    },
+    {
+      "id": "TST-0169-STATIC-SCAN",
+      "name": "production resume-time state reads are DURABLE-DISK only",
+      "result": "PASS"
+    }
+  ],
+  "title": "Cold resume after reboot depends on nothing in memory",
+  "ts": "2026-08-25T00:59:12Z",
+  "unit_id": "TST-0169"
+}

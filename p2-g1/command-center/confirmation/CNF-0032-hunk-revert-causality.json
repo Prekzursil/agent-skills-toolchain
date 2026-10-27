@@ -1,0 +1,409 @@
+{
+  "counts": {
+    "examined": 4,
+    "load_bearing": 2,
+    "non_load_bearing": 2,
+    "matched_revert_red_restore_green": 2
+  },
+  "scratch_isolation": {
+    "test_file_revert_refused": true,
+    "scratch_prefix": "cnf0032-scratch-",
+    "shared_checkout_untouched": true,
+    "git_add_commit_checkout_not_used": true,
+    "note": "protocol.refuse_test_revert_control raised ProtocolError on the attempted test_app.py hunk swap; tests stayed byte-identical"
+  },
+  "artifacts": [
+    {
+      "bytes": 1024,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/confirmation/CNF-0032-hunk-revert-causality.json",
+      "role": "primary",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "bytes": 1037,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/causality-report.schema.json",
+      "role": "supporting",
+      "sha256": "64453d2b74e577a8dcfa2b2c15acacc0311accd6f076f994af870335098714bf"
+    },
+    {
+      "bytes": 8806,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0032/protocol.py",
+      "role": "supporting",
+      "sha256": "a3e6da8e757d25a9cf3a969d626bb5f652a1bd036ad42f12a96d7760d7068853"
+    },
+    {
+      "bytes": 880,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0032/fixtures/subject/app.py",
+      "role": "fixture",
+      "sha256": "8d3a1dfda5f256ede0752996a7fb03ea2d54e4a8dc827f9e7ec4d0e3bd3588d6"
+    },
+    {
+      "bytes": 706,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0032/fixtures/subject/test_app.py",
+      "role": "fixture",
+      "sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/confirmation/CNF-0032-hunk-revert-causality.json",
+      "consumer": "schema_local.error_messages",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -B command-center/p2-wave/probes/CNF-0032/schema_local.py",
+        "exit_code": 0,
+        "fingerprint": "3eaa1260418923f9f68f535669efcf361847f088f96b1ad5671a310f7d79d640",
+        "method": "schema-validate",
+        "raw_output": "schema errors=0 against causality-report.schema.json via disk RefResolver",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0032/protocol.py:examine_one",
+      "claim": "Reverting only a load-bearing hunk in scratch returns the failure and restoring it goes green in the same session for 2 hunks ['F1-clamp-ternary', 'F3b-div-guard']; tests stay byte-identical and git add/commit/checkout are unused.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/protocol.py",
+          "exit_code": 0,
+          "fingerprint": "b1397407e0bdf2525aef5cd76790b4ef2dd211bdbc3c3dfaea8309fcac0bf4ca",
+          "method": "test-run",
+          "raw_output": "examined=4 load_bearing=2 non_load_bearing=2 matched=2\nF1-clamp-ternary class=load-bearing revert_red=True rc=1 restore_green=True rc=0 matched=True\nF2-tag-comment class=non-load-bearing revert_red=False rc=0 restore_green=True rc=0 matched=False\nF3a-div-comment class=confounded-change revert_red=False rc=0 restore_green=True rc=0 matched=False\nF3b-div-guard class=load-bearing revert_red=True rc=1 restore_green=True rc=0 matched=True\ntest_revert_refused=True\nmessage=refused: tests must stay intact (test_app.py)",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/probe1_revert_restore.py",
+          "exit_code": 0,
+          "fingerprint": "395488e65cd2a69660b53f5cc119f5cf7456b0851a59c64af2f240c673b518ab",
+          "method": "command",
+          "raw_output": "matched=2 ids=['F1-clamp-ternary', 'F3b-div-guard'] tests_intact=True git_unused=True\nSUCCESS:CNF-0032-probe1 revert-red and restore-green same session",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0032/protocol.py:refuse_test_revert_control",
+      "claim": "2 examined hunks ['F2-tag-comment', 'F3a-div-comment'] did not return the failure on revert (non-load-bearing / confounded). Reversing the test file is refused.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/protocol.py",
+          "exit_code": 0,
+          "fingerprint": "b1397407e0bdf2525aef5cd76790b4ef2dd211bdbc3c3dfaea8309fcac0bf4ca",
+          "method": "test-run",
+          "raw_output": "examined=4 load_bearing=2 non_load_bearing=2 matched=2\nF1-clamp-ternary class=load-bearing revert_red=True rc=1 restore_green=True rc=0 matched=True\nF2-tag-comment class=non-load-bearing revert_red=False rc=0 restore_green=True rc=0 matched=False\nF3a-div-comment class=confounded-change revert_red=False rc=0 restore_green=True rc=0 matched=False\nF3b-div-guard class=load-bearing revert_red=True rc=1 restore_green=True rc=0 matched=True\ntest_revert_refused=True\nmessage=refused: tests must stay intact (test_app.py)",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/probe2_non_load_bearing.py",
+          "exit_code": 0,
+          "fingerprint": "f5081ae8c9a87409fffd589e6f5ed4ce1532a303bcc7d2b21fcdf6e39f522fb0",
+          "method": "command",
+          "raw_output": "non_load_bearing=2 ids=['F2-tag-comment', 'F3a-div-comment'] test_revert_refused=True\nSUCCESS:CNF-0032-probe2 non-load-bearing classified; test revert refused",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "answer": "2 of 4 examined hunks did not return the failure on revert (not load-bearing / confounded): ['F2-tag-comment', 'F3a-div-comment']. Load-bearing hunks with matched revert-red and restore-green: ['F1-clamp-ternary', 'F3b-div-guard'].",
+    "cloud_ok": false,
+    "completion_sentinel": "SUCCESS:CNF-0032 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and each examined fix has a matched revert-red and restore-green pair recorded. Any other terminal state is FAILED:CNF-0032 <classification> with the diagnostic tail attached.",
+    "global_unit_manifest_write": false,
+    "question": "Is the fix the CAUSE of the corrected behaviour, or did something else change alongside it? In a scratch tree revert ONLY the fix hunk, leaving tests and everything else intact, and require the failure to return. Question: for how many fixes does the failure NOT return, meaning the fix is not load-bearing for the behaviour it claims?",
+    "sampling_frame": {
+      "kind": "fixture-hunk-corpus",
+      "n_examined": 4,
+      "rationale": "This worktree is not used as a git checkout of product fix commits (git add/commit/checkout are forbidden). The examined set is a four-hunk fixture corpus that mixes load-bearing guards with comment-only and confounded hunks so the protocol must discriminate, not always-pass."
+    },
+    "stage": "p2-deliver",
+    "title": "Causality proof by reverting only the fix hunk and requiring the failure to return"
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0032",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0032/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T00:58:23Z"
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "F2-tag-comment revert is_red=False restore is_green=True classification=non-load-bearing",
+      "description": "Comment-only hunk F2-tag-comment is reversed; tests stay green, so the protocol can classify non-load-bearing.",
+      "fired_on_bad_state": true,
+      "good_state_output": "baseline scratch tests exit 0 before any hunk revert",
+      "id": "NC-CNF0032-COMMENT-ONLY-STILL-GREEN",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "F3a-div-comment revert is_red=False classification=confounded-change",
+      "description": "F3a-div-comment is reversed while the zero-denominator guard stays; failure does not return (confounded-change).",
+      "fired_on_bad_state": true,
+      "good_state_output": "F3b-div-guard revert is_red=True restore is_green=True classification=load-bearing",
+      "id": "NC-CNF0032-CONFOUNDED-COMMENT",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "refused: tests must stay intact (test_app.py)",
+      "description": "Protocol refuses to reverse-apply a hunk in the test file.",
+      "fired_on_bad_state": true,
+      "good_state_output": "tests_sha256=0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+      "id": "NC-CNF0032-REFUSE-TEST-REVERT",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "causality-engineer",
+    "vendor": "xai"
+  },
+  "report": {
+    "answer": "2 of 4 examined hunks did not return the failure on revert (not load-bearing / confounded): ['F2-tag-comment', 'F3a-div-comment']. Load-bearing hunks with matched revert-red and restore-green: ['F1-clamp-ternary', 'F3b-div-guard'].",
+    "control_ids": [
+      "NC-CNF0032-COMMENT-ONLY-STILL-GREEN",
+      "NC-CNF0032-CONFOUNDED-COMMENT",
+      "NC-CNF0032-REFUSE-TEST-REVERT"
+    ],
+    "counts": {
+      "examined": 4,
+      "load_bearing": 2,
+      "matched_revert_red_restore_green": 2,
+      "non_load_bearing": 2
+    },
+    "examined_fixes": [
+      {
+        "classification": "load-bearing",
+        "expected": "load-bearing",
+        "hunk": {
+          "new_text": "    return 0 if n < 0 else n  # CNF-0032-F1\n",
+          "old_text": "    return n  # CNF-0032-F1-pre\n",
+          "unified_diff": "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-    return n  # CNF-0032-F1-pre\n+    return 0 if n < 0 else n  # CNF-0032-F1\n"
+        },
+        "id": "F1-clamp-ternary",
+        "matched_revert_red_restore_green": true,
+        "path": "app.py",
+        "restore": {
+          "exit_code": 0,
+          "is_green": true,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "revert": {
+          "exit_code": 1,
+          "is_red": true,
+          "output_tail": "F....\n======================================================================\nFAIL: test_clamp_negative (__main__.TestApp.test_clamp_negative)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/cnf0032-scratch-imxndvv1/subject/test_app.py\", line 12, in test_clamp_negative\n    self.assertEqual(clamp_non_negative(-4), 0)\nAssertionError: -4 != 0\n\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nFAILED (failures=1)"
+        },
+        "same_session": true,
+        "test_command": [
+          "/usr/bin/python3",
+          "-B",
+          "test_app.py"
+        ],
+        "test_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+        "tests_intact": true
+      },
+      {
+        "classification": "non-load-bearing",
+        "expected": "non-load-bearing",
+        "hunk": {
+          "new_text": "    # tagged for operators  # CNF-0032-F2\n",
+          "old_text": "    # (no operator tag)  # CNF-0032-F2-pre\n",
+          "unified_diff": "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-    # (no operator tag)  # CNF-0032-F2-pre\n+    # tagged for operators  # CNF-0032-F2\n"
+        },
+        "id": "F2-tag-comment",
+        "matched_revert_red_restore_green": false,
+        "path": "app.py",
+        "restore": {
+          "exit_code": 0,
+          "is_green": true,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "revert": {
+          "exit_code": 0,
+          "is_red": false,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "same_session": true,
+        "test_command": [
+          "/usr/bin/python3",
+          "-B",
+          "test_app.py"
+        ],
+        "test_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+        "tests_intact": true
+      },
+      {
+        "classification": "confounded-change",
+        "expected": "confounded-change",
+        "hunk": {
+          "new_text": "    # handles zero denominator  # CNF-0032-F3a\n",
+          "old_text": "    # (no zero-denominator note)  # CNF-0032-F3a-pre\n",
+          "unified_diff": "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-    # (no zero-denominator note)  # CNF-0032-F3a-pre\n+    # handles zero denominator  # CNF-0032-F3a\n"
+        },
+        "id": "F3a-div-comment",
+        "matched_revert_red_restore_green": false,
+        "path": "app.py",
+        "restore": {
+          "exit_code": 0,
+          "is_green": true,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "revert": {
+          "exit_code": 0,
+          "is_red": false,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "same_session": true,
+        "test_command": [
+          "/usr/bin/python3",
+          "-B",
+          "test_app.py"
+        ],
+        "test_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+        "tests_intact": true
+      },
+      {
+        "classification": "load-bearing",
+        "expected": "load-bearing",
+        "hunk": {
+          "new_text": "        return None  # CNF-0032-F3b\n",
+          "old_text": "        return num / den  # CNF-0032-F3b-pre\n",
+          "unified_diff": "--- a/app.py\n+++ b/app.py\n@@ -1 +1 @@\n-        return num / den  # CNF-0032-F3b-pre\n+        return None  # CNF-0032-F3b\n"
+        },
+        "id": "F3b-div-guard",
+        "matched_revert_red_restore_green": true,
+        "path": "app.py",
+        "restore": {
+          "exit_code": 0,
+          "is_green": true,
+          "output_tail": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.000s\n\nOK"
+        },
+        "revert": {
+          "exit_code": 1,
+          "is_red": true,
+          "output_tail": "...E.\n======================================================================\nERROR: test_div_zero (__main__.TestApp.test_div_zero)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/tmp/cnf0032-scratch-imxndvv1/subject/test_app.py\", line 21, in test_div_zero\n    self.assertIsNone(divide_or_none(3, 0))\n                      ^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/cnf0032-scratch-imxndvv1/subject/app.py\", line 27, in divide_or_none\n    return num / den  # CNF-0032-F3b-pre\n           ~~~~^~~~~\nZeroDivisionError: division by zero\n\n----------------------------------------------------------------------\nRan 5 tests in 0.001s\n\nFAILED (errors=1)"
+        },
+        "same_session": true,
+        "test_command": [
+          "/usr/bin/python3",
+          "-B",
+          "test_app.py"
+        ],
+        "test_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+        "tests_intact": true
+      }
+    ],
+    "kind": "causality-report",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0032/protocol.py:HUNKS",
+        "measured": 4,
+        "method": "four-hunk fixture corpus reverse-applied one at a time in scratch",
+        "name": "examined-hunks"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0032/protocol.py:examine_one",
+        "measured": 2,
+        "method": "unittest of scratch copy after reverse-apply then restore",
+        "name": "matched-revert-red-restore-green"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0032/probe2_non_load_bearing.py",
+        "measured": 2,
+        "method": "failure does not return on hunk revert while restore stays green",
+        "name": "non-load-bearing-or-confounded"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0032/protocol.py:refuse_test_revert_control",
+        "measured": true,
+        "method": "apply_swap on test_app.py raises ProtocolError",
+        "name": "test-file-revert-refused"
+      }
+    ],
+    "question": "Is the fix the CAUSE of the corrected behaviour, or did something else change alongside it? In a scratch tree revert ONLY the fix hunk, leaving tests and everything else intact, and require the failure to return. Question: for how many fixes does the failure NOT return, meaning the fix is not load-bearing for the behaviour it claims?",
+    "scratch_isolation": {
+      "baseline_green": true,
+      "fixture_app_sha256": "8d3a1dfda5f256ede0752996a7fb03ea2d54e4a8dc827f9e7ec4d0e3bd3588d6",
+      "fixture_test_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99",
+      "git_add_commit_checkout_not_used": true,
+      "refuse_test_revert": {
+        "attempted_path": "test_app.py",
+        "message": "refused: tests must stay intact (test_app.py)",
+        "refused": true,
+        "tests_sha256": "0da6ace9ec31acd853ae3e4fe535c5286b87f2d7ccaed0b4c60e7682f4f63f99"
+      },
+      "scratch_prefix": "cnf0032-scratch-",
+      "shared_checkout_untouched": true,
+      "test_file_revert_refused": true,
+      "tests_never_reverted": true
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Whether any product-tree git fix hunk is load-bearing was not measured on this worktree.",
+      "settling_experiment": "On a git product checkout, reverse-apply each committed fix hunk in a scratch tree that is not the shared checkout, run the associated tests, restore, and record revert-red/restore-green per hunk without git add/commit/checkout.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 re-runs the live protocol from raw fixture + recorded exits and must classify at least one non-load-bearing hunk and refuse a test-file revert before the report conclusion is treated as given.",
+    "reviewed_at": "2026-08-25T00:58:23Z",
+    "reviewer_id": "CNF-0032-probe2-non-load-bearing-control",
+    "vendor": "xai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0032 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and each examined fix has a matched revert-red and restore-green pair recorded. Any other terminal state is FAILED:CNF-0032 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/catalog-slices/CNF-1.json:CNF-0032",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/probe1_revert_restore.py",
+      "id": "T1-revert-restore-same-session",
+      "name": "Failure returns on revert and disappears on restore in the same session",
+      "output_tail": "matched=2 ids=['F1-clamp-ternary', 'F3b-div-guard'] tests_intact=True git_unused=True\nSUCCESS:CNF-0032-probe1 revert-red and restore-green same session",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0032/probe2_non_load_bearing.py",
+      "id": "T2-non-load-bearing-and-refuse-test-revert",
+      "name": "Non-load-bearing hunks classified; test-file revert refused",
+      "output_tail": "non_load_bearing=2 ids=['F2-tag-comment', 'F3a-div-comment'] test_revert_refused=True\nSUCCESS:CNF-0032-probe2 non-load-bearing classified; test revert refused",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:23Z",
+    "started_at": "2026-08-25T00:58:22Z"
+  },
+  "unit_id": "CNF-0032"
+}

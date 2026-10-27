@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "id": "IMP-0127",
+  "unit_id": "IMP-0127",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0127",
+  "completion_sentinel": "SUCCESS:IMP-0127",
+  "title": "Typed registry-to-plugin handoff contract (one installer control plane)",
+  "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0127",
+  "min_bytes_threshold": 128,
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/install-handoff.schema.json",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "worktree-isolated"
+  },
+  "dependencies_status": {
+    "IMP-0023": "not-delivered-on-this-tree; this unit ships a minimal install_from_handoff sufficient to enforce the typed handoff",
+    "IMP-0086": "not-delivered-on-this-tree; marketplace.install builds a handoff and delegates; signature/lockfile gates remain IMP-0086"
+  },
+  "artifacts": [
+    {
+      "path": "tools/marketplace/schema/install-handoff.schema.json",
+      "bytes": 2631,
+      "sha256": "30fc7ef4c5a68ae02c2c312c88a4fbb5fddf55764aaf2911b26d4883d6f91bfb",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/handoff.py",
+      "bytes": 2435,
+      "sha256": "4a466c5fc974fa374b48a122db560c466dcb4646cba86419d6a2e4ad9364d739",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/install.py",
+      "bytes": 623,
+      "sha256": "13dcac1013c9684c47583c5785a24b3f3c861bdad2d22892a2ccc4561c431a9c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/audit.py",
+      "bytes": 6514,
+      "sha256": "b0a9f30a6d92ba897b1fc4243d305e93430eb359dcc2dca17f16fa747e469dca",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/placement.py",
+      "bytes": 947,
+      "sha256": "010d3cb84263add5d98db97ff2618ee0f824bb77a58a1938cd7d6f5153af3aaf",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/install.py",
+      "bytes": 2038,
+      "sha256": "0068385798bafb44d1f8e8b3c3d57374c9b1f2cfee77ee345e1e6b363566a272",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/payload.py",
+      "bytes": 2546,
+      "sha256": "42910b4ebbef7256a7f1c0aba81c3b2050ef9de12679711db6e38e47d7ef179c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/errors.py",
+      "bytes": 894,
+      "sha256": "42c64591f4225a6453f5f456537be8f8b83627a78bea88870942433337149344",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_handoff_contract.py",
+      "bytes": 5830,
+      "sha256": "78f01605727927c57f80e1fdde8412f3fb37f5e98c5c8f3e94511ced4677c603",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0127/probe1_handoff_census.py",
+      "bytes": 3955,
+      "sha256": "6b9ce15ef503e06abb7e6f17ec827ea0e9969849823f0c5ab7fcfedce9b5d45c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0127/probe2_placement_audit.py",
+      "bytes": 5226,
+      "sha256": "000309b55377e73a2ed0688bee41a07b0bfbcd3f9d980f38ed1d4f4bd8abb47c",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A schema-validated install-handoff (payload_path, digest, declared_permissions, projection_map, transaction_id) flows end to end: marketplace.install and a direct install_from_handoff of a separately built handoff produce identical dest censuses of 4 files (['plugins/handoff-demo/hooks/hook.demo.json', 'plugins/handoff-demo/plugin.json', 'plugins/handoff-demo/rules/rule.demo.md', 'plugins/handoff-demo/skills/skill.demo/SKILL.md']).",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/schema/install-handoff.schema.json",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_handoff_contract.py",
+          "exit_code": 0,
+          "raw_output": "test_handoff_object_validates_and_installs (__main__.TestHandoffObjectValidatesAndInstalls.test_handoff_object_validates_and_installs) ... ok\ntest_single_placement_call_site (__main__.TestSinglePlacementCallSite.test_single_placement_call_site) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.381s\n\nOK"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "live marketplace.install vs install_from_handoff census",
+          "exit_code": 0,
+          "raw_output": "{\"equal\": true, \"files\": [\"plugins/handoff-demo/hooks/hook.demo.json\", \"plugins/handoff-demo/plugin.json\", \"plugins/handoff-demo/rules/rule.demo.md\", \"plugins/handoff-demo/skills/skill.demo/SKILL.md\"], \"schema_discriminates\": true, \"garbage_error_counts\": [8, 8, 7]}"
+        }
+      ]
+    },
+    {
+      "claim": "Structural audit of the install plane counts exactly one @file_placement_call_site (plugin.placement.place_payload_files). Marketplace install-plane modules have zero content-writes.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/placement.py",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "marketplace.audit.audit_live",
+          "exit_code": 0,
+          "raw_output": "{\"ok\": true, \"placement_site_count\": 1, \"site\": {\"package\": \"plugin\", \"name\": \"place_payload_files\", \"file\": \"/opt/p2/ast-integrate/tools/plugin/placement.py\", \"lineno\": 16, \"end_lineno\": 30}}"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "test_single_placement_call_site planted second site",
+          "exit_code": 0,
+          "raw_output": "planted decorated function in a copy of placement.py makes placement_site_count=2; planted write_bytes in a copy of marketplace/install.py is reported as marketplace content-writes"
+        }
+      ]
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:04:00Z",
+    "ended_at": "2026-08-25T01:04:01Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "tests": [
+    {
+      "id": "test_handoff_object_validates_and_installs",
+      "command": "python3 -B tools/marketplace/tests/test_handoff_contract.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "test_handoff_object_validates_and_installs (__main__.TestHandoffObjectValidatesAndInstalls.test_handoff_object_validates_and_installs) ... ok\ntest_single_placement_call_site (__main__.TestSinglePlacementCallSite.test_single_placement_call_site) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.381s\n\nOK"
+    },
+    {
+      "id": "test_single_placement_call_site",
+      "command": "python3 -B tools/marketplace/tests/test_handoff_contract.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "live placement_site_count=1"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0127-C1-planted-second-placement-site",
+      "kind": "known-broken-fixture",
+      "description": "A second @file_placement_call_site function is appended to a copy of tools/plugin/placement.py. The audit must go red. Removing the plant returns the copy to ok=true.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "placement_site_count=2 ok=false",
+      "good_state_output": "placement_site_count=1 ok=true"
+    },
+    {
+      "id": "IMP0127-C2-direct-bypass-without-transaction-id",
+      "kind": "other",
+      "description": "Calling plugin.install.install_from_handoff without a transaction_id (missing field or a raw string) must raise MissingTransactionIdError and must not place files.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "transaction_id is required to call the plugin installer",
+      "good_state_output": "typed handoff with uuid transaction_id installs"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0127-probe2-placement-audit",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 is a separate process: it re-runs the AST audit, plants a second call site in a throwaway copy, and calls the plugin installer with an untyped payload to confirm the transaction_id bypass is visible."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0127/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0127",
+      "artifact_path": "command-center/receipts/IMP-0127.json",
+      "executed": false,
+      "read_ok": false,
+      "exit_code": null,
+      "note": "filled after named probes; G-1 measure is the delivery gate"
+    }
+  ],
+  "defects": [],
+  "residual_unknowns": [
+    {
+      "claim": "Full IMP-0023 three-phase atomicity (kill mid-activate leaves exactly one valid tree) is not claimed. This unit's installer stages via the single place_payload_files then renames.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver IMP-0023 kill-mid-activate test against this installer."
+    },
+    {
+      "claim": "IMP-0086 verification gates (signature, revocation, lockfile) are not implemented in marketplace.install; it builds a handoff from an already-present payload directory.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver IMP-0086 gates in front of build_handoff."
+    }
+  ],
+  "report": {
+    "kind": "install-handoff-contract",
+    "measurement": {
+      "schema_path": "tools/marketplace/schema/install-handoff.schema.json",
+      "garbage_error_counts": [
+        8,
+        8,
+        7
+      ],
+      "schema_discriminates": true,
+      "audit_ok": true,
+      "placement_site_count": 1,
+      "placement_site": {
+        "package": "plugin",
+        "name": "place_payload_files",
+        "file": "/opt/p2/ast-integrate/tools/plugin/placement.py",
+        "lineno": 16,
+        "end_lineno": 30
+      },
+      "marketplace_writes": [],
+      "writes_outside_site": [],
+      "files_placed": [
+        "plugins/handoff-demo/hooks/hook.demo.json",
+        "plugins/handoff-demo/plugin.json",
+        "plugins/handoff-demo/rules/rule.demo.md",
+        "plugins/handoff-demo/skills/skill.demo/SKILL.md"
+      ],
+      "censuses_equal": true,
+      "transaction_ids_differ": true,
+      "bypass_visible": true,
+      "bypass_message": "transaction_id is required to call the plugin installer",
+      "handoff_keys": [
+        "declared_permissions",
+        "digest",
+        "payload_path",
+        "plugin_name",
+        "plugin_version",
+        "projection_map",
+        "source",
+        "transaction_id"
+      ],
+      "plugin_name": "handoff-demo"
+    }
+  }
+}

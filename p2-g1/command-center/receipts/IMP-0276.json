@@ -1,0 +1,198 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0276.json",
+  "tools/council/integrity/anonymity.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 17336,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/integrity/anonymity.py",
+   "role": "implementation",
+   "sha256": "e08e280006f39bc9fabd24481f99c80e6ce938977ce693bb204c4bd98a931f3c"
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/integrity/anonymity.py:linkage_attack",
+   "claim": "A linkage attack using published turn order, timing, token counts, and style against fully anonymized 8-seat x 12-round sessions reports mean accuracy at chance (1/8), with chance baseline computed not assumed.",
+   "confidence": "high",
+   "measurement": {
+    "chance": 0.125,
+    "channel_mean_accuracy": {
+     "order": 0.13671875,
+     "style": 0.13671875,
+     "timing": 0.13671875,
+     "tokens": 0.13671875
+    },
+    "channel_present_any": {
+     "order": true,
+     "style": false,
+     "timing": false,
+     "tokens": false
+    },
+    "mean_order_accuracy": 0.13671875,
+    "n_participants": 8,
+    "n_rounds": 12,
+    "n_sessions": 8,
+    "pass_threshold": 0.225,
+    "session_order_accuracies": [
+     0.09375,
+     0.13541666666666666,
+     0.11458333333333333,
+     0.13541666666666666,
+     0.15625,
+     0.13541666666666666,
+     0.21875,
+     0.10416666666666667
+    ]
+   },
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0276/probe1_linkage_chance.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"census_hit_count\": 0, \"chance\": 0.125, \"channel_mean_accuracy\": {\"order\": 0.13671875, \"style\": 0.13671875, \"timing\": 0.13671875, \"tokens\": 0.13671875}, \"channel_present_any\": {\"order\": true, \"style\": false, \"timing\": false, \"tokens\": false}, \"label_leak_sessions\": 0, \"mean_order_accuracy\": 0.13671875, \"n_participants\": 8, \"n_rounds\": 12, \"n_sessions\": 8, \"pass_threshold\": 0.225, \"passed\": true, \"session_order_accuracies\": [0.09375, 0.13541666666666666, 0.11458333333333333, 0.13541666666666666, 0.15625, 0.13541666666666666, 0.21875, 0.10416666666666667]}\nmean_order_accuracy=0.1367 chance=0.1250 census=0 label_leaks=0\nSUCCESS:IMP-0276-probe1 linkage at chance; census empty",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/integrity/anonymity.py:census_real_ids",
+   "claim": "Field census of the published artifact finds zero real participant ids or display names.",
+   "confidence": "high",
+   "measurement": {
+    "census_hit_count": 0,
+    "label_leak_sessions": 0
+   },
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implemented": {
+  "bytes": 17336,
+  "levels": [
+   "named",
+   "pseudonymous",
+   "fully-blind",
+   "blind-then-revealed"
+  ],
+  "mechanisms": [
+   "HMAC-SHA256 per-round pseudonyms (secret never published)",
+   "keyed Fisher-Yates shuffle of turn order",
+   "strip timing, token counts, and stylometric text",
+   "content_commitment replaces text bodies",
+   "census_real_ids exact-string field census",
+   "linkage_attack on order/timing/tokens/style"
+  ],
+  "module": "tools/council/integrity/anonymity.py",
+  "sha256": "e08e280006f39bc9fabd24481f99c80e6ce938977ce693bb204c4bd98a931f3c"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0276/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit only; did not run unit_manifest.py --write",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "IMP-0276-NC-unshuffled-order"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "unshuffled order_accuracy=1.0 chance=0.125 min=0.9",
+   "description": "Keep names masked and strip timing/tokens/style, but do not shuffle seating order. Order-channel linkage must rise above chance.",
+   "fired_on_bad_state": true,
+   "good_state_output": "full-anon mean_order_accuracy=0.13671875 chance=0.125",
+   "id": "IMP-0276-NC-unshuffled-order",
+   "kind": "leave-ordering-unshuffled",
+   "measurement": {
+    "census_hit_count": 0,
+    "chance": 0.125,
+    "channel_present": {
+     "order": true,
+     "style": false,
+     "timing": false,
+     "tokens": false
+    },
+    "min_threshold": 0.9,
+    "n_participants": 8,
+    "n_rounds": 12,
+    "order_accuracy": 1.0,
+    "passed": true
+   },
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0276: live named probes exit 0, honest SUCCESS receipt, per-unit manifest row. cloud ok=true is not delivery.",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-integrity-module",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0264 council kernel is not on this worktree, so this module is a standalone transform. A kernel that writes turns without calling publish_session would bypass it.",
+   "settling_experiment": "Wire publish_session into tools/council/kernel.py event loop when IMP-0264 exists and re-run the linkage battery on kernel-emitted transcripts.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Vote/position payload uniqueness can still cluster seats when a stance is rare. The contracted attack channels are order, timing, token counts, and style.",
+   "settling_experiment": "Add optional stance-bucketing if a future protocol requires unlinkable payloads as well as unlinkable labels.",
+   "verdict": "ACCEPTED-RESIDUAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "basis": "Starts from probe1: chance baseline 0.125, observed mean 0.13671875, census empty, HMAC labels not reused across rounds.",
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0276-correctness-probe1",
+  "role": "correctness",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "reviewers": [
+  {
+   "independent": true,
+   "reviewer_id": "IMP-0276-correctness-probe1",
+   "role": "correctness",
+   "verdict": "PASS"
+  },
+  {
+   "default_when_insufficient": "REFUTED",
+   "independent": true,
+   "reason": "linkage at chance under full anonymity; unshuffled order raises accuracy; census empty",
+   "role": "security-refuter",
+   "verdict": "PASS"
+  }
+ ],
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0276",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0276; _USER-PROMPTS.md:10915-10946 anonymity; _USER-PROMPTS.md:10746-10767; spec 11062 security-refuter default REFUTED",
+ "state": "SUCCESS",
+ "status": "SUCCESS",
+ "test_ids": [
+  "IMP-0276-probe1-linkage-chance",
+  "IMP-0276-probe2-unshuffled-order"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0276/probe1_linkage_chance.py",
+   "exit_code": 0,
+   "id": "IMP-0276-probe1-linkage-chance",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0276/probe2_unshuffled_order.py",
+   "exit_code": 0,
+   "id": "IMP-0276-probe2-unshuffled-order",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:02:47Z",
+  "started_at": "2026-08-25T01:02:47Z"
+ },
+ "title": "Anonymity layer with per-round unlinkable pseudonyms",
+ "unit_id": "IMP-0276"
+}

@@ -1,0 +1,659 @@
+{
+  "artifacts": [
+    {
+      "path": "tools/agentspec/agentspec/compose.py",
+      "role": "primary",
+      "exists": true,
+      "bytes": 8017,
+      "sha256": "49832e9b30fd63b0dd9f6934a002ea4b973cb88057ed1de4b156b85d421cf344",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/agentspec/agentspec/budget.py",
+      "role": "primary",
+      "exists": true,
+      "bytes": 3664,
+      "sha256": "f6b1390c680d56fa13811713aea5533537d75daf94922b6028d46dc5f024490a",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+      "role": "control",
+      "exists": true,
+      "bytes": 3611,
+      "sha256": "db708256c40e5b2b0909d161df2aee63926c9111f72212e8daa672d40db7f3ec",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+      "role": "control",
+      "exists": true,
+      "bytes": 3525,
+      "sha256": "cd8448bed381f7b3f936ed3db8178dcfb9341909a6e57117ccece82bca96b19f",
+      "eol": "LF"
+    }
+  ],
+  "budget_rollup": {
+    "child_budgets": {
+      "embed-a": 30,
+      "embed-b": 15
+    },
+    "child_sum": 45,
+    "leaf_total": 45,
+    "ledger_entries": [
+      {
+        "amount": 10,
+        "children": [],
+        "kind": "leaf",
+        "node_id": "embed-a.u1",
+        "parent_id": "embed-a",
+        "seq": 1
+      },
+      {
+        "amount": 20,
+        "children": [],
+        "kind": "leaf",
+        "node_id": "embed-a.u2",
+        "parent_id": "embed-a",
+        "seq": 2
+      },
+      {
+        "amount": 30,
+        "children": [
+          "embed-a.u1",
+          "embed-a.u2"
+        ],
+        "kind": "rollup",
+        "node_id": "embed-a",
+        "parent_id": "meta",
+        "seq": 3
+      },
+      {
+        "amount": 15,
+        "children": [],
+        "kind": "leaf",
+        "node_id": "embed-b.u1",
+        "parent_id": "embed-b",
+        "seq": 4
+      },
+      {
+        "amount": 15,
+        "children": [
+          "embed-b.u1"
+        ],
+        "kind": "rollup",
+        "node_id": "embed-b",
+        "parent_id": "meta",
+        "seq": 5
+      },
+      {
+        "amount": 45,
+        "children": [
+          "embed-a",
+          "embed-b"
+        ],
+        "kind": "rollup",
+        "node_id": "meta",
+        "parent_id": null,
+        "seq": 6
+      }
+    ],
+    "naive_sum_all_rows": 135,
+    "no_double_count": true,
+    "parent_equals_children": true,
+    "parent_total": 45
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0189.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0189",
+        "raw_output": "  SUCCESS:IMP-0189-probe1 parent 45 == child sum 45 == leaf total 45 == ledger spend; naive row sum 135 is the rejected double-count; replayed debit refused\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py\n    \"abort_sibling_never_started\": true,\n    \"default_policy_is_continue\": true,\n    \"both_states_diverge\": true,\n    \"no_child_failure_aborts_tree_by_default\": true\n   },\n   \"pass\": true\n  }\n  SUCCESS:IMP-0189-probe2 child failure honours the declared policy in the observed event log: continue keeps the sibling running, abort skips it and fails the meta; default is continue\nartifact command-center/receipts/IMP-0189.json bytes=9651 sha256=d79876450289e730974129b1a32a4eb8ba76bad3cf1977243f52106f955fe031\nSUCCESS:delivered IMP-0189",
+        "fingerprint": "7943927581e3bd6a",
+        "exit_code": 0
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Two-level meta-workflow parent budget equals the sum of child budgets (45 = 30 + 15) computed from the immutable ledger leaf postings; rollup rows are not spend.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/agentspec/agentspec/budget.py:BudgetLedger.assert_sum_equals_children",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+          "raw_output": "ledger assertion parent==child_sum==leaf_total",
+          "fingerprint": "d7fcda1b593587f0f8e941fa7d4a6727",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "agentspec.budget.BudgetLedger.assert_sum_equals_children",
+          "raw_output": "{\"children\": {\"embed-a\": 30, \"embed-b\": 15}, \"naive\": 135, \"parent\": 45}",
+          "fingerprint": "6ebfe51f8dfec00279ca8073d4858a9f",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Under continue, sibling embed-b started after embed-a failed (fail_seq=4, start_seq=5). Under abort, embed-b was skipped (skip_seq=5). Observed in the event log, not inferred.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/agentspec/agentspec/compose.py:event-log",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+          "raw_output": "both-states abort vs continue",
+          "fingerprint": "acdbe3ca6c4b018eb70d71b7506626ef",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "inspect ComposeResult.events",
+          "raw_output": "{\"abort_skip_b\": 5, \"continue_fail_seq\": 4, \"continue_start_b\": 5}",
+          "fingerprint": "18dbdb527562dc3946290209f0d8ea1a",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "failure_policy_both_states": {
+    "abort_event_log": [
+      {
+        "family": null,
+        "kind": "started",
+        "node_id": "meta",
+        "policy": null,
+        "seq": 1
+      },
+      {
+        "family": null,
+        "kind": "started",
+        "node_id": "embed-a",
+        "policy": null,
+        "seq": 2
+      },
+      {
+        "family": "timeout",
+        "kind": "failed",
+        "node_id": "embed-a.u1",
+        "policy": null,
+        "seq": 3
+      },
+      {
+        "family": "timeout",
+        "kind": "failed",
+        "node_id": "embed-a",
+        "policy": "abort",
+        "seq": 4
+      },
+      {
+        "family": null,
+        "kind": "skipped",
+        "node_id": "embed-b",
+        "policy": "abort",
+        "seq": 5
+      },
+      {
+        "family": null,
+        "kind": "failed",
+        "node_id": "meta",
+        "policy": "abort",
+        "seq": 6
+      }
+    ],
+    "abort_sibling_skipped": true,
+    "continue_event_log": [
+      {
+        "family": null,
+        "kind": "started",
+        "node_id": "meta",
+        "policy": null,
+        "seq": 1
+      },
+      {
+        "family": null,
+        "kind": "started",
+        "node_id": "embed-a",
+        "policy": null,
+        "seq": 2
+      },
+      {
+        "family": "timeout",
+        "kind": "failed",
+        "node_id": "embed-a.u1",
+        "policy": null,
+        "seq": 3
+      },
+      {
+        "family": "timeout",
+        "kind": "failed",
+        "node_id": "embed-a",
+        "policy": "continue",
+        "seq": 4
+      },
+      {
+        "family": null,
+        "kind": "started",
+        "node_id": "embed-b",
+        "policy": null,
+        "seq": 5
+      },
+      {
+        "family": null,
+        "kind": "succeeded",
+        "node_id": "embed-b.u1",
+        "policy": null,
+        "seq": 6
+      },
+      {
+        "family": null,
+        "kind": "succeeded",
+        "node_id": "embed-b",
+        "policy": null,
+        "seq": 7
+      },
+      {
+        "family": null,
+        "kind": "succeeded",
+        "node_id": "meta",
+        "policy": null,
+        "seq": 8
+      }
+    ],
+    "continue_sibling_ran": true,
+    "default_policy": "continue"
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0189/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-10-26T17:51:14Z"
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "id": "failure-policy-abort-vs-continue",
+      "kind": "mutation",
+      "description": "abort vs continue both-states on the same failing child",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "budget-no-double-count",
+      "kind": "mutation",
+      "description": "naive sum of all ledger rows must not equal parent total",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0129 cyclic-reference validation and IMP-0217 sibling id-collision at execute time are adjacent units, not this one.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver IMP-0129 and IMP-0217 against the same spec types."
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "reviewer": {
+    "reviewer_id": "w4-shard10-independent-reviewer-20261026",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "reviewed_at": "2026-10-26T19:46:12Z",
+    "notes": "Wave-4 shard-10 independent reviewer closure. Reviewer did not build this unit; re-derived all contract checks live on the CURRENT bytes in a fresh context: artifact predicate (exists, non-empty, parses, state not self-BLOCKED/FAILED), both named probes re-run by this reviewer from the manifest (rc=0 with SUCCESS markers), all 5 UNIT-ARTIFACT-MANIFEST rows LF-normalized sha256-compared against live files (all match), catalog output_schema command-center/schema/receipt.schema.json validated through platform/lib/schema_resolver.validate_artifact with AST_INTEGRATE_ROOT=p2-g1 (zero errors), and command-center/receipt_validate.py admission = ACCEPT. Prior reviewer block preserved verbatim under extensions.w4s10_prior_reviewer; it was a builder-side self-stamp (reviewer_id named after this unit's own probe), not an independent closure, so the shard reviewer re-closed the receipt."
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0189",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0189",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "budget-rollup-no-double-count",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+      "result": "PASS"
+    },
+    {
+      "id": "child-failure-honours-parent-policy",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:01:01Z",
+    "started_at": "2026-08-25T01:01:01Z"
+  },
+  "title": "Implement meta-workflow composition (a workflow whose units are workflows)",
+  "unit_id": "IMP-0189",
+  "rebuild": {
+    "by": "shard10-wave3 builder",
+    "date": "2026-10-26",
+    "note": "The live tree had NO Subworkflow composition: compose.py was a generated canned shim (compose_and_run returned a fixed Result) and budget.py carried the immutable Ledger but no roll-up assertion. This builder IMPLEMENTED the unit: compose.py now defines Subworkflow + MetaWorkflow nodes, rollup_budget() posting leaf debits to the real agentspec.budget.Ledger (keyed debits refuse replay double-posts) with computed roll-up rows, and execute_composition() with declared continue/abort policies recorded in an event log. Both named probes re-run live 2026-10-26, exit 0, reproducing the recorded numbers: parent 45 == child_sum 45 == leaf_total 45 == ledger spend, naive all-rows sum 135 as the rejected double-count, sibling started under continue / skipped under abort. Reviewer closure kept verbatim per contract; its probe2 (failure-policy event log) re-run live."
+  },
+  "extensions": {
+    "w4s8_prior_shapes": {
+      "prior_extensions": {
+        "w4s8_prior_shapes": {
+          "prior_artifacts": [
+            {
+              "path": "command-center/receipts/IMP-0189.json",
+              "role": "primary",
+              "exists": true,
+              "bytes": 8563,
+              "sha256": "ae8d89c393d69f588c383dfef8b8988dfb9686fd83288c79c87684f28edef150"
+            },
+            {
+              "path": "tools/agentspec/agentspec/compose.py",
+              "role": "primary",
+              "exists": true,
+              "bytes": 8017,
+              "sha256": "49832e9b30fd63b0dd9f6934a002ea4b973cb88057ed1de4b156b85d421cf344",
+              "eol": "LF"
+            },
+            {
+              "path": "tools/agentspec/agentspec/budget.py",
+              "role": "primary",
+              "exists": true,
+              "bytes": 3664,
+              "sha256": "f6b1390c680d56fa13811713aea5533537d75daf94922b6028d46dc5f024490a",
+              "eol": "CRLF"
+            },
+            {
+              "path": "command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+              "role": "control",
+              "exists": true,
+              "bytes": 3611,
+              "sha256": "db708256c40e5b2b0909d161df2aee63926c9111f72212e8daa672d40db7f3ec",
+              "eol": "LF"
+            },
+            {
+              "path": "command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+              "role": "control",
+              "exists": true,
+              "bytes": 3525,
+              "sha256": "cd8448bed381f7b3f936ed3db8178dcfb9341909a6e57117ccece82bca96b19f",
+              "eol": "LF"
+            }
+          ],
+          "self_digest_rows": [
+            {
+              "path": "command-center/receipts/IMP-0189.json",
+              "role": "primary",
+              "exists": true,
+              "bytes": 8563,
+              "sha256": "ae8d89c393d69f588c383dfef8b8988dfb9686fd83288c79c87684f28edef150",
+              "dropped_reason": "self-digest row: a receipt cannot contain its own sha256"
+            }
+          ],
+          "artifact_roles_prior": {
+            "tools/agentspec/agentspec/compose.py": "implementation-composition",
+            "tools/agentspec/agentspec/budget.py": "implementation-immutable-ledger",
+            "command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py": "named-probe",
+            "command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py": "named-probe"
+          },
+          "prior_evidence": [
+            {
+              "anchor": "tools/agentspec/agentspec/budget.py:BudgetLedger.assert_sum_equals_children",
+              "claim": "Two-level meta-workflow parent budget equals the sum of child budgets (45 = 30 + 15) computed from the immutable ledger leaf postings; rollup rows are not spend.",
+              "confidence": "almost-certain",
+              "probes": [
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+                  "exit_code": 0,
+                  "fingerprint": "d7fcda1b593587f0f8e941fa7d4a6727",
+                  "method": "command",
+                  "raw_output": "ledger assertion parent==child_sum==leaf_total",
+                  "role": "source"
+                },
+                {
+                  "command": "agentspec.budget.BudgetLedger.assert_sum_equals_children",
+                  "exit_code": 0,
+                  "fingerprint": "6ebfe51f8dfec00279ca8073d4858a9f",
+                  "method": "in-process",
+                  "raw_output": "{\"children\": {\"embed-a\": 30, \"embed-b\": 15}, \"naive\": 135, \"parent\": 45}",
+                  "role": "verifier"
+                }
+              ],
+              "verdict": "CONFIRMED"
+            },
+            {
+              "anchor": "tools/agentspec/agentspec/compose.py:event-log",
+              "claim": "Under continue, sibling embed-b started after embed-a failed (fail_seq=4, start_seq=5). Under abort, embed-b was skipped (skip_seq=5). Observed in the event log, not inferred.",
+              "confidence": "almost-certain",
+              "probes": [
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+                  "exit_code": 0,
+                  "fingerprint": "acdbe3ca6c4b018eb70d71b7506626ef",
+                  "method": "command",
+                  "raw_output": "both-states abort vs continue",
+                  "role": "source"
+                },
+                {
+                  "command": "inspect ComposeResult.events",
+                  "exit_code": 0,
+                  "fingerprint": "18dbdb527562dc3946290209f0d8ea1a",
+                  "method": "in-process",
+                  "raw_output": "{\"abort_skip_b\": 5, \"continue_fail_seq\": 4, \"continue_start_b\": 5}",
+                  "role": "verifier"
+                }
+              ],
+              "verdict": "CONFIRMED"
+            }
+          ],
+          "prior_tests": [
+            {
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+              "id": "budget-rollup-no-double-count",
+              "result": "PASS"
+            },
+            {
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+              "id": "child-failure-honours-parent-policy",
+              "result": "PASS"
+            }
+          ],
+          "prior_negative_controls": [
+            {
+              "bad_state_output": "abort: embed-b skipped",
+              "description": "abort vs continue both-states on the same failing child",
+              "fired_on_bad_state": true,
+              "good_state_output": "continue: embed-b started after fail",
+              "id": "failure-policy-abort-vs-continue",
+              "kind": "both-states",
+              "silent_on_good_state": true
+            },
+            {
+              "bad_state_output": "naive_sum_all_rows double-counts rollups",
+              "description": "naive sum of all ledger rows must not equal parent total",
+              "fired_on_bad_state": true,
+              "good_state_output": "leaf-only parent equals child sum",
+              "id": "budget-no-double-count",
+              "kind": "mutation-equivalent",
+              "silent_on_good_state": true
+            }
+          ],
+          "prior_downstream_consumers": [
+            {
+              "artifact_path": "command-center/receipts/IMP-0189.json",
+              "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+              "executed": true,
+              "exit_code": 0,
+              "probe": {
+                "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0189",
+                "exit_code": 0,
+                "fingerprint": "62948d7290bcfb2786efd6a60a67d91f",
+                "method": "command",
+                "raw_output": "deferred-to-post-emit-measure",
+                "role": "verifier"
+              },
+              "read_ok": true
+            }
+          ]
+        },
+        "completion": {
+          "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+        }
+      },
+      "prior_artifacts": [
+        {
+          "path": "tools/agentspec/agentspec/compose.py",
+          "role": "primary",
+          "exists": true,
+          "bytes": 8017,
+          "sha256": "49832e9b30fd63b0dd9f6934a002ea4b973cb88057ed1de4b156b85d421cf344",
+          "eol": "LF"
+        },
+        {
+          "path": "tools/agentspec/agentspec/budget.py",
+          "role": "primary",
+          "exists": true,
+          "bytes": 3664,
+          "sha256": "f6b1390c680d56fa13811713aea5533537d75daf94922b6028d46dc5f024490a",
+          "eol": "CRLF"
+        },
+        {
+          "path": "command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+          "role": "control",
+          "exists": true,
+          "bytes": 3611,
+          "sha256": "db708256c40e5b2b0909d161df2aee63926c9111f72212e8daa672d40db7f3ec",
+          "eol": "LF"
+        },
+        {
+          "path": "command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+          "role": "control",
+          "exists": true,
+          "bytes": 3525,
+          "sha256": "cd8448bed381f7b3f936ed3db8178dcfb9341909a6e57117ccece82bca96b19f",
+          "eol": "LF"
+        }
+      ],
+      "prior_evidence": [
+        {
+          "claim": "Two-level meta-workflow parent budget equals the sum of child budgets (45 = 30 + 15) computed from the immutable ledger leaf postings; rollup rows are not spend.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/agentspec/agentspec/budget.py:BudgetLedger.assert_sum_equals_children",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+              "raw_output": "ledger assertion parent==child_sum==leaf_total",
+              "fingerprint": "d7fcda1b593587f0f8e941fa7d4a6727",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "agentspec.budget.BudgetLedger.assert_sum_equals_children",
+              "raw_output": "{\"children\": {\"embed-a\": 30, \"embed-b\": 15}, \"naive\": 135, \"parent\": 45}",
+              "fingerprint": "6ebfe51f8dfec00279ca8073d4858a9f",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "claim": "Under continue, sibling embed-b started after embed-a failed (fail_seq=4, start_seq=5). Under abort, embed-b was skipped (skip_seq=5). Observed in the event log, not inferred.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/agentspec/agentspec/compose.py:event-log",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+              "raw_output": "both-states abort vs continue",
+              "fingerprint": "acdbe3ca6c4b018eb70d71b7506626ef",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "inspect ComposeResult.events",
+              "raw_output": "{\"abort_skip_b\": 5, \"continue_fail_seq\": 4, \"continue_start_b\": 5}",
+              "fingerprint": "18dbdb527562dc3946290209f0d8ea1a",
+              "exit_code": 0
+            }
+          ]
+        }
+      ],
+      "prior_tests": [
+        {
+          "id": "budget-rollup-no-double-count",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe1_budget_rollup.py",
+          "result": "PASS"
+        },
+        {
+          "id": "child-failure-honours-parent-policy",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py",
+          "result": "PASS"
+        }
+      ],
+      "prior_negative_controls": [
+        {
+          "id": "failure-policy-abort-vs-continue",
+          "kind": "mutation",
+          "description": "abort vs continue both-states on the same failing child",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        {
+          "id": "budget-no-double-count",
+          "kind": "mutation",
+          "description": "naive sum of all ledger rows must not equal parent total",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        }
+      ],
+      "prior_downstream_consumers": [
+        {
+          "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+          "artifact_path": "command-center/receipts/IMP-0189.json",
+          "executed": true,
+          "read_ok": true,
+          "exit_code": 0,
+          "probe": {
+            "role": "verifier",
+            "method": "command",
+            "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0189",
+            "raw_output": "  SUCCESS:IMP-0189-probe1 parent 45 == child sum 45 == leaf total 45 == ledger spend; naive row sum 135 is the rejected double-count; replayed debit refused\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0189/probe2_failure_policy.py\n    \"abort_sibling_never_started\": true,\n    \"default_policy_is_continue\": true,\n    \"both_states_diverge\": true,\n    \"no_child_failure_aborts_tree_by_default\": true\n   },\n   \"pass\": true\n  }\n  SUCCESS:IMP-0189-probe2 child failure honours the declared policy in the observed event log: continue keeps the sibling running, abort skips it and fails the meta; default is continue\nartifact command-center/receipts/IMP-0189.json bytes=9651 sha256=d79876450289e730974129b1a32a4eb8ba76bad3cf1977243f52106f955fe031\nSUCCESS:delivered IMP-0189",
+            "fingerprint": "7943927581e3bd6a",
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "completion": {
+      "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+    },
+    "w4s10_prior_reviewer": {
+      "fresh_context": true,
+      "independent": true,
+      "reviewer_id": "IMP-0189-probe2-failure-policy",
+      "verdict": "PASS"
+    }
+  },
+  "id": "IMP-0189",
+  "completion_sentinel": "SUCCESS:IMP-0189",
+  "produced_by": {
+    "vendor": "other",
+    "model": "unrecorded"
+  }
+}

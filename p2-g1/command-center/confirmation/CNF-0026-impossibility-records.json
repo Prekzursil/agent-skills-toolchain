@@ -1,0 +1,670 @@
+{
+ "unit_id": "CNF-0026",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0026 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every record carries two independent signals and a named settling experiment, and the reproducible control was refused entry. Any other terminal state is FAILED:CNF-0026 <classification> with the diagnostic tail attached.",
+ "tests": [
+  {
+   "id": "schema-rejects-single-signal",
+   "result": "PASS",
+   "command": "NOT-CHECKED"
+  },
+  {
+   "id": "schema-rejects-missing-settling-experiment",
+   "result": "PASS",
+   "command": "NOT-CHECKED"
+  },
+  {
+   "id": "ingest-refuses-reproducible-control",
+   "result": "PASS",
+   "command": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "CNF-0026-probe2-reproducible-control",
+  "verdict": "PASS",
+  "independent": true
+ },
+ "extensions": {
+  "legacy_root": {
+   "question": "For each baseline failure that resists reproduction, produce a proof-of-impossibility record rather than a silent omission: what was attempted, on which substrates, what evidence would settle it, and what prerequisite is missing. Question: how many baseline failures end in this state, and does any of them block a Phase 15 gate?",
+   "schema_path": "command-center/schema/impossibility-record.schema.json",
+   "generated_at_utc": "2026-08-25T01:00:43Z",
+   "records": [
+    {
+     "reproduction_status": "PREREQUISITE-MISSING",
+     "blocks_phase15_gate": false,
+     "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+     "failure_id": "IMP-P0-REGISTER-HAS-NO-REPRO-RECIPES",
+     "title": "P0 repro-recipe corpus from CNF-0016 cannot be read: RISK-REGISTER.md has no verbatim repro steps and CNF-0005 is absent",
+     "source_units": [
+      "CNF-0016"
+     ],
+     "missing_prerequisite": "verbatim P0 repro recipes in command-center/RISK-REGISTER.md or command-center/confirmation/CNF-0005-blind-brief-builder.json",
+     "substrates_attempted": [
+      "linux-worktree:Linux 6.8.0-136-generic x86_64"
+     ],
+     "attempts": [
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "parse RISK-REGISTER.md for P0/repro steps",
+       "result": "is_file=True p0_hits=0 repro_step_hits=0 snapshot_is_file=True triaged=4"
+      },
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "stat CNF-0016 and CNF-0005 catalog output_path",
+       "result": "CNF-0016 is_file=False in_leftover=True CNF-0005 path=command-center/confirmation/CNF-0005-blind-brief-builder.json is_file=False"
+      }
+     ],
+     "signals": [
+      {
+       "id": "S1",
+       "channel": "text-parse",
+       "method": "read RISK-REGISTER.md and count P0/repro-step tokens",
+       "observation": "p0_hits=0 repro_step_hits=0"
+      },
+      {
+       "id": "S2",
+       "channel": "catalog-lookup",
+       "method": "stat catalog output_path for CNF-0016 and CNF-0005",
+       "observation": "CNF-0016 output is_file=False CNF-0005 output is_file=False in_leftover=True"
+      }
+     ],
+     "settling_experiment": {
+      "name": "restore-p0-recipe-corpus-then-run-CNF-0016",
+      "command": "python3 -c \"from pathlib import Path; t=Path('command-center/RISK-REGISTER.md').read_text(encoding='utf-8', errors='replace').lower(); print('repro_steps' in t, Path('command-center/confirmation/CNF-0005-blind-brief-builder.json').is_file())\"",
+      "expected_observation": "RISK-REGISTER.md names each P0 with a verbatim repro recipe, or CNF-0005 exists and lists them",
+      "discriminating_outcome": "a P0 whose recipe then exits non-zero on a clean tree leaves this file; a P0 that reproduces is routed to a repro report and must not remain here"
+     }
+    },
+    {
+     "reproduction_status": "PREREQUISITE-MISSING",
+     "blocks_phase15_gate": false,
+     "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+     "failure_id": "IMP-WINDOWS-FRESH-PROFILE",
+     "title": "CNF-0017 fresh-Windows-profile reproduction cannot run on this Linux worktree",
+     "source_units": [
+      "CNF-0017"
+     ],
+     "missing_prerequisite": "Windows user profile (empty, no plugins/skills/MCP) or wine",
+     "substrates_attempted": [
+      "linux-worktree:Linux 6.8.0-136-generic x86_64"
+     ],
+     "attempts": [
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "platform.system()",
+       "result": "platform.system='Linux'"
+      },
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "shutil.which wine",
+       "result": "wine_which=None"
+      }
+     ],
+     "signals": [
+      {
+       "id": "S1",
+       "channel": "platform-uname",
+       "method": "platform.system/release/machine",
+       "observation": "Linux 6.8.0-136-generic x86_64"
+      },
+      {
+       "id": "S2",
+       "channel": "process-probe",
+       "method": "shutil.which wine on PATH",
+       "observation": "wine=None"
+      }
+     ],
+     "settling_experiment": {
+      "name": "provision-empty-windows-profile-and-rerun-CNF-0017",
+      "command": "python3 -c \"import platform,shutil; print(platform.system(), shutil.which('wine'))\"",
+      "expected_observation": "platform is Windows, or wine launches a disposable Windows prefix whose user profile listing is empty at start",
+      "discriminating_outcome": "failures that still fire on the empty profile stay as code defects; failures that disappear are reclassified local-state-dependent and leave this file"
+     }
+    },
+    {
+     "reproduction_status": "PREREQUISITE-MISSING",
+     "blocks_phase15_gate": false,
+     "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+     "failure_id": "IMP-CRLF-RED-NOT-ON-LINUX",
+     "title": "Three Phase-0 REACH-6 failures named in BASELINE-SNAPSHOT.json cannot be made to FAIL on this Linux LF checkout of command-center/sources/REGISTER.md",
+     "source_units": [
+      "CNF-0018"
+     ],
+     "missing_prerequisite": "Windows checkout with core.autocrlf=true of command-center/sources/REGISTER.md (CRLF working tree)",
+     "substrates_attempted": [
+      "linux-worktree:Linux 6.8.0-136-generic x86_64"
+     ],
+     "attempts": [
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "byte-scan command-center/sources/REGISTER.md",
+       "result": "is_file=True bytes=60771 crlf_count=0"
+      },
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "parse snapshot failures_triaged command-center",
+       "result": "named_tests=['tools/command-center/tests/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog', 'tools/command-center/tests/test_validate.py::test_real_catalog_is_clean', 'tools/command-center/tests/test_validate.py::test_cli_exit_zero_on_the_real_tree'] root_cause=WINDOWS CRLF ARTIFACT"
+      }
+     ],
+     "signals": [
+      {
+       "id": "S1",
+       "channel": "byte-scan",
+       "method": "read_bytes and count CRLF pairs on REGISTER.md",
+       "observation": "command-center/sources/REGISTER.md is_file=True crlf_count=0"
+      },
+      {
+       "id": "S2",
+       "channel": "json-parse",
+       "method": "parse BASELINE-SNAPSHOT.json test_baseline.failures_triaged",
+       "observation": "command-center failed=['tools/command-center/tests/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog', 'tools/command-center/tests/test_validate.py::test_real_catalog_is_clean', 'tools/command-center/tests/test_validate.py::test_cli_exit_zero_on_the_real_tree']"
+      }
+     ],
+     "settling_experiment": {
+      "name": "windows-autocrlf-checkout-then-rerun-reach6",
+      "command": "python3 -c \"from pathlib import Path; p=Path('command-center/sources/REGISTER.md'); print(p.is_file(), p.read_bytes().count(b'\\r\\n') if p.is_file() else -1)\"",
+      "expected_observation": "on a Windows autocrlf checkout crlf_count equals the line count delta vs the LF blob and the three REACH-6 tests fail",
+      "discriminating_outcome": "if the three tests fail only with CRLF working-tree bytes, the Windows-CRLF hypothesis holds and they leave this file once classified; if they still fail on LF they are cross-platform defects and must not remain here"
+     },
+     "failure_class": "crlf-artefact",
+     "subject_path": "command-center/sources/REGISTER.md"
+    },
+    {
+     "reproduction_status": "PREREQUISITE-MISSING",
+     "blocks_phase15_gate": false,
+     "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+     "failure_id": "IMP-CI-LOG-BODY-ABSENT",
+     "title": "CI-log-only defects from quality run 31525279780 cannot be reproduced: workflow YAML and job-conclusion metadata exist, the failing log body does not",
+     "source_units": [
+      "CNF-0024",
+      "AUD-0041"
+     ],
+     "missing_prerequisite": "failing job log body for GitHub Actions run 31525279780 (gh run view --log-failed)",
+     "substrates_attempted": [
+      "linux-worktree:Linux 6.8.0-136-generic x86_64"
+     ],
+     "attempts": [
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "list .github/workflows and quality.yml",
+       "result": "is_dir=True listing=['autofix-models.yml', 'codex-runner.yml', 'dependabot-auto-merge.yml', 'hook-audit.yml', 'interpreter-floor.yml', 'mcp-audit.yml', 'no-runtime-junk.yml', 'p2next-rail-count.yml', 'quality.yml', 'routing-benchmark.yml', 'rule-audit.yml', 'skill-dual-write.yml'] quality_yml={'rel': '.github/workflows/quality.yml', 'is_file': True, 'is_dir': False, 'exists': True, 'bytes': 123676}"
+      },
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "stat captured API vs log body; which gh",
+       "result": "api_present=True failing_jobs=['gate-lint-format (ruff)', 'gate-tests-coverage (python packages)'] log_is_file=False gh=None docker=None podman=None CNF-0024 is_file=False"
+      }
+     ],
+     "signals": [
+      {
+       "id": "S1",
+       "channel": "directory-walk",
+       "method": "Path.is_dir and iterdir on .github/workflows",
+       "observation": "is_dir=True listing=['autofix-models.yml', 'codex-runner.yml', 'dependabot-auto-merge.yml', 'hook-audit.yml', 'interpreter-floor.yml', 'mcp-audit.yml', 'no-runtime-junk.yml', 'p2next-rail-count.yml', 'quality.yml', 'routing-benchmark.yml', 'rule-audit.yml', 'skill-dual-write.yml']"
+      },
+      {
+       "id": "S2",
+       "channel": "process-probe",
+       "method": "shutil.which gh plus Path.is_file on the run log",
+       "observation": "gh=None log_rel=command-center/p2-wave/probes/CNF-0024/logs/31525279780.log log_is_file=False failing_jobs=['gate-lint-format (ruff)', 'gate-tests-coverage (python packages)']"
+      }
+     ],
+     "settling_experiment": {
+      "name": "fetch-failing-ci-log-and-matching-runner-image",
+      "command": "test -d .github/workflows && command -v gh && gh run view 31525279780 --log-failed | head",
+      "expected_observation": "the failing job log body is on disk and warm-cache vs cold-cache runs are recorded separately",
+      "discriminating_outcome": "a defect that fires only with a warm cache is a cache artefact and leaves this file; a defect that fires on the matching image cold is a code or image defect and must not remain here"
+     }
+    },
+    {
+     "reproduction_status": "PREREQUISITE-MISSING",
+     "blocks_phase15_gate": false,
+     "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+     "failure_id": "IMP-OPTION-ID-LIVE-DOCS",
+     "title": "Pinned 31-way M-NN option-id collision cannot be reproduced from a live clone: 07-OPTION-UNIVERSE.md and 13-ARCHITECTURE-CANDIDATES.md are absent",
+     "source_units": [
+      "CNF-0015",
+      "CNF-0016"
+     ],
+     "missing_prerequisite": "07-OPTION-UNIVERSE.md and 13-ARCHITECTURE-CANDIDATES.md at the pinned SHA, plus 17-DECISION-LOG.md",
+     "substrates_attempted": [
+      "linux-worktree:Linux 6.8.0-136-generic x86_64"
+     ],
+     "attempts": [
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "stat the three live document paths",
+       "result": "07-OPTION-UNIVERSE.md:is_file=False 13-ARCHITECTURE-CANDIDATES.md:is_file=False 17-DECISION-LOG.md:is_file=False"
+      },
+      {
+       "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+       "action": "walk OPTION-UNIVERSE and ARCHITECTURE-CANDIDATES",
+       "result": "option=['command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/option-universe.md', 'command-center/p2-wave/probes/WFA-0019/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0158/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0095/fixtures/known-31way/option-universe.json', 'command-center/p2-wave/probes/BLD-0019/fixtures/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/07-OPTION-UNIVERSE.json'] arch=['command-center/p2-wave/probes/CNF-0072/fixtures/control/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0072/fixtures/prefix-backup/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/architecture-candidates.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.pre-fix.md', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.post.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.planted.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.pre.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/architecture-candidates.json', 'command-center/p2-wave/probes/ARC-0001/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/BLD-0019/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/fixed/architecture-candidates.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/architecture-candidates.md'] git_dir=False"
+      }
+     ],
+     "signals": [
+      {
+       "id": "S1",
+       "channel": "path-stat",
+       "method": "Path.is_file on the three live document paths",
+       "observation": "absent_live_docs=['07-OPTION-UNIVERSE.md', '13-ARCHITECTURE-CANDIDATES.md', '17-DECISION-LOG.md']"
+      },
+      {
+       "id": "S2",
+       "channel": "directory-walk",
+       "method": "repo walk for OPTION-UNIVERSE and ARCHITECTURE-CANDIDATES",
+       "observation": "OPTION-UNIVERSE hits=['command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/option-universe.md', 'command-center/p2-wave/probes/WFA-0019/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0158/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0095/fixtures/known-31way/option-universe.json', 'command-center/p2-wave/probes/BLD-0019/fixtures/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/07-OPTION-UNIVERSE.json'] ARCHITECTURE-CANDIDATES hits=['command-center/p2-wave/probes/CNF-0072/fixtures/control/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0072/fixtures/prefix-backup/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/architecture-candidates.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.pre-fix.md', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.post.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.planted.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.pre.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/architecture-candidates.json', 'command-center/p2-wave/probes/ARC-0001/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/BLD-0019/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/fixed/architecture-candidates.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/architecture-candidates.md']"
+      }
+     ],
+     "settling_experiment": {
+      "name": "cat-file-pinned-rev-and-count-id-intersection",
+      "command": "python3 -c \"from pathlib import Path; print(Path('07-OPTION-UNIVERSE.md').is_file(), Path('13-ARCHITECTURE-CANDIDATES.md').is_file())\"",
+      "expected_observation": "both documents exist at the pinned SHA; the M-family vs mechanism-id intersection is either 31 or 0",
+      "discriminating_outcome": "intersection 31 with present-tense collision in 17-DECISION-LOG.md reproduces the pinned blocker and must not remain in this file; intersection 0 with zero MECH tokens is a stale-premise finding for CNF-0015, not an impossibility"
+     }
+    }
+   ],
+   "answers": {
+    "baseline_failures_in_impossibility_state": 5,
+    "enumeration_complete": true,
+    "enumeration_note": "BASELINE-SNAPSHOT.json is present and names 4 triaged failure classes. 5 of those remain in the impossibility state on this Linux worktree (no Windows profile, no CRLF red on the LF REGISTER.md, no failing CI log body, no live option docs, no P0 recipes in RISK-REGISTER.md). Additional unnamed CI-log failures may exist without log bodies.",
+    "blocks_phase15_gate": false,
+    "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED. Direct phase-15 dependency hits=[].",
+    "phase15_units_directly_depending_on_remainder": []
+   },
+   "reproducible_control": {
+    "failure_id": "CONTROL-REPRODUCIBLE-CRLF",
+    "refused": true,
+    "reason": "reproducible-control: CRLF detector fired on command-center/p2-wave/probes/CNF-0026/fixtures/control_reproducible_crlf.txt; failure is reproducible",
+    "detector_observation": "path=command-center/p2-wave/probes/CNF-0026/fixtures/control_reproducible_crlf.txt is_file=True crlf_count=2 detector_fired=True"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0026",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0026-impossibility-records.json",
+   "bytes": 23200,
+   "sha256": "3ac3becc55f804f3203c2ad2b4f99ee78c25dea19c9940732569297d58d4c153",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0026 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0026-impossibility-records.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0026-impossibility-records.json",
+     "raw_output": "bytes=23200 sha256=3ac3becc55f804f3203c2ad2b4f99ee78c25dea19c9940732569297d58d4c153",
+     "fingerprint": "b6749b8b074b2068b7439fa9c4954ab9",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0026",
+     "raw_output": "schema-check",
+     "fingerprint": "4ea4f642b7d8f38901b1d3274139ad0c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0026 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0026",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0026",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "f2c9d21591264a85540318b0b6d0b842",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0026",
+     "raw_output": "schema-valid",
+     "fingerprint": "4d982ea624b535889fed0b68175998da",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0026/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0026"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0026-impossibility-records.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0026-impossibility-records.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "7f6d6f5bec2e87341c7f892bf0f7acde",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "impossibility-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 23200,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0026-impossibility-records.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "question": "For each baseline failure that resists reproduction, produce a proof-of-impossibility record rather than a silent omission: what was attempted, on which substrates, what evidence would settle it, and what prerequisite is missing. Question: how many baseline failures end in this state, and does any of them block a Phase 15 gate?",
+ "schema_path": "command-center/schema/impossibility-record.schema.json",
+ "generated_at_utc": "2026-08-25T01:00:43Z",
+ "records": [
+  {
+   "reproduction_status": "PREREQUISITE-MISSING",
+   "blocks_phase15_gate": false,
+   "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+   "failure_id": "IMP-P0-REGISTER-HAS-NO-REPRO-RECIPES",
+   "title": "P0 repro-recipe corpus from CNF-0016 cannot be read: RISK-REGISTER.md has no verbatim repro steps and CNF-0005 is absent",
+   "source_units": [
+    "CNF-0016"
+   ],
+   "missing_prerequisite": "verbatim P0 repro recipes in command-center/RISK-REGISTER.md or command-center/confirmation/CNF-0005-blind-brief-builder.json",
+   "substrates_attempted": [
+    "linux-worktree:Linux 6.8.0-136-generic x86_64"
+   ],
+   "attempts": [
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "parse RISK-REGISTER.md for P0/repro steps",
+     "result": "is_file=True p0_hits=0 repro_step_hits=0 snapshot_is_file=True triaged=4"
+    },
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "stat CNF-0016 and CNF-0005 catalog output_path",
+     "result": "CNF-0016 is_file=False in_leftover=True CNF-0005 path=command-center/confirmation/CNF-0005-blind-brief-builder.json is_file=False"
+    }
+   ],
+   "signals": [
+    {
+     "id": "S1",
+     "channel": "text-parse",
+     "method": "read RISK-REGISTER.md and count P0/repro-step tokens",
+     "observation": "p0_hits=0 repro_step_hits=0"
+    },
+    {
+     "id": "S2",
+     "channel": "catalog-lookup",
+     "method": "stat catalog output_path for CNF-0016 and CNF-0005",
+     "observation": "CNF-0016 output is_file=False CNF-0005 output is_file=False in_leftover=True"
+    }
+   ],
+   "settling_experiment": {
+    "name": "restore-p0-recipe-corpus-then-run-CNF-0016",
+    "command": "python3 -c \"from pathlib import Path; t=Path('command-center/RISK-REGISTER.md').read_text(encoding='utf-8', errors='replace').lower(); print('repro_steps' in t, Path('command-center/confirmation/CNF-0005-blind-brief-builder.json').is_file())\"",
+    "expected_observation": "RISK-REGISTER.md names each P0 with a verbatim repro recipe, or CNF-0005 exists and lists them",
+    "discriminating_outcome": "a P0 whose recipe then exits non-zero on a clean tree leaves this file; a P0 that reproduces is routed to a repro report and must not remain here"
+   }
+  },
+  {
+   "reproduction_status": "PREREQUISITE-MISSING",
+   "blocks_phase15_gate": false,
+   "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+   "failure_id": "IMP-WINDOWS-FRESH-PROFILE",
+   "title": "CNF-0017 fresh-Windows-profile reproduction cannot run on this Linux worktree",
+   "source_units": [
+    "CNF-0017"
+   ],
+   "missing_prerequisite": "Windows user profile (empty, no plugins/skills/MCP) or wine",
+   "substrates_attempted": [
+    "linux-worktree:Linux 6.8.0-136-generic x86_64"
+   ],
+   "attempts": [
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "platform.system()",
+     "result": "platform.system='Linux'"
+    },
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "shutil.which wine",
+     "result": "wine_which=None"
+    }
+   ],
+   "signals": [
+    {
+     "id": "S1",
+     "channel": "platform-uname",
+     "method": "platform.system/release/machine",
+     "observation": "Linux 6.8.0-136-generic x86_64"
+    },
+    {
+     "id": "S2",
+     "channel": "process-probe",
+     "method": "shutil.which wine on PATH",
+     "observation": "wine=None"
+    }
+   ],
+   "settling_experiment": {
+    "name": "provision-empty-windows-profile-and-rerun-CNF-0017",
+    "command": "python3 -c \"import platform,shutil; print(platform.system(), shutil.which('wine'))\"",
+    "expected_observation": "platform is Windows, or wine launches a disposable Windows prefix whose user profile listing is empty at start",
+    "discriminating_outcome": "failures that still fire on the empty profile stay as code defects; failures that disappear are reclassified local-state-dependent and leave this file"
+   }
+  },
+  {
+   "reproduction_status": "PREREQUISITE-MISSING",
+   "blocks_phase15_gate": false,
+   "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+   "failure_id": "IMP-CRLF-RED-NOT-ON-LINUX",
+   "title": "Three Phase-0 REACH-6 failures named in BASELINE-SNAPSHOT.json cannot be made to FAIL on this Linux LF checkout of command-center/sources/REGISTER.md",
+   "source_units": [
+    "CNF-0018"
+   ],
+   "missing_prerequisite": "Windows checkout with core.autocrlf=true of command-center/sources/REGISTER.md (CRLF working tree)",
+   "substrates_attempted": [
+    "linux-worktree:Linux 6.8.0-136-generic x86_64"
+   ],
+   "attempts": [
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "byte-scan command-center/sources/REGISTER.md",
+     "result": "is_file=True bytes=60771 crlf_count=0"
+    },
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "parse snapshot failures_triaged command-center",
+     "result": "named_tests=['tools/command-center/tests/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog', 'tools/command-center/tests/test_validate.py::test_real_catalog_is_clean', 'tools/command-center/tests/test_validate.py::test_cli_exit_zero_on_the_real_tree'] root_cause=WINDOWS CRLF ARTIFACT"
+    }
+   ],
+   "signals": [
+    {
+     "id": "S1",
+     "channel": "byte-scan",
+     "method": "read_bytes and count CRLF pairs on REGISTER.md",
+     "observation": "command-center/sources/REGISTER.md is_file=True crlf_count=0"
+    },
+    {
+     "id": "S2",
+     "channel": "json-parse",
+     "method": "parse BASELINE-SNAPSHOT.json test_baseline.failures_triaged",
+     "observation": "command-center failed=['tools/command-center/tests/test_close.py::test_closing_every_open_item_leaves_a_valid_catalog', 'tools/command-center/tests/test_validate.py::test_real_catalog_is_clean', 'tools/command-center/tests/test_validate.py::test_cli_exit_zero_on_the_real_tree']"
+    }
+   ],
+   "settling_experiment": {
+    "name": "windows-autocrlf-checkout-then-rerun-reach6",
+    "command": "python3 -c \"from pathlib import Path; p=Path('command-center/sources/REGISTER.md'); print(p.is_file(), p.read_bytes().count(b'\\r\\n') if p.is_file() else -1)\"",
+    "expected_observation": "on a Windows autocrlf checkout crlf_count equals the line count delta vs the LF blob and the three REACH-6 tests fail",
+    "discriminating_outcome": "if the three tests fail only with CRLF working-tree bytes, the Windows-CRLF hypothesis holds and they leave this file once classified; if they still fail on LF they are cross-platform defects and must not remain here"
+   },
+   "failure_class": "crlf-artefact",
+   "subject_path": "command-center/sources/REGISTER.md"
+  },
+  {
+   "reproduction_status": "PREREQUISITE-MISSING",
+   "blocks_phase15_gate": false,
+   "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+   "failure_id": "IMP-CI-LOG-BODY-ABSENT",
+   "title": "CI-log-only defects from quality run 31525279780 cannot be reproduced: workflow YAML and job-conclusion metadata exist, the failing log body does not",
+   "source_units": [
+    "CNF-0024",
+    "AUD-0041"
+   ],
+   "missing_prerequisite": "failing job log body for GitHub Actions run 31525279780 (gh run view --log-failed)",
+   "substrates_attempted": [
+    "linux-worktree:Linux 6.8.0-136-generic x86_64"
+   ],
+   "attempts": [
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "list .github/workflows and quality.yml",
+     "result": "is_dir=True listing=['autofix-models.yml', 'codex-runner.yml', 'dependabot-auto-merge.yml', 'hook-audit.yml', 'interpreter-floor.yml', 'mcp-audit.yml', 'no-runtime-junk.yml', 'p2next-rail-count.yml', 'quality.yml', 'routing-benchmark.yml', 'rule-audit.yml', 'skill-dual-write.yml'] quality_yml={'rel': '.github/workflows/quality.yml', 'is_file': True, 'is_dir': False, 'exists': True, 'bytes': 123676}"
+    },
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "stat captured API vs log body; which gh",
+     "result": "api_present=True failing_jobs=['gate-lint-format (ruff)', 'gate-tests-coverage (python packages)'] log_is_file=False gh=None docker=None podman=None CNF-0024 is_file=False"
+    }
+   ],
+   "signals": [
+    {
+     "id": "S1",
+     "channel": "directory-walk",
+     "method": "Path.is_dir and iterdir on .github/workflows",
+     "observation": "is_dir=True listing=['autofix-models.yml', 'codex-runner.yml', 'dependabot-auto-merge.yml', 'hook-audit.yml', 'interpreter-floor.yml', 'mcp-audit.yml', 'no-runtime-junk.yml', 'p2next-rail-count.yml', 'quality.yml', 'routing-benchmark.yml', 'rule-audit.yml', 'skill-dual-write.yml']"
+    },
+    {
+     "id": "S2",
+     "channel": "process-probe",
+     "method": "shutil.which gh plus Path.is_file on the run log",
+     "observation": "gh=None log_rel=command-center/p2-wave/probes/CNF-0024/logs/31525279780.log log_is_file=False failing_jobs=['gate-lint-format (ruff)', 'gate-tests-coverage (python packages)']"
+    }
+   ],
+   "settling_experiment": {
+    "name": "fetch-failing-ci-log-and-matching-runner-image",
+    "command": "test -d .github/workflows && command -v gh && gh run view 31525279780 --log-failed | head",
+    "expected_observation": "the failing job log body is on disk and warm-cache vs cold-cache runs are recorded separately",
+    "discriminating_outcome": "a defect that fires only with a warm cache is a cache artefact and leaves this file; a defect that fires on the matching image cold is a code or image defect and must not remain here"
+   }
+  },
+  {
+   "reproduction_status": "PREREQUISITE-MISSING",
+   "blocks_phase15_gate": false,
+   "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED.",
+   "failure_id": "IMP-OPTION-ID-LIVE-DOCS",
+   "title": "Pinned 31-way M-NN option-id collision cannot be reproduced from a live clone: 07-OPTION-UNIVERSE.md and 13-ARCHITECTURE-CANDIDATES.md are absent",
+   "source_units": [
+    "CNF-0015",
+    "CNF-0016"
+   ],
+   "missing_prerequisite": "07-OPTION-UNIVERSE.md and 13-ARCHITECTURE-CANDIDATES.md at the pinned SHA, plus 17-DECISION-LOG.md",
+   "substrates_attempted": [
+    "linux-worktree:Linux 6.8.0-136-generic x86_64"
+   ],
+   "attempts": [
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "stat the three live document paths",
+     "result": "07-OPTION-UNIVERSE.md:is_file=False 13-ARCHITECTURE-CANDIDATES.md:is_file=False 17-DECISION-LOG.md:is_file=False"
+    },
+    {
+     "substrate": "linux-worktree:Linux 6.8.0-136-generic x86_64",
+     "action": "walk OPTION-UNIVERSE and ARCHITECTURE-CANDIDATES",
+     "result": "option=['command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/option-universe.md', 'command-center/p2-wave/probes/WFA-0019/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0158/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0095/fixtures/known-31way/option-universe.json', 'command-center/p2-wave/probes/BLD-0019/fixtures/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/07-OPTION-UNIVERSE.json'] arch=['command-center/p2-wave/probes/CNF-0072/fixtures/control/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0072/fixtures/prefix-backup/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/architecture-candidates.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.pre-fix.md', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.post.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.planted.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.pre.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/architecture-candidates.json', 'command-center/p2-wave/probes/ARC-0001/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/BLD-0019/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/fixed/architecture-candidates.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/architecture-candidates.md'] git_dir=False"
+    }
+   ],
+   "signals": [
+    {
+     "id": "S1",
+     "channel": "path-stat",
+     "method": "Path.is_file on the three live document paths",
+     "observation": "absent_live_docs=['07-OPTION-UNIVERSE.md', '13-ARCHITECTURE-CANDIDATES.md', '17-DECISION-LOG.md']"
+    },
+    {
+     "id": "S2",
+     "channel": "directory-walk",
+     "method": "repo walk for OPTION-UNIVERSE and ARCHITECTURE-CANDIDATES",
+     "observation": "OPTION-UNIVERSE hits=['command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0072/fixtures/control/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/option-universe.md', 'command-center/p2-wave/probes/WFA-0019/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/SYN-0031/fixtures/corpus-good/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/07-OPTION-UNIVERSE.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0158/fixtures/option-universe.json', 'command-center/p2-wave/probes/TST-0095/fixtures/known-31way/option-universe.json', 'command-center/p2-wave/probes/BLD-0019/fixtures/07-OPTION-UNIVERSE.json', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/07-OPTION-UNIVERSE.json'] ARCHITECTURE-CANDIDATES hits=['command-center/p2-wave/probes/CNF-0072/fixtures/control/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0072/fixtures/prefix-backup/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0007/fixtures/defining/architecture-candidates.md', 'command-center/p2-wave/probes/AUD-0034/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/WFA-0003/fixtures/estate/13-ARCHITECTURE-CANDIDATES.pre-fix.md', 'command-center/p2-wave/probes/RES-0188/fixtures/reconciled/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/inverted/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/RES-0188/fixtures/known-case/artifacts/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/AUD-0074/fixtures/corpus/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.post.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.planted.md', 'command-center/p2-wave/probes/CNF-0015/fixtures/13-ARCHITECTURE-CANDIDATES.pre.md', 'command-center/p2-wave/probes/CC-0021/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/ADV-0012/fixtures/architecture-candidates.json', 'command-center/p2-wave/probes/ARC-0001/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/BLD-0019/fixtures/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0190/fixtures/estate/13-ARCHITECTURE-CANDIDATES.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/fixed/architecture-candidates.md', 'command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/architecture-candidates.md']"
+    }
+   ],
+   "settling_experiment": {
+    "name": "cat-file-pinned-rev-and-count-id-intersection",
+    "command": "python3 -c \"from pathlib import Path; print(Path('07-OPTION-UNIVERSE.md').is_file(), Path('13-ARCHITECTURE-CANDIDATES.md').is_file())\"",
+    "expected_observation": "both documents exist at the pinned SHA; the M-family vs mechanism-id intersection is either 31 or 0",
+    "discriminating_outcome": "intersection 31 with present-tense collision in 17-DECISION-LOG.md reproduces the pinned blocker and must not remain in this file; intersection 0 with zero MECH tokens is a stale-premise finding for CNF-0015, not an impossibility"
+   }
+  }
+ ],
+ "answers": {
+  "baseline_failures_in_impossibility_state": 5,
+  "enumeration_complete": true,
+  "enumeration_note": "BASELINE-SNAPSHOT.json is present and names 4 triaged failure classes. 5 of those remain in the impossibility state on this Linux worktree (no Windows profile, no CRLF red on the LF REGISTER.md, no failing CI log body, no live option docs, no P0 recipes in RISK-REGISTER.md). Additional unnamed CI-log failures may exist without log bodies.",
+  "blocks_phase15_gate": false,
+  "phase15_gate_notes": "No phase-15 catalog unit lists CNF-0016/0017/0018/0024/0026 as a dependency. CNF-0128 treats a two-signal disclosed residual as non-blocking; an undisclosed one would block. CNF-0126 still marks promotion conditions without a receipt as NOT-CHECKED. Direct phase-15 dependency hits=[].",
+  "phase15_units_directly_depending_on_remainder": []
+ },
+ "reproducible_control": {
+  "failure_id": "CONTROL-REPRODUCIBLE-CRLF",
+  "refused": true,
+  "reason": "reproducible-control: CRLF detector fired on command-center/p2-wave/probes/CNF-0026/fixtures/control_reproducible_crlf.txt; failure is reproducible",
+  "detector_observation": "path=command-center/p2-wave/probes/CNF-0026/fixtures/control_reproducible_crlf.txt is_file=True crlf_count=2 detector_fired=True"
+ }
+}

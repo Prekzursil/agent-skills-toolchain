@@ -1,0 +1,268 @@
+{
+ "SUCCESS:TST-0087": true,
+ "answer": "Instrument guard.py FIREs on a real write to deployed hooks/_dispatch/manifest.json (repo counterpart hooks/_dispatch/manifest.json) and is SILENT on live-only scratch scratch/session-notes.txt. Prefix-only live file hooks/_dispatch/local-override.json is silent. Removing the provenance row makes the deployed path silent. Repo-source writes are silent. Fail-open on injected exception (exit 0, permit). Production PreToolUse hook / harness-vcs-hygiene.md: REFUTED. SUCCESS:TST-0087",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0087.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 5214,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0087/guard.py",
+   "role": "instrument",
+   "sha256": "5ba34bccd89871458fe2652f895ece0a2a95904e4860b7972094d73cf3e4cb6a"
+  },
+  {
+   "bytes": 11653,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0087/estate.py",
+   "role": "harness",
+   "sha256": "1288f051762d3860aecba33b0d68eea65d44cb0a7ab66da46be2d98068eb194c"
+  },
+  {
+   "bytes": 3450,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0087/probe1_deployed_fires.py",
+   "role": "named-probe",
+   "sha256": "99e7b0e838923a9bd2ac92752d3eb9ff3abd93930156c5895f569e95569ac0d5"
+  },
+  {
+   "bytes": 4003,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py",
+   "role": "named-probe",
+   "sha256": "281f811c02cb1d890187709dede887db265f91b418bb11e15a96cae4af7a3141"
+  }
+ ],
+ "both_states": {
+  "detector_control_first": true,
+  "known_good": {
+   "fired": false,
+   "fixture": "command-center/p2-wave/probes/TST-0087/fixtures/estate/live/scratch/session-notes.txt",
+   "live_write_path": "/tmp/tst0087-emit-k1cj8j0n/scratch/live/scratch/session-notes.txt",
+   "path": "scratch/session-notes.txt",
+   "silent": true,
+   "verbatim": "scratch-write rel=scratch/session-notes.txt fired=False silent=True reason=live-only-no-provenance exit=0"
+  },
+  "planted_bad": {
+   "advisory": "Write targets deployed copy hooks/_dispatch/manifest.json which has repo counterpart hooks/_dispatch/manifest.json. Edit the repository source of truth; the live tree is a deploy target and will be overwritten on the next deploy.",
+   "fired": true,
+   "fixture": "command-center/p2-wave/probes/TST-0087/fixtures/estate/live/hooks/_dispatch/manifest.json",
+   "live_write_path": "/tmp/tst0087-emit-k1cj8j0n/fire/live/hooks/_dispatch/manifest.json",
+   "path": "hooks/_dispatch/manifest.json",
+   "repo_counterpart": "hooks/_dispatch/manifest.json",
+   "repo_path": "/tmp/tst0087-emit-k1cj8j0n/fire/repo/hooks/_dispatch/manifest.json",
+   "silent": false,
+   "source_blob_sha": "ec2c685ff59cfa09eed8f6b1d7a5590bb9a8a4608457b9392bc660feeecf57f0",
+   "verbatim": "deployed-path-write rel=hooks/_dispatch/manifest.json fired=True silent=False repo_counterpart=hooks/_dispatch/manifest.json exit=0"
+  }
+ },
+ "claim_under_test": "An edit-time guard fires when a write targets a deployed path that has a repo counterpart, and stays silent for genuinely live-only scratch paths.",
+ "completion_sentinel": "SUCCESS:TST-0087",
+ "detector_id": "harness.vcs-hygiene.deployed-copy-edit",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0087/guard.py:140",
+   "claim": "Guard fired on a real Write to the deployed copy hooks/_dispatch/manifest.json and named repo counterpart hooks/_dispatch/manifest.json.",
+   "live_write_path": "/tmp/tst0087-emit-k1cj8j0n/fire/live/hooks/_dispatch/manifest.json",
+   "path": "hooks/_dispatch/manifest.json",
+   "repo_counterpart": "hooks/_dispatch/manifest.json",
+   "snippet": "deployed-path-write rel=hooks/_dispatch/manifest.json fired=True silent=False repo_counterpart=hooks/_dispatch/manifest.json exit=0",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0087/guard.py:113",
+   "claim": "Guard was silent on a real Write to live-only scratch scratch/session-notes.txt (no provenance record).",
+   "live_write_path": "/tmp/tst0087-emit-k1cj8j0n/scratch/live/scratch/session-notes.txt",
+   "path": "scratch/session-notes.txt",
+   "snippet": "scratch-write rel=scratch/session-notes.txt fired=False silent=True reason=live-only-no-provenance exit=0",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "fail_open": {
+  "error": "TypeError",
+  "exit_code": 0,
+  "pass": true,
+  "permit": true
+ },
+ "false_positive_denominator": 3,
+ "false_positive_numerator": 0,
+ "false_positive_rate": 0.0,
+ "guard_module": "/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0087/guard.py",
+ "inputs": [
+  "rules/common/harness-vcs-hygiene.md"
+ ],
+ "instrument": {
+  "api": [
+   "inspect_write",
+   "pre_tool_use"
+  ],
+  "fail_open": true,
+  "never_blocks": true,
+  "path": "command-center/p2-wave/probes/TST-0087/guard.py",
+  "trigger": "provenance-record-plus-repo-counterpart-file"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_control": {
+  "fired_after_provenance_removed": false,
+  "pass": true,
+  "prefix_only": {
+   "pass": true,
+   "rel": "hooks/_dispatch/local-override.json",
+   "silent": true
+  },
+  "silent": true,
+  "state_rejected": "same deployed live path after the provenance row is removed",
+  "verbatim": "provenance-removed rel=hooks/_dispatch/manifest.json fired=False silent=True reason=live-only-no-provenance",
+  "what_the_check_does": "Deletes the provenance record and re-issues the Write to hooks/_dispatch/manifest.json; the guard must stay silent, proving the record (not the live-path prefix) is the trigger."
+ },
+ "output_schema_declared": "command-center/schema/detector-control.schema.json",
+ "output_schema_on_disk": true,
+ "pathology": {
+  "description": "Editing a deployed copy is invisible to git and is overwritten on the next deploy. The repo is the source of truth; the live tree is a deploy target.",
+  "id": "deployed-copy-edited-instead-of-source"
+ },
+ "produced_by": {
+  "execution_substrate": "linux-worktree-local",
+  "model": "gpt-5-codex",
+  "role": "platform-test-engineer",
+  "vendor": "openai"
+ },
+ "production": {
+  "any_production_guard": false,
+  "discovery": {
+   "any_production_guard": false,
+   "candidates": [
+    {
+     "bytes": 3142,
+     "exists": true,
+     "path": "rules/common/harness-vcs-hygiene.md"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "tools/plugin/deployed_copy_guard.py"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "tools/plugin/hooks/deployed_copy.py"
+    },
+    {
+     "bytes": 13911,
+     "exists": true,
+     "path": "hooks/_dispatch/manifest.json"
+    },
+    {
+     "bytes": 0,
+     "exists": false,
+     "path": "agent-self/hooks/_dispatch/manifest.json"
+    },
+    {
+     "bytes": 4001,
+     "exists": true,
+     "path": "scripts/sync-hooks.ps1"
+    },
+    {
+     "bytes": 7615,
+     "exists": true,
+     "path": "scripts/sync-skills.ps1"
+    },
+    {
+     "bytes": 2990,
+     "exists": true,
+     "path": "scripts/sync-rules.ps1"
+    },
+    {
+     "bytes": 12972,
+     "exists": true,
+     "path": "skills/DEPLOYED-MANIFEST.json"
+    }
+   ],
+   "grep_hits": [
+    "hooks/_golden/test_hooks.py",
+    "hooks/recall-gate/README.md",
+    "hooks/recall-gate/state/tree_index.json",
+    "agent-self/harness/modules.py",
+    "agent-self/harness/install.py"
+   ],
+   "home_claude": {
+    "exists": false,
+    "hooks_dir": "/root/.claude/hooks",
+    "hooks_exists": false,
+    "path": "/root/.claude"
+   },
+   "note": "IMP-0037 production PreToolUse hook is the subject; this TST unit does not ship that hook. The instrument under test is command-center/p2-wave/probes/TST-0087/guard.py."
+  },
+  "verdict": "REFUTED"
+ },
+ "question": "harness-vcs-hygiene requires that the repo is the source of truth and the live tree is a deploy target; editing a deployed copy is invisible to git and is overwritten on the next deploy. Target: an edit-time guard that fires when a write targets a deployed path that has a repo counterpart, and stays silent for genuinely live-only scratch paths.",
+ "report_kind": "detector-control",
+ "residual_unknowns": [
+  "IMP-0037 production files tools/plugin/deployed_copy_guard.py and hooks/deployed_copy_edit.py are absent on this worktree; this unit measured the probe instrument, not a live PreToolUse hook.",
+  "No ~/.claude live tree on this Linux worktree; production discovery is candidate-path existence, not a live hook firing."
+ ],
+ "reviewer": {
+  "independent": true,
+  "method": "Independent tempfile estate. Asserts silence on scratch, on a same-prefix live file without a provenance row, on the repo source, and on the deployed path after the provenance row is removed. Does not re-run probe 1's fire case as its pass criterion.",
+  "reviewer_id": "TST-0087-probe2-scratch-and-provenance-removed",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0087",
+ "source_fp": "99e7b0e838923a9bd2ac92752d3eb9ff3abd93930156c5895f569e95569ac0d5",
+ "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe1_deployed_fires.py",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0087",
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "The instrument lives under probes/TST-0087/, not as a production PreToolUse hook wired into ~/.claude. A later IMP-0037 delivery must install the same classification on the live harness. This unit measured the detector both-states on a real fixture write; it did not claim the owner's live tree is already guarded.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe1_deployed_fires.py",
+   "id": "test_guard_fires_on_a_deployed_path_with_a_repo_counterpart",
+   "name": "guard fires on a deployed path with a repo counterpart",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py",
+   "id": "test_guard_is_silent_on_a_live_only_scratch_path",
+   "name": "guard is silent on a live-only scratch path",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py",
+   "id": "prefix-not-the-trigger",
+   "name": "same live prefix without provenance stays silent",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py",
+   "id": "negative-control-provenance-removed",
+   "name": "removing the provenance record makes the deployed path silent",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py",
+   "id": "repo-source-silent",
+   "name": "editing the repo counterpart is silent",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe1_deployed_fires.py",
+   "id": "fail-open-internal-error",
+   "name": "injected exception fails open (exit 0, permit)",
+   "result": "PASS"
+  }
+ ],
+ "title": "Editing a deployed copy must be detected: the repo is the source of truth",
+ "ts": "2026-08-25T00:56:43Z",
+ "unit_id": "TST-0087",
+ "verdict": {
+  "instrument": "CONFIRMED",
+  "production": "REFUTED"
+ },
+ "verifier_fp": "281f811c02cb1d890187709dede887db265f91b418bb11e15a96cae4af7a3141",
+ "verifier_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0087/probe2_scratch_silent.py"
+}

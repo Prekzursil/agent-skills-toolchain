@@ -1,0 +1,2294 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1053,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/migration-report.schema.json",
+      "role": "supporting",
+      "sha256": "e804b56beac202b499fa38e6d8009fbbbf7c7d01a23bd45063ce4880130fd39e"
+    },
+    {
+      "bytes": 7112,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+      "role": "supporting",
+      "sha256": "965f28c825284d9bda2ccfef0da0727e89ae715d49b8abb231f44840a7776e30"
+    },
+    {
+      "bytes": 7933,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0048/schemas/v2-state.schema.json",
+      "role": "supporting",
+      "sha256": "6b488e87bf7ec2aa4b96e2a85fd7d80da7b9bdd37e258915981bbc5eafa3f595"
+    },
+    {
+      "bytes": 3343,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0048/fixtures/new-written.json",
+      "role": "fixture",
+      "sha256": "bdb4a8f5be2153a5b4d75f7a84f76a93eecbdfb4cc27c20a9d3b350841bc2bc9"
+    },
+    {
+      "bytes": 3260,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json",
+      "role": "fixture",
+      "sha256": "73ec259f3d7a69c02439cb5865ac618b2363612be1abfc12b2a9e3cd2068bf11"
+    },
+    {
+      "bytes": 3253,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0048/fixtures/naive-schema-bump.json",
+      "role": "fixture",
+      "sha256": "c7cd16f091f5e2286165889e0dadf0ba509046f7b4232ec7dbc8cb341259f9ac"
+    },
+    {
+      "bytes": 34,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json",
+      "role": "control",
+      "sha256": "03c80b1ca4f79e3d457236ea63c1ce3606221079588a25bd4b3826914609d1bf"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json",
+      "consumer": "command-center/p2-wave/probes/CNF-0048/state.py:old_load_path",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe1_field_compare.py",
+        "exit_code": 0,
+        "fingerprint": "cnf0048-old-v1-consumer",
+        "method": "schema-validate",
+        "raw_output": "old v1 loaded command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json without exception",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0048/probe1_field_compare.py",
+      "claim": "Honest reverse-migration loads in old v1 with field-level equality; raw v2 is refused. Every fixture has field comparisons, not a load-succeeded boolean.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe1_field_compare.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0048-probe1-field-compare",
+          "method": "test-run",
+          "raw_output": "reverse-migrated=LOADS compared=63 meaning_changed=0 new-written=REFUSES",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"import json,pathlib; p=pathlib.Path('command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json'); print(json.loads(p.read_text()).get('schema_version'))\"",
+          "exit_code": 0,
+          "fingerprint": "cnf0048-v1-load-reverse-migrated",
+          "method": "file-read",
+          "raw_output": "old v1 loaded command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json without exception",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0048/probe2_refuse_control.py",
+      "claim": "Naive schema_version stamp silently misinterprets plugin version and discovery_only; truncated JSON is refused with JSONDecodeError naming the file.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe2_refuse_control.py",
+          "exit_code": 0,
+          "fingerprint": "cnf0048-probe2-refuse-control",
+          "method": "test-run",
+          "raw_output": "naive=SILENT-MISINTERPRET meaning_changed=3 unreadable=REFUSES",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from pathlib import Path; print(Path('command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json').read_text()[:80])\"",
+          "exit_code": 0,
+          "fingerprint": "cnf0048-unreadable-bytes",
+          "method": "command",
+          "raw_output": "refuse: command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json: JSONDecodeError Expecting value at line 1 col 35 (unreadable to old v1).",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "completion_sentinel": "SUCCESS:CNF-0048 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every fixture has a field-level comparison, not merely a load-succeeded boolean. Any other terminal state is FAILED:CNF-0048 <classification> with the diagnostic tail attached.",
+    "measured_at": "2026-08-25T00:56:07Z",
+    "schema_garbage_rejected": 3
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0048",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0048/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "outcome=SILENT-MISINTERPRET meaning_changed_paths=['entries[marketplace.harness].version', 'entries[plugin.harness].version', 'entries[wf.catalog-class.discovery-only].discovery_only']",
+      "description": "Stamp schema_version=1 and strip unknown keys so old v1 loads. Detector must flag meaning_changed on version and discovery_only; a load-succeeded boolean would falsely pass.",
+      "fired_on_bad_state": true,
+      "good_state_output": "outcome=LOADS meaning_changed=0",
+      "id": "naive-schema-bump",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "refuse: command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json: JSONDecodeError Expecting value at line 1 col 35 (unreadable to old v1).",
+      "description": "Truncated JSON must be refused with JSONDecodeError naming the file. Reverse-migrated v1 must still load.",
+      "fired_on_bad_state": true,
+      "good_state_output": "old v1 loaded command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json without exception",
+      "id": "unreadable-truncated-json",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "opus",
+    "role": "migration-verification-engineer",
+    "vendor": "anthropic"
+  },
+  "report": {
+    "answer": {
+      "naive_schema_bump": "SILENT-MISINTERPRET",
+      "raw_new_state": "REFUSES",
+      "reverse_migrated": "LOADS",
+      "summary": "Old v1 (schema_version const 1 + validate_registry) refuses raw v2 with a message naming schema_version, and refuses truncated JSON with JSONDecodeError. Honest reverse-migration remaps version and re-inverts discovery_only; old v1 then loads with field-level equality against the live v1 registry. A naive stamp of schema_version=1 (extra keys stripped) loads without exception and silently misinterprets plugin.version and discovery_only \u2014 caught only by field comparison, not by a load-succeeded boolean.",
+      "unreadable_control": "REFUSES"
+    },
+    "control_ids": [
+      "naive-schema-bump",
+      "unreadable-truncated-json"
+    ],
+    "failure_classes_observed": [
+      "silent-misinterpretation (naive schema_version stamp)",
+      "unclear-error not observed: refuse messages name path and reason"
+    ],
+    "fixtures": [
+      {
+        "compared_count": 63,
+        "equal_count": 0,
+        "field_comparisons": [
+          {
+            "equal": false,
+            "intended": "catalog.council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].id"
+          },
+          {
+            "equal": false,
+            "intended": "council_catalog",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "council.preset.catalog-class.editable"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].member_ids"
+          },
+          {
+            "equal": false,
+            "intended": "catalog.workflows",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].id"
+          },
+          {
+            "equal": false,
+            "intended": "workflow_catalog",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].member_ids"
+          },
+          {
+            "equal": false,
+            "intended": "council.preset.catalog-class.editable",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].id"
+          },
+          {
+            "equal": false,
+            "intended": "council_preset",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].roles"
+          },
+          {
+            "equal": false,
+            "intended": 8,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.max_rounds"
+          },
+          {
+            "equal": false,
+            "intended": "halt",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.on_timeout"
+          },
+          {
+            "equal": false,
+            "intended": 4,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.quorum"
+          },
+          {
+            "equal": false,
+            "intended": "unanimous-or-record-dissent",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.rule"
+          },
+          {
+            "equal": false,
+            "intended": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].body"
+          },
+          {
+            "equal": false,
+            "intended": "doc.a2-overview",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].id"
+          },
+          {
+            "equal": false,
+            "intended": "doc",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].kind"
+          },
+          {
+            "equal": false,
+            "intended": "A2 generated SSOT",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].title"
+          },
+          {
+            "equal": false,
+            "intended": true,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].enabled"
+          },
+          {
+            "equal": false,
+            "intended": "PreToolUse",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].event"
+          },
+          {
+            "equal": false,
+            "intended": "hook.pre-tool",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].id"
+          },
+          {
+            "equal": false,
+            "intended": "hook",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].kind"
+          },
+          {
+            "equal": false,
+            "intended": "hooks/pre-tool.py",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].script"
+          },
+          {
+            "equal": false,
+            "intended": "control-plane",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].category"
+          },
+          {
+            "equal": false,
+            "intended": "Marketplace listing generated from the typed registry.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].description"
+          },
+          {
+            "equal": false,
+            "intended": "marketplace.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].id"
+          },
+          {
+            "equal": false,
+            "intended": "marketplace_entry",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].kind"
+          },
+          {
+            "equal": false,
+            "intended": "harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].name"
+          },
+          {
+            "equal": false,
+            "intended": "plugin.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].plugin_id"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].version"
+          },
+          {
+            "equal": false,
+            "intended": "A2 generated plugin manifest for the harness control plane.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].description"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "hook.pre-tool"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].hook_ids"
+          },
+          {
+            "equal": false,
+            "intended": "plugin.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].id"
+          },
+          {
+            "equal": false,
+            "intended": "plugin_manifest",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].kind"
+          },
+          {
+            "equal": false,
+            "intended": "harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].name"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "rule.no-secrets"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].rule_ids"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "skill.council"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].skill_ids"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].version"
+          },
+          {
+            "equal": false,
+            "intended": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].body"
+          },
+          {
+            "equal": false,
+            "intended": "rule.no-secrets",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].id"
+          },
+          {
+            "equal": false,
+            "intended": "rule",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].kind"
+          },
+          {
+            "equal": false,
+            "intended": "No secrets in generated artifacts",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].title"
+          },
+          {
+            "equal": false,
+            "intended": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].description"
+          },
+          {
+            "equal": false,
+            "intended": "skill.council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].id"
+          },
+          {
+            "equal": false,
+            "intended": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].instructions"
+          },
+          {
+            "equal": false,
+            "intended": "skill",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].kind"
+          },
+          {
+            "equal": false,
+            "intended": "council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].name"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].roles"
+          },
+          {
+            "equal": false,
+            "intended": true,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].discovery_only"
+          },
+          {
+            "equal": false,
+            "intended": "wf.catalog-class.discovery-only",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].id"
+          },
+          {
+            "equal": false,
+            "intended": "workflow_blueprint",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].kind"
+          },
+          {
+            "equal": false,
+            "intended": "discover",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].id"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "repo"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].inputs"
+          },
+          {
+            "equal": false,
+            "intended": "static-scan",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].outputs"
+          },
+          {
+            "equal": false,
+            "intended": "record",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].id"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].inputs"
+          },
+          {
+            "equal": false,
+            "intended": "write-config",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "blueprint.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].outputs"
+          },
+          {
+            "equal": false,
+            "intended": 2,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.max_stages"
+          },
+          {
+            "equal": false,
+            "intended": "halt",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.on_error"
+          },
+          {
+            "equal": false,
+            "intended": "a2-ssot-generator",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "generator_id"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "generator_version"
+          },
+          {
+            "equal": false,
+            "intended": 1,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "schema_version"
+          }
+        ],
+        "id": "new-written",
+        "meaning_changed_count": 0,
+        "old_version_load": {
+          "loaded": false,
+          "message": "refuse: command-center/p2-wave/probes/CNF-0048/fixtures/new-written.json: schema_version=2 is not readable by v1 (expected 1). Run reverse-migration or abort the downgrade.",
+          "refused": true,
+          "where": "command-center/p2-wave/probes/ARC-0010/generator.py:validate_registry+registry.schema.json schema_version const 1"
+        },
+        "outcome": "REFUSES",
+        "path": "command-center/p2-wave/probes/CNF-0048/fixtures/new-written.json"
+      },
+      {
+        "compared_count": 63,
+        "equal_count": 63,
+        "field_comparisons": [
+          {
+            "equal": true,
+            "intended": "catalog.council",
+            "loaded": "catalog.council",
+            "meaning_changed": false,
+            "path": "entries[catalog.council].id"
+          },
+          {
+            "equal": true,
+            "intended": "council_catalog",
+            "loaded": "council_catalog",
+            "meaning_changed": false,
+            "path": "entries[catalog.council].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "council.preset.catalog-class.editable"
+            ],
+            "loaded": [
+              "council.preset.catalog-class.editable"
+            ],
+            "meaning_changed": false,
+            "path": "entries[catalog.council].member_ids"
+          },
+          {
+            "equal": true,
+            "intended": "catalog.workflows",
+            "loaded": "catalog.workflows",
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].id"
+          },
+          {
+            "equal": true,
+            "intended": "workflow_catalog",
+            "loaded": "workflow_catalog",
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "loaded": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].member_ids"
+          },
+          {
+            "equal": true,
+            "intended": "council.preset.catalog-class.editable",
+            "loaded": "council.preset.catalog-class.editable",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].id"
+          },
+          {
+            "equal": true,
+            "intended": "council_preset",
+            "loaded": "council_preset",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].roles"
+          },
+          {
+            "equal": true,
+            "intended": 8,
+            "loaded": 8,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.max_rounds"
+          },
+          {
+            "equal": true,
+            "intended": "halt",
+            "loaded": "halt",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.on_timeout"
+          },
+          {
+            "equal": true,
+            "intended": 4,
+            "loaded": 4,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.quorum"
+          },
+          {
+            "equal": true,
+            "intended": "unanimous-or-record-dissent",
+            "loaded": "unanimous-or-record-dissent",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.rule"
+          },
+          {
+            "equal": true,
+            "intended": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "loaded": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].body"
+          },
+          {
+            "equal": true,
+            "intended": "doc.a2-overview",
+            "loaded": "doc.a2-overview",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].id"
+          },
+          {
+            "equal": true,
+            "intended": "doc",
+            "loaded": "doc",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].kind"
+          },
+          {
+            "equal": true,
+            "intended": "A2 generated SSOT",
+            "loaded": "A2 generated SSOT",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].title"
+          },
+          {
+            "equal": true,
+            "intended": true,
+            "loaded": true,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].enabled"
+          },
+          {
+            "equal": true,
+            "intended": "PreToolUse",
+            "loaded": "PreToolUse",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].event"
+          },
+          {
+            "equal": true,
+            "intended": "hook.pre-tool",
+            "loaded": "hook.pre-tool",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].id"
+          },
+          {
+            "equal": true,
+            "intended": "hook",
+            "loaded": "hook",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].kind"
+          },
+          {
+            "equal": true,
+            "intended": "hooks/pre-tool.py",
+            "loaded": "hooks/pre-tool.py",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].script"
+          },
+          {
+            "equal": true,
+            "intended": "control-plane",
+            "loaded": "control-plane",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].category"
+          },
+          {
+            "equal": true,
+            "intended": "Marketplace listing generated from the typed registry.",
+            "loaded": "Marketplace listing generated from the typed registry.",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].description"
+          },
+          {
+            "equal": true,
+            "intended": "marketplace.harness",
+            "loaded": "marketplace.harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].id"
+          },
+          {
+            "equal": true,
+            "intended": "marketplace_entry",
+            "loaded": "marketplace_entry",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].kind"
+          },
+          {
+            "equal": true,
+            "intended": "harness",
+            "loaded": "harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].name"
+          },
+          {
+            "equal": true,
+            "intended": "plugin.harness",
+            "loaded": "plugin.harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].plugin_id"
+          },
+          {
+            "equal": true,
+            "intended": "1.0.0",
+            "loaded": "1.0.0",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].version"
+          },
+          {
+            "equal": true,
+            "intended": "A2 generated plugin manifest for the harness control plane.",
+            "loaded": "A2 generated plugin manifest for the harness control plane.",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].description"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "hook.pre-tool"
+            ],
+            "loaded": [
+              "hook.pre-tool"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].hook_ids"
+          },
+          {
+            "equal": true,
+            "intended": "plugin.harness",
+            "loaded": "plugin.harness",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].id"
+          },
+          {
+            "equal": true,
+            "intended": "plugin_manifest",
+            "loaded": "plugin_manifest",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].kind"
+          },
+          {
+            "equal": true,
+            "intended": "harness",
+            "loaded": "harness",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].name"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "rule.no-secrets"
+            ],
+            "loaded": [
+              "rule.no-secrets"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].rule_ids"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "skill.council"
+            ],
+            "loaded": [
+              "skill.council"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].skill_ids"
+          },
+          {
+            "equal": true,
+            "intended": "1.0.0",
+            "loaded": "1.0.0",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].version"
+          },
+          {
+            "equal": true,
+            "intended": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "loaded": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].body"
+          },
+          {
+            "equal": true,
+            "intended": "rule.no-secrets",
+            "loaded": "rule.no-secrets",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].id"
+          },
+          {
+            "equal": true,
+            "intended": "rule",
+            "loaded": "rule",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].kind"
+          },
+          {
+            "equal": true,
+            "intended": "No secrets in generated artifacts",
+            "loaded": "No secrets in generated artifacts",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].title"
+          },
+          {
+            "equal": true,
+            "intended": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "loaded": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "meaning_changed": false,
+            "path": "entries[skill.council].description"
+          },
+          {
+            "equal": true,
+            "intended": "skill.council",
+            "loaded": "skill.council",
+            "meaning_changed": false,
+            "path": "entries[skill.council].id"
+          },
+          {
+            "equal": true,
+            "intended": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "loaded": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "meaning_changed": false,
+            "path": "entries[skill.council].instructions"
+          },
+          {
+            "equal": true,
+            "intended": "skill",
+            "loaded": "skill",
+            "meaning_changed": false,
+            "path": "entries[skill.council].kind"
+          },
+          {
+            "equal": true,
+            "intended": "council",
+            "loaded": "council",
+            "meaning_changed": false,
+            "path": "entries[skill.council].name"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "meaning_changed": false,
+            "path": "entries[skill.council].roles"
+          },
+          {
+            "equal": true,
+            "intended": true,
+            "loaded": true,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].discovery_only"
+          },
+          {
+            "equal": true,
+            "intended": "wf.catalog-class.discovery-only",
+            "loaded": "wf.catalog-class.discovery-only",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].id"
+          },
+          {
+            "equal": true,
+            "intended": "workflow_blueprint",
+            "loaded": "workflow_blueprint",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].kind"
+          },
+          {
+            "equal": true,
+            "intended": "discover",
+            "loaded": "discover",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].id"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "repo"
+            ],
+            "loaded": [
+              "repo"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].inputs"
+          },
+          {
+            "equal": true,
+            "intended": "static-scan",
+            "loaded": "static-scan",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": [
+              "candidates.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].outputs"
+          },
+          {
+            "equal": true,
+            "intended": "record",
+            "loaded": "record",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].id"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": [
+              "candidates.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].inputs"
+          },
+          {
+            "equal": true,
+            "intended": "write-config",
+            "loaded": "write-config",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "blueprint.json"
+            ],
+            "loaded": [
+              "blueprint.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].outputs"
+          },
+          {
+            "equal": true,
+            "intended": 2,
+            "loaded": 2,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.max_stages"
+          },
+          {
+            "equal": true,
+            "intended": "halt",
+            "loaded": "halt",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.on_error"
+          },
+          {
+            "equal": true,
+            "intended": "a2-ssot-generator",
+            "loaded": "a2-ssot-generator",
+            "meaning_changed": false,
+            "path": "generator_id"
+          },
+          {
+            "equal": true,
+            "intended": "1.0.0",
+            "loaded": "1.0.0",
+            "meaning_changed": false,
+            "path": "generator_version"
+          },
+          {
+            "equal": true,
+            "intended": 1,
+            "loaded": 1,
+            "meaning_changed": false,
+            "path": "schema_version"
+          }
+        ],
+        "id": "reverse-migrated",
+        "meaning_changed_count": 0,
+        "old_version_load": {
+          "loaded": true,
+          "message": "old v1 loaded command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json without exception",
+          "refused": false,
+          "where": "command-center/p2-wave/probes/ARC-0010/generator.py:validate_registry+registry.schema.json schema_version const 1"
+        },
+        "outcome": "LOADS",
+        "path": "command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json"
+      },
+      {
+        "compared_count": 63,
+        "equal_count": 60,
+        "field_comparisons": [
+          {
+            "equal": true,
+            "intended": "catalog.council",
+            "loaded": "catalog.council",
+            "meaning_changed": false,
+            "path": "entries[catalog.council].id"
+          },
+          {
+            "equal": true,
+            "intended": "council_catalog",
+            "loaded": "council_catalog",
+            "meaning_changed": false,
+            "path": "entries[catalog.council].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "council.preset.catalog-class.editable"
+            ],
+            "loaded": [
+              "council.preset.catalog-class.editable"
+            ],
+            "meaning_changed": false,
+            "path": "entries[catalog.council].member_ids"
+          },
+          {
+            "equal": true,
+            "intended": "catalog.workflows",
+            "loaded": "catalog.workflows",
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].id"
+          },
+          {
+            "equal": true,
+            "intended": "workflow_catalog",
+            "loaded": "workflow_catalog",
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "loaded": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].member_ids"
+          },
+          {
+            "equal": true,
+            "intended": "council.preset.catalog-class.editable",
+            "loaded": "council.preset.catalog-class.editable",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].id"
+          },
+          {
+            "equal": true,
+            "intended": "council_preset",
+            "loaded": "council_preset",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].roles"
+          },
+          {
+            "equal": true,
+            "intended": 8,
+            "loaded": 8,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.max_rounds"
+          },
+          {
+            "equal": true,
+            "intended": "halt",
+            "loaded": "halt",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.on_timeout"
+          },
+          {
+            "equal": true,
+            "intended": 4,
+            "loaded": 4,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.quorum"
+          },
+          {
+            "equal": true,
+            "intended": "unanimous-or-record-dissent",
+            "loaded": "unanimous-or-record-dissent",
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.rule"
+          },
+          {
+            "equal": true,
+            "intended": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "loaded": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].body"
+          },
+          {
+            "equal": true,
+            "intended": "doc.a2-overview",
+            "loaded": "doc.a2-overview",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].id"
+          },
+          {
+            "equal": true,
+            "intended": "doc",
+            "loaded": "doc",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].kind"
+          },
+          {
+            "equal": true,
+            "intended": "A2 generated SSOT",
+            "loaded": "A2 generated SSOT",
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].title"
+          },
+          {
+            "equal": true,
+            "intended": true,
+            "loaded": true,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].enabled"
+          },
+          {
+            "equal": true,
+            "intended": "PreToolUse",
+            "loaded": "PreToolUse",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].event"
+          },
+          {
+            "equal": true,
+            "intended": "hook.pre-tool",
+            "loaded": "hook.pre-tool",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].id"
+          },
+          {
+            "equal": true,
+            "intended": "hook",
+            "loaded": "hook",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].kind"
+          },
+          {
+            "equal": true,
+            "intended": "hooks/pre-tool.py",
+            "loaded": "hooks/pre-tool.py",
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].script"
+          },
+          {
+            "equal": true,
+            "intended": "control-plane",
+            "loaded": "control-plane",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].category"
+          },
+          {
+            "equal": true,
+            "intended": "Marketplace listing generated from the typed registry.",
+            "loaded": "Marketplace listing generated from the typed registry.",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].description"
+          },
+          {
+            "equal": true,
+            "intended": "marketplace.harness",
+            "loaded": "marketplace.harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].id"
+          },
+          {
+            "equal": true,
+            "intended": "marketplace_entry",
+            "loaded": "marketplace_entry",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].kind"
+          },
+          {
+            "equal": true,
+            "intended": "harness",
+            "loaded": "harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].name"
+          },
+          {
+            "equal": true,
+            "intended": "plugin.harness",
+            "loaded": "plugin.harness",
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].plugin_id"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": "2",
+            "meaning_changed": true,
+            "path": "entries[marketplace.harness].version"
+          },
+          {
+            "equal": true,
+            "intended": "A2 generated plugin manifest for the harness control plane.",
+            "loaded": "A2 generated plugin manifest for the harness control plane.",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].description"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "hook.pre-tool"
+            ],
+            "loaded": [
+              "hook.pre-tool"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].hook_ids"
+          },
+          {
+            "equal": true,
+            "intended": "plugin.harness",
+            "loaded": "plugin.harness",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].id"
+          },
+          {
+            "equal": true,
+            "intended": "plugin_manifest",
+            "loaded": "plugin_manifest",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].kind"
+          },
+          {
+            "equal": true,
+            "intended": "harness",
+            "loaded": "harness",
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].name"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "rule.no-secrets"
+            ],
+            "loaded": [
+              "rule.no-secrets"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].rule_ids"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "skill.council"
+            ],
+            "loaded": [
+              "skill.council"
+            ],
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].skill_ids"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": "2",
+            "meaning_changed": true,
+            "path": "entries[plugin.harness].version"
+          },
+          {
+            "equal": true,
+            "intended": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "loaded": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].body"
+          },
+          {
+            "equal": true,
+            "intended": "rule.no-secrets",
+            "loaded": "rule.no-secrets",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].id"
+          },
+          {
+            "equal": true,
+            "intended": "rule",
+            "loaded": "rule",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].kind"
+          },
+          {
+            "equal": true,
+            "intended": "No secrets in generated artifacts",
+            "loaded": "No secrets in generated artifacts",
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].title"
+          },
+          {
+            "equal": true,
+            "intended": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "loaded": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "meaning_changed": false,
+            "path": "entries[skill.council].description"
+          },
+          {
+            "equal": true,
+            "intended": "skill.council",
+            "loaded": "skill.council",
+            "meaning_changed": false,
+            "path": "entries[skill.council].id"
+          },
+          {
+            "equal": true,
+            "intended": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "loaded": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "meaning_changed": false,
+            "path": "entries[skill.council].instructions"
+          },
+          {
+            "equal": true,
+            "intended": "skill",
+            "loaded": "skill",
+            "meaning_changed": false,
+            "path": "entries[skill.council].kind"
+          },
+          {
+            "equal": true,
+            "intended": "council",
+            "loaded": "council",
+            "meaning_changed": false,
+            "path": "entries[skill.council].name"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "meaning_changed": false,
+            "path": "entries[skill.council].roles"
+          },
+          {
+            "equal": false,
+            "intended": true,
+            "loaded": false,
+            "meaning_changed": true,
+            "path": "entries[wf.catalog-class.discovery-only].discovery_only"
+          },
+          {
+            "equal": true,
+            "intended": "wf.catalog-class.discovery-only",
+            "loaded": "wf.catalog-class.discovery-only",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].id"
+          },
+          {
+            "equal": true,
+            "intended": "workflow_blueprint",
+            "loaded": "workflow_blueprint",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].kind"
+          },
+          {
+            "equal": true,
+            "intended": "discover",
+            "loaded": "discover",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].id"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "repo"
+            ],
+            "loaded": [
+              "repo"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].inputs"
+          },
+          {
+            "equal": true,
+            "intended": "static-scan",
+            "loaded": "static-scan",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": [
+              "candidates.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].outputs"
+          },
+          {
+            "equal": true,
+            "intended": "record",
+            "loaded": "record",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].id"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": [
+              "candidates.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].inputs"
+          },
+          {
+            "equal": true,
+            "intended": "write-config",
+            "loaded": "write-config",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].kind"
+          },
+          {
+            "equal": true,
+            "intended": [
+              "blueprint.json"
+            ],
+            "loaded": [
+              "blueprint.json"
+            ],
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].outputs"
+          },
+          {
+            "equal": true,
+            "intended": 2,
+            "loaded": 2,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.max_stages"
+          },
+          {
+            "equal": true,
+            "intended": "halt",
+            "loaded": "halt",
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.on_error"
+          },
+          {
+            "equal": true,
+            "intended": "a2-ssot-generator",
+            "loaded": "a2-ssot-generator",
+            "meaning_changed": false,
+            "path": "generator_id"
+          },
+          {
+            "equal": true,
+            "intended": "1.0.0",
+            "loaded": "1.0.0",
+            "meaning_changed": false,
+            "path": "generator_version"
+          },
+          {
+            "equal": true,
+            "intended": 1,
+            "loaded": 1,
+            "meaning_changed": false,
+            "path": "schema_version"
+          }
+        ],
+        "id": "naive-schema-bump",
+        "meaning_changed_count": 3,
+        "old_version_load": {
+          "loaded": true,
+          "message": "old v1 loaded command-center/p2-wave/probes/CNF-0048/fixtures/naive-schema-bump.json without exception",
+          "refused": false,
+          "where": "command-center/p2-wave/probes/ARC-0010/generator.py:validate_registry+registry.schema.json schema_version const 1"
+        },
+        "outcome": "SILENT-MISINTERPRET",
+        "path": "command-center/p2-wave/probes/CNF-0048/fixtures/naive-schema-bump.json"
+      },
+      {
+        "compared_count": 63,
+        "equal_count": 0,
+        "field_comparisons": [
+          {
+            "equal": false,
+            "intended": "catalog.council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].id"
+          },
+          {
+            "equal": false,
+            "intended": "council_catalog",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "council.preset.catalog-class.editable"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.council].member_ids"
+          },
+          {
+            "equal": false,
+            "intended": "catalog.workflows",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].id"
+          },
+          {
+            "equal": false,
+            "intended": "workflow_catalog",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "wf.catalog-class.discovery-only"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[catalog.workflows].member_ids"
+          },
+          {
+            "equal": false,
+            "intended": "council.preset.catalog-class.editable",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].id"
+          },
+          {
+            "equal": false,
+            "intended": "council_preset",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].roles"
+          },
+          {
+            "equal": false,
+            "intended": 8,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.max_rounds"
+          },
+          {
+            "equal": false,
+            "intended": "halt",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].stopping.on_timeout"
+          },
+          {
+            "equal": false,
+            "intended": 4,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.quorum"
+          },
+          {
+            "equal": false,
+            "intended": "unanimous-or-record-dissent",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[council.preset.catalog-class.editable].voting.rule"
+          },
+          {
+            "equal": false,
+            "intended": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].body"
+          },
+          {
+            "equal": false,
+            "intended": "doc.a2-overview",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].id"
+          },
+          {
+            "equal": false,
+            "intended": "doc",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].kind"
+          },
+          {
+            "equal": false,
+            "intended": "A2 generated SSOT",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[doc.a2-overview].title"
+          },
+          {
+            "equal": false,
+            "intended": true,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].enabled"
+          },
+          {
+            "equal": false,
+            "intended": "PreToolUse",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].event"
+          },
+          {
+            "equal": false,
+            "intended": "hook.pre-tool",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].id"
+          },
+          {
+            "equal": false,
+            "intended": "hook",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].kind"
+          },
+          {
+            "equal": false,
+            "intended": "hooks/pre-tool.py",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[hook.pre-tool].script"
+          },
+          {
+            "equal": false,
+            "intended": "control-plane",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].category"
+          },
+          {
+            "equal": false,
+            "intended": "Marketplace listing generated from the typed registry.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].description"
+          },
+          {
+            "equal": false,
+            "intended": "marketplace.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].id"
+          },
+          {
+            "equal": false,
+            "intended": "marketplace_entry",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].kind"
+          },
+          {
+            "equal": false,
+            "intended": "harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].name"
+          },
+          {
+            "equal": false,
+            "intended": "plugin.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].plugin_id"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[marketplace.harness].version"
+          },
+          {
+            "equal": false,
+            "intended": "A2 generated plugin manifest for the harness control plane.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].description"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "hook.pre-tool"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].hook_ids"
+          },
+          {
+            "equal": false,
+            "intended": "plugin.harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].id"
+          },
+          {
+            "equal": false,
+            "intended": "plugin_manifest",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].kind"
+          },
+          {
+            "equal": false,
+            "intended": "harness",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].name"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "rule.no-secrets"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].rule_ids"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "skill.council"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].skill_ids"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[plugin.harness].version"
+          },
+          {
+            "equal": false,
+            "intended": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].body"
+          },
+          {
+            "equal": false,
+            "intended": "rule.no-secrets",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].id"
+          },
+          {
+            "equal": false,
+            "intended": "rule",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].kind"
+          },
+          {
+            "equal": false,
+            "intended": "No secrets in generated artifacts",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[rule.no-secrets].title"
+          },
+          {
+            "equal": false,
+            "intended": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].description"
+          },
+          {
+            "equal": false,
+            "intended": "skill.council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].id"
+          },
+          {
+            "equal": false,
+            "intended": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].instructions"
+          },
+          {
+            "equal": false,
+            "intended": "skill",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].kind"
+          },
+          {
+            "equal": false,
+            "intended": "council",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].name"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "Architect",
+              "Skeptic",
+              "Pragmatist",
+              "Critic"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[skill.council].roles"
+          },
+          {
+            "equal": false,
+            "intended": true,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].discovery_only"
+          },
+          {
+            "equal": false,
+            "intended": "wf.catalog-class.discovery-only",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].id"
+          },
+          {
+            "equal": false,
+            "intended": "workflow_blueprint",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].kind"
+          },
+          {
+            "equal": false,
+            "intended": "discover",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].id"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "repo"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].inputs"
+          },
+          {
+            "equal": false,
+            "intended": "static-scan",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[0].outputs"
+          },
+          {
+            "equal": false,
+            "intended": "record",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].id"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "candidates.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].inputs"
+          },
+          {
+            "equal": false,
+            "intended": "write-config",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].kind"
+          },
+          {
+            "equal": false,
+            "intended": [
+              "blueprint.json"
+            ],
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stages[1].outputs"
+          },
+          {
+            "equal": false,
+            "intended": 2,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.max_stages"
+          },
+          {
+            "equal": false,
+            "intended": "halt",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "entries[wf.catalog-class.discovery-only].stopping.on_error"
+          },
+          {
+            "equal": false,
+            "intended": "a2-ssot-generator",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "generator_id"
+          },
+          {
+            "equal": false,
+            "intended": "1.0.0",
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "generator_version"
+          },
+          {
+            "equal": false,
+            "intended": 1,
+            "loaded": null,
+            "meaning_changed": false,
+            "path": "schema_version"
+          }
+        ],
+        "id": "unreadable",
+        "meaning_changed_count": 0,
+        "old_version_load": {
+          "loaded": false,
+          "message": "refuse: command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json: JSONDecodeError Expecting value at line 1 col 35 (unreadable to old v1).",
+          "refused": true,
+          "where": "command-center/p2-wave/probes/ARC-0010/generator.py:validate_registry+registry.schema.json schema_version const 1"
+        },
+        "outcome": "REFUSES",
+        "path": "command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json"
+      }
+    ],
+    "kind": "migration-report",
+    "live_v1_registry": "command-center/p2-wave/probes/ARC-0010/registry.json",
+    "naive_meaning_changed_paths": [
+      "entries[marketplace.harness].version",
+      "entries[plugin.harness].version",
+      "entries[wf.catalog-class.discovery-only].discovery_only"
+    ],
+    "new_schema": "command-center/p2-wave/probes/CNF-0048/schemas/v2-state.schema.json",
+    "new_writer": "command-center/p2-wave/probes/CNF-0048/state.py:to_v2",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0048/fixtures/new-written.json",
+        "measured": "REFUSES",
+        "method": "old-v1-load",
+        "name": "raw_new_state"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0048/fixtures/reverse-migrated.json",
+        "measured": "LOADS",
+        "method": "old-v1-load-plus-field-compare",
+        "name": "reverse_migrated"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0048/fixtures/naive-schema-bump.json",
+        "measured": "SILENT-MISINTERPRET",
+        "method": "field-compare-not-load-boolean",
+        "name": "naive_schema_bump"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0048/fixtures/unreadable.json",
+        "measured": "REFUSES",
+        "method": "truncated-json-refuse",
+        "name": "unreadable_control"
+      }
+    ],
+    "old_loader": "command-center/p2-wave/probes/ARC-0010/generator.py:validate_registry+registry.schema.json schema_version const 1",
+    "old_schema": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+    "question": "After a downgrade, can the previous version read the on-disk state the new version wrote? Write state with the new version, downgrade, and answer: does the old version load it, refuse it with a clear message, or silently misinterpret it? Silent misinterpretation is the dangerous outcome and is the one this unit is built to catch.",
+    "raw_v2_refuse_message": "refuse: command-center/p2-wave/probes/CNF-0048/fixtures/new-written.json: schema_version=2 is not readable by v1 (expected 1). Run reverse-migration or abort the downgrade.",
+    "reverse_migration": "command-center/p2-wave/probes/CNF-0048/state.py:reverse_migrate",
+    "semantic_remaps": [
+      {
+        "field": "plugin_manifest.version / marketplace_entry.version",
+        "v1_meaning": "plugin identity semver (live value 1.0.0)",
+        "v2_meaning": "on-disk format epoch (written as '2'); identity moved to release_version"
+      },
+      {
+        "field": "workflow_blueprint.discovery_only",
+        "v1_meaning": "true = this blueprint is discovery-only (must not execute)",
+        "v2_meaning": "true = discovery already ran, execution allowed (inverted)"
+      }
+    ],
+    "title": "Reverse-migration confirmation: old version reads state written by the new version"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "ARC-0010 registry.json is the live v1 stand-in for this confirmation, not a production-install downgrade of a shipped release tarball.",
+      "settling_experiment": "Re-run against a packaged previous-release tree if one is added as a CNF-0048 input.",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Reviewer re-ran the detector control: naive-schema-bump loads and meaning_changed fires; unreadable refuses with JSONDecodeError. A reviewer who only re-reads this JSON has verified nothing.",
+    "reviewed_at": "2026-08-25T00:56:07Z",
+    "reviewer_id": "CNF-0048-probe2-refuse-control",
+    "vendor": "unassigned",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0048 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every fixture has a field-level comparison, not merely a load-succeeded boolean. Any other terminal state is FAILED:CNF-0048 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0048",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 4,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe1_field_compare.py",
+      "id": "probe1-field-compare",
+      "name": "field-level comparison on every fixture",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe2_refuse_control.py",
+      "id": "probe2-refuse-control",
+      "name": "refuse control and meaning-shift detector",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe2_refuse_control.py",
+      "id": "different-meaning-by-field-compare",
+      "name": "a field that loads with a DIFFERENT meaning must be detected by field comparison, not by absence of an exception",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0048/probe2_refuse_control.py",
+      "id": "unreadable-refused-clearly",
+      "name": "control: a state file the old version genuinely cannot read must be refused with a clear message",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0,
+    "ended_at": "2026-08-25T00:56:07Z",
+    "started_at": "2026-08-25T00:56:07Z"
+  },
+  "unit_id": "CNF-0048"
+}

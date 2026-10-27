@@ -1,0 +1,24 @@
+# Codex profile: exec-fast  (scoping manifest: exec-fast.scope.json)
+# Quick one-shots / cheap iterations. Workspace-write, on-request, medium reasoning,
+# no web, fast tier. Mode M0 = STATIC disable against a known-fixed base (spec §2b/G1a).
+#
+# The M0 disable set (base − {basic-memory}, 24 servers) is NOT carried here as
+# `mcp_servers.<x>.enabled = false` lines. codex validates every config file
+# independently and a standalone `mcp_servers` entry with no transport is a HARD load
+# error ("invalid transport") in every mode — so a config.toml full of transport-less
+# disables cannot load, and codex-doctor's strict-config check rejects it. Instead the
+# disables are enumerated in exec-fast.scope.json.static_disable and applied by
+# codex-invoke as `-c mcp_servers.<x>.enabled=false` OVERRIDES at launch (a -c override
+# rides on the transport-carrying base server and disables it — valid where a standalone
+# file is not). This keeps THIS file strict-config-clean while the runtime scope is still
+# enforced. Keep static_disable in sync with mcp-manifest.json (the CI config-lint asserts
+# static_disable == base − mcp_allowlist, and the invoker fails CLOSED on an empty set).
+model = "gpt-5.6-sol"
+model_reasoning_effort = "medium"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "disabled"
+service_tier = "fast"
+
+[shell_environment_policy]
+inherit = "core"

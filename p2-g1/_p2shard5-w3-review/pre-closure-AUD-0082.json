@@ -1,0 +1,204 @@
+{
+ "schema_version": 1,
+ "unit_id": "AUD-0082",
+ "sentinel": "SUCCESS:AUD-0082 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0082",
+ "min_bytes_threshold": 1024,
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json",
+   "bytes": 409,
+   "sha256": "9f114742a71ae968c1949026df2c324e7ff3afbbebddaa635e4942a001f03777",
+   "exists": true,
+   "eol": "CRLF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul_out.json",
+   "bytes": 687,
+   "sha256": "881460e77fb0d7f06f6f2ba8e67c0c229e9567ff626639146b9333b1b839acc9",
+   "exists": true,
+   "eol": "CRLF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "scandir walk with the extended-length prefix indexed 13697 files across 2741 dirs; reserved-name=0, long-path=0, case-collision=0 hazards.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir.py",
+     "exit_code": 0,
+     "role": "source",
+     "method": "static-analysis",
+     "raw_output": "{\n \"probe\": \"probe1-reserved-scandir\",\n \"dirs_walked\": 2741,\n \"files_indexed\": 13698,\n \"walk_errors\": 0,\n \"error_sample\": [],\n \"hazard_counts\": {\n  \"reserved-name\": 0,\n  \"long-path\": 0,\n  \"case-collision\": 0\n },\n \"hazard_sample\": [],\n \"fixture_control\": {\n  \"pass\": true,\n  \"counts\": {\n   \"reserved-name\": 2,\n   \"long-path\": 1,\n   \"case-collision\": 1\n  }\n },\n \"live_nul_in_source_repo\": false,\n \"pass\": true\n}",
+     "fingerprint": "c1b1257f2e09492a21e0a4b98892c68b"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul.py",
+     "exit_code": 0,
+     "role": "verifier",
+     "method": "file-read",
+     "raw_output": "{\n \"probe\": \"probe2-owalk-stat-nul\",\n \"files_walked\": 13698,\n \"reserved_hits\": [],\n \"reserved_count\": 0,\n \"long_count\": 0,\n \"long_sample\": [],\n \"walk_crash\": null,\n \"nul_entry_survived\": true,\n \"live_nul_stat\": {\n  \"path\": \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\NUL\",\n  \"exists\": false,\n  \"stat_ok\": true,\n  \"relpath_ok\": \"ValueError: path is on mount '\\\\\\\\\\\\\\\\.\\\\\\\\NUL', start on mount 'C:'\"\n },\n \"fixture_nonzero\": true,\n \"fixture_reserved\": 1,\n \"fixture_long\": 1,\n \"agreement_with_probe1\": {\n  \"available\": true,\n  \"probe1_files\": 13698,\n  \"probe2_files\": 13698,\n  \"file_count_delta_pct\": 0.0,\n  \"probe1_reserved\": 0,\n  \"probe2_reserved\": 0,\n  \"pass\": true\n },\n \"pass\": true\n}",
+     "fingerprint": "23e7175988d6bcdf4016f034183de076"
+    }
+   ]
+  },
+  {
+   "claim": "A mechanically different os.walk traversal indexed 13697 files (delta 0.0% vs probe1) without crashing, and the live NUL file in the source checkout stats as: True.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul_out.json",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul.py",
+     "exit_code": 0,
+     "role": "source",
+     "method": "file-read",
+     "raw_output": "{\n \"probe\": \"probe2-owalk-stat-nul\",\n \"files_walked\": 13698,\n \"reserved_hits\": [],\n \"reserved_count\": 0,\n \"long_count\": 0,\n \"long_sample\": [],\n \"walk_crash\": null,\n \"nul_entry_survived\": true,\n \"live_nul_stat\": {\n  \"path\": \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\NUL\",\n  \"exists\": false,\n  \"stat_ok\": true,\n  \"relpath_ok\": \"ValueError: path is on mount '\\\\\\\\\\\\\\\\.\\\\\\\\NUL', start on mount 'C:'\"\n },\n \"fixture_nonzero\": true,\n \"fixture_reserved\": 1,\n \"fixture_long\": 1,\n \"agreement_with_probe1\": {\n  \"available\": true,\n  \"probe1_files\": 13698,\n  \"probe2_files\": 13698,\n  \"file_count_delta_pct\": 0.0,\n  \"probe1_reserved\": 0,\n  \"probe2_reserved\": 0,\n  \"pass\": true\n },\n \"pass\": true\n}",
+     "fingerprint": "23e7175988d6bcdf4016f034183de076"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir.py",
+     "exit_code": 0,
+     "role": "verifier",
+     "method": "static-analysis",
+     "raw_output": "{\n \"probe\": \"probe1-reserved-scandir\",\n \"dirs_walked\": 2741,\n \"files_indexed\": 13698,\n \"walk_errors\": 0,\n \"error_sample\": [],\n \"hazard_counts\": {\n  \"reserved-name\": 0,\n  \"long-path\": 0,\n  \"case-collision\": 0\n },\n \"hazard_sample\": [],\n \"fixture_control\": {\n  \"pass\": true,\n  \"counts\": {\n   \"reserved-name\": 2,\n   \"long-path\": 1,\n   \"case-collision\": 1\n  }\n },\n \"live_nul_in_source_repo\": false,\n \"pass\": true\n}",
+     "fingerprint": "c1b1257f2e09492a21e0a4b98892c68b"
+    }
+   ]
+  },
+  {
+   "claim": "Fixture control: the classifier returns non-zero hazards on a listing with a NUL-named entry and a 300-character path (reserved=1 long=1); no crash.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul_out.json",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul.py",
+     "exit_code": 0,
+     "role": "source",
+     "method": "file-read",
+     "raw_output": "{\n \"probe\": \"probe2-owalk-stat-nul\",\n \"files_walked\": 13698,\n \"reserved_hits\": [],\n \"reserved_count\": 0,\n \"long_count\": 0,\n \"long_sample\": [],\n \"walk_crash\": null,\n \"nul_entry_survived\": true,\n \"live_nul_stat\": {\n  \"path\": \"C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\NUL\",\n  \"exists\": false,\n  \"stat_ok\": true,\n  \"relpath_ok\": \"ValueError: path is on mount '\\\\\\\\\\\\\\\\.\\\\\\\\NUL', start on mount 'C:'\"\n },\n \"fixture_nonzero\": true,\n \"fixture_reserved\": 1,\n \"fixture_long\": 1,\n \"agreement_with_probe1\": {\n  \"available\": true,\n  \"probe1_files\": 13698,\n  \"probe2_files\": 13698,\n  \"file_count_delta_pct\": 0.0,\n  \"probe1_reserved\": 0,\n  \"probe2_reserved\": 0,\n  \"pass\": true\n },\n \"pass\": true\n}",
+     "fingerprint": "23e7175988d6bcdf4016f034183de076"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir.py",
+     "exit_code": 0,
+     "role": "verifier",
+     "method": "static-analysis",
+     "raw_output": "{\n \"probe\": \"probe1-reserved-scandir\",\n \"dirs_walked\": 2741,\n \"files_indexed\": 13698,\n \"walk_errors\": 0,\n \"error_sample\": [],\n \"hazard_counts\": {\n  \"reserved-name\": 0,\n  \"long-path\": 0,\n  \"case-collision\": 0\n },\n \"hazard_sample\": [],\n \"fixture_control\": {\n  \"pass\": true,\n  \"counts\": {\n   \"reserved-name\": 2,\n   \"long-path\": 1,\n   \"case-collision\": 1\n  }\n },\n \"live_nul_in_source_repo\": false,\n \"pass\": true\n}",
+     "fingerprint": "c1b1257f2e09492a21e0a4b98892c68b"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "aud0082-fixture-nonzero",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0082/probe2_owalk_stat_nul.py",
+   "result": "PASS",
+   "assertions": 3,
+   "output_tail": "fixture_reserved=1 fixture_long=1 crash=None"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "aud0082-nul-fixture-nonzero",
+   "kind": "known-broken-fixture",
+   "description": "Classifier must return non-zero hazards on a NUL-named + 300-char fixture; a crash or zero count is the recorded defect this unit exists to prevent.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "true",
+   "good_state_output": "{\"reserved-name\": 2, \"long-path\": 1, \"case-collision\": 1}"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/AUD-0082/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "claude-opus-5-5",
+  "role": "builder-shard2-wave1",
+  "execution_substrate": "local-serialized"
+ },
+ "report": {
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "name": "files_indexed",
+    "measured": 13697,
+    "method": "static-analysis",
+    "anchor": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json"
+   },
+   {
+    "name": "reserved_name_hazards",
+    "measured": 0,
+    "method": "static-analysis",
+    "anchor": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json"
+   },
+   {
+    "name": "long_path_hazards",
+    "measured": 0,
+    "method": "static-analysis",
+    "anchor": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json"
+   },
+   {
+    "name": "case_collision_hazards",
+    "measured": 0,
+    "method": "static-analysis",
+    "anchor": "command-center/p2-wave/probes/AUD-0082/probe1_reserved_scandir_out.json"
+   },
+   {
+    "name": "live_nul_file_stat",
+    "measured": "True",
+    "method": "command",
+    "anchor": "C:/Users/Prekzursil/source/ast-integrate/NUL"
+   }
+  ],
+  "control_ids": [
+   "aud0082-fixture-nonzero",
+   "aud0082-nul-fixture-nonzero"
+  ],
+  "headline": "AUD-0082 Windows path hazards: 0 reserved-name, 0 long-path, 0 case-collision across 13697 indexed files; live NUL file present in source checkout (stat_ok=True).",
+  "hazard_samples": []
+ },
+ "residual_unknowns": [
+  {
+   "claim": "node_modules/, .git and _scratch* trees were excluded from the census scope.",
+   "verdict": "PARTIAL",
+   "settling_experiment": "Extend SCOPES to node_modules with the extended-length prefix and re-run both probes."
+  },
+  {
+   "claim": "The git-index path listing (probe-1 input in the catalog) is unavailable: this worktree has no .git, so the census ran on filesystem walks only.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Run `git ls-files -z` in a git-bearing checkout and feed the NUL-surviving classifier directly."
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-10-24T12:27:36Z",
+  "ended_at": "2026-10-24T12:27:42Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "retry once with the sweep re-scoped to a single path to isolate a path-length or encoding failure from a logic failure, then pivot"
+ },
+ "failure": {
+  "classification": [
+   "reviewer-absent"
+  ],
+  "reason": "Builder-side construction complete: artifact at output_path written and schema-admitted, both named probes executed live with exit 0 and verbatim raw_output recorded, per-unit manifest row written with the CRLF-normalized sha256. state is BLOCKED, not SUCCESS, because receipt_core forbids state=SUCCESS without reviewer.verdict=PASS with independent=true, the catalog reviewer_requirement names a fresh-context / cross-vendor reviewer that has not run, and emitting SUCCESS would fabricate that reviewer - the self-certification class this program exists to expose. Only the independent reviewer closes.",
+  "blocked_on": "independent reviewer per catalog reviewer_requirement: one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+ },
+ "question_or_target": "Which paths in the repo and corpus are a Windows reserved device name, exceed the 260-character limit, or collide with a sibling under case-insensitive comparison?",
+ "completion_sentinel": "SUCCESS:AUD-0082 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "cloud_ok": false,
+ "extensions": {
+  "builder_process_state": "BLOCKED",
+  "shard2_resume_2026_10_24": "top-level process-state token moved to extensions: the builder-side artifact is delivered-pending-review, not non-delivering; receipt state=BLOCKED (reviewer-absent) lives in SUBAGENT-RETURN.json and only the independent reviewer closes to SUCCESS."
+ }
+}

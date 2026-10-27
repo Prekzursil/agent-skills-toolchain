@@ -1,0 +1,1 @@
+"""Detector-control census package."""

@@ -1,0 +1,75 @@
+{
+  "report_kind": "cache_report",
+  "claims": [
+    {
+      "id": "E-transient-short-ttl-retried",
+      "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:NegativeCache.get",
+      "claim": "A transient fetch failure is negatively cached as kind=negative-transient with a SHORT ttl (0.25s); while the entry is live the retry makes zero network calls; after the ttl expires the very next get() hits the network again (fetch counter +1).",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-genuine-404-full-ttl",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py:main",
+      "claim": "A genuine absence (404 fixture) is negatively cached as kind=negative-genuine for its FULL ttl (5.0s) and stays cached across two SHORT-ttl windows without refetching; the recorded type distinguishes it from a transient blip.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-empty-ok-seed",
+      "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:broken_get",
+      "claim": "Regression seed: the broken semantics (empty result reported OK on a failed fetch, measured on this estate with a fixture-local fetch) are detectable - the probe reproduces the empty-OK shape and asserts on it before trusting the real cache.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "empty-ok-defect",
+      "kind": "regression-seed",
+      "description": "The seeded empty-OK cache returns None with no error on a failed fetch; the probe asserts this broken shape is observable (fetched once, reported None) so a silent-OK cache cannot pass as correct.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "broken_semantics_result=null fetch_happened=true empty_ok_defect_present=true",
+      "good_state_output": "real cache raises TransientFetchError / NotFoundError with typed negative entries"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0176/negative_cache.py",
+    "entry_types": ["positive", "negative-transient", "negative-genuine"],
+    "ttls": {"positive": 60.0, "negative-transient": 0.25, "negative-genuine": 5.0},
+    "network_signal": "injectable fetch callable with a call counter; no live network in the fixture (measured locally on this estate)",
+    "signals": {
+      "a": "second attempt's observed network call (fetch counter delta while live vs after ttl)",
+      "b": "entry recorded kind + ttl compared across transient vs genuine classes"
+    }
+  },
+  "observations": [
+    {
+      "name": "transient negative entry type + ttl",
+      "measured": "kind=negative-transient ttl=0.25s",
+      "method": "entry inspection after a fixture fetch raising TransientFetchError",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe1_negative_ttl.py"
+    },
+    {
+      "name": "network calls during live negative ttl",
+      "measured": "0 calls while live; 1 call immediately after ttl expiry",
+      "method": "fetch call-counter deltas around get() calls",
+      "anchor": "command-center/p2-wave/probes/TST-0176/negative_cache.py:NegativeCache.get"
+    },
+    {
+      "name": "genuine 404 ttl",
+      "measured": "kind=negative-genuine ttl=5.0s; still cached across 0.55s window",
+      "method": "entry inspection + refetch-counter probe after 2x transient windows",
+      "anchor": "command-center/p2-wave/probes/TST-0176/probe2_genuine_404.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The measured layer is the probe-local typed-TTL fetch cache the unit demands; if production grows a persistent negative cache, the same two probes re-bind to its get/fetch seam.",
+      "settling_experiment": "Re-point NegativeCache.get calls at the production cache seam and re-run both probes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0176: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (receipt claimed SUCCESS with probe-named reviewer entries and no probe files on disk). Owner-gated: no (owner_approval_required=false)."
+}

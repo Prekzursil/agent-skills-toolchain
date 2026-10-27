@@ -1,0 +1,572 @@
+{
+ "AUD-0080": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "security-auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0080 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0016"
+  ],
+  "evidence_requirement": "Probe 1: enumerate allow entries per scope and compute the effective merged set. Probe 2: for each hook, construct a command that satisfies an allow entry while matching the hook's intent, and check whether the hook's matcher actually catches it - the config read is the model and the matcher test is the receipt.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "use-vs-mention",
+   "scope-mismatch",
+   "detector-failure"
+  ],
+  "id": "AUD-0080",
+  "inputs": [
+   "permissions.allow and permissions.deny in every settings file scope",
+   "each hook's matcher pattern",
+   "the recorded false-positive class where a guard read a payload body instead of the tool verb"
+  ],
+  "output_path": "command-center/audit/AUD-0080-permission-surface-audit.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which command patterns are pre-approved in the permissions allow-lists across all settings scopes, and which of those would let a caller bypass a hook that is supposed to gate them?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "use-vs-mention control: a command whose PAYLOAD quotes a dangerous string but whose VERB is benign must NOT be flagged; the two recorded false positives were exactly this shape"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Permission-surface audit: allow-lists and hook bypass paths",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "PowerShell"
+  ]
+ },
+ "AUD-0082": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0082 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: a path-string classifier over the git index (which is case-sensitive and includes paths the OS may refuse to stat). Probe 2: a filesystem walk with the extended-length prefix, catching paths the index does not list. The enumerator must survive a NUL entry rather than crashing.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "path-length",
+   "detector-failure",
+   "partial-artifact"
+  ],
+  "id": "AUD-0082",
+  "inputs": [
+   "every path in the repo and the corpus trees",
+   "the Windows reserved name set (NUL, CON, AUX, PRN, COM1-9, LPT1-9)",
+   "the recorded crash where os.path.relpath failed on a file literally named NUL"
+  ],
+  "output_path": "command-center/audit/AUD-0082-windows-path-hazard-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which paths in the repo and corpus are a Windows reserved device name, exceed the 260-character limit, or collide with a sibling under case-insensitive comparison?",
+  "retry_policy": "retry once with the sweep re-scoped to a single path to isolate a path-length or encoding failure from a logic failure, then pivot",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Windows reserved-name, long-path, and case-collision census",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "AUD-0084": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0084 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: a literal-string scan for drive letters, /home/, /Users/, and backslash separators inside path contexts. Probe 2: an AST-aware pass that distinguishes a path literal from a regex or a documentation string, since a backslash in a regex is not a path separator.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "use-vs-mention",
+   "detector-failure"
+  ],
+  "id": "AUD-0084",
+  "inputs": [
+   "every source file in the tree",
+   "path-literal patterns per language"
+  ],
+  "output_path": "command-center/audit/AUD-0084-hardcoded-path-census.json",
+  "output_schema": "command-center/schema/audit-finding.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which source files contain a hardcoded absolute path, a drive letter, a home directory, or a hardcoded path separator that would break on another platform or another user profile?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "use-vs-mention control: a regex containing a backslash and a docstring containing C: must NOT be flagged, while an open() on the same literal must be"
+  ],
+  "timeout_seconds": 1800,
+  "title": "Hardcoded absolute path and path-separator census",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "AUD-0095": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "tool-author",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0095 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01"
+  ],
+  "evidence_requirement": "Probe 1: enumerate the freeze set and record a sha256 per file as the freeze anchor. Probe 2: define and TEST a change-detection check that turns red when any frozen file's hash changes without a version bump - an inventory with no detector is a list, not a freeze.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "AUD-0095",
+  "inputs": [
+   "every launcher and dispatcher entry point",
+   "every schema file the program will validate against",
+   "spec _USER-PROMPTS.md:10660 (freeze the launchers and schemas once the first implementation wave starts)",
+   "the recorded incident where editing a preamble mid-run left contradictory live instructions"
+  ],
+  "output_path": "command-center/audit/AUD-0095-freeze-inventory.json",
+  "output_schema": "command-center/schema/audit-inventory.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Which launchers, prompt templates, and schemas must be frozen the moment the first implementation wave starts, and what is the exact versioned-migration procedure for changing each one afterwards?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt",
+  "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "both-states control: modify one frozen file in a scratch copy without bumping its version and confirm the check fires; bump the version and confirm it passes"
+  ],
+  "timeout_seconds": 2400,
+  "title": "Launcher and schema freeze inventory with a versioned-migration requirement",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ]
+ },
+ "AUD-0096": {
+  "_source_slice_file": "AUD-1.json",
+  "assigned_model_vendor_role": {
+   "model": "opus",
+   "role": "auditor",
+   "vendor": "anthropic"
+  },
+  "bucket": "B02",
+  "completion_sentinel": "SUCCESS:AUD-0096 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "dependencies": [
+   "B01",
+   "AUD-0062"
+  ],
+  "evidence_requirement": "Probe 1: the load set measured in the clean profile. Probe 2: the same measurement in the current profile, reported as a diff - the clean-profile number alone cannot tell you which of the current profile's behaviours are accidental local state.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "scope-mismatch",
+   "green-not-live",
+   "detector-failure"
+  ],
+  "id": "AUD-0096",
+  "inputs": [
+   "a clean or sandboxed Windows user profile",
+   "the current profile's measured load set from AUD-0062",
+   "spec _USER-PROMPTS.md:10655 (fresh user profile where possible)"
+  ],
+  "output_path": "command-center/audit/AUD-0096-fresh-profile-harness-baseline.json",
+  "output_schema": "command-center/schema/audit-drift.schema.json",
+  "owner_approval_required": false,
+  "phase": "0",
+  "question_or_target": "Under a clean Windows user profile with no existing harness state, which skills, hooks, rules, plugins and MCP servers load - and how does that differ from the current profile?",
+  "retry_policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate",
+  "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+  "slice": "AUD-1of1",
+  "tests_required": [
+   "control: the clean profile must be proven clean - assert the harness state directories are absent or empty before the measurement, otherwise a leaked profile makes the two runs identical by construction"
+  ],
+  "timeout_seconds": 3600,
+  "title": "Fresh-user-profile harness-load baseline",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "PowerShell"
+  ]
+ },
+ "BLD-0001": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "corpus-cartographer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0001",
+  "dependencies": [
+   "B01",
+   "B02"
+  ],
+  "evidence_requirement": "Cite the exact transcript glob and the number of tool_use records parsed. The extractor script path and its sha256 go in the receipt so the ledger is reproducible. DETECTOR CONTROL IS MANDATORY: seed one KNOWN-READ file (any path cited file:line by an existing receipt) and prove it is absent from the unread set, and seed one KNOWN-UNREAD sentinel path and prove it appears. A low or zero unread count with no control is a detector failure, not a clean bill.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "detector-failure",
+   "single-signal",
+   "use-vs-mention",
+   "non-portable"
+  ],
+  "id": "BLD-0001",
+  "inputs": [
+   "~/.claude/projects/**/*.jsonl (session + subagent transcripts for this program)",
+   "`git ls-files` at the program HEAD of C:/Users/Prekzursil/source/ast-integrate",
+   "command-center/ARTIFACT-MANIFEST.json",
+   "command-center/PROGRAM-CHARTER.md (the declared scope statement)"
+  ],
+  "output_path": "command-center/receipts/BLD-0001.json",
+  "output_schema": "command-center/schema/blindspot-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which files inside the program's declared scope did NO agent ever open? Build a read-ledger by extracting every Read/Grep/Glob/Bash-cat tool_use input path from the session JSONL transcripts for the whole Prompt Two program, normalise each to a repo-relative path, and set-difference the ledger against `git ls-files` at the program HEAD. Emit an unread-file register carrying a criticality weight (executable > schema > CI config > doc > fixture) and a per-file reason code (out-of-scope | never-routed | oversized | unreadable-form).  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "No blind retry: re-running the same extractor is not a second signal. A disagreeing second extractor is a detector defect - fix and re-run once; a second disagreement escalates with both outputs attached.",
+  "reviewer_requirement": "One independent reviewer who re-derives the unread count with a mechanically different extractor (jq over the JSONL rather than the Python parser) and must agree within 1% or the discrepancy blocks.",
+  "tests_required": [
+   "Control (known-present): a file cited file:line in an existing receipt must NOT appear in the unread set.",
+   "Control (known-absent): a planted sentinel path present in git but touched by nobody must appear in the unread set.",
+   "Path-form collapse: the same file reached as C:/..., /c/..., .\\rel\\path and repo-relative must produce exactly ONE ledger entry.",
+   "Determinism: two runs over the same frozen transcript set must emit byte-identical registers."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Never-read file census derived from the transcript read-ledger",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0002": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "graph-engineer",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0002",
+  "dependencies": [
+   "B02",
+   "B07"
+  ],
+  "evidence_requirement": "State the entry-point set explicitly and cite each source at file:line - an incomplete entry-point set manufactures false unreachability, which is the dangerous direction here (it invites deletion). Every unreachable verdict must survive a dynamic-import search (importlib, __import__, entry_points, plugin discovery by glob) before it is reported.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "data-loss-risk",
+   "overclaim"
+  ],
+  "id": "BLD-0002",
+  "inputs": [
+   "the shipped package tree produced by B07",
+   "plugin manifest + hook manifest + MCP tool registrations (entry-point declarations)",
+   "the CI workflow files (the commands CI actually invokes)",
+   "coverage.xml from the B08 suite run (for the covered-but-unreachable cross-check)"
+  ],
+  "output_path": "command-center/receipts/BLD-0002.json",
+  "output_schema": "command-center/schema/reachability-report.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which shipped modules and public functions are unreachable from ANY declared entry point? Build a static import/call graph over the shipped package, mark entry points from the plugin manifest commands, the hook manifest registrations, the MCP tool exports, the workflow stage registry and the CI invocation lines, compute reachability, and emit the unreachable set. This is orthogonal to line coverage: code can be imported and covered by a test yet be reachable from no user-facing entry point at all.  SCOPE BOUNDARY: AUD-0032 censuses unreferenced modules and dead code. This unit consumes that receipt and contributes ENTRY-POINT reachability, which is a different question - a module can be referenced by a test and still be reachable from no CLI command, hook registration or MCP export. Report only the delta.  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "Two strikes then pivot: a second false-positive class means the graph builder is wrong; switch to a runtime import-trace before a third static attempt.",
+  "reviewer_requirement": "One independent reviewer who attempts to reach three sampled 'unreachable' symbols from a real CLI invocation before sign-off.",
+  "tests_required": [
+   "Control: a deliberately orphaned module planted in a scratch copy must be reported unreachable.",
+   "Control (false-positive guard): a module reachable ONLY through a hook manifest entry must NOT be reported - this proves the entry-point set includes hooks.",
+   "Control (dynamic import): a module loaded only via importlib.import_module(name_from_config) must NOT be reported unreachable.",
+   "Cross-check: every file that is covered by tests but unreachable from an entry point must be individually explained in the register."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Unreachable-code census by import-graph reachability from declared entry points",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0004": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "docs-conformance-tester",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0004",
+  "dependencies": [
+   "B05",
+   "B07"
+  ],
+  "evidence_requirement": "Both directions must be reported with counts, not just the doc-ahead direction. Every DOCUMENTED-BUT-ABSENT finding cites the doc line and the search that failed to find an implementation; every UNDOCUMENTED finding cites the definition site.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "use-vs-mention",
+   "overclaim",
+   "detector-failure"
+  ],
+  "id": "BLD-0004",
+  "inputs": [
+   "all shipped documentation (README, RUNBOOK.md, docs/**, skill SKILL.md files, marketplace listing copy)",
+   "code definition sites (argparse/click declarations, command registries, hook manifests, schema files)",
+   "command-center/RELEASE-CHECKLIST.md (which docs are release-blocking)"
+  ],
+  "output_path": "command-center/receipts/BLD-0004.json",
+  "output_schema": "command-center/schema/parity-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which documented behaviour has no implementing code, and which shipped behaviour is undocumented? Extract the identifier space from every shipped document (command names, CLI flags, tool names, config keys, workflow ids, council preset ids, hook event names, schema field names) and independently from code definition sites, then emit BOTH set differences. Stopping condition 12 ('docs and code agree') is not satisfiable without this measurement existing as a number.  SCOPE BOUNDARY: TST-0112, TST-0251, IMP-0120 and CNF-0191 own docs-versus-code parity for flags, the package surface and executed commands. This unit contributes the identifier space none of them covers - workflow ids, council preset ids, hook event names and schema field names - and reports only that delta.  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "Two strikes then pivot from regex extraction to an AST/manifest-parse extraction before a third attempt.",
+  "reviewer_requirement": "Cross-vendor: the Claude corpus authored both the docs and the code, so the parity read is assigned to an independent OpenAI-vendor agent and reviewed by an Anthropic-vendor reviewer.",
+  "tests_required": [
+   "Use-vs-mention control: a flag documented inside a 'removed in v2' or 'example of what not to do' block must NOT count as a live documentation claim.",
+   "Control: a flag planted in code with no doc mention must appear in the undocumented set.",
+   "Control: a command documented but deleted from code must appear in the documented-but-absent set.",
+   "Negative control: a command that is both documented and implemented must appear in neither set."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Docs-vs-code parity by bidirectional identifier set-difference",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0005": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "contract-author",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0005",
+  "dependencies": [
+   "B04",
+   "B07"
+  ],
+  "evidence_requirement": "Each finding cites the declaration site and the (absent) read site, or the read site and the (absent) declaration. A key read only from a test fixture is classified FIXTURE-ONLY and reported separately from a product orphan.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "detector-failure",
+   "use-vs-mention",
+   "overclaim"
+  ],
+  "id": "BLD-0005",
+  "inputs": [
+   "every shipped manifest and settings schema",
+   "every configuration read call site in the shipped code",
+   "the default values block of WORK-UNIT-CATALOG.json (a live example of a declared-but-unoverridden key space)"
+  ],
+  "output_path": "command-center/receipts/BLD-0005.json",
+  "output_schema": "command-center/schema/parity-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which configuration key does the product declare but never read, and which key does code read that no shipped config or schema declares? Cross the union of the declared key space (plugin manifest, marketplace manifest, settings schema, workflow presets, .coverage-thresholds.json where present) against every configuration read site (os.environ.get, cfg[...], settings.get, argparse dest, Get-ItemProperty) and emit both orphan sets.  [Phase 13 question answered: what files were never read]",
+  "retry_policy": "Two strikes then pivot: if the read-site grep misses non-Python consumers twice, switch to a whole-tree token scan.",
+  "reviewer_requirement": "One independent reviewer who samples five orphan verdicts and greps the whole tree (including non-Python callers such as PowerShell and YAML) for a read site before sign-off.",
+  "tests_required": [
+   "Control: an unused key planted in the manifest must be reported as an orphan.",
+   "Control: a getenv of an undeclared variable planted in code must be reported as an undeclared knob.",
+   "Classification control: a key read only inside tests must classify FIXTURE-ONLY, not product-orphan.",
+   "Negative control: a declared key with a real read site must appear in neither set."
+  ],
+  "timeout_seconds": 3600,
+  "title": "Orphan configuration keys and undeclared runtime knobs",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0010": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "portability-tester",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0010",
+  "dependencies": [
+   "B07",
+   "B08"
+  ],
+  "evidence_requirement": "Report the exact environment triple (codepage, locale, TZ) for every run, and the console encoding actually in effect - not the one requested.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+   "non-portable",
+   "detector-failure",
+   "green-not-live"
+  ],
+  "id": "BLD-0010",
+  "inputs": [
+   "every datetime, sort, print/console-emit and timestamped-filename site in shipped code",
+   "the smoke test set from B08",
+   "the event ledger writer (timestamps are its primary key surface)"
+  ],
+  "output_path": "command-center/receipts/BLD-0010.json",
+  "output_schema": "command-center/schema/coverage-matrix.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: what breaks outside en-US / UTF-8 / UTC? Enumerate every site that formats or parses a date, sorts strings, prints to a console, or embeds a timestamp in a filename, then run the smoke set under a non-UTF8 codepage (cp1252), a non-English locale, and a non-UTC timezone that crosses a DST boundary.  [Phase 13 question answered: what platforms were never tested]",
+  "retry_policy": "Two strikes then pivot: after two environment-setup failures, containerise the locale run rather than mutating the live session environment a third time.",
+  "reviewer_requirement": "One independent reviewer who repeats the DST case with the opposite (spring-forward) boundary.",
+  "tests_required": [
+   "cp1252 console with PYTHONIOENCODING unset: no shipped CLI banner or error message may raise UnicodeEncodeError.",
+   "DST fall-back: two ledger entries written at the repeated 01:30 local hour must remain deterministically ordered.",
+   "Negative control: introducing a naive datetime.now() into a timestamp path must make the suite RED - if it stays green the suite does not test this.",
+   "Locale sort: a list sorted for display must be stable under a non-English collation or must declare an explicit locale-independent key."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Locale, codepage and timezone blind spots",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash",
+   "PowerShell"
+  ]
+ },
+ "BLD-0013": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+   "model": "opus",
+   "role": "requirements-analyst",
+   "vendor": "anthropic"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0013",
+  "dependencies": [
+   "B01",
+   "B07"
+  ],
+  "evidence_requirement": "Every verdict quotes BOTH the requirement's demanded mechanism at its spec line AND the bound unit's target text. A SATISFIES verdict that cites only the binding record is not evidence - the binding record is the artifact under audit, so it cannot be its own proof.",
+  "execution_substrate": "cloud-batch",
+  "failure_classification": [
+   "overclaim",
+   "detector-failure",
+   "use-vs-mention"
+  ],
+  "id": "BLD-0013",
+  "inputs": [
+   "the CC-0024 requirement records and their requirement-to-unit bindings",
+   "the merged work-unit catalog (the bound units' actual targets)",
+   "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10473-11437 (the demanded mechanism, read from the source line, not from the record's summary)"
+  ],
+  "output_path": "command-center/receipts/BLD-0013.json",
+  "output_schema": "command-center/schema/binding-quality-audit.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which requirement is BOUND to a work unit that does not in fact satisfy it? CC-0024 surfaces UNBOUND requirements - the false-negative direction. This unit audits the opposite and more dangerous direction: a requirement that reads as covered because a binding exists, where the bound unit implements a substitute, a subset, or an adjacent mechanism. For each binding, compare the requirement's demanded mechanism against the unit's actual target and classify SATISFIES / SUBSTITUTES (different mechanism, needs owner approval) / SUBSET (partial, name the residue) / MIS-BOUND.  [Phase 13 question answered: what owner requirements disappeared]",
+  "retry_policy": "Two strikes then pivot from mechanism-token comparison to a per-requirement hand adjudication of the disputed bindings.",
+  "reviewer_requirement": "One independent reviewer who re-reads five SATISFIES verdicts from the spec line alone and confirms the bound unit really does the demanded thing.",
+  "tests_required": [
+   "Control: plant a binding from a requirement to an unrelated unit and prove it classifies MIS-BOUND.",
+   "Control: a requirement demanding 'a visual OR structured builder' satisfied by a structured builder must classify SATISFIES, not SUBSTITUTES - the audit must honour disjunctive requirements.",
+   "Control: a correctly bound requirement must not be flagged (no false positives).",
+   "Direction control: prove the audit is measuring the false-positive direction by confirming an UNBOUND requirement is out of scope here and belongs to CC-0024."
+  ],
+  "timeout_seconds": 7200,
+  "title": "Mis-binding audit: requirements marked covered by a unit that does not actually satisfy them",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Write",
+   "Bash"
+  ]
+ },
+ "BLD-0014": {
+  "_source_slice_file": "BLD-1.json",
+  "assigned_model_vendor_role": {
+   "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+   "model": "gpt-5-codex",
+   "role": "contradiction-hunter",
+   "vendor": "openai"
+  },
+  "completion_sentinel": "SUCCESS:BLD-0014",
+  "dependencies": [
+   "B01",
+   "B07"
+  ],
+  "evidence_requirement": "Every contradiction cites BOTH sides at path:line. A decision with no contradicting artifact is reported CONFIRMED-CONSISTENT with the search surface named - not merely 'no finding', which is unfalsifiable.",
+  "execution_substrate": "local-parallel",
+  "failure_classification": [
+   "contradiction",
+   "stale-premise",
+   "use-vs-mention"
+  ],
+  "id": "BLD-0014",
+  "inputs": [
+   "command-center/OWNER-DECISIONS.md",
+   "17-DECISION-LOG.md",
+   "every shipped doc, script, CI workflow and catalog slice"
+  ],
+  "output_path": "command-center/receipts/BLD-0014.json",
+  "output_schema": "command-center/schema/contradiction-register.schema.json",
+  "owner_approval_required": false,
+  "phase": "13",
+  "question_or_target": "Question: which binding owner decision is CONTRADICTED by a shipped artifact? This is distinct from a missing implementation. For each decision in OWNER-DECISIONS.md and 17-DECISION-LOG.md, extract its normative content (release mode = PR-ONLY; retirement scope = DELETE-ALL across five trees; salvage home = tools/lib/; no-remote repos = triage first, never create remotes) and search the tree for an artifact that asserts or performs the opposite.  SCOPE BOUNDARY: AUD-0076 EXTRACTS owner requirements from the transcript. This unit detects CONTRADICTION - a shipped artifact that does the opposite of a binding decision - which extraction cannot surface.  [Phase 13 question answered: what owner requirements disappeared]",
+  "retry_policy": "Two strikes then pivot: if keyword search misses a planted contradiction twice, switch to per-decision hand-written probes.",
+  "reviewer_requirement": "An Anthropic-vendor reviewer re-reads the three highest-severity contradictions from the raw sources; the OpenAI author's summary is not the input.",
+  "tests_required": [
+   "Control: plant a line asserting a canary release channel while PR-ONLY is binding, and prove it is caught.",
+   "Use-vs-mention control: a document QUOTING the decision, or describing the rejected alternative as rejected, must NOT be flagged.",
+   "Control: a decision whose contradicting artifact is a CI workflow (not prose) must still be caught - the search surface includes executable config."
+  ],
+  "timeout_seconds": 5400,
+  "title": "Silently reversed owner decisions: contradiction detection, not absence detection",
+  "tool_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Write",
+   "Bash"
+  ]
+ }
+}

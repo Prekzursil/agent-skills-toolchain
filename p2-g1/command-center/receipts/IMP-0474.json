@@ -1,0 +1,283 @@
+{
+ "SENTINEL:IMP-0474:ROLLBACK-NON-DESTRUCTIVE": true,
+ "answer": {
+  "answered": "The set difference of available commands and user-data paths across a real additive rollback on a disposable profile is empty.",
+  "commands_present_before_absent_after": [],
+  "empty": true,
+  "user_data_present_before_absent_after": []
+ },
+ "artifacts": [
+  {
+   "bytes": 10328,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0474.json",
+   "role": "primary",
+   "sha256": "2c463315c7a1d4c532d3a133036aa60beb715b74f12c4eb95deec728380f1bc4"
+  },
+  {
+   "bytes": 5541,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/rollback_additive.py",
+   "role": "supporting",
+   "sha256": "f457e3230191706cef8304f21275992fc5bf6f8be2874743f4aff1b57bca0c29"
+  }
+ ],
+ "completion_sentinel": "SENTINEL:IMP-0474:ROLLBACK-NON-DESTRUCTIVE",
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0474.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0474",
+    "fingerprint": "3f0f3d14c9e36ca6060e5eadf884dcec",
+    "method": "file-read",
+    "raw_output": "deferred-to-post-write-measure",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/rollback_additive.py:rollback",
+   "claim": "Real additive rollback on a disposable profile: set difference of commands and user-data paths is empty; planted user-data user-data/planted-IMP-0474.txt survived byte-identical.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe1_rehearsal.py",
+     "exit_code": 0,
+     "fingerprint": "a7bd6228af7bf657a7ee6bf4f178b201",
+     "method": "command",
+     "raw_output": "additive rehearsal executed; command_diff=[] user_data_diff=[]; planted_survived=True; commands_before=['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md']; commands_after=['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md']",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe2_mutation.py",
+     "exit_code": 0,
+     "fingerprint": "9f0969a7c54c6e1a0c94bf75626d82c8",
+     "method": "command",
+     "raw_output": "wholesale-destructive mutation fired: commands_absent=['shipped/new-in-n.md', 'user-authored.md']; user_data_absent=['planted-IMP-0474.txt', 'settings.json']; planted_survived=False",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/rollback_additive.py:set_difference",
+   "claim": "Before-and-after inventories were computed from the live disposable tree, not asserted. Command paths before ['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md'] equal after ['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md'].",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe1_rehearsal.py",
+     "exit_code": 0,
+     "fingerprint": "a7bd6228af7bf657a7ee6bf4f178b201",
+     "method": "command",
+     "raw_output": "additive rehearsal executed; command_diff=[] user_data_diff=[]; planted_survived=True; commands_before=['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md']; commands_after=['shipped/core.md', 'shipped/new-in-n.md', 'user-authored.md']",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe2_mutation.py",
+     "exit_code": 0,
+     "fingerprint": "9f0969a7c54c6e1a0c94bf75626d82c8",
+     "method": "command",
+     "raw_output": "wholesale-destructive mutation fired: commands_absent=['shipped/new-in-n.md', 'user-authored.md']; user_data_absent=['planted-IMP-0474.txt', 'settings.json']; planted_survived=False",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "mode": "additive",
+  "module": "tools/plugin/rollback_additive.py",
+  "rule": "copy backup files onto the live profile; never unlink a path that is not being restored; then fail hard if any pre-rollback command or user-data path is absent",
+  "wholesale_snapshot_restore_forbidden": true
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0474/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"commands_absent\": [\"shipped/new-in-n.md\", \"user-authored.md\"], \"user_data_absent\": [\"planted-IMP-0474.txt\", \"settings.json\"]}",
+   "description": "Replace additive copy with wipe-then-copy. The preservation check must fire (planted user-data and user-authored command absent after) and stay silent on additive restore.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"set_difference_empty\": true}",
+   "id": "wholesale-snapshot-restore",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "owner_approval": {
+  "granted_for_live_profile": false,
+  "rehearsal_target": "disposable-profile",
+  "required_for_live_profile": true
+ },
+ "owner_approval_required": true,
+ "question": "Anchor spec:11347 (rollback removes existing commands or user data). Implement rollback as an additive-restore with a pre-rollback inventory and a post-rollback diff, so any command or user-data path present before and absent after is a hard failure. Exact question: what is the set difference of available commands and user-data paths across a real rollback, and is it empty?",
+ "residual_unknowns": [
+  {
+   "claim": "This unit did not exercise rollback against a real owner profile; the catalog requires owner approval before that.",
+   "settling_experiment": "After owner approval, replay the same inventory+diff against a real profile backup.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry; re-running a destructive rollback compounds the loss"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent of probe 1: mutation/both-states on a second throwaway profile. Owner approval is not claimed; rehearsal was disposable, not a live owner profile.",
+  "reviewer_id": "IMP-0474-probe2-mutation",
+  "verdict": "PASS"
+ },
+ "rollback_rehearsal": {
+  "command_inventories": {
+   "after": [
+    {
+     "bytes": 28,
+     "path": "shipped/core.md",
+     "sha256": "c7920d059940680bce28a71753beafbf9af17aa885aa7481cbdf6281ee805fe0"
+    },
+    {
+     "bytes": 59,
+     "path": "shipped/new-in-n.md",
+     "sha256": "a27b4fe7a1519a40c3a49c99ccd69e78912d46881907ec0b2c25faba556aebfe"
+    },
+    {
+     "bytes": 54,
+     "path": "user-authored.md",
+     "sha256": "babaca20cf6cdf05b1f3516b4faf0c8e916f5aebf46f9f5f0ba15c881d9e86b7"
+    }
+   ],
+   "before": [
+    {
+     "bytes": 26,
+     "path": "shipped/core.md",
+     "sha256": "0316e59b151b0118ae8868f76d2e5f60a1cd537114541fb1be0195e30daaf12a"
+    },
+    {
+     "bytes": 59,
+     "path": "shipped/new-in-n.md",
+     "sha256": "a27b4fe7a1519a40c3a49c99ccd69e78912d46881907ec0b2c25faba556aebfe"
+    },
+    {
+     "bytes": 54,
+     "path": "user-authored.md",
+     "sha256": "babaca20cf6cdf05b1f3516b4faf0c8e916f5aebf46f9f5f0ba15c881d9e86b7"
+    }
+   ]
+  },
+  "commands_after": [
+   "shipped/core.md",
+   "shipped/new-in-n.md",
+   "user-authored.md"
+  ],
+  "commands_before": [
+   "shipped/core.md",
+   "shipped/new-in-n.md",
+   "user-authored.md"
+  ],
+  "disposable_profile": true,
+  "live_profile_touched": false,
+  "managed_restored": {
+   "core_is_n1": true,
+   "core_sha256": "c7920d059940680bce28a71753beafbf9af17aa885aa7481cbdf6281ee805fe0",
+   "expected_core_sha256": "c7920d059940680bce28a71753beafbf9af17aa885aa7481cbdf6281ee805fe0",
+   "lib_is_n1": true,
+   "manifest_is_n1": true,
+   "ok": true
+  },
+  "mode": "additive",
+  "planted_byte_identical": true,
+  "planted_rel": "user-data/planted-IMP-0474.txt",
+  "planted_sha256": "47c612ce42586d6cd8a750d8ab5f9fc437faaa107af9113cb53cc43cf1bfda60",
+  "planted_survived": true,
+  "rehearsal_executed": true,
+  "set_difference": {
+   "commands_present_before_absent_after": [],
+   "empty": true,
+   "user_data_present_before_absent_after": []
+  },
+  "user_data_after": [
+   "planted-IMP-0474.txt",
+   "settings.json"
+  ],
+  "user_data_before": [
+   "planted-IMP-0474.txt",
+   "settings.json"
+  ],
+  "user_data_inventories": {
+   "after": [
+    {
+     "bytes": 69,
+     "path": "planted-IMP-0474.txt",
+     "sha256": "47c612ce42586d6cd8a750d8ab5f9fc437faaa107af9113cb53cc43cf1bfda60"
+    },
+    {
+     "bytes": 23,
+     "path": "settings.json",
+     "sha256": "709d920df98c84f2a5a537ad162ba37bc5c61bfd18b1cc3e210118d4ffa43dcf"
+    }
+   ],
+   "before": [
+    {
+     "bytes": 69,
+     "path": "planted-IMP-0474.txt",
+     "sha256": "47c612ce42586d6cd8a750d8ab5f9fc437faaa107af9113cb53cc43cf1bfda60"
+    },
+    {
+     "bytes": 23,
+     "path": "settings.json",
+     "sha256": "709d920df98c84f2a5a537ad162ba37bc5c61bfd18b1cc3e210118d4ffa43dcf"
+    }
+   ]
+  },
+  "verdict": "PASS",
+  "written_from_backup": [
+   "commands/shipped/core.md",
+   "plugin/lib.py",
+   "plugin/manifest.json"
+  ]
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0474:ROLLBACK-NON-DESTRUCTIVE",
+ "spec_anchor": "_USER-PROMPTS.md:11347",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": [
+    "rehearsal_executed",
+    "set_difference_empty",
+    "planted_user_data_byte_identical"
+   ],
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe1_rehearsal.py",
+   "id": "rehearsal-disposable-profile",
+   "result": "PASS"
+  },
+  {
+   "assertions": [
+    "silent_on_additive",
+    "fired_on_wholesale_destructive"
+   ],
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0474/probe2_mutation.py",
+   "id": "mutation-wholesale-turns-red",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:23Z",
+  "started_at": "2026-08-25T00:57:23Z"
+ },
+ "title": "Rollback contract that cannot remove existing commands or user data",
+ "unit_id": "IMP-0474"
+}

@@ -1,0 +1,33 @@
+{
+ "id": "CC-0009",
+ "unit_id": "CC-0009",
+ "status": "DELIVERED",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CC-0009",
+ "registered": true,
+ "output_path": "command-center/receipts/CC-0009.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0009/probe1_delivery_predicate.py",
+   "exit_code": 0,
+   "role": "probe1_delivery_predicate.py",
+   "raw_output": "{\n \"probe\": \"probe1-delivery-predicate\",\n \"unit_id\": \"CC-0009\",\n \"artifact_bytes\": 9734,\n \"checks\": [\n  {\n   \"check\": \"unit_id matches catalog unit\",\n   \"ok\": true,\n   \"detail\": \"\"\n  },\n  {\n   \"check\": \"artifact not self-declared non-delivery\",\n   \"ok\": true,\n   \"detail\": \"SUCCESS\"\n  },\n  {\n   \"check\": \"artifact non-empty\",\n   \"ok\": true,\n   \"detail\": \"\"\n  },\n  {\n   \"check\": \"artifact above min_bytes_threshold\",\n   \"ok\": true,\n   \"detail\": \"9734\"\n  },\n  {\n   \"check\": \"sentinel present in artifact text\",\n   \"ok\": true,\n   \"detail\": \"\"\n  },\n  {\n   \"check\": \"condition 11: row registered AND sha current (no digest drift)\",\n   \"ok\": true,\n   \"detail\": \"registered command-center/receipts/CC-0009.json sha256=1939b0aa834a9e725d9a858b3b260d120bf54d34581f63baa0970bc0291c7f33 bytes=9734\"\n  },\n  {\n   \"check\": \"exactly one CC-0009 row in ARTIFACT-MANIFEST.json\",\n   \"ok\": true,\n   \"detail\": \"1\"\n  },\n  {\n   \"check\": \"row declares its consumer reader (consume_json)\",\n   \"ok\": true,\n   \"detail\": \"tools/command-center/artifact_register.py:consume_json\"\n  },\n  {\n   \"check\": \"row records the first parsed key\",\n   \"ok\": true,\n   \"detail\": \"artifacts\"\n  },\n  {\n   \"check\": \"consume_json opens the live receipt\",\n   \"ok\": true,\n   \"detail\": \"\"\n  },\n  {\n   \"check\": \"first parsed key reported\",\n   \"ok\": true,\n   \"detail\": \"artifacts\"\n  },\n  {\n   \"check\": \"completion_c11_c12 exposes the reducer import surface\",\n   \"ok\": true,\n   \"detail\": \"\"\n  },\n  {\n   \"check\": \"receipt citations point at the live implementations\",\n   \"ok\": true,\n   \"detail\": \"\"\n  }\n ],\n \"fails\": []\n}\nSUCCESS:CC-0009-probe1 registration current and consumer-readable"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CC-0009/probe2_both_states_reviewer.py",
+   "exit_code": 0,
+   "role": "probe2_both_states_reviewer.py",
+   "raw_output": "{\n \"probe\": \"probe2-both-states-reviewer\",\n \"unit_id\": \"CC-0009\",\n \"lanes\": {\n  \"rederivations\": [\n   {\n    \"label\": \"manifest sha row matches live artifact (LF-normalized)\",\n    \"ok\": true,\n    \"detail\": \"sha=1939b0aa834a9e72... rows=3\"\n   },\n   {\n    \"label\": \"artifact_register --self-test exits 0 with SUCCESS marker\",\n    \"ok\": true,\n    \"detail\": \"rc=0 tail=il=True unparseable_fail=True valid_pass=True both_states_pass=True phantom_rejected=True first_key=unit_id second_key=k\"\n   },\n   {\n    \"label\": \"self-test asserts every negative control fired\",\n    \"ok\": true,\n    \"detail\": \"missing=[]\"\n   },\n   {\n    \"label\": \"scratch manifest with phantom+unparseable is REJECTED\",\n    \"ok\": true,\n    \"detail\": \"1/2 entries unreadable: receipts/CC-0009-PHANTOM.json:absent:receipts/CC-0009-PHANTOM.json\"\n   },\n   {\n    \"label\": \"condition 12 stays green on the live manifest\",\n    \"ok\": true,\n    \"detail\": \"1 manifest entries opened by declared consumers\"\n   },\n   {\n    \"label\": \"mutation control: fires on tampered, silent on real\",\n    \"ok\": true,\n    \"detail\": \"unit-id-mismatch/clean\"\n   }\n  ],\n  \"mutation_control\": {\n   \"id\": \"NC-STRUCTURAL-PREDICATE-BOTH-STATES\",\n   \"bad_state_why\": \"unit-id-mismatch\",\n   \"description\": \"predicate must fire on a unit-id-tampered copy and stay silent on the real artifact\",\n   \"fired_on_bad_state\": true,\n   \"good_state_why\": \"clean\",\n   \"kind\": \"mutation\",\n   \"silent_on_good_state\": true\n  },\n  \"schema_lane\": \"see SUBAGENT-RETURN notes (estate-wide schema drift, disclosed)\"\n },\n \"fails\": []\n}\nSUCCESS:CC-0009-probe2 manifest sha match, 6 rederivations hold, mutation control both-states ok"
+  }
+ ],
+ "notes": [
+  "Probe tree rebuilt 2026-10-26 (wave-3 shard 7) after the original probe tree was lost; registration row for the receipt verified CURRENT (sha 1939b0aa... matches live) in command-center/ARTIFACT-MANIFEST.json via check_condition_11.",
+  "Condition 12 live: read_with_consumer/consume_json opens the receipt; first parsed key reported; reviewer-phantom both-states re-enacted in a scratch manifest (phantom + present-but-unparseable rows rejected, live rows green).",
+  "DISCLOSED drift (not a unit failure): the reviewed receipt no longer validates against the CURRENT frozen receipt.schema.json physical $ref (reviewer.method/phantom_path are now additionalProperties:false rejects) - estate-wide schema evolution post-dates the reviewed receipt; same drift affects every Aug/Sep receipt incl. measure-green CNF-0077. Receipt left unmodified to preserve the reviewed closure.",
+  "Receipt (catalog output_path) NOT modified - reviewed SUCCESS closure kept verbatim."
+ ],
+ "rebuild_provenance": "probe tree rebuilt 2026-10-26 (wave-3 shard 7) after the original probe tree was lost; the receipt at the catalog output_path was NOT modified - its reviewed closure is kept verbatim."
+}

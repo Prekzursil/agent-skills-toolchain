@@ -1,0 +1,249 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8818,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/remove.py",
+   "role": "supporting",
+   "sha256": "f92915c3ccaa1eba973b20403dec01006867f56cb5061f8320d2c1020b6b7033"
+  },
+  {
+   "bytes": 6073,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/ledger.py",
+   "role": "supporting",
+   "sha256": "706ef79c4db93bb2c98ac85c77bad95fcf9773875dc2765ed3979d79600aef21"
+  },
+  {
+   "bytes": 1373,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/census.py",
+   "role": "supporting",
+   "sha256": "e70cf4387a996ada6864d779f3e6615edf3ae1a1ec6b01e439669ef5c951cb8e"
+  },
+  {
+   "bytes": 1029,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/ownership_blind.py",
+   "role": "supporting",
+   "sha256": "4462ba92da4ef108f4d7b3618b36bca45e89803e5f67392518dba5fd31915f65"
+  },
+  {
+   "bytes": 3467,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/remove_isolation.py",
+   "role": "supporting",
+   "sha256": "610615cfcf02073dd0b4107182c23693204253b6efadd19b432aefb5ee136777"
+  },
+  {
+   "bytes": 3381,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_remove_isolation.py",
+   "role": "supporting",
+   "sha256": "1f3c010ab77cf06095758699f8e7e6878c538f6381d5c339fd83ebe6430041ff"
+  },
+  {
+   "bytes": 2169,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_remove_shared_path.py",
+   "role": "supporting",
+   "sha256": "4bf00c89162bc0d95ce8d95c32f3292e4d83ab51540e6c37e3f60593575e42ac"
+  },
+  {
+   "bytes": 3359,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0088/probe1_sibling_isolation.py",
+   "role": "supporting",
+   "sha256": "67f79daf6453b9fe140895f9a33da6d190e9b536cb73f081ba7838c2e0b593b8"
+  },
+  {
+   "bytes": 4107,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0088/probe2_shared_path_and_blind.py",
+   "role": "supporting",
+   "sha256": "0d7abf063f5a182502f6bbc120e894f576b54bd65930a425c47fddab88d9ac78"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0088.json",
+   "consumer": "json.load of catalog output_path",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; json.load(open('command-center/receipts/IMP-0088.json', encoding='utf-8'))\"",
+    "exit_code": 0,
+    "fingerprint": "59416919ea7e4fcd25185c107247f5e3",
+    "method": "file-read",
+    "raw_output": "json.load succeeded on command-center/receipts/IMP-0088.json",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/remove.py:remove_package",
+   "claim": "After owner-approved remove of pkg-a, every path owned by pkg-b is present and byte-identical (census), AND the provenance ledger records zero deletions attributed to pkg-b. Both signals required.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0088/probe1_sibling_isolation.py",
+     "exit_code": 0,
+     "fingerprint": "16ede85e9ced7a3949de2230b7538aff",
+     "method": "command",
+     "raw_output": "census_byte_identical=True ledger_zero_deletions_for_B=True user_survived=True deleted=['pkg-a/skill.md', 'pkg-a/hooks/pre.json', 'shared-docs/a-only.md']\nSUCCESS:IMP-0088-probe1 sibling isolation two-signal",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_remove_isolation.py",
+     "exit_code": 0,
+     "fingerprint": "1232e4b8f470a2131ab156c3a263c0a6",
+     "method": "test-run",
+     "raw_output": "SUCCESS:test_remove_isolation sibling untouched; blind control fails",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/remove.py:SharedPathRequiresDecision",
+   "claim": "A live path claimed by pkg-a and pkg-b is refused without an explicit decision (tree unchanged). With decision=keep, pkg-a exclusive files are removed, the shared path and pkg-b exclusive file stay byte-identical.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0088/probe2_shared_path_and_blind.py",
+     "exit_code": 0,
+     "fingerprint": "0e7c233c63068b1c16a192382514ce8e",
+     "method": "command",
+     "raw_output": "shared_refused=True keep_ok=True blind_fails_isolation=True\nSUCCESS:IMP-0088-probe2 shared-path decision and ownership-blind control",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_remove_shared_path.py",
+     "exit_code": 0,
+     "fingerprint": "db5fb3d64c5164d01b1591bd43f105f1",
+     "method": "test-run",
+     "raw_output": "SUCCESS:test_remove_shared_path requires a decision",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "summary": "Marketplace remove deletes only paths the deploy provenance ledger attributes to the target package. User-authored files are skipped by default. Unlink is owner-gated. SUCCESS:IMP-0088"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0088/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "census_byte_identical=false; pkg-b paths missing",
+   "description": "An ownership-blind remover that unlinks every file under the live root must fail sibling isolation, proving the sibling test can go red.",
+   "fired_on_bad_state": true,
+   "good_state_output": "ledger-scoped remove: pkg-b paths byte-identical",
+   "id": "IMP0088-C1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "OwnerGateRequired; census unchanged",
+   "description": "remove without owner_approval raises OwnerGateRequired and mutates nothing.",
+   "fired_on_bad_state": true,
+   "good_state_output": "owner_approval=True proceeds to planned unlinks",
+   "id": "IMP0088-C2",
+   "kind": "other",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-headless-p2-deliver",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "profile": "marketplace-remove-isolation",
+ "report": {
+  "implementation": "tools/marketplace/remove.py",
+  "kind": "isolated-package-remove",
+  "ledger": "tools/marketplace/ledger.py",
+  "tests": [
+   "tools/marketplace/tests/test_remove_isolation.py::test_sibling_package_untouched",
+   "tools/marketplace/tests/test_remove_shared_path.py::test_shared_path_requires_a_decision"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0033 deploy provenance and IMP-0086 marketplace install are catalog dependencies and are not delivered as live engines on this worktree. This unit consumes a ledger of the IMP-0033 shape and does not reimplement install placement.",
+   "settling_experiment": "Deliver IMP-0033 and IMP-0086, then replay remove against their live ledger and installer handoff rather than the throwaway planter.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0126 (cross-package deploy-path conflict detector) is a catalog input. Shared-path refusal here is the remove-side counterpart and does not replace pre-install conflict detection.",
+   "settling_experiment": "Deliver IMP-0126 and join its claimants onto this ledger so install-time and remove-time shared-path sets are the same object.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry on a deletion path"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 1 rehearses two-package removal with census+ledger signals. Probe 2 is a different machine (shared-path decision + ownership-blind substitute).",
+  "reviewer_id": "IMP-0088-probe1-two-package-rehearsal",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0088",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0088",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_remove_isolation.py",
+   "id": "T-sibling-isolation",
+   "output_tail": "SUCCESS:test_remove_isolation sibling untouched; blind control fails",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_remove_shared_path.py",
+   "id": "T-shared-path-decision",
+   "output_tail": "SUCCESS:test_remove_shared_path requires a decision",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0088/probe1_sibling_isolation.py",
+   "id": "T-probe1-sibling-isolation",
+   "output_tail": "SUCCESS:IMP-0088-probe1 sibling isolation two-signal",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0088/probe2_shared_path_and_blind.py",
+   "id": "T-probe2-shared-and-blind",
+   "output_tail": "SUCCESS:IMP-0088-probe2 shared-path decision and ownership-blind control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T01:00:20Z",
+  "started_at": "2026-08-25T01:00:20Z"
+ },
+ "unit_id": "IMP-0088"
+}

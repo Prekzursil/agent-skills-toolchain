@@ -1,0 +1,1235 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "design-studio-eight-gate-loop",
+  "name": "Design-studio eight-gate loop with a mode router and a revert gate",
+  "description": "Run the whole design pipeline over a RUNNING app - prime, direct, transpose, critique, iterate, implement, drive, verify - with two properties that make it more than a checklist. First, a mode ROUTER: every gate carries an entry condition, so a caller can enter at the audit gate without the earlier gates having run, and no gate may silently depend on a skipped predecessor. Second, a REVERT gate: the implement gate is the only stage permitted to write app source, and a change that fails its post-check is reverted automatically by a repair loop whose verify stage is independent of the agent that made the change.",
+  "version": "1.0.0",
+  "kind": "meta-workflow",
+  "categories": [
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "bp-ux-01",
+    "design-studio",
+    "revert-gate",
+    "mode-router",
+    "eight-gate"
+  ],
+  "flagship": true,
+  "params": {
+    "app_target": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The LOCAL running app under design. Never a production instance."
+    },
+    "mode": {
+      "type": "enum",
+      "enum": [
+        "loop",
+        "direct",
+        "audit",
+        "mirror",
+        "critique",
+        "iterate",
+        "implement",
+        "drive",
+        "verify"
+      ],
+      "default": "loop",
+      "description": "Router selector. 'loop' runs every gate; any other value enters at that gate."
+    },
+    "entry_gate": {
+      "type": "integer",
+      "default": 0,
+      "minimum": 0,
+      "maximum": 7,
+      "description": "Numeric form of the router. Each gate's `when` compares against this, so gate skipping is declarative and auditable rather than implicit in a skill's prose."
+    },
+    "design_intent": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "What the pass is meant to achieve, so G7 can verify the INTENDED delta rather than taste."
+    },
+    "allow_source_writes": {
+      "type": "boolean",
+      "default": false,
+      "description": "The implement gate refuses to write app source unless this is explicitly true."
+    },
+    "target_composite": {
+      "type": "number",
+      "default": 3.0,
+      "minimum": 0,
+      "maximum": 4,
+      "description": "The DESIGN-EVAL composite the iterate loop is aiming at. A param, not a metric: the loop measures composite_score and compares it against this declared target, so the exit condition is authored rather than inferred."
+    }
+  },
+  "roles": {
+    "primer": {
+      "description": "G0: attaches to the running app and records the pre-change baseline every later gate is measured against.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot"
+      ]
+    },
+    "director": {
+      "description": "G1: fixes the design direction - style, palette, typography - before anything is changed.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ]
+    },
+    "implementer": {
+      "description": "G5: the ONLY role with app-source write permission, and only when allow_source_writes is true.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Write(command-center/design/**)"
+      ],
+      "write_paths": [
+        "app/**",
+        "src/**"
+      ]
+    },
+    "driver": {
+      "description": "G6: drives the app to exercise the change without editing source.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__playwright__browser_click",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot"
+      ]
+    },
+    "verifier": {
+      "description": "G7: measures the delta against the recorded intent and the G0 baseline. Holds the revert veto and never edits source.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "always"
+    },
+    "reverter": {
+      "description": "Undoes a change the verifier rejected. Separate from the implementer so the author does not judge its own revert.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Bash:git"
+      ],
+      "write_paths": [
+        "app/**",
+        "src/**"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Bash:python",
+      "Edit",
+      "Read",
+      "Write(command-center/design/**)",
+      "mcp__codex__codex",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "mcp__figma__use_figma"
+    ],
+    "write_paths": [
+      "app/**",
+      "src/**",
+      "command-center/design/eight-gate-loop/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      ".github/workflows/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == verifier",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the revert veto must not be held by the vendor that authored the change"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "reviewer-refuted",
+        "failure"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "app-reachable": {
+      "predicate": "custom-expression",
+      "expression": "app_attached == true AND baseline_captured == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "source-writes-authorised": {
+      "predicate": "custom-expression",
+      "expression": "allow_source_writes == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "no-skipped-dependency": {
+      "predicate": "custom-expression",
+      "expression": "every_entered_gate_has_its_inputs == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "delta-verified": {
+      "predicate": "custom-expression",
+      "expression": "intended_delta_present == true AND regression_count == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "pass-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "subworkflows": {
+    "code-to-canvas-mirror-round-trip": {
+      "workflow_id": "code-to-canvas-mirror-round-trip",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/code-to-canvas-mirror-round-trip.json"
+    },
+    "two-track-ui-audit-rubric-verdict": {
+      "workflow_id": "two-track-ui-audit-rubric-verdict",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/two-track-ui-audit-rubric-verdict.json"
+    }
+  },
+  "stages": [
+    {
+      "id": "g0-prime",
+      "title": "G0 PRIME - attach to the app and capture the baseline",
+      "kind": "task",
+      "role": "primer",
+      "when": "entry_gate <= 0",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot"
+      ],
+      "work_unit": {
+        "id": "UX-7701",
+        "title": "Attach to the running app and record the pre-change baseline",
+        "phase": "2B",
+        "question_or_target": "Attach to app_target, capture a screenshot and accessibility snapshot per surface, and record them as THE baseline every later gate compares against - so a later 'improvement' is measured, not asserted.",
+        "inputs": [
+          "params.app_target",
+          "params.design_intent"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "primer",
+          "basis": "substantive subagents default to Opus; deciding what constitutes a surface is judgement"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "mcp__playwright__browser_snapshot",
+          "mcp__playwright__browser_take_screenshot"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/eight-gate-loop/g0-baseline.json",
+        "output_schema": "command-center/schema/audit-metric-baseline.schema.json",
+        "evidence_requirement": "one screenshot plus one accessibility snapshot per enumerated surface, each with the surface identifier and capture parameters",
+        "tests_required": [
+          "an unreachable app HALTS at G0 rather than auditing nothing and reporting clean",
+          "the baseline names every surface it captured, so a later gate cannot compare against a surface that was never recorded"
+        ],
+        "reviewer_requirement": "the verifier, who must be able to recompute the delta from this baseline alone",
+        "completion_sentinel": "SUCCESS:UX-7701 emitted only when the app is attached and a per-surface baseline exists on disk; otherwise FAILED:UX-7701 <reason>",
+        "retry_policy": "two strikes then pivot: relaunch the app once, then report app-unreachable rather than continuing blind",
+        "failure_classification": [
+          "app-unreachable",
+          "surface-enumeration-gap",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "attach-and-baseline capture that makes every later delta measurable"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/eight-gate-loop/g0-baseline.json",
+          "schema_ref": "command-center/schema/audit-metric-baseline.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7701",
+          "consumers": [
+            "g0-gate",
+            "g7-verify"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g0-gate",
+      "title": "An unreachable app halts the loop - it does not audit nothing",
+      "kind": "gate",
+      "depends_on": [
+        "g0-prime"
+      ],
+      "when": "entry_gate <= 0",
+      "gate_ref": "app-reachable"
+    },
+    {
+      "id": "g1-direct",
+      "title": "G1 DIRECT - fix the design direction before anything changes",
+      "kind": "task",
+      "depends_on": [
+        "g0-gate"
+      ],
+      "role": "director",
+      "when": "entry_gate <= 1",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-7702",
+        "title": "Record the design direction the pass will be judged against",
+        "phase": "2B",
+        "question_or_target": "Commit to a style, palette and type direction with a rationale, so G7 can verify against the INTENDED design rather than against the verifier's taste.",
+        "inputs": [
+          "params.design_intent",
+          "command-center/design/eight-gate-loop/g0-baseline.json"
+        ],
+        "dependencies": [
+          "UX-7701"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "director",
+          "basis": "direction is a design judgement and the highest-leverage decision in the pass"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/eight-gate-loop/g1-direction.json",
+        "output_schema": "command-center/schema/design-spec.schema.json",
+        "evidence_requirement": "named style, palette values, type pairing and a rationale tying each to the stated design_intent",
+        "tests_required": [
+          "the direction cites the design_intent it serves; a direction with no stated intent cannot be verified later",
+          "a pass entered at entry_gate 2 or higher must LOAD a previously recorded direction rather than proceeding without one"
+        ],
+        "reviewer_requirement": "the verifier, cross-examining whether the direction is falsifiable",
+        "completion_sentinel": "SUCCESS:UX-7702 emitted only when a direction with style, palette, type pairing and rationale is on disk; otherwise FAILED:UX-7702 <reason>",
+        "retry_policy": "two strikes then pivot to a narrower scope: one surface rather than the app",
+        "failure_classification": [
+          "direction-unrecorded",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "explicit recorded direction that converts G7 from taste into measurement"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/eight-gate-loop/g1-direction.json",
+          "schema_ref": "command-center/schema/design-spec.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7702",
+          "consumers": [
+            "g2-transpose",
+            "g3-critique",
+            "g7-verify"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g2-transpose",
+      "title": "G2 TRANSPOSE - mirror the current code onto the canvas (delegated)",
+      "kind": "subworkflow",
+      "depends_on": [
+        "g1-direct"
+      ],
+      "when": "entry_gate <= 2",
+      "timeout_seconds": 3600,
+      "workflow": {
+        "workflow_id": "code-to-canvas-mirror-round-trip",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "declare_losses": true
+      },
+      "isolation": "none",
+      "propagate_failure": false
+    },
+    {
+      "id": "g3-critique",
+      "title": "G3 CRITIQUE - the two-track audit and rubric verdict (delegated)",
+      "kind": "subworkflow",
+      "depends_on": [
+        "g2-transpose"
+      ],
+      "when": "entry_gate <= 3",
+      "timeout_seconds": 7200,
+      "workflow": {
+        "workflow_id": "two-track-ui-audit-rubric-verdict",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": {
+        "rubric_version": "DESIGN-EVAL-v1"
+      },
+      "isolation": "none",
+      "propagate_failure": true
+    },
+    {
+      "id": "g4-iterate",
+      "title": "G4 ITERATE - improve the composite until it stops moving",
+      "kind": "loop",
+      "depends_on": [
+        "g3-critique"
+      ],
+      "when": "entry_gate <= 4",
+      "loop_var": "iteration_round",
+      "body": [
+        {
+          "id": "iterate-candidate",
+          "title": "Propose and preview one candidate change without touching source",
+          "kind": "task",
+          "role": "director",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Write(command-center/design/**)"
+          ],
+          "work_unit": {
+            "id": "UX-7703",
+            "title": "Propose one candidate change and preview it as an injected style overlay",
+            "phase": "2B",
+            "question_or_target": "Produce one candidate delta against the recorded direction and preview it as an ephemeral overlay, so a candidate can be rejected before any source file is edited.",
+            "inputs": [
+              "command-center/design/eight-gate-loop/g1-direction.json",
+              "command-center/design/eight-gate-loop/g3-critique-verdict.json"
+            ],
+            "dependencies": [
+              "UX-7702"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "director",
+              "basis": "candidate generation is design judgement; the overlay mechanics are mechanical"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/design/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/design/eight-gate-loop/g4-candidates.json",
+            "output_schema": "command-center/schema/intervention-ranking.schema.json",
+            "evidence_requirement": "the candidate's CSS/token delta, the rubric dimension it targets, and the predicted composite movement",
+            "tests_required": [
+              "a candidate is previewed as an overlay and leaves app source byte-identical",
+              "a candidate that targets no rubric dimension is rejected as untestable"
+            ],
+            "reviewer_requirement": "the verifier, who scores the candidate before it is allowed to become an edit",
+            "completion_sentinel": "SUCCESS:UX-7703 emitted only when at least one candidate with a targeted dimension and a predicted movement exists; otherwise FAILED:UX-7703 <reason>",
+            "retry_policy": "two strikes then pivot: enumerate at least two structurally different candidates before a third attempt at the same one",
+            "failure_classification": [
+              "candidate-untestable",
+              "no-progress",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "overlay-previewed candidate generation with a targeted rubric dimension"
+          },
+          "produces": [
+            {
+              "path": "command-center/design/eight-gate-loop/g4-candidates.json",
+              "schema_ref": "command-center/schema/intervention-ranking.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:UX-7703",
+              "consumers": [
+                "g5-implement",
+                "g7-verify"
+              ]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 6,
+        "min_iterations": 1,
+        "converged_when": "composite_score >= target_composite AND critical_errors == 0",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "composite_score",
+            "direction": "increase",
+            "epsilon": 0.05
+          },
+          {
+            "name": "critical_errors",
+            "direction": "decrease",
+            "target": 0
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "g5-authorisation",
+      "title": "Source writes are opt-in - the implement gate refuses by default",
+      "kind": "gate",
+      "depends_on": [
+        "g4-iterate"
+      ],
+      "when": "entry_gate <= 5",
+      "gate_ref": "source-writes-authorised"
+    },
+    {
+      "id": "g5-implement",
+      "title": "G5 IMPLEMENT - the ONLY stage permitted to write app source",
+      "kind": "task",
+      "depends_on": [
+        "g5-authorisation"
+      ],
+      "role": "implementer",
+      "when": "entry_gate <= 5",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Write(command-center/design/**)"
+      ],
+      "work_unit": {
+        "id": "UX-7704",
+        "title": "Apply the accepted candidate to app source as one scoped change",
+        "phase": "2B",
+        "question_or_target": "Turn the accepted overlay delta into a single scoped source edit, recording the file:line touched so the revert gate can undo exactly this change and nothing else.",
+        "inputs": [
+          "command-center/design/eight-gate-loop/g4-candidates.json",
+          "command-center/design/eight-gate-loop/g1-direction.json"
+        ],
+        "dependencies": [
+          "UX-7703"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "implementer",
+          "basis": "mapping an overlay back to its source origin needs the codebase, not a diff"
+        },
+        "tool_permissions": [
+          "Read",
+          "Edit",
+          "Write(command-center/design/**)"
+        ],
+        "execution_substrate": "worktree-isolated",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/design/eight-gate-loop/g5-applied-change.json",
+        "output_schema": "command-center/schema/decision-trace.schema.json",
+        "evidence_requirement": "every touched file:line with the before and after text, so the change is byte-reversible",
+        "tests_required": [
+          "the recorded file:line set is sufficient to revert the change exactly",
+          "no file outside the declared write_paths is modified"
+        ],
+        "reviewer_requirement": "the verifier, who did not author the change and holds the revert veto",
+        "completion_sentinel": "SUCCESS:UX-7704 emitted only when the change is applied and every touched file:line is recorded with before/after text; otherwise FAILED:UX-7704 <reason>",
+        "retry_policy": "two strikes then pivot: revert and propose a structurally different candidate rather than re-editing",
+        "failure_classification": [
+          "scope-escape",
+          "change-irreversible",
+          "partial-artifact"
+        ],
+        "owner_approval_required": true,
+        "mechanism": "single scoped source edit with a byte-reversible file:line record"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/eight-gate-loop/g5-applied-change.json",
+          "schema_ref": "command-center/schema/decision-trace.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7704",
+          "consumers": [
+            "g6-drive",
+            "g7-verify",
+            "revert-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g6-drive",
+      "title": "G6 DRIVE - exercise the change in the running app without editing source",
+      "kind": "task",
+      "depends_on": [
+        "g5-implement"
+      ],
+      "role": "driver",
+      "when": "entry_gate <= 6",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "mcp__playwright__browser_click",
+        "mcp__playwright__browser_snapshot",
+        "mcp__playwright__browser_take_screenshot"
+      ],
+      "work_unit": {
+        "id": "UX-7705",
+        "title": "Drive the changed surfaces and capture the post-change evidence",
+        "phase": "2B",
+        "question_or_target": "Interact with every surface the change touches and capture screenshots and snapshots, so the verifier judges the change as USED rather than as read.",
+        "inputs": [
+          "command-center/design/eight-gate-loop/g5-applied-change.json",
+          "params.app_target"
+        ],
+        "dependencies": [
+          "UX-7704"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "driver",
+          "basis": "choosing which interactions exercise the change is judgement; the clicks are mechanical"
+        },
+        "tool_permissions": [
+          "mcp__playwright__browser_click",
+          "mcp__playwright__browser_snapshot",
+          "mcp__playwright__browser_take_screenshot"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/design/eight-gate-loop/g6-post-change.json",
+        "output_schema": "command-center/schema/smoke-report.schema.json",
+        "evidence_requirement": "one post-change screenshot and snapshot per touched surface, captured with the SAME parameters as the G0 baseline",
+        "tests_required": [
+          "capture parameters match the baseline's; a differently-sized capture is not a comparison",
+          "a surface the change touched but the driver could not reach is listed UNDRIVEN, never as passing"
+        ],
+        "reviewer_requirement": "the verifier",
+        "completion_sentinel": "SUCCESS:UX-7705 emitted only when every touched surface is either driven with captured evidence or listed UNDRIVEN; otherwise FAILED:UX-7705 <reason>",
+        "retry_policy": "two strikes then pivot to a different rail (accessibility reference, then CSS selector, then coordinates)",
+        "failure_classification": [
+          "surface-unreachable",
+          "capture-parameter-mismatch",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "post-change driving with baseline-matched capture parameters"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/eight-gate-loop/g6-post-change.json",
+          "schema_ref": "command-center/schema/smoke-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7705",
+          "consumers": [
+            "g7-verify"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g7-verify",
+      "title": "G7 VERIFY - is the INTENDED delta present, with no regression",
+      "kind": "task",
+      "depends_on": [
+        "g6-drive"
+      ],
+      "role": "verifier",
+      "when": "entry_gate <= 7",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "UX-7706",
+        "title": "Measure the delta against the G0 baseline and the G1 direction",
+        "phase": "2B",
+        "question_or_target": "Compare the post-change evidence to the baseline and decide whether the delta the direction INTENDED is present and whether anything else regressed - the two questions the revert gate consumes.",
+        "inputs": [
+          "command-center/design/eight-gate-loop/g0-baseline.json",
+          "command-center/design/eight-gate-loop/g1-direction.json",
+          "command-center/design/eight-gate-loop/g6-post-change.json"
+        ],
+        "dependencies": [
+          "UX-7701",
+          "UX-7702",
+          "UX-7705"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "verifier",
+          "basis": "a same-vendor verifier shares the implementer's blind spots, so the revert veto is cross-vendor"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/design/eight-gate-loop/g7-verify-delta.json",
+        "output_schema": "command-center/schema/coverage-delta.schema.json",
+        "evidence_requirement": "per-metric before and after values from the baseline and post-change artifacts, plus an explicit intended-versus-observed comparison",
+        "tests_required": [
+          "a change that WORSENS measured contrast is reported as a regression and triggers the revert gate",
+          "a change that improves the targeted dimension while worsening another is reported as a regression, not as a net win",
+          "both-states control: an unchanged app yields zero delta and zero regression, so the verifier is not manufacturing movement"
+        ],
+        "reviewer_requirement": "the primer, cross-examining whether the baseline used is the one it captured",
+        "completion_sentinel": "SUCCESS:UX-7706 emitted only when an intended-delta verdict and a regression count are both recorded with per-metric evidence; otherwise FAILED:UX-7706 <reason>",
+        "retry_policy": "two strikes then escalate: a verifier that cannot decide twice is a measurement problem, not a design one",
+        "failure_classification": [
+          "overclaim",
+          "detector-failure",
+          "regression-detected"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "baseline-anchored intended-versus-observed delta with an independent regression count"
+      },
+      "produces": [
+        {
+          "path": "command-center/design/eight-gate-loop/g7-verify-delta.json",
+          "schema_ref": "command-center/schema/coverage-delta.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:UX-7706",
+          "consumers": [
+            "g7-gate",
+            "revert-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "g7-gate",
+      "title": "The revert-gate trigger - a failed post-check does not stay applied",
+      "kind": "gate",
+      "depends_on": [
+        "g7-verify"
+      ],
+      "when": "entry_gate <= 7",
+      "gate_ref": "delta-verified"
+    },
+    {
+      "id": "revert-gate",
+      "title": "Automatically revert a change that failed its own post-check",
+      "kind": "repair_loop",
+      "depends_on": [
+        "g7-gate"
+      ],
+      "target": [
+        "g5-implement"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "regression-detected",
+        "scope-escape",
+        "detector-failure"
+      ],
+      "escalate_to": "router-coherence",
+      "require_root_cause": true,
+      "diagnose": {
+        "id": "diagnose-regression",
+        "title": "Attribute the regression to a specific applied file:line",
+        "kind": "task",
+        "role": "verifier",
+        "timeout_seconds": 1800,
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "mcp__codex__codex"
+        ],
+        "work_unit": {
+          "id": "UX-7707",
+          "title": "Attribute the regression to the exact change that caused it",
+          "phase": "2B",
+          "question_or_target": "Name which recorded file:line edit produced the regression, because reverting the whole pass when one edit is at fault discards work that was correct.",
+          "inputs": [
+            "command-center/design/eight-gate-loop/g7-verify-delta.json",
+            "command-center/design/eight-gate-loop/g5-applied-change.json"
+          ],
+          "dependencies": [
+            "UX-7704",
+            "UX-7706"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "gpt-5-codex",
+            "vendor": "openai",
+            "role": "verifier",
+            "basis": "attribution is the root-cause step the repair loop requires before it may act"
+          },
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "mcp__codex__codex"
+          ],
+          "execution_substrate": "local-serialized",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/design/eight-gate-loop/revert-diagnosis.json",
+          "output_schema": "command-center/schema/root-cause-graph.schema.json",
+          "evidence_requirement": "the specific file:line, the metric it moved, and the measurement that links the two",
+          "tests_required": [
+            "a multi-edit change attributes the regression to a subset, not to all edits",
+            "an unattributable regression escalates rather than reverting everything by default"
+          ],
+          "reviewer_requirement": "the reverter, who refuses to act on an unattributed diagnosis",
+          "completion_sentinel": "SUCCESS:UX-7707 emitted only when a specific file:line subset is named, or the diagnosis is explicitly UNATTRIBUTED; otherwise FAILED:UX-7707 <reason>",
+          "retry_policy": "two strikes then escalate to the owner rather than guessing at attribution",
+          "failure_classification": [
+            "attribution-failed",
+            "detector-failure",
+            "regression-detected"
+          ],
+          "owner_approval_required": false,
+          "mechanism": "per-edit regression attribution before any revert is authorised"
+        }
+      },
+      "repair": {
+        "id": "apply-revert",
+        "title": "Revert exactly the attributed edits and nothing else",
+        "kind": "task",
+        "role": "reverter",
+        "timeout_seconds": 1800,
+        "tool_permissions": [
+          "Read",
+          "Edit",
+          "Bash:git"
+        ],
+        "work_unit": {
+          "id": "UX-7708",
+          "title": "Restore the attributed file:line edits to their recorded before-text",
+          "phase": "2B",
+          "question_or_target": "Revert only the attributed edits using the before-text recorded at G5, and prove byte-equality with the pre-change state for those regions.",
+          "inputs": [
+            "command-center/design/eight-gate-loop/revert-diagnosis.json",
+            "command-center/design/eight-gate-loop/g5-applied-change.json"
+          ],
+          "dependencies": [
+            "UX-7707"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "reverter",
+            "basis": "the reverter is deliberately not the implementer, so the author does not certify its own undo"
+          },
+          "tool_permissions": [
+            "Read",
+            "Edit",
+            "Bash:git"
+          ],
+          "execution_substrate": "worktree-isolated",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/design/eight-gate-loop/revert-applied.json",
+          "output_schema": "command-center/schema/rollback-report.schema.json",
+          "evidence_requirement": "a byte-level comparison of each reverted region against the recorded before-text",
+          "tests_required": [
+            "the reverted regions are byte-identical to the recorded before-text",
+            "edits NOT named by the diagnosis remain applied, so a partial revert stays partial on purpose"
+          ],
+          "reviewer_requirement": "the verifier, which re-runs its own measurement after the revert",
+          "completion_sentinel": "SUCCESS:UX-7708 emitted only when every attributed region is byte-restored and unattributed edits are untouched; otherwise FAILED:UX-7708 <reason>",
+          "retry_policy": "two strikes then escalate: a failing revert is an irreversibility finding and must reach the owner",
+          "failure_classification": [
+            "revert-failed",
+            "change-irreversible",
+            "scope-escape"
+          ],
+          "owner_approval_required": true,
+          "mechanism": "attributed-subset byte-restore performed by a role other than the author"
+        }
+      },
+      "verify": {
+        "id": "confirm-reverted",
+        "title": "Independently confirm the regression is gone after the revert",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "regression_count == 0 AND reverted_regions_byte_identical == true",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    },
+    {
+      "id": "router-coherence",
+      "title": "No gate may silently depend on a gate the router skipped",
+      "kind": "gate",
+      "depends_on": [
+        "revert-gate"
+      ],
+      "gate_ref": "no-skipped-dependency"
+    },
+    {
+      "id": "pass-complete",
+      "title": "The shared completion predicate over the whole pass",
+      "kind": "gate",
+      "depends_on": [
+        "router-coherence"
+      ],
+      "gate_ref": "pass-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "intended-delta-with-no-regression",
+      "expression": "intended_delta_present == true AND regression_count == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "baseline_captured == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "app-unreachable-halts-at-g0",
+      "expression": "app_attached == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "iteration-budget-spent",
+      "expression": "iteration_rounds >= 6 AND composite_score < target_composite",
+      "applies_to": "loop",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 10,
+    "jitter": true,
+    "retry_on": [
+      "surface-unreachable",
+      "capture-parameter-mismatch"
+    ],
+    "no_retry_on": [
+      "change-irreversible",
+      "scope-escape",
+      "app-unreachable"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "router-coherence"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "app-unreachable",
+      "regression-detected",
+      "scope-escape",
+      "change-irreversible"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "revert-gate",
+    "quarantine_path": "command-center/design/eight-gate-loop/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/design/eight-gate-loop/checkpoints",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/design/eight-gate-loop/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy",
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "process-id"
+    ]
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "params_hash"
+    ],
+    "store": "command-center/design/eight-gate-loop/cache",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/design/eight-gate-loop/dry-run-plan.json",
+    "forbid_tools": [
+      "Edit",
+      "Bash:git",
+      "mcp__playwright__browser_click",
+      "Write(command-center/design/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 6.0,
+      "max": 24.0
+    },
+    "wallclock_seconds": {
+      "expected": 7200,
+      "max": 28800
+    },
+    "tokens": {
+      "expected": 900000
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "edits app source under the declared write paths at G5 only; every edit is byte-reversible from the G5 record and the revert gate exercises that path",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/design/eight-gate-loop/export/design-studio-eight-gate-loop.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-UX-01",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/design-studio",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/design-review-loop",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/ui-drive",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/design-studio@current"
+    ]
+  },
+  "outputs": {
+    "verify_delta": {
+      "path": "command-center/design/eight-gate-loop/g7-verify-delta.json",
+      "schema_ref": "command-center/schema/coverage-delta.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "reverted_changes": {
+      "path": "command-center/design/eight-gate-loop/revert-applied.json",
+      "schema_ref": "command-center/schema/rollback-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-UX-01",
+      "card_index_in_library": 77,
+      "family": "D15-ux",
+      "primary_category": "product-design-and-strategy",
+      "mechanism_signature": [
+        "eight-gate-serial-pipeline",
+        "declarative-mode-router-entry-at-any-gate",
+        "single-source-write-gate",
+        "automatic-revert-on-failed-post-check",
+        "cross-vendor-revert-veto"
+      ],
+      "why_not_deterministic": "G3 and G4 are model-judgement gates and G6 drives a live browser whose layout is not byte-stable; the journal is still recorded and divergence is reported semantically rather than claimed hash-equal.",
+      "worked_example": {
+        "scenario": "Reframe's export panel is cramped. Run the full loop with source writes authorised.",
+        "params": {
+          "app_target": "reframe@localhost:5173",
+          "mode": "loop",
+          "entry_gate": 0,
+          "design_intent": "increase export-panel breathing room without reducing contrast or tap-target size",
+          "allow_source_writes": true
+        },
+        "expected_trace": [
+          "g0-prime -> 7 surfaces baselined; g0-gate PASS",
+          "g1-direct -> spacing scale 8pt, palette unchanged, rationale cites the intent",
+          "g2-transpose -> delegated to code-to-canvas-mirror-round-trip; propagate_failure false, so a Figma quota failure does not kill the pass",
+          "g3-critique -> delegated to two-track-ui-audit-rubric-verdict; composite 2.6/4 with a contrast critical error on one label",
+          "g4-iterate -> round 1 raises spacing and composite to 3.1; round 2 no progress; loop exits on no_progress_rounds",
+          "g5-authorisation PASS -> g5-implement edits 3 files, 5 lines, before-text recorded",
+          "g6-drive -> all 7 surfaces driven with baseline-matched capture parameters",
+          "g7-verify -> intended spacing delta PRESENT, but contrast on the label REGRESSED from 4.7 to 3.9",
+          "g7-gate FAILS -> revert-gate: diagnose attributes the regression to 1 of the 5 lines; apply-revert byte-restores that line only; confirm-reverted re-measures contrast at 4.7 with the other 4 lines still applied",
+          "router-coherence PASS -> pass-complete PASS"
+        ],
+        "expected_terminal_state": "SUCCESS:UX-7708 (partial revert: 4 of 5 edits kept, 1 reverted)"
+      },
+      "unverified": "UNVERIFIED gate-skip correctness - the router lets a caller enter at any gate, and nothing yet proves no gate silently depends on a skipped predecessor. The `router-coherence` gate exists to make that check explicit, but its predicate is asserted by the workflow rather than measured by this unit. Settling experiment = enter at each of the nine modes and confirm every entered gate finds its inputs on disk.",
+      "distinct_from": {
+        "bp-ux-02": "that is the AUDIT engine; this is the pipeline that calls it as G3 - the containment is a declared subworkflow, not a description",
+        "bp-ux-04": "that is the canvas mirror; this calls it as G2",
+        "bp-ux-05": "that acts before a UI exists; this acts on a running one"
+      },
+      "flagship_test": "platform/lib/workflows/test_design_studio_eight_gate_loop.py"
+    }
+  }
+}

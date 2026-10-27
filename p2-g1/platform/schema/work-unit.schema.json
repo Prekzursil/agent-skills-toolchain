@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/work-unit/1.0.0",
+  "title": "Work Unit (Prompt Two, 19 mandatory fields) - STRUCTURAL profile",
+  "description": "The per-unit record contract. Spec anchor: _USER-PROMPTS.md:10605-10625 ('Every work unit must have: stable ID; title; phase; exact question or implementation target; inputs; dependencies; assigned model/vendor/role; tool permissions; execution substrate; timeout; output path; output schema; evidence requirement; tests required; reviewer requirement; completion sentinel; retry policy; failure classification; and owner-approval requirement, if any.'). ALL 19 are REQUIRED PER UNIT: a catalog-level `defaults` block is an optional authoring convenience and is NEVER the only way to express a field - see work-unit-catalog.schema.json#/properties/defaults and platform/lib/wfdsl/resolve.py. This STRUCTURAL profile encodes the field set, JSON types and the union shapes actually present in the 2,007-unit catalog measured 2026-08-09; work-unit.normative.schema.json adds value domains and work-unit.strict.schema.json adds canonical single-form requirements.",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "phase",
+    "question_or_target",
+    "inputs",
+    "dependencies",
+    "assigned_model_vendor_role",
+    "tool_permissions",
+    "execution_substrate",
+    "timeout_seconds",
+    "output_path",
+    "output_schema",
+    "evidence_requirement",
+    "tests_required",
+    "reviewer_requirement",
+    "completion_sentinel",
+    "retry_policy",
+    "failure_classification",
+    "owner_approval_required"
+  ],
+  "properties": {
+    "id": {
+      "$comment": "spec field 1: stable ID",
+      "type": "string",
+      "minLength": 4,
+      "maxLength": 64
+    },
+    "title": {
+      "$comment": "spec field 2: title",
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 400
+    },
+    "phase": {
+      "$comment": "spec field 3: phase. String (not integer) because the program uses letter-suffixed sub-phases 2A/2B/2C/7A.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8
+    },
+    "question_or_target": {
+      "$comment": "spec field 4: exact question or implementation target",
+      "type": "string",
+      "minLength": 10
+    },
+    "inputs": {
+      "$comment": "spec field 5: inputs. At least one - a unit with no declared input cannot be audited for provenance.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonempty_string" }
+    },
+    "dependencies": {
+      "$comment": "spec field 6: dependencies. MAY be empty (a root unit); tokens are unit ids or bucket ids - see the normative profile.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonempty_string" }
+    },
+    "assigned_model_vendor_role": {
+      "$comment": "spec field 7: assigned model/vendor/role. The CANONICAL shape is the object form (#/$defs/assignment_object); the 'model/vendor/role' slash-triple string is a legacy compatibility branch that this permissive profile still accepts and the strict profile rejects. The live catalog was normalised to the object form by command-center/d5_normalize_assignment.py, so the string branch currently has ZERO instances in it - it is retained because dropping it would silently widen this profile's contract for any catalog authored against an earlier revision, and because the strict profile's structural-accepts / strict-rejects fixture depends on a shape that is legal here. Do NOT restate a live instance count in this comment: an earlier revision hardcoded '1,879 object / 128 string', which a later audit pass then misread as a before/after pair and reported as a 1,879-unit regression when the two numbers were complements summing to 2,007. Run the census tool for current counts, never this comment.",
+      "oneOf": [
+        { "$ref": "#/$defs/assignment_object" },
+        { "$ref": "#/$defs/assignment_triple_string" }
+      ]
+    },
+    "tool_permissions": {
+      "$comment": "spec field 8: tool permissions. At least one - an empty list is indistinguishable from 'unspecified'.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonempty_string" }
+    },
+    "execution_substrate": {
+      "$comment": "spec field 9: execution substrate",
+      "type": "string",
+      "minLength": 3
+    },
+    "timeout_seconds": {
+      "$comment": "spec field 10: timeout. Integer seconds; a boolean must not slip through (JSON booleans are not integers here).",
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 86400
+    },
+    "output_path": {
+      "$comment": "spec field 11: output path",
+      "type": "string",
+      "minLength": 3
+    },
+    "output_schema": {
+      "$comment": "spec field 12: output schema. A reference to a schema document, not the schema body.",
+      "type": "string",
+      "minLength": 3
+    },
+    "evidence_requirement": {
+      "$comment": "spec field 13: evidence requirement",
+      "type": "string",
+      "minLength": 20
+    },
+    "tests_required": {
+      "$comment": "spec field 14: tests required. Array form (1,911 units) or a single prose string (96 units); the strict profile requires the array.",
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonempty_string" }
+        },
+        { "type": "string", "minLength": 10 }
+      ]
+    },
+    "reviewer_requirement": {
+      "$comment": "spec field 15: reviewer requirement",
+      "type": "string",
+      "minLength": 10
+    },
+    "completion_sentinel": {
+      "$comment": "spec field 16: completion sentinel. Cross-field rule SEM-002 (validator, not schema) requires it to name the unit's own id.",
+      "type": "string",
+      "minLength": 8
+    },
+    "retry_policy": {
+      "$comment": "spec field 17: retry policy",
+      "type": "string",
+      "minLength": 10
+    },
+    "failure_classification": {
+      "$comment": "spec field 18: failure classification. Array of class tokens (1,911 units) or a single prose string (96 units); the strict profile requires the array.",
+      "oneOf": [
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonempty_string" }
+        },
+        { "type": "string", "minLength": 3 }
+      ]
+    },
+    "owner_approval_required": {
+      "$comment": "spec field 19: owner-approval requirement. Boolean, never absent: an absent field would read as 'probably fine' (adverse-inference).",
+      "type": "boolean"
+    },
+
+    "_source_slice_file": {
+      "$comment": "documented non-spec extra: which catalog slice this unit was merged from",
+      "type": "string"
+    },
+    "bucket": { "type": "string" },
+    "slice": { "type": "string" },
+    "mechanism": { "type": "string" },
+    "not_a_duplicate_because": { "type": "string" },
+    "spec_anchor": { "type": "string" },
+    "dependency_anchors": { "type": "object" },
+    "notes": { "type": "string" }
+  },
+  "$comment": "There is deliberately NO `additionalProperties` keyword here. Omitting it and setting it to `true` are identical for VALIDATION (both allow unknown properties) but NOT for ANNOTATION: `additionalProperties: true` marks every unknown property as EVALUATED, which silently disables `unevaluatedProperties: false` in the strict profile that composes over this one. Measured on this box before the fix: a unit carrying a bogus `typo_field` passed the strict profile. Omitting the keyword keeps this profile permissive while leaving the strict profile's typo check live.",
+  "$defs": {
+    "nonempty_string": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "assignment_object": {
+      "type": "object",
+      "required": ["model", "vendor", "role"],
+      "properties": {
+        "model": { "$ref": "#/$defs/nonempty_string" },
+        "vendor": { "$ref": "#/$defs/nonempty_string" },
+        "role": { "$ref": "#/$defs/nonempty_string" },
+        "basis": { "type": "string" },
+        "rationale": { "type": "string" },
+        "co_assignments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["model", "vendor"],
+            "properties": {
+              "model": { "$ref": "#/$defs/nonempty_string" },
+              "vendor": { "$ref": "#/$defs/nonempty_string" },
+              "role": { "$ref": "#/$defs/nonempty_string" }
+            },
+            "additionalProperties": false
+          },
+          "$comment": "A unit that genuinely needs MORE THAN ONE vendor says so here instead of packing a second vendor into `model` as prose. `model`/`vendor`/`role` remain the PRIMARY assignment, so every existing single-valued reader keeps working; each additional vendor is individually addressable rather than requiring a caller to split on ' + '. `role` is optional per entry and inherits the primary role when omitted. Measured before this key existed: 4 units encoded two vendors as `vendor: \"mixed\"` plus a prose `model`, which recorded THAT vendors differed but not WHICH - and no code read the value \"mixed\"."
+        },
+        "multi_vendor_policy": {
+          "enum": [
+            "independent-compared-not-merged",
+            "independent-merged",
+            "model-diverse-panel"
+          ],
+          "$comment": "HOW the vendors combine, as data rather than prose. `independent-compared-not-merged` is the cross-vendor-independence constraint from AGENTS.md - each vendor runs without seeing the other and the results are compared, never merged, because merging destroys the independence that makes agreement evidence. `model-diverse-panel` is a jury whose diversity is the point. Absent means single-vendor."
+        }
+      },
+      "dependentRequired": {
+        "co_assignments": ["multi_vendor_policy"]
+      },
+      "additionalProperties": false,
+      "$comment": "The CANONICAL shape for spec field 7. `dependentRequired` makes the combination semantics mandatory once a second vendor is declared: a multi-vendor unit that omitted `multi_vendor_policy` would be indistinguishable from one where independence does not matter, which is exactly the information the old prose form was carrying and losing."
+    },
+    "assignment_triple_string": {
+      "type": "string",
+      "pattern": "^[^/\\s][^/]*/[^/\\s][^/]*/[^/][^/]*$",
+      "$comment": "'<model>/<vendor>/<role>' - exactly two slashes, no empty segment"
+    }
+  }
+}

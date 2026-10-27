@@ -1,0 +1,1 @@
+To measure a claim, write the probe first. Run the probe against the good state, then run the same probe against the planted bad state, and record both outputs verbatim. Next, compare exit codes; only a 0/1 pair counts as a measurement.

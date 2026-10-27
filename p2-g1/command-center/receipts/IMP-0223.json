@@ -1,0 +1,243 @@
+{
+ "id": "IMP-0223",
+ "unit_id": "IMP-0223",
+ "title": "Implement worktree provisioning and teardown per implementation shard",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0223",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0223",
+ "state": "SUCCESS",
+ "reviewer": {
+  "reviewer_id": "w3s11-independent-reviewer-2026-10-26",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewed_at": "2026-10-26T16:00:38Z",
+  "notes": "Independent w3s11 reviewer closure. builder BLOCKED 2026-10-26, classification [\"reviewer-absent\"], reason verbatim: Builder-side delivery complete and verified live 2026-10-26 (probes exit 0 against throwaway git fixtures, manifest sha matches live bytes), but the implementation was materially REPAIRED after the 2026-08-25 independent review, so that closure no longer verifies live and was superseded: the on-disk module (rewritten 2026-10-24 by the git-crypt doctor work) had lost provision/teardown semantics and carried two green-not-live defects - a hardcoded squash-case literal dict and a tautological contamination control (_staged(x) == _staged(x), true by construction). Awaiting a fresh independent review to close. | Prior 2026-08-25 closure (IMP-0223-probe2-teardown-both-states) was superseded by the builder because the module was materially repaired after it; this closure re-verified the REPAIRED module live: both probes re-run exit 0 by this reviewer at closure time, all manifest rows digest-match live bytes, receipt authored to the current receipt profile (artifacts[], fingerprints, method enum remaps computed-set-intersection/both-states -> other, downstream_consumers added with the program canonical gate as an executed consumer). This receipt is envelope-census-exempt: authored to the CURRENT profile at closure."
+ },
+ "prior_closure_superseded": {
+  "reviewer_id": "IMP-0223-probe2-teardown-both-states",
+  "verdict": "PASS",
+  "independent": true,
+  "ended_at": "2026-08-25T00:59:22Z",
+  "why": "closure covered a module version since rewritten; anchor function teardown did not exist on disk; claims did not verify live against the current file"
+ },
+ "implementation": {
+  "module": "tools/gitcrypt-worktree/gitcrypt_worktree.py",
+  "provision": "git worktree add -b shard/<unit>/<token>",
+  "teardown_authorization": "byte-level harvest comparison only (live files + index paths)",
+  "ancestry_authorization": "never",
+  "estate_git_mutated": false,
+  "note": "Fixture repos under tempfile only. This estate root has no .git; no git add/commit/push/stash/checkout/rebase was run against it. Repair 2026-10-26 added provision_worktree / harvest_digest / teardown_worktree and the labeled known-broken control naive_ancestry_authorizes; rewrote both measure functions so every verdict is computed."
+ },
+ "evidence": [
+  {
+   "anchor": "tools/gitcrypt-worktree/gitcrypt_worktree.py:provision_worktree + measure_disjoint_indexes",
+   "claim": "Two concurrent mutating units provisioned on their own branches produce disjoint staged sets (computed set intersection empty) and never share a git index (distinct gitdirs, index file bytes differ). The shared-index control fires: the same two unit paths on ONE checkout with a broad git add -A stage both - the contamination mode isolated provisioning prevents.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"branches\": [\n    \"shard/unit-a/3afea122\",\n    \"shard/unit-b/f3e81488\"\n  ],\n  \"contamination_control\": {\n    \"detected\": true,\n    \"mode\": \"shared-checkout-broad-add\",\n    \"shared_intersection\": [\n      \"unit-a.txt\",\n      \"unit-b.txt\"\n    ],\n    \"staged_shared\": [\n      \"unit-a.txt\",\n      \"unit-b.txt\"\n    ]\n  },\n  \"index_a\": \"C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\imp0223-p1-erk1iui4\\\\fixture\\\\.git\\\\worktrees\\\\unit-a-3afea122\\\\index\",\n  \"index_b\": \"C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\imp0223-p1-erk1iui4\\\\fixture\\\\.git\\\\worktrees\\\\unit-b-f3e81488\\\\index\",\n  \"index_bytes_differ\": true,\n  \"index_paths_distinct\": true,\n  \"indexes_disjoint\": true,\n  \"intersection\": [],\n  \"intersection_empty\": true,\n  \"pass\": true,\n  \"staged_a\": [\n    \"unit-a.txt\"\n  ],\n  \"staged_b\": [\n    \"unit-b.txt\"\n  ]\n}\nSUCCESS:IMP-0223-probe1 concurrent mutators staged disjoint; shared-checkout broad-add control detected contamination",
+     "role": "source",
+     "fingerprint": "97169773ec2166ebd31864fe821f3156"
+    },
+    {
+     "command": "staged_a & staged_b == empty; gitdir_a != gitdir_b; shared broad-add stages both paths",
+     "exit_code": 0,
+     "method": "other",
+     "role": "verifier",
+     "fingerprint": "fe1b36251ea9febde94c1bfadc065183",
+     "raw_output": "{\n  \"branches\": [\n    \"shard/unit-a/a5ce1193\",\n    \"shard/unit-b/bf3c0c72\"\n  ],\n  \"contamination_control\": {\n    \"detected\": true,\n    \"mode\": \"shared-checkout-broad-add\",\n    \"shared_intersection\": [\n      \"unit-a.txt\",\n      \"unit-b.txt\"\n    ],\n    \"staged_shared\": [\n      \"unit-a.txt\",\n      \"unit-b.txt\"\n    ]\n  },\n  \"index_a\": \"C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\imp0223-p1-d46i_gmd\\\\fixture\\\\.git\\\\worktrees\\\\unit-a-a5ce1193\\\\index\",\n  \"index_b\": \"C:\\\\Users\\\\Prekzursil\\\\AppData\\\\Local\\\\Temp\\\\imp0223-p1-d46i_gmd\\\\fixture\\\\.git\\\\worktrees\\\\unit-b-bf3c0c72\\\\index\",\n  \"index_bytes_differ\": true,\n  \"index_paths_distinct\": true,\n  \"indexes_disjoint\": true,\n  \"intersection\": [],\n  \"intersection_empty\": true,\n  \"pass\": true,\n  \"staged_a\": [\n    \"unit-a.txt\"\n  ],\n  \"staged_b\": [\n    \"unit-b.txt\"\n  ]\n}\nSUCCESS:IMP-0223-probe1 concurrent mutators staged disjoint; shared-checkout broad-add control detected contamination"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/gitcrypt-worktree/gitcrypt_worktree.py:teardown_worktree + measure_teardown_both_states",
+   "claim": "Teardown refuses when any live byte or index-referenced path is not proven preserved in the harvest (reason=unpreserved-content, worktree stays on disk) and deletes only after a byte-level harvest match (reason=content-proven). Commit ancestry is never consulted: on the squash-merge state the branch reports AHEAD (ahead_count=1, not an ancestor despite the content being carried) and the known-broken naive ancestry mutant authorizes deletion while the content gate refuses - measured, not asserted.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"dangerous\": {\n    \"deleted\": false,\n    \"reason\": \"unpreserved-content\",\n    \"refused\": true,\n    \"worktree_still_on_disk\": true\n  },\n  \"good\": {\n    \"deleted\": true,\n    \"reason\": \"content-proven\",\n    \"refused\": false\n  },\n  \"pass\": true,\n  \"squash_unharvested\": {\n    \"ahead_count\": 1,\n    \"deleted\": false,\n    \"merged_check_false_despite_content_carried\": true,\n    \"naive_ancestry_would_authorize\": true,\n    \"reason\": \"unpreserved-content\",\n    \"refused\": true,\n    \"reports_ahead\": true,\n    \"worktree_still_on_disk\": true\n  }\n}\nSUCCESS:IMP-0223-probe2 teardown refused on unpreserved content; naive ancestry mutant authorizes where content gate refuses; harvest-proven worktree deleted",
+     "role": "source",
+     "fingerprint": "cce2c9ead41b4c77b307eadb40d02ab4"
+    },
+    {
+     "command": "refused(unharvested-remainder); mutant-authorizes and gate-refuses on same squash state; deleted(harvest-matched)",
+     "exit_code": 0,
+     "method": "other",
+     "role": "verifier",
+     "fingerprint": "7745b6e3196a4abf53582e64612650db",
+     "raw_output": "{\n  \"dangerous\": {\n    \"deleted\": false,\n    \"reason\": \"unpreserved-content\",\n    \"refused\": true,\n    \"worktree_still_on_disk\": true\n  },\n  \"good\": {\n    \"deleted\": true,\n    \"reason\": \"content-proven\",\n    \"refused\": false\n  },\n  \"pass\": true,\n  \"squash_unharvested\": {\n    \"ahead_count\": 1,\n    \"deleted\": false,\n    \"merged_check_false_despite_content_carried\": true,\n    \"naive_ancestry_would_authorize\": true,\n    \"reason\": \"unpreserved-content\",\n    \"refused\": true,\n    \"reports_ahead\": true,\n    \"worktree_still_on_disk\": true\n  }\n}\nSUCCESS:IMP-0223-probe2 teardown refused on unpreserved content; naive ancestry mutant authorizes where content gate refuses; harvest-proven worktree deleted"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_computed": {
+  "disjoint_indexes": {
+   "branches": [
+    "shard/unit-a/3afea122",
+    "shard/unit-b/f3e81488"
+   ],
+   "contamination_control": {
+    "detected": true,
+    "mode": "shared-checkout-broad-add",
+    "shared_intersection": [
+     "unit-a.txt",
+     "unit-b.txt"
+    ],
+    "staged_shared": [
+     "unit-a.txt",
+     "unit-b.txt"
+    ]
+   },
+   "index_a": "C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\imp0223-p1-erk1iui4\\fixture\\.git\\worktrees\\unit-a-3afea122\\index",
+   "index_b": "C:\\Users\\Prekzursil\\AppData\\Local\\Temp\\imp0223-p1-erk1iui4\\fixture\\.git\\worktrees\\unit-b-f3e81488\\index",
+   "index_bytes_differ": true,
+   "index_paths_distinct": true,
+   "indexes_disjoint": true,
+   "intersection": [],
+   "intersection_empty": true,
+   "pass": true,
+   "staged_a": [
+    "unit-a.txt"
+   ],
+   "staged_b": [
+    "unit-b.txt"
+   ]
+  },
+  "teardown_both_states": {
+   "dangerous": {
+    "deleted": false,
+    "reason": "unpreserved-content",
+    "refused": true,
+    "worktree_still_on_disk": true
+   },
+   "good": {
+    "deleted": true,
+    "reason": "content-proven",
+    "refused": false
+   },
+   "pass": true,
+   "squash_unharvested": {
+    "ahead_count": 1,
+    "deleted": false,
+    "merged_check_false_despite_content_carried": true,
+    "naive_ancestry_would_authorize": true,
+    "reason": "unpreserved-content",
+    "refused": true,
+    "reports_ahead": true,
+    "worktree_still_on_disk": true
+   }
+  }
+ },
+ "negative_controls": [
+  {
+   "id": "shared-index-broad-add",
+   "kind": "known-broken-fixture",
+   "description": "Two sibling files on one checkout plus git add -A must stage both paths; the detector fires on that contamination mode.",
+   "bad_state_output": "unit-a.txt and unit-b.txt both staged on shared index",
+   "good_state_output": "isolated worktrees: intersection empty",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "unpreserved-teardown",
+   "kind": "known-broken-fixture",
+   "description": "Teardown of a shard whose unique bytes are nowhere else must refuse and leave the worktree on disk.",
+   "bad_state_output": "reason=unpreserved-content refused=true",
+   "good_state_output": "reason=content-proven deleted=true",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "squash-merge-ancestry-ahead",
+   "kind": "known-broken-fixture",
+   "description": "Squash-merge plus an uncommitted remainder: ancestry reports AHEAD (naive mutant would delete); content comparison refuses.",
+   "bad_state_output": "reports_ahead=true naive_ancestry_would_authorize=true refused=true",
+   "good_state_output": "harvest digest match then deleted",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "tests": [
+  {
+   "id": "concurrent-mutators-disjoint-indexes",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+   "result": "PASS"
+  },
+  {
+   "id": "teardown-refused-when-unpreserved",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+   "result": "PASS"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "git-crypt itself is absent in the fixture path; isolation and teardown are proven with git worktree indexes, git diff --cached --name-only and byte digests, not with git-crypt filters.",
+   "settling_experiment": "Re-run measure_disjoint_indexes on a host with git-crypt installed and compare the staged-set output.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "min_bytes_threshold": 128,
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0223/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "timestamps": {
+  "started_at": "2026-08-25T00:59:22Z",
+  "ended_at": "2026-10-26T01:43:25Z"
+ },
+ "notes": "G-1 for IMP-0223: live named probes re-run the provisioner against throwaway git repos. SUCCESS:IMP-0223 is the catalog sentinel; it is NOT self-declared while state=BLOCKED. cloud ok=true is not delivery. Did not run global unit_manifest.py --write. Builder shard11 wave3 resume 2026-10-26: the prior probe directory was lost mid-flight (host session death) and the module had been rewritten by other work (git-crypt doctor), which replaced the reviewed provision/teardown semantics with tautological or hardcoded measurement code. Both defects were repaired with computed implementations; probes were rebuilt and re-run live; the 2026-08-25 reviewer closure is superseded - see prior_closure_superseded. Awaiting independent review to close.",
+ "artifacts": [
+  {
+   "path": "tools/gitcrypt-worktree/gitcrypt_worktree.py",
+   "bytes": 66976,
+   "sha256": "8db26b4b900eb13e54fcac78fe414ab6faf925180487511b4270ce86a4f1f6e2",
+   "exists": true,
+   "role": "primary"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+   "bytes": 2437,
+   "sha256": "aa36148e6132f733a8e3071be6f962dd3729b3e3a42c0393c88b33e6278df142",
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+   "bytes": 2392,
+   "sha256": "e226ebf964f92265a13892e6d1664d4cf517bf90a640d9bc6b3075769b303ca8",
+   "exists": true,
+   "role": "supporting"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0223 (program delivery gate)",
+   "artifact_path": "tools/gitcrypt-worktree/gitcrypt_worktree.py",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python command-center/p2-wave/_measure_one_delivered.py IMP-0223",
+    "raw_output": "SUCCESS:delivered IMP-0223",
+    "fingerprint": "387428341d761c741fc558962735f7de",
+    "exit_code": 0
+   }
+  }
+ ]
+}

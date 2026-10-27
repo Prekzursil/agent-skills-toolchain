@@ -1,0 +1,216 @@
+{
+  "id": "IMP-0117",
+  "unit_id": "IMP-0117",
+  "kind": "receipt",
+  "title": "CI pre-publish gate scoped to the proposed registry diff",
+  "question": "Wire a required CI job that, on a pull request touching the registry index, lints ONLY the proposed diff (new and changed entries plus their blobs) and blocks merge on any finding \u2014 the PR-ONLY release mode's enforcement point, distinct from the client-side guard.",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0117",
+  "completion_sentinel": "SUCCESS:IMP-0117",
+  "phase": "6",
+  "generated_at": "2026-08-25T01:00:35Z",
+  "generating_commit": "worktree-uncommitted",
+  "answer": "The required CI job registry-diff-gate lints only new and changed registry index entries plus their blobs. A bad fixture PR is RED with LINTED_ENTRY_IDS=proposed.bad. A clean fixture PR in the same configuration is GREEN even though the base index still carries preexisting.bad. A whole-index control on that clean head is RED, so this is not a weaker full-index lint. The job is listed in ci/required-status-checks.json; a non-required red job blocks nothing, which the merge-policy mutant confirms.",
+  "evidence_requirement": {
+    "signal_1": {
+      "claim": "a fixture PR carrying a bad entry makes the job red",
+      "observed": {
+        "verdict": "RED",
+        "finding_count": 2,
+        "finding_entry_ids": [
+          "proposed.bad"
+        ],
+        "findings": [
+          {
+            "entry_id": "proposed.bad",
+            "rule": "secret-gate",
+            "message": "blob matched secret pattern 'SECRET_GATE_PLANTED='",
+            "linter": "package"
+          },
+          {
+            "entry_id": "proposed.bad",
+            "rule": "digest-mismatch",
+            "message": "declared digest 0000000000000000000000000000000000000000000000000000000000000000 != stored sha256 eeb6d96869b30742ee315722b5ace6dba4e613868d873d5862c125299e25b332",
+            "linter": "index"
+          }
+        ]
+      },
+      "pass": true
+    },
+    "signal_2": {
+      "claim": "the job's own log shows it linted the CHANGED entries specifically, verified by the entry ids in the output",
+      "observed": {
+        "scope": "diff",
+        "linted_entry_ids": [
+          "proposed.bad"
+        ],
+        "skipped_unchanged_ids": [
+          "preexisting.bad",
+          "stable.good"
+        ],
+        "preexisting_bad_not_linted": true
+      },
+      "pass": true
+    }
+  },
+  "tests": [
+    {
+      "id": "ci-job-registry-diff-gate-red-on-bad-fixture-pr",
+      "result": "PASS",
+      "observed": "RED"
+    },
+    {
+      "id": "both-states-green-on-clean-fixture-pr",
+      "result": "PASS",
+      "observed": {
+        "clean": "GREEN",
+        "linted_entry_ids": [
+          "proposed.clean"
+        ],
+        "whole_index_control": "RED"
+      }
+    },
+    {
+      "id": "job-is-required-context",
+      "result": "PASS",
+      "observed": {
+        "required_contexts": [
+          "registry-diff-gate"
+        ],
+        "required_red_blocks_merge": true,
+        "non_required_red_blocks_nothing": true
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "tools/marketplace/registry_diff_gate.py",
+      "line": 170,
+      "snippet": "print(\"LINTED_ENTRY_IDS=\" + \",\".join(ids))",
+      "kind": "live-tree",
+      "claim": "job log emits the changed entry ids"
+    },
+    {
+      "path": ".github/workflows/registry-diff-gate.yml",
+      "line": 14,
+      "snippet": "registry-diff-gate:",
+      "kind": "live-tree",
+      "claim": "CI job id is registry-diff-gate"
+    },
+    {
+      "path": "ci/required-status-checks.json",
+      "line": 4,
+      "snippet": "\"required_contexts\": [\"registry-diff-gate\"]",
+      "kind": "live-tree",
+      "claim": "job is a required status check, not merely present"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0117/fixtures/bad-pr/marketplace.json",
+      "line": 1,
+      "snippet": "proposed.bad plus unchanged preexisting.bad",
+      "kind": "live-tree",
+      "claim": "bad fixture PR exists on disk"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0117-probe2-clean-required",
+    "independent": true,
+    "verdict": "PASS",
+    "requirement": "Reviewer must confirm the job is listed as a required status check, not merely present.",
+    "confirmation": "ci/required-status-checks.json lists registry-diff-gate. merge_decision with that required list blocks a red job; the same red job with an empty required list does not block."
+  },
+  "distinct_from_client_guard": "IMP-0112 is the client-side PR-ONLY publish guard. This unit is the merge-blocking CI job on registry index pull requests.",
+  "linter_composition": {
+    "package_linter": "tools/marketplace/package_linter.py",
+    "index_linter": "tools/marketplace/index_linter.py",
+    "scope": "changed entry ids only",
+    "whole_index_orphan_not_applied_in_diff_scope": true
+  },
+  "artifacts": [
+    {
+      "path": "tools/marketplace/registry_diff_gate.py",
+      "sha256": "803e479b9fe89f2a857e10d51558c2a44b07f11d2f9ad036e867d7b4d9b71f27",
+      "bytes": 7195,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/package_linter.py",
+      "sha256": "88e8311282ee9b5ae98d084b588afeee8e2c63297ea2035b0d833386b225554b",
+      "bytes": 2094,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/index_linter.py",
+      "sha256": "1ce0ce4c20539457ae445a524d763b2ad66d74f6ca917cfd520f5f201967b139",
+      "bytes": 5236,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/required_contexts.py",
+      "sha256": "db045cf0fde560c8788d1e76aa4546b3c46578125825cbf8859bf9f944a113fc",
+      "bytes": 1661,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/fixture_prs.py",
+      "sha256": "c3e99fca476755c550efca100973ce470a032b707d37fb7d70d3adfb9b5336dc",
+      "bytes": 4909,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/tests/test_registry_diff_gate.py",
+      "sha256": "83c0d970deb81a9d704dee51391439572fecefc7cc9bcbdd05796f76c2e95abd",
+      "bytes": 3132,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": ".github/workflows/registry-diff-gate.yml",
+      "sha256": "320e95f8577210d189913401bee08bd0896ace8fa8a0202604044d6b89f33f02",
+      "bytes": 1259,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "ci/workflows/registry-diff-gate.yml",
+      "sha256": "320e95f8577210d189913401bee08bd0896ace8fa8a0202604044d6b89f33f02",
+      "bytes": 1259,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "ci/required-status-checks.json",
+      "sha256": "296c6a23edf380bbdf6467fdde878c9f7a454c694283f862d88a23b0fb067531",
+      "bytes": 179,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": ".claude-plugin/marketplace.json",
+      "sha256": "b98c12d3958af813d86e8847db1675ca604099be705d5a1a44066b7562372c71",
+      "bytes": 18544,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0117/probe1_bad_pr_red.py",
+      "sha256": "1b24db8d3ba8c6f378778109ac7f960fe32223cbe708d0a8eb6ef1f7c0189c50",
+      "bytes": 2521,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0117/probe2_clean_required.py",
+      "sha256": "445e58d23a950d25fdbb90a82cec9aa054aae218ddeb8c4cf727e0136a326fc1",
+      "bytes": 3890,
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "notes": "G-1 IMP-0117: live named probes, honest SUCCESS receipt, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0117"
+}

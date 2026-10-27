@@ -1,0 +1,727 @@
+{
+  "artifacts": [
+    {
+      "bytes": 6293,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/marketplace/collections.py",
+      "role": "supporting",
+      "sha256": "dfc9e1253d84e896272d06236217a8ef37543c1808e79b2f38d763c51e43bb33"
+    },
+    {
+      "bytes": 2199,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/marketplace/tests/test_collections.py",
+      "role": "supporting",
+      "sha256": "8107e77227ee55fc1ee28b70680e0acd59eb361130ebce5fa0e2ab974ec9211d"
+    },
+    {
+      "bytes": 1693,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+      "role": "supporting",
+      "sha256": "9baf24de93ef00323f0284e83c8640437f987f0f7db56b00cd5f82b7789fd291"
+    },
+    {
+      "bytes": 2535,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+      "role": "supporting",
+      "sha256": "dbd10e3ffa532649d416f9429dcb535aeebb2e76558b3b6467d50089854d6d5a"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0104.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0104",
+        "raw_output": "  SUCCESS:IMP-0104-probe1 one canonical lockfile, order-independent\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py\n    \"locks\": 0\n   },\n   \"conflict_reported_at\": \"definition\",\n   \"conflict_reason\": \"incompatible members at definition time: capstone, keystone\",\n   \"unit_id\": \"IMP-0104\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0104-probe2 all-or-nothing rollback + definition-time conflict\nartifact command-center/receipts/IMP-0104.json bytes=11467 sha256=dfb4264cc2f92f7038eae9938a76c1faef7c46b13b1f1527c5366d84e9a1a7d3\nSUCCESS:delivered IMP-0104",
+        "fingerprint": "5f664749e126e3bc",
+        "exit_code": 0
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Collection re-toolchain resolves to exactly one lockfile whose member set equals the declared set {binwalk, ghidra, radare2}, and a member-order shuffle yields byte-identical lockfile bytes.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/marketplace/collections.py:define_collection",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+          "raw_output": "{\n  \"byte_identical_on_member_shuffle\": true,\n  \"declared_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lock_bytes_match_dumps\": true,\n  \"locked_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lockfiles_on_disk\": 1,\n  \"lockfiles_written\": 1,\n  \"member_set_equals_declared\": true,\n  \"resolved_versions\": {\n    \"binwalk\": \"2.3.0\",\n    \"ghidra\": \"1.1.0\",\n    \"radare2\": \"5.9.0\"\n  }\n}\nSUCCESS:IMP-0104-probe1 one lockfile, member set equals declared set",
+          "fingerprint": "678784dee641e42e3e6df90718d7a9e1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+          "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+          "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Documented partial-failure guarantee is all-or-nothing. A kill after the first member write rolls back; filesystem census shows zero package files and no lock. A mutually incompatible pair (capstone, keystone) fails at definition time with no lockfile.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/marketplace/collections.py:install_collection",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+          "raw_output": "{\n  \"full_install_lock_present\": true,\n  \"full_install_matches_guarantee\": true,\n  \"full_install_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"full_install_status\": \"installed\",\n  \"killed_census\": {\n    \"in_progress\": false,\n    \"lock_present\": false,\n    \"member_names\": [],\n    \"members\": [],\n    \"package_files\": []\n  },\n  \"killed_failed_at\": \"ghidra\",\n  \"killed_leftover_files\": [],\n  \"killed_matches_guarantee\": true,\n  \"killed_rolled_back\": [\n    \"binwalk\"\n  ],\n  \"killed_status\": \"rolled-back\",\n  \"unsat_definition_time\": true,\n  \"unsat_lockfiles\": 0,\n  \"unsat_message\": \"mutually incompatible pair capstone and keystone reported at collection-definition time\",\n  \"unsat_pair\": [\n    \"capstone\",\n    \"keystone\"\n  ]\n}\nSUCCESS:IMP-0104-probe2 all-or-nothing census and incompatible-pair definition failure",
+          "fingerprint": "581a67a3af74b62cd0f26a32ddd0e508",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+          "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+          "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "live_measurements": {
+    "byte_identical_on_shuffle": true,
+    "declared_members": [
+      "binwalk",
+      "ghidra",
+      "radare2"
+    ],
+    "killed": {
+      "census": {
+        "in_progress": false,
+        "lock_present": false,
+        "member_names": [],
+        "members": [],
+        "package_files": []
+      },
+      "failed_at": "ghidra",
+      "guarantee": "all-or-nothing",
+      "rolled_back": [
+        "binwalk"
+      ],
+      "status": "rolled-back"
+    },
+    "killed_matches_guarantee": true,
+    "lock_bytes": 747,
+    "lock_member_set": [
+      "binwalk",
+      "ghidra",
+      "radare2"
+    ],
+    "lockfiles_on_disk": 1,
+    "lockfiles_written": 1,
+    "ok": {
+      "census": {
+        "in_progress": false,
+        "lock_present": true,
+        "member_names": [
+          "binwalk",
+          "ghidra",
+          "radare2"
+        ],
+        "members": [
+          {
+            "name": "binwalk",
+            "version": "2.3.0"
+          },
+          {
+            "name": "ghidra",
+            "version": "1.1.0"
+          },
+          {
+            "name": "radare2",
+            "version": "5.9.0"
+          }
+        ],
+        "package_files": [
+          "binwalk",
+          "ghidra",
+          "radare2"
+        ]
+      },
+      "failed_at": null,
+      "guarantee": "all-or-nothing",
+      "rolled_back": [],
+      "status": "installed"
+    },
+    "ok_matches_guarantee": true,
+    "resolved_versions": {
+      "binwalk": "2.3.0",
+      "ghidra": "1.1.0",
+      "radare2": "5.9.0"
+    },
+    "unsat": {
+      "locks": 0,
+      "message": "mutually incompatible pair capstone and keystone reported at collection-definition time",
+      "pair": [
+        "capstone",
+        "keystone"
+      ],
+      "raised": true,
+      "stage": "definition"
+    }
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0104/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-10-26T17:50:23Z"
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "role": "one-lock-member-set"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "role": "partial-failure-census"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0104-C1",
+      "kind": "known-broken-fixture",
+      "description": "Mutually incompatible pair capstone+keystone must fail at collection-definition time; no lockfile written. Mid-install kill must leave an empty census matching all-or-nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "output_path": "command-center/receipts/IMP-0104.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/collection.schema.json",
+  "question": "Implement a collection as a named set of packages with a single resolved lockfile, so installing the RE toolchain is one atomic, reproducible operation whose members are known to resolve together — and where an incompatible member is reported at collection-definition time, not at install time.",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0083 (deterministic resolver) and IMP-0084 (lockfile) are not delivered as separate units on this worktree. This unit ships a collection-scoped resolver and lockfile sufficient for the collection contract; it does not claim those units complete.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-bind marketplace.collections onto IMP-0083/IMP-0084 once those units exist, and re-run test_collections.py."
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "reviewer_id": "IMP-0104-probe2-partial-failure-census",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0104",
+  "spec_anchor": "_USER-PROMPTS.md:10861",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "test_collection_resolves_to_one_lock",
+      "command": "python3 -B tools/marketplace/tests/test_collections.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_partial_failure_matches_declared_guarantee",
+      "command": "python3 -B tools/marketplace/tests/test_collections.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_incompatible_pair_fails_at_definition_time",
+      "command": "python3 -B tools/marketplace/tests/test_collections.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:57Z",
+    "started_at": "2026-08-25T00:57:57Z"
+  },
+  "unit_id": "IMP-0104",
+  "extensions": {
+    "w4s8_prior_shapes": {
+      "prior_extensions": {
+        "w4s8_prior_shapes": {
+          "prior_extensions": {
+            "w4s8_prior_shapes": {
+              "prior_artifacts": [
+                {
+                  "bytes": 6293,
+                  "eol": "LF",
+                  "exists": true,
+                  "path": "tools/marketplace/collections.py",
+                  "role": "supporting",
+                  "sha256": "dfc9e1253d84e896272d06236217a8ef37543c1808e79b2f38d763c51e43bb33"
+                },
+                {
+                  "bytes": 1617,
+                  "eol": "CRLF",
+                  "exists": true,
+                  "path": "tools/marketplace/schema/collection.schema.json",
+                  "role": "supporting",
+                  "sha256": "4c692395831418881d8376e398e8da6baa480d70b4708b033889a7be97c24ee3"
+                },
+                {
+                  "bytes": 2007,
+                  "eol": "CRLF",
+                  "exists": true,
+                  "path": "tools/marketplace/schema/collection-lockfile.schema.json",
+                  "role": "supporting",
+                  "sha256": "e8b7dafef988cc248d648601f8bbbc056ac127de166e1ceaec8ab85052c7e2c5"
+                },
+                {
+                  "bytes": 2199,
+                  "eol": "LF",
+                  "exists": true,
+                  "path": "tools/marketplace/tests/test_collections.py",
+                  "role": "supporting",
+                  "sha256": "8107e77227ee55fc1ee28b70680e0acd59eb361130ebce5fa0e2ab974ec9211d"
+                },
+                {
+                  "bytes": 1693,
+                  "eol": "LF",
+                  "exists": true,
+                  "path": "command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+                  "role": "supporting",
+                  "sha256": "9baf24de93ef00323f0284e83c8640437f987f0f7db56b00cd5f82b7789fd291"
+                },
+                {
+                  "bytes": 2535,
+                  "eol": "LF",
+                  "exists": true,
+                  "path": "command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+                  "role": "supporting",
+                  "sha256": "dbd10e3ffa532649d416f9429dcb535aeebb2e76558b3b6467d50089854d6d5a"
+                }
+              ],
+              "digest_refresh": [
+                {
+                  "path": "tools/marketplace/collections.py",
+                  "recorded": "88e35686124c235f14145c68ef4cfb4b339db42ee2c3a4c821da8baea76c0a04",
+                  "live": "dfc9e1253d84e896272d06236217a8ef37543c1808e79b2f38d763c51e43bb33",
+                  "reason": "file evolved after receipt build; unit probes re-ran exit 0 on this host before refresh"
+                },
+                {
+                  "path": "tools/marketplace/tests/test_collections.py",
+                  "recorded": "bf8b74fc256ac1da366e8c05e90fd8da614315d172053bc3563c0cc578fb14ed",
+                  "live": "8107e77227ee55fc1ee28b70680e0acd59eb361130ebce5fa0e2ab974ec9211d",
+                  "reason": "file evolved after receipt build; unit probes re-ran exit 0 on this host before refresh"
+                },
+                {
+                  "path": "command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+                  "recorded": "9ba2b5a103e90907d43aa38323c0f9e48e9805ba2d02599760376544f35b1915",
+                  "live": "9baf24de93ef00323f0284e83c8640437f987f0f7db56b00cd5f82b7789fd291",
+                  "reason": "file evolved after receipt build; unit probes re-ran exit 0 on this host before refresh"
+                },
+                {
+                  "path": "command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+                  "recorded": "c97aa77943a9e2801b526259cbc6f52bbffc29f8a6c0d2251a82cb388cc05847",
+                  "live": "dbd10e3ffa532649d416f9429dcb535aeebb2e76558b3b6467d50089854d6d5a",
+                  "reason": "file evolved after receipt build; unit probes re-ran exit 0 on this host before refresh"
+                }
+              ],
+              "absent_artifacts": [
+                {
+                  "bytes": 1617,
+                  "eol": "CRLF",
+                  "exists": true,
+                  "path": "tools/marketplace/schema/collection.schema.json",
+                  "role": "supporting",
+                  "sha256": "4c692395831418881d8376e398e8da6baa480d70b4708b033889a7be97c24ee3",
+                  "dropped_reason": "artifact absent on this worktree at resume time"
+                },
+                {
+                  "bytes": 2007,
+                  "eol": "CRLF",
+                  "exists": true,
+                  "path": "tools/marketplace/schema/collection-lockfile.schema.json",
+                  "role": "supporting",
+                  "sha256": "e8b7dafef988cc248d648601f8bbbc056ac127de166e1ceaec8ab85052c7e2c5",
+                  "dropped_reason": "artifact absent on this worktree at resume time"
+                }
+              ],
+              "prior_evidence": [
+                {
+                  "anchor": "tools/marketplace/collections.py:define_collection",
+                  "claim": "Collection re-toolchain resolves to exactly one lockfile whose member set equals the declared set {binwalk, ghidra, radare2}, and a member-order shuffle yields byte-identical lockfile bytes.",
+                  "confidence": "almost-certain",
+                  "probes": [
+                    {
+                      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+                      "exit_code": 0,
+                      "fingerprint": "678784dee641e42e3e6df90718d7a9e1",
+                      "method": "command",
+                      "raw_output": "{\n  \"byte_identical_on_member_shuffle\": true,\n  \"declared_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lock_bytes_match_dumps\": true,\n  \"locked_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lockfiles_on_disk\": 1,\n  \"lockfiles_written\": 1,\n  \"member_set_equals_declared\": true,\n  \"resolved_versions\": {\n    \"binwalk\": \"2.3.0\",\n    \"ghidra\": \"1.1.0\",\n    \"radare2\": \"5.9.0\"\n  }\n}\nSUCCESS:IMP-0104-probe1 one lockfile, member set equals declared set",
+                      "role": "source"
+                    },
+                    {
+                      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+                      "exit_code": 0,
+                      "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+                      "method": "command",
+                      "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+                      "role": "verifier"
+                    }
+                  ],
+                  "verdict": "CONFIRMED"
+                },
+                {
+                  "anchor": "tools/marketplace/collections.py:install_collection",
+                  "claim": "Documented partial-failure guarantee is all-or-nothing. A kill after the first member write rolls back; filesystem census shows zero package files and no lock. A mutually incompatible pair (capstone, keystone) fails at definition time with no lockfile.",
+                  "confidence": "almost-certain",
+                  "probes": [
+                    {
+                      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+                      "exit_code": 0,
+                      "fingerprint": "581a67a3af74b62cd0f26a32ddd0e508",
+                      "method": "command",
+                      "raw_output": "{\n  \"full_install_lock_present\": true,\n  \"full_install_matches_guarantee\": true,\n  \"full_install_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"full_install_status\": \"installed\",\n  \"killed_census\": {\n    \"in_progress\": false,\n    \"lock_present\": false,\n    \"member_names\": [],\n    \"members\": [],\n    \"package_files\": []\n  },\n  \"killed_failed_at\": \"ghidra\",\n  \"killed_leftover_files\": [],\n  \"killed_matches_guarantee\": true,\n  \"killed_rolled_back\": [\n    \"binwalk\"\n  ],\n  \"killed_status\": \"rolled-back\",\n  \"unsat_definition_time\": true,\n  \"unsat_lockfiles\": 0,\n  \"unsat_message\": \"mutually incompatible pair capstone and keystone reported at collection-definition time\",\n  \"unsat_pair\": [\n    \"capstone\",\n    \"keystone\"\n  ]\n}\nSUCCESS:IMP-0104-probe2 all-or-nothing census and incompatible-pair definition failure",
+                      "role": "source"
+                    },
+                    {
+                      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+                      "exit_code": 0,
+                      "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+                      "method": "command",
+                      "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+                      "role": "verifier"
+                    }
+                  ],
+                  "verdict": "CONFIRMED"
+                }
+              ],
+              "prior_tests": [
+                {
+                  "command": "python3 -B tools/marketplace/tests/test_collections.py",
+                  "id": "test_collection_resolves_to_one_lock",
+                  "result": "PASS"
+                },
+                {
+                  "command": "python3 -B tools/marketplace/tests/test_collections.py",
+                  "id": "test_partial_failure_matches_declared_guarantee",
+                  "result": "PASS"
+                },
+                {
+                  "command": "python3 -B tools/marketplace/tests/test_collections.py",
+                  "id": "test_incompatible_pair_fails_at_definition_time",
+                  "result": "PASS"
+                }
+              ],
+              "prior_negative_controls": [
+                {
+                  "bad_state_output": "{\n  \"full_install_lock_present\": true,\n  \"full_install_matches_guarantee\": true,\n  \"full_install_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"full_install_status\": \"installed\",\n  \"killed_census\": {\n    \"in_progress\": false,\n    \"lock_present\": false,\n    \"member_names\": [],\n    \"members\": [],\n    \"package_files\": []\n  },\n  \"killed_failed_at\": \"ghidra\",\n  \"killed_leftover_files\": [],\n  \"killed_matches_guarantee\": true,\n  \"killed_rolled_back\": [\n    \"binwalk\"\n  ],\n  \"killed_status\": \"rolled-back\",\n  \"unsat_definition_time\": true,\n  \"unsat_lockfiles\": 0,\n  \"unsat_message\": \"mutually incompatible pair capstone and keystone reported at collection-definition time\",\n  \"unsat_pair\": [\n    \"capstone\",\n    \"keystone\"\n  ]\n}\nSUCCESS:IMP-0104-probe2 all-or-nothing census and incompatible-pair definition failure",
+                  "description": "Mutually incompatible pair capstone+keystone must fail at collection-definition time; no lockfile written. Mid-install kill must leave an empty census matching all-or-nothing.",
+                  "fired_on_bad_state": true,
+                  "good_state_output": "compatible re-toolchain defines and installs",
+                  "id": "IMP0104-C1",
+                  "kind": "known-broken-fixture",
+                  "silent_on_good_state": true
+                }
+              ],
+              "manifest_registration_extra": {
+                "global_catalog_write": false
+              },
+              "prior_downstream_consumers": [
+                {
+                  "artifact_path": "command-center/receipts/IMP-0104.json",
+                  "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+                  "executed": false,
+                  "note": "Measure runs after this emit and after named probes.",
+                  "read_ok": true
+                }
+              ]
+            },
+            "completion": {
+              "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+            }
+          },
+          "prior_artifacts": [
+            {
+              "bytes": 6293,
+              "eol": "LF",
+              "exists": true,
+              "path": "tools/marketplace/collections.py",
+              "role": "supporting",
+              "sha256": "dfc9e1253d84e896272d06236217a8ef37543c1808e79b2f38d763c51e43bb33"
+            },
+            {
+              "bytes": 2199,
+              "eol": "LF",
+              "exists": true,
+              "path": "tools/marketplace/tests/test_collections.py",
+              "role": "supporting",
+              "sha256": "8107e77227ee55fc1ee28b70680e0acd59eb361130ebce5fa0e2ab974ec9211d"
+            },
+            {
+              "bytes": 1693,
+              "eol": "LF",
+              "exists": true,
+              "path": "command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+              "role": "supporting",
+              "sha256": "9baf24de93ef00323f0284e83c8640437f987f0f7db56b00cd5f82b7789fd291"
+            },
+            {
+              "bytes": 2535,
+              "eol": "LF",
+              "exists": true,
+              "path": "command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+              "role": "supporting",
+              "sha256": "dbd10e3ffa532649d416f9429dcb535aeebb2e76558b3b6467d50089854d6d5a"
+            }
+          ],
+          "prior_evidence": [
+            {
+              "claim": "Collection re-toolchain resolves to exactly one lockfile whose member set equals the declared set {binwalk, ghidra, radare2}, and a member-order shuffle yields byte-identical lockfile bytes.",
+              "verdict": "CONFIRMED",
+              "confidence": "almost-certain",
+              "anchor": "tools/marketplace/collections.py:define_collection",
+              "probes": [
+                {
+                  "role": "source",
+                  "method": "command",
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+                  "raw_output": "{\n  \"byte_identical_on_member_shuffle\": true,\n  \"declared_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lock_bytes_match_dumps\": true,\n  \"locked_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lockfiles_on_disk\": 1,\n  \"lockfiles_written\": 1,\n  \"member_set_equals_declared\": true,\n  \"resolved_versions\": {\n    \"binwalk\": \"2.3.0\",\n    \"ghidra\": \"1.1.0\",\n    \"radare2\": \"5.9.0\"\n  }\n}\nSUCCESS:IMP-0104-probe1 one lockfile, member set equals declared set",
+                  "fingerprint": "678784dee641e42e3e6df90718d7a9e1",
+                  "exit_code": 0
+                },
+                {
+                  "role": "verifier",
+                  "method": "command",
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+                  "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+                  "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+                  "exit_code": 0
+                }
+              ]
+            },
+            {
+              "claim": "Documented partial-failure guarantee is all-or-nothing. A kill after the first member write rolls back; filesystem census shows zero package files and no lock. A mutually incompatible pair (capstone, keystone) fails at definition time with no lockfile.",
+              "verdict": "CONFIRMED",
+              "confidence": "almost-certain",
+              "anchor": "tools/marketplace/collections.py:install_collection",
+              "probes": [
+                {
+                  "role": "source",
+                  "method": "command",
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+                  "raw_output": "{\n  \"full_install_lock_present\": true,\n  \"full_install_matches_guarantee\": true,\n  \"full_install_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"full_install_status\": \"installed\",\n  \"killed_census\": {\n    \"in_progress\": false,\n    \"lock_present\": false,\n    \"member_names\": [],\n    \"members\": [],\n    \"package_files\": []\n  },\n  \"killed_failed_at\": \"ghidra\",\n  \"killed_leftover_files\": [],\n  \"killed_matches_guarantee\": true,\n  \"killed_rolled_back\": [\n    \"binwalk\"\n  ],\n  \"killed_status\": \"rolled-back\",\n  \"unsat_definition_time\": true,\n  \"unsat_lockfiles\": 0,\n  \"unsat_message\": \"mutually incompatible pair capstone and keystone reported at collection-definition time\",\n  \"unsat_pair\": [\n    \"capstone\",\n    \"keystone\"\n  ]\n}\nSUCCESS:IMP-0104-probe2 all-or-nothing census and incompatible-pair definition failure",
+                  "fingerprint": "581a67a3af74b62cd0f26a32ddd0e508",
+                  "exit_code": 0
+                },
+                {
+                  "role": "verifier",
+                  "method": "command",
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+                  "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+                  "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+                  "exit_code": 0
+                }
+              ]
+            }
+          ],
+          "prior_tests": [
+            {
+              "id": "test_collection_resolves_to_one_lock",
+              "command": "python3 -B tools/marketplace/tests/test_collections.py",
+              "result": "PASS"
+            },
+            {
+              "id": "test_partial_failure_matches_declared_guarantee",
+              "command": "python3 -B tools/marketplace/tests/test_collections.py",
+              "result": "PASS"
+            },
+            {
+              "id": "test_incompatible_pair_fails_at_definition_time",
+              "command": "python3 -B tools/marketplace/tests/test_collections.py",
+              "result": "PASS"
+            }
+          ],
+          "prior_negative_controls": [
+            {
+              "id": "IMP0104-C1",
+              "kind": "known-broken-fixture",
+              "description": "Mutually incompatible pair capstone+keystone must fail at collection-definition time; no lockfile written. Mid-install kill must leave an empty census matching all-or-nothing.",
+              "fired_on_bad_state": true,
+              "silent_on_good_state": true
+            }
+          ],
+          "prior_downstream_consumers": [
+            {
+              "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+              "artifact_path": "command-center/receipts/IMP-0104.json",
+              "executed": true,
+              "read_ok": true,
+              "exit_code": 0,
+              "probe": {
+                "role": "verifier",
+                "method": "command",
+                "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0104",
+                "raw_output": "  SUCCESS:IMP-0104-probe1 one canonical lockfile, order-independent\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py\n    \"locks\": 0\n   },\n   \"conflict_reported_at\": \"definition\",\n   \"conflict_reason\": \"incompatible members at definition time: capstone, keystone\",\n   \"unit_id\": \"IMP-0104\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0104-probe2 all-or-nothing rollback + definition-time conflict\nartifact command-center/receipts/IMP-0104.json bytes=11467 sha256=dfb4264cc2f92f7038eae9938a76c1faef7c46b13b1f1527c5366d84e9a1a7d3\nSUCCESS:delivered IMP-0104",
+                "fingerprint": "5f664749e126e3bc",
+                "exit_code": 0
+              }
+            }
+          ]
+        },
+        "completion": {
+          "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+        }
+      },
+      "prior_artifacts": [
+        {
+          "bytes": 6293,
+          "eol": "LF",
+          "exists": true,
+          "path": "tools/marketplace/collections.py",
+          "role": "supporting",
+          "sha256": "dfc9e1253d84e896272d06236217a8ef37543c1808e79b2f38d763c51e43bb33"
+        },
+        {
+          "bytes": 2199,
+          "eol": "LF",
+          "exists": true,
+          "path": "tools/marketplace/tests/test_collections.py",
+          "role": "supporting",
+          "sha256": "8107e77227ee55fc1ee28b70680e0acd59eb361130ebce5fa0e2ab974ec9211d"
+        },
+        {
+          "bytes": 1693,
+          "eol": "LF",
+          "exists": true,
+          "path": "command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+          "role": "supporting",
+          "sha256": "9baf24de93ef00323f0284e83c8640437f987f0f7db56b00cd5f82b7789fd291"
+        },
+        {
+          "bytes": 2535,
+          "eol": "LF",
+          "exists": true,
+          "path": "command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+          "role": "supporting",
+          "sha256": "dbd10e3ffa532649d416f9429dcb535aeebb2e76558b3b6467d50089854d6d5a"
+        }
+      ],
+      "prior_evidence": [
+        {
+          "claim": "Collection re-toolchain resolves to exactly one lockfile whose member set equals the declared set {binwalk, ghidra, radare2}, and a member-order shuffle yields byte-identical lockfile bytes.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/marketplace/collections.py:define_collection",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe1_one_lock.py",
+              "raw_output": "{\n  \"byte_identical_on_member_shuffle\": true,\n  \"declared_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lock_bytes_match_dumps\": true,\n  \"locked_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"lockfiles_on_disk\": 1,\n  \"lockfiles_written\": 1,\n  \"member_set_equals_declared\": true,\n  \"resolved_versions\": {\n    \"binwalk\": \"2.3.0\",\n    \"ghidra\": \"1.1.0\",\n    \"radare2\": \"5.9.0\"\n  }\n}\nSUCCESS:IMP-0104-probe1 one lockfile, member set equals declared set",
+              "fingerprint": "678784dee641e42e3e6df90718d7a9e1",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+              "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+              "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "claim": "Documented partial-failure guarantee is all-or-nothing. A kill after the first member write rolls back; filesystem census shows zero package files and no lock. A mutually incompatible pair (capstone, keystone) fails at definition time with no lockfile.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/marketplace/collections.py:install_collection",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py",
+              "raw_output": "{\n  \"full_install_lock_present\": true,\n  \"full_install_matches_guarantee\": true,\n  \"full_install_members\": [\n    \"binwalk\",\n    \"ghidra\",\n    \"radare2\"\n  ],\n  \"full_install_status\": \"installed\",\n  \"killed_census\": {\n    \"in_progress\": false,\n    \"lock_present\": false,\n    \"member_names\": [],\n    \"members\": [],\n    \"package_files\": []\n  },\n  \"killed_failed_at\": \"ghidra\",\n  \"killed_leftover_files\": [],\n  \"killed_matches_guarantee\": true,\n  \"killed_rolled_back\": [\n    \"binwalk\"\n  ],\n  \"killed_status\": \"rolled-back\",\n  \"unsat_definition_time\": true,\n  \"unsat_lockfiles\": 0,\n  \"unsat_message\": \"mutually incompatible pair capstone and keystone reported at collection-definition time\",\n  \"unsat_pair\": [\n    \"capstone\",\n    \"keystone\"\n  ]\n}\nSUCCESS:IMP-0104-probe2 all-or-nothing census and incompatible-pair definition failure",
+              "fingerprint": "581a67a3af74b62cd0f26a32ddd0e508",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_collections.py",
+              "raw_output": "test_collection_resolves_to_one_lock (test_collections.CollectionLockTests.test_collection_resolves_to_one_lock) ... ok\ntest_incompatible_pair_fails_at_definition_time (test_collections.CollectionLockTests.test_incompatible_pair_fails_at_definition_time) ... ok\ntest_partial_failure_matches_declared_guarantee (test_collections.CollectionLockTests.test_partial_failure_matches_declared_guarantee) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.003s\n\nOK\n",
+              "fingerprint": "e1344d6e39a8ce151d9451cb82a8c77a",
+              "exit_code": 0
+            }
+          ]
+        }
+      ],
+      "prior_tests": [
+        {
+          "id": "test_collection_resolves_to_one_lock",
+          "command": "python3 -B tools/marketplace/tests/test_collections.py",
+          "result": "PASS"
+        },
+        {
+          "id": "test_partial_failure_matches_declared_guarantee",
+          "command": "python3 -B tools/marketplace/tests/test_collections.py",
+          "result": "PASS"
+        },
+        {
+          "id": "test_incompatible_pair_fails_at_definition_time",
+          "command": "python3 -B tools/marketplace/tests/test_collections.py",
+          "result": "PASS"
+        }
+      ],
+      "prior_negative_controls": [
+        {
+          "id": "IMP0104-C1",
+          "kind": "known-broken-fixture",
+          "description": "Mutually incompatible pair capstone+keystone must fail at collection-definition time; no lockfile written. Mid-install kill must leave an empty census matching all-or-nothing.",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        }
+      ],
+      "prior_downstream_consumers": [
+        {
+          "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+          "artifact_path": "command-center/receipts/IMP-0104.json",
+          "executed": true,
+          "read_ok": true,
+          "exit_code": 0,
+          "probe": {
+            "role": "verifier",
+            "method": "command",
+            "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0104",
+            "raw_output": "  SUCCESS:IMP-0104-probe1 one canonical lockfile, order-independent\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0104/probe2_partial_failure.py\n    \"locks\": 0\n   },\n   \"conflict_reported_at\": \"definition\",\n   \"conflict_reason\": \"incompatible members at definition time: capstone, keystone\",\n   \"unit_id\": \"IMP-0104\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0104-probe2 all-or-nothing rollback + definition-time conflict\nartifact command-center/receipts/IMP-0104.json bytes=11467 sha256=dfb4264cc2f92f7038eae9938a76c1faef7c46b13b1f1527c5366d84e9a1a7d3\nSUCCESS:delivered IMP-0104",
+            "fingerprint": "5f664749e126e3bc",
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "completion": {
+      "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+    }
+  },
+  "id": "IMP-0104",
+  "completion_sentinel": "SUCCESS:IMP-0104",
+  "produced_by": {
+    "vendor": "other",
+    "model": "unrecorded"
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "report_kind": "shell_report",
+  "claims": [
+    {
+      "id": "E-scoped-suppression",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe1_scoped_suppression.py:main",
+      "claim": "MSYS_NO_PATHCONV applied as a scoped env prefix: the POSIX-style argument survives INTACT into the native child's argv (suppression works), and WITHOUT the prefix the same argument is MSYS-converted to a Windows path (normal conversion works). Both hold in one probe.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-global-suppression-defect-visible",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe2_global_suppression.py:main",
+      "claim": "Both-states control (regression seed windows-shell.md:11): with MSYS_NO_PATHCONV exported globally, a path-carrying command demonstrably receives the UNCONVERTED POSIX path (a form no Windows path API accepts as absolute); without it, the argument arrives converted. The probe can see the inversion a global suppression silently causes.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-estate-finding-c-junction",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe2_global_suppression.py:estate_finding",
+      "claim": "Estate finding (measured 2026-10-26): C:\\c is a junction to the drive root on this box, so every aliased /c/... path resolves regardless of suppression - a resolution-based probe would be UNABLE to see the global-suppression defect here; the probe therefore asserts on the child's received argument bytes, which is mechanically sound on any box.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "global-suppression-inversion",
+      "kind": "mutation",
+      "description": "Global export of MSYS_NO_PATHCONV flips the child's received argument from a converted Windows path to the raw POSIX path - the exact silent-inversion shape the scoped-suppression rule exists to prevent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "child_seen_path=/c/Users/Prekzursil (unconverted)",
+      "good_state_output": "child_seen_path=C:/Users/Prekzursil (converted)"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0190/msys_lane.py",
+    "measured_lane": "Git Bash (absolute binary pinned - the bare 'bash' name resolves to WSL bash when spawned from a Windows process and cannot see /c/... paths, rc=127) spawning a native python child that echoes its received argv bytes",
+    "child": "probe-local echo_args.py prints received argv as JSON (one file per observation)",
+    "signals": {
+      "a": "child process's observed argv (exact string received)",
+      "b": "scoped-prefix vs global-export vs absent - three invocation modes compared"
+    }
+  },
+  "observations": [
+    {
+      "name": "scoped suppression keeps revision-style argument intact",
+      "measured": "/c/Users/Prekzursil arrives byte-identical under the env prefix",
+      "method": "bash -c 'MSYS_NO_PATHCONV=1 <native child> /c/Users/...'",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe1_scoped_suppression.py"
+    },
+    {
+      "name": "unscoped invocation still converts",
+      "measured": "C:/Users/Prekzursil arrives without the prefix",
+      "method": "same lane, prefix absent",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe1_scoped_suppression.py"
+    },
+    {
+      "name": "global export flips the received path form",
+      "measured": "unconverted POSIX path reaches the native child",
+      "method": "export MSYS_NO_PATHCONV=1 before the invocation",
+      "anchor": "command-center/p2-wave/probes/TST-0190/probe2_global_suppression.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The probe drives the conversion lane with a python child; production consumers (git clone, adb, ssh) take the same MSYS conversion path, but their own arg handling was not separately exercised.",
+      "settling_experiment": "Point the same three invocation modes at a real git clone and re-run if the reviewer requires product-level evidence.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0190: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Estate finding recorded: C:\\c drive-root junction (pre-existing, not created by this probe). Owner-gated: no (owner_approval_required=false)."
+}

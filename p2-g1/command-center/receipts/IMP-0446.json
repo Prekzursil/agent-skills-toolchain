@@ -1,0 +1,180 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1089,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/worktree_shard/__init__.py",
+   "role": "supporting",
+   "sha256": "5586b1764a12ef383b3ea013106b58e68f706538ca048342bc5771c503b5fe7d"
+  },
+  {
+   "bytes": 13312,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/worktree_shard/provisioner.py",
+   "role": "supporting",
+   "sha256": "3c7082cb294e4151f3483a2a488c5086e9de5534efa02e40523daab0594ca441"
+  },
+  {
+   "bytes": 5385,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0446/probe1_squash_merge.py",
+   "role": "supporting",
+   "sha256": "76d52854718cb9989686239dec43f43d735a9725cf18ff62cf3023566d8a2e9e"
+  },
+  {
+   "bytes": 6062,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0446/probe2_unproven_teardown.py",
+   "role": "supporting",
+   "sha256": "a273a7b66ef59b6410d6a26db5cced8a5f343e95f7c52ee1786f71afafac239f"
+  }
+ ],
+ "completion_sentinel": "SENTINEL:IMP-0446:TEARDOWN-CONTENT-PROVEN",
+ "dependencies_note": "Catalog dependency IMP-0442 (dispatcher) is not delivered on this tree. Provisioner and teardown are self-contained over fixture repos and do not require the dispatcher.",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0446.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": null,
+   "note": "G-1 measure runs after this receipt and the per-unit manifest exist.",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/worktree_shard/provisioner.py:build_squash_merge_fixture",
+   "claim": "Squash-merge fixture: a fully-merged feature branch reports AHEAD. Content route SAFE, ancestry route UNSAFE. Production teardown follows content, not ancestry, and execute=True removes the fixture worktree. Two concurrently provisioned shards have disjoint git indexes; staging in one does not appear in the other.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0446/probe1_squash_merge.py",
+     "exit_code": 0,
+     "fingerprint": "b4ec1761f970ea6ba216c2e2b5568683",
+     "method": "command",
+     "raw_output": "{\"ancestry\": {\"ahead\": 1, \"behind\": 1, \"dirty\": false, \"head\": \"a3fe96377ef9d21d1601abff1045cec766847572\", \"is_ancestor\": false, \"main_ref\": \"main\", \"reports_ahead\": true, \"would_authorize_delete\": false}, \"ancestry_route_safe\": false, \"ancestry_used_as_authorization\": false, \"content_route_safe\": true, \"executed_teardown_removed_worktree\": true, \"index_a\": \"/tmp/imp0446-p1-z6i6p62n/shared/.git/worktrees/IMP-0446-a/index\", \"index_b\": \"/tmp/imp0446-p1-z6i6p62n/shared/.git/worktrees/IMP-0446-b/index\", \"pass\": true, \"probe\": \"probe1-squash-merge\", \"production_authorized\": true, \"reports_ahead\": true, \"routes_disagree\": true, \"shard_indexes_disjoint\": true, \"side_by_side\": {\"ancestry_authorize\": false, \"content_authorize\": true, \"merged_pr_authorize\": false, \"production_authorized\": true, \"routes_disagree\": true}, \"staged_a\": [\"a-only.txt\"], \"staged_b\": [\"b-only.txt\"], \"unit_id\": \"IMP-0446\"}\ncontent_safe=True ancestry_safe=False reports_ahead=True production_authorized=True indexes_disjoint=True\nSUCCESS:IMP-0446-probe1 squash-merge content-safe ancestry-unsafe",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/worktree_shard/provisioner.py:authorize_teardown",
+   "claim": "Unproven teardown: unique dirty bytes on main, no PR, execute=True is refused (UNPROVEN_TEARDOWN) and the canary file remains on disk. Ancestry would have authorized delete (EQUAL on main) \u2014 the wrong answer. Harvesting the same bytes into a preserve store authorizes via content. A MERGED PR authorizes even when content is still unique. An OPEN PR carrying ancestry-shaped fields does not.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0446/probe2_unproven_teardown.py",
+     "exit_code": 0,
+     "fingerprint": "d5489598ec239088afef6f476fefe844",
+     "method": "command",
+     "raw_output": "{\"ancestry_would_have_deleted\": true, \"both_states\": true, \"canary_survived_execute\": true, \"fired_on_unproven\": true, \"harvested_side_by_side\": {\"ancestry_authorize\": true, \"content_authorize\": true, \"merged_pr_authorize\": false, \"production_authorized\": true, \"routes_disagree\": false}, \"merged_pr_authorizes_unique_bytes\": true, \"open_pr_with_ancestry_fields_refused\": true, \"pass\": true, \"probe\": \"probe2-unproven-teardown\", \"production_disagreed_with_ancestry\": true, \"refused_reason\": \"UNPROVEN_TEARDOWN\", \"silent_on_harvested\": true, \"unit_id\": \"IMP-0446\", \"unproven_side_by_side\": {\"ancestry_authorize\": true, \"content_authorize\": false, \"merged_pr_authorize\": false, \"production_authorized\": false, \"routes_disagree\": true}}\nfired_on_unproven=True silent_on_harvested=True canary_survived=True ancestry_would_delete=True merged_pr_ok=True open_pr_refused=True\nSUCCESS:IMP-0446-probe2 unproven teardown refused; both-states",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "ancestry_is_authorization": false,
+  "authorization_inputs": [
+   "merged-pr-state",
+   "content-digest-sha256"
+  ],
+  "fixture_marker": ".imp0446-fixture",
+  "module": "tools/worktree_shard/provisioner.py",
+  "owner_approval_for_real_teardown": false,
+  "provision": "provision_shard",
+  "real_host_teardown_executed": false,
+  "teardown": "teardown_shard"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0446/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "naive_ancestry_authorize=False reports_ahead=True",
+   "description": "On the squash-merge fixture the content route authorizes and the ancestry route refuses. Production matches content. A mutant that ORed ancestry.would_authorize_delete would still pass this fixture (ancestry is False here) and is caught by C2.",
+   "fired_on_bad_state": true,
+   "good_state_output": "production authorized=True via content-digest",
+   "id": "IMP0446-C1-squash-ancestry-disagrees",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "UNPROVEN_TEARDOWN canary_survived=True ancestry_would_delete=True",
+   "description": "Dirty worktree on main: ancestry would_authorize_delete=True (the data-loss mutant). Production refuses. execute=True leaves the canary. Harvesting the unique bytes is the good twin.",
+   "fired_on_bad_state": true,
+   "good_state_output": "harvested unique bytes authorized via content-digest",
+   "id": "IMP0446-C2-unproven-ancestry-would-delete",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0446. Ancestry is recorded beside every teardown decision and is never an authorization input. SENTINEL:IMP-0446:TEARDOWN-CONTENT-PROVEN",
+ "output_path": "command-center/receipts/IMP-0446.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "gpt-5.4",
+  "role": "systems-implementer",
+  "vendor": "openai"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "question_or_target": "Implement disposable worktree provisioning per implementation shard (spec line 10581) and a teardown that refuses to delete until the shard's content is proven preserved elsewhere. Exact target: because squash-merge makes a fully-merged branch report as AHEAD, commit ancestry must NOT be accepted as delete authorization \u2014 require merged-PR state or a byte-level content comparison.",
+ "residual_unknowns": [
+  {
+   "claim": "No live GitHub merged-PR was consulted; the MERGED-PR route is proven against a structured pr_state fixture. Wiring to a host PR API is out of scope for this unit.",
+   "settling_experiment": "Point merged_pr_proof at a recorded gh pr view JSON for a known squash-merged PR and re-run probe2.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry; an incorrect teardown is unrecoverable data loss"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Catalog reviewer_requirement is 2 independent reviewers plus owner approval before any REAL teardown. Fixture-only teardowns ran inside TemporaryDirectory repos tagged .imp0446-fixture. The host worktree was not torn down.",
+  "owner_approval_for_real_teardown": false,
+  "real_teardown_executed": false,
+  "reviewer_id": "IMP-0446-probe2-unproven-refuse",
+  "scope_not_agreement": true,
+  "second_reviewer_id": "IMP-0446-probe1-squash-merge-disagreement",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0446:TEARDOWN-CONTENT-PROVEN",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0446",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0446/probe1_squash_merge.py",
+   "id": "probe1-squash-merge",
+   "output_tail": "SUCCESS:IMP-0446-probe1 squash-merge content-safe ancestry-unsafe",
+   "result": "PASS"
+  },
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0446/probe2_unproven_teardown.py",
+   "id": "probe2-unproven-teardown",
+   "output_tail": "SUCCESS:IMP-0446-probe2 unproven teardown refused; both-states",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-09-02T00:35:24Z",
+  "started_at": "2026-09-02T00:35:24Z"
+ },
+ "title": "Worktree-per-shard provisioner with content-preserving teardown",
+ "unit_id": "IMP-0446"
+}

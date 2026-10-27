@@ -1,0 +1,831 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-05-governance-decision-gate",
+  "name": "Governance Decision Gate",
+  "description": "Blueprint 20 of 96 (design card BP-CNC-05, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:1046). MECHANISM: convert reviewed options into ONE recorded decision carrying a decider, an EVIDENCE CLASS, and a REVERSAL CONDITION - and reject any decision that has no reversal condition as unfalsifiable. This is the stage that closes the loop councils otherwise leave open: three separate skills (governance decides, curate shortlists, the ledger persists) each leak on their own. The append-only ledger adds the refuted-premise register, so a later council SHORT-CIRCUITS on a settled decision instead of re-litigating it, and an OWNER-class decision is explicitly marked NOT independently verifiable rather than being laundered into evidence.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk",
+    "collective-intelligence-and-meta-workflows"
+  ],
+  "tags": [
+    "governance",
+    "decision-ledger",
+    "reversal-condition",
+    "evidence-class",
+    "bp-cnc-05"
+  ],
+  "flagship": false,
+  "params": {
+    "options": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 2,
+      "max_items": 24,
+      "description": "The options on the table. Fewer than two is not a decision, it is a ratification."
+    },
+    "council_verdicts": {
+      "type": "array",
+      "items": {
+        "type": "path"
+      },
+      "description": "Paths to the verdict artifacts feeding this decision",
+      "default": []
+    },
+    "risk_register": {
+      "type": "path",
+      "required": true,
+      "description": "The risk register the decision must engage with"
+    },
+    "decider": {
+      "type": "enum",
+      "enum": [
+        "owner",
+        "program"
+      ],
+      "default": "program",
+      "description": "Who decides. An OWNER-flagged item may not be decided by the program."
+    },
+    "ledger_path": {
+      "type": "path",
+      "required": true,
+      "description": "The append-only decision ledger. Append-only: a decision is superseded, never overwritten."
+    },
+    "reversibility": {
+      "type": "enum",
+      "enum": [
+        "reversible",
+        "reversible-with-effort",
+        "irreversible"
+      ],
+      "default": "reversible",
+      "description": "An irreversible decision forces owner escalation regardless of the decider param"
+    }
+  },
+  "roles": {
+    "curator": {
+      "description": "Shortlists the options with an explicit reason per exclusion; never decides",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/decisions/**)"
+      ],
+      "write_paths": [
+        "command-center/decisions/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "governance-decider": {
+      "description": "Takes the decision with an explicit evidence class and states the reversal condition; may not decide an owner-flagged or irreversible item",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/decisions/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "ledger-writer": {
+      "description": "Appends the decision to the ledger and marks any superseded entry; never edits an existing entry in place",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/decisions/**)",
+        "mcp__basic-memory__write_note"
+      ],
+      "write_paths": [
+        "command-center/decisions/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the ONLY decider for an owner-flagged or irreversible item; an OWNER evidence class is marked not independently verifiable",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write(command-center/decisions/**)",
+      "mcp__basic-memory__write_note"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Write(command-center/decisions/BINDING-DECISIONS.json)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/decisions/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == governance_decider",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "a decision that will bind future sessions is not a cheap call"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "decision-is-falsifiable": {
+      "predicate": "custom-expression",
+      "expression": "reversal_condition_present == true AND reversal_condition_names_a_probe == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "evidence-class-declared": {
+      "predicate": "custom-expression",
+      "expression": "evidence_class_declared == true AND owner_class_marked_not_independently_verifiable == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "ledger-is-append-only": {
+      "predicate": "custom-expression",
+      "expression": "entries_overwritten == 0 AND superseded_entries_marked == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "short-circuit-check",
+      "title": "S0 Has this already been decided? A settled decision short-circuits instead of being re-litigated",
+      "kind": "task",
+      "role": "curator",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WCNC-0501",
+        "title": "Check the ledger for an existing binding decision on this question",
+        "phase": "2B",
+        "question_or_target": "Search the decision ledger for a binding decision covering these options. If one exists and no new falsifiable evidence is offered, short-circuit rather than re-deciding.",
+        "inputs": [
+          "params.options",
+          "params.ledger_path"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "curator",
+          "basis": "recall before decision; the measured failure is re-walking a dead end the ledger already recorded"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/decisions/bp-cnc-05/recall.json",
+        "output_schema": "command-center/schema/decision-provenance.schema.json",
+        "evidence_requirement": "the recall states the ledger entries searched and, for a hit, quotes the existing decision id plus its reversal condition - so short-circuiting is a citation, not an assertion",
+        "tests_required": [
+          "seed a settled decision and confirm the run SHORT-CIRCUITS rather than re-deciding",
+          "both-states control: run the recall with the ledger entry present (expect short-circuit) and with it removed (expect proceed) - a recall that behaves identically in both states measures nothing"
+        ],
+        "reviewer_requirement": "the governance decider confirms a short-circuit cites a real ledger entry before accepting it",
+        "completion_sentinel": "SUCCESS:WCNC-0501 emitted when recall.json exists, parses, and records either a cited existing decision or an explicit NO-PRIOR-DECISION with the search surface; otherwise FAILED:WCNC-0501 <reason>",
+        "retry_policy": "two strikes then pivot: widen the search surface once, then record NO-PRIOR-DECISION with that surface stated",
+        "failure_classification": [
+          "recall-not-run",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-cnc-05/recall.json",
+          "schema_ref": "command-center/schema/decision-provenance.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0501",
+          "consumers": [
+            "curate",
+            "decide"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "curate",
+      "title": "S1 CURATE the options to a shortlist, each exclusion carrying a reason",
+      "kind": "task",
+      "role": "curator",
+      "depends_on": [
+        "short-circuit-check"
+      ],
+      "when": "prior_decision_found == false",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0502",
+        "title": "Shortlist the options with a reason per exclusion",
+        "phase": "2B",
+        "question_or_target": "Reduce the options to a shortlist the decider can act on, recording an explicit reason for every option excluded and how each survivor engages the risk register.",
+        "inputs": [
+          "params.options",
+          "params.council_verdicts",
+          "params.risk_register",
+          "command-center/decisions/bp-cnc-05/recall.json"
+        ],
+        "dependencies": [
+          "WCNC-0501"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "curator",
+          "basis": "an unreasoned exclusion is how the best option silently disappears"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/decisions/bp-cnc-05/shortlist.json",
+        "output_schema": "command-center/schema/option-closure.schema.json",
+        "evidence_requirement": "every exclusion cites the verdict artifact or risk-register line that justifies it; an exclusion with no citation is recorded UNJUSTIFIED and the option stays on the shortlist",
+        "tests_required": [
+          "an option excluded with no reason must remain on the shortlist rather than being dropped",
+          "both-states control: strip a reason and confirm the option is retained; restore it and confirm the option is excluded"
+        ],
+        "reviewer_requirement": "the governance decider confirms every exclusion carries a citation before deciding",
+        "completion_sentinel": "SUCCESS:WCNC-0502 emitted when shortlist.json exists, parses, and every exclusion carries a citation or the option was retained; otherwise FAILED:WCNC-0502 <reason>",
+        "retry_policy": "two strikes then pivot: retain the contested option and let the decider rule on it explicitly",
+        "failure_classification": [
+          "unjustified-exclusion",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-cnc-05/shortlist.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0502",
+          "consumers": [
+            "decide",
+            "owner-escalation"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "decide",
+      "title": "S2 DECIDE with an explicit evidence class and a named reversal condition",
+      "kind": "task",
+      "role": "governance-decider",
+      "depends_on": [
+        "curate"
+      ],
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WCNC-0503",
+        "title": "Take the decision, declare its evidence class, and state what would reopen it",
+        "phase": "2B",
+        "question_or_target": "Choose from the shortlist. Declare the evidence class (CMD, FILE, DOC or OWNER) and state the reversal condition as a NAMED probe - what measurement, if it came back differently, would reopen this.",
+        "inputs": [
+          "command-center/decisions/bp-cnc-05/shortlist.json",
+          "params.risk_register",
+          "params.decider",
+          "params.reversibility"
+        ],
+        "dependencies": [
+          "WCNC-0502"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "governance-decider",
+          "basis": "max effort: this decision binds future sessions and a wrong one is expensive to unwind"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/decisions/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/decisions/bp-cnc-05/decision.json",
+        "output_schema": "command-center/schema/decision-record.schema.json",
+        "evidence_requirement": "the evidence class is one of CMD, FILE, DOC or OWNER; an OWNER class is explicitly marked NOT independently verifiable; the reversal condition names a specific rerunnable probe rather than a vague 'if circumstances change'",
+        "tests_required": [
+          "a decision with no reversal condition must be REJECTED as unfalsifiable",
+          "a reversal condition that names no probe must be rejected as decorative",
+          "an OWNER evidence class that is not marked not-independently-verifiable must fail the evidence-class gate",
+          "both-states control: delete the reversal condition and confirm decision-is-falsifiable FAILS; restore it and confirm it PASSES"
+        ],
+        "reviewer_requirement": "one independent reader confirms the reversal condition names a probe that could actually be run today",
+        "completion_sentinel": "SUCCESS:WCNC-0503 emitted when decision.json exists, parses, and carries decider, evidence_class, evidence and a probe-naming reversal_condition; otherwise FAILED:WCNC-0503 <reason>",
+        "retry_policy": "two strikes then pivot: record the decision as PROVISIONAL rather than inventing an evidence class that does not exist",
+        "failure_classification": [
+          "reversal-condition-missing",
+          "evidence-class-undetermined",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-cnc-05/decision.json",
+          "schema_ref": "command-center/schema/decision-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0503",
+          "consumers": [
+            "falsifiability-gate",
+            "owner-escalation",
+            "ledger-write"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "falsifiability-gate",
+      "title": "S2b A decision with no reversal condition is unfalsifiable and is REJECTED",
+      "kind": "gate",
+      "depends_on": [
+        "decide"
+      ],
+      "gate_ref": "decision-is-falsifiable"
+    },
+    {
+      "id": "evidence-class-gate",
+      "title": "S2c Every decision declares its evidence class; OWNER is marked not independently verifiable",
+      "kind": "gate",
+      "depends_on": [
+        "falsifiability-gate"
+      ],
+      "gate_ref": "evidence-class-declared"
+    },
+    {
+      "id": "owner-escalation",
+      "title": "S2d CONDITIONAL - an owner-flagged or irreversible decision goes to the owner, and only the owner",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "evidence-class-gate"
+      ],
+      "when": "owner_decision_required == true OR reversibility == IRREVERSIBLE",
+      "prompt": "This decision is owner-flagged or irreversible. Approve the recorded decision, return it with the objection that must be answered first, or drop it. The reversal condition on file names the probe that would reopen it.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": [
+        "approve",
+        "return-with-objection",
+        "drop"
+      ],
+      "decision_artifact": {
+        "path": "command-center/decisions/bp-cnc-05/owner-approval.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "sentinel": "SUCCESS:WCNC-0504",
+        "consumers": [
+          "ledger-write",
+          "owner"
+        ]
+      }
+    },
+    {
+      "id": "ledger-write",
+      "title": "S3 WRITE to the append-only ledger and mark any superseded decision",
+      "kind": "task",
+      "role": "ledger-writer",
+      "depends_on": [
+        "owner-escalation"
+      ],
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WCNC-0505",
+        "title": "Append the decision to the ledger and mark superseded entries without overwriting them",
+        "phase": "2B",
+        "question_or_target": "Append the decision as a new ledger entry and add a supersedes pointer to any entry it replaces. Never edit an existing entry in place.",
+        "inputs": [
+          "command-center/decisions/bp-cnc-05/decision.json",
+          "command-center/decisions/bp-cnc-05/owner-approval.json",
+          "params.ledger_path"
+        ],
+        "dependencies": [
+          "WCNC-0503"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "ledger-writer",
+          "basis": "mechanical, but append-only discipline is what makes the ledger trustworthy"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/decisions/**)",
+          "mcp__basic-memory__write_note"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/decisions/bp-cnc-05/ledger-append.json",
+        "output_schema": "command-center/schema/decision-reversal.schema.json",
+        "evidence_requirement": "the append records the pre-write and post-write ledger entry counts and the ids of any superseded entries; a superseded entry keeps its original text and gains a superseded_by pointer, so temporal validity is recoverable",
+        "tests_required": [
+          "an in-place edit of an existing entry must FAIL the append-only gate",
+          "a superseded entry must retain its original text and gain a superseded_by pointer",
+          "both-states control: simulate an overwrite and confirm ledger-is-append-only FAILS; do a true append and confirm it PASSES"
+        ],
+        "reviewer_requirement": "one independent reader diffs the ledger before and after and confirms only additions and superseded_by pointers appear",
+        "completion_sentinel": "SUCCESS:WCNC-0505 emitted when ledger-append.json exists, parses, entries_overwritten == 0, and the post-write count is exactly one greater than the pre-write count; otherwise FAILED:WCNC-0505 <reason>",
+        "retry_policy": "no retry on an overwrite - restore the ledger from the pre-write copy and escalate; a second overwrite attempt compounds the damage",
+        "failure_classification": [
+          "ledger-overwrite",
+          "supersession-unmarked",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/decisions/bp-cnc-05/ledger-append.json",
+          "schema_ref": "command-center/schema/decision-reversal.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0505",
+          "consumers": [
+            "append-only-gate",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "append-only-gate",
+      "title": "S3b The ledger is append-only - assert nothing was overwritten",
+      "kind": "gate",
+      "depends_on": [
+        "ledger-write"
+      ],
+      "gate_ref": "ledger-is-append-only"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "one-decision-recorded",
+      "expression": "decision_recorded == true AND entries_overwritten == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "reversal_condition_present == true AND evidence_class_declared == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "short-circuited-on-prior-decision",
+      "expression": "prior_decision_found == true AND new_falsifiable_evidence == false",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "evidence-class-undetermined",
+      "expression": "evidence_class_declared == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 15,
+    "jitter": false,
+    "retry_on": [
+      "unjustified-exclusion",
+      "evidence-class-undetermined"
+    ],
+    "no_retry_on": [
+      "ledger-overwrite",
+      "owner-blocked",
+      "reversal-condition-missing"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "reversal-condition-missing",
+      "evidence-class-undetermined",
+      "ledger-overwrite",
+      "unjustified-exclusion"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-05"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-05",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-cnc-05.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs",
+      "timings"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-05-plan.json",
+    "forbid_tools": [
+      "Write(command-center/decisions/**)",
+      "mcp__basic-memory__write_note"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.1,
+      "expected": 0.6,
+      "max": 2.0
+    },
+    "wallclock_seconds": {
+      "min": 180,
+      "expected": 900,
+      "max": 90000
+    },
+    "tokens": {
+      "min": 20000,
+      "expected": 90000,
+      "max": 300000
+    },
+    "tool_calls": {
+      "expected": 20,
+      "max": 70
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "appends to the decision ledger, which BINDS future sessions - that is why the reversal condition is mandatory and the ledger is append-only; the ledger stays local and never egresses",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-05.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": ".agents/skills/codex-governance",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": ".agents/skills/codex-curate",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/recursive-decision-ledger",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "17-DECISION-LOG.md",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      ".agents/skills/codex-governance",
+      "skills/recursive-decision-ledger"
+    ]
+  },
+  "outputs": {
+    "decision": {
+      "path": "command-center/decisions/bp-cnc-05/decision.json",
+      "schema_ref": "command-center/schema/decision-record.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-req-02-recursive-decision-ledger-walk"
+      ]
+    },
+    "ledger_append": {
+      "path": "command-center/decisions/bp-cnc-05/ledger-append.json",
+      "schema_ref": "command-center/schema/decision-reversal.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "append-only-gate",
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 20,
+    "design_card": "BP-CNC-05",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1046",
+    "acquisition_route": "REPAIR",
+    "state_v": [
+      "MERGED"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "a recall-first short-circuit, a mandatory probe-naming reversal condition enforced as a blocking gate, a declared evidence class where OWNER is explicitly marked not independently verifiable, a CONDITIONAL owner checkpoint fired by a when-expression, and an append-only ledger whose non-overwriting is itself gated",
+    "not_a_duplicate_because": "BP-PDS-03 is the LEDGER FORMAT and its binding semantics as a standalone artifact; this is the decision-making STAGE that writes into it. Within this range it is the only blueprint with a conditional human_checkpoint and the only one whose terminal gate asserts a filesystem append-only property rather than a content property.",
+    "contraindications": [
+      "reversible micro-choices - the ledger becomes noise and nobody reads it",
+      "an owner-flagged item - the program may not substitute its own decision, only escalate"
+    ],
+    "evidence_class_vocabulary": {
+      "CMD": "a rerunnable command and its exact output",
+      "FILE": "a file:line anchor in the repo",
+      "DOC": "a cited document that is not itself a measurement",
+      "OWNER": "the owner said so - binding, but explicitly NOT independently verifiable, and marked as such so it is never laundered into evidence"
+    },
+    "worked_examples": [
+      {
+        "name": "record the PR-ONLY release mode with its reversal condition",
+        "params": {
+          "options": [
+            "release mode PR-ONLY",
+            "release mode canary-then-promote",
+            "release mode direct-to-main"
+          ],
+          "council_verdicts": [
+            "command-center/design-council/bp-cnc-01/verdict-table.json"
+          ],
+          "risk_register": "command-center/risk/release-risk-register.json",
+          "decider": "owner",
+          "ledger_path": "command-center/decisions/BINDING-DECISIONS.json",
+          "reversibility": "reversible-with-effort"
+        },
+        "expected_artifacts": [
+          "command-center/decisions/bp-cnc-05/recall.json",
+          "command-center/decisions/bp-cnc-05/shortlist.json",
+          "command-center/decisions/bp-cnc-05/decision.json",
+          "command-center/decisions/bp-cnc-05/owner-approval.json",
+          "command-center/decisions/bp-cnc-05/ledger-append.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0505",
+        "walkthrough": "S0 searches the ledger, finds no prior entry, records NO-PRIOR-DECISION with the search surface. S1 excludes direct-to-main citing the risk register line on unreviewed main pushes, and excludes canary citing the absence of a canary environment - both citations recorded. S2 decides PR-ONLY with evidence_class OWNER, explicitly marked not independently verifiable, and states the reversal condition as a NAMED probe: `if a canary environment exists and a rollback rehearsal passes on it, reopen`. S2b passes (a probe is named). S2c passes (OWNER is marked). S2d fires because decider == owner: the checkpoint presents approve / return-with-objection / drop with a 24h timeout and on_timeout escalate. The owner approves. S3 appends one entry, pre-write count 41 to post-write 42, entries_overwritten == 0. S3b passes. A later council asking the same question hits the short-circuit at S0.",
+        "expected_gate_outcomes": {
+          "decision-is-falsifiable": "PASS - reversal condition names a runnable probe",
+          "evidence-class-declared": "PASS - OWNER class marked not independently verifiable",
+          "ledger-is-append-only": "PASS - entries_overwritten == 0, 41 -> 42"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a decision with no reversal condition",
+        "params": {
+          "options": [
+            "adopt the shim resolver",
+            "rewrite the catalog paths"
+          ],
+          "risk_register": "command-center/risk/schema-risk-register.json",
+          "decider": "program",
+          "ledger_path": "command-center/decisions/BINDING-DECISIONS.json",
+          "reversibility": "reversible"
+        },
+        "expected_artifacts": [
+          "command-center/decisions/bp-cnc-05/decision.json"
+        ],
+        "expected_terminal_state": "FAILED:WCNC-0503 reversal-condition-missing",
+        "walkthrough": "The decider chooses the shim resolver but states only `revisit if things change`. reversal_condition_names_a_probe is false, so decision-is-falsifiable fails with on_fail=fail and reversal-condition-missing is in no_retry_on - the run does not get to try again with softer wording. Nothing is appended to the ledger, so an unfalsifiable decision never becomes binding. This is the design card's rule made mechanical: a decision with no reversal condition is rejected as unfalsifiable.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "a decision whose premise later flips (a stale ref) - the reversal condition must have named exactly that probe",
+      "re-run a council on a settled decision - the ledger must cause it to be short-circuited, not re-litigated"
+    ],
+    "unverified": "UNVERIFIED as a running loop. Settling experiment = seed a settled decision and confirm a fresh council short-circuits on it. Confidence: almost-certain (90-99%) implementable; likely (55-80%) that the ledger is actually consulted without a hook nudging it - which is the honest weakness, since a ledger nobody reads is overhead.",
+    "council_presets_referenced": [
+      "platform/council/presets/c-s29-two-key-authorization.councilspec.json",
+      "platform/council/presets/C-H54-harness-budget-allocation-council.councilspec.json"
+    ]
+  }
+}

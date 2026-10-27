@@ -1,0 +1,348 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0060",
+  "id": "IMP-0060",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0060",
+  "completion_sentinel": "SUCCESS:IMP-0060",
+  "title": "Permission-diff gate on update requiring explicit consent for widening",
+  "question_or_target": "Compute the permission delta between the installed version and the candidate version and require an explicit consent action before applying an update that WIDENS permissions; a narrowing or unchanged delta proceeds silently. This is the update-time control; IMP-0059 is the runtime enforcement.",
+  "min_bytes_threshold": 2048,
+  "output_path": "command-center/receipts/IMP-0060.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "implementation": {
+    "module": "tools/plugin/permission_diff.py",
+    "tests": "tools/plugin/tests/test_permission_diff.py",
+    "catalog_test_alias": "tools/plugin/tests/test_permission_diff.py",
+    "gate": "gate_update / gate_from_manifests",
+    "consent_store": "ConsentStore (version-specific, blanket=false)",
+    "lattice": "covers(tool, glob-scope) partial order; aliases folded",
+    "independent_signal": "raw canonical-string set containment, no glob expansion",
+    "lattice_self_check": "finite atom-universe containment must agree with covers()"
+  },
+  "catalog_triples": [
+    {
+      "pair": "widen",
+      "installed": [
+        "Read"
+      ],
+      "candidate": [
+        "Read",
+        "Write"
+      ],
+      "lattice_verdict": "WIDEN",
+      "raw_set_verdict": "WIDEN",
+      "atom_verdict": "WIDEN",
+      "added": [
+        "Write"
+      ],
+      "removed": [],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    },
+    {
+      "pair": "narrow",
+      "installed": [
+        "Read",
+        "Write"
+      ],
+      "candidate": [
+        "Read"
+      ],
+      "lattice_verdict": "NARROW",
+      "raw_set_verdict": "NARROW",
+      "atom_verdict": "NARROW",
+      "added": [],
+      "removed": [
+        "Write"
+      ],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    },
+    {
+      "pair": "unchanged",
+      "installed": [
+        "Write",
+        "Read"
+      ],
+      "candidate": [
+        "Read",
+        "Write"
+      ],
+      "lattice_verdict": "UNCHANGED",
+      "raw_set_verdict": "UNCHANGED",
+      "atom_verdict": "UNCHANGED",
+      "added": [],
+      "removed": [],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    }
+  ],
+  "covering_split": {
+    "pair": "wildcard-to-exact",
+    "installed": [
+      "Write(*)"
+    ],
+    "candidate": [
+      "Write(src/a.py)"
+    ],
+    "lattice_verdict": "NARROW",
+    "raw_set_verdict": "WIDEN",
+    "atom_verdict": "NARROW",
+    "added": [],
+    "removed": [
+      "Write(*)"
+    ],
+    "signals_agree": false,
+    "lattice_atom_agree": true
+  },
+  "negative_control": {
+    "id": "disguised-reorder-rename-widen",
+    "description": "A widening (added Bash) disguised by reordering and renaming (write vs Write, read vs Read) must still block and write nothing.",
+    "result": {
+      "pair": "disguised_widen",
+      "installed": [
+        "write",
+        "Read"
+      ],
+      "candidate": [
+        "Bash",
+        "Write",
+        "read"
+      ],
+      "lattice_verdict": "WIDEN",
+      "raw_set_verdict": "WIDEN",
+      "atom_verdict": "WIDEN",
+      "added": [
+        "Bash"
+      ],
+      "removed": [],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    },
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true
+  },
+  "reviewer": {
+    "reviewer_id": "IMP-0060-probe2-reviewer-wildcard",
+    "verdict": "PASS",
+    "independent": true,
+    "constructed_widening": "Network(*) added to a Read + Write(src/**) baseline \u2014 a wildcard scope the implementer's catalog triples did not include.",
+    "write_star": {
+      "pair": "reviewer_write_star",
+      "installed": [
+        "Write(src/secret.json)"
+      ],
+      "candidate": [
+        "Write(*)"
+      ],
+      "lattice_verdict": "WIDEN",
+      "raw_set_verdict": "WIDEN",
+      "atom_verdict": "WIDEN",
+      "added": [
+        "Write(*)"
+      ],
+      "removed": [],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    },
+    "wildcard_pair": {
+      "pair": "reviewer_wildcard",
+      "installed": [
+        "Read",
+        "Write(src/**)"
+      ],
+      "candidate": [
+        "Read",
+        "Write(src/**)",
+        "Network(*)"
+      ],
+      "lattice_verdict": "WIDEN",
+      "raw_set_verdict": "WIDEN",
+      "atom_verdict": "WIDEN",
+      "added": [
+        "Network(*)"
+      ],
+      "removed": [],
+      "signals_agree": true,
+      "lattice_atom_agree": true
+    },
+    "blocked": true
+  },
+  "evidence": [
+    {
+      "claim": "Lattice delta and independent raw set-containment reproduce the same three verdicts on a widening pair, a narrowing pair, and an unchanged (reordered) pair.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/permission_diff.py:compute_delta",
+      "confidence": "almost-certain",
+      "pairs": [
+        {
+          "pair": "widen",
+          "installed": [
+            "Read"
+          ],
+          "candidate": [
+            "Read",
+            "Write"
+          ],
+          "lattice_verdict": "WIDEN",
+          "raw_set_verdict": "WIDEN",
+          "atom_verdict": "WIDEN",
+          "added": [
+            "Write"
+          ],
+          "removed": [],
+          "signals_agree": true,
+          "lattice_atom_agree": true
+        },
+        {
+          "pair": "narrow",
+          "installed": [
+            "Read",
+            "Write"
+          ],
+          "candidate": [
+            "Read"
+          ],
+          "lattice_verdict": "NARROW",
+          "raw_set_verdict": "NARROW",
+          "atom_verdict": "NARROW",
+          "added": [],
+          "removed": [
+            "Write"
+          ],
+          "signals_agree": true,
+          "lattice_atom_agree": true
+        },
+        {
+          "pair": "unchanged",
+          "installed": [
+            "Write",
+            "Read"
+          ],
+          "candidate": [
+            "Read",
+            "Write"
+          ],
+          "lattice_verdict": "UNCHANGED",
+          "raw_set_verdict": "UNCHANGED",
+          "atom_verdict": "UNCHANGED",
+          "added": [],
+          "removed": [],
+          "signals_agree": true,
+          "lattice_atom_agree": true
+        }
+      ]
+    },
+    {
+      "claim": "A covering pair Write(*) -> Write(src/a.py) is NARROW on the lattice and WIDEN on raw set-containment; atom expansion agrees with the lattice. That split is the detector, not a picked winner.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/permission_diff.py:covers",
+      "confidence": "almost-certain",
+      "pair": {
+        "pair": "wildcard-to-exact",
+        "installed": [
+          "Write(*)"
+        ],
+        "candidate": [
+          "Write(src/a.py)"
+        ],
+        "lattice_verdict": "NARROW",
+        "raw_set_verdict": "WIDEN",
+        "atom_verdict": "NARROW",
+        "added": [],
+        "removed": [
+          "Write(*)"
+        ],
+        "signals_agree": false,
+        "lattice_atom_agree": true
+      }
+    },
+    {
+      "claim": "Consent records are persisted to disk, keyed by package + from + to + delta fingerprint, and do not authorize a later version pair.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/permission_diff.py:ConsentStore",
+      "confidence": "almost-certain"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-test_permission_diff",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_permission_diff.py",
+      "result": "PASS",
+      "assertions": 10,
+      "output_tail": "SUCCESS:IMP-0060-tests widen/narrow/unchanged/reorder/consent\ntest_consent_persisted_version_specific (__main__.PermissionDiffTests.test_consent_persisted_version_specific) ... ok\ntest_covering_pair_splits_lattice_vs_raw (__main__.PermissionDiffTests.test_covering_pair_splits_lattice_vs_raw) ... ok\ntest_disguised_widen_still_blocks (__main__.PermissionDiffTests.test_disguised_widen_still_blocks) ... ok\ntest_lattice_atom_agree_on_catalog_triples (__main__.PermissionDiffTests.test_lattice_atom_agree_on_catalog_triples) ... ok\ntest_narrow_proceeds (__main__.PermissionDiffTests.test_narrow_proceeds) ... ok\ntest_reordering_is_not_widening (__main__.PermissionDiffTests.test_reordering_is_not_widening) ... ok\ntest_reviewer_wildcard_blocks (__main__.PermissionDiffTests.test_reviewer_wildcard_blocks) ... ok\ntest_unchanged_proceeds (__main__.PermissionDiffTests.test_unchanged_proceeds) ... ok\ntest_widen_blocks (__main__.PermissionDiffTests.test_widen_blocks) ... ok\ntest_write_star_widens (__main__.PermissionDiffTests.test_write_star_widens) ... ok\n\n----------------------------------------------------------------------\nRan 10 tests in 0.005s\n\nOK"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0060-C1-disguised-widen",
+      "kind": "known-broken-fixture",
+      "description": "Widening disguised by reordering or renaming must still block.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"added\": [\"Bash\"], \"atom_verdict\": \"WIDEN\", \"candidate\": [\"Bash\", \"Write\", \"read\"], \"installed\": [\"write\", \"Read\"], \"lattice_atom_agree\": true, \"lattice_verdict\": \"WIDEN\", \"pair\": \"disguised_widen\", \"raw_set_verdict\": \"WIDEN\", \"removed\": [], \"signals_agree\": true}",
+      "good_state_output": "reorder+rename without a new grant is UNCHANGED"
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "delta-vs-containment",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0060/probe1_delta_vs_containment.py"
+    },
+    {
+      "id": "probe2",
+      "role": "negative-wildcard-consent",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0060/probe2_negative_wildcard_consent.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0060.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/plugin/permission_diff.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_permission_diff.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:31+00:00",
+    "ended_at": "2026-08-25T00:58:31+00:00"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "security-implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0060/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "notes": "G-1 for IMP-0060: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0060",
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "IMP-0059 runtime enforcement is implemented here",
+      "IMP-0024 update command is fully wired on this worktree"
+    ]
+  }
+}

@@ -1,0 +1,147 @@
+==============================================================================
+0. RECONSTRUCTION CONTROL
+  live lines   354  = common 300 + live-only 54  -> OK
+  repo lines   587  = common 300 + repo-only 287  -> OK
+  two-directional? live-only>0 AND repo-only>0 : True
+
+==============================================================================
+1. LIVE-ONLY HUNKS -- content that exists ONLY in ~/.claude/skills.daily
+   (a blind repo->live overwrite DESTROYS every line below)
+
+  --- live 3-3 (1 lines) under (frontmatter/preamble)
+      | description: Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs orchestration script under ~/.claude/workflows that uses the injected agent/parallel/phase globals to fan out subagents). Covers the exact runtime API, the args-as-string gotcha, the banned Date.now() non-determinism, worktree isolation for file-mutating agents, one-level nesting, a schema on every fan-in, null-tolerant barriers via filter(Boolean), per-work-unit pipelines so one slow agent cannot deadlock the cohort, cache-cliff-aware fan-out, the typed Codex output-schema landmine when MCP tools are active, and the SDK context-editing / task-budgets / canUseTool notes. Also the map to the saved schema-typed gate Workflows plan-gate and design-gate and the mechanical plan-lint stage-0. Triggers include author a workflow, write a saved workflow, fan out subagents, my parallel workflow deadlocks, workflow returns empty, schema-typed reviewers, or codify a gate as a workflow. NOT for single ad-hoc Task subagents (spawn a Task directly) or for the metaswarm phase pipeline itself.
+      REPO REPLACES IT WITH (1 lines):
+      > description: "Use when writing or debugging a saved Claude Code Workflow (a .js/.mjs script under ~/.claude/workflows using the injected agent/parallel/phase globals to fan out subagents). Covers the runtime API, banned Date.now() non-determinism, worktree isolation, per-fan-in schemas, null-tolerant barriers, and the typed Codex output-schema landmine. Triggers: author a workflow, fan out subagents."
+
+  --- live 5-5 (1 lines) under (frontmatter/preamble)
+      | 
+
+  --- live 24-26 (3 lines) under ## 1. The runtime API (the whole surface)
+      | A workflow file is NOT a plain ES module. The runner injects three globals —
+      | `agent`, `parallel`, `phase` — reads your `export const meta`, wraps the body so
+      | top-level `await` and a trailing top-level `return` are legal, and executes it.
+      REPO REPLACES IT WITH (21 lines):
+      > A workflow file is NOT a plain ES module. The runner injects **eight** globals —
+      > `agent`, `parallel`, **`pipeline`**, `phase`, `log`, `args`, `budget`, `workflow`
+      > (plus `console`, `setTimeout`, `clearTimeout`) — reads your `export const meta`,
+      > wraps the body so top-level `await` and a trailing top-level `return` are legal,
+      > and executes it in a Node `vm` context.
+      > 
+      > > **CORRECTED 2026-08-12.** This section previously said "injects three globals —
+      > > `agent`, `parallel`, `phase`". That was measured wrong against the installed
+      > > runtime, and the omission of `pipeline` is not cosmetic: **0 of the 10 saved
+      > > workflows on this box use `pipeline()`** while 15 barrier calls do, even though
+      > > the runtime's own tool doc says **"DEFAULT TO pipeline()"**. The globals list,
+      > > the `args` contract (rule 2), and the effort enum below were all re-derived from
+      > > the installed binary; see `docs/workflow-sota/GROUNDING-NOTES.md` §3 and the
+      > > verbatim dump at `docs/workflow-sota/RUNTIME-API-DUMP.txt`.
+      > ... +7 more
+
+  --- live 43-43 (1 lines) under ## 1. The runtime API (the whole surface)
+      |   effort: 'high',         // reasoning effort: 'low' | 'medium' | 'high' | 'xhigh'
+      REPO REPLACES IT WITH (1 lines):
+      >   effort: 'high',         // 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
+  --- live 64-64 (1 lines) under ## 2. args-as-string (the recorded gotcha)
+      | ## 2. args-as-string (the recorded gotcha)
+      REPO REPLACES IT WITH (1 lines):
+      > ## 2. `args` is delivered VERBATIM (corrected — the old "one string" rule was false)
+
+  --- live 66-72 (7 lines) under ## 2. args-as-string (the recorded gotcha)
+      | A Workflow receives its invocation arguments as **one single string**, not a
+      | parsed array or object. If you expect structured input, **parse it yourself**
+      | inside the workflow, and design for the common case where there is no reliable
+      | arg channel at all: **have the agents auto-discover their input from live files**
+      | (Read/Glob) rather than relying on args being threaded in. The saved gate
+      | Workflows do exactly this — they tell each reviewer where to find the plan/design
+      | doc and let it locate + Read it. Do not assume `argv[1]` semantics.
+      REPO REPLACES IT WITH (19 lines):
+      > > **This rule previously said the opposite** and the linter enforced it. Measured
+      > > against the installed runtime's own tool doc, `args` is *"the value passed as
+      > > Workflow's `args` input, **verbatim** (undefined if not provided)"*. Pass a JSON
+      > > array and the script receives an array. The lint check was renamed
+      > > `args-parse-if-string` → **`args-unguarded`** and re-messaged.
+      > 
+      > Two things are still true and are the actual footguns:
+      > 
+      > 1. **`args` is `undefined` when the workflow is invoked with none**, so a bare
+      >    `args.topic` throws a TypeError. Guard it: `const a = args ?? {}`.
+      > 2. **A caller who passes a JSON-*encoded string* instead of a JSON value** does
+      >    reach the script with one string, and `args.filter` / `args.map` then throw.
+      >    That is a caller-side mistake, not the runtime contract; add
+      >    `typeof args === 'string' ? JSON.parse(args) : args` when a caller may do it.
+      > ... +5 more
+
+  --- live 135-167 (33 lines) under ## 7. One-level nesting + a schema on EVERY fan-in
+      | - **Schema on every fan-in — but ARTIFACT-FIRST, and keep the schema SMALL.**
+      |   Every `agent()` that feeds an aggregation carries a `schema`, so you aggregate
+      |   typed objects instead of re-parsing prose. But the schema must be a *pointer*,
+      |   not the deliverable (see the artifact-first rule below).
+      |   **Do NOT set `additionalProperties: false` on a fan-in schema.** It converts a
+      |   cosmetic extra key into a hard, unrecoverable rejection, and it is the
+      |   difference between "one stray field ignored" and "5 retries burned, work lost".
+      |   Reserve it for tiny gate verdicts you fully control.
+      | - **THE `{"raw": …}` DOUBLE-ENCODE FAILURE — observed 2026-07-23 (`wf_950ea2e9-e82`).**
+      |   A lens with 35 tool calls and genuinely good findings emitted
+      |   `StructuredOutput({"raw": "{\"lens\":\"…"})` — the whole object JSON-encoded
+      |   into a single string field — five times, identically, then died:
+      |   `StructuredOutput retry cap (5) exceeded — 5 failed calls with no valid output`.
+      |   This is a DIFFERENT mechanism from the over-broad-`required` case below: the
+      |   model had all the data and simply serialised it one level too deep. Because
+      |   `additionalProperties: false` + 6 `required` fields rejected `raw` outright, the
+      |   retry surfaced no partial credit and the agent never self-corrected.
+      |   Mitigations, in order of proven value:
+      |   1. **Artifact-first** (below) — makes the failure survivable at all.
+      |   2. Omit `additionalProperties: false`; keep `required` ≤ 4; drop `minItems`.
+      |   3. Keep every schema **flat** — no arrays-of-objects in a fan-in schema; long
+      |      prose belongs in the artifact, not in a string field.
+      |   4. Say it explicitly in the prompt: *"Return the object directly; never wrap it
+      |      in a `raw` key; never place JSON inside a string field."*
+      |   5. Last resort: `try { await agent(p,{schema}) } catch { await agent(p) }` and
+      |      parse the text — a schemaless retry cannot hit the cap.
+      | - **ARTIFACT-FIRST IS THE PRIMARY CONTRACT (fan-out-contract C1), not a
+      |   belt-and-braces extra.** Any agent whose output matters MUST write its full
+      |   deliverable to a pinned path as its FIRST action (skeleton with every section
+      |   marked `UNKNOWN - not yet measured`), rewrite it at each milestone, and return
+      |   only `{ok, path, headline}`. Then a schema rejection costs a pointer, never the
+      |   work. Measured cost of ignoring this: 57 minutes of a 10-lens audit wave
+      |   discarded on a serialisation shape (`wf_950ea2e9-e82`, 2026-07-23).
+      REPO REPLACES IT WITH (5 lines):
+      > - **Schema on every fan-in.** Every `agent()` that feeds an aggregation MUST
+      >   carry a `schema` (with `additionalProperties: false` and an explicit
+      >   `required`). You then aggregate typed objects, never re-parse prose. The
+      >   aggregator agent also takes a schema. This is what makes the gates
+      >   "schema-typed": `{ verdict, blocking, ... }` on each reviewer.
+
+  --- live 328-328 (1 lines) under ## Companion artifacts in this workspace
+      |   session cut is not silently redone.
+      REPO REPLACES IT WITH (2 lines):
+      >   session cut is not silently redone. **Wiring it is rule 13**; the copy-paste
+      >   template is `templates/resume-wired-fanout.md`.
+
+  --- live 337-342 (6 lines) under ## Quick checklist before saving a workflow
+      | - [ ] a SMALL, FLAT `schema` on every `agent()` fan-in — `required` ≤ 4, no
+      |       `additionalProperties: false`, no `minItems`, no arrays-of-objects
+      | - [ ] artifact-first: every agent writes its deliverable to a pinned path FIRST
+      |       and returns only `{ok, path, headline}` (a rejected digest must never lose work)
+      | - [ ] every fan-in prompt says: return the object directly, never wrapped in `raw`,
+      |       never JSON-inside-a-string
+      REPO REPLACES IT WITH (1 lines):
+      > - [ ] a `schema` (with `additionalProperties: false`) on every `agent()` fan-in
+
+==============================================================================
+2. REPO-ONLY SECTIONS -- what the live tree is missing (grouped by heading)
+     1 lines  (frontmatter/preamble)
+    46 lines  ## 1. The runtime API (the whole surface)
+    20 lines  ## 2. `args` is delivered VERBATIM (corrected — the old "one string" rule was false)
+    39 lines  ## 5b. Bound every fanned-out agent — design item H6 (SHIPPED)
+     8 lines  ## 5c. Guard every budget loop on `budget.total`
+     5 lines  ## 7. One-level nesting + a schema on EVERY fan-in
+    40 lines  ## 13. Wire the resume manifest — the cross-session half of rule 6
+    35 lines  ## Governed single-shot run
+    42 lines  ## Lint your workflow
+    47 lines  ## Author quick-wins (helper snippets)
+     2 lines  ## Companion artifacts in this workspace
+     2 lines  ## Quick checklist before saving a workflow
+
+wrote S2-WA-UNION.json

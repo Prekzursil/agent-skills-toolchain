@@ -1,0 +1,1151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/workflow-dsl/1.0.0",
+  "title": "Workflow DSL v1 - declarative, typed, resumable workflow definition",
+  "description": "The declarative half of the workflow foundry (spec _USER-PROMPTS.md:10875-10896: declarative schema, parameter validation, subworkflows, dynamic fan-out, barriers, loops with convergence rules, human checkpoints, retries, repair loops, resume, deterministic replay, artifact caching, dry-run, cost/time/impact estimate, source and tool policy, model routing, failure policy, export/import). Each of those capabilities is anchored to a JSON Pointer in this document by workflow-dsl.capability-map.json, and every anchor is proven non-decorative by a validating example that exercises it plus a mutated example that MUST be rejected. A task stage embeds or references a work unit under the SAME 19-field contract as command-center/WORK-UNIT-CATALOG.json (work-unit.schema.json), so the DSL and the catalog cannot drift into two different unit shapes.",
+  "type": "object",
+  "required": ["dsl_version", "id", "name", "version", "stages"],
+  "properties": {
+    "dsl_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+      "$comment": "the DSL grammar version this document targets; MAJOR 1 only for this schema"
+    },
+    "id": { "$ref": "#/$defs/slug" },
+    "name": { "type": "string", "minLength": 3, "maxLength": 200 },
+    "description": { "type": "string" },
+    "version": { "$ref": "#/$defs/semver" },
+    "kind": {
+      "type": "string",
+      "enum": ["workflow", "subworkflow", "meta-workflow", "council"],
+      "default": "workflow"
+    },
+    "categories": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+    "tags": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+    "flagship": {
+      "type": "boolean",
+      "default": false,
+      "$comment": "spec 10898: at least 40 of the 96 built-ins are flagship and require full end-to-end tests"
+    },
+
+    "params": {
+      "$comment": "CAPABILITY: typed params + parameter validation",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/param_name" },
+      "additionalProperties": { "$ref": "#/$defs/param_spec" }
+    },
+
+    "roles": {
+      "$comment": "CAPABILITY: roles",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/slug" },
+      "additionalProperties": { "$ref": "#/$defs/role_spec" }
+    },
+
+    "tool_policy": {
+      "$comment": "CAPABILITY: tools + source policy",
+      "$ref": "#/$defs/tool_policy"
+    },
+
+    "model_routing": {
+      "$comment": "CAPABILITY: model routing",
+      "$ref": "#/$defs/model_routing"
+    },
+
+    "gates": {
+      "$comment": "CAPABILITY: gates - a named library of reusable gates; a gate stage may reference one by id or inline its own",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/slug" },
+      "additionalProperties": { "$ref": "#/$defs/gate_spec" }
+    },
+
+    "subworkflows": {
+      "$comment": "CAPABILITY: subworkflows - a named library of inline or referenced child workflows",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/slug" },
+      "additionalProperties": { "$ref": "#/$defs/workflow_ref_or_inline" }
+    },
+
+    "stages": {
+      "$comment": "CAPABILITY: stages",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stage" }
+    },
+
+    "stopping_rules": {
+      "$comment": "composable ANY/ALL/NOT/weighted stopping expressions (spec 10760, 10931, 10937-10942)",
+      "type": "array",
+      "items": { "$ref": "#/$defs/stopping_rule" }
+    },
+
+    "retry_policy": {
+      "$comment": "CAPABILITY: retries (workflow default; a stage may override)",
+      "$ref": "#/$defs/retry_policy"
+    },
+    "failure_policy": {
+      "$comment": "CAPABILITY: failure policy",
+      "$ref": "#/$defs/failure_policy"
+    },
+    "resume": {
+      "$comment": "CAPABILITY: resume",
+      "$ref": "#/$defs/resume_policy"
+    },
+    "replay": {
+      "$comment": "CAPABILITY: deterministic replay",
+      "$ref": "#/$defs/replay_policy"
+    },
+    "cache": {
+      "$comment": "CAPABILITY: artifact caching",
+      "$ref": "#/$defs/cache_policy"
+    },
+    "dry_run": {
+      "$comment": "CAPABILITY: dry-run",
+      "$ref": "#/$defs/dry_run_policy"
+    },
+    "estimate": {
+      "$comment": "CAPABILITY: cost/time/impact estimate",
+      "$ref": "#/$defs/estimate"
+    },
+    "portability": {
+      "$comment": "CAPABILITY: export/import",
+      "$ref": "#/$defs/portability"
+    },
+
+    "lineage": {
+      "$comment": "spec 10742: preserve lineage, credit, license and rollback to source components",
+      "$ref": "#/$defs/lineage"
+    },
+    "outputs": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/slug" },
+      "additionalProperties": { "$ref": "#/$defs/artifact_spec" }
+    },
+    "defaults": {
+      "$comment": "OPTIONAL per-workflow stage defaults. Never the only way to express a stage field: a stage that declares its own value ignores this block, and deleting this block cannot invalidate any stage.",
+      "type": "object",
+      "properties": {
+        "role": { "$ref": "#/$defs/slug" },
+        "timeout_seconds": { "$ref": "#/$defs/timeout_seconds" },
+        "retry": { "$ref": "#/$defs/retry_policy" },
+        "on_failure": { "$ref": "#/$defs/failure_policy" },
+        "cache": { "$ref": "#/$defs/cache_policy" }
+      },
+      "additionalProperties": false
+    },
+    "x_extensions": {
+      "type": "object",
+      "$comment": "vendor/experiment escape hatch; a runner MUST ignore unknown keys here rather than fail"
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[-._][a-z0-9]+)*$",
+      "minLength": 2,
+      "maxLength": 80
+    },
+    "param_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "maxLength": 64
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.\\-]+)?$"
+    },
+    "timeout_seconds": { "type": "integer", "minimum": 1, "maximum": 86400 },
+    "tool_token": { "$ref": "https://schema.ast-integrate.local/work-unit-normative/1.0.0#/$defs/tool_token" },
+    "relative_path": { "$ref": "https://schema.ast-integrate.local/work-unit-normative/1.0.0#/$defs/relative_artifact_path" },
+    "schema_reference": { "$ref": "https://schema.ast-integrate.local/work-unit-normative/1.0.0#/$defs/schema_reference" },
+    "failure_class_token": { "$ref": "https://schema.ast-integrate.local/work-unit-normative/1.0.0#/$defs/failure_class_token" },
+    "confidence_band": {
+      "type": "string",
+      "enum": ["almost-certain", "likely", "roughly-even", "unlikely", "remote"]
+    },
+
+    "param_spec": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object", "path", "enum", "secret_ref", "workflow_ref", "unit_id"]
+        },
+        "description": { "type": "string" },
+        "required": { "type": "boolean", "default": false },
+        "default": true,
+        "enum": { "type": "array", "minItems": 1 },
+        "pattern": { "type": "string", "format": "regex" },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "min_length": { "type": "integer", "minimum": 0 },
+        "max_length": { "type": "integer", "minimum": 0 },
+        "min_items": { "type": "integer", "minimum": 0 },
+        "max_items": { "type": "integer", "minimum": 0 },
+        "items": { "$ref": "#/$defs/param_spec" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/param_spec" }
+        },
+        "schema": {
+          "type": "object",
+          "$comment": "escape hatch: an inline JSON Schema for a param too complex for the flat form. Validated as a schema by platform/lib/wfdsl/semantics.py (DSL-SEM-010), not here."
+        },
+        "secret": {
+          "type": "boolean",
+          "default": false,
+          "$comment": "when true the VALUE must never be written to an artifact, a log, an export bundle, or a replay journal; only the reference name may be recorded"
+        },
+        "examples": { "type": "array" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "enum" } }, "required": ["type"] },
+          "then": { "required": ["enum"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "secret_ref" } }, "required": ["type"] },
+          "then": {
+            "properties": { "secret": { "const": true }, "default": { "not": {} } },
+            "$comment": "a secret_ref param is always secret and can never carry a literal default"
+          }
+        },
+        {
+          "if": { "properties": { "required": { "const": true } }, "required": ["required"] },
+          "then": {
+            "not": { "required": ["default"] },
+            "$comment": "a required param with a default is a contradiction - the default means it is never actually required"
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "role_spec": {
+      "type": "object",
+      "required": ["description"],
+      "properties": {
+        "description": { "type": "string", "minLength": 5 },
+        "model": { "type": "string" },
+        "vendor": { "type": "string", "enum": ["anthropic", "openai", "google", "mixed", "human", "any"] },
+        "effort": { "type": "string", "enum": ["low", "medium", "high", "max"] },
+        "authority": {
+          "type": "string",
+          "enum": ["advisory", "voting", "veto", "chair", "judge", "owner"],
+          "default": "advisory"
+        },
+        "vote_weight": { "type": "number", "minimum": 0, "maximum": 10, "default": 1 },
+        "independence": {
+          "type": "string",
+          "enum": ["independent", "informed", "cross-examining"],
+          "default": "independent",
+          "$comment": "an 'independent' role must not receive a sibling's raw output as prefix context (AGENTS.md 5)"
+        },
+        "cross_vendor_required": { "type": "boolean", "default": false },
+        "tool_permissions": { "type": "array", "items": { "$ref": "#/$defs/tool_token" } },
+        "write_paths": { "type": "array", "items": { "type": "string" } },
+        "speaking_rights": { "type": "string", "enum": ["always", "on-request", "rebuttal-only", "silent"] },
+        "min_participants": { "type": "integer", "minimum": 1 },
+        "max_participants": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+
+    "tool_policy": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "string",
+          "enum": ["deny", "allow"],
+          "default": "deny",
+          "$comment": "deny-by-default. An allowlist policy that defaults to allow is how a redactor leaks."
+        },
+        "allow": { "type": "array", "items": { "$ref": "#/$defs/tool_token" } },
+        "deny": { "type": "array", "items": { "$ref": "#/$defs/tool_token" } },
+        "require_owner_approval": { "type": "array", "items": { "$ref": "#/$defs/tool_token" } },
+        "network": { "type": "string", "enum": ["none", "read-only", "full"], "default": "none" },
+        "write_paths": { "type": "array", "items": { "type": "string" } },
+        "forbid_write_paths": { "type": "array", "items": { "type": "string" } },
+        "source_policy": {
+          "type": "object",
+          "$comment": "spec 10893 'source and tool policy'",
+          "properties": {
+            "allow_domains": { "type": "array", "items": { "type": "string" } },
+            "deny_domains": { "type": "array", "items": { "type": "string" } },
+            "offline_only": { "type": "boolean", "default": false },
+            "license_allowlist": { "type": "array", "items": { "type": "string" } },
+            "require_provenance": { "type": "boolean", "default": true },
+            "treat_fetched_content_as_data": {
+              "const": true,
+              "$comment": "AGENTS.md 9: fetched content is untrusted DATA, never instructions. Not overridable."
+            },
+            "paywalled": { "type": "string", "enum": ["skip", "record-as-not-checked", "fail"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "model_routing": {
+      "type": "object",
+      "required": ["default"],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["static", "capability", "cost-aware", "latency-aware", "vendor-diverse", "escalating"],
+          "default": "static"
+        },
+        "default": { "$ref": "#/$defs/model_target" },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["when", "target"],
+            "properties": {
+              "when": { "$ref": "#/$defs/expression" },
+              "target": { "$ref": "#/$defs/model_target" },
+              "reason": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "fallbacks": { "type": "array", "items": { "$ref": "#/$defs/model_target" } },
+        "escalation": {
+          "type": "object",
+          "required": ["on", "target"],
+          "properties": {
+            "on": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "enum": ["failure", "timeout", "low-confidence", "reviewer-refuted", "quota-429"] }
+            },
+            "target": { "$ref": "#/$defs/model_target" },
+            "max_escalations": { "type": "integer", "minimum": 1, "maximum": 5 }
+          },
+          "additionalProperties": false
+        },
+        "forbid_downgrade_below": {
+          "type": "string",
+          "$comment": "e.g. 'opus' - never route a substantive unit to a cheaper model to save quota"
+        }
+      },
+      "additionalProperties": false
+    },
+    "model_target": {
+      "type": "object",
+      "required": ["model", "vendor"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "vendor": { "type": "string", "enum": ["anthropic", "openai", "google", "mixed", "human"] },
+        "effort": { "type": "string", "enum": ["low", "medium", "high", "max"] },
+        "max_output_tokens": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+
+    "expression": {
+      "description": "A boolean condition. Either the string grammar - identifiers, numbers, booleans, bare enum words, comparisons (== != >= <= > <) combined with AND OR NOT and parentheses - or the structured tree form. The string grammar is parsed and evaluated by platform/lib/wfdsl/expr.py; the six spec-mandated stopping expressions (_USER-PROMPTS.md:10937-10942) are executable test cases there.",
+      "oneOf": [
+        { "type": "string", "minLength": 1, "pattern": "[A-Za-z_]" },
+        { "$ref": "#/$defs/expr_node" }
+      ]
+    },
+    "expr_node": {
+      "type": "object",
+      "oneOf": [
+        {
+          "required": ["all"],
+          "properties": { "all": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/expression" } } },
+          "additionalProperties": false
+        },
+        {
+          "required": ["any"],
+          "properties": { "any": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/expression" } } },
+          "additionalProperties": false
+        },
+        {
+          "required": ["not"],
+          "properties": { "not": { "$ref": "#/$defs/expression" } },
+          "additionalProperties": false
+        },
+        {
+          "required": ["cmp"],
+          "properties": {
+            "cmp": {
+              "type": "object",
+              "required": ["left", "op", "right"],
+              "properties": {
+                "left": { "type": "string", "minLength": 1 },
+                "op": { "type": "string", "enum": ["==", "!=", ">", ">=", "<", "<="] },
+                "right": { "type": ["string", "number", "boolean"] }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "required": ["weighted"],
+          "properties": {
+            "weighted": {
+              "type": "object",
+              "required": ["terms", "threshold"],
+              "properties": {
+                "terms": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "required": ["expr", "weight"],
+                    "properties": {
+                      "expr": { "$ref": "#/$defs/expression" },
+                      "weight": { "type": "number", "minimum": 0 }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "threshold": { "type": "number", "minimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "stopping_rule": {
+      "type": "object",
+      "required": ["id", "expression"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "expression": { "$ref": "#/$defs/expression" },
+        "applies_to": { "type": "string", "enum": ["workflow", "stage", "loop", "council"], "default": "workflow" },
+        "minimum_conditions": {
+          "$ref": "#/$defs/expression",
+          "$comment": "spec 10762 'minimum deliberation conditions' - a floor that must hold before the stopping rule may fire at all, so a workflow cannot stop early by satisfying a cheap rule"
+        },
+        "on_stop": { "type": "string", "enum": ["complete", "emit-partial", "escalate"], "default": "complete" }
+      },
+      "additionalProperties": false
+    },
+
+    "retry_policy": {
+      "type": "object",
+      "required": ["strategy"],
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["none", "fixed", "exponential", "two-strikes-then-pivot"],
+          "$comment": "two-strikes-then-pivot is AGENTS.md 4b: after the SECOND failure on the same fingerprint, enumerate alternatives instead of retrying"
+        },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "backoff_seconds": { "type": "number", "minimum": 0 },
+        "jitter": { "type": "boolean", "default": true },
+        "retry_on": { "type": "array", "items": { "$ref": "#/$defs/failure_class_token" } },
+        "no_retry_on": { "type": "array", "items": { "$ref": "#/$defs/failure_class_token" } },
+        "pivot": {
+          "type": "object",
+          "properties": {
+            "after_attempts": { "type": "integer", "minimum": 1 },
+            "enumerate_alternatives_min": { "type": "integer", "minimum": 2 },
+            "escalate_to": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "strategy": { "enum": ["fixed", "exponential", "two-strikes-then-pivot"] } }, "required": ["strategy"] },
+          "then": {
+            "required": ["max_attempts"],
+            "$comment": "a retrying strategy without a bound is an unbounded loop"
+          }
+        },
+        {
+          "if": { "properties": { "strategy": { "const": "two-strikes-then-pivot" } }, "required": ["strategy"] },
+          "then": { "required": ["pivot"] }
+        },
+        {
+          "if": { "properties": { "strategy": { "const": "none" } }, "required": ["strategy"] },
+          "then": { "properties": { "max_attempts": { "const": 1 } } }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "failure_policy": {
+      "type": "object",
+      "required": ["on_failure"],
+      "properties": {
+        "on_failure": {
+          "type": "string",
+          "enum": ["fail-fast", "continue", "quarantine", "degrade-loudly", "escalate-to-human"]
+        },
+        "classify_as": { "type": "array", "items": { "$ref": "#/$defs/failure_class_token" } },
+        "terminal_state_required": {
+          "const": true,
+          "$comment": "AGENTS.md 4: every unit ends in SUCCESS:<id> or FAILED:<id> <reason>. Never silence - not overridable."
+        },
+        "never_silent": { "const": true },
+        "preserve_partial_artifact": { "type": "boolean", "default": true },
+        "escalate_to": { "type": "string" },
+        "quarantine_path": { "$ref": "#/$defs/relative_path" }
+      },
+      "additionalProperties": false
+    },
+
+    "resume_policy": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "checkpoint_store": { "$ref": "#/$defs/relative_path" },
+        "granularity": { "type": "string", "enum": ["stage", "fanout-item", "work-unit"], "default": "stage" },
+        "idempotency_key_from": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["workflow_id", "workflow_version", "stage_id", "item_key", "params_hash", "inputs_hash"] }
+        },
+        "resume_from": { "type": "string", "enum": ["last-checkpoint", "explicit-stage", "restart"], "default": "last-checkpoint" },
+        "stale_checkpoint_seconds": { "type": "integer", "minimum": 1 },
+        "on_stale": { "type": "string", "enum": ["restart", "fail", "warn-and-resume"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+          "then": {
+            "required": ["checkpoint_store", "idempotency_key_from"],
+            "$comment": "resume without a durable store and a stable key is not resume, it is a re-run that may duplicate work"
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "replay_policy": {
+      "type": "object",
+      "required": ["deterministic"],
+      "properties": {
+        "deterministic": { "type": "boolean" },
+        "seed": { "type": "integer", "minimum": 0 },
+        "journal_path": { "$ref": "#/$defs/relative_path" },
+        "record": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["params", "inputs", "tool_calls", "tool_results", "model_outputs", "timings", "env_fingerprint"] }
+        },
+        "forbid_nondeterministic_sources": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["clock", "random", "network", "env", "filesystem-order", "process-id"] },
+          "$comment": "workflow-authoring rule: Date.now() and unseeded random are banned in a replayable workflow"
+        },
+        "replay_source": { "type": "string", "enum": ["recorded-journal", "artifact-cache"] },
+        "verify": { "type": "string", "enum": ["hash-equal", "schema-equal", "semantic-equal", "none"] },
+        "hash_algorithm": { "type": "string", "enum": ["sha256", "sha512"], "default": "sha256" },
+        "on_divergence": { "type": "string", "enum": ["fail", "record-discrepancy", "warn"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "deterministic": { "const": true } }, "required": ["deterministic"] },
+          "then": {
+            "required": ["seed", "journal_path", "record", "verify"],
+            "$comment": "a claim of deterministic replay needs a seed, a journal to replay FROM, a recorded field set and a verification mode - otherwise the claim is decorative"
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "cache_policy": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "scope": { "type": "string", "enum": ["stage", "workflow", "global"], "default": "stage" },
+        "key_from": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["workflow_id", "workflow_version", "stage_id", "params_hash", "inputs_hash", "prompt_hash", "model_id", "tool_versions", "item_key"]
+          }
+        },
+        "store": { "$ref": "#/$defs/relative_path" },
+        "ttl_seconds": { "type": "integer", "minimum": 1 },
+        "verify_integrity": {
+          "type": "boolean",
+          "default": true,
+          "$comment": "a corrupted cache entry must be detected, not served (spec Phase 10 test 25: corrupted-cache tests)"
+        },
+        "invalidate_on": { "type": "array", "items": { "type": "string" } },
+        "read_only": { "type": "boolean", "default": false }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+          "then": { "required": ["key_from", "store"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "dry_run_policy": {
+      "type": "object",
+      "required": ["supported"],
+      "properties": {
+        "supported": { "const": true, "$comment": "every workflow must be dry-runnable (spec 10891)" },
+        "side_effect_free": { "type": "boolean", "default": true },
+        "emits": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "enum": ["plan", "estimate", "permission-report", "artifact-diff", "graph"] }
+        },
+        "plan_artifact": { "$ref": "#/$defs/relative_path" },
+        "forbid_tools": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/tool_token" },
+          "$comment": "tools that must not execute in dry-run even if allowed by tool_policy"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "side_effect_free": { "const": true } }, "required": ["side_effect_free"] },
+          "then": { "required": ["forbid_tools"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "estimate": {
+      "type": "object",
+      "required": ["basis"],
+      "properties": {
+        "basis": { "type": "string", "enum": ["static-declared", "historical-measured", "hybrid"] },
+        "confidence": { "$ref": "#/$defs/confidence_band" },
+        "cost": { "$ref": "#/$defs/range_with_currency" },
+        "wallclock_seconds": { "$ref": "#/$defs/numeric_range" },
+        "tokens": { "$ref": "#/$defs/numeric_range" },
+        "tool_calls": { "$ref": "#/$defs/numeric_range" },
+        "impact": {
+          "type": "object",
+          "properties": {
+            "risk": { "type": "string", "enum": ["low", "medium", "high"] },
+            "reversibility": { "type": "string", "enum": ["reversible", "reversible-with-effort", "irreversible"] },
+            "blast_radius": { "type": "string" },
+            "requires_owner_approval": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "measurement_source": {
+          "type": "string",
+          "$comment": "required when basis is historical-measured: WHICH runs produced these numbers"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "basis": { "enum": ["historical-measured", "hybrid"] } }, "required": ["basis"] },
+          "then": {
+            "required": ["measurement_source", "confidence"],
+            "$comment": "an estimate that claims to be measured must name the measurement; otherwise it is a static guess wearing a measured label"
+          }
+        },
+        {
+          "if": {
+            "properties": { "impact": { "properties": { "reversibility": { "const": "irreversible" } }, "required": ["reversibility"] } },
+            "required": ["impact"]
+          },
+          "then": {
+            "properties": { "impact": { "properties": { "requires_owner_approval": { "const": true } }, "required": ["requires_owner_approval"] } },
+            "$comment": "an irreversible workflow cannot run without owner approval"
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "numeric_range": {
+      "type": "object",
+      "required": ["expected"],
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "range_with_currency": {
+      "type": "object",
+      "required": ["currency", "expected"],
+      "properties": {
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "min": { "type": "number", "minimum": 0 },
+        "expected": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+
+    "portability": {
+      "type": "object",
+      "required": ["export", "import"],
+      "properties": {
+        "export": {
+          "type": "object",
+          "required": ["format", "redact_secrets"],
+          "properties": {
+            "format": { "type": "string", "enum": ["json", "yaml", "bundle"] },
+            "includes": {
+              "type": "array",
+              "items": { "type": "string", "enum": ["definition", "presets", "examples", "tests", "lineage", "cache-manifest", "replay-journal"] }
+            },
+            "redact_secrets": {
+              "const": true,
+              "$comment": "an export bundle can never carry a secret value; only secret_ref names travel"
+            },
+            "bundle_path": { "$ref": "#/$defs/relative_path" }
+          },
+          "additionalProperties": false
+        },
+        "import": {
+          "type": "object",
+          "required": ["validate_against", "on_version_mismatch"],
+          "properties": {
+            "validate_against": { "$ref": "#/$defs/schema_reference" },
+            "on_version_mismatch": { "type": "string", "enum": ["migrate", "reject", "warn"] },
+            "migrations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["from", "to"],
+                "properties": {
+                  "from": { "$ref": "#/$defs/semver" },
+                  "to": { "$ref": "#/$defs/semver" },
+                  "script": { "$ref": "#/$defs/relative_path" },
+                  "reversible": { "type": "boolean" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "trust": {
+              "type": "object",
+              "properties": {
+                "require_signature": { "type": "boolean", "default": false },
+                "allow_publishers": { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "import": { "properties": { "on_version_mismatch": { "const": "migrate" } }, "required": ["on_version_mismatch"] } },
+            "required": ["import"]
+          },
+          "then": {
+            "properties": { "import": { "required": ["migrations"] } },
+            "$comment": "promising to migrate without declaring a migration is an empty promise"
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "lineage": {
+      "type": "object",
+      "properties": {
+        "derived_from": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "relation"],
+            "properties": {
+              "source": { "type": "string" },
+              "relation": {
+                "type": "string",
+                "enum": ["ADOPT-AS-IS", "ADOPT-WITH-WRAPPER", "TRANSLATE", "REPAIR", "EXTEND", "MERGE", "COMPOSE", "CLEAN-ROOM-REIMPLEMENT", "DISTILL", "SPECIALIZE", "GENERALIZE", "REBUILD-FROM-SPEC"],
+                "$comment": "the spec's own disposition vocabulary (_USER-PROMPTS.md:10723)"
+              },
+              "license": { "type": "string" },
+              "credit": { "type": "string" },
+              "url": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "decomposable_back_to_sources": {
+          "type": "boolean",
+          "$comment": "spec 10913: a fused workflow must be decomposable back into its source mechanisms"
+        },
+        "rollback_to": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+
+    "artifact_spec": {
+      "type": "object",
+      "required": ["path", "schema_ref"],
+      "properties": {
+        "path": { "$ref": "#/$defs/relative_path" },
+        "schema_ref": { "$ref": "#/$defs/schema_reference" },
+        "min_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "$comment": "completion predicate condition 3: non-empty AND above a meaningful minimum size"
+        },
+        "register_in_manifest": {
+          "type": "boolean",
+          "default": true,
+          "$comment": "completion predicate condition 11"
+        },
+        "sentinel": { "type": "string" },
+        "consumers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "$comment": "completion predicate condition 12: WHO must be able to read it - named, so the condition is checkable instead of decorative"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "gate_spec": {
+      "type": "object",
+      "required": ["predicate", "on_fail"],
+      "properties": {
+        "predicate": {
+          "type": "string",
+          "enum": ["completion-predicate-v1", "quality-gate", "coverage-threshold", "reviewer-pass", "custom-expression"],
+          "$comment": "completion-predicate-v1 is the ONE shared 12-condition reducer (spec 10627-10648); it is referenced here, not reimplemented - see command-center/COMPLETION-GATES.json#gate_a_unit_completion_predicate"
+        },
+        "predicate_ref": { "$ref": "#/$defs/schema_reference" },
+        "expression": { "$ref": "#/$defs/expression" },
+        "blocking": { "type": "boolean", "default": true },
+        "evidence_required": { "type": "boolean", "default": true },
+        "on_fail": { "type": "string", "enum": ["fail", "retry", "repair", "escalate-to-human", "record-and-continue"] },
+        "conditions_required": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "$comment": "which of the 12 predicate conditions this gate asserts; an empty list would be a gate that checks nothing"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "predicate": { "const": "custom-expression" } }, "required": ["predicate"] },
+          "then": { "required": ["expression"] }
+        },
+        {
+          "if": { "properties": { "predicate": { "const": "completion-predicate-v1" } }, "required": ["predicate"] },
+          "then": { "required": ["conditions_required"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "workflow_ref_or_inline": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["workflow_id"],
+          "properties": {
+            "workflow_id": { "$ref": "#/$defs/slug" },
+            "version_range": { "type": "string", "minLength": 1 },
+            "source": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        { "$ref": "#" }
+      ]
+    },
+
+    "convergence_rule": {
+      "type": "object",
+      "required": ["max_iterations"],
+      "properties": {
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "$comment": "MANDATORY. A loop whose only exit is a convergence expression can spin forever when the metric never moves; the bound is the safety property."
+        },
+        "min_iterations": { "type": "integer", "minimum": 0 },
+        "converged_when": { "$ref": "#/$defs/expression" },
+        "no_progress_rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "$comment": "stop after N rounds with no measurable progress - the anti-grind exit"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "direction"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "direction": { "type": "string", "enum": ["increase", "decrease", "stabilize"] },
+              "target": { "type": "number" },
+              "epsilon": { "type": "number", "minimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "on_no_convergence": { "type": "string", "enum": ["fail", "escalate", "emit-partial"], "default": "emit-partial" }
+      },
+      "additionalProperties": false
+    },
+
+    "stage_common": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "title": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["task", "subworkflow", "fanout", "barrier", "loop", "gate", "human_checkpoint", "repair_loop", "council"]
+        },
+        "depends_on": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "when": { "$ref": "#/$defs/expression" },
+        "timeout_seconds": { "$ref": "#/$defs/timeout_seconds" },
+        "retry": { "$ref": "#/$defs/retry_policy" },
+        "on_failure": { "$ref": "#/$defs/failure_policy" },
+        "cache": { "$ref": "#/$defs/cache_policy" },
+        "checkpoint": { "type": "boolean", "default": false },
+        "produces": { "type": "array", "items": { "$ref": "#/$defs/artifact_spec" } },
+        "estimate": { "$ref": "#/$defs/estimate" },
+        "tags": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+      }
+    },
+
+    "stage_task": {
+      "type": "object",
+      "properties": {
+        "role": { "$ref": "#/$defs/slug" },
+        "model": { "$ref": "#/$defs/model_target" },
+        "tool_permissions": { "type": "array", "items": { "$ref": "#/$defs/tool_token" } },
+        "work_unit": {
+          "$ref": "https://schema.ast-integrate.local/work-unit/1.0.0",
+          "$comment": "the SAME 19-field contract as the catalog - the DSL cannot invent a second unit shape"
+        },
+        "work_unit_ref": { "type": "string", "pattern": "^[A-Z]{2,4}-[0-9]{4}$" },
+        "prompt_ref": { "$ref": "#/$defs/relative_path" }
+      },
+      "oneOf": [
+        { "required": ["work_unit"] },
+        { "required": ["work_unit_ref"] }
+      ],
+      "$comment": "a task stage carries a work unit inline or references a catalogued one - never neither, never both"
+    },
+
+    "stage_subworkflow": {
+      "type": "object",
+      "required": ["workflow"],
+      "properties": {
+        "workflow": { "$ref": "#/$defs/workflow_ref_or_inline" },
+        "params": { "type": "object" },
+        "isolation": { "type": "string", "enum": ["worktree", "container", "cloud", "none"], "default": "none" },
+        "propagate_failure": { "type": "boolean", "default": true }
+      }
+    },
+
+    "stage_fanout": {
+      "type": "object",
+      "required": ["over", "max_concurrency", "body"],
+      "properties": {
+        "over": {
+          "type": "object",
+          "required": ["source"],
+          "properties": {
+            "source": { "type": "string", "enum": ["param", "artifact", "expression", "work_unit_query", "literal"] },
+            "ref": { "type": "string" },
+            "expression": { "$ref": "#/$defs/expression" },
+            "items": { "type": "array" },
+            "item_var": { "$ref": "#/$defs/param_name" },
+            "key_field": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "max_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024,
+          "$comment": "MANDATORY: dynamic fan-out with unbounded concurrency is how a local box freezes (spec 10572 'do not launch all units simultaneously')"
+        },
+        "arrival_stagger_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "$comment": "spec 10577: stagger arrivals to avoid 429 thundering-herd failures"
+        },
+        "body": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/stage" }
+        },
+        "on_item_failure": { "type": "string", "enum": ["continue", "abort", "quarantine"], "default": "quarantine" },
+        "barrier": { "$ref": "#/$defs/barrier_spec" },
+        "max_items": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "barrier_spec": {
+      "type": "object",
+      "required": ["mode", "on_partial"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["all", "quorum", "first_n", "deadline", "any"] },
+        "quorum": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "n": { "type": "integer", "minimum": 1 },
+        "deadline_seconds": { "type": "integer", "minimum": 1 },
+        "on_partial": {
+          "type": "string",
+          "enum": ["fail", "proceed-degraded", "proceed-with-quarantine"],
+          "$comment": "MANDATORY: a barrier with no partial-result policy silently drops the work of every straggler"
+        },
+        "require_stages": { "type": "array", "items": { "$ref": "#/$defs/slug" } },
+        "reject_result_matching": {
+          "type": "array",
+          "items": { "type": "string" },
+          "$comment": "fan-in gate regexes, e.g. 'started in the background' / 'Check /codex:status' - a receipt is not a result (cross-vendor-dispatch rule 1)"
+        },
+        "verify_artifact_exists": {
+          "type": "boolean",
+          "default": true,
+          "$comment": "Test-Path every contracted output BEFORE reading any digest (fan-out-contract B1): a digest is a claim, not a receipt"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "quorum" } }, "required": ["mode"] },
+          "then": { "required": ["quorum"] }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "first_n" } }, "required": ["mode"] },
+          "then": { "required": ["n"] }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "deadline" } }, "required": ["mode"] },
+          "then": { "required": ["deadline_seconds"] }
+        }
+      ],
+      "additionalProperties": false
+    },
+
+    "stage_barrier": {
+      "type": "object",
+      "required": ["barrier"],
+      "properties": {
+        "barrier": { "$ref": "#/$defs/barrier_spec" },
+        "joins": { "type": "array", "items": { "$ref": "#/$defs/slug" } }
+      }
+    },
+
+    "stage_loop": {
+      "type": "object",
+      "required": ["body", "convergence"],
+      "properties": {
+        "body": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/stage" } },
+        "convergence": { "$ref": "#/$defs/convergence_rule" },
+        "loop_var": { "$ref": "#/$defs/param_name" }
+      }
+    },
+
+    "stage_gate": {
+      "type": "object",
+      "oneOf": [
+        { "required": ["gate"] },
+        { "required": ["gate_ref"] }
+      ],
+      "properties": {
+        "gate": { "$ref": "#/$defs/gate_spec" },
+        "gate_ref": { "$ref": "#/$defs/slug" }
+      }
+    },
+
+    "stage_human_checkpoint": {
+      "type": "object",
+      "required": ["prompt", "approval_mode", "on_timeout"],
+      "properties": {
+        "prompt": { "type": "string", "minLength": 5 },
+        "approvers": { "type": "array", "items": { "type": "string" } },
+        "approval_mode": { "type": "string", "enum": ["any", "all", "quorum", "owner-only"] },
+        "quorum": { "type": "integer", "minimum": 1 },
+        "on_timeout": {
+          "type": "string",
+          "enum": ["fail", "escalate", "proceed"],
+          "$comment": "MANDATORY: an unanswered human checkpoint must resolve to a declared terminal state, never hang"
+        },
+        "owner_approval_required": { "type": "boolean", "default": true },
+        "decision_artifact": { "$ref": "#/$defs/artifact_spec" },
+        "options": { "type": "array", "items": { "type": "string" }, "minItems": 2 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "approval_mode": { "const": "quorum" } }, "required": ["approval_mode"] },
+          "then": { "required": ["quorum"] }
+        },
+        {
+          "if": { "properties": { "on_timeout": { "enum": ["fail", "escalate", "proceed"] } }, "required": ["on_timeout"] },
+          "then": { "required": ["timeout_seconds"] }
+        }
+      ]
+    },
+
+    "stage_repair_loop": {
+      "type": "object",
+      "required": ["target", "verify", "max_attempts"],
+      "properties": {
+        "target": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/slug" } },
+        "diagnose": { "$ref": "#/$defs/stage" },
+        "repair": { "$ref": "#/$defs/stage" },
+        "verify": {
+          "$ref": "#/$defs/stage",
+          "$comment": "MANDATORY: a repair loop without an independent verify stage is a retry that reports success"
+        },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "classification_filter": { "type": "array", "items": { "$ref": "#/$defs/failure_class_token" } },
+        "escalate_to": { "type": "string" },
+        "require_root_cause": { "type": "boolean", "default": true }
+      }
+    },
+
+    "stage_council": {
+      "type": "object",
+      "properties": {
+        "council_spec_ref": {
+          "$ref": "#/$defs/schema_reference",
+          "$comment": "the CouncilSpec contract is owned by the council contracts unit; this DSL references it and deliberately does NOT redefine it"
+        },
+        "council_spec": { "type": "object" },
+        "participants_min": { "type": "integer", "minimum": 1 },
+        "participants_max": { "type": "integer", "minimum": 1 },
+        "stopping_rules": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/stopping_rule" } }
+      },
+      "oneOf": [
+        { "required": ["council_spec_ref"] },
+        { "required": ["council_spec"] }
+      ]
+    },
+
+    "stage": {
+      "type": "object",
+      "required": ["id", "kind"],
+      "allOf": [
+        { "$ref": "#/$defs/stage_common" },
+        { "if": { "properties": { "kind": { "const": "task" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_task" } },
+        { "if": { "properties": { "kind": { "const": "subworkflow" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_subworkflow" } },
+        { "if": { "properties": { "kind": { "const": "fanout" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_fanout" } },
+        { "if": { "properties": { "kind": { "const": "barrier" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_barrier" } },
+        { "if": { "properties": { "kind": { "const": "loop" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_loop" } },
+        { "if": { "properties": { "kind": { "const": "gate" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_gate" } },
+        { "if": { "properties": { "kind": { "const": "human_checkpoint" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_human_checkpoint" } },
+        { "if": { "properties": { "kind": { "const": "repair_loop" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_repair_loop" } },
+        { "if": { "properties": { "kind": { "const": "council" } }, "required": ["kind"] }, "then": { "$ref": "#/$defs/stage_council" } }
+      ],
+      "unevaluatedProperties": false,
+      "$comment": "unevaluatedProperties:false composes over stage_common plus the ONE matched kind branch, so a loop stage carrying fan-out keys, or any stage carrying a typo'd key, is rejected."
+    }
+  }
+}

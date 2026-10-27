@@ -1,0 +1,389 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p37-pairwise-comparison",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Rank N candidate options by pairwise comparison and report intransitivity instead of hiding it.",
+    "charter": "Judge two options at a time; aggregate to a ranking; a cycle in the results is a finding about incoherent criteria, not noise to be smoothed away.",
+    "risk_tier": "moderate",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "a ranking over all candidate options",
+      "pair coverage reported as pairs_judged/pairs_total",
+      "every intransitive cycle reported with the pair that closes it"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3,
+      "max_share_per_vendor": 0.5
+    },
+    "roster": [
+      {
+        "participant_id": "judge-a",
+        "role": "juror",
+        "expertise": [
+          "decision analysis"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "judge-b",
+        "role": "juror",
+        "expertise": [
+          "systems engineering"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "judge-c",
+        "role": "juror",
+        "expertise": [
+          "cost modelling"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "cycle-auditor",
+        "role": "verifier",
+        "expertise": [
+          "preference aggregation",
+          "graph theory"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "tools": [
+          "council_eval.pairwise_aggregator"
+        ]
+      }
+    ],
+    "anonymity": {
+      "mode": "pseudonymous"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "model",
+        "vendor",
+        "position_similarity"
+      ],
+      "max_similarity": 0.85
+    }
+  },
+  "topology": {
+    "kind": "pairwise_tournament",
+    "tournament": {
+      "pairing": "swiss",
+      "comparisons_per_pair": 2,
+      "aggregation": "bradley_terry"
+    }
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "seed",
+        "independent": true,
+        "anonymous": true
+      },
+      {
+        "kind": "custom",
+        "stage_id": "pairing",
+        "custom_name": "swiss-paired-duels",
+        "rounds": 4,
+        "quotas": {
+          "objections_per_participant": 1,
+          "counterexamples_per_round": 1
+        },
+        "exit_when": {
+          "weighted": {
+            "threshold": 0.6,
+            "clauses": [
+              {
+                "weight": 0.6,
+                "when": {
+                  "metric": "custom:pairs_judged_ratio",
+                  "op": ">=",
+                  "value": 0.8,
+                  "value_type": "number",
+                  "producer": "council_eval.pairwise_aggregator",
+                  "note": "Swiss subsampling means full round-robin is not run; coverage must be REPORTED, not assumed."
+                }
+              },
+              {
+                "weight": 0.4,
+                "when": {
+                  "metric": "custom:intransitive_cycles_reported",
+                  "op": "==",
+                  "value": true,
+                  "value_type": "boolean",
+                  "producer": "council_eval.cycle_detector",
+                  "note": "A cycle is a finding: the criteria are incoherent. Reporting it satisfies this clause."
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "rank"
+      }
+    ],
+    "speaking_order": "random",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 250
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "rebuttal_required": true,
+      "cross_examination": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 3,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "turns": 24,
+    "speaking_quota_per_participant": 6,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "coverage_score": 0.8,
+    "objections": 4,
+    "counterexamples": 2,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "condorcet",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "coverage_score >= 0.8 AND all_participants_spoke == true AND (vote_margin >= 0.15 OR deadlock_detected == true)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "coverage_score",
+          "op": ">=",
+          "value": 0.8
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "any_of": [
+            {
+              "metric": "vote_margin",
+              "op": ">=",
+              "value": 0.15
+            },
+            {
+              "metric": "deadlock_detected",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "pair coverage raised above 0.8",
+      "the reported cycle resolved or accepted"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "run_experiment",
+      "recruit_independent_critic",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "strategic_voting",
+      "participant_dominance",
+      "premature_convergence",
+      "instant_unanimity",
+      "evidence_free_majority",
+      "lost_dissent",
+      "idea_count_gaming"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "role_rotation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "option_cards",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P37 pairwise-comparison",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:701-716",
+      "_USER-PROMPTS.md:10926",
+      "_USER-PROMPTS.md:10930"
+    ],
+    "lineage": [
+      "P37 pairwise-comparison",
+      "AHP",
+      "Elo",
+      "estate: execution-grounded-bon behavioural clustering"
+    ],
+    "notes": "Anti-gaming per the card's failure mode: Swiss subsampling bounds the O(n^2) blowup, so coverage_score is a STOPPING CONDITION rather than an assumption. Intransitivity terminates via deadlock_detected -> irreducible_disagreement instead of being smoothed into a ranking. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

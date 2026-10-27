@@ -1,0 +1,859 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-req-02-recursive-decision-ledger-walk",
+  "name": "Recursive Decision-Ledger Walk",
+  "description": "Blueprint 24 of 96 (design card BP-REQ-02, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:1225). MECHANISM: walk a DEPENDENT decision tree through an explicit FRONTIER, where answering a node EXPANDS its children per the dependency rules and every node write is a checkpoint - so a session loss resumes from the frontier, never from the root. A subtree that a parent answer makes moot is PRUNED WITH ITS REASON RECORDED, so reversing the parent restores it instead of silently losing it. Resume is not a convenience here; it is the load-bearing property, which is why the blueprint carries an explicit kill-and-resume drill and a restore gate rather than asserting resumability.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "product-design-and-strategy",
+    "security-governance-and-risk"
+  ],
+  "tags": [
+    "decision-tree",
+    "frontier-walk",
+    "checkpoint-per-node",
+    "prunable-subtree",
+    "bp-req-02"
+  ],
+  "flagship": false,
+  "params": {
+    "root_decision": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The root question. Everything else is reached by expansion, not by enumeration."
+    },
+    "dependency_rules": {
+      "type": "object",
+      "required": true,
+      "description": "How an answer expands into children. Explicit, because an implicit expansion rule makes the tree unauditable.",
+      "schema": {
+        "type": "object",
+        "required": [
+          "rules"
+        ],
+        "properties": {
+          "rules": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "when_answer",
+                "expand_to"
+              ],
+              "properties": {
+                "when_answer": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "expand_to": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "prune": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "ledger_path": {
+      "type": "path",
+      "required": true,
+      "description": "The durable recursive ledger. Every node write lands here before the next node is asked."
+    },
+    "max_depth": {
+      "type": "integer",
+      "default": 6,
+      "minimum": 1,
+      "maximum": 12,
+      "description": "Depth bound. The design card contraindicates this blueprint when the tree is unknowably deep, so the bound is explicit rather than implied."
+    },
+    "resume_drill": {
+      "type": "boolean",
+      "default": true,
+      "description": "Run the kill-and-resume drill as part of the walk. Resumability is the load-bearing claim, so it is measured rather than asserted."
+    }
+  },
+  "roles": {
+    "frontier-walker": {
+      "description": "Holds the frontier, asks the next node, and expands children strictly per the declared dependency rules",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/ledger-walk/**)"
+      ],
+      "write_paths": [
+        "command-center/ledger-walk/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "pruner": {
+      "description": "Prunes a subtree the parent answer made moot and RECORDS WHY, so a later reversal can restore it",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/ledger-walk/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "checkpointer": {
+      "description": "Writes each node to the durable ledger and verifies the write before the walk advances",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/ledger-walk/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - answers each frontier node; a wrong early answer invalidates a subtree, which is why prunes are recorded rather than applied destructively",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/ledger-walk/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/ledger-walk/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "every-node-write-is-a-checkpoint": {
+      "predicate": "custom-expression",
+      "expression": "nodes_written == nodes_checkpointed AND unflushed_nodes == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "pruned-subtree-is-restorable": {
+      "predicate": "custom-expression",
+      "expression": "prunes_without_recorded_reason == 0 AND pruned_nodes_deleted == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "resume-lands-on-the-frontier": {
+      "predicate": "custom-expression",
+      "expression": "resume_restored_frontier_exactly == true AND resumed_from_root == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "seed",
+      "title": "S0 SEED the root and initialise the frontier",
+      "kind": "task",
+      "role": "frontier-walker",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "WREQ-0201",
+        "title": "Seed the root decision node and write the initial frontier",
+        "phase": "2B",
+        "question_or_target": "Write the root node and an explicit frontier containing exactly it, plus the parsed dependency rules and the depth bound.",
+        "inputs": [
+          "params.root_decision",
+          "params.dependency_rules",
+          "params.ledger_path"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "frontier-walker",
+          "basis": "the frontier is the resume anchor; seeding it wrong makes every later resume wrong"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/ledger-walk/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/ledger-walk/bp-req-02/tree.json",
+        "output_schema": "command-center/schema/decision-trace.schema.json",
+        "evidence_requirement": "the seed records the root node id, the frontier as an explicit list, the depth bound and a hash of the dependency rules - so a rules change mid-walk is detectable rather than silently effective",
+        "tests_required": [
+          "the initial frontier must contain exactly one node",
+          "a dependency-rules change mid-walk must be detected by the rules hash",
+          "both-states control: alter the rules hash and confirm the change is DETECTED; leave it and confirm it is not"
+        ],
+        "reviewer_requirement": "the checkpointer confirms the seed is on disk before the first node is asked",
+        "completion_sentinel": "SUCCESS:WREQ-0201 emitted when tree.json exists, parses, and carries a single-node frontier plus the rules hash; otherwise FAILED:WREQ-0201 <reason>",
+        "retry_policy": "no retry after the first node is answered - reseeding would discard answers; resume instead",
+        "failure_classification": [
+          "seed-invalid",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/ledger-walk/bp-req-02/tree.json",
+          "schema_ref": "command-center/schema/decision-trace.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WREQ-0201",
+          "consumers": [
+            "walk",
+            "resume-drill"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "walk",
+      "title": "S1-S4 WALK the frontier: ask, expand, prune-with-reason, checkpoint, repeat until the frontier is empty",
+      "kind": "loop",
+      "depends_on": [
+        "seed"
+      ],
+      "loop_var": "frontier_step",
+      "timeout_seconds": 86400,
+      "body": [
+        {
+          "id": "ask-frontier-node",
+          "title": "S1 ASK the next frontier node",
+          "kind": "human_checkpoint",
+          "prompt": "This is the next node on the frontier. Answering it may expand children or prune a subtree; a prune is recorded with its reason and stays restorable if you later reverse this answer.",
+          "approvers": [
+            "owner"
+          ],
+          "approval_mode": "owner-only",
+          "quorum": 1,
+          "timeout_seconds": 86400,
+          "on_timeout": "escalate",
+          "owner_approval_required": true,
+          "options": [
+            "answer",
+            "defer-this-node",
+            "reverse-a-parent-answer",
+            "stop-the-walk"
+          ],
+          "decision_artifact": {
+            "path": "command-center/ledger-walk/bp-req-02/nodes/node.json",
+            "schema_ref": "command-center/schema/decision-record.schema.json",
+            "min_bytes": 128,
+            "register_in_manifest": true,
+            "sentinel": "SUCCESS:WREQ-0202",
+            "consumers": [
+              "expand-children",
+              "checkpoint-node"
+            ]
+          }
+        },
+        {
+          "id": "expand-children",
+          "title": "S2 EXPAND children per the dependency rules, and PRUNE what the answer made moot",
+          "kind": "task",
+          "role": "pruner",
+          "depends_on": [
+            "ask-frontier-node"
+          ],
+          "timeout_seconds": 1200,
+          "work_unit": {
+            "id": "WREQ-0203",
+            "title": "Expand children per the rules and record any prune with its reason",
+            "phase": "2B",
+            "question_or_target": "Apply the dependency rules to the answer: add the children it unlocks to the frontier, and mark as PRUNED - never delete - any subtree the answer made moot, recording why.",
+            "inputs": [
+              "command-center/ledger-walk/bp-req-02/nodes",
+              "command-center/ledger-walk/bp-req-02/tree.json",
+              "params.dependency_rules"
+            ],
+            "dependencies": [
+              "WREQ-0202"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "pruner",
+              "basis": "a silently dropped subtree is unrecoverable once the parent answer is reversed"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/ledger-walk/**)"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/ledger-walk/bp-req-02/expansion.json",
+            "output_schema": "command-center/schema/decision-provenance.schema.json",
+            "evidence_requirement": "every added child cites the rule that produced it and every pruned node carries status PRUNED plus the answer that made it moot; a pruned node retains its full text so a reversal restores it",
+            "tests_required": [
+              "a pruned node must retain status PRUNED and its text, never be deleted",
+              "reversing a parent answer must RESTORE the pruned subtree",
+              "a child added with no citing rule must be rejected - expansion may not be improvised",
+              "both-states control: delete a pruned node outright and confirm pruned-subtree-is-restorable FAILS; mark it PRUNED and confirm it PASSES"
+            ],
+            "reviewer_requirement": "the checkpointer verifies that node count never decreases across the walk",
+            "completion_sentinel": "SUCCESS:WREQ-0203 emitted per step when expansion.json exists, parses, every child cites a rule, and pruned_nodes_deleted == 0; otherwise FAILED:WREQ-0203 <reason>",
+            "retry_policy": "no retry that could double-expand; the idempotency key includes the node id",
+            "failure_classification": [
+              "prune-without-reason",
+              "node-deleted",
+              "improvised-expansion"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "checkpoint-node",
+          "title": "S3 CHECKPOINT - the node write must be durable before the walk advances",
+          "kind": "task",
+          "role": "checkpointer",
+          "depends_on": [
+            "expand-children"
+          ],
+          "checkpoint": true,
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "WREQ-0204",
+            "title": "Flush the node and the new frontier to the durable ledger and verify the write",
+            "phase": "2B",
+            "question_or_target": "Write the answered node, the updated frontier and any prune records to the ledger, then READ THEM BACK and confirm they are durable before the walk advances.",
+            "inputs": [
+              "command-center/ledger-walk/bp-req-02/expansion.json",
+              "params.ledger_path"
+            ],
+            "dependencies": [
+              "WREQ-0203"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "checkpointer",
+              "basis": "a write that was never flushed is indistinguishable from a write that never happened, and the whole resume claim rests on this"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/ledger-walk/**)"
+            ],
+            "execution_substrate": "local-single",
+            "timeout_seconds": 600,
+            "output_path": "command-center/ledger-walk/bp-req-02/checkpoints/step.json",
+            "output_schema": "command-center/schema/run-ledger.schema.json",
+            "evidence_requirement": "the checkpoint records a read-back verification of the ledger after the write - existence plus a content hash - so durability is measured rather than assumed",
+            "tests_required": [
+              "the walk must not advance until the read-back verification succeeds",
+              "nodes_written must equal nodes_checkpointed at every step",
+              "both-states control: simulate a failed flush and confirm every-node-write-is-a-checkpoint FAILS; a real flush must PASS"
+            ],
+            "reviewer_requirement": "one independent reader confirms the checkpoint count equals the answered-node count at the end of the walk",
+            "completion_sentinel": "SUCCESS:WREQ-0204 emitted per step when the checkpoint artifact exists, parses, and the read-back hash matches the write; otherwise FAILED:WREQ-0204 <reason>",
+            "retry_policy": "one retry on a transient write failure; a second failure halts the walk rather than advancing on an unflushed node",
+            "failure_classification": [
+              "checkpoint-unflushed",
+              "hash-mismatch",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 400,
+        "min_iterations": 1,
+        "converged_when": "frontier_size == 0 OR depth_reached >= max_depth",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "frontier_size",
+            "direction": "decrease",
+            "target": 0
+          },
+          {
+            "name": "depth_reached",
+            "direction": "increase"
+          },
+          {
+            "name": "nodes_resolved",
+            "direction": "increase"
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "checkpoint-gate",
+      "title": "S3b Every node write was a checkpoint, or the resume claim is false",
+      "kind": "gate",
+      "depends_on": [
+        "walk"
+      ],
+      "gate_ref": "every-node-write-is-a-checkpoint"
+    },
+    {
+      "id": "prune-gate",
+      "title": "S3c Every prune carries a reason and nothing was deleted",
+      "kind": "gate",
+      "depends_on": [
+        "checkpoint-gate"
+      ],
+      "gate_ref": "pruned-subtree-is-restorable"
+    },
+    {
+      "id": "resume-drill",
+      "title": "S4 DRILL - kill the walk mid-flight and resume; the frontier must come back exactly",
+      "kind": "task",
+      "role": "checkpointer",
+      "depends_on": [
+        "prune-gate"
+      ],
+      "when": "resume_drill == true",
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WREQ-0205",
+        "title": "Kill-and-resume drill - prove the frontier is restored exactly and not from the root",
+        "phase": "2B",
+        "question_or_target": "Kill the walk after N answered nodes, resume it, and prove the restored frontier is byte-identical to the pre-kill frontier and that the walk did not restart from the root.",
+        "inputs": [
+          "command-center/ledger-walk/bp-req-02/checkpoints",
+          "command-center/ledger-walk/bp-req-02/tree.json"
+        ],
+        "dependencies": [
+          "WREQ-0204"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "checkpointer",
+          "basis": "the design card names this as the proof needed before adoption; resumability on this machine is UNVERIFIED without it"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/ledger-walk/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/ledger-walk/bp-req-02/resume-drill.json",
+        "output_schema": "command-center/schema/lifecycle-drill-receipt.schema.json",
+        "evidence_requirement": "the drill records the pre-kill frontier hash, the post-resume frontier hash, and the number of nodes re-asked - which must be zero; a drill that reports success without those three numbers proves nothing",
+        "tests_required": [
+          "kill the session mid-walk and resume - the frontier must be exactly where it was",
+          "the resumed walk must re-ask ZERO already-answered nodes",
+          "both-states control: corrupt one checkpoint and confirm the drill FAILS; run it on intact checkpoints and confirm it PASSES - a drill that passes in both states measures nothing"
+        ],
+        "reviewer_requirement": "one independent reader compares the two frontier hashes and confirms they match",
+        "completion_sentinel": "SUCCESS:WREQ-0205 emitted when resume-drill.json exists, parses, and pre-kill and post-resume frontier hashes match with zero nodes re-asked; otherwise FAILED:WREQ-0205 <reason>",
+        "retry_policy": "no retry - a failed resume drill is the finding, and re-running it with the same checkpoints is the same measurement",
+        "failure_classification": [
+          "resume-diverged",
+          "resumed-from-root",
+          "checkpoint-corrupt"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/ledger-walk/bp-req-02/resume-drill.json",
+          "schema_ref": "command-center/schema/lifecycle-drill-receipt.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WREQ-0205",
+          "consumers": [
+            "resume-gate",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resume-gate",
+      "title": "S4b The resume must land on the frontier, not the root",
+      "kind": "gate",
+      "depends_on": [
+        "resume-drill"
+      ],
+      "when": "resume_drill == true",
+      "gate_ref": "resume-lands-on-the-frontier"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "frontier-empty",
+      "expression": "frontier_size == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "nodes_resolved >= 1 AND unflushed_nodes == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "depth-bound-reached",
+      "expression": "depth_reached >= depth_bound",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "resume-cannot-be-trusted",
+      "expression": "resume_restored_frontier_exactly == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": [
+      "checkpoint-unflushed"
+    ],
+    "no_retry_on": [
+      "node-deleted",
+      "resume-diverged",
+      "owner-blocked"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "checkpoint-unflushed",
+      "prune-without-reason",
+      "node-deleted",
+      "resume-diverged"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-req-02"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-req-02",
+    "granularity": "work-unit",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 7776000,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/bp-req-02.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "graph",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-req-02-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/ledger-walk/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.2,
+      "expected": 1.2,
+      "max": 5.0
+    },
+    "wallclock_seconds": {
+      "min": 1200,
+      "expected": 28800,
+      "max": 86400
+    },
+    "tokens": {
+      "min": 40000,
+      "expected": 200000,
+      "max": 800000
+    },
+    "tool_calls": {
+      "expected": 80,
+      "max": 400
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/ledger-walk/bp-req-02/**; the ledger is append-and-mark, never delete, so a wrong early answer is recoverable",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-req-02.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "skills/recursive-decision-ledger",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "workflows/grill.yaml",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REQ-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/recursive-decision-ledger"
+    ]
+  },
+  "outputs": {
+    "tree": {
+      "path": "command-center/ledger-walk/bp-req-02/tree.json",
+      "schema_ref": "command-center/schema/decision-trace.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate"
+      ]
+    },
+    "resume_drill": {
+      "path": "command-center/ledger-walk/bp-req-02/resume-drill.json",
+      "schema_ref": "command-center/schema/lifecycle-drill-receipt.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "resume-gate",
+        "owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 24,
+    "design_card": "BP-REQ-02",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1225",
+    "acquisition_route": "ADOPT",
+    "state_v": [
+      "FOUND"
+    ],
+    "size_v": [
+      "NATIVE"
+    ],
+    "distinct_mechanism": "an explicit frontier queue whose size IS the convergence metric, rule-cited expansion (improvised children rejected), prune-by-marking so a subtree stays restorable, a read-back-verified checkpoint per node, and a kill-and-resume drill with a both-states control that must fail on a corrupted checkpoint",
+    "not_a_duplicate_because": "BP-REQ-01 asks a FLAT ordered list ranked foundational-first; this manages a DEPENDENT tree with a frontier and prunable subtrees, where answering a node CHANGES which nodes exist. It is the only blueprint in this range with no council and no fan-out at all, and the only one where resume is a gated, drilled property rather than a policy block.",
+    "contraindications": [
+      "a flat list of independent choices - a plain grill is cheaper and this adds tree machinery for nothing",
+      "the tree is unknowably deep - the depth bound would fire immediately and the emit-partial is not useful"
+    ],
+    "worked_examples": [
+      {
+        "name": "a dependent scoping tree where the root answer prunes a whole subtree",
+        "params": {
+          "root_decision": "Is a blueprint a schema-validated JSON definition, or a prose design card",
+          "dependency_rules": {
+            "rules": [
+              {
+                "when_answer": "json-definition",
+                "expand_to": [
+                  "which schema profile gates it",
+                  "where do the definitions live",
+                  "who writes the tests",
+                  "what counts as materially distinct"
+                ],
+                "prune": [
+                  "what prose template do cards use",
+                  "who copy-edits the cards"
+                ]
+              },
+              {
+                "when_answer": "prose-card",
+                "expand_to": [
+                  "what prose template do cards use",
+                  "who copy-edits the cards"
+                ],
+                "prune": [
+                  "which schema profile gates it",
+                  "who writes the tests"
+                ]
+              },
+              {
+                "when_answer": "strict-profile",
+                "expand_to": [
+                  "do we accept the 328 currently-failing units",
+                  "who fixes the non-canonical assignment shapes"
+                ]
+              }
+            ],
+            "max_depth": 4
+          },
+          "ledger_path": "command-center/ledger-walk/bp-req-02/ledger.json",
+          "max_depth": 4,
+          "resume_drill": true
+        },
+        "expected_artifacts": [
+          "command-center/ledger-walk/bp-req-02/tree.json",
+          "command-center/ledger-walk/bp-req-02/expansion.json",
+          "command-center/ledger-walk/bp-req-02/resume-drill.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WREQ-0205 with frontier_size == 0",
+        "walkthrough": "S0 seeds one root node and hashes the three rules. Step 1 asks the root; the owner answers json-definition. S2 adds the four children the rule cites and marks the two prose-card nodes PRUNED with the reason `parent answered json-definition` - their text is retained. S3 writes and reads back the ledger; nodes_written == nodes_checkpointed == 1. Step 2 asks `which schema profile gates it`; the answer strict-profile expands two more children. The walk continues to depth 3, frontier_size falls to 0 at step 7 of a 400 bound. S3b confirms 7 written == 7 checkpointed. S3c confirms 2 prunes, both with reasons, 0 deletions. S4 kills the walk after node 4 and resumes: the pre-kill frontier hash matches the post-resume hash and zero nodes are re-asked. Then the owner reverses the root to prose-card - and because the two pruned nodes were MARKED rather than deleted, they are restored to the frontier while the json-definition subtree is pruned in turn.",
+        "expected_gate_outcomes": {
+          "every-node-write-is-a-checkpoint": "PASS - 7 written, 7 checkpointed, 0 unflushed",
+          "pruned-subtree-is-restorable": "PASS - 2 prunes with reasons, 0 nodes deleted",
+          "resume-lands-on-the-frontier": "PASS - frontier hashes match, 0 nodes re-asked"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a corrupted checkpoint must fail the drill",
+        "params": {
+          "root_decision": "Is a blueprint a schema-validated JSON definition, or a prose design card",
+          "dependency_rules": {
+            "rules": [
+              {
+                "when_answer": "json-definition",
+                "expand_to": [
+                  "which schema profile gates it"
+                ]
+              }
+            ],
+            "max_depth": 2
+          },
+          "ledger_path": "command-center/ledger-walk/bp-req-02/ledger.json",
+          "max_depth": 2,
+          "resume_drill": true
+        },
+        "expected_artifacts": [
+          "command-center/ledger-walk/bp-req-02/resume-drill.json"
+        ],
+        "expected_terminal_state": "FAILED:WREQ-0205 checkpoint-corrupt",
+        "walkthrough": "One checkpoint file is truncated before the resume. The post-resume frontier hash no longer matches the pre-kill hash, resume_restored_frontier_exactly goes false, and resume-lands-on-the-frontier escalates to the owner rather than continuing on a frontier that silently lost a node. This is the both-states arm that makes the drill meaningful: a drill that reports PASS on a corrupted checkpoint would be measuring nothing, and the design card's stated proof-before-adoption would be satisfied by a probe that cannot fail.",
+        "expected_gate_outcomes": {
+          "resume-lands-on-the-frontier": "FAIL - escalated; resume_restored_frontier_exactly == false"
+        },
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "kill the session mid-walk and resume - the frontier must be exactly where it was",
+      "reverse a parent answer - the pruned subtree must be restorable"
+    ],
+    "unverified": "UNVERIFIED resume behaviour on this machine; the settling experiment is the kill-and-resume drill, which this blueprint runs as a stage rather than leaving to trust. Corpus confidence band: very-likely (80-90%); estimate.confidence carries the nearest legal DSL band, likely.",
+    "confidence_band_note": "The DSL confidence_band enum has five members and no very-likely, so the corpus band is recorded here and estimate.confidence carries likely (55-80%).",
+    "council_presets_referenced": []
+  }
+}

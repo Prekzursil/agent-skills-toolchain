@@ -1,0 +1,762 @@
+{
+ "unit_id": "RES-0106",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0106 in the receipt AND a specified never-selected detector with its data source and its stated false-alarm case",
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0106.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "RES-0106 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0106.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0106.json",
+     "raw_output": "bytes=20622 sha256=6515fb18a3367eb9e86b175a61ab9e763e3ccd5a660fcde17b65fa9e0a5a7b68",
+     "fingerprint": "35677098795d7cd28e92409ee40b75a4",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0106",
+     "raw_output": "schema-check",
+     "fingerprint": "fe360fb8027ebc573f20d96926899a07",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0106 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0106",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0106",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "cc1542fd19fde3152e0ddc0f26b9f62e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0106",
+     "raw_output": "schema-valid",
+     "fingerprint": "c9006159b891bdc7cdc13d737c4b631c",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0106.json",
+   "bytes": 20622,
+   "sha256": "6515fb18a3367eb9e86b175a61ab9e763e3ccd5a660fcde17b65fa9e0a5a7b68",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "question": "What does a router regression suite look like elsewhere (golden query sets, drift alarms, coverage of never-selected capabilities), and how do they detect the specific failure where a capability exists but is never selected?",
+   "title": "Extract how other systems build a regression suite that proves a router still routes",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "inputs_missing_on_worktree": [
+    "command-center/sources/REGISTER.md",
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"
+   ],
+   "claims": [
+    {
+     "id": "C-GOLDEN-QUERY-SET",
+     "claim": "Elsewhere, a router/ranker regression suite is a labeled golden query set: typical queries plus per-query document (or item) ratings, scored by a ranking metric. OpenSearch/_rank_eval is the structured form of that pattern.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "rank_eval is search ranking, not LLM tool routing. The transferable mechanism is the labeled (query, relevant-id) set, not Elasticsearch/OpenSearch as a runtime.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/opensearch-project/OpenSearch/blob/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+       "request_url": "https://raw.githubusercontent.com/opensearch-project/OpenSearch/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+       "final_url": "https://raw.githubusercontent.com/opensearch-project/OpenSearch/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+       "fetch_timestamp": "2026-08-24T18:47:35Z",
+       "http_status": 200,
+       "sha256": "3a35eb3496df1eb25d1caed66817a6c2ea9e0b129e2578fff661db9e16e43737",
+       "bytes": 1955,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/opensearch_rank_eval_api_raw.bin",
+       "quoted_span": "Allows to evaluate the quality of ranked search results over a set of typical search queries"
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://docs.opensearch.org/latest/api-reference/search-apis/rank-eval/",
+       "request_url": "https://opensearch.org/docs/latest/api-reference/search-apis/rank-eval/",
+       "final_url": "https://docs.opensearch.org/latest/api-reference/search-apis/rank-eval/",
+       "fetch_timestamp": "2026-08-24T18:44:40Z",
+       "http_status": 200,
+       "sha256": "f5e31f68eef8ec2e4c0c41c45c61d2b8c6d3ac84af1ae8d1c3c2eb5b549ccd89",
+       "bytes": 446725,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/opensearch_rank_eval_docs.bin",
+       "quoted_span": "The Rank Evaluation API evaluates the quality of ranked search results."
+      }
+     ]
+    },
+    {
+     "id": "C-ROUTER-SELECTS-ONE",
+     "claim": "LlamaIndex RouterQueryEngine selects one of several candidate query engines from tool metadata/descriptions. The router itself has no check that a registered candidate is ever chosen.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "Absence of a never-selected check in this module is not proof that no LlamaIndex user has one in their own eval harness.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/run-llama/llama_index/blob/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "request_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "final_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "fetch_timestamp": "2026-08-24T18:47:35Z",
+       "http_status": 200,
+       "sha256": "ca9215dfe12f255127c9a45039b28860095f8973948b8f5a35d64af88a1f3f8c",
+       "bytes": 15522,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_py_raw.bin",
+       "quoted_span": "Selects one out of several candidate query engines to execute a query."
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+       "request_url": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+       "final_url": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+       "fetch_timestamp": "2026-08-24T18:46:35Z",
+       "http_status": 200,
+       "sha256": "31a1a3a1c557215b810c940f285c70637f3d2110ad7273dcd5c71bb91f57b1fe",
+       "bytes": 6442,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_md.bin",
+       "quoted_span": "Routers are modules that take in a user query and a set of “choices” (defined by metadata), and returns one or more selected choices."
+      }
+     ]
+    },
+    {
+     "id": "C-BFCL-IRRELEVANCE",
+     "claim": "Function-calling eval suites (BFCL) use labeled (query, expected function) cases plus a relevance/irrelevance class for when a function should not be invoked. That class is the false-alarm cousin of never-selected: it tests SHOULD-never-call, not exists-but-never-called.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "BFCL scores whether the model matches the labeled function on cases that exist in the dataset. A catalog function that never appears as a gold label is invisible to the leaderboard score.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/ShishirPatil/gorilla/blob/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+       "request_url": "https://raw.githubusercontent.com/ShishirPatil/gorilla/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+       "final_url": "https://raw.githubusercontent.com/ShishirPatil/gorilla/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+       "fetch_timestamp": "2026-08-24T18:47:38Z",
+       "http_status": 200,
+       "sha256": "c6c95683cce9653788c8b3f3f5002d2f5c27b95a1288544fe82c2a2faf5e12d0",
+       "bytes": 17311,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_readme_raw.bin",
+       "quoted_span": "first comprehensive and executable function call evaluation"
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "request_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "final_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "fetch_timestamp": "2026-08-24T18:44:42Z",
+       "http_status": 200,
+       "sha256": "96c6413dc0952a4ec62f41f0bb4b6bb8666ff161e135a1f2566ac69c2744c2ed",
+       "bytes": 114940,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_blog.bin",
+       "quoted_span": "when the provided function is not suitable"
+      }
+     ]
+    },
+    {
+     "id": "C-NLU-UNIQUE-LABELS-GAP",
+     "claim": "NLU/intent evaluation only reports labels that appear in the test examples. Rasa evaluate_intents drops examples with no intent target and builds the label set from unique_labels of targets and predictions, so an intent that is never a target and never predicted does not show up as a failure. Rasa Pro E2E coverage metrics separately flag untested flows.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "The OSS evaluate_intents mechanism and the Pro E2E coverage docs are the same *pattern* on two products, not one binary. unique_labels would also hide a capability that the model never predicts if it is also absent from y_true.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/RasaHQ/rasa/blob/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+       "request_url": "https://raw.githubusercontent.com/RasaHQ/rasa/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+       "final_url": "https://raw.githubusercontent.com/RasaHQ/rasa/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+       "fetch_timestamp": "2026-08-24T18:47:36Z",
+       "http_status": 200,
+       "sha256": "cda5da5712ed8de6e585d1ae37e812cc6ddc749cbb3c3337d846b28577cf4653",
+       "bytes": 67726,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/rasa_nlu_test_py_raw.bin",
+       "quoted_span": "Only considers those examples with a set intent. Others are filtered out."
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://rasa.com/docs/pro/testing/evaluating-assistant/",
+       "request_url": "https://rasa.com/docs/rasa/testing-your-assistant/",
+       "final_url": "https://rasa.com/docs/pro/testing/evaluating-assistant/",
+       "fetch_timestamp": "2026-08-24T18:44:40Z",
+       "http_status": 200,
+       "sha256": "6414eaa88f1b04f228edddb29c1b8eb4f9e5406b2acc1e380465bee939b486a6",
+       "bytes": 49722,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/rasa_testing_docs.bin",
+       "quoted_span": "Coverage metrics help you see which flows and commands are not tested."
+      }
+     ]
+    },
+    {
+     "id": "C-STALE-FLAG-ANALOG",
+     "claim": "Unleash detects unused-looking flags by marking them potentially stale after expected lifetime, and allows a manual stale mark after the flag has served its purpose without tearing down the live configuration. Time-based unused is an analog of never-selected, not a router gold-set join.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "Potentially-stale is lifetime, not 'never chosen for a labeled query'. Kill-switches and rollback flags that remain configured but unused are the false-alarm case if unused==defect.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/Unleash/unleash/blob/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+       "request_url": "https://raw.githubusercontent.com/Unleash/unleash/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+       "final_url": "https://raw.githubusercontent.com/Unleash/unleash/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+       "fetch_timestamp": "2026-08-24T18:47:38Z",
+       "http_status": 200,
+       "sha256": "4622fcd68c2c3bbbe97e9c543587f47ab14dcd3ce67bee551a727480c00cbbdb",
+       "bytes": 84014,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/unleash_feature_toggle_service_raw.bin",
+       "quoted_span": "async updatePotentiallyStaleFeatures"
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://docs.getunleash.io/concepts/technical-debt.md",
+       "request_url": "https://docs.getunleash.io/concepts/technical-debt.md",
+       "final_url": "https://docs.getunleash.io/concepts/technical-debt.md",
+       "fetch_timestamp": "2026-08-24T18:45:59Z",
+       "http_status": 200,
+       "sha256": "c440660d5b3fdbbe1e9298edd7c76e729a456e7c0a9cf450cc1debece64f9b09",
+       "bytes": 5022,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/unleash_techdebt_md.bin",
+       "quoted_span": "You can also manually mark a feature flag as stale if you know it has served its intended purpose."
+      }
+     ]
+    },
+    {
+     "id": "C-FALLBACK-ROUTE",
+     "claim": "Haystack ConditionalRouter documents an explicit fallback route when no specified condition matches. That is the no-capability-fits path, complementary to never-selected: empty gold expected-set queries must not be forced onto a catalog item.",
+     "verdict": "CONFIRMED",
+     "grade": "E1",
+     "cite_as_measured_fact": true,
+     "strongest_caveat": "A fallback route does not detect a registered route that is never taken; it only handles unmatched conditions.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/deepset-ai/haystack/blob/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+       "request_url": "https://raw.githubusercontent.com/deepset-ai/haystack/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+       "final_url": "https://raw.githubusercontent.com/deepset-ai/haystack/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+       "fetch_timestamp": "2026-08-24T18:47:37Z",
+       "http_status": 200,
+       "sha256": "192859c8d134092e54ef0699f371f76e19a61e4a80fd0732136f90e8807f0958",
+       "bytes": 27921,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/haystack_conditional_router_py_raw.bin",
+       "quoted_span": "Example usage with a default fallback route in a Pipeline:"
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+       "request_url": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+       "final_url": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+       "fetch_timestamp": "2026-08-24T18:44:42Z",
+       "http_status": 200,
+       "sha256": "f33af7784926aa48746349a6e0f83212d66c0f661a09b02b35b2c9704131e9fe",
+       "bytes": 108876,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/haystack_conditional_docs.bin",
+       "quoted_span": "fallback route"
+      }
+     ]
+    },
+    {
+     "id": "C-LANGSMITH-REGRESSION-E3",
+     "claim": "LangSmith documents offline evaluation on curated datasets and online evaluation on production traces to catch regressions.",
+     "verdict": "E3-NOT-FACT",
+     "grade": "E3",
+     "cite_as_measured_fact": false,
+     "strongest_caveat": "Single prose rail only (no independent structured API capture of LangSmith). Graded E3; must not be cited as measured fact.",
+     "rails": [
+      {
+       "kind": "prose",
+       "permalink": "https://docs.langchain.com/langsmith/evaluation",
+       "request_url": "https://docs.langchain.com/langsmith/evaluation",
+       "final_url": "https://docs.langchain.com/langsmith/evaluation",
+       "fetch_timestamp": "2026-08-24T18:44:42Z",
+       "http_status": 200,
+       "sha256": "e702256214d7fd30c7abdf13bb73e7f9632804480e6f8a46179eb51767b5cd28",
+       "bytes": 796073,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/langsmith_eval_docs.bin",
+       "quoted_span": "catch regressions"
+      }
+     ]
+    },
+    {
+     "id": "C-UPSTREAM-HAS-NAMED-DETECTOR",
+     "claim": "Public router suites already ship a first-class detector named for the failure 'a capability exists in the catalog but is never selected'.",
+     "verdict": "REFUTED",
+     "grade": "E1",
+     "cite_as_measured_fact": false,
+     "strongest_caveat": "The fetched suites provide adjacent mechanisms (golden ratings, unique_labels gaps, stale flags, irrelevance cases, fallback routes) but none of the captured sources specify the catalog+gold+selection-log join as a named check. The detector below is a synthesis, not a copy of one upstream file.",
+     "rails": [
+      {
+       "kind": "structured-api",
+       "permalink": "https://github.com/run-llama/llama_index/blob/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "request_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "final_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+       "fetch_timestamp": "2026-08-24T18:47:35Z",
+       "http_status": 200,
+       "sha256": "ca9215dfe12f255127c9a45039b28860095f8973948b8f5a35d64af88a1f3f8c",
+       "bytes": 15522,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_py_raw.bin",
+       "quoted_span": "Selects one out of several candidate query engines to execute a query."
+      },
+      {
+       "kind": "prose",
+       "permalink": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "request_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "final_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+       "fetch_timestamp": "2026-08-24T18:44:42Z",
+       "http_status": 200,
+       "sha256": "96c6413dc0952a4ec62f41f0bb4b6bb8666ff161e135a1f2566ac69c2744c2ed",
+       "bytes": 114940,
+       "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_blog.bin",
+       "quoted_span": "function relevance detection"
+      }
+     ]
+    }
+   ],
+   "never_selected_detector": {
+    "id": "RES-0106-never-selected",
+    "title": "never-selected capability detector",
+    "data_source": {
+     "capability_catalog": "command-center/p2-wave/probes/RES-0106/fixtures/catalog.json",
+     "golden_query_set": "command-center/p2-wave/probes/RES-0106/fixtures/golden_queries.json",
+     "selection_log": "the log produced by running the golden query set through the router (CI), or a production trace window with the same schema (query_id, selected_capability_ids)",
+     "what_it_reads": [
+      "catalog rows: id, selectable, never_select_reason",
+      "gold rows: query_id, expected_capability_ids",
+      "log rows: query_id, selected_capability_ids"
+     ]
+    },
+    "when_it_runs": [
+     "CI: immediately after the router regression suite writes a selection log for the golden query set",
+     "periodic: over a production selection-log window using the same join (optional second rail; not required to fire in CI)"
+    ],
+    "algorithm": "never_selected_routing_defect = (gold expected ids ∩ catalog selectable ids) − selected ids. corpus_gap = selectable ids − gold expected ids (untested, not a routing defect). never_by_design (selectable=false) is excluded from both.",
+    "false_alarm_case": {
+     "capability_id": "debug.dump_internal_state",
+     "why_it_should_never_be_selected": "Admin kill-switch / dump path catalogued for operators. A user-task golden set must not treat 'never selected' as a defect for this id. deprecated.rollback_only is the same class.",
+     "naive_detector_that_false_alarms": "catalog_ids − selected_ids with no selectable filter"
+    },
+    "prior_art_claim_ids": [
+     "C-GOLDEN-QUERY-SET",
+     "C-NLU-UNIQUE-LABELS-GAP",
+     "C-BFCL-IRRELEVANCE",
+     "C-STALE-FLAG-ANALOG",
+     "C-FALLBACK-ROUTE"
+    ],
+    "implementation": "command-center/p2-wave/probes/RES-0106/detector.py"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0106",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0106/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0106"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0106.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0106.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "c0a8a4f23f8729c6ba2aed45a3629170",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 20622,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0106.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "question": "What does a router regression suite look like elsewhere (golden query sets, drift alarms, coverage of never-selected capabilities), and how do they detect the specific failure where a capability exists but is never selected?",
+ "title": "Extract how other systems build a regression suite that proves a router still routes",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "inputs_missing_on_worktree": [
+  "command-center/sources/REGISTER.md",
+  "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"
+ ],
+ "claims": [
+  {
+   "id": "C-GOLDEN-QUERY-SET",
+   "claim": "Elsewhere, a router/ranker regression suite is a labeled golden query set: typical queries plus per-query document (or item) ratings, scored by a ranking metric. OpenSearch/_rank_eval is the structured form of that pattern.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "rank_eval is search ranking, not LLM tool routing. The transferable mechanism is the labeled (query, relevant-id) set, not Elasticsearch/OpenSearch as a runtime.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/opensearch-project/OpenSearch/blob/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+     "request_url": "https://raw.githubusercontent.com/opensearch-project/OpenSearch/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+     "final_url": "https://raw.githubusercontent.com/opensearch-project/OpenSearch/d1239c3e41bb6974690602a7a783144f18993667/rest-api-spec/src/main/resources/rest-api-spec/api/rank_eval.json",
+     "fetch_timestamp": "2026-08-24T18:47:35Z",
+     "http_status": 200,
+     "sha256": "3a35eb3496df1eb25d1caed66817a6c2ea9e0b129e2578fff661db9e16e43737",
+     "bytes": 1955,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/opensearch_rank_eval_api_raw.bin",
+     "quoted_span": "Allows to evaluate the quality of ranked search results over a set of typical search queries"
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://docs.opensearch.org/latest/api-reference/search-apis/rank-eval/",
+     "request_url": "https://opensearch.org/docs/latest/api-reference/search-apis/rank-eval/",
+     "final_url": "https://docs.opensearch.org/latest/api-reference/search-apis/rank-eval/",
+     "fetch_timestamp": "2026-08-24T18:44:40Z",
+     "http_status": 200,
+     "sha256": "f5e31f68eef8ec2e4c0c41c45c61d2b8c6d3ac84af1ae8d1c3c2eb5b549ccd89",
+     "bytes": 446725,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/opensearch_rank_eval_docs.bin",
+     "quoted_span": "The Rank Evaluation API evaluates the quality of ranked search results."
+    }
+   ]
+  },
+  {
+   "id": "C-ROUTER-SELECTS-ONE",
+   "claim": "LlamaIndex RouterQueryEngine selects one of several candidate query engines from tool metadata/descriptions. The router itself has no check that a registered candidate is ever chosen.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "Absence of a never-selected check in this module is not proof that no LlamaIndex user has one in their own eval harness.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/run-llama/llama_index/blob/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "request_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "final_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "fetch_timestamp": "2026-08-24T18:47:35Z",
+     "http_status": 200,
+     "sha256": "ca9215dfe12f255127c9a45039b28860095f8973948b8f5a35d64af88a1f3f8c",
+     "bytes": 15522,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_py_raw.bin",
+     "quoted_span": "Selects one out of several candidate query engines to execute a query."
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+     "request_url": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+     "final_url": "https://developers.llamaindex.ai/python/framework/module_guides/querying/router/index.md",
+     "fetch_timestamp": "2026-08-24T18:46:35Z",
+     "http_status": 200,
+     "sha256": "31a1a3a1c557215b810c940f285c70637f3d2110ad7273dcd5c71bb91f57b1fe",
+     "bytes": 6442,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_md.bin",
+     "quoted_span": "Routers are modules that take in a user query and a set of “choices” (defined by metadata), and returns one or more selected choices."
+    }
+   ]
+  },
+  {
+   "id": "C-BFCL-IRRELEVANCE",
+   "claim": "Function-calling eval suites (BFCL) use labeled (query, expected function) cases plus a relevance/irrelevance class for when a function should not be invoked. That class is the false-alarm cousin of never-selected: it tests SHOULD-never-call, not exists-but-never-called.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "BFCL scores whether the model matches the labeled function on cases that exist in the dataset. A catalog function that never appears as a gold label is invisible to the leaderboard score.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/ShishirPatil/gorilla/blob/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+     "request_url": "https://raw.githubusercontent.com/ShishirPatil/gorilla/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+     "final_url": "https://raw.githubusercontent.com/ShishirPatil/gorilla/dac44e7ac9db5ff26a01ab0c1ec5de5a1e703b7a/berkeley-function-call-leaderboard/README.md",
+     "fetch_timestamp": "2026-08-24T18:47:38Z",
+     "http_status": 200,
+     "sha256": "c6c95683cce9653788c8b3f3f5002d2f5c27b95a1288544fe82c2a2faf5e12d0",
+     "bytes": 17311,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_readme_raw.bin",
+     "quoted_span": "first comprehensive and executable function call evaluation"
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "request_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "final_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "fetch_timestamp": "2026-08-24T18:44:42Z",
+     "http_status": 200,
+     "sha256": "96c6413dc0952a4ec62f41f0bb4b6bb8666ff161e135a1f2566ac69c2744c2ed",
+     "bytes": 114940,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_blog.bin",
+     "quoted_span": "when the provided function is not suitable"
+    }
+   ]
+  },
+  {
+   "id": "C-NLU-UNIQUE-LABELS-GAP",
+   "claim": "NLU/intent evaluation only reports labels that appear in the test examples. Rasa evaluate_intents drops examples with no intent target and builds the label set from unique_labels of targets and predictions, so an intent that is never a target and never predicted does not show up as a failure. Rasa Pro E2E coverage metrics separately flag untested flows.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "The OSS evaluate_intents mechanism and the Pro E2E coverage docs are the same *pattern* on two products, not one binary. unique_labels would also hide a capability that the model never predicts if it is also absent from y_true.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/RasaHQ/rasa/blob/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+     "request_url": "https://raw.githubusercontent.com/RasaHQ/rasa/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+     "final_url": "https://raw.githubusercontent.com/RasaHQ/rasa/78e12bb0290abc08c85f3aff63272de8bb75b50a/rasa/nlu/test.py",
+     "fetch_timestamp": "2026-08-24T18:47:36Z",
+     "http_status": 200,
+     "sha256": "cda5da5712ed8de6e585d1ae37e812cc6ddc749cbb3c3337d846b28577cf4653",
+     "bytes": 67726,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/rasa_nlu_test_py_raw.bin",
+     "quoted_span": "Only considers those examples with a set intent. Others are filtered out."
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://rasa.com/docs/pro/testing/evaluating-assistant/",
+     "request_url": "https://rasa.com/docs/rasa/testing-your-assistant/",
+     "final_url": "https://rasa.com/docs/pro/testing/evaluating-assistant/",
+     "fetch_timestamp": "2026-08-24T18:44:40Z",
+     "http_status": 200,
+     "sha256": "6414eaa88f1b04f228edddb29c1b8eb4f9e5406b2acc1e380465bee939b486a6",
+     "bytes": 49722,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/rasa_testing_docs.bin",
+     "quoted_span": "Coverage metrics help you see which flows and commands are not tested."
+    }
+   ]
+  },
+  {
+   "id": "C-STALE-FLAG-ANALOG",
+   "claim": "Unleash detects unused-looking flags by marking them potentially stale after expected lifetime, and allows a manual stale mark after the flag has served its purpose without tearing down the live configuration. Time-based unused is an analog of never-selected, not a router gold-set join.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "Potentially-stale is lifetime, not 'never chosen for a labeled query'. Kill-switches and rollback flags that remain configured but unused are the false-alarm case if unused==defect.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/Unleash/unleash/blob/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+     "request_url": "https://raw.githubusercontent.com/Unleash/unleash/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+     "final_url": "https://raw.githubusercontent.com/Unleash/unleash/e3ebc635aa2ffedfea529b3eac99e32c5f817115/src/lib/features/feature-toggle/feature-toggle-service.ts",
+     "fetch_timestamp": "2026-08-24T18:47:38Z",
+     "http_status": 200,
+     "sha256": "4622fcd68c2c3bbbe97e9c543587f47ab14dcd3ce67bee551a727480c00cbbdb",
+     "bytes": 84014,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/unleash_feature_toggle_service_raw.bin",
+     "quoted_span": "async updatePotentiallyStaleFeatures"
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://docs.getunleash.io/concepts/technical-debt.md",
+     "request_url": "https://docs.getunleash.io/concepts/technical-debt.md",
+     "final_url": "https://docs.getunleash.io/concepts/technical-debt.md",
+     "fetch_timestamp": "2026-08-24T18:45:59Z",
+     "http_status": 200,
+     "sha256": "c440660d5b3fdbbe1e9298edd7c76e729a456e7c0a9cf450cc1debece64f9b09",
+     "bytes": 5022,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/unleash_techdebt_md.bin",
+     "quoted_span": "You can also manually mark a feature flag as stale if you know it has served its intended purpose."
+    }
+   ]
+  },
+  {
+   "id": "C-FALLBACK-ROUTE",
+   "claim": "Haystack ConditionalRouter documents an explicit fallback route when no specified condition matches. That is the no-capability-fits path, complementary to never-selected: empty gold expected-set queries must not be forced onto a catalog item.",
+   "verdict": "CONFIRMED",
+   "grade": "E1",
+   "cite_as_measured_fact": true,
+   "strongest_caveat": "A fallback route does not detect a registered route that is never taken; it only handles unmatched conditions.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/deepset-ai/haystack/blob/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+     "request_url": "https://raw.githubusercontent.com/deepset-ai/haystack/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+     "final_url": "https://raw.githubusercontent.com/deepset-ai/haystack/cf4cadbe427446587ffe857ed713c6e049a2da0f/haystack/components/routers/conditional_router.py",
+     "fetch_timestamp": "2026-08-24T18:47:37Z",
+     "http_status": 200,
+     "sha256": "192859c8d134092e54ef0699f371f76e19a61e4a80fd0732136f90e8807f0958",
+     "bytes": 27921,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/haystack_conditional_router_py_raw.bin",
+     "quoted_span": "Example usage with a default fallback route in a Pipeline:"
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+     "request_url": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+     "final_url": "https://docs.haystack.deepset.ai/docs/conditionalrouter",
+     "fetch_timestamp": "2026-08-24T18:44:42Z",
+     "http_status": 200,
+     "sha256": "f33af7784926aa48746349a6e0f83212d66c0f661a09b02b35b2c9704131e9fe",
+     "bytes": 108876,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/haystack_conditional_docs.bin",
+     "quoted_span": "fallback route"
+    }
+   ]
+  },
+  {
+   "id": "C-LANGSMITH-REGRESSION-E3",
+   "claim": "LangSmith documents offline evaluation on curated datasets and online evaluation on production traces to catch regressions.",
+   "verdict": "E3-NOT-FACT",
+   "grade": "E3",
+   "cite_as_measured_fact": false,
+   "strongest_caveat": "Single prose rail only (no independent structured API capture of LangSmith). Graded E3; must not be cited as measured fact.",
+   "rails": [
+    {
+     "kind": "prose",
+     "permalink": "https://docs.langchain.com/langsmith/evaluation",
+     "request_url": "https://docs.langchain.com/langsmith/evaluation",
+     "final_url": "https://docs.langchain.com/langsmith/evaluation",
+     "fetch_timestamp": "2026-08-24T18:44:42Z",
+     "http_status": 200,
+     "sha256": "e702256214d7fd30c7abdf13bb73e7f9632804480e6f8a46179eb51767b5cd28",
+     "bytes": 796073,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/langsmith_eval_docs.bin",
+     "quoted_span": "catch regressions"
+    }
+   ]
+  },
+  {
+   "id": "C-UPSTREAM-HAS-NAMED-DETECTOR",
+   "claim": "Public router suites already ship a first-class detector named for the failure 'a capability exists in the catalog but is never selected'.",
+   "verdict": "REFUTED",
+   "grade": "E1",
+   "cite_as_measured_fact": false,
+   "strongest_caveat": "The fetched suites provide adjacent mechanisms (golden ratings, unique_labels gaps, stale flags, irrelevance cases, fallback routes) but none of the captured sources specify the catalog+gold+selection-log join as a named check. The detector below is a synthesis, not a copy of one upstream file.",
+   "rails": [
+    {
+     "kind": "structured-api",
+     "permalink": "https://github.com/run-llama/llama_index/blob/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "request_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "final_url": "https://raw.githubusercontent.com/run-llama/llama_index/91d811f199211301b554a005af3b01ef595a1117/llama-index-core/llama_index/core/query_engine/router_query_engine.py",
+     "fetch_timestamp": "2026-08-24T18:47:35Z",
+     "http_status": 200,
+     "sha256": "ca9215dfe12f255127c9a45039b28860095f8973948b8f5a35d64af88a1f3f8c",
+     "bytes": 15522,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/llamaindex_router_py_raw.bin",
+     "quoted_span": "Selects one out of several candidate query engines to execute a query."
+    },
+    {
+     "kind": "prose",
+     "permalink": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "request_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "final_url": "https://gorilla.cs.berkeley.edu/blogs/8_berkeley_function_calling_leaderboard.html",
+     "fetch_timestamp": "2026-08-24T18:44:42Z",
+     "http_status": 200,
+     "sha256": "96c6413dc0952a4ec62f41f0bb4b6bb8666ff161e135a1f2566ac69c2744c2ed",
+     "bytes": 114940,
+     "capture_file": "command-center/p2-wave/probes/RES-0106/captures/gorilla_bfcl_blog.bin",
+     "quoted_span": "function relevance detection"
+    }
+   ]
+  }
+ ],
+ "never_selected_detector": {
+  "id": "RES-0106-never-selected",
+  "title": "never-selected capability detector",
+  "data_source": {
+   "capability_catalog": "command-center/p2-wave/probes/RES-0106/fixtures/catalog.json",
+   "golden_query_set": "command-center/p2-wave/probes/RES-0106/fixtures/golden_queries.json",
+   "selection_log": "the log produced by running the golden query set through the router (CI), or a production trace window with the same schema (query_id, selected_capability_ids)",
+   "what_it_reads": [
+    "catalog rows: id, selectable, never_select_reason",
+    "gold rows: query_id, expected_capability_ids",
+    "log rows: query_id, selected_capability_ids"
+   ]
+  },
+  "when_it_runs": [
+   "CI: immediately after the router regression suite writes a selection log for the golden query set",
+   "periodic: over a production selection-log window using the same join (optional second rail; not required to fire in CI)"
+  ],
+  "algorithm": "never_selected_routing_defect = (gold expected ids ∩ catalog selectable ids) − selected ids. corpus_gap = selectable ids − gold expected ids (untested, not a routing defect). never_by_design (selectable=false) is excluded from both.",
+  "false_alarm_case": {
+   "capability_id": "debug.dump_internal_state",
+   "why_it_should_never_be_selected": "Admin kill-switch / dump path catalogued for operators. A user-task golden set must not treat 'never selected' as a defect for this id. deprecated.rollback_only is the same class.",
+   "naive_detector_that_false_alarms": "catalog_ids − selected_ids with no selectable filter"
+  },
+  "prior_art_claim_ids": [
+   "C-GOLDEN-QUERY-SET",
+   "C-NLU-UNIQUE-LABELS-GAP",
+   "C-BFCL-IRRELEVANCE",
+   "C-STALE-FLAG-ANALOG",
+   "C-FALLBACK-ROUTE"
+  ],
+  "implementation": "command-center/p2-wave/probes/RES-0106/detector.py"
+ }
+}

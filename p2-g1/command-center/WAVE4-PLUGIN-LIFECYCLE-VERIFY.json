@@ -1,0 +1,120 @@
+{
+  "artifact": "wave4-plugin-lifecycle-verify",
+  "unit": "verify/plugin-lifecycle",
+  "status": "COMPLETE - all 5 contracted checks measured",
+  "coverage": "5 of 5",
+  "read_lane_report_before_measuring": false,
+  "environment": {
+    "os": "Windows 11",
+    "python": "3.14.6",
+    "python_exe": "C:/Python314/python.exe",
+    "repo": "C:/Users/Prekzursil/source/ast-integrate",
+    "probe_root": "C:/Users/Prekzursil/AppData/Local/Temp/w4plug",
+    "repo_files_modified_by_this_unit": ["command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.md", "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json"]
+  },
+  "headline": "Package and conformance validator are load-bearing; all five lifecycle verbs work including rollback and uninstall. The health check verifies existence rather than integrity and its own both-states control is not wired to the exit code. platform/plugin is 252/252 green while all 7 defects below are live.",
+  "checks": {
+    "1_build": {
+      "verdict": "CONFIRMED",
+      "command": "python platform/plugin/astplugin.py build --repo-root <repo> --out <tmp>/dist",
+      "marker": "SUCCESS:build",
+      "exit": 0,
+      "archive_bytes": 95093,
+      "zip_entry_count": 45,
+      "zip_file_count": 45,
+      "uncompressed_bytes": 288265,
+      "builder_payload_file_count": 42,
+      "sha256": "af62a8836abc4f73e2a6a529dab7ea5e09b7e0828183a7caa3a08965b3067b04",
+      "deterministic_two_builds_identical": true,
+      "matches_committed_dist_zip": true,
+      "distinct_zip_timestamps": [[1980, 1, 1, 0, 0, 0]],
+      "builder_budget_bytes": 4194304,
+      "builder_budget_files": 200
+    },
+    "2_no_forbidden_content": {
+      "verdict": "CONFIRMED",
+      "detector": "w4plug/scan_pkg.py - from scratch; does NOT import payload.classify_forbidden",
+      "detector_control_known_bad_findings": 20,
+      "detector_control_exit": 3,
+      "real_package_findings": 0,
+      "real_package_exit": 0,
+      "composition": {"manifest": 1, "builder_policy_docs": 2, "readme_license": 2, "bin": 1, "commands": 1, "hooks": 1, "lib_astplugin_py": 19, "schema_json": 18},
+      "absent": [".git", "cache dirs", "*.pyc", "*.log", "*.jsonl transcripts", "credential files", "nested archives", "native binaries"],
+      "disclosed_detector_weakness": "password-assign sub-pattern misses JSON-shaped \"password\": \"...\"; entry still caught by filename; 5 other secret patterns fired"
+    },
+    "3_lifecycle": {
+      "verdict": "CONFIRMED",
+      "verbs": {
+        "install": {"marker": "SUCCESS:install", "exit": 0, "installed_files": 45, "installed_bytes": 288265, "deployed": ["commands/astplugin.md", "hooks/plugin_health.py"]},
+        "update": {"marker": "SUCCESS:update", "exit": 0, "from": "1.0.0", "to": "1.1.0", "history": ["1.0.0", "1.1.0"]},
+        "repair": {"marker": "SUCCESS:repair", "exit": 0, "restored": ["hooks/plugin_health.py"], "kept_live_override": ["commands/astplugin.md"], "owner_edit_sha_unchanged": true},
+        "rollback": {"marker": "SUCCESS:rollback", "exit": 0, "from": "1.1.0", "to": "1.0.0", "rolled_back_from": "1.1.0", "versions_retained": ["1.0.0", "1.1.0"], "live_files_removed": [], "userdata_untouched": true},
+        "uninstall_retain": {"marker": "SUCCESS:uninstall", "exit": 0, "removed_versions": ["1.0.0", "1.1.0"], "userdata_retained": true},
+        "uninstall_purge": {"marker": "SUCCESS:uninstall", "exit": 0, "userdata_retained": false}
+      },
+      "extra_properties_verified": {
+        "dry_run_is_genuinely_non_mutating": true,
+        "second_rollback_fails_closed": {"marker": "FAILED:rollback E_TXN", "exit": 22},
+        "uninstall_without_data_decision_refused": {"marker": "FAILED:uninstall E_USAGE", "exit": 2},
+        "installed_entrypoint_runs_from_prefix": true
+      }
+    },
+    "4_failed_install_atomicity": {
+      "verdict": "PARTIAL",
+      "reason": "clean for in-process failures; a hard kill leaves a lock that blocks the next lifecycle op",
+      "A_corrupt_archive": {"marker": "FAILED:install E_CONFORM", "exit": 51, "installed_json_exists": false, "version_dirs": [], "staging_entries": [], "live_files": [], "clean": true},
+      "B_failure_after_journal_opened": {"injection": "live/commands/astplugin.md pre-created as a DIRECTORY so deploy fails after stage+verify+activate+record_installed", "marker": "FAILED:install E_IO", "exit": 90, "installed_json_exists": false, "version_dirs": [], "staging_entries": [], "clean": true, "note": "this is the inverse-replay proof"},
+      "C_hard_kill_mid_transaction": {"method": "poll journal until target step recorded, then hard kill", "record_observed_before_kill": true, "version_dirs_after_kill": [], "installed_json_after_kill": false, "orphan_staging_after_kill": 1, "next_op_ran_crash_recovery": true, "retry_install_after_lock_cleared": 0, "first_attempt_discarded": "fixed 0.12s kill died during interpreter startup - proved nothing"}
+    },
+    "5_gates_can_fail": {
+      "verdict": "PARTIAL",
+      "conformance_validator": {
+        "verdict": "CONFIRMED",
+        "control_good_package_exit": 0,
+        "control_identical_repack_exit": 0,
+        "mutants_total": 9,
+        "mutants_rejected": 9,
+        "survivors": [],
+        "all_rejections_exit": 51,
+        "mutant_list": ["drop-manifest", "manifest-missing-license", "manifest-bad-version", "tampered-runtime-file", "missing-entrypoint", "drop-inventory", "extra-forbidden-git-dir", "extra-credential-file", "extra-unlisted-file"]
+      },
+      "health_check": {
+        "verdict": "PARTIAL",
+        "control_good_prefix_exit": 0,
+        "control_empty_prefix_exit": 50,
+        "empty_prefix_folds_skip_into_pass": false,
+        "independent_tampers": 6,
+        "detected": 4,
+        "missed": 2,
+        "all_restored_to_clean": true,
+        "missed_list": ["delete versions/1.0.0/lib/astplugin/cache.py", "overwrite live/hooks/plugin_health.py with junk"]
+      }
+    }
+  },
+  "defects": [
+    {"id": "D-P5-4", "severity": "P2", "file": "platform/plugin/health.py", "symbol": "_probe_installed_state", "summary": "installed-state checks only that the version dir and manifest exist; deleting an installed runtime module leaves ok:true / exit 0, and doctor also exits 0", "unused_data": "versions/<v>/PLUGIN-INVENTORY.json carries sha256+size for all 45 files", "measured": "deleted lib/astplugin/cache.py -> health-check exit 0"},
+    {"id": "D-P5-5", "severity": "P2", "file": "platform/plugin/health.py", "symbol": "_probe_deployed_files_intact", "summary": "probe means 'present' not 'intact'; overwriting a deployed hook script is invisible while deleting it is caught", "unused_data": "state/deploy-provenance.json records content_sha256 per deployed file", "measured": "delete live/hooks/plugin_health.py -> exit 50; overwrite same file with junk -> exit 0", "security_note": "the deployed hook is an executed script, so silent content substitution is a code-execution surface"},
+    {"id": "D-P5-6", "severity": "P2", "file": "platform/plugin/health.py", "anchor": "health.py:358-359 HealthReport.ok; cli.py:315", "summary": "health-check --controls cannot fail on an INVALID control; the harness detects a non-discriminating probe but exit code and marker are identical to healthy", "executable_proof": "w4plug/prove_controls_not_gating.py - sabotaged one break_() to a no-op: control_invalid 0->1, exit 0->0, marker SUCCESS:health-check unchanged", "also": "not_checked>0 is likewise invisible to the exit code"},
+    {"id": "D-P5-3", "severity": "P2", "file": "platform/plugin/journal.py", "anchor": "journal.py:99 stale_after=3600.0; :110-126", "summary": "a hard-killed install leaves state/prefix.lock and blocks every lifecycle op for up to 1 hour", "measured": "immediate retry -> FAILED:install E_LOCK exit 21 '(66s old)'; lock back-dated 2h -> SUCCESS:install exit 0; health-check --clear-stale-lock then install -> SUCCESS:install exit 0", "assessment": "fail-closed, availability defect not data loss; escape hatch exists and is documented in the CLI", "fix": "check whether the recorded PID is alive; shorten the default"},
+    {"id": "D-P5-1", "severity": "P2", "file": "platform/plugin/lifecycle.py", "anchor": "lifecycle.py:496-503", "summary": "after rollback, installed.json holds active_version 1.0.0 alongside the 1.1.0 archive's archive_sha256", "measured": "1.0.0 archive af62a883...; after rollback installed.json archive_sha256 aaf7bc56... (the 1.1.0 archive)", "blast_radius": "field is only ever written (lifecycle.py:267, :312-314, :401-403); no verifier reads it, so it is a misleading record not a wrong gate verdict today"},
+    {"id": "D-P5-7", "severity": "P3", "file": "platform/plugin/health.py", "symbol": "_probe_cache_integrity", "summary": "the probe quarantines on read, so its FAIL is not reproducible: run1 exit 50, run2 exit 0 with nothing repaired in between", "mitigation": "evidence preserved in state/cache/quarantine/ with a .reason.json", "fix": "split read-only probe from the existing cache --verify repair verb"},
+    {"id": "D-P5-8", "severity": "P2", "file": "platform/plugin/build.py", "anchor": "build.py:197 -> README.md line 27 inside the built package", "summary": "shipped README claims 'every health probe ships a both-states control proving it fails when its invariant breaks'; the tool's own control summary reports not_checked=2 (no-open-transactions, interpreters), so it is 6 of 8", "class": "overclaim - the code is correct and self-honest, the sentence is wider than the evidence", "verified_reaches_users": true, "report_discloses_gap": false, "correctly_scoped_version": "6 of 8 health probes ship a both-states control; the other 2 are reported NOT-CHECKED because no break_() is declared"},
+    {"id": "D-P5-2", "severity": "P3", "file": "platform/plugin/lifecycle.py", "summary": "uninstall reported kept_live_edited: [] while an owner-edited plugin-named live file remained on disk", "assessment": "correct by provenance ownership, but the result document implies live/ is clean", "fix": "report unowned_live_paths"}
+  ],
+  "lane_comparison_read_only_after_measuring": {
+    "source": "platform/plugin/PACKAGE-MEASUREMENT.json and PHASE5-PLUGIN-REPORT.md",
+    "all_package_numbers_reproduce": true,
+    "matched": {"archive_bytes": 95093, "member_count": 45, "uncompressed_bytes": 288265, "archive_sha256": "af62a8836abc4f73e2a6a529dab7ea5e09b7e0828183a7caa3a08965b3067b04", "absence_checks_all_true": true, "credential_scan_blocking": 0},
+    "lane_ran_its_own_detector_control": true,
+    "report_health_claim_line_280_accurate": true,
+    "what_the_lane_did_not_do": "adversarially tamper with an INSTALLED prefix or with DEPLOYED files - where D-P5-4 and D-P5-5 live - and it shipped one sentence wider than its evidence (D-P5-8)"
+  },
+  "suite": {"command": "python -m pytest plugin -q", "cwd": "platform", "result": "252 passed", "seconds": 56.09, "note": "green while every defect above is live; none of the 252 tests catches the two health blind spots"},
+  "not_checked": [
+    {"item": "marketplace publish -> install -> verify signature+SBOM -> REVOKE -> refuse", "reason": "out of this unit; the five contracted checks are all plugin-scoped. platform/marketplace (93 files) remains unverified and needs its own unit"},
+    {"item": "deployment into a real ~/.claude live config", "reason": "every run used --live under a temp prefix by choice, to avoid mutating the operator harness"},
+    {"item": "macOS / Linux / non-pwsh shells", "reason": "manifest declares windows+macos+linux and pwsh/bash/zsh/cmd; only Windows + CPython 3.14.6 exercised"},
+    {"item": "true concurrent lifecycle operations", "reason": "stale-lock blocking was measured; real simultaneous contention was not"}
+  ],
+  "sensitive_artifact_notice": {"id": "sha256:ad70f44c9def", "target": "my own known-bad fixture generator in a temp dir", "content": "PLACEHOLDER values assembled at runtime", "action_taken": "none - surfaced only; no credential read, printed, modified or rotated (AGENTS.md 9)"}
+}

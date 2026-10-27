@@ -1,0 +1,1123 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "ssot-documentation-reconcile",
+  "name": "Single-source-of-truth reconcile: authority by measurability, then pointer rewrite",
+  "description": "Find every place a fact is stated, decide which statement is authoritative, and rewrite the others as POINTERS instead of restatements. The rule that makes it more than a search-and-replace is how authority is chosen: the authoritative source is the one that can be MEASURED, not the one that is most convenient - and when no statement is measurable the fact is marked UNVERIFIED everywhere rather than one being blessed arbitrarily. A contradiction is never resolved silently: the superseded statement and its correction go into a register, which is what stops a corrected fact from being re-learned wrong. A legitimately repeated context sentence must NOT be flagged, so the pass carries its own false-positive control.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "bp-doc-03",
+    "ssot",
+    "contradiction",
+    "superseded-register",
+    "pointer-rewrite"
+  ],
+  "flagship": true,
+  "params": {
+    "fact_or_topic": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The fact being reconciled, stated as the question it answers - e.g. 'how many coverage thresholds does the gate enforce'."
+    },
+    "doc_roots": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "items": {
+        "type": "path"
+      },
+      "description": "Documentation roots to search. One fan-out shard per root; a missed root is a silent contradiction left live."
+    },
+    "search_terms": {
+      "type": "array",
+      "required": true,
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "The literal terms and paraphrases to search for. Semantic search misses paraphrases, so the term list is explicit and auditable."
+    },
+    "measurability_probe": {
+      "type": "string",
+      "required": true,
+      "min_length": 5,
+      "description": "The command or check that would MEASURE the fact. Authority is assigned to the statement this probe agrees with."
+    },
+    "allow_unverified_everywhere": {
+      "type": "boolean",
+      "default": true,
+      "description": "When no statement is measurable, mark the fact UNVERIFIED in every location rather than blessing one arbitrarily."
+    }
+  },
+  "roles": {
+    "statement-finder": {
+      "description": "Mechanically finds every statement of the fact. Deterministic search, no judgement.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/knowledge/**)"
+      ]
+    },
+    "authority-adjudicator": {
+      "description": "Runs the measurability probe and assigns authority to the statement it agrees with. Holds the veto over an unmeasurable blessing.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "false-positive-auditor": {
+      "description": "Distinguishes a real contradiction from a sentence that legitimately repeats context for readability.",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ]
+    },
+    "rewriter": {
+      "description": "Rewrites each non-authoritative statement as a pointer to the authoritative one.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Edit",
+        "Write(command-center/knowledge/**)"
+      ],
+      "write_paths": [
+        "docs/**",
+        "command-center/**"
+      ]
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/knowledge/**)",
+      "mcp__codex__codex"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Bash:git",
+      "WebFetch"
+    ],
+    "write_paths": [
+      "docs/**",
+      "command-center/knowledge/ssot-reconcile/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == false-positive-auditor",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "the finder that flagged a sentence is the least able to see that the repetition was deliberate"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "no-legitimate-repeat-flagged": {
+      "predicate": "custom-expression",
+      "expression": "legitimate_repeats_flagged_as_contradiction == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "authority-is-measurable": {
+      "predicate": "custom-expression",
+      "expression": "authoritative_source_agrees_with_probe == true OR fact_marked_unverified_everywhere == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "superseded-registered": {
+      "predicate": "custom-expression",
+      "expression": "contradictions_resolved_silently == 0 AND superseded_register_written == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "reconcile-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "search-statements",
+      "title": "S0 - find EVERY statement of the fact, mechanically",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "doc_roots",
+        "item_var": "doc_root",
+        "key_field": "doc_root"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 100,
+      "max_items": 64,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "search-one-root",
+          "title": "Search one documentation root",
+          "kind": "task",
+          "role": "statement-finder",
+          "timeout_seconds": 1200,
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Write(command-center/knowledge/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "inputs_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/knowledge/ssot-reconcile/cache/search",
+            "ttl_seconds": 86400,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "DOC-8401",
+            "title": "Find every statement of the fact in one documentation root",
+            "phase": "2B",
+            "question_or_target": "Search one root for every declared term and paraphrase, recording each hit with its file:line and the VALUE it asserts, so the comparison step operates on values rather than on prose.",
+            "inputs": [
+              "item.doc_root",
+              "params.search_terms",
+              "params.fact_or_topic"
+            ],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "statement-finder",
+              "basis": "extracting the asserted VALUE from a sentence is judgement; finding the sentence is not"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Write(command-center/knowledge/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/knowledge/ssot-reconcile/statements/found-statements.jsonl",
+            "output_schema": "command-center/schema/contradiction-pairs.schema.json",
+            "evidence_requirement": "every hit with file:line, the verbatim sentence, and the extracted value - plus the exact search terms used, so a missed paraphrase is diagnosable",
+            "tests_required": [
+              "all statements of a fact stated with three different values are found, not just the first two",
+              "the search terms are recorded, so a paraphrase the term list could not match is a known gap rather than an invisible one",
+              "both-states control: a root with no statement of the fact yields zero hits and says so, rather than the shard being reported as unsearched"
+            ],
+            "reviewer_requirement": "the false-positive-auditor, which reads the verbatim sentences",
+            "completion_sentinel": "SUCCESS:DOC-8401 emitted only when every hit carries file:line, the sentence and an extracted value or an explicit no-value marker; otherwise FAILED:DOC-8401 <reason>",
+            "retry_policy": "two strikes then widen the term list once and record the widening",
+            "failure_classification": [
+              "paraphrase-missed",
+              "root-unreadable",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "deterministic multi-term search with per-hit value extraction and a recorded term list"
+          },
+          "produces": [
+            {
+              "path": "command-center/knowledge/ssot-reconcile/statements/found-statements.jsonl",
+              "schema_ref": "command-center/schema/contradiction-pairs.schema.json",
+              "min_bytes": 32,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DOC-8401",
+              "consumers": [
+                "search-join",
+                "compare-values",
+                "audit-false-positives"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "reject_result_matching": [
+          "started in the background",
+          "no files found"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "search-join",
+      "title": "Every root must be searched - a missed root leaves a contradiction live",
+      "kind": "barrier",
+      "depends_on": [
+        "search-statements"
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "search-statements"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "search-statements"
+      ]
+    },
+    {
+      "id": "compare-values",
+      "title": "S1 - compare the asserted values and enumerate the contradictions",
+      "kind": "task",
+      "depends_on": [
+        "search-join"
+      ],
+      "role": "statement-finder",
+      "timeout_seconds": 1200,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8402",
+        "title": "Group the statements by asserted value and enumerate the disagreements",
+        "phase": "2B",
+        "question_or_target": "Partition the found statements by the value they assert and list every distinct value with its locations, so the size of the disagreement is a count rather than an impression.",
+        "inputs": [
+          "command-center/knowledge/ssot-reconcile/statements/found-statements.jsonl",
+          "params.fact_or_topic"
+        ],
+        "dependencies": [
+          "DOC-8401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "statement-finder",
+          "basis": "grouping by value is mechanical, so it is written as an exact partition rather than an LLM judgement over the whole set"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/knowledge/ssot-reconcile/value-comparison.json",
+        "output_schema": "command-center/schema/contradiction-report.schema.json",
+        "evidence_requirement": "a value-to-locations map covering every found statement, with the count of distinct values stated explicitly",
+        "tests_required": [
+          "a fact stated with three different values yields three groups, and every found statement lands in exactly one",
+          "a statement with no extractable value is grouped as NO-VALUE rather than silently dropped"
+        ],
+        "reviewer_requirement": "the authority-adjudicator, which needs the value groups to compare against the probe",
+        "completion_sentinel": "SUCCESS:DOC-8402 emitted only when every found statement is assigned to exactly one value group and the distinct-value count is recorded; otherwise FAILED:DOC-8402 <reason>",
+        "retry_policy": "two strikes then emit the ungrouped statement list rather than forcing a partition",
+        "failure_classification": [
+          "value-unextractable",
+          "coverage-unreconciled",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "exact value partition over found statements with a distinct-value count"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/ssot-reconcile/value-comparison.json",
+          "schema_ref": "command-center/schema/contradiction-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8402",
+          "consumers": [
+            "audit-false-positives",
+            "designate-authority"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "audit-false-positives",
+      "title": "A sentence that legitimately repeats context is NOT a contradiction",
+      "kind": "task",
+      "depends_on": [
+        "compare-values"
+      ],
+      "role": "false-positive-auditor",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "work_unit": {
+        "id": "DOC-8403",
+        "title": "Separate real contradictions from deliberate context repetition",
+        "phase": "2B",
+        "question_or_target": "For each flagged statement decide whether it CONTRADICTS the others or merely repeats agreed context for readability, because flagging a legitimate repeat turns a reconcile into vandalism.",
+        "inputs": [
+          "command-center/knowledge/ssot-reconcile/value-comparison.json",
+          "command-center/knowledge/ssot-reconcile/statements/found-statements.jsonl"
+        ],
+        "dependencies": [
+          "DOC-8401",
+          "DOC-8402"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "false-positive-auditor",
+          "basis": "the finder that flagged the sentence cannot see that the repetition was deliberate; a different vendor can"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/ssot-reconcile/false-positive-audit.json",
+        "output_schema": "command-center/schema/confirmation-audit.schema.json",
+        "evidence_requirement": "per statement, a CONTRADICTS or LEGITIMATE-REPEAT verdict with the surrounding context that justifies it",
+        "tests_required": [
+          "a legitimately-repeated context sentence with the SAME value is classified LEGITIMATE-REPEAT and is not rewritten",
+          "a statement with a DIFFERENT value is classified CONTRADICTS even when its surrounding prose reads like context",
+          "both-states control: a real three-way disagreement yields three CONTRADICTS verdicts, so the auditor is not absolving everything"
+        ],
+        "reviewer_requirement": "the statement-finder, which may contest a LEGITIMATE-REPEAT verdict by citing the differing value",
+        "completion_sentinel": "SUCCESS:DOC-8403 emitted only when every statement carries one of the two verdicts with its justifying context; otherwise FAILED:DOC-8403 <reason>",
+        "retry_policy": "two strikes then classify as LEGITIMATE-REPEAT, since a missed reconcile is recoverable and a wrong rewrite is not",
+        "failure_classification": [
+          "false-positive-contradiction",
+          "detector-failure",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "cross-vendor contradiction-versus-legitimate-repeat discrimination",
+        "not_a_duplicate_because": "the value comparison partitions by VALUE mechanically; this decides whether a same-or-similar sentence was MEANT to restate, which no partition can answer"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/ssot-reconcile/false-positive-audit.json",
+          "schema_ref": "command-center/schema/confirmation-audit.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8403",
+          "consumers": [
+            "false-positive-gate",
+            "designate-authority",
+            "rewrite-as-pointers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "false-positive-gate",
+      "title": "The pass carries its own false-positive control",
+      "kind": "gate",
+      "depends_on": [
+        "audit-false-positives"
+      ],
+      "gate_ref": "no-legitimate-repeat-flagged"
+    },
+    {
+      "id": "designate-authority",
+      "title": "S2 - authority goes to the MEASURABLE statement, not the convenient one",
+      "kind": "task",
+      "depends_on": [
+        "false-positive-gate"
+      ],
+      "role": "authority-adjudicator",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8404",
+        "title": "Run the measurability probe and assign authority to the statement it agrees with",
+        "phase": "2B",
+        "question_or_target": "Execute the declared measurability probe, compare its result against each value group, and designate the agreeing statement authoritative - or, when the probe agrees with none, mark the fact UNVERIFIED everywhere rather than blessing a statement arbitrarily.",
+        "inputs": [
+          "command-center/knowledge/ssot-reconcile/value-comparison.json",
+          "command-center/knowledge/ssot-reconcile/false-positive-audit.json",
+          "params.measurability_probe",
+          "params.allow_unverified_everywhere"
+        ],
+        "dependencies": [
+          "DOC-8402",
+          "DOC-8403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "authority-adjudicator",
+          "basis": "the judge authority is where the anti-convenience rule is enforced and cannot be delegated to the finder"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/knowledge/ssot-reconcile/authority-designation.json",
+        "output_schema": "command-center/schema/decision-record.schema.json",
+        "evidence_requirement": "the probe command, its verbatim output, and which value group it agrees with - or an explicit statement that it agrees with none",
+        "tests_required": [
+          "the designated authority is the statement the probe AGREES with, even when another location is more prominent or more convenient to cite",
+          "when the probe agrees with no statement, the fact is marked UNVERIFIED in every location and no statement is designated authoritative",
+          "the probe's own output is recorded verbatim, so a later reader can re-run it rather than trusting this designation"
+        ],
+        "reviewer_requirement": "the false-positive-auditor, cross-examining whether the probe actually measures the fact in question",
+        "completion_sentinel": "SUCCESS:DOC-8404 emitted only when one value group is designated authoritative with the probe output recorded, or the fact is marked UNVERIFIED everywhere; otherwise FAILED:DOC-8404 <reason>",
+        "retry_policy": "two strikes then mark UNVERIFIED everywhere rather than designating on a third attempt at the same probe",
+        "failure_classification": [
+          "no-measurable-source",
+          "probe-measures-wrong-thing",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "probe-driven authority designation with UNVERIFIED-everywhere as the honest fallback"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/ssot-reconcile/authority-designation.json",
+          "schema_ref": "command-center/schema/decision-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8404",
+          "consumers": [
+            "measurability-gate",
+            "rewrite-as-pointers",
+            "register-superseded"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "measurability-gate",
+      "title": "No measurable source means UNVERIFIED everywhere, not an arbitrary blessing",
+      "kind": "gate",
+      "depends_on": [
+        "designate-authority"
+      ],
+      "gate_ref": "authority-is-measurable"
+    },
+    {
+      "id": "rewrite-as-pointers",
+      "title": "S3 - rewrite every non-authoritative statement as a POINTER",
+      "kind": "loop",
+      "depends_on": [
+        "measurability-gate"
+      ],
+      "loop_var": "rewrite_pass",
+      "body": [
+        {
+          "id": "rewrite-one-batch",
+          "title": "Rewrite one batch of restatements into pointers",
+          "kind": "task",
+          "role": "rewriter",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Edit",
+            "Write(command-center/knowledge/**)"
+          ],
+          "work_unit": {
+            "id": "DOC-8405",
+            "title": "Replace a batch of restatements with pointers to the authoritative source",
+            "phase": "2B",
+            "question_or_target": "Rewrite each CONTRADICTS statement as a pointer to the authoritative location, leaving LEGITIMATE-REPEAT sentences untouched, and record every edit so the pass is reversible.",
+            "inputs": [
+              "command-center/knowledge/ssot-reconcile/authority-designation.json",
+              "command-center/knowledge/ssot-reconcile/false-positive-audit.json"
+            ],
+            "dependencies": [
+              "DOC-8403",
+              "DOC-8404"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "rewriter",
+              "basis": "writing a pointer that still reads well in its surrounding prose is authoring work, not substitution"
+            },
+            "tool_permissions": [
+              "Read",
+              "Edit",
+              "Write(command-center/knowledge/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/knowledge/ssot-reconcile/pointer-rewrites.json",
+            "output_schema": "command-center/schema/traceability-matrix.schema.json",
+            "evidence_requirement": "per edit: the file:line, the removed value, the pointer written, and the before-text so the rewrite is reversible",
+            "tests_required": [
+              "a LEGITIMATE-REPEAT sentence is left byte-identical",
+              "each rewritten location points at the authoritative file:line and no longer asserts its own value",
+              "the before-text is recorded for every edit, so the whole pass can be reverted"
+            ],
+            "reviewer_requirement": "the authority-adjudicator, which re-reads a sample of rewrites against the designation",
+            "completion_sentinel": "SUCCESS:DOC-8405 emitted only when every CONTRADICTS statement is either rewritten as a pointer or listed as unrewritable with a reason; otherwise FAILED:DOC-8405 <reason>",
+            "retry_policy": "two strikes then leave the statement in place and list it as an unresolved restatement",
+            "failure_classification": [
+              "rewrite-broke-prose",
+              "pointer-dangling",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "reversible pointer rewrite that spares legitimate repeats"
+          },
+          "produces": [
+            {
+              "path": "command-center/knowledge/ssot-reconcile/pointer-rewrites.json",
+              "schema_ref": "command-center/schema/traceability-matrix.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DOC-8405",
+              "consumers": [
+                "register-superseded",
+                "drift-check"
+              ]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 10,
+        "min_iterations": 1,
+        "converged_when": "unresolved_restatements == 0",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "unresolved_restatements",
+            "direction": "decrease",
+            "target": 0
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "register-superseded",
+      "title": "S4 - a contradiction is never resolved silently",
+      "kind": "task",
+      "depends_on": [
+        "rewrite-as-pointers"
+      ],
+      "role": "authority-adjudicator",
+      "timeout_seconds": 1200,
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8406",
+        "title": "Write the superseded-guidance register: what each location used to claim, and the correction",
+        "phase": "2B",
+        "question_or_target": "Record every superseded statement with its old value, its new pointer and the correction, so a corrected fact cannot be re-learned wrong from a cached copy or an old branch.",
+        "inputs": [
+          "command-center/knowledge/ssot-reconcile/pointer-rewrites.json",
+          "command-center/knowledge/ssot-reconcile/authority-designation.json"
+        ],
+        "dependencies": [
+          "DOC-8404",
+          "DOC-8405"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "authority-adjudicator",
+          "basis": "the register is the durable half of the reconcile and belongs to the role that assigned authority"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/knowledge/ssot-reconcile/superseded-register.json",
+        "output_schema": "command-center/schema/supersession-graph.schema.json",
+        "evidence_requirement": "one register entry per superseded statement carrying its old value verbatim, the authoritative value, and the probe that settled it",
+        "tests_required": [
+          "every rewritten location has a register entry; a rewrite with no entry is a silent resolution and fails the gate",
+          "the old value is recorded verbatim, so someone who remembers the old number can find out why it changed"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who samples entries and re-runs the probe",
+        "completion_sentinel": "SUCCESS:DOC-8406 emitted only when the register covers every rewritten location with old value, new value and the settling probe; otherwise FAILED:DOC-8406 <reason>",
+        "retry_policy": "two strikes then fail: an unregistered supersession defeats the purpose of the pass",
+        "failure_classification": [
+          "silent-resolution",
+          "supersession-dangling",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "superseded-guidance register carrying the old value and the settling probe"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/ssot-reconcile/superseded-register.json",
+          "schema_ref": "command-center/schema/supersession-graph.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8406",
+          "consumers": [
+            "superseded-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "superseded-gate",
+      "title": "Silent resolution is how a corrected fact gets re-learned wrong",
+      "kind": "gate",
+      "depends_on": [
+        "register-superseded"
+      ],
+      "gate_ref": "superseded-registered"
+    },
+    {
+      "id": "drift-check",
+      "title": "S4b - add a drift check so the NEXT divergence is detected, not discovered",
+      "kind": "task",
+      "depends_on": [
+        "superseded-gate"
+      ],
+      "role": "authority-adjudicator",
+      "timeout_seconds": 1200,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/knowledge/**)"
+      ],
+      "work_unit": {
+        "id": "DOC-8407",
+        "title": "Emit a drift check that fails when the fact is re-stated away from the authoritative source",
+        "phase": "2B",
+        "question_or_target": "Specify a check that re-runs the measurability probe and the search, and fails when any location asserts a value again instead of pointing - so the next divergence is caught rather than rediscovered months later.",
+        "inputs": [
+          "command-center/knowledge/ssot-reconcile/superseded-register.json",
+          "command-center/knowledge/ssot-reconcile/pointer-rewrites.json",
+          "params.measurability_probe"
+        ],
+        "dependencies": [
+          "DOC-8405",
+          "DOC-8406"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "authority-adjudicator",
+          "basis": "designing a check that fails closed on an empty search walk is the difference between a gate and a no-op"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/knowledge/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/knowledge/ssot-reconcile/drift-check-spec.json",
+        "output_schema": "command-center/schema/drift-report.schema.json",
+        "evidence_requirement": "the check's input enumeration, its fail-closed rule on an empty walk, its terminal marker, and a named known-bad state that makes it exit non-zero",
+        "tests_required": [
+          "the spec names a known-bad state (a location re-asserting a value) that makes the check FAIL - a check that has never gone red is indistinguishable from a no-op",
+          "an empty search walk fails CLOSED rather than reporting nothing-found as a pass"
+        ],
+        "reviewer_requirement": "the false-positive-auditor, checking the drift check would not fire on a legitimate repeat",
+        "completion_sentinel": "SUCCESS:DOC-8407 emitted only when the spec carries a fail-closed rule, a terminal marker and a named known-bad state; otherwise FAILED:DOC-8407 <reason>",
+        "retry_policy": "two strikes then emit the check as advisory-only and say so, rather than shipping an unfalsifiable gate",
+        "failure_classification": [
+          "no-op-gate",
+          "gate-spec-unfalsifiable",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "fail-closed drift-check specification with a named known-bad state"
+      },
+      "produces": [
+        {
+          "path": "command-center/knowledge/ssot-reconcile/drift-check-spec.json",
+          "schema_ref": "command-center/schema/drift-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DOC-8407",
+          "consumers": [
+            "reconcile-complete-gate",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reconcile-complete-gate",
+      "title": "The shared completion predicate over the reconcile",
+      "kind": "gate",
+      "depends_on": [
+        "drift-check"
+      ],
+      "gate_ref": "reconcile-complete"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-statements-reconciled",
+      "expression": "unresolved_restatements == 0 AND superseded_register_written == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "roots_searched >= roots_total",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-measurable-source-marks-unverified",
+      "expression": "authoritative_source_agrees_with_probe == false AND fact_marked_unverified_everywhere == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "false-positive-halts-the-rewrite",
+      "expression": "legitimate_repeats_flagged_as_contradiction > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 15,
+    "jitter": true,
+    "retry_on": [
+      "paraphrase-missed",
+      "value-unextractable"
+    ],
+    "no_retry_on": [
+      "silent-resolution",
+      "false-positive-contradiction",
+      "no-measurable-source"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "measurability-gate"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "paraphrase-missed",
+      "no-measurable-source",
+      "silent-resolution",
+      "false-positive-contradiction"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "measurability-gate",
+    "quarantine_path": "command-center/knowledge/ssot-reconcile/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/knowledge/ssot-reconcile/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/knowledge/ssot-reconcile/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/knowledge/ssot-reconcile/cache",
+    "ttl_seconds": 86400,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "artifact-diff",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/knowledge/ssot-reconcile/dry-run-plan.json",
+    "forbid_tools": [
+      "Edit",
+      "Write(command-center/knowledge/**)",
+      "mcp__codex__codex",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 2.6,
+      "max": 12.0
+    },
+    "wallclock_seconds": {
+      "expected": 3600,
+      "max": 14400
+    },
+    "tokens": {
+      "expected": 500000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "edits documentation under docs/** and command-center/**; every edit records its before-text so the whole pass is revertible, and the schema tree is in forbid_write_paths",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/knowledge/ssot-reconcile/export/ssot-documentation-reconcile.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DOC-03",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-reframe-sota-and-ssot#track-B",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "cmd-update-docs",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tool-harness-drift",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true
+  },
+  "outputs": {
+    "statements": {
+      "path": "command-center/knowledge/ssot-reconcile/value-comparison.json",
+      "schema_ref": "command-center/schema/contradiction-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "rewrite_plan": {
+      "path": "command-center/knowledge/ssot-reconcile/pointer-rewrites.json",
+      "schema_ref": "command-center/schema/traceability-matrix.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    },
+    "superseded_register": {
+      "path": "command-center/knowledge/ssot-reconcile/superseded-register.json",
+      "schema_ref": "command-center/schema/supersession-graph.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "pre-pr-knowledge-capture"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DOC-03",
+      "card_index_in_library": 84,
+      "family": "D16-documentation",
+      "primary_category": "data-science-knowledge-and-creative",
+      "mechanism_signature": [
+        "exhaustive-multi-term-statement-search",
+        "exact-value-partition-of-statements",
+        "cross-vendor-legitimate-repeat-control",
+        "authority-by-measurability-not-convenience",
+        "superseded-guidance-register-plus-drift-check"
+      ],
+      "worked_example": {
+        "scenario": "This program's own coverage count: one doc says the gate enforces 5 thresholds, two others say 6, and a fourth sentence repeats 'the gate enforces the project thresholds' as context without a number.",
+        "params": {
+          "fact_or_topic": "how many coverage thresholds does the gate enforce",
+          "doc_roots": [
+            "docs",
+            "command-center",
+            "rules"
+          ],
+          "search_terms": [
+            "coverage threshold",
+            "thresholds enforced",
+            "coverage-thresholds.json"
+          ],
+          "measurability_probe": "jq '.thresholds | length' .coverage-thresholds.json",
+          "allow_unverified_everywhere": true
+        },
+        "expected_trace": [
+          "search-statements -> 3 roots searched in parallel; 7 hits; barrier mode all, on_partial fail (a missed root would leave a contradiction live)",
+          "compare-values -> 3 groups: value 5 (1 location), value 6 (2 locations), NO-VALUE (4 locations)",
+          "audit-false-positives -> the 4 NO-VALUE sentences are LEGITIMATE-REPEAT; the 5-versus-6 pair is CONTRADICTS",
+          "false-positive-gate PASS (0 legitimate repeats flagged)",
+          "designate-authority -> the probe prints 6; the value-6 group is authoritative. Note the value-5 location was the most prominent doc, and was NOT chosen",
+          "measurability-gate PASS",
+          "rewrite-as-pointers -> pass 1 rewrites the value-5 location as a pointer; unresolved_restatements 1 -> 0; the 4 legitimate repeats are byte-identical",
+          "register-superseded -> 1 entry: old value 5, authoritative 6, settled by the recorded probe output",
+          "superseded-gate PASS; drift-check -> a spec that fails when any location asserts a bare number again, fail-closed on an empty walk"
+        ],
+        "expected_terminal_state": "SUCCESS:DOC-8407"
+      },
+      "unverified": "UNVERIFIED as a reusable pass - semantic search misses paraphrases, so the recorded search-term list is the honest bound on coverage rather than a claim of completeness. Settling experiment = reconcile one known-contradictory fact end to end and confirm every restatement now points at the measured source, then re-run the drift check against a deliberately re-asserted value and require it to fire.",
+      "distinct_from": {
+        "BP-MNT-01": "that reconciles CODE between the live tree and the repo; this reconciles a FACT across documents and ends in a pointer rewrite",
+        "bp-doc-02": "that clusters many caveats into a new principle and can end in a SCRIPT; this takes ONE fact and adjudicates which of its statements is authoritative",
+        "bp-doc-01": "that creates new knowledge from new work; this removes duplicate statements of knowledge that already exists"
+      },
+      "flagship_test": "platform/lib/workflows/test_ssot_documentation_reconcile.py"
+    }
+  }
+}

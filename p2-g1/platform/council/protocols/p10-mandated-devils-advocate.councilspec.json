@@ -1,0 +1,417 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p10-mandated-devils-advocate",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Prevent a panel from closing before anyone was obliged to argue the other side.",
+    "charter": "Mandated devil's advocate. One seat must oppose regardless of private view and holds a DELAY-veto: the council may not close while that seat has an unanswered objection. Unanswered-objection rounds are capped at 2.",
+    "risk_tier": "high",
+    "desired_output": "decision",
+    "success_criteria": [
+      "the advocate filed at least one substantive objection",
+      "every advocate objection is either answered on the record or escalated",
+      "the council did not close with an unanswered advocate objection"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "panel-chair",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "facilitation",
+          "decision framing"
+        ],
+        "role": "chair",
+        "authority": "chair",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "devils-advocate",
+        "display_name": "Devil's advocate (delay-veto holder)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "falsification",
+          "adversarial reading"
+        ],
+        "role": "devils_advocate",
+        "authority": "veto_holder",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true,
+          "may_veto": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "seat-domain",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "the domain under decision"
+        ],
+        "role": "domain_expert",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "seat-risk",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "risk and reversibility"
+        ],
+        "role": "risk_officer",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "objection-scribe",
+        "display_name": "Objection scribe (tracks answered/unanswered)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "record keeping"
+        ],
+        "role": "scribe",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "inactivity"
+      ],
+      "preserve_prior_positions": true
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "panel-chair"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "openings",
+        "independent": true
+      },
+      {
+        "kind": "custom",
+        "stage_id": "mandated-opposition",
+        "custom_name": "mandated_opposition_round",
+        "rounds": 2,
+        "participants": [
+          "devils-advocate"
+        ],
+        "quotas": {
+          "objections_per_participant": 3,
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "steelman_before_rebuttal",
+        "stage_id": "answer-the-advocate",
+        "rounds": 2
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "synthesis"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "steelman_before_rebuttal": true,
+      "forced_dissent": true,
+      "rebuttal_required": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "max_experiments": 3,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "tool_calls": 160,
+    "sources": 22,
+    "turns": 34,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "unique_ideas": 10,
+    "novelty_ratio": 0.45,
+    "objections": 8,
+    "counterexamples": 3,
+    "evidence_items": 14,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.82,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "majority",
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "extend_rounds"
+    },
+    "veto": {
+      "holders": [
+        "devils-advocate"
+      ],
+      "scope": "final_decision",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "custom:unanswered_advocate_objections",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "objection-scribe objection ledger"
+            },
+            {
+              "metric": "consensus",
+              "op": ">=",
+              "value": 0.8
+            },
+            {
+              "metric": "every_objection_addressed",
+              "op": "==",
+              "value": true
+            }
+          ]
+        },
+        {
+          "all_of": [
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 6
+            },
+            {
+              "metric": "max_rounds",
+              "op": "==",
+              "value": 6
+            },
+            {
+              "metric": "owner_approved",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 120,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the advocate's strongest surviving objection is re-tested after the decision ships"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "vote_oscillation_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "strongest_counterexample",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "sycophancy",
+      "premature_convergence",
+      "instant_unanimity",
+      "strategic_voting",
+      "lost_dissent"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "strongest_counterexample",
+      "blind_re_evaluation",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "argument_ledger",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P10 mandated devil's advocate",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:248",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:261"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P10",
+      "skills/council Skeptic voice"
+    ],
+    "notes": "ADVERSARIAL. Opposition is a DUTY of one named seat, and the delay-veto is the distinguishing power. The card demands a both-states proof: with the role the council CANNOT close while an objection is unanswered, and without it the same council can. Both states are executable against stopping.expression - set custom:unanswered_advocate_objections to 1 and the expression is False; set it to 0 and it is True.\n\nanti-failure controls, each mapped to the field implementing it:\n  sycophancy -> one seat is institutionally required to oppose regardless of private view (role=devils_advocate) and protocol.obligations.forced_dissent is on\n  premature_convergence -> the delay-veto: stopping.expression requires custom:unanswered_advocate_objections == 0, so the council literally cannot close while the advocate has an unanswered objection\n  instant_unanimity -> consensus.fast_unanimity_is_suspicious with a three-way anti_failure.fast_unanimity_response, and minimum_deliberation.min_rounds=2\n  strategic_voting -> the advocate holds a delay-veto, not a decision veto (voting.veto.scope=final_decision, overridable_by_owner) and deadlock.escalation.after_attempts=2 caps veto-gaming at two unanswered-objection rounds\n  lost_dissent -> consensus.minority_report=required + dissent_policy.preserve_verbatim + attributed"
+  }
+}

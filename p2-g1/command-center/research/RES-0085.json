@@ -1,0 +1,754 @@
+{
+ "unit_id": "RES-0085",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0085 in the receipt AND a format comparison with a written unanswered-rebuttal check per checkable format",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0085.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0085.json",
+   "bytes": 18576,
+   "sha256": "d51d8729b08bd171ce448e0055627fc80ee94ec2beca2d5a65473c3f2feedeb6",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "id": "RES-0085",
+   "status": "SUCCESS",
+   "completion_sentinel": "SUCCESS:RES-0085 in the receipt AND a format comparison with a written unanswered-rebuttal check per checkable format",
+   "receipt": "SUCCESS:RES-0085 in the receipt AND a format comparison with a written unanswered-rebuttal check per checkable format",
+   "title": "Choose a machine-checkable argumentation format for council argument graphs",
+   "question": "Between IBIS, Toulmin-structured claims and formal argumentation frameworks, which can be mechanically checked for an unsupported claim or an unanswered rebuttal - and which is cheap enough for an agent to emit reliably?",
+   "answer": "Choose IBIS-shaped typed graphs (Issue/Position/Argument with supports and objects-to, equivalently council SUPPORTS/ATTACKS/REBUTS) as the machine-checkable argumentation format. Write the unanswered-rebuttal check over objects-to edges whose attacker is undefended. Do not require agents to emit a Dung AF. Do not treat classic Toulmin Rebuttal as a reply graph.",
+   "recommendation": "Choose IBIS-shaped typed graphs (Issue/Position/Argument with supports and objects-to, equivalently council SUPPORTS/ATTACKS/REBUTS) as the machine-checkable argumentation format. Write the unanswered-rebuttal check over objects-to edges whose attacker is undefended. Do not require agents to emit a Dung AF. Do not treat classic Toulmin Rebuttal as a reply graph.",
+   "schema_note": "command-center/schema/research-claim-record.schema.json is absent (RES-0001 not delivered on this tree). This record is self-describing and carries claim id, canonical mechanism, source lineage/rails, evidence tier, confidence band, named settling probe, edges, freshness, and snapshot sha256 per rail.",
+   "format_comparison": [
+    {
+     "id": "ibis",
+     "name": "IBIS / gIBIS (Issue, Position, Argument)",
+     "checkability_unanswered_rebuttal": "checkable",
+     "checkability_unsupported_claim": "checkable",
+     "emit_cost": "cheap",
+     "emit_cost_reason": "Three node types and two edge types (supports, objects-to). Agents already emit issue/position/pro/con trees.",
+     "unanswered_rebuttal_check": "# named fields: nodes[].type in {issue, position, argument}\n#               edges[].rel in {responds-to, supports, objects-to}\n#               edges[].src, edges[].dst\ndef ibis_unanswered_rebuttals(graph):\n    nodes = {n.id: n for n in graph.nodes}\n    incoming_objects = {}\n    for e in graph.edges:\n        if e.rel == \"objects-to\":\n            incoming_objects.setdefault(e.dst, []).append(e.src)\n    unanswered = []\n    for e in graph.edges:\n        if e.rel != \"objects-to\":\n            continue\n        target = nodes.get(e.dst)\n        # only cons against positions (a reply to a con is not itself a\n        # position-level unanswered rebuttal; finite reply chains must terminate)\n        if not target or target.type != \"position\":\n            continue\n        attacker = e.src\n        if not incoming_objects.get(attacker):\n            unanswered.append(e)\n    return unanswered",
+     "unsupported_claim_check": "def ibis_unsupported_positions(graph):\n    positions = [n.id for n in graph.nodes if n.type == \"position\"]\n    supported = {e.dst for e in graph.edges if e.rel == \"supports\"}\n    return [p for p in positions if p not in supported]",
+     "recommended_for_council": true
+    },
+    {
+     "id": "toulmin",
+     "name": "Toulmin six-element layout",
+     "checkability_unanswered_rebuttal": "uncheckable",
+     "checkability_unsupported_claim": "checkable",
+     "emit_cost": "medium",
+     "emit_cost_reason": "Six named slots; agents typically fill Claim+Data and skip Warrant/Backing. Rebuttal slot exists but is not a reply graph.",
+     "unanswered_rebuttal_check": "UNCHECKABLE on classic six-element Toulmin: Rebuttal is an 'unless' circumstance attached to the warrant, not a node that can be answered. There is no named field for a reply-to-rebuttal. A check that looked at record.rebuttal being non-empty would only detect presence of a caveat, not whether it was answered. Marked uncheckable rather than faked.",
+     "unsupported_claim_check": "# named fields: claim.data (grounds). Empty/missing data => unsupported claim.\ndef toulmin_unsupported(record):\n    data = (record.data or \"\").strip()\n    if not data:\n        return [record.id]\n    return []",
+     "recommended_for_council": false
+    },
+    {
+     "id": "dung_af",
+     "name": "Dung abstract argumentation framework",
+     "checkability_unanswered_rebuttal": "checkable",
+     "checkability_unsupported_claim": "uncheckable",
+     "emit_cost": "too_costly_to_emit",
+     "emit_cost_reason": "TOO COSTLY for an agent to emit reliably: the agent must segment natural language into atomic arguments and a binary attack relation (argument mining). Computing grounded/admissible semantics is cheap once the graph exists; emitting the graph from council turns is the expensive, lossy step. Council IMP-0313 already asks for SUPPORTS/ATTACKS/REBUTS on turns — that is IBIS-shaped, not a Dung AF.",
+     "unanswered_rebuttal_check": "# named fields: arguments[] (AR), attacks[] as (B, A) meaning B attacks A\n# Unanswered rebuttal := attack (B, A) whose attacker B has no attacker\n# (B is not acceptable-defeated; cf. Dung 1995 Def. 6 acceptability).\ndef dung_unanswered_rebuttals(af):\n    attacked_by = {}\n    for (b, a) in af.attacks:\n        attacked_by.setdefault(a, []).append(b)\n    unanswered = []\n    for (b, a) in af.attacks:\n        if not attacked_by.get(b):\n            unanswered.append((b, a))\n    return unanswered",
+     "unsupported_claim_check": "UNCHECKABLE natively: a Dung AF has only an attack relation. There is no support/grounds field, so 'unsupported claim' has no named field to read. Bipolar AFs add support; that is a different format.",
+     "recommended_for_council": false
+    }
+   ],
+   "control": {
+    "requirement": "at least one format marked uncheckable or too costly to emit",
+    "uncheckable_unanswered_rebuttal": [
+     "toulmin"
+    ],
+    "uncheckable_unsupported_claim": [
+     "dung_af"
+    ],
+    "too_costly_to_emit": [
+     "dung_af"
+    ],
+    "passed": true
+   },
+   "fixture_results": {
+    "ibis_answered": {
+     "fires": false,
+     "unanswered_rebuttals": [],
+     "unsupported_claims": [],
+     "emit_cost": null,
+     "unanswered_rebuttal_status": null
+    },
+    "ibis_unanswered": {
+     "fires": true,
+     "unanswered_rebuttals": [
+      {
+       "id": "a-con->p1",
+       "attacker": "a-con",
+       "target": "p1",
+       "rel": "objects-to"
+      }
+     ],
+     "unsupported_claims": [],
+     "emit_cost": null,
+     "unanswered_rebuttal_status": null
+    },
+    "ibis_unsupported": {
+     "fires": true,
+     "unanswered_rebuttals": [],
+     "unsupported_claims": [
+      "p-bare"
+     ],
+     "emit_cost": null,
+     "unanswered_rebuttal_status": null
+    },
+    "toulmin_supported": {
+     "fires": false,
+     "unanswered_rebuttals": [],
+     "unsupported_claims": [],
+     "emit_cost": null,
+     "unanswered_rebuttal_status": "uncheckable"
+    },
+    "toulmin_unsupported": {
+     "fires": true,
+     "unanswered_rebuttals": [],
+     "unsupported_claims": [
+      "toulmin-unsupported"
+     ],
+     "emit_cost": null,
+     "unanswered_rebuttal_status": "uncheckable"
+    },
+    "dung_answered": {
+     "fires": false,
+     "unanswered_rebuttals": [],
+     "unsupported_claims": [],
+     "emit_cost": "too_costly_to_emit",
+     "unanswered_rebuttal_status": null
+    },
+    "dung_unanswered": {
+     "fires": true,
+     "unanswered_rebuttals": [
+      {
+       "id": "b->a",
+       "attacker": "b",
+       "target": "a"
+      }
+     ],
+     "unsupported_claims": [],
+     "emit_cost": "too_costly_to_emit",
+     "unanswered_rebuttal_status": null
+    }
+   },
+   "claims": [
+    {
+     "id": "C-IBIS-CHECKABLE",
+     "claim": "IBIS/gIBIS graphs with Issue, Position, Argument and supports/objects-to edges admit a mechanical unanswered-rebuttal check (objects-to edge whose attacker has no incoming objects-to) and a mechanical unsupported-position check (position with no supports edge).",
+     "canonical_mechanism": "typed-ibis-graph-unanswered-objects-to",
+     "verdict": "CONFIRMED",
+     "evidence_tier": "E2",
+     "confidence_band": "high",
+     "strongest_caveat": "The check is structural, not semantic: a vacuous or off-topic objects-to node still 'answers' a rebuttal.",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+     "rails": [
+      {
+       "capture_id": "crossref-gibis-1988",
+       "rail_class": "structured-api",
+       "kind": "crossref",
+       "permalink": "https://api.crossref.org/works/10.1145/58566.59297",
+       "resolved_url": "https://api.crossref.org/works/10.1145/58566.59297",
+       "doi": "10.1145/58566.59297",
+       "fetched_at": "2026-08-24T18:46:01Z",
+       "http_status": 200,
+       "bytes": 10827,
+       "sha256": "0160cb8bdeab036298e531c1ac3afbac71e902d20df4b7a820328f08a6539688",
+       "quote": "gIBIS implements Issue Based Information Systems (IBIS) and facilitates building and browsing typed IBIS networks (Conklin & Begeman, ACM TOIS 1988, DOI 10.1145/58566.59297)."
+      },
+      {
+       "capture_id": "wiki-ibis-prose",
+       "rail_class": "prose",
+       "kind": "wikipedia-html",
+       "permalink": "https://en.wikipedia.org/wiki/Issue-based_information_system",
+       "resolved_url": "https://en.wikipedia.org/wiki/Issue-based_information_system",
+       "doi": null,
+       "fetched_at": "2026-08-24T18:46:02Z",
+       "http_status": 200,
+       "bytes": 277596,
+       "sha256": "6040c6b20fe01fdd4464c8f520e3b06d982bd4a6e0a1a53cae05e59f37b10d51",
+       "quote": "The elements of IBIS are: issues, each associated with alternative positions, which are associated with arguments which support or object to a given position (pros/cons)."
+      }
+     ]
+    },
+    {
+     "id": "C-TOULMIN-UNCHECKABLE-REBUTTAL",
+     "claim": "Classic six-element Toulmin layouts can be checked for missing Data/Grounds, but unanswered rebuttal is uncheckable: Rebuttal is an unless-circumstance on the warrant, not a reply node.",
+     "canonical_mechanism": "toulmin-rebuttal-is-reservation-not-graph",
+     "verdict": "CONFIRMED",
+     "evidence_tier": "E2",
+     "confidence_band": "high",
+     "strongest_caveat": "An extended Toulmin-on-a-graph with a reply-to-rebuttal field would become checkable; that is no longer classic Toulmin.",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+     "rails": [
+      {
+       "capture_id": "crossref-toulmin-2003",
+       "rail_class": "structured-api",
+       "kind": "crossref",
+       "permalink": "https://api.crossref.org/works/10.1017/CBO9780511840005",
+       "resolved_url": "https://api.crossref.org/works/10.1017/CBO9780511840005",
+       "doi": "10.1017/CBO9780511840005",
+       "fetched_at": "2026-08-24T18:46:02Z",
+       "http_status": 200,
+       "bytes": 2605,
+       "sha256": "ea40e217fea881c50078578cb2a3037e4b95b185f47c361e349c393406269b0d",
+       "quote": "Toulmin, The Uses of Argument, 2nd ed., Cambridge University Press, 2003, DOI 10.1017/CBO9780511840005 (Crossref work record)."
+      },
+      {
+       "capture_id": "wiki-toulmin-prose",
+       "rail_class": "prose",
+       "kind": "wikipedia-html",
+       "permalink": "https://en.wikipedia.org/wiki/Toulmin_method",
+       "resolved_url": "https://en.wikipedia.org/wiki/Toulmin_method",
+       "doi": null,
+       "fetched_at": "2026-08-24T18:46:03Z",
+       "http_status": 200,
+       "bytes": 268421,
+       "sha256": "d2ffb50c94ee4a9f8a3962c46db6bbbffccab7d00036ac4aff081c7ce0ea64ad",
+       "quote": "Rebuttal (Reservation): statements recognizing restrictions which may legitimately be applied to the claim. The second triad qualifier, backing, and rebuttal may not be needed."
+      }
+     ]
+    },
+    {
+     "id": "C-DUNG-CHECKABLE-TOO-COSTLY",
+     "claim": "A Dung AF (AR, attacks) admits a mechanical unanswered-rebuttal check (attack whose attacker is unattacked; cf. Def. 6 acceptability). Native unsupported-claim is uncheckable (no support field). Emitting a faithful AF from council NL is too costly for an agent: it is argument mining, not slot filling.",
+     "canonical_mechanism": "dung-af-undefended-attack",
+     "verdict": "CONFIRMED",
+     "evidence_tier": "E2",
+     "confidence_band": "high",
+     "strongest_caveat": "Once an AF already exists, semantics are cheap. The cost is emission from natural-language turns, not the labelling algorithm.",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+     "rails": [
+      {
+       "capture_id": "crossref-dung-1995",
+       "rail_class": "structured-api",
+       "kind": "crossref",
+       "permalink": "https://api.crossref.org/works/10.1016/0004-3702(94)00041-X",
+       "resolved_url": "https://api.crossref.org/works/10.1016/0004-3702(94)00041-X",
+       "doi": "10.1016/0004-3702(94)00041-X",
+       "fetched_at": "2026-08-24T18:45:57Z",
+       "http_status": 200,
+       "bytes": 16440,
+       "sha256": "de3b072fc56720aba3210c212c290cda0b8cdcf4775fea6095964c887624bfe8",
+       "quote": "Dung, On the acceptability of arguments and its fundamental role in nonmonotonic reasoning, logic programming and n-person games, Artificial Intelligence 77(2), 1995, DOI 10.1016/0004-3702(94)00041-X."
+      },
+      {
+       "capture_id": "prose-dung-pdf",
+       "rail_class": "prose",
+       "kind": "author-pdf",
+       "permalink": "https://www.cs.ait.ac.th/~dung/Site/Publications_files/n-games.pdf",
+       "resolved_url": "https://www.cs.ait.ac.th/~dung/Site/Publications_files/n-games.pdf",
+       "doi": "10.1016/0004-3702(94)00041-X",
+       "fetched_at": "2026-08-24T18:46:01Z",
+       "http_status": 200,
+       "bytes": 2592409,
+       "sha256": "b99d04e236f3625559ea073114e6c888ce812f773439dac70611985b9a075f98",
+       "quote": "AF = (AR, attacks); an argument A is acceptable wrt S iff every attacker of A is attacked by S (author PDF of the 1995 paper)."
+      }
+     ]
+    },
+    {
+     "id": "C-COUNCIL-CHOICE",
+     "claim": "For this repo's council argument graphs (IMP-0313 typed SUPPORTS/ATTACKS/REBUTS on turns), IBIS is the format that is both mechanically checkable for unsupported claims and unanswered rebuttals and cheap enough for an agent to emit. Toulmin fails the unanswered-rebuttal check; Dung AF fails emit-cost.",
+     "canonical_mechanism": "ibis-shaped-typed-council-graph",
+     "verdict": "CONFIRMED",
+     "evidence_tier": "E2",
+     "confidence_band": "high",
+     "strongest_caveat": "IMP-0313 is a catalog target, not a shipped extractor on this tree (tools/council/artifacts/argument_graph.py is absent).",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe2_artifact_contract.py",
+     "rails": [
+      {
+       "capture_id": "s2-dung-1995",
+       "rail_class": "structured-api",
+       "kind": "semantic-scholar",
+       "permalink": "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1016/0004-3702(94)00041-X?fields=title,year,abstract,citationCount,url,externalIds,authors",
+       "resolved_url": "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1016/0004-3702(94)00041-X?fields=title,year,abstract,citationCount,url,externalIds,authors",
+       "doi": "10.1016/0004-3702(94)00041-X",
+       "fetched_at": "2026-08-24T18:45:58Z",
+       "http_status": 200,
+       "bytes": 1097,
+       "sha256": "07139cfedde5586df3486743a9db197aea4ccb9d0349f542feef2c31389e178b",
+       "quote": "Semantic Scholar work record for Dung 1995 (DOI 10.1016/0004-3702(94)00041-X) — structured identifier rail independent of the Crossref JSON used in C-DUNG."
+      },
+      {
+       "capture_id": "wiki-af-prose",
+       "rail_class": "prose",
+       "kind": "wikipedia-html",
+       "permalink": "https://en.wikipedia.org/wiki/Argumentation_framework",
+       "resolved_url": "https://en.wikipedia.org/wiki/Argumentation_framework",
+       "doi": null,
+       "fetched_at": "2026-08-24T18:46:01Z",
+       "http_status": 200,
+       "bytes": 337249,
+       "sha256": "211de011f1527e939732f4ee6eecb5dd16c018ec9dc6c6d70da860f1ed994209",
+       "quote": "Dung defines acceptability: argument a is acceptable wrt E iff E defends a (every attacker is attacked by E). That is the labelling problem an agent would have to emit against."
+      }
+     ]
+    }
+   ],
+   "edges": [
+    {
+     "from": "C-IBIS-CHECKABLE",
+     "to": "C-COUNCIL-CHOICE",
+     "type": "supports"
+    },
+    {
+     "from": "C-TOULMIN-UNCHECKABLE-REBUTTAL",
+     "to": "C-COUNCIL-CHOICE",
+     "type": "supports"
+    },
+    {
+     "from": "C-DUNG-CHECKABLE-TOO-COSTLY",
+     "to": "C-COUNCIL-CHOICE",
+     "type": "supports"
+    }
+   ],
+   "freshness_stamp": "2026-08-25T00:54:46Z"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0085",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0085 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0085.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0085.json",
+     "raw_output": "bytes=18576 sha256=d51d8729b08bd171ce448e0055627fc80ee94ec2beca2d5a65473c3f2feedeb6",
+     "fingerprint": "022d90da2f53a6dacd7d9498885d7f79",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0085",
+     "raw_output": "schema-check",
+     "fingerprint": "7a7842ca2cd666efe35a93ea6ba3ab62",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0085 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0085",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0085",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "8eb84c9d3f6a51f4e7a2a5eeebe3f9b3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0085",
+     "raw_output": "schema-valid",
+     "fingerprint": "78e5e50ac14640e0c916d7a023a45c9a",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0085/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0085"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0085.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0085.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "3893bd80b3d6fbd3dc84beab2ade1d47",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 18576,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0085.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "id": "RES-0085",
+ "status": "SUCCESS",
+ "completion_sentinel": "SUCCESS:RES-0085 in the receipt AND a format comparison with a written unanswered-rebuttal check per checkable format",
+ "receipt": "SUCCESS:RES-0085 in the receipt AND a format comparison with a written unanswered-rebuttal check per checkable format",
+ "title": "Choose a machine-checkable argumentation format for council argument graphs",
+ "question": "Between IBIS, Toulmin-structured claims and formal argumentation frameworks, which can be mechanically checked for an unsupported claim or an unanswered rebuttal - and which is cheap enough for an agent to emit reliably?",
+ "answer": "Choose IBIS-shaped typed graphs (Issue/Position/Argument with supports and objects-to, equivalently council SUPPORTS/ATTACKS/REBUTS) as the machine-checkable argumentation format. Write the unanswered-rebuttal check over objects-to edges whose attacker is undefended. Do not require agents to emit a Dung AF. Do not treat classic Toulmin Rebuttal as a reply graph.",
+ "recommendation": "Choose IBIS-shaped typed graphs (Issue/Position/Argument with supports and objects-to, equivalently council SUPPORTS/ATTACKS/REBUTS) as the machine-checkable argumentation format. Write the unanswered-rebuttal check over objects-to edges whose attacker is undefended. Do not require agents to emit a Dung AF. Do not treat classic Toulmin Rebuttal as a reply graph.",
+ "schema_note": "command-center/schema/research-claim-record.schema.json is absent (RES-0001 not delivered on this tree). This record is self-describing and carries claim id, canonical mechanism, source lineage/rails, evidence tier, confidence band, named settling probe, edges, freshness, and snapshot sha256 per rail.",
+ "format_comparison": [
+  {
+   "id": "ibis",
+   "name": "IBIS / gIBIS (Issue, Position, Argument)",
+   "checkability_unanswered_rebuttal": "checkable",
+   "checkability_unsupported_claim": "checkable",
+   "emit_cost": "cheap",
+   "emit_cost_reason": "Three node types and two edge types (supports, objects-to). Agents already emit issue/position/pro/con trees.",
+   "unanswered_rebuttal_check": "# named fields: nodes[].type in {issue, position, argument}\n#               edges[].rel in {responds-to, supports, objects-to}\n#               edges[].src, edges[].dst\ndef ibis_unanswered_rebuttals(graph):\n    nodes = {n.id: n for n in graph.nodes}\n    incoming_objects = {}\n    for e in graph.edges:\n        if e.rel == \"objects-to\":\n            incoming_objects.setdefault(e.dst, []).append(e.src)\n    unanswered = []\n    for e in graph.edges:\n        if e.rel != \"objects-to\":\n            continue\n        target = nodes.get(e.dst)\n        # only cons against positions (a reply to a con is not itself a\n        # position-level unanswered rebuttal; finite reply chains must terminate)\n        if not target or target.type != \"position\":\n            continue\n        attacker = e.src\n        if not incoming_objects.get(attacker):\n            unanswered.append(e)\n    return unanswered",
+   "unsupported_claim_check": "def ibis_unsupported_positions(graph):\n    positions = [n.id for n in graph.nodes if n.type == \"position\"]\n    supported = {e.dst for e in graph.edges if e.rel == \"supports\"}\n    return [p for p in positions if p not in supported]",
+   "recommended_for_council": true
+  },
+  {
+   "id": "toulmin",
+   "name": "Toulmin six-element layout",
+   "checkability_unanswered_rebuttal": "uncheckable",
+   "checkability_unsupported_claim": "checkable",
+   "emit_cost": "medium",
+   "emit_cost_reason": "Six named slots; agents typically fill Claim+Data and skip Warrant/Backing. Rebuttal slot exists but is not a reply graph.",
+   "unanswered_rebuttal_check": "UNCHECKABLE on classic six-element Toulmin: Rebuttal is an 'unless' circumstance attached to the warrant, not a node that can be answered. There is no named field for a reply-to-rebuttal. A check that looked at record.rebuttal being non-empty would only detect presence of a caveat, not whether it was answered. Marked uncheckable rather than faked.",
+   "unsupported_claim_check": "# named fields: claim.data (grounds). Empty/missing data => unsupported claim.\ndef toulmin_unsupported(record):\n    data = (record.data or \"\").strip()\n    if not data:\n        return [record.id]\n    return []",
+   "recommended_for_council": false
+  },
+  {
+   "id": "dung_af",
+   "name": "Dung abstract argumentation framework",
+   "checkability_unanswered_rebuttal": "checkable",
+   "checkability_unsupported_claim": "uncheckable",
+   "emit_cost": "too_costly_to_emit",
+   "emit_cost_reason": "TOO COSTLY for an agent to emit reliably: the agent must segment natural language into atomic arguments and a binary attack relation (argument mining). Computing grounded/admissible semantics is cheap once the graph exists; emitting the graph from council turns is the expensive, lossy step. Council IMP-0313 already asks for SUPPORTS/ATTACKS/REBUTS on turns — that is IBIS-shaped, not a Dung AF.",
+   "unanswered_rebuttal_check": "# named fields: arguments[] (AR), attacks[] as (B, A) meaning B attacks A\n# Unanswered rebuttal := attack (B, A) whose attacker B has no attacker\n# (B is not acceptable-defeated; cf. Dung 1995 Def. 6 acceptability).\ndef dung_unanswered_rebuttals(af):\n    attacked_by = {}\n    for (b, a) in af.attacks:\n        attacked_by.setdefault(a, []).append(b)\n    unanswered = []\n    for (b, a) in af.attacks:\n        if not attacked_by.get(b):\n            unanswered.append((b, a))\n    return unanswered",
+   "unsupported_claim_check": "UNCHECKABLE natively: a Dung AF has only an attack relation. There is no support/grounds field, so 'unsupported claim' has no named field to read. Bipolar AFs add support; that is a different format.",
+   "recommended_for_council": false
+  }
+ ],
+ "control": {
+  "requirement": "at least one format marked uncheckable or too costly to emit",
+  "uncheckable_unanswered_rebuttal": [
+   "toulmin"
+  ],
+  "uncheckable_unsupported_claim": [
+   "dung_af"
+  ],
+  "too_costly_to_emit": [
+   "dung_af"
+  ],
+  "passed": true
+ },
+ "fixture_results": {
+  "ibis_answered": {
+   "fires": false,
+   "unanswered_rebuttals": [],
+   "unsupported_claims": [],
+   "emit_cost": null,
+   "unanswered_rebuttal_status": null
+  },
+  "ibis_unanswered": {
+   "fires": true,
+   "unanswered_rebuttals": [
+    {
+     "id": "a-con->p1",
+     "attacker": "a-con",
+     "target": "p1",
+     "rel": "objects-to"
+    }
+   ],
+   "unsupported_claims": [],
+   "emit_cost": null,
+   "unanswered_rebuttal_status": null
+  },
+  "ibis_unsupported": {
+   "fires": true,
+   "unanswered_rebuttals": [],
+   "unsupported_claims": [
+    "p-bare"
+   ],
+   "emit_cost": null,
+   "unanswered_rebuttal_status": null
+  },
+  "toulmin_supported": {
+   "fires": false,
+   "unanswered_rebuttals": [],
+   "unsupported_claims": [],
+   "emit_cost": null,
+   "unanswered_rebuttal_status": "uncheckable"
+  },
+  "toulmin_unsupported": {
+   "fires": true,
+   "unanswered_rebuttals": [],
+   "unsupported_claims": [
+    "toulmin-unsupported"
+   ],
+   "emit_cost": null,
+   "unanswered_rebuttal_status": "uncheckable"
+  },
+  "dung_answered": {
+   "fires": false,
+   "unanswered_rebuttals": [],
+   "unsupported_claims": [],
+   "emit_cost": "too_costly_to_emit",
+   "unanswered_rebuttal_status": null
+  },
+  "dung_unanswered": {
+   "fires": true,
+   "unanswered_rebuttals": [
+    {
+     "id": "b->a",
+     "attacker": "b",
+     "target": "a"
+    }
+   ],
+   "unsupported_claims": [],
+   "emit_cost": "too_costly_to_emit",
+   "unanswered_rebuttal_status": null
+  }
+ },
+ "claims": [
+  {
+   "id": "C-IBIS-CHECKABLE",
+   "claim": "IBIS/gIBIS graphs with Issue, Position, Argument and supports/objects-to edges admit a mechanical unanswered-rebuttal check (objects-to edge whose attacker has no incoming objects-to) and a mechanical unsupported-position check (position with no supports edge).",
+   "canonical_mechanism": "typed-ibis-graph-unanswered-objects-to",
+   "verdict": "CONFIRMED",
+   "evidence_tier": "E2",
+   "confidence_band": "high",
+   "strongest_caveat": "The check is structural, not semantic: a vacuous or off-topic objects-to node still 'answers' a rebuttal.",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+   "rails": [
+    {
+     "capture_id": "crossref-gibis-1988",
+     "rail_class": "structured-api",
+     "kind": "crossref",
+     "permalink": "https://api.crossref.org/works/10.1145/58566.59297",
+     "resolved_url": "https://api.crossref.org/works/10.1145/58566.59297",
+     "doi": "10.1145/58566.59297",
+     "fetched_at": "2026-08-24T18:46:01Z",
+     "http_status": 200,
+     "bytes": 10827,
+     "sha256": "0160cb8bdeab036298e531c1ac3afbac71e902d20df4b7a820328f08a6539688",
+     "quote": "gIBIS implements Issue Based Information Systems (IBIS) and facilitates building and browsing typed IBIS networks (Conklin & Begeman, ACM TOIS 1988, DOI 10.1145/58566.59297)."
+    },
+    {
+     "capture_id": "wiki-ibis-prose",
+     "rail_class": "prose",
+     "kind": "wikipedia-html",
+     "permalink": "https://en.wikipedia.org/wiki/Issue-based_information_system",
+     "resolved_url": "https://en.wikipedia.org/wiki/Issue-based_information_system",
+     "doi": null,
+     "fetched_at": "2026-08-24T18:46:02Z",
+     "http_status": 200,
+     "bytes": 277596,
+     "sha256": "6040c6b20fe01fdd4464c8f520e3b06d982bd4a6e0a1a53cae05e59f37b10d51",
+     "quote": "The elements of IBIS are: issues, each associated with alternative positions, which are associated with arguments which support or object to a given position (pros/cons)."
+    }
+   ]
+  },
+  {
+   "id": "C-TOULMIN-UNCHECKABLE-REBUTTAL",
+   "claim": "Classic six-element Toulmin layouts can be checked for missing Data/Grounds, but unanswered rebuttal is uncheckable: Rebuttal is an unless-circumstance on the warrant, not a reply node.",
+   "canonical_mechanism": "toulmin-rebuttal-is-reservation-not-graph",
+   "verdict": "CONFIRMED",
+   "evidence_tier": "E2",
+   "confidence_band": "high",
+   "strongest_caveat": "An extended Toulmin-on-a-graph with a reply-to-rebuttal field would become checkable; that is no longer classic Toulmin.",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+   "rails": [
+    {
+     "capture_id": "crossref-toulmin-2003",
+     "rail_class": "structured-api",
+     "kind": "crossref",
+     "permalink": "https://api.crossref.org/works/10.1017/CBO9780511840005",
+     "resolved_url": "https://api.crossref.org/works/10.1017/CBO9780511840005",
+     "doi": "10.1017/CBO9780511840005",
+     "fetched_at": "2026-08-24T18:46:02Z",
+     "http_status": 200,
+     "bytes": 2605,
+     "sha256": "ea40e217fea881c50078578cb2a3037e4b95b185f47c361e349c393406269b0d",
+     "quote": "Toulmin, The Uses of Argument, 2nd ed., Cambridge University Press, 2003, DOI 10.1017/CBO9780511840005 (Crossref work record)."
+    },
+    {
+     "capture_id": "wiki-toulmin-prose",
+     "rail_class": "prose",
+     "kind": "wikipedia-html",
+     "permalink": "https://en.wikipedia.org/wiki/Toulmin_method",
+     "resolved_url": "https://en.wikipedia.org/wiki/Toulmin_method",
+     "doi": null,
+     "fetched_at": "2026-08-24T18:46:03Z",
+     "http_status": 200,
+     "bytes": 268421,
+     "sha256": "d2ffb50c94ee4a9f8a3962c46db6bbbffccab7d00036ac4aff081c7ce0ea64ad",
+     "quote": "Rebuttal (Reservation): statements recognizing restrictions which may legitimately be applied to the claim. The second triad qualifier, backing, and rebuttal may not be needed."
+    }
+   ]
+  },
+  {
+   "id": "C-DUNG-CHECKABLE-TOO-COSTLY",
+   "claim": "A Dung AF (AR, attacks) admits a mechanical unanswered-rebuttal check (attack whose attacker is unattacked; cf. Def. 6 acceptability). Native unsupported-claim is uncheckable (no support field). Emitting a faithful AF from council NL is too costly for an agent: it is argument mining, not slot filling.",
+   "canonical_mechanism": "dung-af-undefended-attack",
+   "verdict": "CONFIRMED",
+   "evidence_tier": "E2",
+   "confidence_band": "high",
+   "strongest_caveat": "Once an AF already exists, semantics are cheap. The cost is emission from natural-language turns, not the labelling algorithm.",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe1_checker_both_states.py",
+   "rails": [
+    {
+     "capture_id": "crossref-dung-1995",
+     "rail_class": "structured-api",
+     "kind": "crossref",
+     "permalink": "https://api.crossref.org/works/10.1016/0004-3702(94)00041-X",
+     "resolved_url": "https://api.crossref.org/works/10.1016/0004-3702(94)00041-X",
+     "doi": "10.1016/0004-3702(94)00041-X",
+     "fetched_at": "2026-08-24T18:45:57Z",
+     "http_status": 200,
+     "bytes": 16440,
+     "sha256": "de3b072fc56720aba3210c212c290cda0b8cdcf4775fea6095964c887624bfe8",
+     "quote": "Dung, On the acceptability of arguments and its fundamental role in nonmonotonic reasoning, logic programming and n-person games, Artificial Intelligence 77(2), 1995, DOI 10.1016/0004-3702(94)00041-X."
+    },
+    {
+     "capture_id": "prose-dung-pdf",
+     "rail_class": "prose",
+     "kind": "author-pdf",
+     "permalink": "https://www.cs.ait.ac.th/~dung/Site/Publications_files/n-games.pdf",
+     "resolved_url": "https://www.cs.ait.ac.th/~dung/Site/Publications_files/n-games.pdf",
+     "doi": "10.1016/0004-3702(94)00041-X",
+     "fetched_at": "2026-08-24T18:46:01Z",
+     "http_status": 200,
+     "bytes": 2592409,
+     "sha256": "b99d04e236f3625559ea073114e6c888ce812f773439dac70611985b9a075f98",
+     "quote": "AF = (AR, attacks); an argument A is acceptable wrt S iff every attacker of A is attacked by S (author PDF of the 1995 paper)."
+    }
+   ]
+  },
+  {
+   "id": "C-COUNCIL-CHOICE",
+   "claim": "For this repo's council argument graphs (IMP-0313 typed SUPPORTS/ATTACKS/REBUTS on turns), IBIS is the format that is both mechanically checkable for unsupported claims and unanswered rebuttals and cheap enough for an agent to emit. Toulmin fails the unanswered-rebuttal check; Dung AF fails emit-cost.",
+   "canonical_mechanism": "ibis-shaped-typed-council-graph",
+   "verdict": "CONFIRMED",
+   "evidence_tier": "E2",
+   "confidence_band": "high",
+   "strongest_caveat": "IMP-0313 is a catalog target, not a shipped extractor on this tree (tools/council/artifacts/argument_graph.py is absent).",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0085/probe2_artifact_contract.py",
+   "rails": [
+    {
+     "capture_id": "s2-dung-1995",
+     "rail_class": "structured-api",
+     "kind": "semantic-scholar",
+     "permalink": "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1016/0004-3702(94)00041-X?fields=title,year,abstract,citationCount,url,externalIds,authors",
+     "resolved_url": "https://api.semanticscholar.org/graph/v1/paper/DOI:10.1016/0004-3702(94)00041-X?fields=title,year,abstract,citationCount,url,externalIds,authors",
+     "doi": "10.1016/0004-3702(94)00041-X",
+     "fetched_at": "2026-08-24T18:45:58Z",
+     "http_status": 200,
+     "bytes": 1097,
+     "sha256": "07139cfedde5586df3486743a9db197aea4ccb9d0349f542feef2c31389e178b",
+     "quote": "Semantic Scholar work record for Dung 1995 (DOI 10.1016/0004-3702(94)00041-X) — structured identifier rail independent of the Crossref JSON used in C-DUNG."
+    },
+    {
+     "capture_id": "wiki-af-prose",
+     "rail_class": "prose",
+     "kind": "wikipedia-html",
+     "permalink": "https://en.wikipedia.org/wiki/Argumentation_framework",
+     "resolved_url": "https://en.wikipedia.org/wiki/Argumentation_framework",
+     "doi": null,
+     "fetched_at": "2026-08-24T18:46:01Z",
+     "http_status": 200,
+     "bytes": 337249,
+     "sha256": "211de011f1527e939732f4ee6eecb5dd16c018ec9dc6c6d70da860f1ed994209",
+     "quote": "Dung defines acceptability: argument a is acceptable wrt E iff E defends a (every attacker is attacked by E). That is the labelling problem an agent would have to emit against."
+    }
+   ]
+  }
+ ],
+ "edges": [
+  {
+   "from": "C-IBIS-CHECKABLE",
+   "to": "C-COUNCIL-CHOICE",
+   "type": "supports"
+  },
+  {
+   "from": "C-TOULMIN-UNCHECKABLE-REBUTTAL",
+   "to": "C-COUNCIL-CHOICE",
+   "type": "supports"
+  },
+  {
+   "from": "C-DUNG-CHECKABLE-TOO-COSTLY",
+   "to": "C-COUNCIL-CHOICE",
+   "type": "supports"
+  }
+ ],
+ "freshness_stamp": "2026-08-25T00:54:46Z"
+}

@@ -1,0 +1,539 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tdd-red-proof-batches",
+  "name": "TDD batch implementation gated on a captured RED proof",
+  "description": "Blueprint 41 of 96 (BP-IMP-04). FLAGSHIP. Defects are fixed in file-disjoint batches, and each batch must produce a RED PROOF ARTIFACT - the test runner's actual failing output at the pre-fix state - before any implementation is allowed. The distinctive mechanism is that the red capture is a stored, schema-valid receipt rather than an assertion that the test failed, which is what makes 'the test passes' unfakeable: a test that was already green before the fix is, by definition, not a regression test for this defect, and the batch is reclassified rather than silently fixed. Executed at 24-batch scale.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["tdd", "red-proof", "anti-faking", "mutation-check"],
+  "flagship": true,
+
+  "params": {
+    "defect_list": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 512,
+      "required": true,
+      "description": "Verified defects. A defect that cannot be expressed as a test is declared, not faked."
+    },
+    "batch_size": {
+      "type": "integer",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 24,
+      "description": "Defects per batch. Batches must be file-disjoint or the concurrent commits collide."
+    },
+    "repo": {
+      "type": "path",
+      "required": true,
+      "description": "Repository root"
+    },
+    "mutation_check": {
+      "type": "boolean",
+      "default": true,
+      "description": "S3b: coverage says a line RAN; mutation says a test would NOTICE if it broke"
+    },
+    "red_proof_store": {
+      "type": "path",
+      "default": "command-center/redproof",
+      "description": "Where the captured failing output lands. This directory IS the evidence base for every later 'fixed' claim."
+    }
+  },
+
+  "roles": {
+    "test-author": {
+      "description": "Writes the failing test and captures the runner's REAL output; may not touch production code in this phase",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Glob", "Write", "Bash:pytest"],
+      "write_paths": ["tests/**", "command-center/redproof/**"],
+      "speaking_rights": "always"
+    },
+    "fixer": {
+      "description": "Implements the narrowest change that turns the captured RED into GREEN; may not edit the test to make it pass",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Edit", "Bash:pytest", "Bash:git"],
+      "speaking_rights": "always"
+    },
+    "proof-reviewer": {
+      "description": "Adversarially reviews BOTH proofs - that the red output is genuine runner output at the pre-fix state, and that the green output is not a weakened test",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "Bash:pytest", "Bash:git", "mcp__codex__codex"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "Rules on a defect that cannot produce a red proof",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Write", "Edit", "Bash:pytest", "Bash:git", "mcp__codex__codex"],
+    "deny": ["WebFetch", "Bash:git-no-verify"],
+    "network": "none",
+    "write_paths": ["tests/**", "command-center/redproof/**"],
+    "forbid_write_paths": ["command-center/redproof/archive/**"]
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == proof-reviewer",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the proof reviewer must not share a vendor with the author of the proof it is auditing"
+      }
+    ],
+    "escalation": {
+      "on": ["reviewer-refuted"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "max" },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "red-proof-captured": {
+      "predicate": "custom-expression",
+      "expression": "red_capture_present == true AND red_capture_is_runner_output == true AND test_was_green_before_fix == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "green-proof-captured": {
+      "predicate": "custom-expression",
+      "expression": "green_capture_present == true AND test_body_unchanged_since_red == true AND assertions_removed == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "mutation-noticed": {
+      "predicate": "custom-expression",
+      "expression": "mutants_on_changed_lines >= 1 AND surviving_mutants == 0",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "batches-file-disjoint": {
+      "predicate": "custom-expression",
+      "expression": "overlapping_files_between_batches == 0",
+      "blocking": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "group-batches",
+      "title": "S0 GROUP defects into file-disjoint batches",
+      "kind": "task",
+      "role": "test-author",
+      "timeout_seconds": 1800,
+      "work_unit_ref": "TST-0099",
+      "produces": [
+        {
+          "path": "command-center/redproof/batch-plan.json",
+          "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:TST-0099",
+          "consumers": ["disjointness-gate", "batch-pipelines"]
+        }
+      ]
+    },
+    {
+      "id": "disjointness-gate",
+      "title": "Overlapping batches produce colliding concurrent commits",
+      "kind": "gate",
+      "depends_on": ["group-batches"],
+      "gate_ref": "batches-file-disjoint"
+    },
+    {
+      "id": "batch-pipelines",
+      "title": "One RED-before-GREEN pipeline per batch",
+      "kind": "fanout",
+      "depends_on": ["disjointness-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/redproof/batch-plan.json",
+        "item_var": "batch",
+        "key_field": "batch_id"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 300,
+      "max_items": 128,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "write-failing-test",
+          "title": "S1 WRITE the failing test and CAPTURE the runner's real red output",
+          "kind": "task",
+          "role": "test-author",
+          "timeout_seconds": 3600,
+          "checkpoint": true,
+          "retry": {
+            "strategy": "none",
+            "max_attempts": 1
+          },
+          "work_unit": {
+            "id": "WFA-0086",
+            "title": "Reproduce every defect in the batch as a FAILING test and store the runner's output as the red proof",
+            "phase": "2B",
+            "question_or_target": "For each defect in the batch, write a test that fails at the CURRENT (pre-fix) commit, run it, and store the runner's verbatim failing output - exit code, node id, assertion text - as a schema-valid red-proof receipt. If the test passes before the fix, do NOT weaken it into failing: stop and mark the defect for reclassification.",
+            "inputs": ["params.defect_list", "params.repo", "command-center/redproof/batch-plan.json"],
+            "dependencies": ["TST-0099"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "test-author",
+              "basis": "writing a test that fails for the RIGHT reason is the judgement-heavy step"
+            },
+            "tool_permissions": ["Read", "Grep", "Glob", "Write", "Bash:pytest"],
+            "execution_substrate": "local-parallel-worktree",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/redproof/red-receipt.json",
+            "output_schema": "command-center/schema/failing-test-receipt.schema.json",
+            "evidence_requirement": "the verbatim test-runner output including the non-zero exit status and the failing node id, captured at the pre-fix commit sha which is recorded alongside it - an assertion that the test failed is NOT accepted in place of the output",
+            "tests_required": [
+              "the captured red output must contain a non-zero exit status and at least one failing node id",
+              "both-states control: running the SAME test at the post-fix commit must produce a green capture; a test that reads red at both commits is testing the wrong thing",
+              "a defect whose obvious test is already green pre-fix must be routed to reclassification, never fixed silently"
+            ],
+            "reviewer_requirement": "a cross-vendor reviewer who re-runs the stored command at the recorded pre-fix sha and reproduces the failure independently",
+            "completion_sentinel": "SUCCESS:WFA-0086 emitted only when red-receipt.json exists, parses against output_schema, carries verbatim runner output with a non-zero exit status, and records the pre-fix commit sha; otherwise FAILED:WFA-0086 <reason>",
+            "retry_policy": "no retry on this step - a second attempt to make a passing test fail is how a fake red proof gets written; escalate to reclassification instead",
+            "failure_classification": ["green-before-fix", "not-reproducible", "harness-missing"],
+            "owner_approval_required": false
+          },
+          "produces": [
+            {
+              "path": "command-center/redproof/red-receipt.json",
+              "schema_ref": "command-center/schema/failing-test-receipt.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:WFA-0086",
+              "consumers": ["red-gate", "review-both-proofs"]
+            }
+          ]
+        },
+        {
+          "id": "red-gate",
+          "title": "No implementation until the RED proof exists and is genuine",
+          "kind": "gate",
+          "depends_on": ["write-failing-test"],
+          "gate_ref": "red-proof-captured"
+        },
+        {
+          "id": "implement-fix",
+          "title": "S2 IMPLEMENT - the narrowest change that turns RED into GREEN",
+          "kind": "task",
+          "role": "fixer",
+          "depends_on": ["red-gate"],
+          "work_unit_ref": "IMP-0372",
+          "timeout_seconds": 5400
+        },
+        {
+          "id": "capture-green",
+          "title": "S3 CAPTURE the green output with the test body byte-unchanged since the red run",
+          "kind": "task",
+          "role": "fixer",
+          "depends_on": ["implement-fix"],
+          "work_unit_ref": "CNF-0022",
+          "timeout_seconds": 2700,
+          "produces": [
+            {
+              "path": "command-center/redproof/green-receipt.json",
+              "schema_ref": "command-center/schema/test-receipt.schema.json",
+              "min_bytes": 256,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:CNF-0022",
+              "consumers": ["green-gate", "review-both-proofs"]
+            }
+          ]
+        },
+        {
+          "id": "green-gate",
+          "title": "A green reached by deleting assertions is not a fix",
+          "kind": "gate",
+          "depends_on": ["capture-green"],
+          "gate_ref": "green-proof-captured"
+        },
+        {
+          "id": "mutation-check",
+          "title": "S3b OPTIONAL - revert the fix hunk and require the failure to return",
+          "kind": "task",
+          "role": "proof-reviewer",
+          "depends_on": ["green-gate"],
+          "when": "mutation_check == true",
+          "work_unit_ref": "CNF-0032",
+          "timeout_seconds": 3600,
+          "on_failure": {
+            "on_failure": "continue",
+            "classify_as": ["mutation-survived"],
+            "never_silent": true,
+            "preserve_partial_artifact": true
+          },
+          "produces": [
+            {
+              "path": "command-center/redproof/mutation-report.json",
+              "schema_ref": "command-center/schema/mutation-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:CNF-0032",
+              "consumers": ["mutation-gate"]
+            }
+          ]
+        },
+        {
+          "id": "mutation-gate",
+          "title": "A surviving mutant on a changed line is recorded, not swallowed",
+          "kind": "gate",
+          "depends_on": ["mutation-check"],
+          "gate_ref": "mutation-noticed"
+        },
+        {
+          "id": "review-both-proofs",
+          "title": "S4 ADVERSARIAL REVIEW of the red AND the green capture",
+          "kind": "task",
+          "role": "proof-reviewer",
+          "depends_on": ["mutation-gate"],
+          "work_unit_ref": "ADV-0004",
+          "timeout_seconds": 3600,
+          "produces": [
+            {
+              "path": "command-center/redproof/proof-review.json",
+              "schema_ref": "command-center/schema/completion-verdict.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:ADV-0004",
+              "consumers": ["commit-batch"]
+            }
+          ]
+        },
+        {
+          "id": "commit-batch",
+          "title": "S5 COMMIT - hooks always run, the receipts travel with the commit",
+          "kind": "task",
+          "role": "fixer",
+          "depends_on": ["review-both-proofs"],
+          "work_unit_ref": "IMP-0428",
+          "timeout_seconds": 900
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "reclassify-untestable",
+      "title": "A defect with no obtainable red proof is reclassified in writing, never silently fixed",
+      "kind": "human_checkpoint",
+      "depends_on": ["batch-pipelines"],
+      "prompt": "These defects could not produce a red proof: the test was already green pre-fix, the failure is not reproducible, or the behaviour resists expression as a test. Reclassify each - not-reproducible, test-was-wrong, or genuinely-untestable-and-disclosed.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": ["not-reproducible", "test-was-wrong", "untestable-and-disclosed"],
+      "decision_artifact": {
+        "path": "command-center/redproof/reclassification.json",
+        "schema_ref": "command-center/schema/failure-taxonomy.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    },
+    {
+      "id": "red-proof-audit",
+      "title": "Standing audit: every 'fixed' defect in this run must have a stored red proof",
+      "kind": "gate",
+      "depends_on": ["reclassify-untestable"],
+      "gate": {
+        "predicate": "custom-expression",
+        "expression": "fixed_defects_without_red_proof == 0 AND reclassified_defects_recorded == true",
+        "blocking": true,
+        "evidence_required": true,
+        "on_fail": "fail"
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "all-batches-green-and-reviewed",
+      "expression": "batches_green == batches_total AND batches_unreviewed == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "batches_total >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-red-proof-obtainable",
+      "expression": "red_proof_impossible == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 30,
+    "jitter": false,
+    "retry_on": ["flaky-test", "index-lock"],
+    "no_retry_on": ["green-before-fix", "not-reproducible", "owner-blocked"]
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["green-before-fix", "not-reproducible", "mutation-survived", "assertions-removed"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "reclassify-untestable",
+    "quarantine_path": "command-center/redproof/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/tdd-red-proof-batches",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/tdd-red-proof-batches.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "timings"],
+    "forbid_nondeterministic_sources": ["filesystem-order", "process-id"],
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "stage",
+    "read_only": true,
+    "invalidate_on": ["test-file-change", "fix-hunk-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "graph", "artifact-diff"],
+    "plan_artifact": "command-center/dry-run/tdd-red-proof-batches-plan.json",
+    "forbid_tools": ["Write", "Edit", "Bash:pytest", "Bash:git"]
+  },
+
+  "estimate": {
+    "basis": "historical-measured",
+    "confidence": "almost-certain",
+    "measurement_source": "command-center/measurements/reframe-24-batch-runs.json",
+    "cost": { "currency": "USD", "min": 3.0, "expected": 18.0, "max": 70.0 },
+    "wallclock_seconds": { "min": 1800, "expected": 14400, "max": 57600 },
+    "tokens": { "min": 300000, "expected": 2000000, "max": 7000000 },
+    "tool_calls": { "expected": 520, "max": 2600 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "one commit per batch plus the red/green receipts; reverting a batch reverts its fix and its test together",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/tdd-red-proof-batches.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "exec-reframe-50-implement-batches",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "superpowers:test-driven-development",
+        "relation": "MERGE",
+        "license": "third-party-plugin",
+        "credit": "superpowers"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-IMP-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/tdd-workflow@as-shipped"]
+  },
+
+  "outputs": {
+    "red-proof-index": {
+      "path": "command-center/redproof/red-receipt.json",
+      "schema_ref": "command-center/schema/failing-test-receipt.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["red-proof-audit", "command-center/PROGRAM-LEDGER.json"]
+    },
+    "reclassification": {
+      "path": "command-center/redproof/reclassification.json",
+      "schema_ref": "command-center/schema/failure-taxonomy.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "Batch B07 carries two defects: D1 'shredFile leaves a partial file on ENOSPC' and D2 'the settings loader ignores a per-project override'.",
+      "step_1_red": "test_shred_enospc fails at pre-fix sha 4c1e9ab with `E  AssertionError: expected 0 residual bytes, got 4096` and exit status 1 -> red-receipt.json stores that verbatim text plus the sha",
+      "step_1_red_D2": "test_project_override PASSES at the same sha - so it is not a regression test for D2. red-gate fails on test_was_green_before_fix == true and D2 goes to reclassify-untestable, where it is recorded as test-was-wrong (the real defect was in the resolver, not the loader)",
+      "step_2_green": "after the fix, the same test body (byte-unchanged, verified) exits 0 -> green-receipt.json",
+      "step_3_mutation": "reverting only the fix hunk must bring the failure back. It does for D1. On a sibling batch B11 the mutant SURVIVES - mutation-gate records surviving_mutants == 1 and the batch is flagged rather than silently blessed",
+      "audit": "red-proof-audit then asserts fixed_defects_without_red_proof == 0 across the whole run - the check that would have caught a batch fixed with no stored proof"
+    },
+    "distinctive_mechanism": "the red capture is a STORED, schema-valid receipt of the runner's real output at a recorded pre-fix sha, and the write-failing-test stage is explicitly no-retry so a second attempt cannot manufacture one",
+    "contraindications": [
+      "NOT for exploratory spikes - there is no defect to prove",
+      "NOT where the failure genuinely cannot be expressed as a test - say so via reclassification instead of faking a red",
+      "NOT a substitute for the standalone red-proof certification gate that audits somebody ELSE's work"
+    ],
+    "not_a_duplicate_because": "BP-TST-06 CERTIFIES a red proof that already exists, over work this workflow did not do; this is the implementation loop that PRODUCES one, and its no-retry write step is the anti-faking control.",
+    "flagship_test": "platform/lib/workflows/test_tdd_red_proof_batches.py"
+  }
+}

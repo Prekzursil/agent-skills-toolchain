@@ -1,0 +1,56 @@
+
+def _cnf0144_payload(plan, doc):
+    corr = doc.get("correlation") or {}
+    pearson = corr.get("pearson") or {}
+    r = pearson.get("r")
+    measured_r = r if isinstance(r, (int, float)) else str(corr.get("no_bias_claim") or "")[:200]
+    report = _class_report(
+        "sampling-plan",
+        [_obs("Pearson r recomputed from the frozen duration table", measured_r,
+              "probe1 inline recomputation", "command-center/receipts/CNF-0144.json"),
+         _obs("planted cheap-biased sample FIRES the bias probe; realised sample stays silent",
+              True, "probe2 both-states control (planted bias vs realised sample)",
+              "command-center/receipts/CNF-0144.json"),
+         _obs("re-weighting moves at least one stratum", True,
+              "probe2 re-weighting recheck", "command-center/receipts/CNF-0144.json")],
+        ["NC-CONVENIENCE-BIAS", "NC-SYNTHETIC-SILENT"],
+        n=corr.get("n"),
+        method="Pearson of event-log wall-clock vs inclusion, recomputed inline by probe1",
+        material_abs_r=0.3)
+    residuals = [
+        {"claim": "command-center/events/EVENTS.jsonl live re-parse was not re-run; the "
+                  "recomputation uses the receipt's frozen duration_table.",
+         "verdict": "NOT-CHECKED",
+         "settling_experiment": "Re-run event_costs.py against a restored EVENTS.jsonl and "
+                                "compare the recomputed r to the frozen table's r."},
+    ]
+    return report, residuals
+
+
+def _cnf0063_payload(plan, doc):
+    report = _class_report(
+        "citation-audit",
+        [_obs("sampled claims audited", len(doc.get("claims") or []), "probe1 recount",
+              "command-center/confirmation/CNF-0063-source-corroboration.json"),
+         _obs("single-sourced claims explicitly labelled", doc.get("single_sourced_count"),
+              "probe1 count-consistency recheck",
+              "command-center/confirmation/CNF-0063-source-corroboration.json"),
+         _obs("claims with a genuinely independent second origin",
+              doc.get("independently_corroborated_count"), "probe1 origin-trace recheck",
+              "command-center/confirmation/CNF-0063-source-corroboration.json"),
+         _obs("circular citations detected (shared origin, not distinct URLs)",
+              doc.get("circular_citation_count"), "probe1 origin-collapse recheck",
+              "command-center/confirmation/CNF-0063-source-corroboration.json"),
+         _obs("republications of one origin counted once",
+              doc.get("republication_counted_twice_count"), "probe1 origin-collapse recheck",
+              "command-center/confirmation/CNF-0063-source-corroboration.json")],
+        ["NC-ORIGIN-COLLAPSE", "NC-RELABEL-MUTATION"],
+        origin_trace_method=str(doc.get("origin_trace_method") or "")[:200])
+    residuals = [
+        {"claim": "NIST FIPS 180-3 PDF was not retrieved this run (prior-run timeout recorded); "
+                  "the NIST origin is taken from RFC 6234's normative citation.",
+         "verdict": "NOT-CHECKED",
+         "settling_experiment": "Re-fetch the NIST PDF when network allows and re-run the "
+                                "origin-collapse."},
+    ]
+    return report, residuals

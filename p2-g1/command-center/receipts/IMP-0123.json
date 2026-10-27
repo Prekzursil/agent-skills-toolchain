@@ -1,0 +1,180 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "note": "this receipt; sha256 recorded in per-unit UNIT-ARTIFACT-MANIFEST.json after write",
+   "path": "command-center/receipts/IMP-0123.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 6991,
+   "exists": true,
+   "path": "tools/marketplace/integrity_sweep.py",
+   "role": "implementation",
+   "sha256": "a076ccab488d2ff61396607ae61579981a46efeabceca37cd8561b2ff7346948"
+  },
+  {
+   "bytes": 2416,
+   "exists": true,
+   "path": "tools/marketplace/blob_store.py",
+   "role": "implementation",
+   "sha256": "c24f3adbeadc64e5d676120156d6f3149721d579f9d3e17fff5f55bfe69c479a"
+  },
+  {
+   "bytes": 1030,
+   "exists": true,
+   "path": "tools/marketplace/registry_index.py",
+   "role": "implementation",
+   "sha256": "cf1370ea7efd0a897f3315f0651ce49772923ddbb729fa6369d7914c918f9367"
+  },
+  {
+   "bytes": 5375,
+   "exists": true,
+   "path": "tools/marketplace/tests/test_integrity_sweep.py",
+   "role": "implementation",
+   "sha256": "2808b331eff7e7d2edf676a681effbaa0e2b3dfcbc5ff72a7e34de198a38c2a6"
+  },
+  {
+   "bytes": 3138,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0123/probe1_mutated_blob_named.py",
+   "role": "implementation",
+   "sha256": "7aba6f4c37cd395d7adfb6b84b1ee470f6897b33b29185d0dc25cfa1c81da582"
+  },
+  {
+   "bytes": 4260,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0123/probe2_coverage_and_clean.py",
+   "role": "implementation",
+   "sha256": "8c5497f389aa25f2a7c04c8a94d88389118a7b005b5a21987d185c0946fa3298"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0123.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "G-1 measure is the live consumer; run after this file is sealed",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/tests/test_integrity_sweep.py::test_mutated_blob_is_named",
+   "claim": "A deliberately mutated blob is identified by the sweep, naming the index entry pkg.bravo. An untouched clone in the same run reports zero drift.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0123/probe1_mutated_blob_named.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"blob_walk_named_pkg_bravo\": true, \"clean_findings\": 0, \"dirty_coverage\": 3, \"dirty_object_count\": 3, \"fired_on_bad\": true, \"index_walk_named_pkg_bravo\": true, \"named_entries\": [\"pkg.bravo\"], \"pass\": true, \"probe\": \"probe1-mutated-blob-named\", \"silent_on_good\": true, \"unit_id\": \"IMP-0123\"}\nnamed=['pkg.bravo'] fired_on_bad=True silent_on_good=True blob=True index=True\nSUCCESS:IMP-0123-probe1 mutated blob is named; untouched store silent",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_integrity_sweep.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "PASS test_mutated_blob_is_named\nPASS test_coverage_equals_object_count\nPASS test_untouched_store_zero_drift_same_run\nPASS test_schedule_due_and_run_if_due\nSUCCESS:test_integrity_sweep",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/tests/test_integrity_sweep.py::test_coverage_equals_object_count",
+   "claim": "Sweep coverage_count equals an independent directory census of store objects (including unreferenced extras). A max_objects=1 sample in the same run fails the equality and is not treated as a clean bill of health.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0123/probe2_coverage_and_clean.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"bounded_single_thread\": true, \"coverage_count\": 7, \"coverage_ok\": true, \"elapsed_seconds\": 0.0010210850000476057, \"expected\": 7, \"independent_census\": 7, \"pass\": true, \"probe\": \"probe2-coverage-equals-object-count\", \"sample_discriminates\": true, \"store_object_count\": 7, \"unit_id\": \"IMP-0123\", \"untouched_zero_drift\": true}\ncensus=7 coverage=7 objects=7 sample=1 clean=True bounded=True\nSUCCESS:IMP-0123-probe2 coverage equals object count; sample is not clean",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "module": "tools/marketplace/integrity_sweep.py",
+  "periodic": "SweepSchedule.due / run_if_due for cron/cockpit; the sweep is not a daemon",
+  "runtime_bound": {
+   "chunked_hashing": true,
+   "max_objects_cap": true,
+   "max_seconds_default": 30.0,
+   "no_thread_or_process_pool": true,
+   "one_file_open": true,
+   "workers": 1
+  },
+  "substrate": "tools/marketplace/blob_store.py + registry_index.py (IMP-0121/IMP-0114 artifacts absent in this worktree; minimum store/index adapter only)"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0123/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit row; global unit_manifest.py --write not run",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "description": "Untouched store reports zero drift in the same process that names pkg.bravo after in-place mutation",
+   "fired_on_bad_state": true,
+   "id": "untouched-store-zero-drift",
+   "kind": "both-states-same-run",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "max_objects=1 walk has coverage_count != object_count and healthy=false even with no digest mismatch yet",
+   "fired_on_bad_state": true,
+   "id": "sample-is-not-clean",
+   "kind": "coverage-cap",
+   "silent_on_good_state": true
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0121 blob-store refcount/crash-rebuild and IMP-0114 index linter are not on this worktree; this unit ships the sweep plus a minimum store/index substrate.",
+   "settling_experiment": "Deliver IMP-0121/IMP-0114 and re-point the sweep at those APIs.",
+   "verdict": "NAMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent os.walk census matched coverage_count; source audit found no thread/process pool; elapsed << 30s.",
+  "reviewer_id": "IMP-0123-probe2-coverage-census",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0123",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0123",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_integrity_sweep.py (test_mutated_blob_is_named)",
+   "id": "test_mutated_blob_is_named",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_integrity_sweep.py (test_coverage_equals_object_count)",
+   "id": "test_coverage_equals_object_count",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_integrity_sweep.py (test_untouched_store_zero_drift_same_run)",
+   "id": "negative-untouched-zero-drift",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:23Z",
+  "started_at": "2026-08-25T00:56:23Z"
+ },
+ "title": "Scheduled integrity audit sweep over stored blobs and index digests",
+ "unit_id": "IMP-0123"
+}

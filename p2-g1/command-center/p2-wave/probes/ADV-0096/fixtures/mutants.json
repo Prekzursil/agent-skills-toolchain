@@ -1,0 +1,63 @@
+{
+  "seed": {
+    "id": "seed-evidence-hash-vote-cap",
+    "class": "seed",
+    "title": "Evidence-hash vote cap",
+    "text": "Admit at most one council vote per evidence-bundle hash per round. The hash is SHA-256 of the canonical evidence bytes.",
+    "mechanism": "evidence-hash-vote-cap",
+    "params": {"window": "round", "max_votes": 1},
+    "composition": ["canonicalize-evidence", "hash-bundle", "cap-votes-per-hash"]
+  },
+  "mutants": [
+    {
+      "id": "mut-exact-rename",
+      "class": "exact_rename",
+      "title": "ProofDigestBallotLimiter",
+      "text": "Admit at most one council vote per evidence-bundle hash per round. The hash is SHA-256 of the canonical evidence bytes.",
+      "mechanism": "evidence-hash-vote-cap",
+      "params": {"window": "round", "max_votes": 1},
+      "composition": ["canonicalize-evidence", "hash-bundle", "cap-votes-per-hash"],
+      "want_if_gate_works": "reject"
+    },
+    {
+      "id": "mut-synonym-swap",
+      "class": "synonym_swap",
+      "title": "Sitting-scoped solitary ballot keyed by exhibit checksum",
+      "text": "Permit a solitary ballot keyed by a proof-pack digest each cycle. Digests equal a 256-bit checksum of normalised exhibit payload.",
+      "mechanism": "evidence-hash-vote-cap",
+      "params": {"window": "round", "max_votes": 1},
+      "composition": ["canonicalize-evidence", "hash-bundle", "cap-votes-per-hash"],
+      "want_if_gate_works": "reject"
+    },
+    {
+      "id": "mut-one-parameter-fork",
+      "class": "one_parameter_fork",
+      "title": "Evidence-hash vote cap (max_votes=2)",
+      "text": "Admit at most two council votes per evidence-bundle hash per round. The hash is SHA-256 of the canonical evidence bytes.",
+      "mechanism": "evidence-hash-vote-cap",
+      "params": {"window": "round", "max_votes": 2},
+      "composition": ["canonicalize-evidence", "hash-bundle", "cap-votes-per-hash"],
+      "want_if_gate_works": "reject"
+    },
+    {
+      "id": "mut-reordered-composition",
+      "class": "reordered_composition",
+      "title": "Evidence-hash vote cap, reordered pipeline",
+      "text": "Admit at most one council vote per evidence-bundle hash per round. The hash is SHA-256 of the canonical evidence bytes.",
+      "mechanism": "evidence-hash-vote-cap",
+      "params": {"window": "round", "max_votes": 1},
+      "composition": ["cap-votes-per-hash", "hash-bundle", "canonicalize-evidence"],
+      "want_if_gate_works": "reject"
+    },
+    {
+      "id": "mut-genuinely-distinct",
+      "class": "genuinely_distinct",
+      "title": "Partition leak check before synthesis",
+      "text": "Split participants into isolated partitions. A finding may not cite a fact that only another partition received.",
+      "mechanism": "partition-content-leak-check",
+      "params": {"partitions": 2, "action": "block-synthesis"},
+      "composition": ["assign-partitions", "scan-cited-facts", "block-cross-partition-leak"],
+      "want_if_gate_works": "accept"
+    }
+  ]
+}

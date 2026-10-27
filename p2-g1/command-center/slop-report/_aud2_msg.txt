@@ -1,0 +1,56 @@
+test(slop): independent round-2 audit -- every DoD item re-executed, not read
+
+Verdict CLEAN. The builder's round-2 report survives execution: all four DoD
+items pass when the auditor runs them, both CONFIRMED defects are genuinely
+fixed in code, and the six commits are exactly what they claim to be.
+
+Re-measured, not trusted:
+  - commit integrity: all 6 commits match their claimed file/insertion/deletion
+    counts EXACTLY (6/540/11, 8/968/6, 29/3057/0, 10/634/26, 4/173/3, 2/56/7),
+    zero foreign paths, zero tracked deletions, all ancestors of HEAD. Both the
+    foreign-path and deletion detectors were controlled against commits known to
+    contain each, and both fire.
+  - D2 fix, both states executed: default rc 0 / PASS / quiet 0 with the receipt
+    byte-unchanged; --sentinel legacy rc 1 / FAIL. A fix whose control cannot
+    fail is not a fix; this one is distinguished by exit code.
+  - DoD3: the auditor deleted __pycache__, asserted absence, ran the PUBLISHED
+    command, and got rc 0 + byte-identical regeneration + a clean tree.
+  - DoD4: frozen dirs measured by a different method than the builder's (git
+    diff/log over the range rather than hashing), with the differ controlled
+    against a known-changed path -- it reports 54 changed files and 6 commits
+    there, and 0/0 on both frozen dirs.
+  - the gate: measured INDEPENDENTLY by extracting blobs with `git cat-file -p`
+    rather than the builder's clone route. 61e69cf2 -> 1a3f09f4: zero new format
+    failures, zero new lint codes, considered 2159 -> 2183 proving ruff actually
+    read the 20 new files. All 9 controls pass including a mangle control on
+    both sides.
+  - residual #6: exactly 6 receipts drift on a re-run, zero verdict-bearing
+    leaves move, and the classifier is proven to see a synthetic verdict flip.
+
+One number the builder got differently and is NOT wrong about: legacy sentinel
+citers measure 7 here, not 6. _r2_predcheck.py was committed after that reading
+and names the sentinel. The builder's monotonic-growth thesis confirming itself
+one rev later is the strongest available evidence that runtime generation was
+the right repair.
+
+Findings, both minor and non-blocking, in _AUDIT-SLOP-R2.json:
+  A-O1 residual #1 repeats "208 files" with no rev anchor in the section a
+       reader quotes; it is 233 at 2caafe53. Section O2 anchors it correctly, so
+       this is a stale restatement, not a wrong measurement. The
+       recommendation (do not widen) is unaffected and strengthens.
+  A-O2 _r2_postcommit.out.json is tracked but absent from the artifact list.
+
+My own failures, recorded rather than dropped:
+  1. My first receipt-rot probe classified whatever was ambiently dirty, so on a
+     clean tree it returned DETECTOR-INERT -- the same ambient-state rot this
+     lane audits, rebuilt inside the auditor's instrument. Rewritten to create
+     the drift, classify, then restore.
+  2. My own probe files failed ruff format --check at the CI pin. Committing
+     them would have turned main red: the exact defect this lane exists to
+     prevent. Formatted with pinned 0.15.17 first, then re-run.
+  3. My _aud2_*.py glob collided with a TRACKED round-1 auditor file. It was
+     already formatted so nothing changed, and git confirms zero tracked
+     modifications, but the near-miss is recorded.
+
+These receipts are committed rather than left on one disk, because a report that
+cites files no clone has is the round-1 finding recursing into its own auditor.

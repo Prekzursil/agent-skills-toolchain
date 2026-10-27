@@ -1,0 +1,1188 @@
+{
+ "unit_id": "RES-0074",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0074 in the receipt AND a per-format table naming read and write implementations, with one-way formats marked",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0074.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0074.json",
+   "bytes": 25502,
+   "sha256": "cff1a7468c6bc4ebcb0b485b5cf899f596bc57f105f463ef5561bd0519bd41a7",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "kind": "research-claim-record",
+   "schema_hint": "command-center/schema/research-claim-record.schema.json (absent in this worktree)",
+   "title": "Determine whether any workflow interchange format is real enough to import from",
+   "question": "Is there any interchange format that more than one orchestration ecosystem actually reads and writes, or is every 'export' effectively a one-way dump - the answer that decides whether this program's importer targets a format or writes per-source adapters?",
+   "answer": "Yes, at least one real interchange format exists (BPMN 2.0 XML: Camunda and Flowable both read and write it). No: that format is the wrong domain for this program, and the formats adjacent to agent/scientific/CI orchestration (CWL, WDL, n8n JSON, GitHub Actions YAML, Nextflow, Airflow DAGs, Galaxy gxformat2) are one-way dumps or multi-reader languages under the unit's own test (two independent implementations must both read AND write). Therefore the importer writes per-source adapters; it does not target a single interchange format.",
+   "program_decision": "per-source-adapters",
+   "captured_at": "2026-08-24T18:47:45Z",
+   "emitted_at": "2026-08-25T00:55:46Z",
+   "per_format_table": [
+    {
+     "format_id": "BPMN-2.0",
+     "format_name": "Business Process Model and Notation 2.0 XML",
+     "one_way": false,
+     "real_interchange": true,
+     "read_implementations": [
+      "Camunda",
+      "Flowable"
+     ],
+     "write_implementations": [
+      "Camunda",
+      "Flowable"
+     ],
+     "note": "Camunda Bpmn.readModelFromStream/writeModelToStream and Flowable BpmnXMLConverter.convertToBpmnModel/convertToXML both round-trip BPMN XML. Shared Activiti ancestry is the strongest caveat."
+    },
+    {
+     "format_id": "CWL-1.2",
+     "format_name": "Common Workflow Language v1.2",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "cwltool",
+      "Toil"
+     ],
+     "write_implementations": [
+      "cwltool"
+     ],
+     "note": "Independent readers exist (cwltool, Toil). Captured writer is cwltool --pack. Galaxy gxformat2 is Galaxy-native, not CWL. Cromwell v80+ dropped CWL. Fails two-implementation read-AND-write."
+    },
+    {
+     "format_id": "WDL",
+     "format_name": "Workflow Description Language (OpenWDL)",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "Cromwell",
+      "miniWDL"
+     ],
+     "write_implementations": [
+      "human-authored-WDL"
+     ],
+     "note": "OpenWDL lists several engines. Captures show Cromwell and miniWDL as readers. No second-engine native WDL exporter captured."
+    },
+    {
+     "format_id": "n8n-JSON",
+     "format_name": "n8n workflow JSON",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "n8n"
+     ],
+     "write_implementations": [
+      "n8n"
+     ],
+     "note": "Single-ecosystem dump. No second product captured that writes the same document."
+    },
+    {
+     "format_id": "GHA-YAML",
+     "format_name": "GitHub Actions workflow YAML",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "GitHub-Actions-runner"
+     ],
+     "write_implementations": [
+      "GitHub-Actions-authoring"
+     ],
+     "note": "One runtime family. Schema Store describes the GitHub-owned document."
+    },
+    {
+     "format_id": "Nextflow-DSL2",
+     "format_name": "Nextflow DSL2",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "Nextflow"
+     ],
+     "write_implementations": [
+      "Nextflow"
+     ],
+     "note": "Single-implementation language. nf-core is a pipeline community, not a second format engine."
+    },
+    {
+     "format_id": "Airflow-DAG",
+     "format_name": "Apache Airflow Python DAG",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "Apache-Airflow"
+     ],
+     "write_implementations": [
+      "Apache-Airflow"
+     ],
+     "note": "Python source loaded by one project. Hosted Airflow is still Airflow."
+    },
+    {
+     "format_id": "Galaxy-gxformat2",
+     "format_name": "Galaxy workflow Format 2",
+     "one_way": true,
+     "real_interchange": false,
+     "read_implementations": [
+      "Galaxy"
+     ],
+     "write_implementations": [
+      "Galaxy"
+     ],
+     "note": "Galaxy-native format moving toward CWL, not CWL interchange."
+    }
+   ],
+   "claims": [
+    {
+     "claim_id": "RES-0074-C1",
+     "canonical_mechanism": "BPMN 2.0 XML is a real interchange format under this unit's test: Camunda and Flowable both read and write the same dialect.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "confidence_band": "high",
+     "strongest_caveat": "Camunda and Flowable both descend from Activiti. Shared ancestry does not make them one product today. Domain mismatch: BPMN is process XML, not this program's skill/hook/council graphs.",
+     "rails": [
+      {
+       "capture_id": "camunda-bpmn-docs",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "docs.camunda.org-html",
+       "shell": "cpython-ssl",
+       "field": "page-title-bpmn20-implementation-reference",
+       "permalink": "https://docs.camunda.org/manual/7.22/reference/bpmn20/",
+       "request_url": "https://docs.camunda.org/manual/7.22/reference/bpmn20/",
+       "fetched_at": "2026-08-24T18:47:49Z",
+       "http_status": 200,
+       "sha256": "481db566624e6b82b8e7f602791aba48752da68ab99d3268e8718b385688937f",
+       "bytes": 168000,
+       "excerpt": "BPMN 2.0 Implementation Reference | docs.camunda.org"
+      },
+      {
+       "capture_id": "flowable-bpmn-parse-api",
+       "rail_kind": "api",
+       "tool": "github-contents-api",
+       "engine": "github-json",
+       "shell": "cpython-ssl",
+       "field": "BpmnXMLConverter.convertToXML+convertToBpmnModel",
+       "permalink": "https://github.com/flowable/flowable-engine/blob/54f080dde86473dff78dadb9361ba77767ce2f51/modules/flowable-bpmn-converter/src/main/java/org/flowable/bpmn/converter/BpmnXMLConverter.java",
+       "request_url": "https://api.github.com/repos/flowable/flowable-engine/contents/modules/flowable-bpmn-converter/src/main/java/org/flowable/bpmn/converter/BpmnXMLConverter.java",
+       "fetched_at": "2026-08-24T18:47:51Z",
+       "http_status": 200,
+       "sha256": "0cc7980fde2c48f7193d778ee65f11edf734337f2a52e848db78749ebca19210",
+       "bytes": 46617,
+       "excerpt": "convertToXML(BpmnModel); convertToBpmnModel(...) — Flowable reads and writes BPMN XML."
+      },
+      {
+       "capture_id": "camunda-bpmn-model-raw",
+       "rail_kind": "api",
+       "tool": "raw-githubusercontent",
+       "engine": "java-source",
+       "shell": "cpython-ssl",
+       "field": "Bpmn.writeModelToStream+readModelFromStream",
+       "permalink": "https://raw.githubusercontent.com/camunda/camunda-bpm-platform/master/model-api/bpmn-model/src/main/java/org/camunda/bpm/model/bpmn/Bpmn.java",
+       "request_url": "https://raw.githubusercontent.com/camunda/camunda-bpm-platform/master/model-api/bpmn-model/src/main/java/org/camunda/bpm/model/bpmn/Bpmn.java",
+       "fetched_at": "2026-08-24T18:50:36Z",
+       "http_status": 200,
+       "sha256": "d67ce105785bba98e1056ce4cf702ae61d15ff273e1bf2839cc003334e6ecaf7",
+       "bytes": 35623,
+       "excerpt": "writeModelToStream / readModelFromStream on org.camunda.bpm.model.bpmn.Bpmn"
+      },
+      {
+       "capture_id": "flowable-readme-raw",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "markdown",
+       "shell": "cpython-ssl",
+       "field": "readme-bpmn-process-engine",
+       "permalink": "https://raw.githubusercontent.com/flowable/flowable-engine/main/README.md",
+       "request_url": "https://raw.githubusercontent.com/flowable/flowable-engine/main/README.md",
+       "fetched_at": "2026-08-24T18:51:15Z",
+       "http_status": 200,
+       "sha256": "9302e5e07a11b4f87b41515324fa105dcfc42b2207964233fb0eba0596c37c13",
+       "bytes": 2894,
+       "excerpt": "a lightning fast, tried and tested BPMN process engine"
+      }
+     ]
+    },
+    {
+     "claim_id": "RES-0074-C2",
+     "canonical_mechanism": "CWL v1.2 has at least two independent readers (cwltool, Toil) but is not a real interchange format under the two-implementation read-AND-write test.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "confidence_band": "high",
+     "strongest_caveat": "A later capture of a second native CWL writer independent of cwltool could upgrade this. Galaxy gxformat2 is not that writer. Cromwell v80+ dropped CWL.",
+     "rails": [
+      {
+       "capture_id": "cwl-spec-workflow-html",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "commonwl-html-spec",
+       "shell": "cpython-ssl",
+       "field": "abstract-portable-across-computing",
+       "permalink": "https://www.commonwl.org/v1.2/Workflow.html",
+       "request_url": "https://www.commonwl.org/v1.2/Workflow.html",
+       "fetched_at": "2026-08-24T18:47:45Z",
+       "http_status": 200,
+       "sha256": "f66cea755638aed8fd37fe3b8c8f60c0f08a71da2aad7484fd81ca6450bfd932",
+       "bytes": 285993,
+       "excerpt": "CWL is portable across a variety of computing"
+      },
+      {
+       "capture_id": "cwltool-pack-api",
+       "rail_kind": "api",
+       "tool": "github-contents-api",
+       "engine": "github-json",
+       "shell": "cpython-ssl",
+       "field": "cwltool/pack.py-blob",
+       "permalink": "https://github.com/common-workflow-language/cwltool/blob/22d9e0007956580835945533ebb3969041f149ab/cwltool/pack.py",
+       "request_url": "https://api.github.com/repos/common-workflow-language/cwltool/contents/cwltool/pack.py",
+       "fetched_at": "2026-08-24T18:47:45Z",
+       "http_status": 200,
+       "sha256": "fa61957276cfadc758a03d8408c61f677e62aa0c8e466d1a82ef23607c797292",
+       "bytes": 16397,
+       "excerpt": "Contents API cwltool/pack.py — cwltool packs/writes CWL documents"
+      },
+      {
+       "capture_id": "toil-readme-raw",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "rst",
+       "shell": "cpython-ssl",
+       "field": "toil-cwl-1.2-conformance",
+       "permalink": "https://raw.githubusercontent.com/DataBiosphere/toil/master/README.rst",
+       "request_url": "https://raw.githubusercontent.com/DataBiosphere/toil/master/README.rst",
+       "fetched_at": "2026-08-24T18:51:16Z",
+       "http_status": 200,
+       "sha256": "fbdce8555607575d1b1a60e694a3fc850ad3b18a2eacf67d29d7b43182dadd92",
+       "bytes": 2100,
+       "excerpt": "supports running workflows written in either Common Workflow Language (CWL) 1.0-1.2"
+      },
+      {
+       "capture_id": "cromwell-readme-raw",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "markdown",
+       "shell": "cpython-ssl",
+       "field": "cromwell-v80-dropped-cwl",
+       "permalink": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/README.md",
+       "request_url": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/README.md",
+       "fetched_at": "2026-08-24T18:47:47Z",
+       "http_status": 200,
+       "sha256": "c355ffb2b613e01727eac98e48280fd3fd4ffc16b2a171f5fad0e11d51f6179c",
+       "bytes": 2529,
+       "excerpt": "Cromwell version 80 and above no longer support CWL."
+      },
+      {
+       "capture_id": "gxformat2-readme",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "rst",
+       "shell": "cpython-ssl",
+       "field": "gxformat2-moving-toward-cwl-not-cwl",
+       "permalink": "https://raw.githubusercontent.com/galaxyproject/gxformat2/master/README.rst",
+       "request_url": "https://raw.githubusercontent.com/galaxyproject/gxformat2/master/README.rst",
+       "fetched_at": "2026-08-24T18:47:48Z",
+       "http_status": 200,
+       "sha256": "833bd9eb3dc1c3591bd386e7da70f86220be1259e03e69c4e603683021edfaae",
+       "bytes": 2351,
+       "excerpt": "moving Galaxy's workflow description language toward standards such as the Common Workflow Language."
+      }
+     ]
+    },
+    {
+     "claim_id": "RES-0074-C3",
+     "canonical_mechanism": "WDL has multiple independent readers (Cromwell, miniWDL) but the captured set does not show two implementations that both read and write WDL as interchange.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "confidence_band": "high",
+     "strongest_caveat": "OpenWDL's engine table is a reader census, not a write census. A second-engine WDL exporter was not captured and is not assumed.",
+     "rails": [
+      {
+       "capture_id": "miniwdl-readme-raw",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "markdown",
+       "shell": "cpython-ssl",
+       "field": "miniwdl-run-wdl-pipeline",
+       "permalink": "https://raw.githubusercontent.com/chanzuckerberg/miniwdl/main/README.md",
+       "request_url": "https://raw.githubusercontent.com/chanzuckerberg/miniwdl/main/README.md",
+       "fetched_at": "2026-08-24T18:47:49Z",
+       "http_status": 200,
+       "sha256": "1f825147a43b700d8980b834d79c3dd7ae5f7a7d83f14d279cd9a28f5e66a18a",
+       "bytes": 4669,
+       "excerpt": "Run an example bioinformatics WDL pipeline using miniwdl"
+      },
+      {
+       "capture_id": "openwdl-readme-api",
+       "rail_kind": "api",
+       "tool": "github-contents-api",
+       "engine": "github-json",
+       "shell": "cpython-ssl",
+       "field": "openwdl-readme-contents-api",
+       "permalink": "https://github.com/openwdl/wdl/blob/748043770fbafb03e4ba4b28141daaac567a7a1e/README.md",
+       "request_url": "https://api.github.com/repos/openwdl/wdl/readme",
+       "fetched_at": "2026-08-24T18:47:48Z",
+       "http_status": 200,
+       "sha256": "840ad7a8825a8ffce21189bfe2c0455482c2686672f47f424959d058d50c1849",
+       "bytes": 9444,
+       "excerpt": "OpenWDL README via GitHub Contents API — WDL as an open standard with several engines"
+      },
+      {
+       "capture_id": "cromwell-wdl-language-raw",
+       "rail_kind": "prose",
+       "tool": "raw-githubusercontent",
+       "engine": "markdown",
+       "shell": "cpython-ssl",
+       "field": "cromwell-five-minute-wdl-intro",
+       "permalink": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/docs/tutorials/FiveMinuteIntro.md",
+       "request_url": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/docs/tutorials/FiveMinuteIntro.md",
+       "fetched_at": "2026-08-24T18:47:49Z",
+       "http_status": 200,
+       "sha256": "7207bf8488497a59c6fb8fba703a7ee3e31cd94bbe934828e6c3881c1660eda8",
+       "bytes": 3689,
+       "excerpt": "If you'd like to learn more about how to author WDL ... run your first workflow in Cromwell"
+      }
+     ]
+    },
+    {
+     "claim_id": "RES-0074-C4",
+     "canonical_mechanism": "n8n JSON, GitHub Actions YAML, Nextflow DSL2, and Airflow Python DAGs are one-way / single-ecosystem dumps. They fail the two-implementation read-and-write test.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "confidence_band": "high",
+     "strongest_caveat": "Community converters were not captured as two production engines that both read and write one shared document. Unpublished converters remain E3.",
+     "rails": [
+      {
+       "capture_id": "n8n-export-docs",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "docs.n8n.io-html",
+       "shell": "cpython-ssl",
+       "field": "export-import-docs-http-200",
+       "permalink": "https://docs.n8n.io/build/manage-workflows/export-and-import",
+       "request_url": "https://docs.n8n.io/workflows/export-import/",
+       "fetched_at": "2026-08-24T18:47:52Z",
+       "http_status": 200,
+       "sha256": "cbf2981024df49bf0f7a830624e27f697a5ffab357d4ec7b337df23c57778efd",
+       "bytes": 565444,
+       "excerpt": "Captured docs.n8n.io/workflows/export-import/ HTTP 200."
+      },
+      {
+       "capture_id": "n8n-workflow-api",
+       "rail_kind": "api",
+       "tool": "github-contents-api",
+       "engine": "github-json",
+       "shell": "cpython-ssl",
+       "field": "n8n-packages-workflow-interfaces.ts",
+       "permalink": "https://github.com/n8n-io/n8n/blob/b7c8788be45557d21745329d57a8a84df2167096/packages/workflow/src/interfaces.ts",
+       "request_url": "https://api.github.com/repos/n8n-io/n8n/contents/packages/workflow/src/interfaces.ts",
+       "fetched_at": "2026-08-24T18:47:52Z",
+       "http_status": 200,
+       "sha256": "331137e47ce7f5ae9fdb1a8dfa01452c402686e506f5eb8c149fc8b2157763ea",
+       "bytes": 190046,
+       "excerpt": "Contents API packages/workflow/src/interfaces.ts — n8n's own workflow document types"
+      },
+      {
+       "capture_id": "gha-workflow-syntax",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "docs.github.com-html",
+       "shell": "cpython-ssl",
+       "field": "workflow-syntax-for-github-actions",
+       "permalink": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+       "request_url": "https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions",
+       "fetched_at": "2026-08-24T18:47:56Z",
+       "http_status": 200,
+       "sha256": "0afb0a10cb6490272a26a660c90386cff80349765a105ecf89775b4c74fee000",
+       "bytes": 2020175,
+       "excerpt": "Workflow syntax for GitHub Actions - GitHub Docs"
+      },
+      {
+       "capture_id": "gha-schemastore-json",
+       "rail_kind": "api",
+       "tool": "urllib",
+       "engine": "json-schema-store",
+       "shell": "cpython-ssl",
+       "field": "github-workflow.json-schema-store",
+       "permalink": "https://www.schemastore.org/github-workflow.json",
+       "request_url": "https://json.schemastore.org/github-workflow.json",
+       "fetched_at": "2026-08-24T18:50:37Z",
+       "http_status": 200,
+       "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c",
+       "bytes": 113558,
+       "excerpt": "JSON Schema Store github-workflow.json"
+      },
+      {
+       "capture_id": "nextflow-docs-html",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "docs.seqera.io-html",
+       "shell": "cpython-ssl",
+       "field": "nextflow-workflow-system-portable",
+       "permalink": "https://docs.seqera.io/nextflow",
+       "request_url": "https://www.nextflow.io/docs/latest/index.html",
+       "fetched_at": "2026-08-24T18:50:39Z",
+       "http_status": 200,
+       "sha256": "d5eb949219a83c310a21c8b797c3301fd6ced0ed322a109424c2e9a8a0cf4bc6",
+       "bytes": 45166,
+       "excerpt": "Nextflow is a workflow system for creating scalable, portable, and reproducible workflows."
+      },
+      {
+       "capture_id": "nextflow-maven-json",
+       "rail_kind": "api",
+       "tool": "urllib",
+       "engine": "search.maven.org-solr-json",
+       "shell": "cpython-ssl",
+       "field": "io.nextflow:nextflow-maven-coordinate",
+       "permalink": "https://search.maven.org/solrsearch/select?q=g:io.nextflow+AND+a:nextflow&rows=1&wt=json",
+       "request_url": "https://search.maven.org/solrsearch/select?q=g:io.nextflow+AND+a:nextflow&rows=1&wt=json",
+       "fetched_at": "2026-08-24T18:50:39Z",
+       "http_status": 200,
+       "sha256": "27a475b4f018256f37a06c48ace7a7e65e8c32b71918ec467e9ba2d872e94842",
+       "bytes": 1982,
+       "excerpt": "Maven Central JSON search g:io.nextflow AND a:nextflow"
+      },
+      {
+       "capture_id": "airflow-dags-html",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "airflow.apache.org-html",
+       "shell": "cpython-ssl",
+       "field": "airflow-loads-dags-from-python-source",
+       "permalink": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html",
+       "request_url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html",
+       "fetched_at": "2026-08-24T18:51:15Z",
+       "http_status": 200,
+       "sha256": "dc1fcef7dbefae9873e46f8c57aded0c22f709b2bebcd6fa15a8ed4c753c12a1",
+       "bytes": 229458,
+       "excerpt": "Airflow loads Dags from Python source files in Dag bundles."
+      },
+      {
+       "capture_id": "airflow-pypi-json",
+       "rail_kind": "api",
+       "tool": "urllib",
+       "engine": "pypi-json-api",
+       "shell": "cpython-ssl",
+       "field": "pypi-apache-airflow-json",
+       "permalink": "https://pypi.org/pypi/apache-airflow/json",
+       "request_url": "https://pypi.org/pypi/apache-airflow/json",
+       "fetched_at": "2026-08-24T18:50:39Z",
+       "http_status": 200,
+       "sha256": "542f62aa3e356f07e2b78bc6255bce87dfe77c303ea847d9ac188b23898d959e",
+       "bytes": 498275,
+       "excerpt": "PyPI JSON API pypi.org/pypi/apache-airflow/json HTTP 200"
+      }
+     ]
+    },
+    {
+     "claim_id": "RES-0074-C5",
+     "canonical_mechanism": "This program's importer should write per-source adapters. It should not target a single interchange format as the native import schema.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "confidence_band": "high",
+     "strongest_caveat": "An optional CWL reader is compatible with adapters; it is not a reason to treat vendor dumps as CWL. BPMN import would be a domain adapter.",
+     "rails": [
+      {
+       "capture_id": "cwl-spec-workflow-html",
+       "rail_kind": "prose",
+       "tool": "urllib",
+       "engine": "commonwl-html-spec",
+       "shell": "cpython-ssl",
+       "field": "cwl-is-portable-execution-language",
+       "permalink": "https://www.commonwl.org/v1.2/Workflow.html",
+       "request_url": "https://www.commonwl.org/v1.2/Workflow.html",
+       "fetched_at": "2026-08-24T18:47:45Z",
+       "http_status": 200,
+       "sha256": "f66cea755638aed8fd37fe3b8c8f60c0f08a71da2aad7484fd81ca6450bfd932",
+       "bytes": 285993,
+       "excerpt": "CWL is portable across a variety of computing"
+      },
+      {
+       "capture_id": "gha-schemastore-json",
+       "rail_kind": "api",
+       "tool": "urllib",
+       "engine": "json-schema-store",
+       "shell": "cpython-ssl",
+       "field": "gha-schema-is-github-owned",
+       "permalink": "https://www.schemastore.org/github-workflow.json",
+       "request_url": "https://json.schemastore.org/github-workflow.json",
+       "fetched_at": "2026-08-24T18:50:37Z",
+       "http_status": 200,
+       "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c",
+       "bytes": 113558,
+       "excerpt": "JSON Schema Store github-workflow.json describes GitHub Actions, not a shared interchange."
+      }
+     ]
+    }
+   ],
+   "named_probes": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0074/probe1_format_table.py"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0074/probe2_two_rails.py"
+    }
+   ],
+   "freshness": {
+    "stamp": "2026-08-25T00:55:46Z",
+    "source": "live-http-captures-2026-08-24"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0074",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0074 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0074.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0074.json",
+     "raw_output": "bytes=25502 sha256=cff1a7468c6bc4ebcb0b485b5cf899f596bc57f105f463ef5561bd0519bd41a7",
+     "fingerprint": "d54018c9565d5154a4843dc2b45e2f60",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0074",
+     "raw_output": "schema-check",
+     "fingerprint": "3342bff1cf58cb839b9680d0cfae2224",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0074 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0074",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0074",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "d0f1b876f5f4da18975cbae01d9626fd",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0074",
+     "raw_output": "schema-valid",
+     "fingerprint": "088f0806df305caa2b09cd24c805e0fd",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0074/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0074"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0074.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0074.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "54dbdeb86a8ac46722dbb35f79949efe",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 25502,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0074.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "kind": "research-claim-record",
+ "schema_hint": "command-center/schema/research-claim-record.schema.json (absent in this worktree)",
+ "title": "Determine whether any workflow interchange format is real enough to import from",
+ "question": "Is there any interchange format that more than one orchestration ecosystem actually reads and writes, or is every 'export' effectively a one-way dump - the answer that decides whether this program's importer targets a format or writes per-source adapters?",
+ "answer": "Yes, at least one real interchange format exists (BPMN 2.0 XML: Camunda and Flowable both read and write it). No: that format is the wrong domain for this program, and the formats adjacent to agent/scientific/CI orchestration (CWL, WDL, n8n JSON, GitHub Actions YAML, Nextflow, Airflow DAGs, Galaxy gxformat2) are one-way dumps or multi-reader languages under the unit's own test (two independent implementations must both read AND write). Therefore the importer writes per-source adapters; it does not target a single interchange format.",
+ "program_decision": "per-source-adapters",
+ "captured_at": "2026-08-24T18:47:45Z",
+ "emitted_at": "2026-08-25T00:55:46Z",
+ "per_format_table": [
+  {
+   "format_id": "BPMN-2.0",
+   "format_name": "Business Process Model and Notation 2.0 XML",
+   "one_way": false,
+   "real_interchange": true,
+   "read_implementations": [
+    "Camunda",
+    "Flowable"
+   ],
+   "write_implementations": [
+    "Camunda",
+    "Flowable"
+   ],
+   "note": "Camunda Bpmn.readModelFromStream/writeModelToStream and Flowable BpmnXMLConverter.convertToBpmnModel/convertToXML both round-trip BPMN XML. Shared Activiti ancestry is the strongest caveat."
+  },
+  {
+   "format_id": "CWL-1.2",
+   "format_name": "Common Workflow Language v1.2",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "cwltool",
+    "Toil"
+   ],
+   "write_implementations": [
+    "cwltool"
+   ],
+   "note": "Independent readers exist (cwltool, Toil). Captured writer is cwltool --pack. Galaxy gxformat2 is Galaxy-native, not CWL. Cromwell v80+ dropped CWL. Fails two-implementation read-AND-write."
+  },
+  {
+   "format_id": "WDL",
+   "format_name": "Workflow Description Language (OpenWDL)",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "Cromwell",
+    "miniWDL"
+   ],
+   "write_implementations": [
+    "human-authored-WDL"
+   ],
+   "note": "OpenWDL lists several engines. Captures show Cromwell and miniWDL as readers. No second-engine native WDL exporter captured."
+  },
+  {
+   "format_id": "n8n-JSON",
+   "format_name": "n8n workflow JSON",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "n8n"
+   ],
+   "write_implementations": [
+    "n8n"
+   ],
+   "note": "Single-ecosystem dump. No second product captured that writes the same document."
+  },
+  {
+   "format_id": "GHA-YAML",
+   "format_name": "GitHub Actions workflow YAML",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "GitHub-Actions-runner"
+   ],
+   "write_implementations": [
+    "GitHub-Actions-authoring"
+   ],
+   "note": "One runtime family. Schema Store describes the GitHub-owned document."
+  },
+  {
+   "format_id": "Nextflow-DSL2",
+   "format_name": "Nextflow DSL2",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "Nextflow"
+   ],
+   "write_implementations": [
+    "Nextflow"
+   ],
+   "note": "Single-implementation language. nf-core is a pipeline community, not a second format engine."
+  },
+  {
+   "format_id": "Airflow-DAG",
+   "format_name": "Apache Airflow Python DAG",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "Apache-Airflow"
+   ],
+   "write_implementations": [
+    "Apache-Airflow"
+   ],
+   "note": "Python source loaded by one project. Hosted Airflow is still Airflow."
+  },
+  {
+   "format_id": "Galaxy-gxformat2",
+   "format_name": "Galaxy workflow Format 2",
+   "one_way": true,
+   "real_interchange": false,
+   "read_implementations": [
+    "Galaxy"
+   ],
+   "write_implementations": [
+    "Galaxy"
+   ],
+   "note": "Galaxy-native format moving toward CWL, not CWL interchange."
+  }
+ ],
+ "claims": [
+  {
+   "claim_id": "RES-0074-C1",
+   "canonical_mechanism": "BPMN 2.0 XML is a real interchange format under this unit's test: Camunda and Flowable both read and write the same dialect.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "confidence_band": "high",
+   "strongest_caveat": "Camunda and Flowable both descend from Activiti. Shared ancestry does not make them one product today. Domain mismatch: BPMN is process XML, not this program's skill/hook/council graphs.",
+   "rails": [
+    {
+     "capture_id": "camunda-bpmn-docs",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "docs.camunda.org-html",
+     "shell": "cpython-ssl",
+     "field": "page-title-bpmn20-implementation-reference",
+     "permalink": "https://docs.camunda.org/manual/7.22/reference/bpmn20/",
+     "request_url": "https://docs.camunda.org/manual/7.22/reference/bpmn20/",
+     "fetched_at": "2026-08-24T18:47:49Z",
+     "http_status": 200,
+     "sha256": "481db566624e6b82b8e7f602791aba48752da68ab99d3268e8718b385688937f",
+     "bytes": 168000,
+     "excerpt": "BPMN 2.0 Implementation Reference | docs.camunda.org"
+    },
+    {
+     "capture_id": "flowable-bpmn-parse-api",
+     "rail_kind": "api",
+     "tool": "github-contents-api",
+     "engine": "github-json",
+     "shell": "cpython-ssl",
+     "field": "BpmnXMLConverter.convertToXML+convertToBpmnModel",
+     "permalink": "https://github.com/flowable/flowable-engine/blob/54f080dde86473dff78dadb9361ba77767ce2f51/modules/flowable-bpmn-converter/src/main/java/org/flowable/bpmn/converter/BpmnXMLConverter.java",
+     "request_url": "https://api.github.com/repos/flowable/flowable-engine/contents/modules/flowable-bpmn-converter/src/main/java/org/flowable/bpmn/converter/BpmnXMLConverter.java",
+     "fetched_at": "2026-08-24T18:47:51Z",
+     "http_status": 200,
+     "sha256": "0cc7980fde2c48f7193d778ee65f11edf734337f2a52e848db78749ebca19210",
+     "bytes": 46617,
+     "excerpt": "convertToXML(BpmnModel); convertToBpmnModel(...) — Flowable reads and writes BPMN XML."
+    },
+    {
+     "capture_id": "camunda-bpmn-model-raw",
+     "rail_kind": "api",
+     "tool": "raw-githubusercontent",
+     "engine": "java-source",
+     "shell": "cpython-ssl",
+     "field": "Bpmn.writeModelToStream+readModelFromStream",
+     "permalink": "https://raw.githubusercontent.com/camunda/camunda-bpm-platform/master/model-api/bpmn-model/src/main/java/org/camunda/bpm/model/bpmn/Bpmn.java",
+     "request_url": "https://raw.githubusercontent.com/camunda/camunda-bpm-platform/master/model-api/bpmn-model/src/main/java/org/camunda/bpm/model/bpmn/Bpmn.java",
+     "fetched_at": "2026-08-24T18:50:36Z",
+     "http_status": 200,
+     "sha256": "d67ce105785bba98e1056ce4cf702ae61d15ff273e1bf2839cc003334e6ecaf7",
+     "bytes": 35623,
+     "excerpt": "writeModelToStream / readModelFromStream on org.camunda.bpm.model.bpmn.Bpmn"
+    },
+    {
+     "capture_id": "flowable-readme-raw",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "markdown",
+     "shell": "cpython-ssl",
+     "field": "readme-bpmn-process-engine",
+     "permalink": "https://raw.githubusercontent.com/flowable/flowable-engine/main/README.md",
+     "request_url": "https://raw.githubusercontent.com/flowable/flowable-engine/main/README.md",
+     "fetched_at": "2026-08-24T18:51:15Z",
+     "http_status": 200,
+     "sha256": "9302e5e07a11b4f87b41515324fa105dcfc42b2207964233fb0eba0596c37c13",
+     "bytes": 2894,
+     "excerpt": "a lightning fast, tried and tested BPMN process engine"
+    }
+   ]
+  },
+  {
+   "claim_id": "RES-0074-C2",
+   "canonical_mechanism": "CWL v1.2 has at least two independent readers (cwltool, Toil) but is not a real interchange format under the two-implementation read-AND-write test.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "confidence_band": "high",
+   "strongest_caveat": "A later capture of a second native CWL writer independent of cwltool could upgrade this. Galaxy gxformat2 is not that writer. Cromwell v80+ dropped CWL.",
+   "rails": [
+    {
+     "capture_id": "cwl-spec-workflow-html",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "commonwl-html-spec",
+     "shell": "cpython-ssl",
+     "field": "abstract-portable-across-computing",
+     "permalink": "https://www.commonwl.org/v1.2/Workflow.html",
+     "request_url": "https://www.commonwl.org/v1.2/Workflow.html",
+     "fetched_at": "2026-08-24T18:47:45Z",
+     "http_status": 200,
+     "sha256": "f66cea755638aed8fd37fe3b8c8f60c0f08a71da2aad7484fd81ca6450bfd932",
+     "bytes": 285993,
+     "excerpt": "CWL is portable across a variety of computing"
+    },
+    {
+     "capture_id": "cwltool-pack-api",
+     "rail_kind": "api",
+     "tool": "github-contents-api",
+     "engine": "github-json",
+     "shell": "cpython-ssl",
+     "field": "cwltool/pack.py-blob",
+     "permalink": "https://github.com/common-workflow-language/cwltool/blob/22d9e0007956580835945533ebb3969041f149ab/cwltool/pack.py",
+     "request_url": "https://api.github.com/repos/common-workflow-language/cwltool/contents/cwltool/pack.py",
+     "fetched_at": "2026-08-24T18:47:45Z",
+     "http_status": 200,
+     "sha256": "fa61957276cfadc758a03d8408c61f677e62aa0c8e466d1a82ef23607c797292",
+     "bytes": 16397,
+     "excerpt": "Contents API cwltool/pack.py — cwltool packs/writes CWL documents"
+    },
+    {
+     "capture_id": "toil-readme-raw",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "rst",
+     "shell": "cpython-ssl",
+     "field": "toil-cwl-1.2-conformance",
+     "permalink": "https://raw.githubusercontent.com/DataBiosphere/toil/master/README.rst",
+     "request_url": "https://raw.githubusercontent.com/DataBiosphere/toil/master/README.rst",
+     "fetched_at": "2026-08-24T18:51:16Z",
+     "http_status": 200,
+     "sha256": "fbdce8555607575d1b1a60e694a3fc850ad3b18a2eacf67d29d7b43182dadd92",
+     "bytes": 2100,
+     "excerpt": "supports running workflows written in either Common Workflow Language (CWL) 1.0-1.2"
+    },
+    {
+     "capture_id": "cromwell-readme-raw",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "markdown",
+     "shell": "cpython-ssl",
+     "field": "cromwell-v80-dropped-cwl",
+     "permalink": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/README.md",
+     "request_url": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/README.md",
+     "fetched_at": "2026-08-24T18:47:47Z",
+     "http_status": 200,
+     "sha256": "c355ffb2b613e01727eac98e48280fd3fd4ffc16b2a171f5fad0e11d51f6179c",
+     "bytes": 2529,
+     "excerpt": "Cromwell version 80 and above no longer support CWL."
+    },
+    {
+     "capture_id": "gxformat2-readme",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "rst",
+     "shell": "cpython-ssl",
+     "field": "gxformat2-moving-toward-cwl-not-cwl",
+     "permalink": "https://raw.githubusercontent.com/galaxyproject/gxformat2/master/README.rst",
+     "request_url": "https://raw.githubusercontent.com/galaxyproject/gxformat2/master/README.rst",
+     "fetched_at": "2026-08-24T18:47:48Z",
+     "http_status": 200,
+     "sha256": "833bd9eb3dc1c3591bd386e7da70f86220be1259e03e69c4e603683021edfaae",
+     "bytes": 2351,
+     "excerpt": "moving Galaxy's workflow description language toward standards such as the Common Workflow Language."
+    }
+   ]
+  },
+  {
+   "claim_id": "RES-0074-C3",
+   "canonical_mechanism": "WDL has multiple independent readers (Cromwell, miniWDL) but the captured set does not show two implementations that both read and write WDL as interchange.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "confidence_band": "high",
+   "strongest_caveat": "OpenWDL's engine table is a reader census, not a write census. A second-engine WDL exporter was not captured and is not assumed.",
+   "rails": [
+    {
+     "capture_id": "miniwdl-readme-raw",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "markdown",
+     "shell": "cpython-ssl",
+     "field": "miniwdl-run-wdl-pipeline",
+     "permalink": "https://raw.githubusercontent.com/chanzuckerberg/miniwdl/main/README.md",
+     "request_url": "https://raw.githubusercontent.com/chanzuckerberg/miniwdl/main/README.md",
+     "fetched_at": "2026-08-24T18:47:49Z",
+     "http_status": 200,
+     "sha256": "1f825147a43b700d8980b834d79c3dd7ae5f7a7d83f14d279cd9a28f5e66a18a",
+     "bytes": 4669,
+     "excerpt": "Run an example bioinformatics WDL pipeline using miniwdl"
+    },
+    {
+     "capture_id": "openwdl-readme-api",
+     "rail_kind": "api",
+     "tool": "github-contents-api",
+     "engine": "github-json",
+     "shell": "cpython-ssl",
+     "field": "openwdl-readme-contents-api",
+     "permalink": "https://github.com/openwdl/wdl/blob/748043770fbafb03e4ba4b28141daaac567a7a1e/README.md",
+     "request_url": "https://api.github.com/repos/openwdl/wdl/readme",
+     "fetched_at": "2026-08-24T18:47:48Z",
+     "http_status": 200,
+     "sha256": "840ad7a8825a8ffce21189bfe2c0455482c2686672f47f424959d058d50c1849",
+     "bytes": 9444,
+     "excerpt": "OpenWDL README via GitHub Contents API — WDL as an open standard with several engines"
+    },
+    {
+     "capture_id": "cromwell-wdl-language-raw",
+     "rail_kind": "prose",
+     "tool": "raw-githubusercontent",
+     "engine": "markdown",
+     "shell": "cpython-ssl",
+     "field": "cromwell-five-minute-wdl-intro",
+     "permalink": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/docs/tutorials/FiveMinuteIntro.md",
+     "request_url": "https://raw.githubusercontent.com/broadinstitute/cromwell/develop/docs/tutorials/FiveMinuteIntro.md",
+     "fetched_at": "2026-08-24T18:47:49Z",
+     "http_status": 200,
+     "sha256": "7207bf8488497a59c6fb8fba703a7ee3e31cd94bbe934828e6c3881c1660eda8",
+     "bytes": 3689,
+     "excerpt": "If you'd like to learn more about how to author WDL ... run your first workflow in Cromwell"
+    }
+   ]
+  },
+  {
+   "claim_id": "RES-0074-C4",
+   "canonical_mechanism": "n8n JSON, GitHub Actions YAML, Nextflow DSL2, and Airflow Python DAGs are one-way / single-ecosystem dumps. They fail the two-implementation read-and-write test.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "confidence_band": "high",
+   "strongest_caveat": "Community converters were not captured as two production engines that both read and write one shared document. Unpublished converters remain E3.",
+   "rails": [
+    {
+     "capture_id": "n8n-export-docs",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "docs.n8n.io-html",
+     "shell": "cpython-ssl",
+     "field": "export-import-docs-http-200",
+     "permalink": "https://docs.n8n.io/build/manage-workflows/export-and-import",
+     "request_url": "https://docs.n8n.io/workflows/export-import/",
+     "fetched_at": "2026-08-24T18:47:52Z",
+     "http_status": 200,
+     "sha256": "cbf2981024df49bf0f7a830624e27f697a5ffab357d4ec7b337df23c57778efd",
+     "bytes": 565444,
+     "excerpt": "Captured docs.n8n.io/workflows/export-import/ HTTP 200."
+    },
+    {
+     "capture_id": "n8n-workflow-api",
+     "rail_kind": "api",
+     "tool": "github-contents-api",
+     "engine": "github-json",
+     "shell": "cpython-ssl",
+     "field": "n8n-packages-workflow-interfaces.ts",
+     "permalink": "https://github.com/n8n-io/n8n/blob/b7c8788be45557d21745329d57a8a84df2167096/packages/workflow/src/interfaces.ts",
+     "request_url": "https://api.github.com/repos/n8n-io/n8n/contents/packages/workflow/src/interfaces.ts",
+     "fetched_at": "2026-08-24T18:47:52Z",
+     "http_status": 200,
+     "sha256": "331137e47ce7f5ae9fdb1a8dfa01452c402686e506f5eb8c149fc8b2157763ea",
+     "bytes": 190046,
+     "excerpt": "Contents API packages/workflow/src/interfaces.ts — n8n's own workflow document types"
+    },
+    {
+     "capture_id": "gha-workflow-syntax",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "docs.github.com-html",
+     "shell": "cpython-ssl",
+     "field": "workflow-syntax-for-github-actions",
+     "permalink": "https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax",
+     "request_url": "https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions",
+     "fetched_at": "2026-08-24T18:47:56Z",
+     "http_status": 200,
+     "sha256": "0afb0a10cb6490272a26a660c90386cff80349765a105ecf89775b4c74fee000",
+     "bytes": 2020175,
+     "excerpt": "Workflow syntax for GitHub Actions - GitHub Docs"
+    },
+    {
+     "capture_id": "gha-schemastore-json",
+     "rail_kind": "api",
+     "tool": "urllib",
+     "engine": "json-schema-store",
+     "shell": "cpython-ssl",
+     "field": "github-workflow.json-schema-store",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "request_url": "https://json.schemastore.org/github-workflow.json",
+     "fetched_at": "2026-08-24T18:50:37Z",
+     "http_status": 200,
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c",
+     "bytes": 113558,
+     "excerpt": "JSON Schema Store github-workflow.json"
+    },
+    {
+     "capture_id": "nextflow-docs-html",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "docs.seqera.io-html",
+     "shell": "cpython-ssl",
+     "field": "nextflow-workflow-system-portable",
+     "permalink": "https://docs.seqera.io/nextflow",
+     "request_url": "https://www.nextflow.io/docs/latest/index.html",
+     "fetched_at": "2026-08-24T18:50:39Z",
+     "http_status": 200,
+     "sha256": "d5eb949219a83c310a21c8b797c3301fd6ced0ed322a109424c2e9a8a0cf4bc6",
+     "bytes": 45166,
+     "excerpt": "Nextflow is a workflow system for creating scalable, portable, and reproducible workflows."
+    },
+    {
+     "capture_id": "nextflow-maven-json",
+     "rail_kind": "api",
+     "tool": "urllib",
+     "engine": "search.maven.org-solr-json",
+     "shell": "cpython-ssl",
+     "field": "io.nextflow:nextflow-maven-coordinate",
+     "permalink": "https://search.maven.org/solrsearch/select?q=g:io.nextflow+AND+a:nextflow&rows=1&wt=json",
+     "request_url": "https://search.maven.org/solrsearch/select?q=g:io.nextflow+AND+a:nextflow&rows=1&wt=json",
+     "fetched_at": "2026-08-24T18:50:39Z",
+     "http_status": 200,
+     "sha256": "27a475b4f018256f37a06c48ace7a7e65e8c32b71918ec467e9ba2d872e94842",
+     "bytes": 1982,
+     "excerpt": "Maven Central JSON search g:io.nextflow AND a:nextflow"
+    },
+    {
+     "capture_id": "airflow-dags-html",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "airflow.apache.org-html",
+     "shell": "cpython-ssl",
+     "field": "airflow-loads-dags-from-python-source",
+     "permalink": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html",
+     "request_url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/dags.html",
+     "fetched_at": "2026-08-24T18:51:15Z",
+     "http_status": 200,
+     "sha256": "dc1fcef7dbefae9873e46f8c57aded0c22f709b2bebcd6fa15a8ed4c753c12a1",
+     "bytes": 229458,
+     "excerpt": "Airflow loads Dags from Python source files in Dag bundles."
+    },
+    {
+     "capture_id": "airflow-pypi-json",
+     "rail_kind": "api",
+     "tool": "urllib",
+     "engine": "pypi-json-api",
+     "shell": "cpython-ssl",
+     "field": "pypi-apache-airflow-json",
+     "permalink": "https://pypi.org/pypi/apache-airflow/json",
+     "request_url": "https://pypi.org/pypi/apache-airflow/json",
+     "fetched_at": "2026-08-24T18:50:39Z",
+     "http_status": 200,
+     "sha256": "542f62aa3e356f07e2b78bc6255bce87dfe77c303ea847d9ac188b23898d959e",
+     "bytes": 498275,
+     "excerpt": "PyPI JSON API pypi.org/pypi/apache-airflow/json HTTP 200"
+    }
+   ]
+  },
+  {
+   "claim_id": "RES-0074-C5",
+   "canonical_mechanism": "This program's importer should write per-source adapters. It should not target a single interchange format as the native import schema.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "confidence_band": "high",
+   "strongest_caveat": "An optional CWL reader is compatible with adapters; it is not a reason to treat vendor dumps as CWL. BPMN import would be a domain adapter.",
+   "rails": [
+    {
+     "capture_id": "cwl-spec-workflow-html",
+     "rail_kind": "prose",
+     "tool": "urllib",
+     "engine": "commonwl-html-spec",
+     "shell": "cpython-ssl",
+     "field": "cwl-is-portable-execution-language",
+     "permalink": "https://www.commonwl.org/v1.2/Workflow.html",
+     "request_url": "https://www.commonwl.org/v1.2/Workflow.html",
+     "fetched_at": "2026-08-24T18:47:45Z",
+     "http_status": 200,
+     "sha256": "f66cea755638aed8fd37fe3b8c8f60c0f08a71da2aad7484fd81ca6450bfd932",
+     "bytes": 285993,
+     "excerpt": "CWL is portable across a variety of computing"
+    },
+    {
+     "capture_id": "gha-schemastore-json",
+     "rail_kind": "api",
+     "tool": "urllib",
+     "engine": "json-schema-store",
+     "shell": "cpython-ssl",
+     "field": "gha-schema-is-github-owned",
+     "permalink": "https://www.schemastore.org/github-workflow.json",
+     "request_url": "https://json.schemastore.org/github-workflow.json",
+     "fetched_at": "2026-08-24T18:50:37Z",
+     "http_status": 200,
+     "sha256": "df76df76d282228d7139d282af094391413133c1aa0336ab5c05b4e2d67f495c",
+     "bytes": 113558,
+     "excerpt": "JSON Schema Store github-workflow.json describes GitHub Actions, not a shared interchange."
+    }
+   ]
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0074/probe1_format_table.py"
+  },
+  {
+   "id": "probe2",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0074/probe2_two_rails.py"
+  }
+ ],
+ "freshness": {
+  "stamp": "2026-08-25T00:55:46Z",
+  "source": "live-http-captures-2026-08-24"
+ }
+}

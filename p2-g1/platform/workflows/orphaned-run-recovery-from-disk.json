@@ -1,0 +1,521 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "orphaned-run-recovery-from-disk",
+  "name": "Orphaned-run recovery by deterministic journal join",
+  "description": "BP-INC-03 (card 69). Defining mechanism: NO model judgement participates in the reconstruction. The recovery is a deterministic join over on-disk per-agent journals keyed on agentId - never on the journal's `key` field, which is a CONTENT HASH and makes a naive join silently lose rows - and its output is a tri-state accounting ledger where RECOVERED + RECOVERED-PARTIAL + LOST must sum exactly to the number of agents dispatched. Agents are used only to summarise what was recovered, after the arithmetic closes. The wrong-join-key control is run on purpose and must fail.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability", "data-science-knowledge-and-creative"],
+  "tags": ["bp-inc-03", "recovery", "deterministic-join", "tri-state-ledger"],
+  "flagship": true,
+
+  "params": {
+    "workflow_run_id": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The dead run's id, e.g. wf_82c5b350-9ba"
+    },
+    "session_root": {
+      "type": "path",
+      "required": true,
+      "description": "Root under which per-agent journals live; walked read-only"
+    },
+    "dispatched_agent_count": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1,
+      "maximum": 4096,
+      "description": "How many agents the orchestrator dispatched. This is the DENOMINATOR: without it, recovery has no completeness measure."
+    },
+    "run_wrong_key_control": {
+      "type": "boolean",
+      "default": true,
+      "description": "Also join on the `key` field and require that it produce FEWER complete rows - a control that must fail, proving the join key matters"
+    },
+    "salvage_partial_transcripts": {
+      "type": "boolean",
+      "default": true,
+      "description": "Recover text from transcripts where no artifact was written; those rows are RECOVERED-PARTIAL, never RECOVERED"
+    }
+  },
+
+  "roles": {
+    "join-runner": {
+      "description": "Writes and runs the join. Deterministic code only - this role is forbidden from inferring a mapping",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/recovery/**)"],
+      "write_paths": ["command-center/recovery/**"],
+      "speaking_rights": "always"
+    },
+    "salvage-summariser": {
+      "description": "Summarises what each recovered agent actually produced - the only judgement step, and it runs after the arithmetic closes",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Write(command-center/recovery/**)"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/recovery/**)"],
+    "deny": ["Bash", "WebFetch", "WebSearch", "Write(command-center/WORK-UNIT-CATALOG.json)"],
+    "network": "none",
+    "write_paths": ["command-center/recovery/**"],
+    "forbid_write_paths": ["platform/**", "command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "accounting-closes": {
+      "predicate": "custom-expression",
+      "expression": "accounted_agents == dispatched_agent_count AND unaccounted_agents == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "wrong-key-control-failed-as-expected": {
+      "predicate": "custom-expression",
+      "expression": "wrong_key_complete_rows < agentid_complete_rows",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "tri-state-is-not-binary": {
+      "predicate": "custom-expression",
+      "expression": "rows_with_transcript_but_no_artifact_marked_recovered == 0 AND rows_with_transcript_but_no_artifact_marked_lost == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "locate-run",
+      "title": "Locate the dead run's directory and enumerate its journals",
+      "kind": "task",
+      "role": "join-runner",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "INC-6901",
+        "title": "Locate the run directory and enumerate every per-agent journal file in it",
+        "phase": "7",
+        "question_or_target": "Find the directory for workflow_run_id under session_root and enumerate every per-agent journal, recording path, byte size and mtime; absence of journals is a finding about the RUNTIME, not about the work, and is recorded that way.",
+        "inputs": ["params.workflow_run_id", "params.session_root"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "join-runner",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/recovery/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/recovery/journal-inventory.json",
+        "output_schema": "command-center/schema/run-ledger.schema.json",
+        "evidence_requirement": "the enumerated journal list with sizes, and the walk root used, so a short enumeration is visible as a small count against a known denominator",
+        "tests_required": [
+          "a run whose journals are absent must be recorded as runtime-unrecoverable, not as zero work",
+          "the enumeration must be run at the widest plausible root, and the root recorded, because a depth-limited walk under-counts"
+        ],
+        "reviewer_requirement": "an independent reviewer re-walks with a different glob and compares counts",
+        "completion_sentinel": "SUCCESS:INC-6901 when the journal list and the walk root are recorded; otherwise FAILED:INC-6901 <reason>",
+        "retry_policy": "two strikes then pivot to a wider walk root",
+        "failure_classification": ["journals-absent", "walk-too-narrow"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/recovery/journal-inventory.json",
+          "schema_ref": "command-center/schema/run-ledger.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6901",
+          "consumers": ["join-on-agentid", "wrong-key-control"]
+        }
+      ]
+    },
+    {
+      "id": "join-on-agentid",
+      "title": "The join - on agentId, deterministically",
+      "kind": "task",
+      "depends_on": ["locate-run"],
+      "role": "join-runner",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "INC-6902",
+        "title": "Join every journal record to its agent on agentId and extract the last complete output",
+        "phase": "7",
+        "question_or_target": "Join journal records to agents on agentId and, per agent, extract the LAST record that parses completely; the join is executed as code over the full journal set and its row counts are reported, so a lost row is arithmetic rather than an impression.",
+        "inputs": ["command-center/recovery/journal-inventory.json"],
+        "dependencies": ["INC-6901"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "join-runner",
+          "basis": "the model writes and runs the join; it does not perform the join itself"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/recovery/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/recovery/joined-on-agentid.json",
+        "output_schema": "command-center/schema/run-ledger.schema.json",
+        "evidence_requirement": "input record count, distinct agentId count, joined row count, and the count of records whose agentId was absent - four numbers that must reconcile",
+        "tests_required": [
+          "a record whose agentId is absent must appear in the unjoinable count, not be silently dropped",
+          "the distinct agentId count must be compared against dispatched_agent_count and any shortfall reported"
+        ],
+        "reviewer_requirement": "the accounting gate re-derives the sum independently of the join script that produced it",
+        "completion_sentinel": "SUCCESS:INC-6902 when all four counts are recorded and reconcile; otherwise FAILED:INC-6902 <reason>",
+        "retry_policy": "no retry - a count mismatch is a join bug to fix, not a transient",
+        "failure_classification": ["join-lost-rows", "agentid-absent"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/recovery/joined-on-agentid.json",
+          "schema_ref": "command-center/schema/run-ledger.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6902",
+          "consumers": ["emit-tri-state-ledger", "wrong-key-control"]
+        }
+      ]
+    },
+    {
+      "id": "wrong-key-control",
+      "title": "Deliberately join on `key` and require it to be WORSE",
+      "kind": "task",
+      "depends_on": ["join-on-agentid"],
+      "when": "run_wrong_key_control == true",
+      "role": "join-runner",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "INC-6903",
+        "title": "Run the wrong-join-key control and prove the key field is a content hash",
+        "phase": "7",
+        "question_or_target": "Re-run the same join keyed on the journal `key` field and report its complete-row count; the control PASSES only when it produces strictly fewer complete rows than the agentId join, which is what demonstrates that `key` is a content hash rather than a label.",
+        "inputs": ["command-center/recovery/journal-inventory.json", "command-center/recovery/joined-on-agentid.json"],
+        "dependencies": ["INC-6902"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "join-runner",
+          "basis": "a control whose purpose is to fail must still be executed carefully"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/recovery/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/recovery/wrong-key-control.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "both complete-row counts side by side plus a sample key value shown to differ between two records of the SAME agent - the direct demonstration that it is a hash",
+        "tests_required": [
+          "if the key join matches or beats the agentId join, the recovery must halt: either the premise is wrong for this runtime version or the agentId join is broken"
+        ],
+        "reviewer_requirement": "an independent reviewer inspects the sample key values themselves",
+        "completion_sentinel": "SUCCESS:INC-6903 when both counts and the differing-key sample are recorded; otherwise FAILED:INC-6903 <reason>",
+        "retry_policy": "no retry - an inverted control is a real finding about the runtime layout",
+        "failure_classification": ["control-inverted", "layout-version-drift"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/recovery/wrong-key-control.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6903",
+          "consumers": ["control-gate"]
+        }
+      ]
+    },
+    {
+      "id": "control-gate",
+      "title": "The wrong-key control must be worse, or the premise is wrong",
+      "kind": "gate",
+      "depends_on": ["wrong-key-control"],
+      "gate_ref": "wrong-key-control-failed-as-expected"
+    },
+    {
+      "id": "emit-tri-state-ledger",
+      "title": "RECOVERED, RECOVERED-PARTIAL, LOST - and the sum must close",
+      "kind": "task",
+      "depends_on": ["control-gate"],
+      "role": "join-runner",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "INC-6904",
+        "title": "Emit the tri-state recovery ledger and require the accounting to close",
+        "phase": "7",
+        "question_or_target": "Classify every dispatched agent as RECOVERED (an artifact exists and parses), RECOVERED-PARTIAL (a transcript exists but no artifact) or LOST (neither), and assert that the three counts sum exactly to dispatched_agent_count; collapsing partial into either neighbour is the specific error this ledger exists to prevent.",
+        "inputs": ["command-center/recovery/joined-on-agentid.json", "params.dispatched_agent_count", "params.salvage_partial_transcripts"],
+        "dependencies": ["INC-6902"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "join-runner",
+          "basis": "the accounting identity is the deliverable"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/recovery/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/recovery/recovery-ledger.json",
+        "output_schema": "command-center/schema/salvage-closure.schema.json",
+        "evidence_requirement": "the three counts, their sum, and the denominator - printed together so a non-closing sum is impossible to miss",
+        "tests_required": [
+          "an agent with a transcript and no artifact must be RECOVERED-PARTIAL - asserted against both wrong answers",
+          "a sum that does not equal the denominator must fail the gate rather than be rounded into agreement"
+        ],
+        "reviewer_requirement": "an independent reviewer recomputes the sum from the ledger rows",
+        "completion_sentinel": "SUCCESS:INC-6904 when the three counts sum to dispatched_agent_count; otherwise FAILED:INC-6904 <reason>",
+        "retry_policy": "no retry - a non-closing sum is a classification bug",
+        "failure_classification": ["accounting-does-not-close", "partial-collapsed"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/recovery/recovery-ledger.json",
+          "schema_ref": "command-center/schema/salvage-closure.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:INC-6904",
+          "consumers": ["accounting-gate", "summarise-recovered-work"]
+        }
+      ]
+    },
+    {
+      "id": "accounting-gate",
+      "title": "Every dispatched agent is accounted for, including the killed ones",
+      "kind": "gate",
+      "depends_on": ["emit-tri-state-ledger"],
+      "gate_ref": "accounting-closes"
+    },
+    {
+      "id": "tri-state-gate",
+      "title": "A partial recovery is neither a success nor a loss",
+      "kind": "gate",
+      "depends_on": ["accounting-gate"],
+      "gate_ref": "tri-state-is-not-binary"
+    },
+    {
+      "id": "summarise-recovered-work",
+      "title": "Only now do agents read: summarise what each recovered agent produced",
+      "kind": "fanout",
+      "depends_on": ["tri-state-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/recovery/recovery-ledger.json#/recovered",
+        "item_var": "agent_row",
+        "key_field": "agentId"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 100,
+      "max_items": 1024,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "summarise-one-agent",
+          "title": "Summarise one recovered agent's output",
+          "kind": "task",
+          "role": "salvage-summariser",
+          "timeout_seconds": 1200,
+          "work_unit_ref": "SYN-0002"
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-degraded",
+        "verify_artifact_exists": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "every-dispatched-agent-accounted-for",
+      "expression": "accounted_agents == dispatched_agent_count AND unaccounted_agents == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "dispatched_agent_count >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "runtime-left-nothing-to-recover",
+      "expression": "journals_found == 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["accounting-does-not-close", "control-inverted"]
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["journals-absent", "accounting-does-not-close", "layout-version-drift"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/recovery/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/recovery",
+    "granularity": "work-unit",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/recovery.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": ["workflow_version", "params_hash", "inputs_hash"],
+    "store": "command-center/cache/recovery",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": ["journal-inventory-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "artifact-diff"],
+    "plan_artifact": "command-center/dry-run/recovery-plan.json",
+    "forbid_tools": ["Write(command-center/recovery/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": { "currency": "USD", "min": 0.2, "expected": 1.8, "max": 12.0 },
+    "wallclock_seconds": { "min": 120, "expected": 1800, "max": 10800 },
+    "tokens": { "expected": 250000, "max": 3000000 },
+    "tool_calls": { "expected": 70, "max": 1200 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the session root; writes only under command-center/recovery/**. Transcripts may hold sensitive content, so the recovery artifact stays local and is never exported.",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": ["definition", "tests"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/orphaned-run-recovery.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/fan-out-contract.md#C4-mechanical-comparison",
+        "relation": "SPECIALIZE",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-INC-03"]
+  },
+
+  "outputs": {
+    "recovery-ledger": {
+      "path": "command-center/recovery/recovery-ledger.json",
+      "schema_ref": "command-center/schema/salvage-closure.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/recovery/joined-on-agentid.json"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "deterministic-join-with-a-closing-accounting-identity-and-a-deliberately-failing-wrong-key-control",
+      "distinguishing_stage": "wrong-key-control",
+      "distinguishing_gate": "accounting-closes",
+      "not_a_duplicate_because": "BP-DAT-01 decides WHETHER a question should be answered by an algorithm and measures the error direction of the alternative. This one already knows the answer is code and its unique assertion is an accounting identity over a known denominator - which BP-DAT-01 does not have, because a classification task has no dispatched-agent count."
+    },
+    "worked_example": {
+      "name": "a 1000-agent audit that died before synthesis",
+      "params": {
+        "workflow_run_id": "wf_82c5b350-9ba",
+        "session_root": "command-center/recovery/fixtures/session-root",
+        "dispatched_agent_count": 1000,
+        "run_wrong_key_control": true,
+        "salvage_partial_transcripts": true
+      },
+      "expected_stage_path": [
+        "locate-run",
+        "join-on-agentid",
+        "wrong-key-control",
+        "control-gate",
+        "emit-tri-state-ledger",
+        "accounting-gate",
+        "tri-state-gate",
+        "summarise-recovered-work",
+        "summarise-one-agent"
+      ],
+      "expected_artifacts": [
+        "command-center/recovery/journal-inventory.json",
+        "command-center/recovery/joined-on-agentid.json",
+        "command-center/recovery/wrong-key-control.json",
+        "command-center/recovery/recovery-ledger.json"
+      ],
+      "expected_terminal": "SUCCESS:INC-6904",
+      "narrative": "946 agents join cleanly on agentId. The wrong-key control produces 118 complete rows against 946 - because two records from the same agent carry different `key` values, which the sample in the control artifact shows directly - so the control fails as required and the gate passes. The ledger closes at 946 RECOVERED + 46 RECOVERED-PARTIAL (transcript present, no artifact - including one unit that ran 70 minutes and 691 KB and wrote nothing) + 8 LOST = 1000. Only after the sum closes are agents allowed to read anything, and then only to summarise the 946 recovered outputs."
+    }
+  }
+}

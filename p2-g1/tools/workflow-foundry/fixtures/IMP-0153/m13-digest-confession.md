@@ -1,0 +1,1 @@
+A confirmation that cites only the author's summary is a digest, not a receipt. The gate exists because reviewers kept confirming claims they never traced to raw sources; it is a dangerous habit, not a shortcut.

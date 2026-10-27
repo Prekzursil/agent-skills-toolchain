@@ -1,0 +1,420 @@
+{
+ "unit_id": "IMP-0196",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0196",
+ "schema_version": 1,
+ "evidence": [
+  {
+   "claim": "IMP-0196 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0196.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0196.json",
+     "raw_output": "bytes=5518 sha256=c9ebe96153e209f39ea16e218825cf0004704af108e889a91aa3592f140f37ea",
+     "fingerprint": "c4ada047ddc83c42eca1ce0cf73e5388",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0196",
+     "raw_output": "schema-check",
+     "fingerprint": "86fe474e56667ad4bce8762a38431cc9",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0196 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0196",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0196",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "48e3552ce1a69cd13692e848f4738148",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0196",
+     "raw_output": "schema-valid",
+     "fingerprint": "a2fa85cbd69880d3ead99689d0287281",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0196.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0196.json",
+   "bytes": 5518,
+   "sha256": "c9ebe96153e209f39ea16e218825cf0004704af108e889a91aa3592f140f37ea",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "id": "IMP-0196",
+   "title": "Implement deadlock and livelock analysis over Loop and Barrier combinations",
+   "status": "DELIVERED",
+   "completion_sentinel": "SUCCESS:IMP-0196",
+   "output_path": "command-center/receipts/IMP-0196.json",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "registered": true,
+   "ts": "2026-08-25T00:58:00Z",
+   "analyzer": "command-center/p2-wave/probes/IMP-0196/liveness.py",
+   "question": "Can this workflow reach a state where no node can progress, or loop without information gain?",
+   "answer": "Yes, statically: wait-for cycles are DEADLOCK; a bounded Loop whose body never writes a convergence-read key is LIVELOCK, a distinct verdict. When every token a multi-unit Barrier awaits is produced by a timed per-unit Pipeline, 'one hung unit blocks a large batch' is unrepresentable.",
+   "signals": [
+    {
+     "id": 1,
+     "claim": "mutual-wait fixture detected",
+     "fixture": "command-center/p2-wave/probes/IMP-0196/fixtures/mutual_wait.json",
+     "verdict": "DEADLOCK",
+     "flagged": true,
+     "deadlock_nodes": [
+      "bA",
+      "bB",
+      "uA",
+      "uB"
+     ]
+    },
+    {
+     "id": 2,
+     "claim": "deliberately safe fixture is NOT flagged (false-positive control)",
+     "fixture": "command-center/p2-wave/probes/IMP-0196/fixtures/safe_linear.json",
+     "verdict": "CLEAN",
+     "flagged": false
+    }
+   ],
+   "fixtures": {
+    "mutual_wait.json": {
+     "verdict": "DEADLOCK",
+     "flagged": true,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": [
+      "bA",
+      "bB",
+      "uA",
+      "uB"
+     ]
+    },
+    "safe_linear.json": {
+     "verdict": "CLEAN",
+     "flagged": false,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": true,
+     "deadlock_nodes_tarjan": []
+    },
+    "bounded_livelock.json": {
+     "verdict": "LIVELOCK",
+     "flagged": true,
+     "methods_agree": true,
+     "livelock_loops": [
+      "spin"
+     ],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": []
+    },
+    "converging_loop.json": {
+     "verdict": "CLEAN",
+     "flagged": false,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": []
+    },
+    "loop_body_deadlock.json": {
+     "verdict": "DEADLOCK",
+     "flagged": true,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": [
+      "loop-mw/bA",
+      "loop-mw/bB",
+      "loop-mw/uA",
+      "loop-mw/uB"
+     ]
+    },
+    "subworkflow_mutual_wait.json": {
+     "verdict": "DEADLOCK",
+     "flagged": true,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": [
+      "ns1/bA",
+      "ns1/bB",
+      "ns1/uA",
+      "ns1/uB"
+     ]
+    },
+    "per_unit_pipelines.json": {
+     "verdict": "CLEAN",
+     "flagged": false,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": false,
+     "deadlock_nodes_tarjan": []
+    },
+    "cohort_hang.json": {
+     "verdict": "CLEAN",
+     "flagged": false,
+     "methods_agree": true,
+     "livelock_loops": [],
+     "cohort_hang_representable": true,
+     "deadlock_nodes_tarjan": []
+    }
+   },
+   "nested_combinations": {
+    "subworkflow_mutual_wait": "DEADLOCK",
+    "loop_body_mutual_wait": "DEADLOCK"
+   },
+   "per_unit_pipelines": {
+    "fixture": "per_unit_pipelines.json",
+    "verdict": "CLEAN",
+    "cohort_hang_representable": false,
+    "raw_cohort_hang_fixture": "cohort_hang.json",
+    "raw_cohort_hang_representable": true,
+    "raw_cohort_hang_verdict": "CLEAN",
+    "note": "FC-11317 (catalog cites 11318): one hung unit blocks a large batch. Unrepresentable when the barrier awaits timed pipeline tokens rather than raw unit tokens."
+   },
+   "notes": "G-1 for IMP-0196: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0196"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0196",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0196/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0196"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0196.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0196.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "b6e3aa256004cf26a8ef6ac6693dcc24",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 5518,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0196.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "id": "IMP-0196",
+ "title": "Implement deadlock and livelock analysis over Loop and Barrier combinations",
+ "status": "DELIVERED",
+ "completion_sentinel": "SUCCESS:IMP-0196",
+ "output_path": "command-center/receipts/IMP-0196.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "registered": true,
+ "ts": "2026-08-25T00:58:00Z",
+ "analyzer": "command-center/p2-wave/probes/IMP-0196/liveness.py",
+ "question": "Can this workflow reach a state where no node can progress, or loop without information gain?",
+ "answer": "Yes, statically: wait-for cycles are DEADLOCK; a bounded Loop whose body never writes a convergence-read key is LIVELOCK, a distinct verdict. When every token a multi-unit Barrier awaits is produced by a timed per-unit Pipeline, 'one hung unit blocks a large batch' is unrepresentable.",
+ "signals": [
+  {
+   "id": 1,
+   "claim": "mutual-wait fixture detected",
+   "fixture": "command-center/p2-wave/probes/IMP-0196/fixtures/mutual_wait.json",
+   "verdict": "DEADLOCK",
+   "flagged": true,
+   "deadlock_nodes": [
+    "bA",
+    "bB",
+    "uA",
+    "uB"
+   ]
+  },
+  {
+   "id": 2,
+   "claim": "deliberately safe fixture is NOT flagged (false-positive control)",
+   "fixture": "command-center/p2-wave/probes/IMP-0196/fixtures/safe_linear.json",
+   "verdict": "CLEAN",
+   "flagged": false
+  }
+ ],
+ "fixtures": {
+  "mutual_wait.json": {
+   "verdict": "DEADLOCK",
+   "flagged": true,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": [
+    "bA",
+    "bB",
+    "uA",
+    "uB"
+   ]
+  },
+  "safe_linear.json": {
+   "verdict": "CLEAN",
+   "flagged": false,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": true,
+   "deadlock_nodes_tarjan": []
+  },
+  "bounded_livelock.json": {
+   "verdict": "LIVELOCK",
+   "flagged": true,
+   "methods_agree": true,
+   "livelock_loops": [
+    "spin"
+   ],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": []
+  },
+  "converging_loop.json": {
+   "verdict": "CLEAN",
+   "flagged": false,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": []
+  },
+  "loop_body_deadlock.json": {
+   "verdict": "DEADLOCK",
+   "flagged": true,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": [
+    "loop-mw/bA",
+    "loop-mw/bB",
+    "loop-mw/uA",
+    "loop-mw/uB"
+   ]
+  },
+  "subworkflow_mutual_wait.json": {
+   "verdict": "DEADLOCK",
+   "flagged": true,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": [
+    "ns1/bA",
+    "ns1/bB",
+    "ns1/uA",
+    "ns1/uB"
+   ]
+  },
+  "per_unit_pipelines.json": {
+   "verdict": "CLEAN",
+   "flagged": false,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": false,
+   "deadlock_nodes_tarjan": []
+  },
+  "cohort_hang.json": {
+   "verdict": "CLEAN",
+   "flagged": false,
+   "methods_agree": true,
+   "livelock_loops": [],
+   "cohort_hang_representable": true,
+   "deadlock_nodes_tarjan": []
+  }
+ },
+ "nested_combinations": {
+  "subworkflow_mutual_wait": "DEADLOCK",
+  "loop_body_mutual_wait": "DEADLOCK"
+ },
+ "per_unit_pipelines": {
+  "fixture": "per_unit_pipelines.json",
+  "verdict": "CLEAN",
+  "cohort_hang_representable": false,
+  "raw_cohort_hang_fixture": "cohort_hang.json",
+  "raw_cohort_hang_representable": true,
+  "raw_cohort_hang_verdict": "CLEAN",
+  "note": "FC-11317 (catalog cites 11318): one hung unit blocks a large batch. Unrepresentable when the barrier awaits timed pipeline tokens rather than raw unit tokens."
+ },
+ "notes": "G-1 for IMP-0196: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0196"
+}

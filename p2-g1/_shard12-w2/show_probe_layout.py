@@ -1,0 +1,10 @@
+import json, os
+root = os.path.join(os.path.expanduser("~"), "p2-g1")
+pd = os.path.join(root, "command-center", "p2-wave", "probes", "IMP-0218")
+ret = json.load(open(os.path.join(pd, "SUBAGENT-RETURN.json"), encoding="utf-8"))
+print("== SUBAGENT-RETURN keys:", sorted(ret.keys()))
+print(json.dumps(ret, indent=1, ensure_ascii=False)[:3500])
+print()
+man = json.load(open(os.path.join(pd, "UNIT-ARTIFACT-MANIFEST.json"), encoding="utf-8"))
+print("== MANIFEST:")
+print(json.dumps(man, indent=1, ensure_ascii=False)[:2500])

@@ -1,0 +1,1579 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0036",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0036 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both directions were exercised for every operation and the non-idempotent control was detected. Any other terminal state is FAILED:CNF-0036 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0036]; rules/common/windows-shell.md section 4",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0036-repeat-application.json",
+      "bytes": 62468,
+      "sha256": "a0c670fa9fa11578760012467257562095d542669123374d2270c94b352bf14a",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/idempotency-report.schema.json",
+      "bytes": 1047,
+      "sha256": "5dcd2ae298d4bd9d58452b11210eaac9a6af2199df7fe3a3b060ec322582360e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Apply-twice hash manifests are equal for install, deploy, migrate, sync, and repair in both forward and reverse.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0036/harness.py:measure_all_operations",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0036'); from harness import run_suite; s=run_suite(); print(s['tests']['hash_sets_equal_both_directions'])\"",
+          "raw_output": "{\"pairs\": 10, \"pass\": true}",
+          "fingerprint": "harness:hash-sets-equal",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py",
+          "raw_output": "{\"coverage\": [\"deploy/forward\", \"deploy/reverse\", \"install/forward\", \"install/reverse\", \"migrate/forward\", \"migrate/reverse\", \"repair/forward\", \"repair/reverse\", \"sync/forward\", \"sync/reverse\"], \"derived_pass\": true, \"pairs\": 10, \"probe\": \"probe1-repeat-hashes\", \"unit_id\": \"CNF-0036\", \"unsafe\": []}\nSUCCESS:CNF-0036-probe1 repeat-application both directions",
+          "fingerprint": "named-probe1:repeat-hashes",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The same tree-sha comparison detects a deliberately non-idempotent append, and create-if-missing does not truncate an existing non-empty file.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0036/probe2_detector_control.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0036'); from harness import measure_control, measure_create_if_missing; print(measure_control()['detected'], measure_create_if_missing()['pass'])\"",
+          "raw_output": "{\"control_detected\": true, \"create_if_missing_pass\": true}",
+          "fingerprint": "harness:control-and-cim",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe2_detector_control.py",
+          "raw_output": "{\"control_detected\": true, \"control_hash_sets_equal\": false, \"create_if_missing_pass\": true, \"create_truncated\": false, \"derived_pass\": true, \"force_create_truncates\": true, \"probe\": \"probe2-detector-control\", \"unit_id\": \"CNF-0036\"}\nSUCCESS:CNF-0036-probe2 detector control and create-if-missing",
+          "fingerprint": "named-probe2:detector-control",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "hash-sets-equal-both-directions",
+      "name": "Hash sets after application one and two are equal",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py",
+      "result": "PASS",
+      "assertions": 10
+    },
+    {
+      "id": "create-if-missing-no-truncate",
+      "name": "create-if-missing does not truncate an existing file",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 1
+    },
+    {
+      "id": "second-exit-already-applied-or-zero",
+      "name": "Second exit is 0 or already-applied",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py",
+      "result": "PASS",
+      "assertions": 10
+    },
+    {
+      "id": "non-idempotent-control-detected",
+      "name": "Append-only control is caught by the same comparison",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe2_detector_control.py",
+      "result": "PASS",
+      "assertions": 1
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CNF0036-C1-append-only-log",
+      "kind": "known-broken-fixture",
+      "description": "A deliberately non-idempotent append-only log must make hash_sets_equal false under the same census used for the five mutating operations.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "control hash_sets_equal=False detected=True",
+      "good_state_output": "all ten operation/direction pairs hash_sets_equal=true"
+    },
+    {
+      "id": "CNF0036-C2-force-create-truncate",
+      "kind": "mutation",
+      "description": "Force-create (open-for-write) must truncate an existing non-empty file, proving the create-if-missing pass is not an inert comparator.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "force-create truncated True",
+      "good_state_output": "create-if-missing byte-identical; wrote=false"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0036-probe1-repeat-hashes",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Probe1 re-runs the ten apply-twice hash censuses before reading the artifact conclusion. Probe2 re-runs the detector control and create-if-missing probe on a different field."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0036/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0036"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py",
+      "artifact_path": "command-center/confirmation/CNF-0036-repeat-application.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py",
+        "raw_output": "{\"coverage\": [\"deploy/forward\", \"deploy/reverse\", \"install/forward\", \"install/reverse\", \"migrate/forward\", \"migrate/reverse\", \"repair/forward\", \"repair/reverse\", \"sync/forward\", \"sync/reverse\"], \"derived_pass\": true, \"pairs\": 10, \"probe\": \"probe1-repeat-hashes\", \"unit_id\": \"CNF-0036\", \"unsafe\": []}\nSUCCESS:CNF-0036-probe1 repeat-application both directions",
+        "fingerprint": "consumer:probe1-read-artifact",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:52Z",
+    "ended_at": "2026-08-25T00:56:52Z",
+    "duration_seconds": 0.31427
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Product tools/plugin install/deploy/migrate/sync/repair CLIs were not executed; this unit measured a disposable snapshot engine that implements those named operations.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the apply-twice census against a disposable copy of the live plugin tree with the product CLIs on a host that has them."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "idempotency-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "idempotency-report",
+    "title": "Repeat-application safety for every mutating operation, forward and reverse",
+    "question": "Which mutating operations are safe to run twice? Apply each forward operation twice and each reverse operation twice from an already-applied state, and answer per operation: is the on-disk state after the second application byte-identical to after the first, is the second exit code clean or at least carrying a distinguishable already-applied message, and does any create-if-missing path truncate an existing file?",
+    "answer": "All five mutating operations (install, deploy, migrate, sync, repair) are safe to run twice in both directions on the disposable snapshot engine: install/forward, install/reverse, deploy/forward, deploy/reverse, migrate/forward, migrate/reverse, sync/forward, sync/reverse, repair/forward, repair/reverse. Hash sets after application one and two are equal; second exits are 0 with already-applied when a no-op. create-if-missing left target/user/notes.md byte-identical. Non-idempotent control append-only-log was detected by the same comparison (hash_sets_equal=false). SUCCESS:CNF-0036 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both directions were exercised for every operation and the non-idempotent control was detected. Any other terminal state is FAILED:CNF-0036 <classification> with the diagnostic tail attached.",
+    "completion_sentinel": "SUCCESS:CNF-0036 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both directions were exercised for every operation and the non-idempotent control was detected. Any other terminal state is FAILED:CNF-0036 <classification> with the diagnostic tail attached.",
+    "operations": [
+      {
+        "name": "install",
+        "direction": "forward",
+        "reverse_name": "uninstall",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "d39b1344f191a35ce66c0d0bb2ab3bb37a28f5733a30cdd42453aa65fe7d15da",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/installed/.install-marker.json",
+              "sha256": "e6acf22575533ca674632065aefa2cce02bcaf3c02ee6f47d617a79709cc7e3d",
+              "bytes": 46
+            },
+            {
+              "path": "target/installed/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/installed/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/installed/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/installed/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "d39b1344f191a35ce66c0d0bb2ab3bb37a28f5733a30cdd42453aa65fe7d15da",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/installed/.install-marker.json",
+              "sha256": "e6acf22575533ca674632065aefa2cce02bcaf3c02ee6f47d617a79709cc7e3d",
+              "bytes": 46
+            },
+            {
+              "path": "target/installed/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/installed/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/installed/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/installed/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "install",
+        "direction": "reverse",
+        "reverse_name": "uninstall",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "deploy",
+        "direction": "forward",
+        "reverse_name": "undeploy",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "d4b601273f38f2c4a10bba425df4241f7d4e9f0f706125eb5241c607748b75c9",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.provenance.json",
+              "sha256": "18a36d773490508ed54ae458c03504838f1a90f507cd9c418a0a243b7080a9eb",
+              "bytes": 124
+            },
+            {
+              "path": "target/live/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "d4b601273f38f2c4a10bba425df4241f7d4e9f0f706125eb5241c607748b75c9",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.provenance.json",
+              "sha256": "18a36d773490508ed54ae458c03504838f1a90f507cd9c418a0a243b7080a9eb",
+              "bytes": 124
+            },
+            {
+              "path": "target/live/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "deploy",
+        "direction": "reverse",
+        "reverse_name": "undeploy",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "migrate",
+        "direction": "forward",
+        "reverse_name": "unmigrate",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "f8a755f4cd0d044c156589dd2e037723923239f4f4c8da8962f0626cd8ab6db9",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "81db67b6a5702b9b68f0016f061c409bf3fb16d062fc854d1b424bb4e9c28c56",
+              "bytes": 3
+            },
+            {
+              "path": "target/current/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "f8a755f4cd0d044c156589dd2e037723923239f4f4c8da8962f0626cd8ab6db9",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "81db67b6a5702b9b68f0016f061c409bf3fb16d062fc854d1b424bb4e9c28c56",
+              "bytes": 3
+            },
+            {
+              "path": "target/current/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "migrate",
+        "direction": "reverse",
+        "reverse_name": "unmigrate",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "sync",
+        "direction": "forward",
+        "reverse_name": "unsync",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "49cfa3955e3bdd7adee3c474eaf82558a4a118a1d536007b7491f921f3cf71da",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.sync-journal.json",
+              "sha256": "e1a49aa876a76ba60ec55b6ba156e08ce1511914e77669076f4e0fdf758566d3",
+              "bytes": 108
+            },
+            {
+              "path": "target/live/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "49cfa3955e3bdd7adee3c474eaf82558a4a118a1d536007b7491f921f3cf71da",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.sync-journal.json",
+              "sha256": "e1a49aa876a76ba60ec55b6ba156e08ce1511914e77669076f4e0fdf758566d3",
+              "bytes": 108
+            },
+            {
+              "path": "target/live/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "target/live/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "sync",
+        "direction": "reverse",
+        "reverse_name": "unsync",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "repair",
+        "direction": "forward",
+        "reverse_name": "unrepair",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "487f0fd43cf90a1388cf5c204479534943f9df6ee6cd3ff450f2f3deb6114ade",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.repair-journal.json",
+              "sha256": "8e999bb9d507dc2a8fb60fd15e32191bfd8a5d118bb354c545fe8c2071ea018e",
+              "bytes": 84
+            },
+            {
+              "path": "target/live/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "487f0fd43cf90a1388cf5c204479534943f9df6ee6cd3ff450f2f3deb6114ade",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/.repair-journal.json",
+              "sha256": "8e999bb9d507dc2a8fb60fd15e32191bfd8a5d118bb354c545fe8c2071ea018e",
+              "bytes": 84
+            },
+            {
+              "path": "target/live/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      },
+      {
+        "name": "repair",
+        "direction": "reverse",
+        "reverse_name": "unrepair",
+        "apply1": {
+          "exit_code": 0,
+          "message": "applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "apply2": {
+          "exit_code": 0,
+          "message": "already-applied",
+          "tree_sha256": "b83bc651080f8afb883c983f20584939f7fbd7537bb882c89558e2f5512ccd31",
+          "hash_manifest": [
+            {
+              "path": "package/hooks/hook.json",
+              "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+              "bytes": 42
+            },
+            {
+              "path": "package/plugin.json",
+              "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+              "bytes": 42
+            },
+            {
+              "path": "package/rules/rule.md",
+              "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+              "bytes": 18
+            },
+            {
+              "path": "package/skills/hello.md",
+              "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+              "bytes": 22
+            },
+            {
+              "path": "target/.layout-version",
+              "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+              "bytes": 3
+            },
+            {
+              "path": "target/legacy/skills/old.md",
+              "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+              "bytes": 18
+            },
+            {
+              "path": "target/live/user-edit.md",
+              "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+              "bytes": 35
+            },
+            {
+              "path": "target/user/notes.md",
+              "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+              "bytes": 38
+            }
+          ]
+        },
+        "hash_sets_equal": true,
+        "second_exit_ok": true,
+        "safe_to_run_twice": true
+      }
+    ],
+    "create_if_missing": {
+      "probed": true,
+      "path": "target/user/notes.md",
+      "existing_non_empty": true,
+      "wrote": false,
+      "truncated": false,
+      "byte_identical": true,
+      "pass": true,
+      "before_sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+      "after_sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+      "message": "already-applied"
+    },
+    "control": {
+      "name": "append-only-log",
+      "detected": true,
+      "hash_sets_equal": false,
+      "pass": true,
+      "apply1": {
+        "exit_code": 0,
+        "message": "applied",
+        "tree_sha256": "0db16d150b6ab75cd24b5d24ae17f6047a3972f8a4f11c023f8d24e08998d9f0",
+        "hash_manifest": [
+          {
+            "path": "package/hooks/hook.json",
+            "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+            "bytes": 42
+          },
+          {
+            "path": "package/plugin.json",
+            "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+            "bytes": 42
+          },
+          {
+            "path": "package/rules/rule.md",
+            "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+            "bytes": 18
+          },
+          {
+            "path": "package/skills/hello.md",
+            "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+            "bytes": 22
+          },
+          {
+            "path": "target/.layout-version",
+            "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+            "bytes": 3
+          },
+          {
+            "path": "target/control.log",
+            "sha256": "1b482239066a8e2baf24a03a0570a39e837d09c77ac19dfeb88578605bcbdf5f",
+            "bytes": 5
+          },
+          {
+            "path": "target/legacy/skills/old.md",
+            "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+            "bytes": 18
+          },
+          {
+            "path": "target/live/user-edit.md",
+            "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+            "bytes": 35
+          },
+          {
+            "path": "target/user/notes.md",
+            "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+            "bytes": 38
+          }
+        ]
+      },
+      "apply2": {
+        "exit_code": 0,
+        "message": "applied",
+        "tree_sha256": "6ea733d97749074a51cfe4dea96c562a38896a2f7af23e2e4b41e1ff47f8c7d6",
+        "hash_manifest": [
+          {
+            "path": "package/hooks/hook.json",
+            "sha256": "dc6417d938d721db638d88583e9a99c0ac4294e7196ab9d469d679bee930ed0a",
+            "bytes": 42
+          },
+          {
+            "path": "package/plugin.json",
+            "sha256": "569c89ba6df51a2c8ccea747be93872fdda6d3e742396b452f74a62c791faf3c",
+            "bytes": 42
+          },
+          {
+            "path": "package/rules/rule.md",
+            "sha256": "f43b77fa26dd0c4d859a49870006df616d2d5b2d653c4fa49092ee5688d91ecb",
+            "bytes": 18
+          },
+          {
+            "path": "package/skills/hello.md",
+            "sha256": "b2e693fda95a208ee8e54111713e18bf8e97b0ee8f482dd2f3cd53eb2b11dfb2",
+            "bytes": 22
+          },
+          {
+            "path": "target/.layout-version",
+            "sha256": "2d27fbdf4e8ca207afbfa388ca9172fbcc6c70e534af2476b3b704f87debadcf",
+            "bytes": 3
+          },
+          {
+            "path": "target/control.log",
+            "sha256": "8f7f2704de515ed89fdb847e68f12f223151d0e5d068779b69ea7ac4854a6c28",
+            "bytes": 10
+          },
+          {
+            "path": "target/legacy/skills/old.md",
+            "sha256": "066c992bc269365d89c2dbd0baeb96dfbc476df8d0e2857414a565dd806978b2",
+            "bytes": 18
+          },
+          {
+            "path": "target/live/user-edit.md",
+            "sha256": "88f857bf1db34d2faaa2619fec0dad1e27714ebf4d976303078cb37195846a83",
+            "bytes": 35
+          },
+          {
+            "path": "target/user/notes.md",
+            "sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+            "bytes": 38
+          }
+        ]
+      }
+    },
+    "force_create_hazard": {
+      "anchor": "rules/common/windows-shell.md section 4 (force-create truncates an existing file)",
+      "truncated_existing": true,
+      "pass_as_data_loss_probe": true,
+      "before_sha256": "e9d7dbdf449d9fe593291ea34447bbb4a34a4f86a5dd1aedbbe6839f588041bd",
+      "after_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "domain_tests": {
+      "hash_sets_equal_both_directions": {
+        "pass": true,
+        "pairs": 10
+      },
+      "create_if_missing_no_truncate": {
+        "pass": true,
+        "truncated": false
+      },
+      "second_exit_already_applied_or_zero": {
+        "pass": true
+      },
+      "non_idempotent_control_detected": {
+        "pass": true,
+        "name": "append-only-log"
+      }
+    },
+    "product": {
+      "lifecycle_root": "tools/plugin",
+      "present_on_worktree": true,
+      "sync_scripts_present": true,
+      "substrate": "disposable snapshot engine in command-center/p2-wave/probes/CNF-0036/lifecycle.py"
+    },
+    "observations": [
+      {
+        "name": "hash_sets_equal_both_directions",
+        "measured": true,
+        "method": "tree-sha256 census after apply-1 and apply-2",
+        "anchor": "command-center/p2-wave/probes/CNF-0036/harness.py"
+      },
+      {
+        "name": "create_if_missing_no_truncate",
+        "measured": true,
+        "method": "byte compare of existing target/user/notes.md",
+        "anchor": "command-center/p2-wave/probes/CNF-0036/lifecycle.py:create_if_missing"
+      },
+      {
+        "name": "non_idempotent_control_detected",
+        "measured": true,
+        "method": "append-only log apply-twice tree-sha inequality",
+        "anchor": "command-center/p2-wave/probes/CNF-0036/lifecycle.py:non_idempotent_append"
+      }
+    ],
+    "control_ids": [
+      "append-only-log",
+      "force-create-truncate",
+      "create-if-missing"
+    ]
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "repeat-application-hash-sets",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe1_repeat_hashes.py"
+      },
+      {
+        "id": "probe2",
+        "role": "detector-control-create-if-missing",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0036/probe2_detector_control.py"
+      }
+    ],
+    "scope": {
+      "proof_surface": "Fresh tempfile snapshots; each operation/direction pair is an independent copy of the fixture. Product tools/plugin is present on this Linux worktree.",
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+        "C:/Users/Prekzursil live plugin lifecycle was executed",
+        "tools/plugin install/deploy/migrate/sync/repair exist in this worktree"
+      ]
+    }
+  }
+}

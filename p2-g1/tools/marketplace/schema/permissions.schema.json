@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://prekzursil.dev/ast-integrate/schema/permissions.schema.json",
+  "title": "Package permission declaration",
+  "description": "Registry-side permission block for marketplace packages (IMP-0090). Rendered at install time as a human-readable, risk-grouped surface by tools/marketplace/permission_surface.py; enforced separately by tools/plugin/permission_enforcement.py. A declaration the runtime does not enforce is decorative and must be flagged, never silently rendered as enforced.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permissions": {
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/record"
+          }
+        },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "$ref": "#/$defs/riskOrRecord"
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "risk": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "low"
+    },
+    "enforcement": {
+      "type": "string",
+      "enum": [
+        "gated",
+        "enforced",
+        "hook",
+        "decorative",
+        "declared-only",
+        "ui"
+      ],
+      "default": "gated"
+    },
+    "record": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "risk": {
+          "$ref": "#/$defs/risk"
+        },
+        "enforcement": {
+          "$ref": "#/$defs/enforcement"
+        }
+      },
+      "additionalProperties": true
+    },
+    "riskOrRecord": {
+      "oneOf": [
+        {
+          "type": "string",
+          "description": "bare permission id; defaults risk=low, enforcement=gated"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "risk": {
+              "$ref": "#/$defs/risk"
+            },
+            "enforcement": {
+              "$ref": "#/$defs/enforcement"
+            }
+          },
+          "additionalProperties": true
+        }
+      ]
+    }
+  }
+}

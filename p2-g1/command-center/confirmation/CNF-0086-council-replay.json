@@ -1,0 +1,803 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0086-council-replay.json",
+   "bytes": 15569,
+   "sha256": "559a5d99dd23ab623c4d1914b052cf6ba0b7525c2fb81b431066407e6ad10216",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0086 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0086-council-replay.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0086-council-replay.json",
+     "raw_output": "bytes=15569 sha256=559a5d99dd23ab623c4d1914b052cf6ba0b7525c2fb81b431066407e6ad10216",
+     "fingerprint": "f94ab2c087b07f30f055b3a9fbe3e604",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0086",
+     "raw_output": "schema-check",
+     "fingerprint": "ea11aa9d0a19cec559038e063dc68367",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0086 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0086",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0086",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "e3701e06c3ece711f39c7717df6669c7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0086",
+     "raw_output": "schema-valid",
+     "fingerprint": "1f772e1c5bd1e4537c3fbe54def65228",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0086/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0086"
+ },
+ "min_bytes_threshold": 2048,
+ "report": {
+  "kind": "determinism-report",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0086/fixtures/majority.json",
+    "measured": true,
+    "method": "transcript-replay",
+    "name": "majority-same-seed-identity"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0086/fixtures/tied.json",
+    "measured": true,
+    "method": "seed-control",
+    "name": "tied-changed-seed-recommendation-flip"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0086/fixtures/overclaim.json",
+    "measured": true,
+    "method": "known-broken-fixture",
+    "name": "overclaim-detector-on-known-broken"
+   }
+  ],
+  "control_ids": [
+   "changed-seed-tied-7-to-1",
+   "seed-ignored-mutant",
+   "overclaim-deterministic-audit-mismatch",
+   "planted-vote-stage-locus"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0086 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the changed-seed control produced a different outcome, proving the replay actually consumes the seed. Any other terminal state is FAILED:CNF-0086 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0086-council-replay.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "CNF-0086",
+ "extensions": {
+  "legacy_root": {
+   "adv_rebuild_circle": false,
+   "answer": "Same-seed replay of the majority and tied recorded councils reproduces the frozen recommendation and vote tally. A planted vote flip is localized to stage 'vote', not a whole-run blob. The overclaim fixture (deterministic-audit claim, stored reject vs unanimous adopt ballots) is classified overclaim with first divergent stage synthesize. Changed seed 7→1 on the tied run changes the recommendation (defer→adopt), so identity is not a cache artifact. Production tools/council is absent; this confirmation uses the probe-local transcript replay. SUCCESS:CNF-0086 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the changed-seed control produced a different outcome, proving the replay actually consumes the seed. Any other terminal state is FAILED:CNF-0086 <classification> with the diagnostic tail attached.",
+   "completion_sentinel": "SUCCESS:CNF-0086 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the changed-seed control produced a different outcome, proving the replay actually consumes the seed. Any other terminal state is FAILED:CNF-0086 <classification> with the diagnostic tail attached.",
+   "failure_classes_checked": [
+    "replay-divergence",
+    "overclaim",
+    "seed-ignored"
+   ],
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0086/probe1_replay_identity.py",
+     "id": "probe1",
+     "role": "replay-identity-stage-locus"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0086/probe2_seed_overclaim.py",
+     "id": "probe2",
+     "role": "seed-control-overclaim"
+    }
+   ],
+   "overclaim": {
+    "classification": "overclaim",
+    "detector_fired_on_known_broken": true,
+    "reason": "Council claims deterministic audit but replayed final recommendation diverges from the recorded decision.",
+    "run_id": "cnf-0086-overclaim"
+   },
+   "production_replay": {
+    "found_paths": [],
+    "implementation_used": "command-center/p2-wave/probes/CNF-0086/replay.py",
+    "note": "Production tools/council replay is absent on this worktree; confirmation runs the probe-local transcript replay. Not an ADV rebuild.",
+    "tools_council_present": false
+   },
+   "question": "Replayed from its recorded transcript and seeds, does a council reach the same decision? Replay each recorded council run and answer: is the final recommendation identical, is the vote tally identical, and where they differ, which stage first diverges?",
+   "runs": [
+    {
+     "claims_deterministic_audit": true,
+     "first_divergent_stage": null,
+     "original_decision": {
+      "outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+      "participant_order": [
+       "architect",
+       "skeptic",
+       "critic",
+       "pragmatist"
+      ],
+      "rationale": "Quorum met from recorded roster.",
+      "recommendation": "adopt",
+      "run_id": "cnf-0086-majority",
+      "seed": 42,
+      "stage_digests": {
+       "critique": "c9202ba3ad6ed0689bee5c88efcc667fa54a435cd5c8a73be3fc71e9ce9a2951",
+       "ingest": "31b96f0946534edbbb2cd5de40bdb6fd9345cd4913d7da2acdec17c80b8060c2",
+       "participant_draw": "ad70e01bbc47e2c50237dc033761ee6b30f0b4e5007665ccaca9eff1e7c522ec",
+       "propose": "5643df0a215452f7459583843b75b01eb6144847de59cd1b8219285d73576eaf",
+       "synthesize": "6437ea041af1a98eb6f80ecf052102ab96a5a35280bcb968e1681dcb190ad2a5",
+       "vote": "a52e08e1666602cd99b78fbda640be4a1e9ebc4109337bbc7625e9339614b3ab"
+      },
+      "tally": {
+       "adopt": 3,
+       "defer": 1
+      },
+      "tie": false
+     },
+     "overclaim": {
+      "classification": "none",
+      "fired": false,
+      "reason": "No overclaim: either no determinism claim, or recommendation matched."
+     },
+     "recommendation_identical": true,
+     "replayed_decision": {
+      "outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+      "participant_order": [
+       "architect",
+       "skeptic",
+       "critic",
+       "pragmatist"
+      ],
+      "rationale": "Quorum met from recorded roster.",
+      "recommendation": "adopt",
+      "run_id": "cnf-0086-majority",
+      "seed": 42,
+      "stage_digests": {
+       "critique": "c9202ba3ad6ed0689bee5c88efcc667fa54a435cd5c8a73be3fc71e9ce9a2951",
+       "ingest": "31b96f0946534edbbb2cd5de40bdb6fd9345cd4913d7da2acdec17c80b8060c2",
+       "participant_draw": "ad70e01bbc47e2c50237dc033761ee6b30f0b4e5007665ccaca9eff1e7c522ec",
+       "propose": "5643df0a215452f7459583843b75b01eb6144847de59cd1b8219285d73576eaf",
+       "synthesize": "6437ea041af1a98eb6f80ecf052102ab96a5a35280bcb968e1681dcb190ad2a5",
+       "vote": "a52e08e1666602cd99b78fbda640be4a1e9ebc4109337bbc7625e9339614b3ab"
+      },
+      "tally": {
+       "adopt": 3,
+       "defer": 1
+      },
+      "tie": false
+     },
+     "run_id": "cnf-0086-majority",
+     "seed": 42,
+     "tally_identical": true,
+     "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/majority.json",
+     "vote_tally_original": {
+      "adopt": 3,
+      "defer": 1
+     },
+     "vote_tally_replayed": {
+      "adopt": 3,
+      "defer": 1
+     },
+     "whole_run_mismatch_without_stage": false
+    },
+    {
+     "claims_deterministic_audit": true,
+     "first_divergent_stage": null,
+     "original_decision": {
+      "outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+      "participant_order": [
+       "critic",
+       "skeptic",
+       "architect",
+       "pragmatist"
+      ],
+      "rationale": "Quorum met from recorded roster.",
+      "recommendation": "defer",
+      "run_id": "cnf-0086-tied",
+      "seed": 7,
+      "stage_digests": {
+       "critique": "a7960e01e9d94cc6d0d4dc37d605c99bc78a5b4aba3cd5d106d5be7dfd1bf855",
+       "ingest": "46a1226c09b7588e901d86503ae12f97acbc48d0c7d0b024217e8c0800c81686",
+       "participant_draw": "8846094c09c917d64e61633050243c3a14921e73d45ffd738ae872c694b9b153",
+       "propose": "70116833180bc6e4b6c4bd408198f5448f0220067f76d191ec36db5d251b9929",
+       "synthesize": "c9f1e911b821308df66b61ed87201067ad10ae45ad1e9c2c727dfc4aa61e7dff",
+       "vote": "7390525bc4ef25bfde60c2b7f7c9e2e1e06d604d408e4ba5200495798abafb84"
+      },
+      "tally": {
+       "adopt": 2,
+       "defer": 2
+      },
+      "tie": true
+     },
+     "overclaim": {
+      "classification": "none",
+      "fired": false,
+      "reason": "No overclaim: either no determinism claim, or recommendation matched."
+     },
+     "recommendation_identical": true,
+     "replayed_decision": {
+      "outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+      "participant_order": [
+       "critic",
+       "skeptic",
+       "architect",
+       "pragmatist"
+      ],
+      "rationale": "Quorum met from recorded roster.",
+      "recommendation": "defer",
+      "run_id": "cnf-0086-tied",
+      "seed": 7,
+      "stage_digests": {
+       "critique": "a7960e01e9d94cc6d0d4dc37d605c99bc78a5b4aba3cd5d106d5be7dfd1bf855",
+       "ingest": "46a1226c09b7588e901d86503ae12f97acbc48d0c7d0b024217e8c0800c81686",
+       "participant_draw": "8846094c09c917d64e61633050243c3a14921e73d45ffd738ae872c694b9b153",
+       "propose": "70116833180bc6e4b6c4bd408198f5448f0220067f76d191ec36db5d251b9929",
+       "synthesize": "c9f1e911b821308df66b61ed87201067ad10ae45ad1e9c2c727dfc4aa61e7dff",
+       "vote": "7390525bc4ef25bfde60c2b7f7c9e2e1e06d604d408e4ba5200495798abafb84"
+      },
+      "tally": {
+       "adopt": 2,
+       "defer": 2
+      },
+      "tie": true
+     },
+     "run_id": "cnf-0086-tied",
+     "seed": 7,
+     "tally_identical": true,
+     "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/tied.json",
+     "vote_tally_original": {
+      "adopt": 2,
+      "defer": 2
+     },
+     "vote_tally_replayed": {
+      "adopt": 2,
+      "defer": 2
+     },
+     "whole_run_mismatch_without_stage": false
+    },
+    {
+     "claims_deterministic_audit": true,
+     "first_divergent_stage": "synthesize",
+     "original_decision": {
+      "outcome_sha256": "10bd96b0d602ed07b2189d0dc4e71e8e6458e83670ef54441765ba9beb668a97",
+      "participant_order": [
+       "architect",
+       "critic",
+       "pragmatist",
+       "skeptic"
+      ],
+      "rationale": "Recorded as reject without a matching ballot set.",
+      "recommendation": "reject",
+      "run_id": "cnf-0086-overclaim",
+      "seed": 99,
+      "stage_digests": {
+       "critique": "6edaea925aa6d25115b7c67e360ded59a12cb61f6517dd852ecf04b10b5edfa3",
+       "ingest": "a61c8bd3ade4a3bce8f4d7f210a86485d6084a19ef10218293df82d092b179af",
+       "participant_draw": "74128bcc5258cbcd8e7d2fe856819f59efdc63360f67bbac28dd68a9a3a18f4d",
+       "propose": "cd747eed6617bd294007445b7e477e3a600458757465335f2b7d5a2321ab91fc",
+       "synthesize": "recorded-override-synthesize-mismatch",
+       "vote": "0680378f5e80a332cc8c450a626f550607ce931347159f8191d977a8fb3f3a9b"
+      },
+      "tally": {
+       "reject": 4
+      },
+      "tie": false
+     },
+     "overclaim": {
+      "classification": "overclaim",
+      "fired": true,
+      "reason": "Council claims deterministic audit but replayed final recommendation diverges from the recorded decision."
+     },
+     "recommendation_identical": false,
+     "replayed_decision": {
+      "outcome_sha256": "985d325f542cbd483521d05b1c21d810854c30d116c62d2f74a023f996447340",
+      "participant_order": [
+       "architect",
+       "critic",
+       "pragmatist",
+       "skeptic"
+      ],
+      "rationale": "Majority of recorded ballots.",
+      "recommendation": "adopt",
+      "run_id": "cnf-0086-overclaim",
+      "seed": 99,
+      "stage_digests": {
+       "critique": "6edaea925aa6d25115b7c67e360ded59a12cb61f6517dd852ecf04b10b5edfa3",
+       "ingest": "a61c8bd3ade4a3bce8f4d7f210a86485d6084a19ef10218293df82d092b179af",
+       "participant_draw": "74128bcc5258cbcd8e7d2fe856819f59efdc63360f67bbac28dd68a9a3a18f4d",
+       "propose": "cd747eed6617bd294007445b7e477e3a600458757465335f2b7d5a2321ab91fc",
+       "synthesize": "674e464be8707760f901f65a7dec221eaff91f1864ea2746e61dace0ce2bb652",
+       "vote": "0680378f5e80a332cc8c450a626f550607ce931347159f8191d977a8fb3f3a9b"
+      },
+      "tally": {
+       "adopt": 4
+      },
+      "tie": false
+     },
+     "run_id": "cnf-0086-overclaim",
+     "seed": 99,
+     "tally_identical": false,
+     "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/overclaim.json",
+     "vote_tally_original": {
+      "reject": 4
+     },
+     "vote_tally_replayed": {
+      "adopt": 4
+     },
+     "whole_run_mismatch_without_stage": false
+    }
+   ],
+   "seed_control": {
+    "changed_seed": 1,
+    "majority_run_outcome_changed_recommendation_stable": {
+     "a_recommendation": "adopt",
+     "b_recommendation": "adopt",
+     "changed_outcome_sha256": "c5597ab9fafde15354217c33e348b24f5ddaccfe3ca2fb5ea365f0bb9e8074de",
+     "changed_seed": 43,
+     "original_outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+     "original_seed": 42,
+     "outcome_changed": true,
+     "performed": true,
+     "proves_seed_consumed": true,
+     "recommendation_changed": false,
+     "seed_ignored_mutant_hides_change": true
+    },
+    "original_seed": 7,
+    "outcome_changed": true,
+    "performed": true,
+    "proves_seed_consumed": true,
+    "tied_run": {
+     "a_recommendation": "defer",
+     "b_recommendation": "adopt",
+     "changed_outcome_sha256": "7efe80b99168e7d4f7c2fd37a7eb4c57016e60889da5c154b14c9dea8a00fa00",
+     "changed_seed": 1,
+     "original_outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+     "original_seed": 7,
+     "outcome_changed": true,
+     "performed": true,
+     "proves_seed_consumed": true,
+     "recommendation_changed": true,
+     "seed_ignored_mutant_hides_change": true
+    }
+   },
+   "stage_localization": {
+    "detail": {
+     "base_recommendation": "adopt",
+     "comparison": {
+      "first_divergent_stage": "vote",
+      "mismatch": true,
+      "recommendation_identical": false,
+      "tally_identical": false,
+      "whole_run_mismatch_without_stage": false
+     },
+     "mutant_recommendation": "defer",
+     "not_whole_run_only": true,
+     "planted_stage": "vote",
+     "reported_stage": "vote"
+    },
+    "not_whole_run_only": true,
+    "planted_stage": "vote",
+    "reported_stage": "vote",
+    "required": true
+   },
+   "subject": {
+    "kind": "council-transcript-replay",
+    "replay_module": "command-center/p2-wave/probes/CNF-0086/replay.py",
+    "transcript_source": "command-center/p2-wave/probes/CNF-0086/fixtures/"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0086",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0086-council-replay.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0086-council-replay.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "46c1599327d7136fd053529d5de3e582",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "adv_rebuild_circle": false,
+ "answer": "Same-seed replay of the majority and tied recorded councils reproduces the frozen recommendation and vote tally. A planted vote flip is localized to stage 'vote', not a whole-run blob. The overclaim fixture (deterministic-audit claim, stored reject vs unanimous adopt ballots) is classified overclaim with first divergent stage synthesize. Changed seed 7→1 on the tied run changes the recommendation (defer→adopt), so identity is not a cache artifact. Production tools/council is absent; this confirmation uses the probe-local transcript replay. SUCCESS:CNF-0086 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the changed-seed control produced a different outcome, proving the replay actually consumes the seed. Any other terminal state is FAILED:CNF-0086 <classification> with the diagnostic tail attached.",
+ "completion_sentinel": "SUCCESS:CNF-0086 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the changed-seed control produced a different outcome, proving the replay actually consumes the seed. Any other terminal state is FAILED:CNF-0086 <classification> with the diagnostic tail attached.",
+ "failure_classes_checked": [
+  "replay-divergence",
+  "overclaim",
+  "seed-ignored"
+ ],
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0086/probe1_replay_identity.py",
+   "id": "probe1",
+   "role": "replay-identity-stage-locus"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0086/probe2_seed_overclaim.py",
+   "id": "probe2",
+   "role": "seed-control-overclaim"
+  }
+ ],
+ "overclaim": {
+  "classification": "overclaim",
+  "detector_fired_on_known_broken": true,
+  "reason": "Council claims deterministic audit but replayed final recommendation diverges from the recorded decision.",
+  "run_id": "cnf-0086-overclaim"
+ },
+ "production_replay": {
+  "found_paths": [],
+  "implementation_used": "command-center/p2-wave/probes/CNF-0086/replay.py",
+  "note": "Production tools/council replay is absent on this worktree; confirmation runs the probe-local transcript replay. Not an ADV rebuild.",
+  "tools_council_present": false
+ },
+ "question": "Replayed from its recorded transcript and seeds, does a council reach the same decision? Replay each recorded council run and answer: is the final recommendation identical, is the vote tally identical, and where they differ, which stage first diverges?",
+ "runs": [
+  {
+   "claims_deterministic_audit": true,
+   "first_divergent_stage": null,
+   "original_decision": {
+    "outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+    "participant_order": [
+     "architect",
+     "skeptic",
+     "critic",
+     "pragmatist"
+    ],
+    "rationale": "Quorum met from recorded roster.",
+    "recommendation": "adopt",
+    "run_id": "cnf-0086-majority",
+    "seed": 42,
+    "stage_digests": {
+     "critique": "c9202ba3ad6ed0689bee5c88efcc667fa54a435cd5c8a73be3fc71e9ce9a2951",
+     "ingest": "31b96f0946534edbbb2cd5de40bdb6fd9345cd4913d7da2acdec17c80b8060c2",
+     "participant_draw": "ad70e01bbc47e2c50237dc033761ee6b30f0b4e5007665ccaca9eff1e7c522ec",
+     "propose": "5643df0a215452f7459583843b75b01eb6144847de59cd1b8219285d73576eaf",
+     "synthesize": "6437ea041af1a98eb6f80ecf052102ab96a5a35280bcb968e1681dcb190ad2a5",
+     "vote": "a52e08e1666602cd99b78fbda640be4a1e9ebc4109337bbc7625e9339614b3ab"
+    },
+    "tally": {
+     "adopt": 3,
+     "defer": 1
+    },
+    "tie": false
+   },
+   "overclaim": {
+    "classification": "none",
+    "fired": false,
+    "reason": "No overclaim: either no determinism claim, or recommendation matched."
+   },
+   "recommendation_identical": true,
+   "replayed_decision": {
+    "outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+    "participant_order": [
+     "architect",
+     "skeptic",
+     "critic",
+     "pragmatist"
+    ],
+    "rationale": "Quorum met from recorded roster.",
+    "recommendation": "adopt",
+    "run_id": "cnf-0086-majority",
+    "seed": 42,
+    "stage_digests": {
+     "critique": "c9202ba3ad6ed0689bee5c88efcc667fa54a435cd5c8a73be3fc71e9ce9a2951",
+     "ingest": "31b96f0946534edbbb2cd5de40bdb6fd9345cd4913d7da2acdec17c80b8060c2",
+     "participant_draw": "ad70e01bbc47e2c50237dc033761ee6b30f0b4e5007665ccaca9eff1e7c522ec",
+     "propose": "5643df0a215452f7459583843b75b01eb6144847de59cd1b8219285d73576eaf",
+     "synthesize": "6437ea041af1a98eb6f80ecf052102ab96a5a35280bcb968e1681dcb190ad2a5",
+     "vote": "a52e08e1666602cd99b78fbda640be4a1e9ebc4109337bbc7625e9339614b3ab"
+    },
+    "tally": {
+     "adopt": 3,
+     "defer": 1
+    },
+    "tie": false
+   },
+   "run_id": "cnf-0086-majority",
+   "seed": 42,
+   "tally_identical": true,
+   "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/majority.json",
+   "vote_tally_original": {
+    "adopt": 3,
+    "defer": 1
+   },
+   "vote_tally_replayed": {
+    "adopt": 3,
+    "defer": 1
+   },
+   "whole_run_mismatch_without_stage": false
+  },
+  {
+   "claims_deterministic_audit": true,
+   "first_divergent_stage": null,
+   "original_decision": {
+    "outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+    "participant_order": [
+     "critic",
+     "skeptic",
+     "architect",
+     "pragmatist"
+    ],
+    "rationale": "Quorum met from recorded roster.",
+    "recommendation": "defer",
+    "run_id": "cnf-0086-tied",
+    "seed": 7,
+    "stage_digests": {
+     "critique": "a7960e01e9d94cc6d0d4dc37d605c99bc78a5b4aba3cd5d106d5be7dfd1bf855",
+     "ingest": "46a1226c09b7588e901d86503ae12f97acbc48d0c7d0b024217e8c0800c81686",
+     "participant_draw": "8846094c09c917d64e61633050243c3a14921e73d45ffd738ae872c694b9b153",
+     "propose": "70116833180bc6e4b6c4bd408198f5448f0220067f76d191ec36db5d251b9929",
+     "synthesize": "c9f1e911b821308df66b61ed87201067ad10ae45ad1e9c2c727dfc4aa61e7dff",
+     "vote": "7390525bc4ef25bfde60c2b7f7c9e2e1e06d604d408e4ba5200495798abafb84"
+    },
+    "tally": {
+     "adopt": 2,
+     "defer": 2
+    },
+    "tie": true
+   },
+   "overclaim": {
+    "classification": "none",
+    "fired": false,
+    "reason": "No overclaim: either no determinism claim, or recommendation matched."
+   },
+   "recommendation_identical": true,
+   "replayed_decision": {
+    "outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+    "participant_order": [
+     "critic",
+     "skeptic",
+     "architect",
+     "pragmatist"
+    ],
+    "rationale": "Quorum met from recorded roster.",
+    "recommendation": "defer",
+    "run_id": "cnf-0086-tied",
+    "seed": 7,
+    "stage_digests": {
+     "critique": "a7960e01e9d94cc6d0d4dc37d605c99bc78a5b4aba3cd5d106d5be7dfd1bf855",
+     "ingest": "46a1226c09b7588e901d86503ae12f97acbc48d0c7d0b024217e8c0800c81686",
+     "participant_draw": "8846094c09c917d64e61633050243c3a14921e73d45ffd738ae872c694b9b153",
+     "propose": "70116833180bc6e4b6c4bd408198f5448f0220067f76d191ec36db5d251b9929",
+     "synthesize": "c9f1e911b821308df66b61ed87201067ad10ae45ad1e9c2c727dfc4aa61e7dff",
+     "vote": "7390525bc4ef25bfde60c2b7f7c9e2e1e06d604d408e4ba5200495798abafb84"
+    },
+    "tally": {
+     "adopt": 2,
+     "defer": 2
+    },
+    "tie": true
+   },
+   "run_id": "cnf-0086-tied",
+   "seed": 7,
+   "tally_identical": true,
+   "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/tied.json",
+   "vote_tally_original": {
+    "adopt": 2,
+    "defer": 2
+   },
+   "vote_tally_replayed": {
+    "adopt": 2,
+    "defer": 2
+   },
+   "whole_run_mismatch_without_stage": false
+  },
+  {
+   "claims_deterministic_audit": true,
+   "first_divergent_stage": "synthesize",
+   "original_decision": {
+    "outcome_sha256": "10bd96b0d602ed07b2189d0dc4e71e8e6458e83670ef54441765ba9beb668a97",
+    "participant_order": [
+     "architect",
+     "critic",
+     "pragmatist",
+     "skeptic"
+    ],
+    "rationale": "Recorded as reject without a matching ballot set.",
+    "recommendation": "reject",
+    "run_id": "cnf-0086-overclaim",
+    "seed": 99,
+    "stage_digests": {
+     "critique": "6edaea925aa6d25115b7c67e360ded59a12cb61f6517dd852ecf04b10b5edfa3",
+     "ingest": "a61c8bd3ade4a3bce8f4d7f210a86485d6084a19ef10218293df82d092b179af",
+     "participant_draw": "74128bcc5258cbcd8e7d2fe856819f59efdc63360f67bbac28dd68a9a3a18f4d",
+     "propose": "cd747eed6617bd294007445b7e477e3a600458757465335f2b7d5a2321ab91fc",
+     "synthesize": "recorded-override-synthesize-mismatch",
+     "vote": "0680378f5e80a332cc8c450a626f550607ce931347159f8191d977a8fb3f3a9b"
+    },
+    "tally": {
+     "reject": 4
+    },
+    "tie": false
+   },
+   "overclaim": {
+    "classification": "overclaim",
+    "fired": true,
+    "reason": "Council claims deterministic audit but replayed final recommendation diverges from the recorded decision."
+   },
+   "recommendation_identical": false,
+   "replayed_decision": {
+    "outcome_sha256": "985d325f542cbd483521d05b1c21d810854c30d116c62d2f74a023f996447340",
+    "participant_order": [
+     "architect",
+     "critic",
+     "pragmatist",
+     "skeptic"
+    ],
+    "rationale": "Majority of recorded ballots.",
+    "recommendation": "adopt",
+    "run_id": "cnf-0086-overclaim",
+    "seed": 99,
+    "stage_digests": {
+     "critique": "6edaea925aa6d25115b7c67e360ded59a12cb61f6517dd852ecf04b10b5edfa3",
+     "ingest": "a61c8bd3ade4a3bce8f4d7f210a86485d6084a19ef10218293df82d092b179af",
+     "participant_draw": "74128bcc5258cbcd8e7d2fe856819f59efdc63360f67bbac28dd68a9a3a18f4d",
+     "propose": "cd747eed6617bd294007445b7e477e3a600458757465335f2b7d5a2321ab91fc",
+     "synthesize": "674e464be8707760f901f65a7dec221eaff91f1864ea2746e61dace0ce2bb652",
+     "vote": "0680378f5e80a332cc8c450a626f550607ce931347159f8191d977a8fb3f3a9b"
+    },
+    "tally": {
+     "adopt": 4
+    },
+    "tie": false
+   },
+   "run_id": "cnf-0086-overclaim",
+   "seed": 99,
+   "tally_identical": false,
+   "transcript": "command-center/p2-wave/probes/CNF-0086/fixtures/overclaim.json",
+   "vote_tally_original": {
+    "reject": 4
+   },
+   "vote_tally_replayed": {
+    "adopt": 4
+   },
+   "whole_run_mismatch_without_stage": false
+  }
+ ],
+ "seed_control": {
+  "changed_seed": 1,
+  "majority_run_outcome_changed_recommendation_stable": {
+   "a_recommendation": "adopt",
+   "b_recommendation": "adopt",
+   "changed_outcome_sha256": "c5597ab9fafde15354217c33e348b24f5ddaccfe3ca2fb5ea365f0bb9e8074de",
+   "changed_seed": 43,
+   "original_outcome_sha256": "ce38c43f7eb62f20ab91c7e081840ac44fb0de47452c49d18b33e84f765bf209",
+   "original_seed": 42,
+   "outcome_changed": true,
+   "performed": true,
+   "proves_seed_consumed": true,
+   "recommendation_changed": false,
+   "seed_ignored_mutant_hides_change": true
+  },
+  "original_seed": 7,
+  "outcome_changed": true,
+  "performed": true,
+  "proves_seed_consumed": true,
+  "tied_run": {
+   "a_recommendation": "defer",
+   "b_recommendation": "adopt",
+   "changed_outcome_sha256": "7efe80b99168e7d4f7c2fd37a7eb4c57016e60889da5c154b14c9dea8a00fa00",
+   "changed_seed": 1,
+   "original_outcome_sha256": "b18eb4c38871d03b7b4a9998a8d8aa72dc399aa6a110e5cc4d8dfb70976933e9",
+   "original_seed": 7,
+   "outcome_changed": true,
+   "performed": true,
+   "proves_seed_consumed": true,
+   "recommendation_changed": true,
+   "seed_ignored_mutant_hides_change": true
+  }
+ },
+ "stage_localization": {
+  "detail": {
+   "base_recommendation": "adopt",
+   "comparison": {
+    "first_divergent_stage": "vote",
+    "mismatch": true,
+    "recommendation_identical": false,
+    "tally_identical": false,
+    "whole_run_mismatch_without_stage": false
+   },
+   "mutant_recommendation": "defer",
+   "not_whole_run_only": true,
+   "planted_stage": "vote",
+   "reported_stage": "vote"
+  },
+  "not_whole_run_only": true,
+  "planted_stage": "vote",
+  "reported_stage": "vote",
+  "required": true
+ },
+ "subject": {
+  "kind": "council-transcript-replay",
+  "replay_module": "command-center/p2-wave/probes/CNF-0086/replay.py",
+  "transcript_source": "command-center/p2-wave/probes/CNF-0086/fixtures/"
+ }
+}

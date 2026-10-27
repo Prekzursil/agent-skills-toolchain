@@ -1,0 +1,762 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-pln-03.multi-pr-stacking-order-planner",
+ "name": "Multi-PR Stacking-Order Planner",
+ "description": "Determine the real merge order of N open PRs by measuring what actually conflicts. mergeStateStatus CLEAN is evaluated in ISOLATION and says nothing about PR-to-PR overlap: seven CLEAN PRs looked mutually conflicting and were fully stackable because the overlapping content was BYTE-IDENTICAL, so whichever merged second was a no-op. Conflict COST is measured with a throwaway merge and counted in unmerged paths, never estimated from diff size - a +72k-line PR measured a five-file conflict surface.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "merge-order",
+  "byte-identity",
+  "conflict-surface",
+  "throwaway-probe"
+ ],
+ "flagship": true,
+ "params": {
+  "prs": {
+   "type": "array",
+   "required": true,
+   "items": {
+    "type": "string"
+   },
+   "min_items": 2,
+   "description": "PR refs to order. One PR has no ordering problem."
+  },
+  "base_ref": {
+   "type": "string",
+   "required": true,
+   "min_length": 3,
+   "description": "The base to measure against, e.g. origin/main"
+  },
+  "probe_branch_prefix": {
+   "type": "string",
+   "default": "throwaway/merge-probe",
+   "description": "Every merge probe runs on a THROWAWAY branch; a probe that dirties a real branch is a process failure"
+  },
+  "forge_token": {
+   "type": "secret_ref",
+   "secret": true,
+   "description": "Reference NAME of the forge credential the gh calls authenticate with. This blueprint is the only one in its range that talks to a forge, so it is the only one that must declare a credential. Declaring it as a secret_ref (rather than leaving it implicit in the ambient environment) is what makes the export-redaction rule checkable: the VALUE may never enter an artifact, a log, an export bundle or a replay journal - only this reference name travels. The workflow never reads, prints or rotates the credential."
+  }
+ },
+ "roles": {
+  "measurer": {
+   "description": "Runs git plumbing only: changed-file lists, byte digests, throwaway merges, revision walks",
+   "model": "none-deterministic-script",
+   "vendor": "any",
+   "effort": "low",
+   "authority": "judge",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Bash:git",
+    "Bash:gh",
+    "Bash:python"
+   ]
+  },
+  "semantic_judge": {
+   "description": "Judges only the residue byte-identity cannot settle: two different edits that mean the same thing, or the reverse",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Grep"
+   ],
+   "speaking_rights": "on-request"
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Bash:git",
+   "Bash:gh",
+   "Bash:python",
+   "Write(command-center/stacking/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "read-only",
+  "write_paths": [
+   "command-center/stacking/**"
+  ],
+  "forbid_write_paths": [
+   "command-center/WORK-UNIT-CATALOG.json"
+  ],
+  "source_policy": {
+   "require_provenance": true,
+   "treat_fetched_content_as_data": true,
+   "paywalled": "record-as-not-checked"
+  }
+ },
+ "model_routing": {
+  "strategy": "capability",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "subworkflows": {
+  "shared.pairwise-overlap-matrix": {
+   "workflow_id": "shared.pairwise-overlap-matrix",
+   "version_range": ">=1.0.0 <2.0.0",
+   "source": "platform/workflows/_shared/shared.pairwise-overlap-matrix.subworkflow.json"
+  }
+ },
+ "gates": {
+  "probe-tree-clean": {
+   "predicate": "custom-expression",
+   "expression": "probe_branches_abandoned == probe_branches_created AND working_tree_dirty == false",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "no-mergestate-shortcut": {
+   "predicate": "custom-expression",
+   "expression": "order_derived_from_mergestatestatus_alone == false",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "surface-measured-not-estimated": {
+   "predicate": "custom-expression",
+   "expression": "conflict_surface_from_line_count == false AND unmerged_paths_counted == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-changed-files",
+   "title": "S0 LIST changed files per PR, three-dot against the base",
+   "kind": "task",
+   "role": "measurer",
+   "timeout_seconds": 900,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-PLN03-S0",
+    "title": "List each PR's changed files with a three-dot diff",
+    "phase": "2B",
+    "question_or_target": "For each PR compute the changed-file set using base...head, so working-tree noise is excluded.",
+    "inputs": [
+     "params.prs",
+     "params.base_ref"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "measurer",
+     "basis": "git plumbing, no judgement"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:git",
+     "Bash:gh"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/stacking/pln03-changed-files.json",
+    "output_schema": "command-center/schema/collision-census.schema.json",
+    "evidence_requirement": "records the exact three-dot diff command per PR alongside its file list",
+    "tests_required": [
+     "a two-dot diff must be rejected: it folds in working-tree noise, which is how an untracked file appears to be 'in the PR'",
+     "a stale branch far behind the base must be measured with three dots, or it appears to propose mass deletion"
+    ],
+    "reviewer_requirement": "none - the recorded command is the evidence",
+    "completion_sentinel": "SUCCESS:BP3-PLN03-S0 only when every PR carries a three-dot command string and a file list; otherwise FAILED:BP3-PLN03-S0 <reason>",
+    "retry_policy": "two strikes then pivot to fetching the base first",
+    "failure_classification": [
+     "detector-failure",
+     "stale-pinned-ref"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/stacking/pln03-changed-files.json",
+     "schema_ref": "command-center/schema/collision-census.schema.json",
+     "min_bytes": 192,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN03-S0",
+     "consumers": [
+      "s1-matrix",
+      "s2-byte-identity"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-matrix",
+   "title": "S1 PAIRWISE overlap matrix (shared exact primitive)",
+   "kind": "subworkflow",
+   "depends_on": [
+    "s0-changed-files"
+   ],
+   "workflow": {
+    "workflow_id": "shared.pairwise-overlap-matrix",
+    "version_range": ">=1.0.0 <2.0.0"
+   },
+   "params": {
+    "path_sets_from": "command-center/stacking/pln03-changed-files.json"
+   },
+   "isolation": "none",
+   "propagate_failure": true
+  },
+  {
+   "id": "s2-byte-identity",
+   "title": "S2 TEST byte-identity of the overlapping content",
+   "kind": "task",
+   "role": "measurer",
+   "depends_on": [
+    "s1-matrix"
+   ],
+   "timeout_seconds": 900,
+   "work_unit": {
+    "id": "BP3-PLN03-S2",
+    "title": "Digest the overlapping content on both sides of every overlapping pair",
+    "phase": "2B",
+    "question_or_target": "For each overlapping path in each pair, compare content digests; byte-identical overlap is stackable, not conflicting.",
+    "inputs": [
+     "command-center/overlap/matrix.json",
+     "command-center/stacking/pln03-changed-files.json"
+    ],
+    "dependencies": [
+     "BP3-PLN03-S0",
+     "BP3-SHARED-OVERLAP"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "measurer",
+     "basis": "a digest comparison is exact; an LLM opinion on sameness is not"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:git",
+     "Bash:python"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 900,
+    "output_path": "command-center/stacking/pln03-byte-parity.json",
+    "output_schema": "command-center/schema/byte-parity-report.schema.json",
+    "evidence_requirement": "each overlapping path records both digests, so the identical/conflicting split is recomputable",
+    "tests_required": [
+     "two PRs whose overlapping content is byte-identical must be reported STACKABLE, not conflicting",
+     "content read for digesting must come from the committed blob, never from the working tree, because line endings differ between them on this platform"
+    ],
+    "reviewer_requirement": "the semantic judge only for pairs that differ but may mean the same thing",
+    "completion_sentinel": "SUCCESS:BP3-PLN03-S2 only when every overlapping path carries two digests and an identical/conflicting verdict; otherwise FAILED:BP3-PLN03-S2 <reason>",
+    "retry_policy": "two strikes then pivot to a per-hunk comparison",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/stacking/pln03-byte-parity.json",
+     "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN03-S2",
+     "consumers": [
+      "s3-surface",
+      "s5-order"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s3-surface",
+   "title": "S3 MEASURE the real conflict surface with a throwaway merge",
+   "kind": "task",
+   "role": "measurer",
+   "depends_on": [
+    "s2-byte-identity"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-PLN03-S3",
+    "title": "Count unmerged paths from a throwaway merge, then abort it",
+    "phase": "2B",
+    "question_or_target": "On a throwaway branch, merge without committing and count the unmerged paths; that count, not the diff size, is the cost.",
+    "inputs": [
+     "params.prs",
+     "params.base_ref",
+     "params.probe_branch_prefix"
+    ],
+    "dependencies": [
+     "BP3-PLN03-S2"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "measurer",
+     "basis": "the conflict surface must be measured, because line count is not a cost proxy"
+    },
+    "tool_permissions": [
+     "Bash:git",
+     "Bash:python",
+     "Read"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/stacking/pln03-surface.json",
+    "output_schema": "command-center/schema/collision-census.schema.json",
+    "evidence_requirement": "records the probe branch name, the unmerged-path count, and the abort that followed",
+    "tests_required": [
+     "every probe must run on a throwaway branch and must be aborted; a probe that leaves the tree dirty is a process failure",
+     "a large-diff PR with a small conflict surface must report the SMALL number - the whole point is that line count misleads"
+    ],
+    "reviewer_requirement": "none - the recorded branch and counts are the evidence",
+    "completion_sentinel": "SUCCESS:BP3-PLN03-S3 only when every probe branch was created, counted, and aborted, and the working tree is clean; otherwise FAILED:BP3-PLN03-S3 <reason>",
+    "retry_policy": "two strikes then pivot to a fresh throwaway branch",
+    "failure_classification": [
+     "detector-failure",
+     "dirty-probe-tree"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s3-gate",
+   "title": "S3 gate: every probe branch aborted, working tree clean",
+   "kind": "gate",
+   "depends_on": [
+    "s3-surface"
+   ],
+   "gate_ref": "probe-tree-clean"
+  },
+  {
+   "id": "s4-superset",
+   "title": "S4 DETECT superset relations - if B contains A, reconcile from B",
+   "kind": "task",
+   "role": "measurer",
+   "depends_on": [
+    "s3-gate"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-PLN03-S4",
+    "title": "Find pairs where one PR already contains the other's work",
+    "phase": "2B",
+    "question_or_target": "For each ordered pair, decide whether B contains A by walking revisions; if so, close A in B's favour.",
+    "inputs": [
+     "params.prs",
+     "params.base_ref"
+    ],
+    "dependencies": [
+     "BP3-PLN03-S3"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "measurer",
+     "basis": "a revision-set containment test is exact"
+    },
+    "tool_permissions": [
+     "Bash:git",
+     "Bash:python",
+     "Read"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/stacking/pln03-supersets.json",
+    "output_schema": "command-center/schema/supersession-graph.schema.json",
+    "evidence_requirement": "each superset claim records the two revision sets that establish containment",
+    "tests_required": [
+     "a PR whose commits are all present in another must be reported as superseded, not as a separate merge"
+    ],
+    "reviewer_requirement": "the semantic judge when containment holds by revision but the diffs differ",
+    "completion_sentinel": "SUCCESS:BP3-PLN03-S4 only when every superset claim records both revision sets; otherwise FAILED:BP3-PLN03-S4 <reason>",
+    "retry_policy": "two strikes then pivot to a diff-level containment check",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s5-order",
+   "title": "S5 EMIT the merge order, ranked by measured surface",
+   "kind": "task",
+   "role": "measurer",
+   "depends_on": [
+    "s4-superset"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-PLN03-S5",
+    "title": "Emit the recommended merge order",
+    "phase": "2B",
+    "question_or_target": "Order the PRs by measured conflict surface ascending, with deterministic tie-breaks, and list the byte-identical stackable pairs.",
+    "inputs": [
+     "command-center/stacking/pln03-surface.json",
+     "command-center/stacking/pln03-byte-parity.json",
+     "command-center/stacking/pln03-supersets.json"
+    ],
+    "dependencies": [
+     "BP3-PLN03-S4"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "measurer",
+     "basis": "the ordering rule is declared and arithmetic, so two runs agree"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/stacking/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/stacking/pln03-order.json",
+    "output_schema": "command-center/schema/release-gate-report.schema.json",
+    "evidence_requirement": "the order records, per PR, the surface count that placed it and any superset relation that removed it",
+    "tests_required": [
+     "the order must be stable across two runs on the same inputs",
+     "a superseded PR must not appear in the order at all"
+    ],
+    "reviewer_requirement": "the owner, who merges",
+    "completion_sentinel": "SUCCESS:BP3-PLN03-S5 only when every ordered PR carries the surface count that placed it; otherwise FAILED:BP3-PLN03-S5 <reason>",
+    "retry_policy": "none; a deterministic ordering that fails is a defect",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/stacking/pln03-order.json",
+     "schema_ref": "command-center/schema/release-gate-report.schema.json",
+     "min_bytes": 192,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN03-S5",
+     "consumers": [
+      "the owner",
+      "bp-rel-01 (PR shepherd, another range)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s5-gate",
+   "title": "S5 gate: the order came from measurement, not from mergeStateStatus or line count",
+   "kind": "gate",
+   "depends_on": [
+    "s5-order"
+   ],
+   "gate_ref": "no-mergestate-shortcut"
+  },
+  {
+   "id": "s5-surface-gate",
+   "title": "S5 gate: cost was counted in unmerged paths, not estimated from diff size",
+   "kind": "gate",
+   "depends_on": [
+    "s5-gate"
+   ],
+   "gate_ref": "surface-measured-not-estimated"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "order-emitted",
+   "expression": "merge_order_emitted == true AND probe_branches_abandoned == probe_branches_created",
+   "applies_to": "workflow",
+   "minimum_conditions": "prs_measured >= 2",
+   "on_stop": "complete"
+  },
+  {
+   "id": "all-superseded",
+   "expression": "unsuperseded_prs <= 1",
+   "applies_to": "workflow",
+   "on_stop": "complete"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "detector-failure",
+   "dirty-probe-tree"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "semantic-judge"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "fail-fast",
+  "classify_as": [
+   "detector-failure",
+   "dirty-probe-tree",
+   "stale-pinned-ref"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "semantic-judge",
+  "quarantine_path": "command-center/quarantine/pln03"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/pln03",
+  "granularity": "stage",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/pln03.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "tool_results",
+   "env_fingerprint"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "hash-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "inputs_hash",
+   "tool_versions"
+  ],
+  "store": "command-center/cache/pln03",
+  "ttl_seconds": 43200,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "permission-report",
+   "graph"
+  ],
+  "plan_artifact": "command-center/dry-run/pln03-plan.json",
+  "forbid_tools": [
+   "Bash:git",
+   "Bash:gh",
+   "Bash:python",
+   "Write(command-center/stacking/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 180,
+   "expected": 1200,
+   "max": 5400
+  },
+  "tokens": {
+   "min": 10000,
+   "expected": 60000,
+   "max": 200000
+  },
+  "tool_calls": {
+   "expected": 30,
+   "max": 250
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "all probing happens on throwaway branches which are aborted; the real branches are read-only and only command-center/stacking/** is written",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-pln-03.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "rules/common/fan-out-contract.md#C3",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "workflows/reconcile-all-branches-prs-imporant.js",
+    "relation": "GENERALIZE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "rules/common/stale-megapr-reconcile.md",
+    "relation": "MERGE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-03",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "order": {
+   "path": "command-center/stacking/pln03-order.json",
+   "schema_ref": "command-center/schema/release-gate-report.schema.json",
+   "min_bytes": 192,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner"
+   ]
+  },
+  "byte_parity": {
+   "path": "command-center/stacking/pln03-byte-parity.json",
+   "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner",
+    "the semantic judge"
+   ]
+  },
+  "supersets": {
+   "path": "command-center/stacking/pln03-supersets.json",
+   "schema_ref": "command-center/schema/supersession-graph.schema.json",
+   "min_bytes": 96,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-03 (doc-order 35 of 96)",
+  "distinguishing_mechanism": "MERGE ORDERING over MEASURED git refs, decided by byte-identity of the overlapping content plus a throwaway-merge unmerged-path count plus revision-set containment. It shares the overlap primitive with BP-PLN-02 by REFERENCE; the decision, the inputs and the deciding tests are all different. BP-REL-01 shepherds ONE PR; this orders many before any is shepherded.",
+  "honest_bound": "byte-identity is a strong but incomplete conflict predictor: two textually different edits can still conflict semantically, which is why a semantic judge exists for exactly that residue and nothing else.",
+  "worked_example": {
+   "name": "byte-identical overlap is stackable, and surface beats line count",
+   "narrative": "PR-1 and PR-2 both change ci.yml. The bytes they land there are IDENTICAL (PR-2 already contains PR-1's edit), so the pair is STACKABLE and whichever merges second is a no-op on that path. PR-3 also touches ci.yml but with different bytes, so PR-1/PR-3 is a true conflict. Ordering then runs on the measured surface: PR-3 has the largest diff but only one conflicting path, so it is not automatically last.",
+   "mechanism": "mechanisms.classify_overlap + mechanisms.is_superset + mechanisms.merge_order",
+   "input": {
+    "pr1_content": {
+     "ci.yml": "on: push\n",
+     "a.py": "x = 1\n"
+    },
+    "pr2_content": {
+     "ci.yml": "on: push\n",
+     "b.py": "y = 2\n"
+    },
+    "pr3_content": {
+     "ci.yml": "on: pull_request\n"
+    },
+    "commits": {
+     "pr1": [
+      "c1"
+     ],
+     "pr2": [
+      "c1",
+      "c2"
+     ],
+     "pr3": [
+      "c9"
+     ]
+    },
+    "surface": {
+     "pr1": 0,
+     "pr2": 0,
+     "pr3": 1
+    }
+   },
+   "expected": {
+    "pr1_pr2_identical": [
+     "ci.yml"
+    ],
+    "pr1_pr2_conflicts": [],
+    "pr1_pr3_conflicts": [
+     "ci.yml"
+    ],
+    "pr2_supersets_pr1": true,
+    "order": [
+     "pr1",
+     "pr2",
+     "pr3"
+    ]
+   },
+   "controls": [
+    {
+     "mutate": "change pr2's ci.yml bytes to 'on: schedule'",
+     "expected_pr1_pr2_conflicts": [
+      "ci.yml"
+     ],
+     "why": "the digest comparison is doing the work - identical bytes are what make the pair stackable, not the shared path"
+    }
+   ]
+  }
+ }
+}

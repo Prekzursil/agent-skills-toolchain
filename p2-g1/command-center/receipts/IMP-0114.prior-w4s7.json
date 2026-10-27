@@ -1,0 +1,203 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "note": "this receipt; sha256 recorded in per-unit UNIT-ARTIFACT-MANIFEST.json after write",
+   "path": "command-center/receipts/IMP-0114.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 6439,
+   "exists": true,
+   "path": "tools/marketplace/index_linter.py",
+   "role": "implementation",
+   "sha256": "5869a9d25a80a03d865d6a882ce5abcfa5e89fd1a6703daf6f5765c0613cbd8e"
+  },
+  {
+   "bytes": 2087,
+   "exists": true,
+   "path": "tools/marketplace/independent_graph.py",
+   "role": "implementation",
+   "sha256": "ac99329d434cd85ce9e5d0fc81dd5825e1c5a8d0fe2362b154f613bef4e2fe4e"
+  },
+  {
+   "bytes": 2948,
+   "exists": true,
+   "path": "tools/marketplace/blob_store.py",
+   "role": "implementation",
+   "sha256": "df7b0a17550e63ce658b9d73d02f023b102b294c3d56fc3f87afb1af319daac0"
+  },
+  {
+   "bytes": 1487,
+   "exists": true,
+   "path": "tools/marketplace/registry_index.py",
+   "role": "implementation",
+   "sha256": "643e8dc263edfe77da0b170f1a0fe156a6c95c20795f9d7df60924abfc37ea87"
+  },
+  {
+   "bytes": 5494,
+   "exists": true,
+   "path": "tools/marketplace/tests/test_index_linter.py",
+   "role": "implementation",
+   "sha256": "680b8f3bb566f6be50ab21a6b0bc2cd4f0bafe83aad6f2c9d08e427557f91235"
+  },
+  {
+   "bytes": 12979,
+   "exists": true,
+   "path": "scripts/plugin_registry_doctor.py",
+   "role": "implementation",
+   "sha256": "4ace75d729aea37f3f04c20221d199359d32847fb0cc59f2b5ee4ae45ec0a134"
+  },
+  {
+   "bytes": 3665,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0114/probe1_planted_classes.py",
+   "role": "implementation",
+   "sha256": "106db27f5d4e44b33c3ebed171b5330cf55bfa72414a4991e25ee6593ddea89c"
+  },
+  {
+   "bytes": 4518,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0114/probe2_independent_graph.py",
+   "role": "implementation",
+   "sha256": "c1698a458dca0c2106baafd8ed610a8f3e86872c932b265f88532f459e5386be"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0114.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "G-1 measure is the live consumer; run after this file is sealed",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/tests/test_index_linter.py::test_clean_index_zero_findings_same_run",
+   "claim": "The linter names one planted defect of each class (dangling-ref, orphan-blob, duplicate-id, digest-mismatch, unresolvable-dependency). A clean clone in the same run yields zero findings.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0114/probe1_planted_classes.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"clean_findings\": 0, \"clean_walked_blob_store\": true, \"dangling_named\": true, \"dirty_hashed_blobs\": 4, \"dirty_kinds\": [\"dangling-ref\", \"digest-mismatch\", \"duplicate-id\", \"orphan-blob\", \"unresolvable-dependency\"], \"dirty_walked_blob_store\": true, \"duplicate_named\": true, \"fired_on_bad\": true, \"mismatch_named\": true, \"missing_kinds\": [], \"orphan_named\": true, \"pass\": true, \"probe\": \"probe1-planted-defect-classes\", \"silent_on_good\": true, \"unit_id\": \"IMP-0114\", \"unresolvable_named\": true}\nkinds=['dangling-ref', 'digest-mismatch', 'duplicate-id', 'orphan-blob', 'unresolvable-dependency'] missing=[] fired_on_bad=True silent_on_good=True\nSUCCESS:IMP-0114-probe1 five planted classes named; clean index silent in the same run",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "PASS test_dangling_ref\nPASS test_orphan_blob\nPASS test_duplicate_id\nPASS test_digest_mismatch\nPASS test_unresolvable_dependency\nPASS test_clean_index_zero_findings_same_run\nPASS test_independent_graph_agrees_on_dangling_and_orphans\nPASS test_doctor_supersedes_not_duplicates\nSUCCESS:test_index_linter",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/tests/test_index_linter.py::test_independent_graph_agrees_on_dangling_and_orphans",
+   "claim": "An independent os.walk of objects/ plus a raw JSON read of index.json reproduces the linter's dangling and orphan digest sets. The linter source calls list_object_paths and digest_file, so it reads the blob store rather than the index alone.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0114/probe2_independent_graph.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"clean_agree\": true, \"dangling_match\": true, \"dirty_walked_blob_store\": true, \"doctor_supersedes_by_delegation\": true, \"graph_dangling\": [\"0000000000000000000000000000000000000000000000000000000000000000\"], \"graph_method\": \"os.walk+index.json (not index_linter)\", \"graph_orphans\": [\"602763f813af0a903d825af8f1041b74b3a1b501d7ed6c16bbae64fa4e705649\"], \"independent_method\": true, \"linter_dangling\": [\"0000000000000000000000000000000000000000000000000000000000000000\"], \"linter_orphans\": [\"602763f813af0a903d825af8f1041b74b3a1b501d7ed6c16bbae64fa4e705649\"], \"linter_reads_blob_store\": true, \"orphan_match\": true, \"pass\": true, \"planted_dangle_in_graph\": true, \"planted_orphan_in_graph\": true, \"probe\": \"probe2-independent-reference-graph\", \"unit_id\": \"IMP-0114\"}\ndangling_match=True orphan_match=True reads_store=True doctor_ok=True clean_agree=True\nSUCCESS:IMP-0114-probe2 independent graph matches dangling/orphan sets; linter reads the blob store; doctor supersedes by delegation",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "distinct_from": [
+   "per-package linter (IMP-0113)",
+   "periodic integrity sweep (IMP-0123)"
+  ],
+  "doctor": {
+   "delegates": true,
+   "path": "scripts/plugin_registry_doctor.py",
+   "precedent": "scripts/plugin_registry_doctor.py was absent; this file SUPERSEDES it by name and delegates to index_linter"
+  },
+  "independent_oracle": "tools/marketplace/independent_graph.py",
+  "module": "tools/marketplace/index_linter.py",
+  "reads_blob_store": true
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0114/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit row; global unit_manifest.py --write not run",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "description": "Clean registry yields zero findings in the same process that names all five planted defect classes",
+   "fired_on_bad_state": true,
+   "id": "clean-index-zero-findings",
+   "kind": "both-states-same-run",
+   "silent_on_good_state": true
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0067 additive marketplace.json schema and IMP-0068 rebuild-from-blobs persistence are not delivered on this worktree; the linter targets the IMP-0123 index.json + objects/ substrate, extended with a dependencies field.",
+   "settling_experiment": "Re-point the linter at the IMP-0067/0068 index once those units land.",
+   "verdict": "NAMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent os.walk matched dangling and orphan sets; linter source contains list_object_paths and digest_file; doctor SUPERSEDES by delegation.",
+  "reviewer_id": "IMP-0114-probe2-independent-graph",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0114",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0114",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_dangling_ref)",
+   "id": "test_dangling_ref",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_orphan_blob)",
+   "id": "test_orphan_blob",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_duplicate_id)",
+   "id": "test_duplicate_id",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_digest_mismatch)",
+   "id": "test_digest_mismatch",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_unresolvable_dependency)",
+   "id": "test_unresolvable_dependency",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_index_linter.py (test_clean_index_zero_findings_same_run)",
+   "id": "negative-clean-index-zero-findings",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:54Z",
+  "started_at": "2026-08-25T00:59:54Z"
+ },
+ "title": "Registry index linter (dangling references, digest mismatch, orphans, duplicates)",
+ "unit_id": "IMP-0114"
+}

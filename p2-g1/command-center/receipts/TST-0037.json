@@ -1,0 +1,1140 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1113,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/conformance-report.schema.json",
+   "role": "supporting",
+   "sha256": "864aa4b77a8de3253e63a513a9c4ebdf8e6f8d46dd94819c4f23d26dc0466190"
+  },
+  {
+   "bytes": 2668,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0037/workflow-dsl.schema.json",
+   "role": "supporting",
+   "sha256": "20bbc4da0bf92505ff034a8c84777dab6181dd7c0acd7277477e3ff7235df9bb"
+  },
+  {
+   "bytes": 8395,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0037/contract_validator.py",
+   "role": "supporting",
+   "sha256": "fc5de314a7f9e4855c577537e7dae25c80bfbf03d305184896b440fe52479181"
+  },
+  {
+   "bytes": 11755,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0037/cases.py",
+   "role": "supporting",
+   "sha256": "8fd4361b1abd6b232c7b747cb635a1a6d6edcdd2e9c4878d3664c39ed00f57dc"
+  },
+  {
+   "bytes": 7935,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/validate.py",
+   "role": "supporting",
+   "sha256": "1890bc75e1e23d15c9bcbcf616d357b7c58715c3565b0541f86fa36b623f5669"
+  },
+  {
+   "bytes": 5586,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/spec.py",
+   "role": "supporting",
+   "sha256": "3715d2871850ad2221d6a6265330be42e26c20ad3af8792577410683b922c6e3"
+  },
+  {
+   "bytes": 1013,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/docs/violation-ids.json",
+   "role": "supporting",
+   "sha256": "9fc7561bbc5ac8a9574a15f8f11126db9ae7d1ecf5ce697788be45e3423fb141"
+  },
+  {
+   "bytes": 7059,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/tests/test_validate.py",
+   "role": "supporting",
+   "sha256": "1199ceec24252ec1e86cbcfcf5d8f867cf99238a98eca2cfb8d619d8b7e56f06"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0037.json",
+   "consumer": "jsonschema Draft202012Validator disk-resolved conformance-report.schema.json",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/probes/TST-0037/schema_local.py",
+    "exit_code": 0,
+    "fingerprint": "666c86b33e194a63385e0877b906d40d",
+    "method": "schema-validate",
+    "raw_output": "in-memory document validated before write; garbage controls fire",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/spec.py:128",
+   "claim": "Production Node is FanOut|Barrier|Pipeline|RepairLoop. Fan-out and barrier have schema rules and test_validate.py cases; loop-with-convergence, human-checkpoint, subworkflow, retry and resume have no production class and no VIOLATIONS id.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c ast-walk spec.py ClassDef names",
+     "exit_code": 0,
+     "fingerprint": "fac8a310af8f2616ac4cd84984059a90",
+     "method": "static-analysis",
+     "raw_output": "closed=[\"barrier\", \"fanout\", \"pipeline\", \"repair-loop\"]",
+     "role": "source"
+    },
+    {
+     "command": "read tools/agentspec/docs/violation-ids.json ids",
+     "exit_code": 0,
+     "fingerprint": "a4fc0194c47eefa443655cd29fb7ceaf",
+     "method": "file-read",
+     "raw_output": "missing_validators=[\"loop-with-convergence\", \"human-checkpoint\", \"subworkflow\", \"retry\", \"resume\"]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0037/cases.py:240",
+   "claim": "The pre-implementation contract suite has a schema rule, a good twin, and at least one negative fixture per catalog construct, and production discriminates empty fan-out (fanout-empty) while remaining silent on loop-unbounded.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import suite; print(suite.run(Path('.'))['ok'])\"",
+     "exit_code": 0,
+     "fingerprint": "d623d26525417626991a4c7dc576083d",
+     "method": "test-run",
+     "raw_output": "{\"ok\": true, \"fanout_empty_prod\": [\"fanout-empty\"], \"fanout_good_prod\": []}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0037/probe2_controls.py",
+     "exit_code": 0,
+     "fingerprint": "3867068adda5d58b097f2a4c02a1c43b",
+     "method": "command",
+     "raw_output": "{\"loop_good\": [\"unknown-node-type\"], \"loop_bad\": [\"unknown-node-type\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "completion_sentinel": "SUCCESS:TST-0037",
+  "output_schema": "command-center/schema/conformance-report.schema.json"
+ },
+ "manifest_registration": {
+  "entry_id": "TST-0037",
+  "manifest_path": "command-center/p2-wave/probes/TST-0037/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1500,
+ "negative_controls": [
+  {
+   "bad_state_output": "fanout-empty",
+   "description": "Empty FanOut.units must emit fanout-empty; the good twin must be clean.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean",
+   "id": "fanout-empty-production",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "contract=loop-unbounded production=unknown-node-type",
+   "description": "Contract fires loop-unbounded only on the bad twin. Production cannot construct the type and reports unknown-node-type on both.",
+   "fired_on_bad_state": true,
+   "good_state_output": "contract= production=unknown-node-type",
+   "id": "loop-unbounded-contract-not-production",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "garbage rejected",
+   "description": "Resolved conformance-report schema must reject empty and unrelated objects.",
+   "fired_on_bad_state": true,
+   "good_state_output": "receipt accepted after disk-local $ref resolve",
+   "id": "schema-garbage",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "conformance-engineer",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": {
+   "answer_is_no": true,
+   "closed_node_types": [
+    "barrier",
+    "fanout",
+    "pipeline",
+    "repair-loop"
+   ],
+   "constructs_with_no_production_conformance_case": [
+    "loop-with-convergence",
+    "human-checkpoint",
+    "subworkflow",
+    "resume"
+   ],
+   "constructs_with_no_production_schema_rule": [
+    "loop-with-convergence",
+    "human-checkpoint",
+    "subworkflow",
+    "retry",
+    "resume"
+   ],
+   "constructs_with_no_production_validator": [
+    "loop-with-convergence",
+    "human-checkpoint",
+    "subworkflow",
+    "retry",
+    "resume"
+   ],
+   "every_construct_has_schema_rule_and_conformance_case_in_production": false,
+   "every_construct_has_schema_rule_and_conformance_case_in_this_suite": true,
+   "production_loop_undifferentiated": true,
+   "prose": "No. Production validate_workflow currently closes over ['barrier', 'fanout', 'pipeline', 'repair-loop']. Fan-out and barrier have schema rules (fanout-empty / fanout-unit-unknown, barrier-empty / barrier-awaits-unknown) and production conformance cases for those ids. The pre-implementation suite still uses contract ids fanout-unknown-member and barrier-empty-awaits. Constructs with no production validator at all: loop-with-convergence, human-checkpoint, subworkflow, retry, resume. repair-loop is a fix-review cycle, not loop-with-convergence; dispatch retry.py is not a DSL retry node. This suite supplies schema rules and both-states conformance cases for all seven."
+  },
+  "construct_table": [
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": true,
+    "conformance_case_suite": [
+     "fan-out/empty",
+     "fan-out/good",
+     "fan-out/unknown-member"
+    ],
+    "construct": "fan-out",
+    "not_this": null,
+    "production_validator": true,
+    "schema_rule": true,
+    "schema_rule_production": "fanout-empty,fanout-unit-unknown",
+    "spec_classes_present": [
+     "FanOut"
+    ]
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": true,
+    "conformance_case_suite": [
+     "barrier/empty",
+     "barrier/good",
+     "barrier/unknown-await"
+    ],
+    "construct": "barrier",
+    "not_this": null,
+    "production_validator": true,
+    "schema_rule": true,
+    "schema_rule_production": "barrier-awaits-unknown,barrier-empty",
+    "spec_classes_present": [
+     "Barrier"
+    ]
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": false,
+    "conformance_case_suite": [
+     "loop-with-convergence/good",
+     "loop-with-convergence/unbounded"
+    ],
+    "construct": "loop-with-convergence",
+    "not_this": "repair-loop is a fix-review cycle (IMP-0139), not loop-with-convergence (IMP-0130)",
+    "production_validator": false,
+    "schema_rule": false,
+    "schema_rule_production": "ABSENT",
+    "spec_classes_present": []
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": false,
+    "conformance_case_suite": [
+     "human-checkpoint/good",
+     "human-checkpoint/no-prompt"
+    ],
+    "construct": "human-checkpoint",
+    "not_this": null,
+    "production_validator": false,
+    "schema_rule": false,
+    "schema_rule_production": "ABSENT",
+    "spec_classes_present": []
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": false,
+    "conformance_case_suite": [
+     "subworkflow/cycle",
+     "subworkflow/good"
+    ],
+    "construct": "subworkflow",
+    "not_this": null,
+    "production_validator": false,
+    "schema_rule": false,
+    "schema_rule_production": "ABSENT",
+    "spec_classes_present": []
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": true,
+    "conformance_case_suite": [
+     "retry/good",
+     "retry/unbounded"
+    ],
+    "construct": "retry",
+    "not_this": "tools/agentspec/agentspec/retry.py is dispatch-layer RetryPlan, not a DSL node",
+    "production_validator": false,
+    "schema_rule": false,
+    "schema_rule_production": "ABSENT",
+    "spec_classes_present": []
+   },
+   {
+    "both_states": true,
+    "conformance_case": true,
+    "conformance_case_production": false,
+    "conformance_case_suite": [
+     "resume/good",
+     "resume/no-token"
+    ],
+    "construct": "resume",
+    "not_this": null,
+    "production_validator": false,
+    "schema_rule": false,
+    "schema_rule_production": "ABSENT",
+    "spec_classes_present": []
+   }
+  ],
+  "control_ids": [
+   "fan-out/good",
+   "fan-out/empty",
+   "loop-with-convergence/good",
+   "loop-with-convergence/unbounded",
+   "overclaim-mutant",
+   "schema-garbage"
+  ],
+  "inventory": {
+   "closed_node_types": [
+    "barrier",
+    "fanout",
+    "pipeline",
+    "repair-loop"
+   ],
+   "constructs_with_no_production_validator": [
+    "loop-with-convergence",
+    "human-checkpoint",
+    "subworkflow",
+    "retry",
+    "resume"
+   ],
+   "import_error": null,
+   "spec_classes": [
+    "Barrier",
+    "FanOut",
+    "Pipeline",
+    "ReceiptSpec",
+    "RepairLoop",
+    "WorkUnit",
+    "Workflow"
+   ],
+   "validate_present": true
+  },
+  "kind": "conformance-report",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0037/probe1_live_rerun.py",
+    "id": "probe1",
+    "role": "live-rerun"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0037/probe2_controls.py",
+    "id": "probe2",
+    "role": "detector-control"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "tools/agentspec/agentspec/spec.py:Node",
+    "measured": "barrier,fanout,pipeline,repair-loop",
+    "method": "ast-class-scan of tools/agentspec/agentspec/spec.py plus VIOLATIONS",
+    "name": "production-closed-node-types"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0037/inventory.py",
+    "measured": "loop-with-convergence,human-checkpoint,subworkflow,retry,resume",
+    "method": "inventory.scan closed-type intersection",
+    "name": "constructs-with-no-production-validator"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0037/cases.py",
+    "measured": true,
+    "method": "contract_validator vs cases.materialize good/bad twins",
+    "name": "suite-both-states-all-seven"
+   },
+   {
+    "anchor": "tools/agentspec/agentspec/validate.py",
+    "measured": "fanout-empty",
+    "method": "typed Workflow FanOut(units=()) through validate_workflow",
+    "name": "production-fanout-empty-id"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0037/production.py",
+    "measured": "unknown-node-type",
+    "method": "adapter: type outside Node union -> unknown-node-type",
+    "name": "production-loop-ids-good"
+   }
+  ],
+  "question": "Does every construct the workflow DSL documents (fan-out, barrier, loop-with-convergence, human checkpoint, subworkflow, retry, resume) have a schema rule AND a conformance case, and which documented construct has no validator at all?",
+  "question_or_target": "Does every construct the workflow DSL documents (fan-out, barrier, loop-with-convergence, human checkpoint, subworkflow, retry, resume) have a schema rule AND a conformance case, and which documented construct has no validator at all?",
+  "suite_cases": [
+   {
+    "construct": "fan-out",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "fan-out/good",
+    "ok": true,
+    "production_ids": [],
+    "production_ok": true,
+    "role": "good",
+    "rule": "fanout-empty"
+   },
+   {
+    "construct": "fan-out",
+    "contract_ids": [
+     "fanout-empty"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "fanout-empty"
+    ],
+    "id": "fan-out/empty",
+    "ok": true,
+    "production_ids": [
+     "fanout-empty"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "fanout-empty"
+   },
+   {
+    "construct": "fan-out",
+    "contract_ids": [
+     "fanout-unknown-member"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "fanout-unknown-member"
+    ],
+    "id": "fan-out/unknown-member",
+    "ok": true,
+    "production_ids": [
+     "fanout-unit-unknown"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "fanout-unknown-member"
+   },
+   {
+    "construct": "barrier",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "barrier/good",
+    "ok": true,
+    "production_ids": [],
+    "production_ok": true,
+    "role": "good",
+    "rule": "barrier-empty-awaits"
+   },
+   {
+    "construct": "barrier",
+    "contract_ids": [
+     "barrier-empty-awaits"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "barrier-empty-awaits"
+    ],
+    "id": "barrier/empty",
+    "ok": true,
+    "production_ids": [
+     "barrier-empty"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "barrier-empty-awaits"
+   },
+   {
+    "construct": "barrier",
+    "contract_ids": [
+     "barrier-awaits-unknown"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "barrier-awaits-unknown"
+    ],
+    "id": "barrier/unknown-await",
+    "ok": true,
+    "production_ids": [
+     "barrier-awaits-unknown"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "barrier-awaits-unknown"
+   },
+   {
+    "construct": "loop-with-convergence",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "loop-with-convergence/good",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "good",
+    "rule": "loop-unbounded"
+   },
+   {
+    "construct": "loop-with-convergence",
+    "contract_ids": [
+     "loop-unbounded"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "loop-unbounded"
+    ],
+    "id": "loop-with-convergence/unbounded",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "loop-unbounded"
+   },
+   {
+    "construct": "human-checkpoint",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "human-checkpoint/good",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "good",
+    "rule": "checkpoint-missing-prompt"
+   },
+   {
+    "construct": "human-checkpoint",
+    "contract_ids": [
+     "checkpoint-missing-prompt"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "checkpoint-missing-prompt"
+    ],
+    "id": "human-checkpoint/no-prompt",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "checkpoint-missing-prompt"
+   },
+   {
+    "construct": "subworkflow",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "subworkflow/good",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "good",
+    "rule": "subworkflow-cycle"
+   },
+   {
+    "construct": "subworkflow",
+    "contract_ids": [
+     "subworkflow-cycle"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "subworkflow-cycle"
+    ],
+    "id": "subworkflow/cycle",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "subworkflow-cycle"
+   },
+   {
+    "construct": "retry",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "retry/good",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "good",
+    "rule": "retry-unbounded"
+   },
+   {
+    "construct": "retry",
+    "contract_ids": [
+     "retry-unbounded"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "retry-unbounded"
+    ],
+    "id": "retry/unbounded",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "retry-unbounded"
+   },
+   {
+    "construct": "resume",
+    "contract_ids": [],
+    "contract_ok": true,
+    "expect_contract": [],
+    "id": "resume/good",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "good",
+    "rule": "resume-missing-token"
+   },
+   {
+    "construct": "resume",
+    "contract_ids": [
+     "resume-missing-token"
+    ],
+    "contract_ok": true,
+    "expect_contract": [
+     "resume-missing-token"
+    ],
+    "id": "resume/no-token",
+    "ok": true,
+    "production_ids": [
+     "unknown-node-type"
+    ],
+    "production_ok": true,
+    "role": "bad",
+    "rule": "resume-missing-token"
+   }
+  ],
+  "title": "Executable conformance tests for the workflow DSL contract"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "repair-loop vs loop-with-convergence",
+   "settling_experiment": "CLOSED Node includes RepairLoop (IMP-0139 fix-review). Inventory does not count it as loop-with-convergence. Re-scan spec.py ClassDef names and confirm Loop is absent.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Pipeline is in the production closed set but is not one of the seven catalog constructs.",
+   "settling_experiment": "Compare catalog question construct list to spec.py Node union.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Catalog requires a cross-vendor reviewer (Claude author -> Codex). probe2_controls.py is the independent mechanical refuter: both-states, production unknown-node-type on the five missing constructs, and an overclaim mutant. Not a billed Codex session.",
+  "reviewed_at": "2026-08-25T01:07:53Z",
+  "reviewer_id": "TST-0037-probe2-controls",
+  "vendor": "openai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0037",
+ "spec_anchor": "_USER-PROMPTS.md:10805",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import suite; print(suite.run(Path('.'))['ok'])\"",
+   "id": "conformance-suite-written-before-broad-implementation",
+   "name": "seven constructs each have a contract schema rule, a good twin, and a negative fixture",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import suite; print(suite.run(Path('.'))['ok'])\"",
+   "id": "negative-case-per-contract-rule",
+   "name": "at least one failing fixture per named construct rule",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import suite; print(suite.run(Path('.'))['ok'])\"",
+   "id": "both-states-suite-fails-on-nonconforming-input",
+   "name": "good twin is clean on the contract validator; planted nonconforming input is not",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import suite; print(suite.run(Path('.'))['ok'])\"",
+   "id": "production-cannot-discriminate-unbounded-loop",
+   "name": "bounded and unbounded loop both come back unknown-node-type from production; the suite fires loop-unbounded only on the bad twin",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import sys; from pathlib import Path; p=Path('command-center/p2-wave/probes/TST-0037'); sys.path.insert(0,str(p)); import schema_local; schema_local.garbage_rejected(); print('ok')\"",
+   "id": "output-schema-rejects-garbage",
+   "name": "Resolved conformance-report schema rejects empty and unrelated objects",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T01:07:53Z",
+  "started_at": "2026-08-25T01:07:53Z"
+ },
+ "unit_id": "TST-0037",
+ "answer": {
+  "answer_is_no": true,
+  "closed_node_types": [
+   "barrier",
+   "fanout",
+   "pipeline",
+   "repair-loop"
+  ],
+  "constructs_with_no_production_conformance_case": [
+   "loop-with-convergence",
+   "human-checkpoint",
+   "subworkflow",
+   "resume"
+  ],
+  "constructs_with_no_production_schema_rule": [
+   "loop-with-convergence",
+   "human-checkpoint",
+   "subworkflow",
+   "retry",
+   "resume"
+  ],
+  "constructs_with_no_production_validator": [
+   "loop-with-convergence",
+   "human-checkpoint",
+   "subworkflow",
+   "retry",
+   "resume"
+  ],
+  "every_construct_has_schema_rule_and_conformance_case_in_production": false,
+  "every_construct_has_schema_rule_and_conformance_case_in_this_suite": true,
+  "production_loop_undifferentiated": true,
+  "prose": "No. Production validate_workflow currently closes over ['barrier', 'fanout', 'pipeline', 'repair-loop']. Fan-out and barrier have schema rules (fanout-empty / fanout-unit-unknown, barrier-empty / barrier-awaits-unknown) and production conformance cases for those ids. The pre-implementation suite still uses contract ids fanout-unknown-member and barrier-empty-awaits. Constructs with no production validator at all: loop-with-convergence, human-checkpoint, subworkflow, retry, resume. repair-loop is a fix-review cycle, not loop-with-convergence; dispatch retry.py is not a DSL retry node. This suite supplies schema rules and both-states conformance cases for all seven."
+ },
+ "construct_table": [
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": true,
+   "conformance_case_suite": [
+    "fan-out/empty",
+    "fan-out/good",
+    "fan-out/unknown-member"
+   ],
+   "construct": "fan-out",
+   "not_this": null,
+   "production_validator": true,
+   "schema_rule": true,
+   "schema_rule_production": "fanout-empty,fanout-unit-unknown",
+   "spec_classes_present": [
+    "FanOut"
+   ]
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": true,
+   "conformance_case_suite": [
+    "barrier/empty",
+    "barrier/good",
+    "barrier/unknown-await"
+   ],
+   "construct": "barrier",
+   "not_this": null,
+   "production_validator": true,
+   "schema_rule": true,
+   "schema_rule_production": "barrier-awaits-unknown,barrier-empty",
+   "spec_classes_present": [
+    "Barrier"
+   ]
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": false,
+   "conformance_case_suite": [
+    "loop-with-convergence/good",
+    "loop-with-convergence/unbounded"
+   ],
+   "construct": "loop-with-convergence",
+   "not_this": "repair-loop is a fix-review cycle (IMP-0139), not loop-with-convergence (IMP-0130)",
+   "production_validator": false,
+   "schema_rule": false,
+   "schema_rule_production": "ABSENT",
+   "spec_classes_present": []
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": false,
+   "conformance_case_suite": [
+    "human-checkpoint/good",
+    "human-checkpoint/no-prompt"
+   ],
+   "construct": "human-checkpoint",
+   "not_this": null,
+   "production_validator": false,
+   "schema_rule": false,
+   "schema_rule_production": "ABSENT",
+   "spec_classes_present": []
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": false,
+   "conformance_case_suite": [
+    "subworkflow/cycle",
+    "subworkflow/good"
+   ],
+   "construct": "subworkflow",
+   "not_this": null,
+   "production_validator": false,
+   "schema_rule": false,
+   "schema_rule_production": "ABSENT",
+   "spec_classes_present": []
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": true,
+   "conformance_case_suite": [
+    "retry/good",
+    "retry/unbounded"
+   ],
+   "construct": "retry",
+   "not_this": "tools/agentspec/agentspec/retry.py is dispatch-layer RetryPlan, not a DSL node",
+   "production_validator": false,
+   "schema_rule": false,
+   "schema_rule_production": "ABSENT",
+   "spec_classes_present": []
+  },
+  {
+   "both_states": true,
+   "conformance_case": true,
+   "conformance_case_production": false,
+   "conformance_case_suite": [
+    "resume/good",
+    "resume/no-token"
+   ],
+   "construct": "resume",
+   "not_this": null,
+   "production_validator": false,
+   "schema_rule": false,
+   "schema_rule_production": "ABSENT",
+   "spec_classes_present": []
+  }
+ ],
+ "suite_cases": [
+  {
+   "construct": "fan-out",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "fan-out/good",
+   "ok": true,
+   "production_ids": [],
+   "production_ok": true,
+   "role": "good",
+   "rule": "fanout-empty"
+  },
+  {
+   "construct": "fan-out",
+   "contract_ids": [
+    "fanout-empty"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "fanout-empty"
+   ],
+   "id": "fan-out/empty",
+   "ok": true,
+   "production_ids": [
+    "fanout-empty"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "fanout-empty"
+  },
+  {
+   "construct": "fan-out",
+   "contract_ids": [
+    "fanout-unknown-member"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "fanout-unknown-member"
+   ],
+   "id": "fan-out/unknown-member",
+   "ok": true,
+   "production_ids": [
+    "fanout-unit-unknown"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "fanout-unknown-member"
+  },
+  {
+   "construct": "barrier",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "barrier/good",
+   "ok": true,
+   "production_ids": [],
+   "production_ok": true,
+   "role": "good",
+   "rule": "barrier-empty-awaits"
+  },
+  {
+   "construct": "barrier",
+   "contract_ids": [
+    "barrier-empty-awaits"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "barrier-empty-awaits"
+   ],
+   "id": "barrier/empty",
+   "ok": true,
+   "production_ids": [
+    "barrier-empty"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "barrier-empty-awaits"
+  },
+  {
+   "construct": "barrier",
+   "contract_ids": [
+    "barrier-awaits-unknown"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "barrier-awaits-unknown"
+   ],
+   "id": "barrier/unknown-await",
+   "ok": true,
+   "production_ids": [
+    "barrier-awaits-unknown"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "barrier-awaits-unknown"
+  },
+  {
+   "construct": "loop-with-convergence",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "loop-with-convergence/good",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "good",
+   "rule": "loop-unbounded"
+  },
+  {
+   "construct": "loop-with-convergence",
+   "contract_ids": [
+    "loop-unbounded"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "loop-unbounded"
+   ],
+   "id": "loop-with-convergence/unbounded",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "loop-unbounded"
+  },
+  {
+   "construct": "human-checkpoint",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "human-checkpoint/good",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "good",
+   "rule": "checkpoint-missing-prompt"
+  },
+  {
+   "construct": "human-checkpoint",
+   "contract_ids": [
+    "checkpoint-missing-prompt"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "checkpoint-missing-prompt"
+   ],
+   "id": "human-checkpoint/no-prompt",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "checkpoint-missing-prompt"
+  },
+  {
+   "construct": "subworkflow",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "subworkflow/good",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "good",
+   "rule": "subworkflow-cycle"
+  },
+  {
+   "construct": "subworkflow",
+   "contract_ids": [
+    "subworkflow-cycle"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "subworkflow-cycle"
+   ],
+   "id": "subworkflow/cycle",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "subworkflow-cycle"
+  },
+  {
+   "construct": "retry",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "retry/good",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "good",
+   "rule": "retry-unbounded"
+  },
+  {
+   "construct": "retry",
+   "contract_ids": [
+    "retry-unbounded"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "retry-unbounded"
+   ],
+   "id": "retry/unbounded",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "retry-unbounded"
+  },
+  {
+   "construct": "resume",
+   "contract_ids": [],
+   "contract_ok": true,
+   "expect_contract": [],
+   "id": "resume/good",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "good",
+   "rule": "resume-missing-token"
+  },
+  {
+   "construct": "resume",
+   "contract_ids": [
+    "resume-missing-token"
+   ],
+   "contract_ok": true,
+   "expect_contract": [
+    "resume-missing-token"
+   ],
+   "id": "resume/no-token",
+   "ok": true,
+   "production_ids": [
+    "unknown-node-type"
+   ],
+   "production_ok": true,
+   "role": "bad",
+   "rule": "resume-missing-token"
+  }
+ ]
+}

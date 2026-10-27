@@ -1,0 +1,175 @@
+{
+ "answer": "This worktree is not a git repository, so there is no HEAD on which to evaluate `git merge-base --is-ancestor 53c37c6c HEAD`. Zero live HEADs in scope; the pinned baseline is therefore not shown as an ancestor of any live tip here. Other owner repos are NOT-CHECKED. Fixture probe 1 (merge-base --is-ancestor, never HEAD==pinned-SHA) stayed GREEN after an owner scratch commit and went RED after a parentless history rewrite. Fixture probe 2 (diff-tree --name-only vs catalog unit ids) classified a Claude-authored README commit as NO-UNIT-SURFACE and an owner-named commit that touched probes/AUD-0008/ as UNIT-CORROBORATED, proving author identity is not the detector. SUCCESS:AUD-0008 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output.",
+ "catalog_unit_id_count": 2007,
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:AUD-0008 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0008/engine.py:build_ancestor_fixture",
+   "claim": "The baseline-ancestor invariant is `git merge-base --is-ancestor`, not equality to 53c37c6c. An owner scratch commit leaves it GREEN; a parentless rewrite turns it RED.",
+   "confidence": "almost-certain",
+   "instrument": "git merge-base --is-ancestor",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0008/engine.py:build_path_fixture",
+   "claim": "Author identity is forgeable. Changed-path surface against catalog unit ids corroborates program work: Claude+README is NO-UNIT-SURFACE; owner+AUD-0008 probe path is UNIT-CORROBORATED.",
+   "confidence": "almost-certain",
+   "instrument": "git diff-tree --name-only",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "/home/prekzursil/p2-g1",
+   "claim": "This worktree is not a git repository, so there is no HEAD on which to evaluate `git merge-base --is-ancestor 53c37c6c HEAD`. Zero live HEADs in scope; the pinned baseline is therefore not shown as an ancestor of any live tip here. Other owner repos are NOT-CHECKED.",
+   "confidence": "almost-certain",
+   "instrument": "git rev-parse --is-inside-work-tree",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "headline": "Pinned 53c37c6c cannot be checked against a live HEAD on this worktree (not a git repo). Independent fixtures prove the ancestor invariant is is-ancestor not SHA equality, and that authorship is corroborated by changed-path unit ids, not forgeable author strings.",
+ "live": {
+  "other_owner_repos": "NOT-CHECKED",
+  "other_owner_repos_why": "Catalog asks per repo. This lane may scan this worktree only; walking ~ or sibling session trees is forbidden.",
+  "pinned_baseline": "53c37c6c",
+  "repos": [],
+  "repos_in_scope": 0,
+  "worktree": "/home/prekzursil/p2-g1",
+  "worktree_is_git": false
+ },
+ "live_every_head_has_baseline_ancestor": false,
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/AUD-0008/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0008/probe1_ancestor.py",
+   "id": "probe1",
+   "method": "git merge-base --is-ancestor",
+   "raw_output": "{\n \"baseline_sha\": \"bb2438e8838df086f239d081af6a93e5266f39db\",\n \"equality_strawman_would_fail_owner_scratch\": true,\n \"invariant_green_on_owner_scratch\": true,\n \"invariant_red_on_rewrite\": true,\n \"owner_scratch_head_equals_baseline\": false,\n \"owner_scratch_is_ancestor\": true,\n \"owner_scratch_sha\": \"ca77fa81bfe3bc781f17df361b741fa39ee0ee12\",\n \"pass\": true,\n \"rewrite_is_ancestor\": false,\n \"rewritten_root_sha\": \"0cbc07065f931686d2b2ba1acdf429afda86b2ae\"\n}",
+   "role": "no-history-rewrite"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0008/probe2_path_surface.py",
+   "id": "probe2",
+   "method": "git diff-tree --name-only vs catalog unit ids",
+   "raw_output": "{\n \"forged_agent_identity_commit\": {\n  \"author_name\": \"Claude\",\n  \"catalog_unit_ids_on_paths\": [],\n  \"path_class\": \"NO-UNIT-SURFACE\",\n  \"paths\": [\n   \"README.md\"\n  ],\n  \"sha\": \"5232928aae17e2d70f067a666e0c9b33207088ad\"\n },\n \"forged_owner_identity_commit\": {\n  \"author_name\": \"Prekzursil\",\n  \"catalog_unit_ids_on_paths\": [\n   \"AUD-0008\"\n  ],\n  \"path_class\": \"UNIT-CORROBORATED\",\n  \"paths\": [\n   \"command-center/p2-wave/probes/AUD-0008/note.txt\"\n  ],\n  \"sha\": \"2b7aa685d5f4cceb5a4dcfb617b29463e8175926\"\n },\n \"identity_ignored_for_verdict\": true,\n \"pass\": true,\n \"path_surface_distinguishes\": true\n}",
+   "role": "changed-path-authorship-corroboration"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "equality strawman True would fail owner scratch",
+   "description": "A scratch commit by the owner on top of the baseline must leave is-ancestor GREEN and must make HEAD!=baseline so an equality detector would go red.",
+   "fired_on_bad_state": true,
+   "good_state_output": "is-ancestor True, equality=False",
+   "id": "AUD-0008-C1-owner-scratch-stays-green",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "rewrite_is_ancestor=False",
+   "description": "A parentless rewritten root is not a descendant of the baseline.",
+   "fired_on_bad_state": true,
+   "good_state_output": "owner_scratch_is_ancestor=True",
+   "id": "AUD-0008-C2-history-rewrite-goes-red",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "NO-UNIT-SURFACE",
+   "description": "Claude author on README is NO-UNIT-SURFACE; owner author on probes/AUD-0008 is UNIT-CORROBORATED. Identity is opposite the path verdict.",
+   "fired_on_bad_state": true,
+   "good_state_output": "UNIT-CORROBORATED",
+   "id": "AUD-0008-C3-forged-identity-does-not-decide",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/audit-finding.schema.json",
+ "pinned_baseline": "53c37c6c",
+ "probe1_control": {
+  "baseline_sha": "bb2438e8838df086f239d081af6a93e5266f39db",
+  "equality_strawman_would_fail_owner_scratch": true,
+  "invariant_green_on_owner_scratch": true,
+  "invariant_red_on_rewrite": true,
+  "owner_scratch_head_equals_baseline": false,
+  "owner_scratch_is_ancestor": true,
+  "owner_scratch_sha": "ca77fa81bfe3bc781f17df361b741fa39ee0ee12",
+  "pass": true,
+  "rewrite_is_ancestor": false,
+  "rewritten_root_sha": "0cbc07065f931686d2b2ba1acdf429afda86b2ae"
+ },
+ "probe1_instrument": "git merge-base --is-ancestor <pinned> HEAD (never rev-parse HEAD == pinned; equality is the forbidden strawman)",
+ "probe2_control": {
+  "forged_agent_identity_commit": {
+   "author_name": "Claude",
+   "catalog_unit_ids_on_paths": [],
+   "path_class": "NO-UNIT-SURFACE",
+   "paths": [
+    "README.md"
+   ],
+   "sha": "5232928aae17e2d70f067a666e0c9b33207088ad"
+  },
+  "forged_owner_identity_commit": {
+   "author_name": "Prekzursil",
+   "catalog_unit_ids_on_paths": [
+    "AUD-0008"
+   ],
+   "path_class": "UNIT-CORROBORATED",
+   "paths": [
+    "command-center/p2-wave/probes/AUD-0008/note.txt"
+   ],
+   "sha": "2b7aa685d5f4cceb5a4dcfb617b29463e8175926"
+  },
+  "identity_ignored_for_verdict": true,
+  "pass": true,
+  "path_surface_distinguishes": true
+ },
+ "probe2_instrument": "git diff-tree --no-commit-id --name-only -r --root <sha> matched against WORK-UNIT-CATALOG.json unit ids",
+ "produced_at": "2026-08-28T03:31:58Z",
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "opus",
+  "role": "auditor",
+  "vendor": "anthropic"
+ },
+ "question": "Is the pinned baseline commit still an ancestor of every HEAD, and is every intervening commit owner-authored rather than agent-authored - and what is the changed-path surface that corroborates it?",
+ "report_kind": "audit-finding",
+ "residual_unknowns": [
+  {
+   "claim": "Catalog asks per repo. Exactly this worktree was scanned; other owner-controlled repositories are NOT-CHECKED.",
+   "settling_experiment": "Owner-supplied repo list, scanned with the same two instruments, with no concurrent session holding those trees.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Cross-vendor Codex reviewer re-ran ONLY probe 2 (changed-path surface vs catalog unit ids). Probe 1 merge-base --is-ancestor was not re-run by this reviewer.",
+  "reviewer_id": "AUD-0008-probe2-codex-path-surface",
+  "scope_not_agreement": true,
+  "vendor": "openai",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:AUD-0008 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "state": "SUCCESS",
+ "success_hand_flipped": false,
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0008/probe1_ancestor.py",
+   "id": "invariant-not-equality-to-pinned-sha",
+   "name": "assert the invariant is NOT expressed as equality to a pinned SHA - a scratch commit by the owner must leave the invariant GREEN, and a history rewrite must turn it RED",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0008/probe2_path_surface.py",
+   "id": "path-surface-ignores-forged-author",
+   "name": "changed-path surface vs unit ids, independent of author identity",
+   "result": "PASS"
+  }
+ ],
+ "unit_id": "AUD-0008"
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/offline-bundle.schema.json",
+  "title": "Offline export / import bundle manifest",
+  "description": "Offline export and import (spec 10865). A bundle is a self-contained, signed slice of a registry: the selected index entries, their manifests, their payload files, the revocation list and the advisory list AT EXPORT TIME. Carrying the revocation and advisory lists is the whole point -- an air-gapped import that ships packages WITHOUT them would import exactly the revoked versions the online path refuses, which is the same failure mode as a revocation that does not block.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "bundle_id", "source_registry_id", "exported_at", "index_digest", "packages", "includes", "signature"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "bundle_id": { "type": "string", "pattern": "^bun:[0-9a-f]{16}$" },
+    "source_registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "exported_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "index_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+    "packages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "manifest_digest", "payload_digest"],
+        "properties": {
+          "name": { "$ref": "common.schema.json#/$defs/package_name" },
+          "version": { "$ref": "common.schema.json#/$defs/semver" },
+          "manifest_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+          "payload_digest": { "$ref": "common.schema.json#/$defs/sha256" }
+        }
+      }
+    },
+    "includes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["revocation", "advisory", "publishers"],
+      "properties": {
+        "revocation": { "type": "boolean" },
+        "advisory": { "type": "boolean" },
+        "publishers": { "type": "boolean" }
+      },
+      "description": "Declared so an import can REFUSE a bundle that omits a list the consumer's trust policy requires, instead of importing it and silently having nothing to check against."
+    },
+    "signature": { "$ref": "signature.schema.json" }
+  }
+}

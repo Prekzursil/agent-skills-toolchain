@@ -1,0 +1,1026 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "hermetic-eval-registry-run",
+  "name": "Hermetic eval-registry run with a variance-band delta gate",
+  "description": "Turn 'this feels better' into a measured pass-rate. The mechanism that makes the number mean something is not the runner, it is the two controls around it: the variance band, measured by re-running one pinned case N times, below which a delta is NOT a delta; and the degraded-config control, which must score LOWER or the eval is measuring nothing at all. Hermeticity - no wall clock, no entropy, no unrecorded network on the dispatch path - is the precondition that makes both controls readable.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative",
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "bp-dat-05",
+    "eval",
+    "hermetic",
+    "variance-band",
+    "degraded-control"
+  ],
+  "flagship": true,
+  "params": {
+    "eval_set": {
+      "type": "path",
+      "required": true,
+      "description": "The pinned case registry. Pinned by content hash, not by directory name."
+    },
+    "system_under_test": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "Identifier of the configuration being measured."
+    },
+    "baseline_config": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "The configuration the delta is measured against."
+    },
+    "variance_runs": {
+      "type": "integer",
+      "default": 5,
+      "minimum": 3,
+      "maximum": 25,
+      "description": "How many times one pinned case is re-run to establish the band. Below 3 the band is not a band."
+    },
+    "degraded_config": {
+      "type": "string",
+      "required": true,
+      "min_length": 2,
+      "description": "A DELIBERATELY worse configuration. If it does not score lower, the eval is not protecting anything."
+    },
+    "min_eval_cases": {
+      "type": "integer",
+      "default": 20,
+      "minimum": 5,
+      "description": "Contraindication guard: below this the result is noise and the run reports NOT-CHECKED rather than a pass rate."
+    }
+  },
+  "roles": {
+    "registry-pinner": {
+      "description": "Pins the eval set and both configs by content hash so the run is reproducible.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ]
+    },
+    "case-runner": {
+      "description": "Executes one eval case hermetically: no clock, no entropy, no unrecorded network on the dispatch path.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ]
+    },
+    "delta-adjudicator": {
+      "description": "Compares against the baseline and refuses to call a movement smaller than the variance band a delta.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - decides which behaviours earn a standing eval case and who keeps them from ossifying.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Read",
+      "Write(command-center/eval/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "mcp__codex__codex"
+    ],
+    "write_paths": [
+      "command-center/eval/hermetic-registry/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/eval/registry/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "paywalled": "fail",
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "hermetic": {
+      "predicate": "custom-expression",
+      "expression": "wall_clock_reads == 0 AND unseeded_entropy_reads == 0 AND unrecorded_network_calls == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "eval-set-large-enough": {
+      "predicate": "custom-expression",
+      "expression": "eval_cases >= min_eval_cases",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "delta-exceeds-variance": {
+      "predicate": "custom-expression",
+      "expression": "delta_vs_baseline > rerun_variance_band AND degraded_control_scored_lower == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "pin-registry",
+      "title": "S0 - pin the eval set and both configs by content hash",
+      "kind": "task",
+      "role": "registry-pinner",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7601",
+        "title": "Pin the eval registry and the configurations under test",
+        "phase": "2B",
+        "question_or_target": "Record the content hash of every eval case and of both configs, so a later run can prove it measured the same thing rather than a drifted set.",
+        "inputs": [
+          "params.eval_set",
+          "params.system_under_test",
+          "params.baseline_config",
+          "params.degraded_config"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "registry-pinner",
+          "basis": "deciding what constitutes the pinned surface is judgement; hashing it is not"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/eval/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/eval/hermetic-registry/pinned-registry.json",
+        "output_schema": "command-center/schema/environment-manifest.schema.json",
+        "evidence_requirement": "a sha256 per eval case and per config file, plus the case count, so a stale set is detectable rather than assumed fresh",
+        "tests_required": [
+          "editing one eval case changes the pinned hash",
+          "a set below min_eval_cases is recorded as NOT-CHECKED-too-small rather than silently run"
+        ],
+        "reviewer_requirement": "the delta-adjudicator, who will not read a pass rate whose registry is unpinned",
+        "completion_sentinel": "SUCCESS:DAT-7601 emitted only when every case and config carries a hash and the case count is recorded; otherwise FAILED:DAT-7601 <reason>",
+        "retry_policy": "none: a registry pin either hashes the declared surface or the surface is undeclared",
+        "failure_classification": [
+          "registry-unpinned",
+          "eval-set-too-small",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "content-hash pinning of the case set and the configs"
+      },
+      "produces": [
+        {
+          "path": "command-center/eval/hermetic-registry/pinned-registry.json",
+          "schema_ref": "command-center/schema/environment-manifest.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7601",
+          "consumers": [
+            "size-gate",
+            "run-under-test",
+            "run-baseline"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "size-gate",
+      "title": "A set too small to be signal reports NOT-CHECKED, not a pass rate",
+      "kind": "gate",
+      "depends_on": [
+        "pin-registry"
+      ],
+      "gate_ref": "eval-set-large-enough"
+    },
+    {
+      "id": "run-under-test",
+      "title": "S1 - run every case hermetically on the system under test",
+      "kind": "fanout",
+      "depends_on": [
+        "size-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/eval/hermetic-registry/pinned-registry.json",
+        "item_var": "eval_case",
+        "key_field": "case_hash"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 0,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "case-under-test",
+          "title": "One case on the system under test",
+          "kind": "task",
+          "role": "case-runner",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/eval/**)"
+          ],
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "item_key",
+              "params_hash",
+              "prompt_hash",
+              "model_id"
+            ],
+            "store": "command-center/eval/hermetic-registry/cache/under-test",
+            "ttl_seconds": 604800,
+            "verify_integrity": true
+          },
+          "work_unit": {
+            "id": "DAT-7602",
+            "title": "Execute one pinned eval case against the system under test, hermetically",
+            "phase": "2B",
+            "question_or_target": "Run one case with no wall-clock read, no unseeded entropy and no unrecorded network on the dispatch path, and record pass or fail with the case hash.",
+            "inputs": [
+              "item.eval_case",
+              "params.system_under_test"
+            ],
+            "dependencies": [
+              "DAT-7601"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "case-runner",
+              "basis": "the case body is judgement work; the hermeticity constraint is mechanical and asserted"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/eval/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/eval/hermetic-registry/under-test/results.jsonl",
+            "output_schema": "command-center/schema/benchmark-result.schema.json",
+            "evidence_requirement": "the case hash, the pass/fail verdict, and a count of clock, entropy and network accesses observed during dispatch - all three must be zero",
+            "tests_required": [
+              "a case that reads the wall clock on the dispatch path FAILS the hermeticity gate rather than being scored",
+              "re-running an identical case with an identical config yields an identical verdict"
+            ],
+            "reviewer_requirement": "the delta-adjudicator",
+            "completion_sentinel": "SUCCESS:DAT-7602 emitted only when a verdict exists for the case and the three hermeticity counters are all zero; otherwise FAILED:DAT-7602 <reason>",
+            "retry_policy": "none: retrying a nondeterministic case is how a flaky pass becomes a reported improvement",
+            "failure_classification": [
+              "hermeticity-violation",
+              "case-error",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "hermetic single-case execution with clock/entropy/network counters"
+          },
+          "produces": [
+            {
+              "path": "command-center/eval/hermetic-registry/under-test/results.jsonl",
+              "schema_ref": "command-center/schema/benchmark-result.schema.json",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7602",
+              "consumers": [
+                "hermeticity-gate",
+                "compare-to-baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "run-baseline",
+      "title": "S1b - the same pinned cases on the baseline config",
+      "kind": "fanout",
+      "depends_on": [
+        "size-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/eval/hermetic-registry/pinned-registry.json",
+        "item_var": "baseline_case",
+        "key_field": "case_hash"
+      },
+      "max_concurrency": 8,
+      "on_item_failure": "abort",
+      "body": [
+        {
+          "id": "case-baseline",
+          "title": "One case on the baseline",
+          "kind": "task",
+          "role": "case-runner",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/eval/**)"
+          ],
+          "work_unit": {
+            "id": "DAT-7603",
+            "title": "Execute one pinned eval case against the baseline config, hermetically",
+            "phase": "2B",
+            "question_or_target": "Produce the baseline arm of the comparison under identical hermeticity constraints, so the delta is a difference in the system and not in the harness.",
+            "inputs": [
+              "item.baseline_case",
+              "params.baseline_config"
+            ],
+            "dependencies": [
+              "DAT-7601"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "case-runner",
+              "basis": "the baseline arm must be run by the same role under the same constraints or the comparison is between two harnesses"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/eval/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/eval/hermetic-registry/baseline/results.jsonl",
+            "output_schema": "command-center/schema/benchmark-result.schema.json",
+            "evidence_requirement": "the case hash, the verdict, and the same three hermeticity counters at zero",
+            "tests_required": [
+              "the baseline arm runs the SAME pinned case hashes as the under-test arm; a hash mismatch fails the comparison",
+              "both arms record the same hermeticity counters"
+            ],
+            "reviewer_requirement": "the delta-adjudicator",
+            "completion_sentinel": "SUCCESS:DAT-7603 emitted only when a baseline verdict exists per case with matching case hashes; otherwise FAILED:DAT-7603 <reason>",
+            "retry_policy": "none: retrying a nondeterministic case is how a flaky pass becomes a reported improvement",
+            "failure_classification": [
+              "hermeticity-violation",
+              "case-error",
+              "arm-mismatch"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "matched-hash baseline arm under identical hermeticity constraints",
+            "not_a_duplicate_because": "the same executor with a different config is what makes a delta attributable; a single arm can only report a level, never a change"
+          },
+          "produces": [
+            {
+              "path": "command-center/eval/hermetic-registry/baseline/results.jsonl",
+              "schema_ref": "command-center/schema/benchmark-result.schema.json",
+              "min_bytes": 64,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7603",
+              "consumers": [
+                "compare-to-baseline"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "arms-join",
+      "title": "Both arms must be complete before any comparison",
+      "kind": "barrier",
+      "depends_on": [
+        "run-under-test",
+        "run-baseline"
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "run-under-test",
+          "run-baseline"
+        ],
+        "verify_artifact_exists": true
+      },
+      "joins": [
+        "run-under-test",
+        "run-baseline"
+      ]
+    },
+    {
+      "id": "hermeticity-gate",
+      "title": "No clock, no entropy, no unrecorded network - or the run is not hermetic",
+      "kind": "gate",
+      "depends_on": [
+        "arms-join"
+      ],
+      "gate_ref": "hermetic",
+      "produces": [
+        {
+          "path": "command-center/eval/hermetic-registry/hermeticity.json",
+          "schema_ref": "command-center/schema/hermeticity-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "consumers": [
+            "compare-to-baseline",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "measure-variance",
+      "title": "S3 - establish the re-run variance band on ONE pinned case",
+      "kind": "loop",
+      "depends_on": [
+        "hermeticity-gate"
+      ],
+      "loop_var": "variance_run",
+      "body": [
+        {
+          "id": "rerun-one-case",
+          "title": "Re-run the same pinned case with the same config",
+          "kind": "task",
+          "role": "case-runner",
+          "timeout_seconds": 1800,
+          "tool_permissions": [
+            "Read",
+            "Bash:python",
+            "Write(command-center/eval/**)"
+          ],
+          "work_unit": {
+            "id": "DAT-7604",
+            "title": "Re-run one pinned case repeatedly to measure the harness's own variance",
+            "phase": "2B",
+            "question_or_target": "Run the identical case against the identical config variance_runs times and record the spread, because a delta smaller than this spread is not a delta.",
+            "inputs": [
+              "params.eval_set",
+              "params.system_under_test",
+              "params.variance_runs"
+            ],
+            "dependencies": [
+              "DAT-7602"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "case-runner",
+              "basis": "the same executor must produce the variance estimate or the band belongs to a different harness"
+            },
+            "tool_permissions": [
+              "Read",
+              "Bash:python",
+              "Write(command-center/eval/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/eval/hermetic-registry/variance-band.json",
+            "output_schema": "command-center/schema/determinism-report.schema.json",
+            "evidence_requirement": "every individual re-run verdict, the observed spread, and the resulting band expressed in the same unit as the pass rate",
+            "tests_required": [
+              "an identical config re-run produces a pass rate stable within the declared band",
+              "both-states control: injecting one deliberately nondeterministic case WIDENS the band, proving the measurement is sensitive to real variance"
+            ],
+            "reviewer_requirement": "the delta-adjudicator, who uses the band as the threshold and must not be the one who chose it",
+            "completion_sentinel": "SUCCESS:DAT-7604 emitted only when variance_runs results are recorded and a band is computed from them, not asserted; otherwise FAILED:DAT-7604 <reason>",
+            "retry_policy": "none: re-running for a better variance band would measure the retry, not the harness",
+            "failure_classification": [
+              "nondeterminism-detected",
+              "case-error",
+              "partial-artifact"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "repeated identical-config re-runs producing an empirical variance band"
+          },
+          "produces": [
+            {
+              "path": "command-center/eval/hermetic-registry/variance-band.json",
+              "schema_ref": "command-center/schema/determinism-report.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:DAT-7604",
+              "consumers": [
+                "compare-to-baseline",
+                "delta-gate"
+              ]
+            }
+          ]
+        }
+      ],
+      "convergence": {
+        "max_iterations": 25,
+        "min_iterations": 3,
+        "converged_when": "completed_runs >= variance_runs AND band_width_stable == true",
+        "no_progress_rounds": 3,
+        "metrics": [
+          {
+            "name": "completed_runs",
+            "direction": "increase"
+          },
+          {
+            "name": "band_width_stable",
+            "direction": "stabilize"
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "degraded-control",
+      "title": "A deliberately degraded config MUST score lower, or the eval measures nothing",
+      "kind": "task",
+      "depends_on": [
+        "hermeticity-gate"
+      ],
+      "role": "case-runner",
+      "timeout_seconds": 3600,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7605",
+        "title": "Run the pinned set against a deliberately degraded config",
+        "phase": "2B",
+        "question_or_target": "Prove the eval can SEE a regression by running a config known to be worse and requiring a lower score; a suite that stays green on a degraded config is not protecting the behaviour.",
+        "inputs": [
+          "params.eval_set",
+          "params.degraded_config"
+        ],
+        "dependencies": [
+          "DAT-7601",
+          "DAT-7602"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "case-runner",
+          "basis": "the control arm shares the executor with the measured arms so a difference is attributable to the config"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/eval/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/eval/hermetic-registry/degraded-control.json",
+        "output_schema": "command-center/schema/detector-control-audit.schema.json",
+        "evidence_requirement": "the degraded config's pass rate, the under-test pass rate, and the margin between them measured against the variance band",
+        "tests_required": [
+          "the degraded config scores LOWER than the system under test by more than the variance band",
+          "if it does not, the run reports the eval set as NOT PROTECTING the behaviour rather than reporting an improvement"
+        ],
+        "reviewer_requirement": "the delta-adjudicator, who must treat a surviving degraded config as a finding about the EVAL, not about the system",
+        "completion_sentinel": "SUCCESS:DAT-7605 emitted only when the degraded arm completed and its margin against the under-test arm is compared to the band; otherwise FAILED:DAT-7605 <reason>",
+        "retry_policy": "none: a degraded control that scores high is a finding about the eval, not a flaky run",
+        "failure_classification": [
+          "eval-not-protective",
+          "case-error",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "deliberate-regression control arm gated on the measured variance band",
+        "not_a_duplicate_because": "the variance loop measures the harness's noise; this measures the eval's SENSITIVITY, and a suite can be quiet and still be blind"
+      },
+      "produces": [
+        {
+          "path": "command-center/eval/hermetic-registry/degraded-control.json",
+          "schema_ref": "command-center/schema/detector-control-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7605",
+          "consumers": [
+            "compare-to-baseline",
+            "delta-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "compare-to-baseline",
+      "title": "S2 - compare, and refuse to call a sub-band movement a delta",
+      "kind": "task",
+      "depends_on": [
+        "measure-variance",
+        "degraded-control"
+      ],
+      "role": "delta-adjudicator",
+      "timeout_seconds": 1800,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/eval/**)"
+      ],
+      "work_unit": {
+        "id": "DAT-7606",
+        "title": "Adjudicate the delta against the baseline using the measured variance band",
+        "phase": "2B",
+        "question_or_target": "Report pass_rate, delta_vs_baseline and a verdict of IMPROVED, UNCHANGED-WITHIN-BAND or REGRESSED, where UNCHANGED-WITHIN-BAND is the required verdict for any movement smaller than the band.",
+        "inputs": [
+          "command-center/eval/hermetic-registry/under-test/results.jsonl",
+          "command-center/eval/hermetic-registry/baseline/results.jsonl",
+          "command-center/eval/hermetic-registry/variance-band.json",
+          "command-center/eval/hermetic-registry/degraded-control.json"
+        ],
+        "dependencies": [
+          "DAT-7602",
+          "DAT-7603",
+          "DAT-7604",
+          "DAT-7605"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "delta-adjudicator",
+          "basis": "the judge authority is where the anti-overclaim rule is enforced, so it is not delegated to the runner"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/eval/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/eval/hermetic-registry/eval-verdict.json",
+        "output_schema": "command-center/schema/regression-delta.schema.json",
+        "evidence_requirement": "per-case verdicts from both arms, the band, and the arithmetic showing whether the delta clears it",
+        "tests_required": [
+          "a delta of +1.2 points against a band of +/-2.0 points is reported UNCHANGED-WITHIN-BAND, never as an improvement",
+          "a run whose degraded control did not score lower reports the eval as non-protective and withholds any improvement claim",
+          "both-states control: a delta of +8 points against the same band IS reported IMPROVED, so the gate is not simply refusing every claim"
+        ],
+        "reviewer_requirement": "one independent adversarial reviewer in a fresh context who recomputes the delta and the band from the two result files",
+        "completion_sentinel": "SUCCESS:DAT-7606 emitted only when a verdict token is recorded together with the band and the degraded-control outcome; otherwise FAILED:DAT-7606 <reason>",
+        "retry_policy": "none: a delta adjudication is a judgement over recorded arms and cannot be retried into truth",
+        "failure_classification": [
+          "overclaim",
+          "eval-not-protective",
+          "nondeterminism-detected"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "variance-band-thresholded delta adjudication with a mandatory UNCHANGED-WITHIN-BAND verdict"
+      },
+      "produces": [
+        {
+          "path": "command-center/eval/hermetic-registry/eval-verdict.json",
+          "schema_ref": "command-center/schema/regression-delta.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:DAT-7606",
+          "consumers": [
+            "delta-gate",
+            "standing-case-decision",
+            "command-center/MANIFEST.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "delta-gate",
+      "title": "An improvement claim needs a supra-band delta AND a working degraded control",
+      "kind": "gate",
+      "depends_on": [
+        "compare-to-baseline"
+      ],
+      "gate_ref": "delta-exceeds-variance"
+    },
+    {
+      "id": "standing-case-decision",
+      "title": "Owner decision - which behaviours earn a standing eval case, and who keeps them fresh",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "delta-gate"
+      ],
+      "prompt": "This run measured N cases with a band of B. Which of these behaviours deserve a STANDING eval case, and who owns them so the set does not ossify into something the system is merely overfitted to?",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "proceed",
+      "owner_approval_required": false,
+      "options": [
+        "promote-all",
+        "promote-selected",
+        "promote-none",
+        "retire-stale-cases"
+      ],
+      "decision_artifact": {
+        "path": "command-center/eval/hermetic-registry/standing-cases-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "command-center/MANIFEST.json"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "eval-set-complete",
+      "expression": "cases_run >= eval_cases AND eval_verdict_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "wall_clock_reads == 0 AND unseeded_entropy_reads == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "nondeterminism-reports-a-band-not-a-point",
+      "expression": "rerun_variance_band > 0 AND point_estimate_claimed == false",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "eval-not-protective",
+      "expression": "degraded_control_scored_lower == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "hermeticity-violation",
+      "nondeterminism-detected",
+      "eval-not-protective",
+      "case-error"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "standing-case-decision",
+    "quarantine_path": "command-center/eval/hermetic-registry/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/eval/hermetic-registry/checkpoints",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/eval/hermetic-registry/replay.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "env",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "prompt_hash",
+      "model_id",
+      "tool_versions"
+    ],
+    "store": "command-center/eval/hermetic-registry/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/eval/hermetic-registry/dry-run-plan.json",
+    "forbid_tools": [
+      "Write(command-center/eval/**)",
+      "Bash:python"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 3.5,
+      "max": 18.0
+    },
+    "wallclock_seconds": {
+      "expected": 5400,
+      "max": 21600
+    },
+    "tokens": {
+      "expected": 700000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/eval/hermetic-registry/**; the pinned registry itself is forbidden to writes",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/eval/hermetic-registry/export/hermetic-eval-registry-run.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-05",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "07f465f3:tools/agentspec",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/memory-bench",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "cmd-eval",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/agentspec@07f465f3"
+    ]
+  },
+  "outputs": {
+    "eval_verdict": {
+      "path": "command-center/eval/hermetic-registry/eval-verdict.json",
+      "schema_ref": "command-center/schema/regression-delta.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json",
+        "measurement-instrument-validation"
+      ]
+    },
+    "determinism_check": {
+      "path": "command-center/eval/hermetic-registry/variance-band.json",
+      "schema_ref": "command-center/schema/determinism-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/MANIFEST.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "bp7": {
+      "card": "BP-DAT-05",
+      "card_index_in_library": 76,
+      "family": "D14-data",
+      "primary_category": "data-science-knowledge-and-creative",
+      "mechanism_signature": [
+        "content-hash-pinned-case-registry",
+        "hermetic-dispatch-no-clock-no-entropy",
+        "matched-hash-baseline-arm",
+        "empirical-rerun-variance-band-threshold",
+        "deliberate-regression-degraded-control"
+      ],
+      "worked_example": {
+        "scenario": "A hook change is claimed to improve goal re-injection. The eval set is 40 pinned session cases; the baseline is the pre-change harness; the degraded config disables the injection entirely.",
+        "params": {
+          "eval_set": "command-center/eval/registry/goal-reinjection",
+          "system_under_test": "harness@post-change",
+          "baseline_config": "harness@pre-change",
+          "variance_runs": 5,
+          "degraded_config": "harness@injection-disabled",
+          "min_eval_cases": 20
+        },
+        "expected_trace": [
+          "pin-registry -> 40 cases hashed, 3 configs hashed",
+          "size-gate -> PASS (40 >= 20)",
+          "run-under-test -> 33/40 pass; run-baseline -> 31/40 pass",
+          "hermeticity-gate -> PASS (clock 0, entropy 0, network 0)",
+          "measure-variance -> 5 re-runs of one case give a band of +/-2.5 points",
+          "degraded-control -> 19/40 pass, 35 points below under-test: the eval CAN see a regression",
+          "compare-to-baseline -> delta = +5.0 points against a band of 2.5 -> IMPROVED",
+          "delta-gate -> PASS. Had the delta been +1.5, the verdict would be UNCHANGED-WITHIN-BAND and no improvement could be claimed"
+        ],
+        "expected_terminal_state": "SUCCESS:DAT-7606"
+      },
+      "unverified": "UNVERIFIED case coverage - the registry merged here has the framework and the bench has the probes, but neither ships a case set for this estate's behaviours. Settling experiment = the degraded-config control itself: if the eval cannot see a deliberate regression it is not protecting anything, and this workflow makes that arm mandatory rather than optional.",
+      "distinct_from": {
+        "BP-MNT-02": "that one revalidates that things FIRE; this measures whether behaviour is BETTER on a fixed case set",
+        "bp-dat-03": "that one asks whether the measuring device is sound; this assumes a sound device and asks whether the SYSTEM moved",
+        "bp-dat-04": "no tiers, no spend ceiling, no survivors - the case set is fixed in advance and every case is run"
+      },
+      "flagship_test": "platform/lib/workflows/test_hermetic_eval_registry_run.py"
+    }
+  }
+}

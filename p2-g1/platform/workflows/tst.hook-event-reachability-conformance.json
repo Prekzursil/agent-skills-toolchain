@@ -1,0 +1,699 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.hook-event-reachability-conformance",
+  "name": "Hook event-reachability conformance test",
+  "description": "Assert in CI that every handler's required event actually EXISTS in the registration generator, closing failure class 1: registration is emitted by iterating an EVENTS tuple, so a handler requiring an absent event can never be invoked - and the existing manifest check validates top-level keys, mapping shape and JSON round-tripping, but NOT event names. The both-states requirement is unusually sharp here: this test must FAIL on the current tree, where two fully-implemented handlers are unreachable. If it passes today it is measuring nothing. The test REPORTS; it cannot decide whether an unreachable handler should be wired or retired.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "testing",
+    "conformance",
+    "reachability",
+    "ci",
+    "both-states"
+  ],
+  "flagship": true,
+  "params": {
+    "handler_sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "description": "Handler modules to parse for a declared event contract"
+    },
+    "events_tuple_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "Where the EVENTS tuple the generator iterates actually lives",
+      "examples": [
+        "hooks/_dispatch/build_hooks.py::EVENTS"
+      ]
+    },
+    "registration_channels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "default": [
+        "generator-manifest",
+        "settings-json"
+      ],
+      "description": "A hook registered outside the generator needs its own channel checked"
+    },
+    "compare_live_manifest": {
+      "type": "boolean",
+      "default": false,
+      "description": "Also diff the deployed manifest against the repo's, catching a deployed-copy edit"
+    },
+    "live_manifest_path": {
+      "type": "path",
+      "description": "The deployed manifest, when compare_live_manifest is set"
+    }
+  },
+  "roles": {
+    "contract-parser": {
+      "description": "Parses each handler for the event it declares it needs",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python"
+      ],
+      "speaking_rights": "always"
+    },
+    "conformance-asserter": {
+      "description": "Asserts set membership and registration shape, and emits the report",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/conformance/**)"
+      ],
+      "write_paths": [
+        "command-center/conformance/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may decide WIRE versus RETIRE",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:python",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/conformance/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "Write"
+    ],
+    "write_paths": [
+      "command-center/conformance/**"
+    ],
+    "forbid_write_paths": [
+      "hooks/**",
+      ".claude/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low"
+    },
+    "escalation": {
+      "on": [
+        "failure"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "high"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "both-states-control": {
+      "predicate": "custom-expression",
+      "expression": "fails_on_known_unreachable_handlers == true AND known_unreachable_count >= 2",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "undeclared-not-assumed-fine": {
+      "predicate": "custom-expression",
+      "expression": "handlers_without_declared_event_treated_as_pass == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "shape-validated": {
+      "predicate": "custom-expression",
+      "expression": "matcher_groups_checked == true AND command_handler_fields_checked == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "membership-asserted": {
+      "predicate": "custom-expression",
+      "expression": "unreachable_handlers_reported == true AND events_tuple_parsed == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "parse-handler-contracts",
+      "title": "Which event does each handler declare it needs?",
+      "kind": "task",
+      "role": "contract-parser",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "QLT-6001",
+        "title": "Parse every handler for its declared required event, flagging undeclared rather than assuming",
+        "phase": "2B",
+        "question_or_target": "For each handler module, extract the event it declares it requires - from an explicit declaration or its docstring contract. A handler with NO declared event contract is reported UNDECLARED, never assumed fine: an undeclared handler is exactly where an unreachable one hides.",
+        "inputs": [
+          "params.handler_sources"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "contract-parser",
+          "basis": "AST extraction with a judgement call on docstring contracts"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/conformance/qlt-60-handler-contracts.json",
+        "output_schema": "command-center/schema/reachability-report.schema.json",
+        "evidence_requirement": "each handler cites the file:line of its declaration, or is marked UNDECLARED with the reason",
+        "tests_required": [
+          "a handler with an explicit event declaration must be extracted correctly",
+          "both-states control: a handler with no declaration must be UNDECLARED, not silently passed"
+        ],
+        "reviewer_requirement": "mechanical AST parse; the undeclared-not-assumed-fine gate is the check",
+        "completion_sentinel": "SUCCESS:QLT-6001 emitted only when every handler source yields either a declared event with a file:line or an explicit UNDECLARED marker; otherwise FAILED:QLT-6001 <reason>",
+        "retry_policy": "two strikes then pivot to marking the unparsed handlers UNDECLARED",
+        "failure_classification": [
+          "detector-failure",
+          "unparseable-handler"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "AST extraction of a declared event contract per handler"
+      },
+      "produces": [
+        {
+          "path": "command-center/conformance/qlt-60-handler-contracts.json",
+          "schema_ref": "command-center/schema/reachability-report.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-6001",
+          "consumers": [
+            "assert-membership",
+            "emit-reachability-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "parse-events-tuple",
+      "title": "What does the generator actually iterate?",
+      "kind": "task",
+      "depends_on": [
+        "parse-handler-contracts"
+      ],
+      "role": "contract-parser",
+      "work_unit_ref": "ARC-0008",
+      "timeout_seconds": 600
+    },
+    {
+      "id": "undeclared-not-assumed-fine",
+      "title": "An undeclared handler is a finding, not a pass",
+      "kind": "gate",
+      "depends_on": [
+        "parse-events-tuple"
+      ],
+      "gate_ref": "undeclared-not-assumed-fine"
+    },
+    {
+      "id": "assert-membership",
+      "title": "Every required event must be present in the EVENTS tuple",
+      "kind": "task",
+      "depends_on": [
+        "undeclared-not-assumed-fine"
+      ],
+      "role": "conformance-asserter",
+      "work_unit": {
+        "id": "QLT-6002",
+        "title": "Assert every declared required event is a member of the EVENTS tuple the generator iterates",
+        "phase": "2B",
+        "question_or_target": "Compute the set difference between declared required events and the EVENTS tuple. Every handler whose event is absent is UNREACHABLE - fully implemented and never invocable - and is reported with its file:line. This is exact set membership, not a heuristic.",
+        "inputs": [
+          "command-center/conformance/qlt-60-handler-contracts.json",
+          "params.events_tuple_ref"
+        ],
+        "dependencies": [
+          "QLT-6001"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "conformance-asserter",
+          "basis": "a set difference is mechanical; only the reporting shape needs a model"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/conformance/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/conformance/qlt-60-unreachable-handlers.json",
+        "output_schema": "command-center/schema/gate-reachability.schema.json",
+        "evidence_requirement": "the declared-event set, the EVENTS tuple set and the exact difference are all recorded, so the verdict is recomputable from the artifact alone",
+        "tests_required": [
+          "the two live cases - a SessionEnd handler and a Notification handler, both implemented, neither in EVENTS - must BOTH fail the test",
+          "both-states control: a correctly wired handler must pass, and the test must FAIL on the current tree or it is measuring nothing"
+        ],
+        "reviewer_requirement": "none required - the artifact carries both sets, so any reader can recompute the difference",
+        "completion_sentinel": "SUCCESS:QLT-6002 emitted only when both sets and their difference are recorded, and every unreachable handler carries its file:line; otherwise FAILED:QLT-6002 <reason>",
+        "retry_policy": "no retry - a set difference does not become different on a second run",
+        "failure_classification": [
+          "detector-failure",
+          "unreachable-handler"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "exact set-difference of declared events against the generator's EVENTS tuple",
+        "not_a_duplicate_because": "the variant sweep derives a NEW pattern per incident and outputs a remediation set; this asserts ONE fixed invariant and outputs a reachability verdict"
+      },
+      "retry": {
+        "strategy": "none",
+        "max_attempts": 1
+      },
+      "produces": [
+        {
+          "path": "command-center/conformance/qlt-60-unreachable-handlers.json",
+          "schema_ref": "command-center/schema/gate-reachability.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "both-states-control",
+            "owner-wire-or-retire"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "membership-asserted",
+      "title": "The membership assertion actually ran",
+      "kind": "gate",
+      "depends_on": [
+        "assert-membership"
+      ],
+      "gate_ref": "membership-asserted"
+    },
+    {
+      "id": "validate-registration-shape",
+      "title": "Matcher groups nest a hooks array; command handlers carry type and command",
+      "kind": "task",
+      "depends_on": [
+        "membership-asserted"
+      ],
+      "role": "conformance-asserter",
+      "work_unit_ref": "AUD-0013",
+      "timeout_seconds": 900
+    },
+    {
+      "id": "shape-validated",
+      "title": "Registration shape was checked, not assumed",
+      "kind": "gate",
+      "depends_on": [
+        "validate-registration-shape"
+      ],
+      "gate_ref": "shape-validated"
+    },
+    {
+      "id": "deployed-copy-parity",
+      "title": "Optionally diff the deployed manifest against the repo's",
+      "kind": "task",
+      "depends_on": [
+        "shape-validated"
+      ],
+      "role": "conformance-asserter",
+      "when": "compare_live_manifest == true",
+      "work_unit_ref": "REL-0021",
+      "timeout_seconds": 900
+    },
+    {
+      "id": "both-states-control",
+      "title": "This test MUST fail on the current tree",
+      "kind": "gate",
+      "depends_on": [
+        "deployed-copy-parity"
+      ],
+      "gate_ref": "both-states-control"
+    },
+    {
+      "id": "emit-reachability-report",
+      "title": "Emit the CI verdict",
+      "kind": "task",
+      "depends_on": [
+        "both-states-control"
+      ],
+      "role": "conformance-asserter",
+      "work_unit_ref": "ADV-0019",
+      "produces": [
+        {
+          "path": "command-center/conformance/qlt-60-reachability-report.json",
+          "schema_ref": "command-center/schema/conformance-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json",
+            "owner-wire-or-retire"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "owner-wire-or-retire",
+      "title": "Owner decision: wire the unreachable handlers, or retire them?",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "emit-reachability-report"
+      ],
+      "when": "unreachable_handler_count > 0",
+      "timeout_seconds": 86400,
+      "prompt": "This test found handlers that are fully implemented and can never fire. The test can only REPORT that; it cannot decide. WIRE them (add their events to the generator's EVENTS tuple, accepting the new firing paths and their overhead) or RETIRE them (delete the handlers, accepting the loss of whatever they were meant to do)? A security guard registered under a non-existent event is a silent hole, so leaving them as-is is not a neutral option.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": [
+        "wire-all",
+        "retire-all",
+        "wire-some-retire-some",
+        "defer-with-recorded-risk"
+      ],
+      "decision_artifact": {
+        "path": "command-center/decisions/qlt-60-wire-or-retire.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "ci-verdict-emitted",
+      "expression": "events_tuple_parsed == true AND matcher_groups_checked == true AND unreachable_handlers_reported == true",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "handlers_parsed >= 1"
+    },
+    {
+      "id": "detector-is-blind",
+      "expression": "fails_on_known_unreachable_handlers == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "detector-failure",
+      "unreachable-handler",
+      "unparseable-handler"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-wire-or-retire",
+    "quarantine_path": "command-center/quarantine/qlt-60"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-60",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260821,
+    "journal_path": "command-center/replay/qlt-60-reachability.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/qlt-60",
+    "ttl_seconds": 3600,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-60-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/conformance/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.03,
+      "max": 0.15
+    },
+    "wallclock_seconds": {
+      "expected": 180,
+      "max": 900
+    },
+    "tokens": {
+      "expected": 12000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only AST parse plus a set difference; writes only under command-center/conformance/**. Explicitly forbidden from writing hooks/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-60-reachability.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-07",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "failure-class-1-registered-but-unreachable",
+        "relation": "CLEAN-ROOM-REIMPLEMENT",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "tools/detector-self-test",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "rules/common/hooks.md",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/detector-self-test"
+    ]
+  },
+  "outputs": {
+    "reachability-report": {
+      "path": "command-center/conformance/qlt-60-reachability-report.json",
+      "schema_ref": "command-center/schema/conformance-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-07",
+    "card_index": 60,
+    "family": "D11-testing",
+    "acquisition_route": "BUILD-NEW",
+    "mechanism_fingerprint": {
+      "subject": "handler-registration-wiring",
+      "oracle": "ast-parse-plus-set-membership",
+      "execution_required": false,
+      "mutation_target": "none",
+      "comparison_axis": "declared-event-vs-registered-event",
+      "output_type": "reachability-verdict",
+      "information_barrier": false
+    },
+    "mechanism": "Two sets and a difference: events handlers DECLARE they need, versus events the generator actually emits registrations for. No execution, no model judgement in the verdict - the artifact carries both sets so the verdict is recomputable.",
+    "contraindications": [
+      "NOT a functional test of handler behaviour",
+      "NOT applicable to hooks registered outside the generator - those need their own channel checked",
+      "NOT a decision-maker: it reports unreachable handlers and hands WIRE-or-RETIRE to the owner"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "two-live-unreachable-handlers",
+        "setup": "a SessionEnd handler and a Notification handler, both implemented, neither event in EVENTS",
+        "expected": "BOTH fail the test - and the test must fail on the CURRENT tree, otherwise it is measuring nothing"
+      },
+      {
+        "name": "correctly-wired-handler",
+        "setup": "a handler whose event is in EVENTS",
+        "expected": "passes, proving the test is not a blanket failure"
+      }
+    ],
+    "why_not_a_duplicate": "BP-DBG-05 is an investigative sweep including fail-open AST paths and observed fires; this is one cheap fixed CI assertion on event-name reachability and registration shape. BP-CRV-04 also does set work over a tree, but its pattern is DERIVED per incident and its output is a remediation set.",
+    "measured_basis": "The evidence that this beats its source is direct rather than projected: the existing conformance emitter validates top-level keys, mapping shape, an optional description and JSON round-tripping - explicitly NOT event names - so today's gate is GREEN while two fully-implemented handlers can never fire.",
+    "unverified": "UNVERIFIED (likely) whether any handler registered outside the generator channel is also unreachable; settling experiment = run with registration_channels including settings-json and compare. The two known cases are MEASURED, not projected.",
+    "owner_decision": "WIRE the two unreachable handlers (add their events to the generator) or RETIRE them. The test only reports; a security guard registered under a non-existent event is a silent hole, so deferring carries recorded risk.",
+    "worked_example": {
+      "name": "run the reachability conformance test over the live hook tree",
+      "params": {
+        "handler_sources": [
+          "hooks/stopfailure-notify/notify.py",
+          "hooks/git-hygiene/check.py"
+        ],
+        "events_tuple_ref": "hooks/_dispatch/build_hooks.py::EVENTS",
+        "registration_channels": [
+          "generator-manifest"
+        ],
+        "compare_live_manifest": false
+      },
+      "narrative": "9 handlers parsed, all with a declared event. The EVENTS tuple held 7 names. The set difference found 2 handlers requiring SessionEnd and Notification, neither present - so both are unreachable and the test FAILS, which is the correct outcome on today's tree. The report hands WIRE-or-RETIRE to the owner.",
+      "context": {
+        "fails_on_known_unreachable_handlers": true,
+        "known_unreachable_count": 2,
+        "handlers_without_declared_event_treated_as_pass": 0,
+        "matcher_groups_checked": true,
+        "command_handler_fields_checked": true,
+        "unreachable_handlers_reported": true,
+        "events_tuple_parsed": true,
+        "handlers_parsed": 9,
+        "unreachable_handler_count": 2,
+        "compare_live_manifest": false
+      },
+      "expected_gate_pass": [
+        "both-states-control",
+        "undeclared-not-assumed-fine",
+        "shape-validated",
+        "membership-asserted"
+      ],
+      "expected_stop": [
+        "ci-verdict-emitted"
+      ],
+      "negative_control": {
+        "gate": "both-states-control",
+        "overrides": {
+          "fails_on_known_unreachable_handlers": false,
+          "known_unreachable_count": 0
+        },
+        "expected": false,
+        "why": "a conformance test that passes on a tree with two known-unreachable handlers is measuring nothing; the control must reject that state"
+      }
+    }
+  }
+}

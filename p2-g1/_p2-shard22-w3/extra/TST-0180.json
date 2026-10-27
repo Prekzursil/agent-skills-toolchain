@@ -1,0 +1,78 @@
+{
+  "report_kind": "parser_report",
+  "claims": [
+    {
+      "id": "E-collision-rejected-naming-both",
+      "anchor": "command-center/p2-wave/probes/TST-0180/case_guard.py:validate_strict",
+      "claim": "Two keys differing only in case produce a DETECTED collision (not last-key-wins): the validator rejects the document and the error names both colliding keys (hooks vs Hooks).",
+      "confidence": "almost-certain",
+ "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-distinct-validates",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py:main",
+      "claim": "Both-states control: a document with genuinely distinct case-folded keys validates cleanly.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-folded-set-size",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py:main",
+      "claim": "Independent case-folded key-set size vs raw key-set size: over {hooks, Hooks, HOOKS, commands, agents} the raw distinct count is 5 and the case-folded count is 3 (delta = 2 = collision count), providing a mechanically different second signal from the validator verdict.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "id": "E-emitter-never-collides",
+      "anchor": "command-center/p2-wave/probes/TST-0180/case_guard.py:emit_safe",
+      "claim": "The emitter never produces case-colliding keys: clean across 300 generated field permutations and refuses a constructed collision at authoring time.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "json-last-key-wins",
+      "kind": "mutation",
+      "description": "The known-broken baseline (plain json parsing, last-key-wins; case-insensitive consumers folding keys) silently drops one of the colliding pair - the exact regression the validator exists to catch.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "last_wins_confirmed=true ({hooks:1,hooks:2} -> {hooks:2})",
+      "good_state_output": "validate_strict raises CaseCollisionError naming both keys"
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0180/case_guard.py",
+    "detector": "casefold key-set comparison; collisions raise CaseCollisionError(colliding=[both])",
+    "emitter": "emit_safe refuses case-colliding key sets",
+    "regression_seed": "_USER-PROMPTS.md:11309 case-insensitive parser collision on case-distinct JSON keys"
+  },
+  "observations": [
+    {
+      "name": "collision detection naming both keys",
+      "measured": "['hooks', 'Hooks']",
+      "method": "validate_strict on a colliding document",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe1_case_collision.py"
+    },
+    {
+      "name": "case-folded vs raw key-set size",
+      "measured": "raw=5 folded=3 delta=2",
+      "method": "independent set-size comparison (mechanically different from the validator verdict)",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py"
+    },
+    {
+      "name": "emitter collision-freedom",
+      "measured": "300/300 generated clean; constructed collision refused",
+      "method": "random field permutations + constructed-collision refusal",
+      "anchor": "command-center/p2-wave/probes/TST-0180/probe2_folded_set_size.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The validator is the probe-local strict receiver; if a shipping parser consumes these manifests case-insensitively elsewhere in the estate, its exact folding rules may differ from Python casefold.",
+      "settling_experiment": "Bind validate_strict's folding to the real consumer's rules and re-run.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for TST-0180: real probes exit 0, receipt state=BLOCKED reviewer-absent (program contract), per-unit manifest row sha matches the live receipt CRLF-normalized. Rebuilt after the prior attempt died mid-flight (fabricated SUCCESS receipt, no probe files). Owner-gated: no (owner_approval_required=false)."
+}

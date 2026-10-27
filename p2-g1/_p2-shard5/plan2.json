@@ -1,0 +1,1013 @@
+{
+ "total_ready": 300,
+ "shard_total": 58,
+ "target_first15": [
+  "ADV-0033",
+  "ADV-0037",
+  "ADV-0117",
+  "ARC-0054",
+  "AUD-0042",
+  "AUD-0050",
+  "AUD-0064",
+  "BLD-0001",
+  "BLD-0011",
+  "BLD-0016",
+  "BLD-0024",
+  "BLD-0035",
+  "BLD-0042",
+  "BLD-0050",
+  "BLD-0051"
+ ],
+ "entries": {
+  "ADV-0033": {
+   "_source_slice_file": "ADV-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "security-threat-modeler",
+    "vendor": "anthropic"
+   },
+   "bucket": "B10",
+   "completion_sentinel": "SUCCESS:ADV-0033 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0033 <reason>.",
+   "dependencies": [
+    "B07"
+   ],
+   "evidence_requirement": "Probe 1: run the identical probe payload in every substrate and record the four outcomes per substrate as a matrix. Probe 2 (mechanically different): read the router's selection logic and identify which substrate untrusted/third-party code is actually routed to, then check that cell of the matrix - a strong sandbox that untrusted code is never routed to provides zero protection.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "sandbox-escape",
+    "platform-portability",
+    "overclaim"
+   ],
+   "id": "ADV-0033",
+   "inputs": [
+    "the substrate router and its selection rules",
+    "a probe payload that attempts, in each substrate: read a credential path, list sibling processes, write outside its root, and open an outbound socket",
+    "orchestration-patterns skill: Windows has no native OS-level process sandbox"
+   ],
+   "mechanism": "identical-payload capability matrix across substrates joined to the router's actual routing decision",
+   "not_a_duplicate_because": "ADV-0022 tests the program's own permission metadata; this measures what the OS-level boundary really enforces, which no manifest can change.",
+   "output_path": "command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json",
+   "output_schema": "command-center/schema/threat-model.schema.json",
+   "owner_approval_required": false,
+   "phase": "12",
+   "question_or_target": "For each substrate the program will route work to (local process, worktree, WSL2, docker, cloud sandbox), what does the boundary actually prevent - filesystem reach, network egress, credential visibility, process visibility - and where does the router send untrusted code?",
+   "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+   "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+   "slice": "ADV-1of2",
+   "spec_anchor": "_USER-PROMPTS.md:10574-10581, 11049",
+   "tests_required": [
+    "the probe must SUCCEED at all four actions in the deliberately unisolated local case, proving the probe can detect capability at all before any 'blocked' result is believed"
+   ],
+   "timeout_seconds": 5400,
+   "title": "Isolation review of the execution-substrate ladder",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write",
+    "mcp__cloud-hub__modal_sandbox_create",
+    "mcp__cloud-hub__modal_sandbox_exec",
+    "mcp__cloud-hub__modal_sandbox_terminate"
+   ]
+  },
+  "ADV-0037": {
+   "_source_slice_file": "ADV-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "security-threat-modeler",
+    "vendor": "anthropic"
+   },
+   "bucket": "B10",
+   "completion_sentinel": "SUCCESS:ADV-0037 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0037 <reason>.",
+   "dependencies": [
+    "B07"
+   ],
+   "evidence_requirement": "Probe 1: run every credential path with the planted synthetic value present and grep all outputs - stdout, stderr, log files, event ledger, cache, crash dump - for the distinctive body. Probe 2 (mechanically different): force each path's ERROR branch (unset, malformed, expired-shaped) and repeat the sweep, because the leak usually lives in the exception formatter rather than the happy path.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "secret-exposure",
+    "detector-failure",
+    "privacy-leak"
+   ],
+   "id": "ADV-0037",
+   "inputs": [
+    "every code path that reads an environment variable, credential file or keychain entry",
+    "a planted synthetic credential with a distinctive non-authenticating body",
+    "AGENTS.md 9 (read-only diagnosis; never print the value; never modify any credential)"
+   ],
+   "mechanism": "planted-synthetic-value tracing through happy and error branches, with a deliberate-leak calibration run",
+   "not_a_duplicate_because": "ADV-0023 sweeps the corpus for secrets at rest; this traces the code paths that could put one there, especially the exception formatter.",
+   "output_path": "command-center/adversarial/ADV-0037-credential-diagnosis-path-leak.json",
+   "output_schema": "command-center/schema/exploit-proof.schema.json",
+   "owner_approval_required": false,
+   "phase": "12",
+   "question_or_target": "Does every credential-touching code path (presence checks, auth probes, error messages, logs, ledger entries, crash dumps) emit at most a zero-entropy prefix - and does any path print, persist or transmit the value?",
+   "retry_policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned and its result may never be reported as CONFIRMED (single-signal-verification rule 5). Max 3 attempts, each with a distinct instrument recorded",
+   "reviewer_requirement": "two reviewers from DIFFERENT vendors must each independently reproduce the counterexample; a split verdict is escalated to the owner with both raw probes attached and is NEVER resolved by vote - the specific probe wins over the reviewer count",
+   "slice": "ADV-1of2",
+   "spec_anchor": "_USER-PROMPTS.md:11345, 11049",
+   "tests_required": [
+    "detector control: deliberately print the planted value once in a scratch run and confirm the sweep finds it, proving the sweep can detect a leak before its silence is trusted",
+    "HARD CONSTRAINT: no real credential is read, printed, rotated, revoked, unset or modified; the planted value is synthetic and is removed afterwards"
+   ],
+   "timeout_seconds": 3600,
+   "title": "Adversarial review of the credential-diagnosis code path with a planted secret",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write",
+    "mcp__cloud-hub__modal_sandbox_create",
+    "mcp__cloud-hub__modal_sandbox_exec",
+    "mcp__cloud-hub__modal_sandbox_terminate"
+   ]
+  },
+  "ADV-0117": {
+   "_source_slice_file": "ADV-1.json",
+   "assigned_model_vendor_role": {
+    "model": "gpt-5-codex",
+    "role": "platform-fault-injector",
+    "vendor": "openai"
+   },
+   "bucket": "B10",
+   "completion_sentinel": "SUCCESS:ADV-0117 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0117 <reason>.",
+   "dependencies": [
+    "B07"
+   ],
+   "evidence_requirement": "Probe 1: run each component over the fixture tree and record per-class outcome: correct, crash, silent skip, or wrong result. Probe 2 (mechanically different): count-based cross-check - compare each component's reported item count against an independent enumeration, because a SILENT SKIP produces a plausible result and only a count comparison exposes it.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "platform-portability",
+    "detector-failure",
+    "uncontrolled-silence"
+   ],
+   "id": "ADV-0117",
+   "inputs": [
+    "every path-handling component (enumerators, packagers, installers, artifact writers, manifest hashers)",
+    "a fixture tree with one directory per hostile class",
+    "the measured precedent that os.path.relpath raised ValueError on a file literally named NUL and would have zeroed every count if the crash had been swallowed"
+   ],
+   "mechanism": "hostile-path fixture matrix with an independent count oracle that exposes silent skips",
+   "not_a_duplicate_because": "ADV-0027 covers ATTACKER-CHOSEN archive member paths; this covers legitimate-but-hostile filesystem paths that arise from ordinary use on Windows.",
+   "output_path": "command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json",
+   "output_schema": "command-center/schema/fault-injection-run.schema.json",
+   "owner_approval_required": false,
+   "phase": "12",
+   "question_or_target": "Which program components fail, corrupt data, or silently skip when a path contains a reserved device name, exceeds MAX_PATH, differs only by case, or contains spaces, non-ASCII characters or a trailing dot?",
+   "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+   "reviewer_requirement": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+   "slice": "ADV-1of2",
+   "spec_anchor": "_USER-PROMPTS.md:11016-11017, 11310, 11053",
+   "tests_required": [
+    "control: an ordinary-path fixture must produce identical counts from both enumerations",
+    "a swallowed exception must be classified as a defect distinct from a correct refusal; the NUL precedent shows a crash is safer than a silent zero"
+   ],
+   "timeout_seconds": 5400,
+   "title": "Windows-hostile path matrix: reserved names, long paths, case collisions and Unicode",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write",
+    "Edit"
+   ]
+  },
+  "ARC-0054": {
+   "_source_slice_file": "ARC-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "reliability-engineer",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:ARC-0054",
+   "dependencies": [
+    "ARC-0052"
+   ],
+   "evidence_requirement": "Each criterion is stated as a machine-checkable predicate over a real artifact (an error string, a blueprint field, a dry-run output) and is demonstrated passing and failing on real examples.",
+   "execution_substrate": "local-parallel",
+   "failure_classification": [
+    "detector-failure",
+    "single-signal-verification",
+    "green-not-live",
+    "overclaim"
+   ],
+   "id": "ARC-0054",
+   "inputs": [
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/13-ARCHITECTURE-CANDIDATES.md",
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10769-10795 (Phase 3 architecture tournament)",
+    "command-center/phase3/ROSTER.json",
+    "command-center/phase3/RUBRIC.json",
+    "command-center/phase3/A8/DESIGN.json",
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11300-11347 (47 seeded failure classes)",
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/14-NO-REGRESSION-CONTRACT.md"
+   ],
+   "output_path": "command-center/phase3/A8/FAILURE-MODES.json",
+   "output_schema": "command-center/schema/architecture-review.schema.json",
+   "owner_approval_required": false,
+   "phase": "3",
+   "question_or_target": "Enumerate the UX failure modes with real consequence - an error message naming no next action, a workflow whose stopping rule is undocumented, a catalog too large to browse, a dry-run that misrepresents cost, and a repair command that silently does nothing - and specify the OBSERVABLE acceptance criterion for each, so 'good UX' becomes testable rather than aesthetic.",
+   "retry_policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)",
+   "reviewer_requirement": "one independent reliability reviewer who must add at least one failure mode the author missed or explicitly certify the enumeration complete against the 47 seeded classes",
+   "tests_required": [
+    "Silent-repair control: run the existing repair path against an already-healthy target and assert it reports NO-OP rather than success",
+    "Criterion executability: every criterion must be evaluated by a script in the unit, or it is downgraded to advisory"
+   ],
+   "timeout_seconds": 3600,
+   "title": "A8 (UX / product-first): UX failure modes with observable acceptance criteria",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write"
+   ]
+  },
+  "AUD-0042": {
+   "_source_slice_file": "AUD-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "tool-author",
+    "vendor": "anthropic"
+   },
+   "bucket": "B02",
+   "completion_sentinel": "SUCCESS:AUD-0042 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "dependencies": [
+    "B01",
+    "AUD-0041"
+   ],
+   "evidence_requirement": "Probe 1: the runner exit code per step. Probe 2: the parsed result summary from each step's own output (counts of passed, failed, errored) - an exit code alone is never success, and a step that collects zero tests can exit 0.",
+   "execution_substrate": "worktree-isolated",
+   "failure_classification": [
+    "partial-artifact",
+    "green-not-live",
+    "detector-failure"
+   ],
+   "id": "AUD-0042",
+   "inputs": [
+    "the 60-step list from AUD-0041",
+    "the recorded 28 executed steps and their 5326 passed / 8 failed result",
+    "each step's exact command line"
+   ],
+   "output_path": "command-center/audit/AUD-0042-close-baseline-ci-gap.json",
+   "output_schema": "command-center/schema/audit-metric-baseline.schema.json",
+   "owner_approval_required": false,
+   "phase": "0",
+   "question_or_target": "Run the 32 of 60 CI-declared test steps that the Phase-0 baseline never executed, and record each outcome verbatim so the baseline covers 60 of 60 rather than 28 of 60.",
+   "retry_policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient",
+   "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+   "slice": "AUD-1of1",
+   "tests_required": [
+    "control: assert that at least one step reports a NON-ZERO collected count; a run where every step collects zero is a harness failure being reported as a pass"
+   ],
+   "timeout_seconds": 7200,
+   "title": "Execute the 32 never-executed CI test steps and close the baseline gap",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "PowerShell",
+    "Write"
+   ]
+  },
+  "AUD-0050": {
+   "_source_slice_file": "AUD-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "tool-author",
+    "vendor": "anthropic"
+   },
+   "bucket": "B02",
+   "completion_sentinel": "SUCCESS:AUD-0050 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "dependencies": [
+    "B01",
+    "AUD-0041"
+   ],
+   "evidence_requirement": "Probe 1: map each test path to the CI steps whose selector would collect it. Probe 2: run each candidate CI step with --collect-only and take the UNION of actually-collected node IDs - the selector model is the claim and the collection output is the receipt.",
+   "execution_substrate": "local-parallel",
+   "failure_classification": [
+    "green-not-live",
+    "detector-failure"
+   ],
+   "id": "AUD-0050",
+   "inputs": [
+    "every test file in the tree",
+    "the CI step inventory from AUD-0041",
+    "the measured precedent that 162 of 244 suites ran in no CI gate"
+   ],
+   "output_path": "command-center/audit/AUD-0050-test-gate-coverage-map.json",
+   "output_schema": "command-center/schema/audit-drift.schema.json",
+   "owner_approval_required": false,
+   "phase": "0",
+   "question_or_target": "Which test files exist in the repo, and for each, which CI gate (if any) would execute it on a pull request touching its module?",
+   "retry_policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient",
+   "reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+   "slice": "AUD-1of1",
+   "tests_required": [
+    "control: a test file deliberately placed outside every selector must appear in the orphan list; if the orphan list is empty on that fixture, the mapper is not discriminating"
+   ],
+   "timeout_seconds": 2400,
+   "title": "Test-file inventory and gate-coverage map: which suites are in no gate at all",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash"
+   ]
+  },
+  "AUD-0064": {
+   "_source_slice_file": "AUD-1.json",
+   "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "auditor",
+    "vendor": "anthropic"
+   },
+   "bucket": "B02",
+   "completion_sentinel": "SUCCESS:AUD-0064 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "dependencies": [
+    "B01"
+   ],
+   "evidence_requirement": "Probe 1: the dispatcher routing table enumerated statically. Probe 2: launch each route once and assert a non-empty, changing render - a pane that renders a fixed empty frame is indistinguishable from a working one on a static screenshot.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "green-not-live",
+    "detector-failure"
+   ],
+   "id": "AUD-0064",
+   "inputs": [
+    "the mon dispatcher routing table",
+    "every monitor renderer script",
+    "the 2026-08-09 observation that 5 panes render via mon cockpit"
+   ],
+   "output_path": "command-center/audit/AUD-0064-monitor-surface-reachability.json",
+   "output_schema": "command-center/schema/audit-finding.schema.json",
+   "owner_approval_required": false,
+   "phase": "0",
+   "question_or_target": "Which monitors exist, which are wired into the mon dispatcher, and which of those actually render live data rather than an empty or stale pane?",
+   "retry_policy": "at most 3 attempts, each in a DIFFERENT shell (pwsh7, git-bash, wsl bash); a repeat in the same shell is not a retry and must not be counted as one",
+   "reviewer_requirement": "one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact",
+   "slice": "AUD-1of1",
+   "tests_required": [
+    "control: point one monitor at a deliberately empty data source and confirm it is reported as EMPTY rather than OK; stall detection from mtimes alone is banned and must not appear in the receipt"
+   ],
+   "timeout_seconds": 1800,
+   "title": "Monitor and cockpit surface inventory and reachability",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "PowerShell"
+   ]
+  },
+  "BLD-0001": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "corpus-cartographer",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0001",
+   "dependencies": [
+    "B01",
+    "B02"
+   ],
+   "evidence_requirement": "Cite the exact transcript glob and the number of tool_use records parsed. The extractor script path and its sha256 go in the receipt so the ledger is reproducible. DETECTOR CONTROL IS MANDATORY: seed one KNOWN-READ file (any path cited file:line by an existing receipt) and prove it is absent from the unread set, and seed one KNOWN-UNREAD sentinel path and prove it appears. A low or zero unread count with no control is a detector failure, not a clean bill.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "detector-failure",
+    "single-signal",
+    "use-vs-mention",
+    "non-portable"
+   ],
+   "id": "BLD-0001",
+   "inputs": [
+    "~/.claude/projects/**/*.jsonl (session + subagent transcripts for this program)",
+    "`git ls-files` at the program HEAD of C:/Users/Prekzursil/source/ast-integrate",
+    "command-center/ARTIFACT-MANIFEST.json",
+    "command-center/PROGRAM-CHARTER.md (the declared scope statement)"
+   ],
+   "output_path": "command-center/receipts/BLD-0001.json",
+   "output_schema": "command-center/schema/blindspot-register.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: which files inside the program's declared scope did NO agent ever open? Build a read-ledger by extracting every Read/Grep/Glob/Bash-cat tool_use input path from the session JSONL transcripts for the whole Prompt Two program, normalise each to a repo-relative path, and set-difference the ledger against `git ls-files` at the program HEAD. Emit an unread-file register carrying a criticality weight (executable > schema > CI config > doc > fixture) and a per-file reason code (out-of-scope | never-routed | oversized | unreadable-form).  [Phase 13 question answered: what files were never read]",
+   "retry_policy": "No blind retry: re-running the same extractor is not a second signal. A disagreeing second extractor is a detector defect - fix and re-run once; a second disagreement escalates with both outputs attached.",
+   "reviewer_requirement": "One independent reviewer who re-derives the unread count with a mechanically different extractor (jq over the JSONL rather than the Python parser) and must agree within 1% or the discrepancy blocks.",
+   "tests_required": [
+    "Control (known-present): a file cited file:line in an existing receipt must NOT appear in the unread set.",
+    "Control (known-absent): a planted sentinel path present in git but touched by nobody must appear in the unread set.",
+    "Path-form collapse: the same file reached as C:/..., /c/..., .\\rel\\path and repo-relative must produce exactly ONE ledger entry.",
+    "Determinism: two runs over the same frozen transcript set must emit byte-identical registers."
+   ],
+   "timeout_seconds": 7200,
+   "title": "Never-read file census derived from the transcript read-ledger",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0011": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "conformance-engineer",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0011",
+   "dependencies": [
+    "B07",
+    "B08"
+   ],
+   "evidence_requirement": "A declared version with no executed run is reported UNSUBSTANTIATED-DECLARATION; the remedy is either a run or a narrowed declaration, never an assumption of compatibility.",
+   "execution_substrate": "cloud-batch",
+   "failure_classification": [
+    "overclaim",
+    "green-not-live",
+    "non-portable"
+   ],
+   "id": "BLD-0011",
+   "inputs": [
+    "pyproject/setup metadata, package.json engines, plugin manifest interpreter declarations",
+    "the CI matrix definition (which versions CI really runs)",
+    "the conformance subset from B08"
+   ],
+   "output_path": "command-center/receipts/BLD-0011.json",
+   "output_schema": "command-center/schema/coverage-matrix.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: which declared interpreter version was never actually executed? Extract the declared support range from python_requires, engines.node, and the plugin manifest's explicit interpreter declarations; record which versions the suite has actually run; then execute the conformance subset on the declared MINIMUM and on the newest available version, and narrow any declaration that cannot be demonstrated.  SCOPE BOUNDARY: AUD-0042 executes the 32 never-executed CI test steps. This unit contributes the INTERPRETER-VERSION axis - which declared runtime versions were never executed at all - which step coverage does not measure.  [Phase 13 question answered: what platforms were never tested]",
+   "retry_policy": "Two strikes then pivot to a container image pinned at the floor version rather than a third local interpreter install attempt.",
+   "reviewer_requirement": "One independent reviewer who checks that the CI matrix and the declared range are the same set, not merely overlapping.",
+   "tests_required": [
+    "Floor run: the conformance subset must pass on the declared minimum interpreter, or the declaration is narrowed in the same unit.",
+    "Control: a syntax feature newer than the declared floor, introduced deliberately, must be caught by the floor run.",
+    "Ceiling run: the newest available interpreter must be run and any deprecation warning recorded, not suppressed."
+   ],
+   "timeout_seconds": 5400,
+   "title": "Interpreter floor and ceiling: which declared runtime versions were never run",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0016": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "verification-engineer",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0016",
+   "dependencies": [
+    "B07",
+    "B12"
+   ],
+   "evidence_requirement": "Every PRESENT verdict carries a byte size and sha256 read from the filesystem in this unit, not copied from a manifest entry. Measured precedent: three of three agents in one corpus returned plausible digests for files that do not exist.",
+   "execution_substrate": "local-parallel",
+   "failure_classification": [
+    "overclaim",
+    "detector-failure",
+    "single-signal"
+   ],
+   "id": "BLD-0016",
+   "inputs": [
+    "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:11402-11435 (the deliverable list)",
+    "command-center/ARTIFACT-MANIFEST.json",
+    "the repo working tree at program HEAD"
+   ],
+   "output_path": "command-center/receipts/BLD-0016.json",
+   "output_schema": "command-center/schema/traceability-matrix.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: which item on the spec's Final Deliverables list (_USER-PROMPTS.md:11402-11435) has no artifact on disk? Resolve each of the listed deliverables to a concrete path or path set, probe existence, record byte size and sha256 read off disk, and register the result in ARTIFACT-MANIFEST.json. A digest is a claim, not a receipt; a file path inside a report is not proof the file exists.  SCOPE BOUNDARY: AUD-0076 covers owner requirements stated in the transcript. This unit probes the FINAL DELIVERABLES list for on-disk existence, byte size and sha256.  [Phase 13 question answered: what owner requirements disappeared]",
+   "retry_policy": "No retry: an ABSENT verdict is a finding, not a failure. Re-probing an absent path is not a second signal.",
+   "reviewer_requirement": "One independent reviewer who re-probes five PRESENT verdicts with a different tool (PowerShell Get-Item vs Python os.stat).",
+   "tests_required": [
+    "Control: a manifest entry pointing at a nonexistent path must be reported ABSENT.",
+    "Control: a zero-byte file must classify EMPTY, never PRESENT.",
+    "Control: a deliverable satisfied by a directory must require a named minimum member file, not merely a directory that exists."
+   ],
+   "timeout_seconds": 5400,
+   "title": "Final-deliverable closure by on-disk existence probe",
+   "tool_permissions": [
+    "Read",
+    "Glob",
+    "Write",
+    "Bash",
+    "PowerShell"
+   ]
+  },
+  "BLD-0024": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "defect-archaeologist",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0024",
+   "dependencies": [
+    "B02",
+    "B08"
+   ],
+   "evidence_requirement": "Re-running the identical command is a valid re-probe only when the tree SHA differs; otherwise use a mechanically different runner. The baseline used `python -m pytest` rather than CI's console script, so it is a broken detector for packaging and import-path regressions BY CONSTRUCTION - the re-verification must close that gap explicitly.",
+   "execution_substrate": "worktree-isolated",
+   "failure_classification": [
+    "stale-premise",
+    "green-not-live",
+    "single-signal"
+   ],
+   "id": "BLD-0024",
+   "inputs": [
+    "command-center/BASELINE-SNAPSHOT.json and _baseline_tests_out.json",
+    "the current test suite at program HEAD",
+    "the CI console-script entry point (the runner the baseline did NOT use)"
+   ],
+   "output_path": "command-center/receipts/BLD-0024.json",
+   "output_schema": "command-center/schema/triage-revalidation.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: does every past 'not a real regression' triage still hold? Each dismissal is a dated claim that decays. Re-run each previously dismissed failure and re-check its stated reason: the Phase 0 baseline's eight failures triage as three Windows-CRLF artifacts, four a sibling agent's transient TDD red phase, and one POSIX-only - and a triage that rests on a sibling's transient state is only valid while that state is unchanged.  [Phase 13 question answered: what failures were normalized away]",
+   "retry_policy": "Two strikes then pivot: after two inconclusive re-runs on the same failure, isolate it in a clean clone rather than re-running in the shared tree.",
+   "reviewer_requirement": "One independent reviewer who reproduces two dismissals from raw source without reading the original triage text.",
+   "tests_required": [
+    "Falsification: a 'Windows CRLF only' dismissal must be falsified by running the same test on LF-normalised bytes and observing green; if it stays red the dismissal was wrong.",
+    "Control: a dismissal whose reason cannot be falsified by ANY experiment is downgraded to UNVERIFIED and re-queued.",
+    "Runner control: at least one dismissed failure must be re-run through the CI console script to prove the runner difference is exercised."
+   ],
+   "timeout_seconds": 7200,
+   "title": "Re-verification of previously dismissed failures (a triage is a dated claim)",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0035": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "salvage-analyst",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0035",
+   "dependencies": [
+    "B02",
+    "B07"
+   ],
+   "evidence_requirement": "Recover deleted content with `git show <rev>:<path>` or `git cat-file -p`, never `git archive`, which returns CRLF worktree bytes on this box (measured 3,837 vs 3,737 bytes on a one-file control) and would make a byte comparison lie.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "data-loss-risk",
+    "non-portable",
+    "overclaim"
+   ],
+   "id": "BLD-0035",
+   "inputs": [
+    "the AUD-0094 dangling-reference receipt (consumed; references are its half, behaviour is this one)",
+    "the retirement commit(s) and the 77 deleted paths",
+    "the retained tools/lib/ salvage tree (6 modules, 72 tests)",
+    "the current shipped surface"
+   ],
+   "output_path": "command-center/receipts/BLD-0035.json",
+   "output_schema": "command-center/schema/salvage-closure.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: did the executed DELETE-ALL retirement (77 files removed across five trees) destroy any behaviour that nothing else now provides? For each deleted path, recover its last content from git, extract its public surface (exported functions, CLI entry points, hook registrations, tests, documented commands), and prove each element either exists in a retained artifact or is explicitly accepted as retired. SCOPE BOUNDARY: AUD-0094 finds the DANGLING REFERENCES the deletion left behind - links pointing at nothing. This unit asks the inverse and harder question: which BEHAVIOUR now exists nowhere, whether or not anything still references it.  [Phase 13 question answered: what existing work was ignored]",
+   "retry_policy": "No retry with a different recovery route that changes bytes. If git recovery fails, report BLOCKED with the object id.",
+   "reviewer_requirement": "One independent reviewer who samples five deleted files, recovers them independently, and searches for their surface without reading this unit's table.",
+   "tests_required": [
+    "Control: plant a synthetic deleted symbol that exists nowhere in the retained tree and prove it is reported LOST.",
+    "Control: a symbol that moved into tools/lib/ must classify PRESERVED with its new path cited.",
+    "Control: a deleted TEST whose assertion has no equivalent in the retained suite must be reported as lost coverage, not only as a lost file."
+   ],
+   "timeout_seconds": 7200,
+   "title": "Deletion blast-radius: prove the executed DELETE-ALL retirement lost no unique behaviour",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0042": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "test-architect",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0042",
+   "dependencies": [
+    "B07",
+    "B08"
+   ],
+   "evidence_requirement": "Each finding names the default, its declaration site, and the count of call sites that pass it explicitly. A default exercised only by a test that also asserts nothing is reported as unexercised.",
+   "execution_substrate": "local-parallel",
+   "failure_classification": [
+    "detector-failure",
+    "green-not-live"
+   ],
+   "id": "BLD-0042",
+   "inputs": [
+    "every public function signature, CLI flag and config default in shipped code",
+    "every call site and test invocation",
+    "the CI invocation lines (which flags CI actually passes)"
+   ],
+   "output_path": "command-center/receipts/BLD-0042.json",
+   "output_schema": "command-center/schema/test-quality-census.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: which default parameter value is never exercised because every call site passes it explicitly? For each public function default, CLI flag default and config default, enumerate call sites and tests and report the defaults with zero exercising callers. This is the static twin of the measured DEFAULT_MIN_BYTES mutation survivor and of validate.py's require_complete=False being invoked bare by CI.  SCOPE BOUNDARY: AUD-0057 is the assertion-strength census of defaults a test never exercises. This unit consumes it and contributes the CI-INVOCATION join: a default is unexercised in the SHIPPED configuration when CI itself never passes the flag, which a test-side census cannot see.  [Phase 13 question answered: what test could falsely pass]",
+   "retry_policy": "Two strikes then pivot from call-site grep to an AST call-graph before a third attempt.",
+   "reviewer_requirement": "One independent reviewer who mutates two reported defaults and confirms the suite stays green.",
+   "tests_required": [
+    "Control: the known require_complete default must be reported unexercised while CI invokes the tool bare.",
+    "Control: a default exercised by at least one asserting test must NOT be reported.",
+    "Control: a default whose value is read from the environment must be classified separately (environment-dependent default), not as exercised."
+   ],
+   "timeout_seconds": 5400,
+   "title": "Default-value exercise audit: defaults no caller ever leaves alone",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0050": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "cross-vendor independence: this unit audits work the Anthropic-vendor corpus produced, so the reader must not share the author's blind spots (C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10579)",
+    "model": "gpt-5-codex",
+    "role": "threat-modeler",
+    "vendor": "openai"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0050",
+   "dependencies": [
+    "B06",
+    "B07",
+    "B10"
+   ],
+   "evidence_requirement": "A boundary counts as CHECKED only with a named validation rule at path:line AND a test id. A boundary whose 'check' is a comment or a naming convention is UNCHECKED. Report the count of boundaries found by this walk that appear in NO existing threat model - that number is the deliverable.",
+   "execution_substrate": "local-parallel",
+   "failure_classification": [
+    "overclaim",
+    "detector-failure",
+    "credential-exposure"
+   ],
+   "id": "BLD-0050",
+   "inputs": [
+    "the architecture diagrams and the data-flow description of the shipped system",
+    "the ADV-0021 STRIDE model of the install/update path (consumed as one boundary, not re-derived)",
+    "every network call, subprocess spawn, file read of foreign content and inter-agent message site"
+   ],
+   "output_path": "command-center/receipts/BLD-0050.json",
+   "output_schema": "command-center/schema/trust-boundary-census.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: which trust boundary does the system cross without an owner, a validation rule, or a test? Walk the data and control flows and enumerate EVERY crossing - process to process, local to network, our code to a vendor API, trusted config to untrusted content, agent to agent, machine to human, build time to run time - and for each record the direction, what crosses, who owns the check, the validation rule, and the test that exercises it. SCOPE BOUNDARY: BLD-0048 enumerates by ACTOR and ADV-0021 models the install path specifically; boundary-driven enumeration finds what an actor list misses, which is why both are run.  [Phase 13 question answered: what threat actor was not modeled]",
+   "retry_policy": "Two strikes then pivot from architecture-document walking to code-site enumeration (start from every socket and subprocess call and work outward).",
+   "reviewer_requirement": "An Anthropic-vendor reviewer walks two flows independently and reports any crossing this census missed.",
+   "tests_required": [
+    "Control: delete one known validation rule in a scratch copy and prove its boundary flips to UNCHECKED.",
+    "Completeness control: every network call and subprocess spawn site in the tree must map to exactly one enumerated boundary; an unmapped site means the walk is incomplete.",
+    "Control: a boundary already covered by ADV-0021 must be marked CONSUMED, not re-audited.",
+    "Direction control: a boundary crossed in both directions must be recorded twice with separate checks - a rule that validates only inbound data is not a bidirectional check."
+   ],
+   "timeout_seconds": 7200,
+   "title": "Trust-boundary crossing census: every boundary, its owner, its validation rule and its test",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Write",
+    "Bash"
+   ]
+  },
+  "BLD-0051": {
+   "_source_slice_file": "BLD-1.json",
+   "assigned_model_vendor_role": {
+    "basis": "substantive subagent - Opus floor (rules/common/performance.md)",
+    "model": "opus",
+    "role": "privacy-analyst",
+    "vendor": "anthropic"
+   },
+   "completion_sentinel": "SUCCESS:BLD-0051",
+   "dependencies": [
+    "B07",
+    "B10"
+   ],
+   "evidence_requirement": "accounts.json is a live rotation pool: never stage it, never modify it. A finding names the variable, the scope and the evidence, and hands rotation back to the owner - the owner handles credential lifecycle personally. A zero-entropy prefix may be shown; the remainder may not.",
+   "execution_substrate": "local-serialized",
+   "failure_classification": [
+    "credential-exposure",
+    "detector-failure",
+    "data-loss-risk"
+   ],
+   "id": "BLD-0051",
+   "inputs": [
+    "every artifact writer in the program",
+    "the credential source inventory (names and scopes only)",
+    "the redaction implementation and its call sites"
+   ],
+   "output_path": "command-center/receipts/BLD-0051.json",
+   "output_schema": "command-center/schema/secret-egress-map.schema.json",
+   "owner_approval_required": false,
+   "phase": "13",
+   "question_or_target": "Question: by what path could a credential reach an artifact, log, receipt, event, package or cloud image? Map every writer (receipt emitters, event ledger, monitors, package builders, cloud job submitters, rollback backups, transcript exporters) against every credential source (environment variables, auth files, account pools, keychain/DPAPI entries, MCP configs) and mark the paths lacking redaction. READ-ONLY: report presence, byte length and scope only - never print a value, never rotate, never unset.  SCOPE BOUNDARY: IMP-0061 enforces the injected-environment credential boundary; ADV-0040 and AUD-0078 scan existing artifacts for secrets and PII. This unit contributes the WRITER-by-SOURCE egress MAP - which writer could carry which credential source - which scanning finished artifacts cannot show.  [Phase 13 question answered: what threat actor was not modeled]",
+   "retry_policy": "No retry that touches a real credential. A blocked probe is reported NOT-CHECKED with the reason.",
+   "reviewer_requirement": "One independent reviewer who greps the emitted artifacts for the synthetic token and for high-entropy strings before sign-off.",
+   "tests_required": [
+    "Redaction: a synthetic fake token planted in a scratch input must be removed from every writer's output.",
+    "Shape control: the JSON-embedded form {\"password\": ...} and a camelCase variant must also be caught - both shapes have bypassed a redactor on this estate before.",
+    "Live-path control: prove the redactor is ON in the SHIPPED path, not only in the test harness, by observing it in a real emitted artifact.",
+    "Safety control: prove the unit wrote no credential value into its own receipt."
+   ],
+   "timeout_seconds": 7200,
+   "title": "Secret-egress surface map, read-only, with rotation handed back to the owner",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Write",
+    "Bash"
+   ]
+  }
+ },
+ "probe_dirs": {
+  "ADV-0033": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "build_artifact.py",
+   "captures",
+   "lib.py",
+   "probe1_control.py",
+   "probe2_router.py",
+   "probe_payload.py",
+   "runtime",
+   "write_receipts.py"
+  ],
+  "ADV-0037": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "_cloud_ok_handoff_measure_out.json",
+   "_cloud_ok_measure2_out.json",
+   "_cloud_ok_rerefute_out.json",
+   "_cloud_ok_validate_out.json",
+   "detector_control.py",
+   "emit_artifact.py",
+   "probe1_happy_path.py",
+   "probe2_error_branch.py",
+   "probe_case.py",
+   "probe_common.py",
+   "write_receipts.py"
+  ],
+  "ADV-0117": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "probe1_component_matrix.py",
+   "probe2_count_crosscheck.py",
+   "probe_common.py",
+   "write_receipts.py"
+  ],
+  "ARC-0054": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "anchors.py",
+   "criteria.py",
+   "emit_failure_modes.py",
+   "overclaim.py",
+   "probe1.py",
+   "probe1_both_states.py",
+   "probe2.py",
+   "probe2_overclaim.py",
+   "repair.py",
+   "reviewer.py",
+   "scenario.py",
+   "write_receipts.py"
+  ],
+  "AUD-0042": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "common.py",
+   "controls.py",
+   "emit_artifact.py",
+   "fixtures",
+   "probe1_exit_codes.py",
+   "probe2_result_summaries.py",
+   "runs",
+   "write_receipts.py"
+  ],
+  "AUD-0050": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "emit_artifact.py",
+   "fixtures",
+   "mapper.py",
+   "probe1_selector_map.py",
+   "probe2_collect_only.py",
+   "write_receipts.py"
+  ],
+  "AUD-0064": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "_fix_out.json",
+   "_validate_out.json",
+   "probe1-dispatcher-table.raw.txt",
+   "probe1_static_dispatch_table.py",
+   "probe2-route-renders.raw.txt",
+   "probe2_route_renders.py"
+  ],
+  "BLD-0001": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "emit_register.py",
+   "extract_read_ledger.py",
+   "fixtures",
+   "jq_extract.jq",
+   "jq_reviewer.py",
+   "probe1.py",
+   "probe1_controls.py",
+   "probe2.py",
+   "probe2_determinism.py",
+   "scenario.py",
+   "write_receipts.py"
+  ],
+  "BLD-0011": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "emit_matrix.py",
+   "fixtures",
+   "inventory.py",
+   "measure.py",
+   "probe1_floor_control.py",
+   "probe2_ceiling_reviewer.py",
+   "runtimes.py",
+   "write_receipts.py"
+  ],
+  "BLD-0016": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "classify.py",
+   "controls.py",
+   "deliverables.py",
+   "emit_receipt.py",
+   "fixtures",
+   "join.py",
+   "probe1_planted_controls.py",
+   "probe2_independent_reprobe.py",
+   "write_receipts.py"
+  ],
+  "BLD-0024": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "ci_console.py",
+   "emit_receipt.py",
+   "fixtures",
+   "probe1_lf_falsify.py",
+   "probe2_console_reviewer.py",
+   "revalidate.py",
+   "run_pymodule.py",
+   "write_receipts.py"
+  ],
+  "BLD-0035": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "analyze.py",
+   "classify.py",
+   "emit_closure.py",
+   "probe1_controls.py",
+   "probe2_independent_sample.py",
+   "recover.py",
+   "scenario.py",
+   "surface.py"
+  ],
+  "BLD-0042": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "census.json",
+   "census.py",
+   "constants.py",
+   "emit_receipt.py",
+   "fixtures",
+   "probe1_controls.py",
+   "probe2_reviewer.py",
+   "validate_schema.py",
+   "write_receipts.py"
+  ],
+  "BLD-0050": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "census.py",
+   "emit.py",
+   "probe1_delete_rule.py",
+   "probe2_completeness.py",
+   "walk.py",
+   "write_receipts.py"
+  ],
+  "BLD-0051": [
+   "SUBAGENT-RETURN.json",
+   "UNIT-ARTIFACT-MANIFEST.json",
+   "__pycache__",
+   "constants.py",
+   "emit_map.py",
+   "inventory.py",
+   "probe1_scratch_redaction.py",
+   "probe2_live_reviewer.py",
+   "scratch_writers.py",
+   "write_receipts.py"
+  ]
+ },
+ "out_state": {
+  "ADV-0033": {
+   "exists": true,
+   "bytes": 51774
+  },
+  "ADV-0037": {
+   "exists": true,
+   "bytes": 55527
+  },
+  "ADV-0117": {
+   "exists": true,
+   "bytes": 248441
+  },
+  "ARC-0054": {
+   "exists": true,
+   "bytes": 19119
+  },
+  "AUD-0042": {
+   "exists": true,
+   "bytes": 28402
+  },
+  "AUD-0050": {
+   "exists": true,
+   "bytes": 1930737
+  },
+  "AUD-0064": {
+   "exists": true,
+   "bytes": 36176
+  },
+  "BLD-0001": {
+   "exists": true,
+   "bytes": 53751
+  },
+  "BLD-0011": {
+   "exists": true,
+   "bytes": 29616
+  },
+  "BLD-0016": {
+   "exists": true,
+   "bytes": 35988
+  },
+  "BLD-0024": {
+   "exists": true,
+   "bytes": 48702
+  },
+  "BLD-0035": {
+   "exists": true,
+   "bytes": 157698
+  },
+  "BLD-0042": {
+   "exists": true,
+   "bytes": 381008
+  },
+  "BLD-0050": {
+   "exists": true,
+   "bytes": 489128
+  },
+  "BLD-0051": {
+   "exists": true,
+   "bytes": 114502
+  }
+ }
+}

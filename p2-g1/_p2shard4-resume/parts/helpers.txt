@@ -1,0 +1,80 @@
+def _stash_invalid(doc: dict, key: str, legacy: list, kept: list, hist_key: str) -> None:
+    dropped = [r for r in legacy if r not in kept]
+    if dropped:
+        e = doc.setdefault("extensions", {})
+        h = e.setdefault(hist_key, [])
+        for r in dropped:
+            if r not in h:
+                h.append(r)
+
+
+def _valid_defect_row(r: dict) -> bool:
+    if not isinstance(r, dict):
+        return False
+    if set(r.keys()) - {"id", "severity", "status", "summary", "waiver_reference"}:
+        return False
+    for k in ("id", "severity", "status", "summary"):
+        if not isinstance(r.get(k), str) or not r.get(k):
+            return False
+    if r.get("severity") not in {"P0", "P1", "P2", "P3"}:
+        return False
+    if r.get("status") not in {"open", "resolved", "waived-by-owner", "superseded"}:
+        return False
+    if r.get("status") == "waived-by-owner" and not r.get("waiver_reference"):
+        return False
+    return True
+
+
+def _valid_test_row(r: dict) -> bool:
+    if not isinstance(r, dict):
+        return False
+    if set(r.keys()) - {"id", "name", "command", "result", "assertions",
+                        "duration_seconds", "output_tail"}:
+        return False
+    for k in ("id", "command", "result"):
+        if not isinstance(r.get(k), str) or not r.get(k):
+            return False
+    if r.get("result") not in {"PASS", "FAIL", "ERROR", "SKIP", "NOT-RUN"}:
+        return False
+    if "assertions" in r and not isinstance(r.get("assertions"), int):
+        return False
+    return True
+
+
+def _valid_evidence_row(r: dict) -> bool:
+    if not isinstance(r, dict):
+        return False
+    if set(r.keys()) - {"claim", "verdict", "confidence", "anchor", "probes",
+                        "unverified", "settling_experiment"}:
+        return False
+    for k in ("claim", "verdict", "anchor", "probes"):
+        if k not in r:
+            return False
+    if r.get("verdict") not in {"CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"}:
+        return False
+    if not isinstance(r.get("probes"), list) or not r.get("probes"):
+        return False
+    if not all(_valid_artifact_probe(pr) for pr in r["probes"]):
+        return False
+    if r.get("verdict") in {"CONFIRMED", "REFUTED"}:
+        roles = {pr.get("role") for pr in r["probes"]}
+        if not {"source", "verifier"} <= roles:
+            return False
+    if r.get("unverified") and not r.get("settling_experiment"):
+        return False
+    return True
+
+
+def _valid_dc_row(r: dict) -> bool:
+    if not isinstance(r, dict):
+        return False
+    if set(r.keys()) - {"consumer", "artifact_path", "executed", "read_ok", "exit_code", "probe"}:
+        return False
+    for k in ("consumer", "artifact_path", "executed", "read_ok", "probe"):
+        if k not in r:
+            return False
+    if not isinstance(r.get("consumer"), str) or not r.get("consumer"):
+        return False
+    if r.get("executed") is not True or r.get("read_ok") is not True:
+        return False
+    return _valid_artifact_probe(r.get("probe"))

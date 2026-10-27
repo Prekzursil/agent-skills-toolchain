@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file:///C:/Users/Prekzursil/source/ast-integrate/command-center/schema/environment-record.schema.json",
+  "title": "Mandatory environment record (TST-0352)",
+  "description": "A measurement without this record is inadmissible as evidence, not merely undocumented. Nine fields are required; empty or invalid values do not count.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "os_build",
+    "shell",
+    "interpreter_version",
+    "package_versions",
+    "git_core_autocrlf",
+    "locale",
+    "timezone",
+    "concurrency",
+    "commit_sha"
+  ],
+  "properties": {
+    "os_build": {
+      "type": "object",
+      "minProperties": 1,
+      "required": ["system"],
+      "properties": {
+        "system": { "type": "string", "minLength": 1 },
+        "release": { "type": "string", "minLength": 1 },
+        "machine": { "type": "string", "minLength": 1 },
+        "platform": { "type": "string", "minLength": 1 },
+        "os_release_pretty": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "shell": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "path": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "interpreter_version": { "type": "string", "minLength": 1 },
+    "package_versions": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "git_core_autocrlf": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["value"],
+          "properties": {
+            "scope": { "type": "string", "minLength": 1 },
+            "value": { "type": "string", "enum": ["true", "false", "input", "unset"] }
+          },
+          "additionalProperties": true
+        },
+        { "type": "string", "enum": ["true", "false", "input", "unset"] }
+      ]
+    },
+    "locale": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "timezone": { "type": "string", "minLength": 1, "pattern": "\\S" },
+    "concurrency": { "type": "integer", "minimum": 1 },
+    "commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{40}$",
+      "description": "Full SHA-1. Missing, null, or a non-hex token is invalid."
+    }
+  }
+}

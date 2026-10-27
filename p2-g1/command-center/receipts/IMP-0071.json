@@ -1,0 +1,842 @@
+{
+  "unit_id": "IMP-0071",
+  "id": "IMP-0071",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "implementation-receipt",
+  "title": "Release channels and promotion rules under PR-ONLY release mode",
+  "question": "Implement stable/beta/canary channels and the promotion path between them, where under the binding PR-ONLY owner decision a promotion is expressed as a pull request against the index rather than a direct write — and where an installed client can pin a channel.",
+  "sentinel": "SUCCESS:IMP-0071",
+  "completion_sentinel": "SUCCESS:IMP-0071",
+  "min_bytes_threshold": 2048,
+  "ts": "2026-08-25T00:57:52Z",
+  "release_mode": "PR-ONLY",
+  "binding_owner_decision": {
+    "release_mode": "PR-ONLY",
+    "source": "OWNER-DECISIONS: Release mode = PR-ONLY (binding)",
+    "enforced_in_code": true,
+    "enforcement": [
+      "tools/marketplace/promotion.py:promote_direct_write raises DirectWritePromotionRefused",
+      "tools/marketplace/promotion.py:apply_promotion_to_index_file raises DirectWritePromotionRefused",
+      "tools/marketplace/promotion.py:promote_via_pr mutates only a clone and returns a unified diff"
+    ]
+  },
+  "stopping_condition_13": {
+    "text": "release/canary succeeds",
+    "as_written": "unsatisfiable as written under PR-ONLY",
+    "silently_redefined": false,
+    "routed_to_owner": true,
+    "inline": "Program stopping condition 13 ('release/canary succeeds') is unsatisfiable as written under PR-ONLY and is routed to the owner rather than silently redefined.",
+    "promotion_module_inline": "Program stopping condition 13 ('release/canary succeeds') is unsatisfiable as written under PR-ONLY and is routed to the owner rather than silently redefined.",
+    "owner_route": "Program stopping condition 13 ('release/canary succeeds') is unsatisfiable as written under PR-ONLY and is routed to the owner rather than silently redefined. A package-index canary channel is not a program canary deployment. CI install/upgrade/rollback rehearsal is REL-0003's question; IMP-0071 does not treat it as a substitute that satisfies condition 13."
+  },
+  "implementation": {
+    "package_channels": [
+      "stable",
+      "beta",
+      "canary"
+    ],
+    "client_pin": "strict: resolve/install only versions whose channel equals the pin",
+    "no_cross_channel_fallback": true,
+    "promotion": "PR diff against the index; zero direct writes",
+    "range_resolution": "out of scope (IMP-0070)",
+    "live_marketplace_json": "absent on this worktree; this unit uses a fixture index and does not author a second live control plane (IMP-0067)",
+    "modules": [
+      "tools/marketplace/index_model.py",
+      "tools/marketplace/channels.py",
+      "tools/marketplace/promotion.py"
+    ]
+  },
+  "evidence": [
+    {
+      "claim": "A promotion attempt produces a PR diff artifact and performs zero direct index writes; index sha256 is unchanged before and after.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/marketplace/channels.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+          "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+          "fingerprint": "0e4464666427b0b2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+          "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+          "fingerprint": "dfa6fd7bfbcf08d4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A channel-pinned client resolves only within its channel across a 10-case matrix (pin stable, pin beta, pin canary, cross-channel refusal).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/marketplace/channels.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+          "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+          "fingerprint": "0e4464666427b0b2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+          "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+          "fingerprint": "dfa6fd7bfbcf08d4",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_channels.py",
+      "command": "python3 -B tools/marketplace/tests/test_channels.py",
+      "result": "PASS",
+      "output_tail": "PASS test_pin_stable\nPASS test_pin_beta\nPASS test_cross_channel_refusal\nPASS test_pin_does_not_mutate_index\nPASS test_ten_case_matrix\nSUCCESS:test_channels 5 passed"
+    },
+    {
+      "id": "test_promotion_is_pr_only.py",
+      "command": "python3 -B tools/marketplace/tests/test_promotion_is_pr_only.py",
+      "result": "PASS",
+      "output_tail": "PASS test_no_direct_index_write\nPASS test_pr_diff_leaves_caller_index_untouched\nPASS test_apply_promotion_to_index_file_refused\nPASS test_naive_in_place_write_would_change_hash\nSUCCESS:test_promotion_is_pr_only 4 passed"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "direct-write-promotion-path",
+      "kind": "other",
+      "description": "PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead [recorded extras: {\"detail\": \"PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "apply-promotion-to-index-file",
+      "kind": "other",
+      "description": "PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index [recorded extras: {\"detail\": \"PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "stable-pin-refuses-beta-version",
+      "kind": "other",
+      "description": "CrossChannelRefused [recorded extras: {\"case\": \"c04-stable-refuses-echo-beta\", \"expect\": \"CrossChannelRefused\"}]",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0071-probe1-index-hash",
+    "independent": true,
+    "verdict": "PASS",
+    "notes": "promote_direct_write and apply_promotion_to_index_file raise DirectWritePromotionRefused. promote_via_pr returns a unified diff and leaves the caller index hash unchanged."
+  },
+  "dependencies": {
+    "IMP-0070": "channel pin does not implement semver range resolution",
+    "IMP-0067": "no second live marketplace.json authored"
+  },
+  "artifacts": [
+    {
+      "path": "tools/marketplace/channels.py",
+      "role": "primary",
+      "bytes": 2017,
+      "sha256": "33ac4d72e3df4770df4d6ce0b1fbd4f766887934cfe1ceb89a920cdda8819771",
+      "exists": true,
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/promotion.py",
+      "role": "primary",
+      "bytes": 1892,
+      "sha256": "a3b2f848831ea6cad77701f1b529c82d7bea1cc91e902474c6729b6500d38474",
+      "exists": true,
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/index_model.py",
+      "role": "primary",
+      "bytes": 852,
+      "sha256": "91a3f0d1e71da02eca5572120fc3f768d29bec711125c441c8e7358fdd4831e2",
+      "exists": true,
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_channels.py",
+      "role": "supporting",
+      "bytes": 1566,
+      "sha256": "649d87c96fd8fff23b57e6a7a4b2b6afe240cfe9d93f40596de180c55a8fd004",
+      "exists": true,
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_promotion_is_pr_only.py",
+      "role": "supporting",
+      "bytes": 2049,
+      "sha256": "13bc0799c777ca1380cf287d54160cb6d9306041ab1f80f12e7ac9ca0cb2bebd",
+      "exists": true,
+      "eol": "LF"
+    }
+  ],
+  "inline_owner_route": "Program stopping condition 13 ('release/canary succeeds') is unsatisfiable as written under PR-ONLY and is routed to the owner rather than silently redefined.",
+  "extensions": {
+    "w4s8_prior_shapes": {
+      "prior_extensions": {
+        "w4s8_prior_shapes": {
+          "prior_extensions": {
+            "w4s8_prior_shapes": {
+              "prior_artifacts": [
+                {
+                  "path": "command-center/receipts/IMP-0071.json",
+                  "role": "primary"
+                },
+                {
+                  "path": "tools/marketplace/channels.py",
+                  "role": "primary",
+                  "bytes": 2017,
+                  "sha256": "33ac4d72e3df4770df4d6ce0b1fbd4f766887934cfe1ceb89a920cdda8819771",
+                  "exists": true,
+                  "eol": "LF"
+                },
+                {
+                  "path": "tools/marketplace/promotion.py",
+                  "role": "primary",
+                  "bytes": 1892,
+                  "sha256": "a3b2f848831ea6cad77701f1b529c82d7bea1cc91e902474c6729b6500d38474",
+                  "exists": true,
+                  "eol": "LF"
+                },
+                {
+                  "path": "tools/marketplace/index_model.py",
+                  "role": "primary",
+                  "bytes": 852,
+                  "sha256": "91a3f0d1e71da02eca5572120fc3f768d29bec711125c441c8e7358fdd4831e2",
+                  "exists": true,
+                  "eol": "LF"
+                },
+                {
+                  "path": "tools/marketplace/tests/test_channels.py",
+                  "role": "supporting",
+                  "bytes": 1566,
+                  "sha256": "649d87c96fd8fff23b57e6a7a4b2b6afe240cfe9d93f40596de180c55a8fd004",
+                  "exists": true,
+                  "eol": "LF"
+                },
+                {
+                  "path": "tools/marketplace/tests/test_promotion_is_pr_only.py",
+                  "role": "supporting",
+                  "bytes": 2049,
+                  "sha256": "13bc0799c777ca1380cf287d54160cb6d9306041ab1f80f12e7ac9ca0cb2bebd",
+                  "exists": true,
+                  "eol": "LF"
+                }
+              ],
+              "self_digest_rows": [
+                {
+                  "path": "command-center/receipts/IMP-0071.json",
+                  "role": "primary",
+                  "dropped_reason": "self-digest row: a receipt cannot contain its own sha256"
+                }
+              ],
+              "artifact_roles_prior": {
+                "tools/marketplace/channels.py": "implementation",
+                "tools/marketplace/promotion.py": "implementation",
+                "tools/marketplace/index_model.py": "implementation",
+                "tools/marketplace/tests/test_channels.py": "test",
+                "tools/marketplace/tests/test_promotion_is_pr_only.py": "test"
+              },
+              "prior_evidence": [
+                {
+                  "id": "signal-1-promotion-pr-only",
+                  "claim": "A promotion attempt produces a PR diff artifact and performs zero direct index writes; index sha256 is unchanged before and after.",
+                  "verdict": "CONFIRMED",
+                  "index_sha256_before": "602c78aa758286a4f7e62298f7659893d1329ac25b9de8741d99eef7c5fb5f6a",
+                  "index_sha256_after": "602c78aa758286a4f7e62298f7659893d1329ac25b9de8741d99eef7c5fb5f6a",
+                  "index_hash_unchanged": true,
+                  "direct_index_writes": 0,
+                  "pr_diff_sha256": "842d6f2b764189216aa77e3a8721e376cf233ddb9d44e59e59759ca21ba44d94",
+                  "pr_diff_bytes": 1006,
+                  "direct_write_guard": "PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead",
+                  "index_file_write_guard": "PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index"
+                },
+                {
+                  "id": "signal-2-channel-pin-matrix",
+                  "claim": "A channel-pinned client resolves only within its channel across a 10-case matrix (pin stable, pin beta, pin canary, cross-channel refusal).",
+                  "verdict": "CONFIRMED",
+                  "cases": 10,
+                  "passed": 10,
+                  "failed": [],
+                  "PIN_MATRIX": [
+                    {
+                      "id": "c01-stable-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "stable",
+                      "expect": "1.0.0"
+                    },
+                    {
+                      "id": "c02-beta-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "beta",
+                      "expect": "1.1.0-beta.1"
+                    },
+                    {
+                      "id": "c03-canary-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "canary",
+                      "expect": "1.2.0-canary.1"
+                    },
+                    {
+                      "id": "c04-stable-refuses-echo-beta",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "stable",
+                      "version": "1.1.0-beta.1",
+                      "expect": "refuse"
+                    },
+                    {
+                      "id": "c05-beta-refuses-echo-canary",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "beta",
+                      "version": "1.2.0-canary.1",
+                      "expect": "refuse"
+                    },
+                    {
+                      "id": "c06-canary-refuses-echo-stable",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "canary",
+                      "version": "1.0.0",
+                      "expect": "refuse"
+                    },
+                    {
+                      "id": "c07-stable-widget",
+                      "action": "resolve",
+                      "package": "widget",
+                      "pin": "stable",
+                      "expect": "2.0.0"
+                    },
+                    {
+                      "id": "c08-beta-widget",
+                      "action": "resolve",
+                      "package": "widget",
+                      "pin": "beta",
+                      "expect": "2.1.0-beta.1"
+                    },
+                    {
+                      "id": "c09-stable-refuses-canary-only",
+                      "action": "resolve",
+                      "package": "canary-only",
+                      "pin": "stable",
+                      "expect": "refuse"
+                    },
+                    {
+                      "id": "c10-canary-canary-only",
+                      "action": "resolve",
+                      "package": "canary-only",
+                      "pin": "canary",
+                      "expect": "0.9.0-canary.1"
+                    }
+                  ],
+                  "results": [
+                    {
+                      "id": "c01-stable-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "stable",
+                      "expect": "1.0.0",
+                      "got": "1.0.0",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    },
+                    {
+                      "id": "c02-beta-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "beta",
+                      "expect": "1.1.0-beta.1",
+                      "got": "1.1.0-beta.1",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    },
+                    {
+                      "id": "c03-canary-echo",
+                      "action": "resolve",
+                      "package": "echo",
+                      "pin": "canary",
+                      "expect": "1.2.0-canary.1",
+                      "got": "1.2.0-canary.1",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    },
+                    {
+                      "id": "c04-stable-refuses-echo-beta",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "stable",
+                      "expect": "refuse",
+                      "got": null,
+                      "error": "pin=stable refused echo@1.1.0-beta.1 (lives on channel=beta)",
+                      "refused": true,
+                      "ok": true
+                    },
+                    {
+                      "id": "c05-beta-refuses-echo-canary",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "beta",
+                      "expect": "refuse",
+                      "got": null,
+                      "error": "pin=beta refused echo@1.2.0-canary.1 (lives on channel=canary)",
+                      "refused": true,
+                      "ok": true
+                    },
+                    {
+                      "id": "c06-canary-refuses-echo-stable",
+                      "action": "install",
+                      "package": "echo",
+                      "pin": "canary",
+                      "expect": "refuse",
+                      "got": null,
+                      "error": "pin=canary refused echo@1.0.0 (lives on channel=stable)",
+                      "refused": true,
+                      "ok": true
+                    },
+                    {
+                      "id": "c07-stable-widget",
+                      "action": "resolve",
+                      "package": "widget",
+                      "pin": "stable",
+                      "expect": "2.0.0",
+                      "got": "2.0.0",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    },
+                    {
+                      "id": "c08-beta-widget",
+                      "action": "resolve",
+                      "package": "widget",
+                      "pin": "beta",
+                      "expect": "2.1.0-beta.1",
+                      "got": "2.1.0-beta.1",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    },
+                    {
+                      "id": "c09-stable-refuses-canary-only",
+                      "action": "resolve",
+                      "package": "canary-only",
+                      "pin": "stable",
+                      "expect": "refuse",
+                      "got": null,
+                      "error": "pin=stable package=canary-only: no version on that channel",
+                      "refused": true,
+                      "ok": true
+                    },
+                    {
+                      "id": "c10-canary-canary-only",
+                      "action": "resolve",
+                      "package": "canary-only",
+                      "pin": "canary",
+                      "expect": "0.9.0-canary.1",
+                      "got": "0.9.0-canary.1",
+                      "error": null,
+                      "refused": false,
+                      "ok": true
+                    }
+                  ]
+                }
+              ],
+              "prior_tests": {
+                "test_channels.py": {
+                  "exit_code": 0,
+                  "tail": "PASS test_pin_stable\nPASS test_pin_beta\nPASS test_cross_channel_refusal\nPASS test_pin_does_not_mutate_index\nPASS test_ten_case_matrix\nSUCCESS:test_channels 5 passed"
+                },
+                "test_promotion_is_pr_only.py": {
+                  "exit_code": 0,
+                  "tail": "PASS test_no_direct_index_write\nPASS test_pr_diff_leaves_caller_index_untouched\nPASS test_apply_promotion_to_index_file_refused\nPASS test_naive_in_place_write_would_change_hash\nSUCCESS:test_promotion_is_pr_only 4 passed"
+                }
+              },
+              "prior_negative_controls": [
+                {
+                  "id": "direct-write-promotion-path",
+                  "expect": "DirectWritePromotionRefused",
+                  "fired": true,
+                  "detail": "PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead"
+                },
+                {
+                  "id": "apply-promotion-to-index-file",
+                  "expect": "DirectWritePromotionRefused",
+                  "fired": true,
+                  "detail": "PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index"
+                },
+                {
+                  "id": "stable-pin-refuses-beta-version",
+                  "expect": "CrossChannelRefused",
+                  "case": "c04-stable-refuses-echo-beta"
+                }
+              ],
+              "reviewer_extra_keys": {
+                "requirement": "Reviewer must confirm the PR-ONLY constraint is enforced in code, not only documented.",
+                "code_enforcement_confirmed": true
+              }
+            },
+            "completion": {
+              "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+            }
+          },
+          "prior_artifacts": [
+            {
+              "path": "tools/marketplace/channels.py",
+              "role": "primary",
+              "bytes": 2017,
+              "sha256": "33ac4d72e3df4770df4d6ce0b1fbd4f766887934cfe1ceb89a920cdda8819771",
+              "exists": true,
+              "eol": "LF"
+            },
+            {
+              "path": "tools/marketplace/promotion.py",
+              "role": "primary",
+              "bytes": 1892,
+              "sha256": "a3b2f848831ea6cad77701f1b529c82d7bea1cc91e902474c6729b6500d38474",
+              "exists": true,
+              "eol": "LF"
+            },
+            {
+              "path": "tools/marketplace/index_model.py",
+              "role": "primary",
+              "bytes": 852,
+              "sha256": "91a3f0d1e71da02eca5572120fc3f768d29bec711125c441c8e7358fdd4831e2",
+              "exists": true,
+              "eol": "LF"
+            },
+            {
+              "path": "tools/marketplace/tests/test_channels.py",
+              "role": "supporting",
+              "bytes": 1566,
+              "sha256": "649d87c96fd8fff23b57e6a7a4b2b6afe240cfe9d93f40596de180c55a8fd004",
+              "exists": true,
+              "eol": "LF"
+            },
+            {
+              "path": "tools/marketplace/tests/test_promotion_is_pr_only.py",
+              "role": "supporting",
+              "bytes": 2049,
+              "sha256": "13bc0799c777ca1380cf287d54160cb6d9306041ab1f80f12e7ac9ca0cb2bebd",
+              "exists": true,
+              "eol": "LF"
+            }
+          ],
+          "prior_evidence": [
+            {
+              "claim": "A promotion attempt produces a PR diff artifact and performs zero direct index writes; index sha256 is unchanged before and after.",
+              "verdict": "CONFIRMED",
+              "confidence": "almost-certain",
+              "anchor": "tools/marketplace/channels.py",
+              "probes": [
+                {
+                  "role": "source",
+                  "method": "command",
+                  "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+                  "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+                  "fingerprint": "0e4464666427b0b2",
+                  "exit_code": 0
+                },
+                {
+                  "role": "verifier",
+                  "method": "command",
+                  "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+                  "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+                  "fingerprint": "dfa6fd7bfbcf08d4",
+                  "exit_code": 0
+                }
+              ]
+            },
+            {
+              "claim": "A channel-pinned client resolves only within its channel across a 10-case matrix (pin stable, pin beta, pin canary, cross-channel refusal).",
+              "verdict": "CONFIRMED",
+              "confidence": "almost-certain",
+              "anchor": "tools/marketplace/channels.py",
+              "probes": [
+                {
+                  "role": "source",
+                  "method": "command",
+                  "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+                  "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+                  "fingerprint": "0e4464666427b0b2",
+                  "exit_code": 0
+                },
+                {
+                  "role": "verifier",
+                  "method": "command",
+                  "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+                  "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+                  "fingerprint": "dfa6fd7bfbcf08d4",
+                  "exit_code": 0
+                }
+              ]
+            }
+          ],
+          "prior_tests": [
+            {
+              "id": "test_channels.py",
+              "command": "",
+              "result": "PASS",
+              "output_tail": "PASS test_pin_stable\nPASS test_pin_beta\nPASS test_cross_channel_refusal\nPASS test_pin_does_not_mutate_index\nPASS test_ten_case_matrix\nSUCCESS:test_channels 5 passed"
+            },
+            {
+              "id": "test_promotion_is_pr_only.py",
+              "command": "",
+              "result": "PASS",
+              "output_tail": "PASS test_no_direct_index_write\nPASS test_pr_diff_leaves_caller_index_untouched\nPASS test_apply_promotion_to_index_file_refused\nPASS test_naive_in_place_write_would_change_hash\nSUCCESS:test_promotion_is_pr_only 4 passed"
+            }
+          ],
+          "prior_negative_controls": [
+            {
+              "id": "direct-write-promotion-path",
+              "kind": "other",
+              "description": "PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead [recorded extras: {\"detail\": \"PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+              "fired_on_bad_state": true,
+              "silent_on_good_state": true
+            },
+            {
+              "id": "apply-promotion-to-index-file",
+              "kind": "other",
+              "description": "PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index [recorded extras: {\"detail\": \"PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+              "fired_on_bad_state": true,
+              "silent_on_good_state": true
+            },
+            {
+              "id": "stable-pin-refuses-beta-version",
+              "kind": "other",
+              "description": "CrossChannelRefused [recorded extras: {\"case\": \"c04-stable-refuses-echo-beta\", \"expect\": \"CrossChannelRefused\"}]",
+              "fired_on_bad_state": true,
+              "silent_on_good_state": true
+            }
+          ],
+          "prior_downstream_consumers": [
+            {
+              "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+              "artifact_path": "command-center/receipts/IMP-0071.json",
+              "executed": true,
+              "read_ok": true,
+              "exit_code": 0,
+              "probe": {
+                "role": "verifier",
+                "method": "command",
+                "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0071",
+                "raw_output": "  SUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py\n     \"got\": false,\n     \"ok\": true\n    }\n   ],\n   \"unit_id\": \"IMP-0071\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal\nartifact command-center/receipts/IMP-0071.json bytes=11744 sha256=e80b0c2e743c939aaaafe7e62f981847732fd84644f8c9a564c926f14e677807\nSUCCESS:delivered IMP-0071",
+                "fingerprint": "f768cec85fcc23cc",
+                "exit_code": 0
+              }
+            }
+          ]
+        },
+        "completion": {
+          "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+        }
+      },
+      "prior_artifacts": [
+        {
+          "path": "tools/marketplace/channels.py",
+          "role": "primary",
+          "bytes": 2017,
+          "sha256": "33ac4d72e3df4770df4d6ce0b1fbd4f766887934cfe1ceb89a920cdda8819771",
+          "exists": true,
+          "eol": "LF"
+        },
+        {
+          "path": "tools/marketplace/promotion.py",
+          "role": "primary",
+          "bytes": 1892,
+          "sha256": "a3b2f848831ea6cad77701f1b529c82d7bea1cc91e902474c6729b6500d38474",
+          "exists": true,
+          "eol": "LF"
+        },
+        {
+          "path": "tools/marketplace/index_model.py",
+          "role": "primary",
+          "bytes": 852,
+          "sha256": "91a3f0d1e71da02eca5572120fc3f768d29bec711125c441c8e7358fdd4831e2",
+          "exists": true,
+          "eol": "LF"
+        },
+        {
+          "path": "tools/marketplace/tests/test_channels.py",
+          "role": "supporting",
+          "bytes": 1566,
+          "sha256": "649d87c96fd8fff23b57e6a7a4b2b6afe240cfe9d93f40596de180c55a8fd004",
+          "exists": true,
+          "eol": "LF"
+        },
+        {
+          "path": "tools/marketplace/tests/test_promotion_is_pr_only.py",
+          "role": "supporting",
+          "bytes": 2049,
+          "sha256": "13bc0799c777ca1380cf287d54160cb6d9306041ab1f80f12e7ac9ca0cb2bebd",
+          "exists": true,
+          "eol": "LF"
+        }
+      ],
+      "prior_evidence": [
+        {
+          "claim": "A promotion attempt produces a PR diff artifact and performs zero direct index writes; index sha256 is unchanged before and after.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/marketplace/channels.py",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+              "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+              "fingerprint": "0e4464666427b0b2",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+              "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+              "fingerprint": "dfa6fd7bfbcf08d4",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "claim": "A channel-pinned client resolves only within its channel across a 10-case matrix (pin stable, pin beta, pin canary, cross-channel refusal).",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "tools/marketplace/channels.py",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe1_promotion_pr_only.py",
+              "raw_output": "{\n \"index_sha256_before\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_sha256_after\": \"a1e4f3e7b095fa660f538d0d1a676a09466e0ad760e17c13bb65b7ecf75bead0\",\n \"index_hash_unchanged\": true,\n \"direct_index_writes\": 0,\n \"pr_diff_sha256\": \"6eab464e8b0ffdd25a8f534faa8c7f020f8ea8a9fa7bc8316550655539b1e3ce\",\n \"pr_diff_bytes\": 158,\n \"release_mode\": \"PR-ONLY\",\n \"direct_write_guard\": \"PR-ONLY forbids direct index writes\",\n \"index_file_write_guard\": \"refused write to C:\\\\Users\\\\Prekzursil\\\\p2-g1\\\\command-center\\\\receipts\\\\IMP-0071-must-not-exist.json\",\n \"sink_created\": false,\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code",
+              "fingerprint": "0e4464666427b0b2",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py",
+              "raw_output": "{\n \"cases\": 10,\n \"passed\": 10,\n \"failed\": [],\n \"condition_13_status\": \"unsatisfiable-as-written\",\n \"results\": [\n  {\n   \"id\": \"pin-stable\",\n   \"pin\": \"stable\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-beta\",\n   \"pin\": \"stable\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-stable-hide-canary\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta\",\n   \"pin\": \"beta\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-hide-canary\",\n   \"pin\": \"beta\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-beta-stable-ok\",\n   \"pin\": \"beta\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary\",\n   \"pin\": \"canary\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-beta-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.1.0-beta.1\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"pin-canary-stable-ok\",\n   \"pin\": \"canary\",\n   \"version\": \"1.0.0\",\n   \"expected\": true,\n   \"got\": true,\n   \"ok\": true\n  },\n  {\n   \"id\": \"cross-channel-refuse\",\n   \"pin\": \"stable\",\n   \"version\": \"1.2.0-canary.1\",\n   \"expected\": false,\n   \"got\": false,\n   \"ok\": true\n  }\n ],\n \"unit_id\": \"IMP-0071\",\n \"pass\": true\n}\nSUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal",
+              "fingerprint": "dfa6fd7bfbcf08d4",
+              "exit_code": 0
+            }
+          ]
+        }
+      ],
+      "prior_tests": [
+        {
+          "id": "test_channels.py",
+          "command": "",
+          "result": "PASS",
+          "output_tail": "PASS test_pin_stable\nPASS test_pin_beta\nPASS test_cross_channel_refusal\nPASS test_pin_does_not_mutate_index\nPASS test_ten_case_matrix\nSUCCESS:test_channels 5 passed"
+        },
+        {
+          "id": "test_promotion_is_pr_only.py",
+          "command": "",
+          "result": "PASS",
+          "output_tail": "PASS test_no_direct_index_write\nPASS test_pr_diff_leaves_caller_index_untouched\nPASS test_apply_promotion_to_index_file_refused\nPASS test_naive_in_place_write_would_change_hash\nSUCCESS:test_promotion_is_pr_only 4 passed"
+        }
+      ],
+      "prior_negative_controls": [
+        {
+          "id": "direct-write-promotion-path",
+          "kind": "other",
+          "description": "PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead [recorded extras: {\"detail\": \"PR-ONLY forbids direct index write for echo@1.1.0-beta.1 beta->stable; emit a PR instead\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        {
+          "id": "apply-promotion-to-index-file",
+          "kind": "other",
+          "description": "PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index [recorded extras: {\"detail\": \"PR-ONLY forbids applying a promotion to an index file (/opt/p2/ast-integrate/command-center/receipts/IMP-0071-must-not-exist.json); keep the PR diff and do not write the index\", \"expect\": \"DirectWritePromotionRefused\", \"fired\": true}]",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        {
+          "id": "stable-pin-refuses-beta-version",
+          "kind": "other",
+          "description": "CrossChannelRefused [recorded extras: {\"case\": \"c04-stable-refuses-echo-beta\", \"expect\": \"CrossChannelRefused\"}]",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        }
+      ],
+      "prior_downstream_consumers": [
+        {
+          "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+          "artifact_path": "command-center/receipts/IMP-0071.json",
+          "executed": true,
+          "read_ok": true,
+          "exit_code": 0,
+          "probe": {
+            "role": "verifier",
+            "method": "command",
+            "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0071",
+            "raw_output": "  SUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py\n     \"got\": false,\n     \"ok\": true\n    }\n   ],\n   \"unit_id\": \"IMP-0071\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal\nartifact command-center/receipts/IMP-0071.json bytes=11744 sha256=e80b0c2e743c939aaaafe7e62f981847732fd84644f8c9a564c926f14e677807\nSUCCESS:delivered IMP-0071",
+            "fingerprint": "f768cec85fcc23cc",
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "completion": {
+      "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+    }
+  },
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0071]",
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:52Z",
+    "ended_at": "2026-08-25T00:57:52Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "residual_unknowns": [],
+  "produced_by": {
+    "vendor": "other",
+    "model": "unrecorded"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0071/UNIT-ARTIFACT-MANIFEST.json",
+    "registered_at": "2026-10-26T17:50:21Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0071.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0071",
+        "raw_output": "  SUCCESS:IMP-0071-probe1 promotion is a PR diff; direct writes refused in code\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0071/probe2_channel_pin_matrix.py\n     \"got\": false,\n     \"ok\": true\n    }\n   ],\n   \"unit_id\": \"IMP-0071\",\n   \"pass\": true\n  }\n  SUCCESS:IMP-0071-probe2 channel pin matrix 10/10 with cross-channel refusal\nartifact command-center/receipts/IMP-0071.json bytes=11744 sha256=e80b0c2e743c939aaaafe7e62f981847732fd84644f8c9a564c926f14e677807\nSUCCESS:delivered IMP-0071",
+        "fingerprint": "f768cec85fcc23cc",
+        "exit_code": 0
+      }
+    }
+  ]
+}

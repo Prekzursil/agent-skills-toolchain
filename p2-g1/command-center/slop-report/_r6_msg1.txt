@@ -1,0 +1,66 @@
+fix(slop): a published number disagreed with its own receipt, and nothing was checking
+
+Round 5's audit never reached me -- the prior-round payload was truncated mid-JSON inside
+round 4's record, and no audit artifact for it exists on disk. So these were re-derived
+rather than taken from a list, and anything round 5's auditor raised that I did not
+independently re-derive is still open. Read what had already landed before touching
+anything: round 5 was committed already.
+
+F1. SLOP-BUILD-R5.md's DoD-1 row published d-zero=18 where the receipt it cites by name
+says 23. As published the four parts summed to 300 against the 305 asserted in the same
+sentence, which also cited partition_total: true -- so the row contradicted itself and its
+own receipt. The classifier was right and the partition really is total; only the
+transcription was wrong, which is why every probe, control and exit code stayed green.
+
+F2. The same doc said "four of its six declared inputs" while its own table said "4 of 12"
+and the receipt says n_inputs_resolved: 12. Re-deriving it found the deeper problem:
+_r5_reclassify.py resolves inputs with a regex over quoted file LITERALS, which returns 13
+for that producer -- including the producer's own output and one catalogue under two
+spellings. So the denominator counts literals, not inputs. The K7 verdict is unaffected and
+I confirmed it by a different route than round 5 used: _secfirst_selfaudit.py:27-31 really
+does json.load all four untracked receipts, so bucket (c) really is 2 files, not 3.
+
+Both corrected in place -- struck through, annotated REFUTED, never deleted.
+
+Shipped a gate for the class, because F1 was invisible to every existing check:
+_r6_transcript.py compares published claims in every SLOP-*.md against the committed
+_*.out.json receipts beside them -- backticked key/value pairs, and histogram lines that
+must both sum to the total asserted alongside them and match the named receipt. 38 claims
+across 9 documents, 0 violations, 3 candidates adjudicated in a baseline with written
+reasons because a document that QUOTES a superseded number is mentioning it, not asserting
+it (one of the three is round 5 disclosing its own broken detector -- flagging that would
+penalise the disclosure).
+
+Eight controls, both states, on fixtures held in the probe source so they survive the
+document being repaired: the verbatim pre-fix text must fire on the sum check AND the
+receipt check, the corrected text must be silent, a uuid4 key must read UNCHECKABLE rather
+than silently agree, a real key with a wrong value must disagree, zero claims extracted is
+a shape change rather than a pass, and the REFUTED marker must suppress with it and not
+without it.
+
+Two of the four findings are mine, found by reading the instrument instead of its exit code:
+
+F3. The REFUTED marker was INERT on live content. Controls passed on a fixture, the gate
+went green, and the receipt printed preserved_refutations as an empty list while the
+document visibly contained one. I had wrapped the blockquote so the marker sat on the line
+above the struck number; the preserved wrong histogram was passing only because that line
+carried no total and no receipt reference. Now load-bearing: that line yields DISAGREE with
+d-zero doc 18 vs receipt 23 and is excluded only by the marker.
+
+F4. The gate indexed its OWN output as a receipt -- a file recording the key and value of
+every claim it has seen -- so a document could be confirmed by the gate's previous reading
+of that same document. A false negative, the dangerous direction. Caught because this
+report documented the syntax literally and the gate cited itself as the authority.
+receipts_indexed 83 -> 82 is the visible tell.
+
+DoD-4 re-proven at lane start and end by re-running round 5's prober: 9/9 byte-identical to
+their HEAD blobs, live-detector control firing at 5 while both frozen dirs read 0. Frozen
+evidence 0 dirty lines both times. Nothing deleted by this round. Nothing written outside
+command-center/slop-report/**. The three _r2_/_r3_ receipts dirty at lane start are left
+exactly as found.
+
+DoD-1 is inherited from round 5 at 5423de0f and deliberately NOT re-measured: re-running
+the classifier overwrites rev-pinned receipts and would have invalidated the line I had
+just corrected. That is also this gate's main scope limit -- it compares a rev-pinned
+published value against a receipt's current content. Both disclosed inline with settling
+experiments.

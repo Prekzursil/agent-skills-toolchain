@@ -1,0 +1,100 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": { "tools": {}, "resources": {} },
+    "serverInfo": { "name": "whatsapp-baileys-ts", "version": "0.1.0" }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "search_contacts",
+        "description": "Search WhatsApp contacts by name or phone-number part of the JID.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "minLength": 1, "description": "Search term for contact name or phone-number part of JID" }
+          },
+          "required": ["query"]
+        }
+      },
+      {
+        "name": "list_messages",
+        "description": "List messages in a WhatsApp chat, paginated.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "chat_jid": { "type": "string", "description": "The JID of the chat (e.g., '123456@s.whatsapp.net' or 'group@g.us')" },
+            "limit": { "type": "integer", "minimum": 1, "default": 20, "description": "Max messages per page (default 20)" },
+            "page": { "type": "integer", "minimum": 0, "default": 0, "description": "Page number (0-indexed, default 0)" }
+          },
+          "required": ["chat_jid"]
+        }
+      },
+      {
+        "name": "list_chats",
+        "description": "List WhatsApp chats, paginated, sortable by last activity or name.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": { "type": "integer", "minimum": 1, "default": 20, "description": "Max chats per page (default 20)" },
+            "page": { "type": "integer", "minimum": 0, "default": 0, "description": "Page number (0-indexed, default 0)" },
+            "sort_by": { "type": "string", "enum": ["last_active", "name"], "default": "last_active", "description": "Sort order" },
+            "query": { "type": "string", "description": "Optional filter by chat name or JID" },
+            "include_last_message": { "type": "boolean", "default": true, "description": "Include last message details (default true)" }
+          }
+        }
+      },
+      {
+        "name": "get_chat",
+        "description": "Get a single WhatsApp chat by JID.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "chat_jid": { "type": "string", "description": "The JID of the chat to retrieve" },
+            "include_last_message": { "type": "boolean", "default": true, "description": "Include last message details (default true)" }
+          },
+          "required": ["chat_jid"]
+        }
+      },
+      {
+        "name": "get_message_context",
+        "description": "Get the messages surrounding a target WhatsApp message.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message_id": { "type": "string", "description": "The ID of the target message to get context around" },
+            "before": { "type": "integer", "minimum": 0, "default": 5, "description": "Number of messages before (default 5)" },
+            "after": { "type": "integer", "minimum": 0, "default": 5, "description": "Number of messages after (default 5)" }
+          },
+          "required": ["message_id"]
+        }
+      },
+      {
+        "name": "send_message",
+        "description": "Send a WhatsApp text message to a user or group JID.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "recipient": { "type": "string", "description": "Recipient JID (user or group, e.g., '12345@s.whatsapp.net' or 'group123@g.us')" },
+            "message": { "type": "string", "minLength": 1, "description": "The text message to send" }
+          },
+          "required": ["recipient", "message"]
+        }
+      },
+      {
+        "name": "search_messages",
+        "description": "Search WhatsApp messages by text, optionally scoped to one chat.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": { "type": "string", "minLength": 1, "description": "The text content to search for within messages" },
+            "chat_jid": { "type": "string", "description": "Optional: JID of a specific chat to search within. If omitted, searches all chats." },
+            "limit": { "type": "integer", "minimum": 1, "default": 10, "description": "Max messages per page (default 10)" },
+            "page": { "type": "integer", "minimum": 0, "default": 0, "description": "Page number (0-indexed, default 0)" }
+          },
+          "required": ["query"]
+        }
+      }
+    ]
+  }
+}

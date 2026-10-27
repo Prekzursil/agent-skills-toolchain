@@ -1,0 +1,219 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d34-merge-adjudication-12",
+  "preset": "code_review_tribunal",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide whether a merge candidate is accepted, on the claim record only - never on the candidate's own self-report.",
+    "charter": "Two independent teams of four re-derive the two load-bearing preservation claims from raw sources: (1) every line unique to the LIVE side survives the merge, and (2) every improvement main has gained is still present. Team B never sees Team A's brief. Both claims are settled by a deterministic differ, not by judgement: on this estate an LLM classification of exactly this question scored 86% with 100% of the errors pointing at data loss, so the differ is authoritative and the seats only interpret what the divergence MEANS.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "live-unique content preserved, re-derived independently by two teams",
+      "main-side improvements still present, re-derived independently",
+      "no load-bearing counterexample left unresolved",
+      "the candidate's self-report is recorded but carries zero acceptance weight"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "vendor_diverse", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 12 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 2, "max_share_per_vendor": 0.6 },
+    "roster": [
+      { "participant_id": "team-a-1", "display_name": "Team A - preservation analyst", "model": "opus-5", "vendor": "anthropic", "expertise": ["diff analysis"], "role": "custom:team_a_analyst", "authority": "voter", "context": { "partition_id": "brief-a" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "team-a-2", "display_name": "Team A - main-side analyst", "model": "opus-5", "vendor": "anthropic", "expertise": ["git history"], "role": "custom:team_a_analyst", "authority": "voter", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-a-3", "display_name": "Team A - test-surface analyst", "model": "opus-5", "vendor": "anthropic", "expertise": ["test coverage"], "role": "custom:team_a_analyst", "authority": "voter", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-a-4", "display_name": "Team A - synthesiser", "model": "opus-5", "vendor": "anthropic", "expertise": ["synthesis"], "role": "synthesizer", "authority": "voter", "context": { "partition_id": "brief-a" } },
+      { "participant_id": "team-b-1", "display_name": "Team B - preservation analyst (competitive re-estimate)", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["diff analysis"], "role": "custom:team_b_analyst", "authority": "voter", "context": { "partition_id": "brief-b" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "team-b-2", "display_name": "Team B - main-side analyst", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["git history"], "role": "custom:team_b_analyst", "authority": "voter", "context": { "partition_id": "brief-b" } },
+      { "participant_id": "team-b-3", "display_name": "Team B - test-surface analyst", "model": "gemini-3-pro", "vendor": "google", "expertise": ["test coverage"], "role": "custom:team_b_analyst", "authority": "voter", "context": { "partition_id": "brief-b" } },
+      { "participant_id": "team-b-4", "display_name": "Team B - synthesiser", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["synthesis"], "role": "synthesizer", "authority": "voter", "context": { "partition_id": "brief-b" } },
+      { "participant_id": "evidence-clerk", "display_name": "Evidence clerk (holds the differ output)", "model": "opus-5", "vendor": "anthropic", "expertise": ["evidence admission"], "role": "custom:evidence_clerk", "authority": "contributor", "rights": { "may_speak": true, "may_vote": false, "may_call_experiment": true }, "context": { "briefing": "The differ output is the record. A seat's prose about the diff is a claim ABOUT the record, not the record." } },
+      { "participant_id": "judge", "display_name": "Judge", "model": "opus-5", "vendor": "anthropic", "expertise": ["adjudication"], "role": "judge", "authority": "judge", "effort": "max" },
+      { "participant_id": "dissent-guardian", "display_name": "Dissent guardian", "model": "gemini-3-pro", "vendor": "google", "expertise": ["minority report"], "role": "custom:dissent_guardian", "authority": "contributor", "rights": { "may_speak": true, "may_vote": false } },
+      { "participant_id": "scribe", "display_name": "Scribe", "model": "opus-5", "vendor": "anthropic", "expertise": ["transcript"], "role": "scribe", "authority": "observer", "rights": { "may_speak": false, "may_vote": false } }
+    ],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        {
+          "partition_id": "brief-a",
+          "visible_to": ["team-a-1", "team-a-2", "team-a-3", "team-a-4"],
+          "sources": ["the merge candidate", "the raw LIVE tree", "the raw main tree"]
+        },
+        {
+          "partition_id": "brief-b",
+          "visible_to": ["team-b-1", "team-b-2", "team-b-3", "team-b-4"],
+          "sources": ["the merge candidate", "the raw LIVE tree", "the raw main tree"]
+        }
+      ]
+    },
+    "duplicate_detection": { "enabled": true, "dimensions": ["prompt", "position_similarity"], "max_similarity": 0.85 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack", "benchmark_baseline"]
+  },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      { "caucus_id": "team-a", "members": ["team-a-1", "team-a-2", "team-a-3", "team-a-4"], "private_rounds": 1 },
+      { "caucus_id": "team-b", "members": ["team-b-1", "team-b-2", "team-b-3", "team-b-4"], "private_rounds": 1 }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "independent-rederivation", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "custom", "stage_id": "claim-by-claim", "custom_name": "P15 claim-by-claim adjudication over the preservation table, one row at a time", "rounds": 1 },
+      { "kind": "cross_examination", "stage_id": "team-b-challenges-team-a", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": true },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 12, "runner": "local" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 120, "turns": 48, "experiments": 12, "max_inactivity_rounds": 1 },
+  "targets": { "evidence_items": 12, "counterexamples": 1 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.85,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:live_unique_preserved",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "deterministic line-level differ (NOT an agent classification): reports any line unique to the LIVE side that the candidate drops",
+          "note": "DIAL 1 of 4. The differ is authoritative because error DIRECTION, not accuracy, is the metric here: the measured agent failure mode was one-directional (checked whether the repo had extra content, never whether LIVE also did) and 100% of its errors pointed at data loss."
+        },
+        {
+          "metric": "custom:main_improvements_present",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "the same differ run in the opposite direction",
+          "note": "DIAL 2 of 4. Two-directional by construction; a one-directional read cannot see two-directional divergence."
+        },
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 2,
+          "note": "DIAL 3 of 4. Team A and Team B each filed a position derived from raw sources. Raise to 3 to add a third competitive team."
+        },
+        {
+          "metric": "unresolved_load_bearing_counterexample",
+          "op": "==",
+          "value": 0,
+          "note": "DIAL 4 of 4. A single surviving load-bearing counterexample blocks acceptance."
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 2,
+      "every_participant_spoke": false,
+      "min_evidence_items": 12
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 120, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the preservation table is filled in for every file the candidate touches",
+      "any DIVERGED file (both sides holding unique content) is resolved by hand, never overwritten"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["run_experiment", "narrow_scope", "split_question", "judge_ruling", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "judge" }
+  },
+  "anti_failure": {
+    "controls": [
+      "instant_unanimity",
+      "echo_chamber",
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "role_collapse",
+      "collusion",
+      "lost_dissent",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": ["blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["merging the candidate", "deleting any branch"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d34/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Merge adjudication tribunal (12 seats, two competing teams, binding)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: accepting or rejecting a merge/reconcile candidate where BOTH sides may hold unique content. WHEN NOT TO USE: a trivially additive PR - the two-team cost is not justified. The design's single named dial is preservation_table. EDITABLE DIALS: /participants/information_partition/partitions (what each brief may see - the whole value of this preset is that Team B's brief contains zero Team-A tokens), /stopping/expression/all_of/2/value (raise for a third team), /participants/roster (swap vendors to change the independence axis), /budgets/time_minutes. STOPPING (human form): custom:live_unique_preserved == true AND custom:main_improvements_present == true AND independent_positions >= 2 AND unresolved_load_bearing_counterexample == 0. source_expression is absent for the SEM-001/SEM-012 reason documented in C-D33 and proven by _probe_sem_rule_collision.py. OUTCOME MAPPING LOSS: DEFER and INSUFFICIENT_EVIDENCE both collapse onto no_decision.",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1634",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:340",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:273",
+      "_USER-PROMPTS.md:11198"
+    ],
+    "lineage": ["C-D34 deep-merge-adjudication-12", "P15 claim-by-claim-adjudication", "P11 team-b-competitive-estimate"]
+  }
+}

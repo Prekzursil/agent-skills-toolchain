@@ -1,0 +1,1 @@
+Splicing stages without a contract check is how workflows rot. The donor runs green alone and silently breaks its new neighbours; the mismatch surfaces at dispatch, far from the cause. Critics of the splice strategy are right about this failure mode.

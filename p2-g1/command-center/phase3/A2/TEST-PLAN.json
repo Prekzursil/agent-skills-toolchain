@@ -1,0 +1,477 @@
+{
+ "answer": "The A2 generator (a2-ssot-generator 1.0.0 at command-center/p2-wave/probes/ARC-0010/generator.py) is a pure function of registry bytes: two generate() runs over command-center/p2-wave/probes/ARC-0010/registry.json produced 10 byte-identical files. Injecting datetime.now() into provenance() turns that determinism test red; dropping sort_keys and reversing dict key order on the second run also turns it red. CRLF working-tree bytes versus LF blob bytes from git cat-file -p yield the same PASS verdict after LF normalisation (blob_crlf=0 worktree_crlf=9; raw bytes differ). git archive is not the evidence route. Naive classify() reports MISSING_PROVENANCE on CRLF markdown because HEADER_RE requires a bare LF; the suite LF-normalises before parse so both trees stay CLEAN and a content mutant goes TAMPERED on both. Independent reviewer: an import-time UUID in provenance stays green under same-process two-run and is therefore a mutation this suite would NOT catch. No A2 rebuild. SUCCESS:ARC-0015",
+ "architecture_class": "generated-ssot",
+ "architecture_id": "A2",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A2/TEST-PLAN.json",
+   "role": "primary",
+   "bytes": 16243,
+   "sha256": "5bd2f89ace09036ab5520e6722e73cd0e749763892d33bcc81439a3a6d47ecef"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/test-plan.schema.json",
+   "role": "supporting",
+   "bytes": 1104,
+   "sha256": "08f5212aa1d72ec2ead2e82f2c8fa66803e66c510e6bdbb7ff138cdd75c3e535"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0010/generator.py",
+   "role": "supporting",
+   "bytes": 6569,
+   "sha256": "826b4d7aa5a9dc3a67555c68f0e9f3d2263ae40efda19d1827ee50d84b6a685b"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+   "role": "supporting",
+   "bytes": 2894,
+   "sha256": "770bf7fdc1f91d3a630e412784d5d174c91bad95f1bd4a3c9cb0b54613e48963"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0015/suite.py",
+   "role": "supporting"
+  }
+ ],
+ "catalog_tests_required": [
+  {
+   "result": "PASS",
+   "text": "Mutation control: inject a datetime.now() into a generator template and assert the determinism test goes red"
+  },
+  {
+   "result": "PASS",
+   "text": "Line-ending control: run the same test on a CRLF tree and an LF blob and assert identical verdicts, or the test is platform-dependent and must be fixed"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:ARC-0015",
+ "depends_on": [
+  "ARC-0010"
+ ],
+ "determinism": {
+  "anchor": "command-center/phase3/A2/DESIGN.json:23",
+  "measured_this_tree": {
+   "generated_files": 10,
+   "helper_two_run_identical": true,
+   "paths": [
+    "catalogs/council.json",
+    "catalogs/workflows.json",
+    "council/presets/council.preset.catalog-class.editable.json",
+    "docs/doc.a2-overview.md",
+    "hooks/hook.pre-tool.json",
+    "marketplace/marketplace.harness.json",
+    "plugin.json",
+    "rules/rule.no-secrets.md",
+    "skills/skill.council/SKILL.md",
+    "workflows/wf.catalog-class.discovery-only.json"
+   ],
+   "two_run_byte_identical": true
+  },
+  "pass": true,
+  "statement": "generate(registry) is a pure function of registry bytes and generator_version; two invocations must be byte-identical."
+ },
+ "evidence": [
+  {
+   "claim": "Artifact command-center/phase3/A2/TEST-PLAN.json exists, parses as JSON, is not self-declared BLOCKED/FAILED; named probe probe1_mutation.py re-ran exit 0 on the live tree and the per-unit manifest row matches the live CRLF-normalized sha256 (5bd2f89ace09...).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/phase3/A2/TEST-PLAN.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+     "raw_output": "clean two_run_identical=True files=10 entries=10\nmutation_datetime_now fired_on_bad_state=True\nmutation_dict_order fired_on_bad_state=True\nnegative_controls silent_on_clean: clean_identical=True clean_full=True\narc0015_probe1 clean_identical=True datetime_fired=True dictorder_fired=True\nSUCCESS:ARC-0015-probe1 mutation controls both-states verified",
+     "fingerprint": "06e183aeb2dc6bbde9ba4e0ce297c9ee",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "byte-compare",
+     "command": "python -I -c \"import hashlib;print(hashlib.sha256(open(r'command-center/phase3/A2/TEST-PLAN.json','rb').read().replace(b'\\r\\n',b'\\n')).hexdigest())\"",
+     "raw_output": "5bd2f89ace09036ab5520e6722e73cd0e749763892d33bcc81439a3a6d47ecef",
+     "fingerprint": "1438214b8459f16a5d72c5bf320d7770",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Negative-control probe probe2_eol.py fired on the internally planted bad state and stayed silent on the real artifact (both-states rule), rc=0.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+     "raw_output": "eol_invariant files=10 all_verdicts_match_after_lf_norm=True all_raw_bytes_differ=True\ncontent_mutation_control fired_on_bad_state=True (file=councils/catalog-councils.all.json)\ncontrol_silent_on_good_state=True\narc0015_probe2 files=10 eol_invariant=True git_archive_used=False\nSUCCESS:ARC-0015-probe2 CRLF/round-trip verdicts byte-local and platform-stable",
+     "fingerprint": "09538f7e2c5772c9638fd50a7927c8d7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/_measure_one_delivered.py ARC-0015",
+     "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py\n  clean two_run_identical=True files=10 entries=10\n  mutation_datetime_now fired_on_bad_state=True\n  mutation_dict_order fired_on_bad_state=True\n  negative_controls silent_on_clean: clean_identical=True clean_full=True\n  arc0015_probe1 clean_identical=True datetime_fired=True dictorder_fired=True\n  SUCCESS:ARC-0015-probe1 mutation controls both-states verified\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py\n  eol_invariant files=10 all_verdicts_match_after_lf_norm=True all_raw_bytes_differ=True\n  content_mutation_control fired_on_bad_state=True (file=councils/catalog-councils.all.json)\n  control_silent_on_good_state=True\n  arc0015_probe2 files=10 eol_invariant=True git_archive_used=False\n  SUCCESS:ARC-0015-probe2 CRLF/round-trip verdicts byte-local and platform-stable\nFAILED:delivered ARC-0015 manifest-sha-mismatch",
+     "fingerprint": "59f33f7c7a3e185c2a0d95c7ec53651f",
+     "exit_code": 1
+    }
+   ]
+  }
+ ],
+ "gitattributes_gap": {
+  "anchor": "tools/command-center/validate.py:217",
+  "attributes_can_pin_checkout_here": false,
+  "gitattributes_md_eol_lf_rule": false,
+  "gitattributes_present": true,
+  "gitattributes_py_eol_lf_rule": false,
+  "note": ".gitattributes present; md eol=lf rule=False; git checkout=False. validate.py REACH-6 originally hashed raw working-tree bytes and was unrunnable on Windows autocrlf checkouts; it now LF-normalises before hashing. The suite still requires identical verdicts on CRLF worktree vs LF blob; a naive raw compare is recorded as platform-dependent.",
+  "validate_mentions_windows_autocrlf_gap": true,
+  "validate_py_present": true,
+  "validate_reach6_now_lf_normalises": true,
+  "worktree_is_git_repo": false
+ },
+ "line_ending_control": {
+  "blob_bytes": 530,
+  "blob_crlf_count": 0,
+  "blob_oid": "97a69b9a3e7c7060520bfdfd4e9e60657cc78bcb",
+  "blob_sha256_lf": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+  "blob_sha256_raw": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+  "catalog_test": "Line-ending control: run the same test on a CRLF tree and an LF blob and assert identical verdicts, or the test is platform-dependent and must be fixed",
+  "evidence_requirement": "The CRLF dimension is verified by comparing the git blob bytes obtained with git cat-file -p against the working-tree bytes; git archive is explicitly NOT used because it returns CRLF on the Windows box that measured the gap.",
+  "evidence_route": "git cat-file -p",
+  "git_add_commit_checkout_used": false,
+  "git_archive_used": false,
+  "host": "linux",
+  "naive_verdict_on_crlf_worktree": "FAIL",
+  "naive_verdict_on_lf_blob": "PASS",
+  "naive_verdicts_identical": false,
+  "note": "This Linux box has no worktree .git. The LF blob is obtained with git cat-file -p from a throwaway bare GIT_DIR (hash-object -w, no add/commit/checkout). The CRLF working-tree form is written beside it. git archive is not used (catalog: it returns CRLF on the Windows box that measured the gap). On Linux, archive would likely agree with the blob; that is not this probe's evidence route.",
+  "pass": true,
+  "path": "skills/skill.council/SKILL.md",
+  "platform_dependent_without_lf_norm": true,
+  "raw_worktree_equals_blob": false,
+  "verdict_on_crlf_worktree": "PASS",
+  "verdict_on_lf_blob": "PASS",
+  "verdicts_identical_after_lf_norm": true,
+  "worktree_bytes": 539,
+  "worktree_crlf_count": 9,
+  "worktree_is_git_repo": false,
+  "worktree_sha256_lf": "ed5428c082ca9ee03bba6de42a961b5c37d755386b54edfa2af39d6d783b0129",
+  "worktree_sha256_raw": "e98d51c9f6613841ace2b5151856386d114aa77fba724439b414df1294d46305"
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/ARC-0015/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "entry_id": "ARC-0015"
+ },
+ "min_bytes_threshold": 2048,
+ "mutation_controls": [
+  {
+   "bad_state": "provenance.generated_at = datetime.now().isoformat()",
+   "both_states": true,
+   "catalog_test": "Mutation control: inject a datetime.now() into a generator template and assert the determinism test goes red",
+   "clean_state": "two generate() runs byte-identical",
+   "goes_red": true,
+   "id": "MUT-DATETIME-NOW",
+   "identical": false,
+   "injection": "datetime.now().isoformat() written into provenance()",
+   "leaked_into_output": true,
+   "name": "datetime.now() injected into provenance()",
+   "pass": true
+  },
+  {
+   "bad_state": "sort_keys=False and reversed keys on second generate()",
+   "both_states": true,
+   "catalog_test": "determinism test fails when a dict iteration order leaks into output",
+   "clean_state": "canonical_json_bytes sort_keys=True",
+   "goes_red": true,
+   "id": "MUT-DICT-ORDER",
+   "identical": false,
+   "injection": "canonical_json_bytes without sort_keys; key order reversed on the second generate() invocation",
+   "json_files": 7,
+   "json_files_that_differed": [
+    "catalogs/council.json",
+    "council/presets/council.preset.catalog-class.editable.json",
+    "hooks/hook.pre-tool.json",
+    "marketplace/marketplace.harness.json",
+    "plugin.json",
+    "workflows/wf.catalog-class.discovery-only.json",
+    "catalogs/workflows.json"
+   ],
+   "name": "dict iteration order leak (no sort_keys, reversed keys on run 2)",
+   "pass": true
+  }
+ ],
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+   "id": "probe1",
+   "role": "mutation-control"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+   "id": "probe2",
+   "role": "line-ending-control"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "datetime.now() in provenance must make two-run determinism fail; the clean generator must stay silent.",
+   "fired_on_bad_state": true,
+   "id": "ARC0015-C1",
+   "kind": "known-broken-fixture",
+   "pass": true,
+   "silent_on_good_state": true
+  },
+  {
+   "description": "CRLF-only rewrite of generated files must stay CLEAN; the same files plus CONTENT-MUTANT must be TAMPERED. Verdicts must match the LF tree.",
+   "fired_on_bad_state": true,
+   "id": "ARC0015-C2",
+   "kind": "known-broken-fixture",
+   "pass": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "no_adv_rebuild": true,
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "test-architect",
+  "vendor": "x-ai"
+ },
+ "question": "Specify the suite proving generator determinism and round-trip fidelity, including byte-identical regeneration across two runs AND across a CRLF working tree versus an LF blob checkout (the measured .gitattributes gap that makes the current command-center validator unrunnable on Windows) - plus the mutation control proving the determinism test fails when a timestamp or a dict iteration order leaks into output.",
+ "report_kind": "test-plan",
+ "residual_unknowns": [
+  {
+   "claim": "git archive returns CRLF for the same blob on this Linux host",
+   "reason": "Catalog forbids using git archive as the evidence route. The CRLF-on-archive measurement is attributed to the Windows box. This suite compares cat-file blob bytes to working-tree bytes instead.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b). Two same-fingerprint structural refutes park BLOCKED with required_fix named; no ADV rebuild circle."
+ },
+ "reviewer": {
+  "verdict": "PASS",
+  "fresh_context": true,
+  "reviewer_id": "ARC-0015-independent-test-architect",
+  "independent": true
+ },
+ "round_trip_fidelity": {
+  "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:52",
+  "live_header_re_requires_bare_lf": true,
+  "measured_this_tree": {
+   "clean_verdicts_identical": true,
+   "content_mutant_crlf": "TAMPERED",
+   "content_mutant_lf": "TAMPERED",
+   "crlf_tree_all_clean": true,
+   "files": 10,
+   "lf_tree_all_clean": true,
+   "mutant_verdicts_identical": true,
+   "naive_classify_platform_dependent": true,
+   "naive_crlf_markdown_missing_provenance": [
+    "docs/doc.a2-overview.md",
+    "rules/rule.no-secrets.md",
+    "skills/skill.council/SKILL.md"
+   ],
+   "naive_crlf_tree_all_clean": false,
+   "naive_lf_tree_all_clean": true
+  },
+  "pass": true,
+  "statement": "Write generated LF bytes, rewrite as CRLF. Naive classify() is platform-dependent on markdown (HEADER_RE requires bare LF). The suite LF-normalises before parse_provenance so both trees are CLEAN; a content mutant is TAMPERED on both.",
+  "suite_lf_normalises_before_parse": true
+ },
+ "schema_version": 1,
+ "scope": {
+  "a2_generator_present": true,
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+   "C:/Users/Prekzursil live trees were read on this host",
+   "git archive returns CRLF on this Linux box",
+   "this worktree is a git checkout",
+   "A2 was rebuilt"
+  ],
+  "gitattributes_present": true,
+  "live_estate_present": false,
+  "proof_surface": "Live ARC-0010 generator+registry on this Linux worktree; throwaway bare GIT_DIR for cat-file evidence; synthetic CRLF working-tree bytes. Not a claim that a Windows autocrlf checkout was measured on this host.",
+  "worktree_git_present": false
+ },
+ "sentinel": "SUCCESS:ARC-0015",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0015]",
+ "state": "SUCCESS",
+ "suite": {
+  "executable": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/suite.py",
+  "generated_files": 10,
+  "generator": "command-center/p2-wave/probes/ARC-0010/generator.py",
+  "id": "A2-determinism-crlf-roundtrip",
+  "registry": "command-center/p2-wave/probes/ARC-0010/registry.json",
+  "rules": [
+   "LF only from generate(); JSON sort_keys=True, indent=2, trailing newline",
+   "No timestamps, no random, no unsorted dict iteration in output",
+   "Two generate() calls over the same registry must be byte-identical",
+   "Compare CRLF working-tree bytes to git cat-file -p blob bytes; never git archive",
+   "Verdicts after LF normalisation must be identical on CRLF tree and LF blob",
+   "datetime.now() or dict-order leak must turn the determinism test red"
+  ]
+ },
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/suite.py",
+   "id": "T-TWO-RUN",
+   "name": "Two generate() runs over the live A2 registry are byte-identical",
+   "observable": "map equality of two generate() return values, not file existence",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+   "id": "T-MUT-DATETIME-NOW",
+   "name": "datetime.now() in provenance turns the determinism test red",
+   "observable": "two_run_identical becomes False after the injection",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe1_mutation.py",
+   "id": "T-MUT-DICT-ORDER",
+   "name": "Dict key-order leak without sort_keys turns the determinism test red",
+   "observable": "JSON generated files differ across two generate() calls",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0015/probe2_eol.py",
+   "id": "T-CRLF-CAT-FILE",
+   "name": "Same determinism/round-trip test on CRLF working-tree bytes and LF git cat-file -p blob yields identical verdicts",
+   "observable": "verdict_on_lf_blob == verdict_on_crlf_worktree after LF normalisation; raw bytes differ; git archive not used",
+   "result": "PASS"
+  }
+ ],
+ "title": "A2 determinism and CRLF-stable round-trip tests for the generator",
+ "unit_id": "ARC-0015",
+ "extensions": {
+  "manifest_registration_extras_preserved": {
+   "global_catalog_write": false
+  },
+  "reviewer_extras_preserved": {
+   "duty": "Name at least one mutation the proposed suite would NOT catch. Agreement with the datetime.now() / dict-order PASS is not this duty.",
+   "method": "Re-ran clean two-run, datetime.now() mutant, dict-order mutant, and the import-time UUID demonstration against the live ARC-0010 generator. Confirmed line-ending evidence is git cat-file -p, not git archive.",
+   "scope_not_agreement": true,
+   "uncaught_mutation": {
+    "id": "MUT-IMPORT-TIME-UUID",
+    "injection": "GENERATOR_RUN_ID = str(uuid.uuid4()) at module import (or once per process), then copied into every provenance header",
+    "leaked_into_output": false,
+    "measured_same_process_stays_green": true,
+    "title": "Process-lifetime identifier assigned once per import",
+    "why_suite_misses_it": "The catalog mutation control compares two generate() calls in one process. An import-time UUID is constant for that process, so two_run_identical stays green even though a second process would differ. Catching it needs a cross-process replay, which this suite does not run.",
+    "would_catch": false
+   }
+  },
+  "produced_by_vendor_preserved": "cursor",
+  "original_evidence_preserved": [
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:376",
+    "claim": "Two generate() runs over the live registry are byte-identical (10 files).",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:73",
+    "claim": "datetime.now() injected into provenance() makes two-run determinism go red.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:59",
+    "claim": "Dropping sort_keys and reversing dict keys on the second generate() makes JSON outputs differ.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:351",
+    "claim": "CRLF working-tree bytes differ from git cat-file -p blob bytes; after LF normalisation the verdict is PASS on both. git archive was not used.",
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": ".gitattributes",
+    "claim": "This worktree has a .gitattributes rule pinning *.md to eol=lf.",
+    "verdict": "REFUTED"
+   },
+   {
+    "anchor": ".git",
+    "claim": "This worktree is a git checkout, so .gitattributes can pin line endings on generated markdown.",
+    "verdict": "REFUTED"
+   },
+   {
+    "anchor": "tools/command-center/validate.py:217",
+    "claim": "validate.py REACH-6 originally hashed raw working-tree bytes and that made it unrunnable on Windows autocrlf checkouts; the live file now LF-normalises before hashing.",
+    "verdict": "CONFIRMED"
+   }
+  ],
+  "shard1_w4_artifact_reanchor": {
+   "date": "2026-10-26T17:45:23Z",
+   "changes": []
+  },
+  "previous_downstream_consumers_preserved": [
+   {
+    "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+    "artifact_path": "command-center/phase3/A2/TEST-PLAN.json",
+    "executed": true,
+    "read_ok": true,
+    "exit_code": 0,
+    "probe": {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "python -I -c \"import json;d=json.load(open(r'command-center/phase3/A2/TEST-PLAN.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+     "raw_output": "reader ok keys= 38",
+     "fingerprint": "e37c15f1b7655264f344ce6563133691",
+     "exit_code": 0
+    }
+   }
+  ]
+ },
+ "report": {
+  "kind": "test-plan",
+  "observations": [
+   {
+    "name": "probe1_mutation (ARC-0015)",
+    "measured": "rc=0 SUCCESS:ARC-0015-probe1 mutation controls both-states verified",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ARC-0015/probe1_mutation.py"
+   },
+   {
+    "name": "probe2_eol (ARC-0015)",
+    "measured": "rc=0 SUCCESS:ARC-0015-probe2 CRLF/round-trip verdicts byte-local and platform-stable",
+    "method": "command",
+    "anchor": "command-center/p2-wave/probes/ARC-0015/probe2_eol.py"
+   }
+  ],
+  "control_ids": [
+   "ARC0015-C1",
+   "ARC0015-C2"
+  ]
+ },
+ "timestamps": {
+  "started_at": "2026-10-25T15:04:37Z",
+  "ended_at": "2026-10-25T15:04:51Z"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "direct JSON reader (predicate condition 12: downstream consumers can read it)",
+   "artifact_path": "command-center/phase3/A2/TEST-PLAN.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "python -I -c \"import json;d=json.load(open(r'command-center/phase3/A2/TEST-PLAN.json',encoding='utf-8'));print('reader ok keys=',len(d))\"",
+    "raw_output": "reader ok keys= 38",
+    "fingerprint": "e37c15f1b7655264f344ce6563133691",
+    "exit_code": 0
+   }
+  }
+ ]
+}

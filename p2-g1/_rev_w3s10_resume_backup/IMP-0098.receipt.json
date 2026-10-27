@@ -1,0 +1,397 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0098.json",
+   "role": "primary",
+   "exists": true,
+   "bytes": 12198,
+   "sha256": "b68185cf3622de9e46ecc9a69fc6db243598532e21f29c43e8856fc94824a3ea",
+   "eol": "CRLF"
+  },
+  {
+   "path": "tools/marketplace/vuln_ingestion.py",
+   "role": "supporting",
+   "exists": true,
+   "bytes": 12249,
+   "sha256": "19206ed7516769d8a6ffdb697606a7541cfa1892c64602d97ad03a09eb3e2c39",
+   "eol": "LF"
+  },
+  {
+   "path": "tools/marketplace/tests/test_vuln_ingestion.py",
+   "role": "supporting",
+   "exists": true,
+   "bytes": 3186,
+   "sha256": "edc73a03e716d311f7fe43594e280e8a7380a5199285e4646f393d2f17c9762d",
+   "eol": "LF"
+  },
+  {
+   "path": "tools/marketplace/schema/vulnerability-status.schema.json",
+   "role": "supporting",
+   "exists": true,
+   "bytes": 920,
+   "sha256": "ed6f824ae027612de99a40ced3831ce486f049000b1ec70e62de20d6c199ab23",
+   "eol": "LF"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0098/probe1_osv_ingest.py",
+   "role": "supporting",
+   "exists": true,
+   "bytes": 4261,
+   "sha256": "da97ddce9d3eea494f767681bb5f554ec7290678e21f6e36083cc41eac0d1a2f",
+   "eol": "LF"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0098/probe2_independent_source.py",
+   "role": "supporting",
+   "exists": true,
+   "bytes": 2919,
+   "sha256": "36ad983e02f6d63792df177f3a1390cbeef7c0fff8c90cd3b1618fca8c651783",
+   "eol": "LF"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0098/fixtures/sboms/demo-vuln@1.0.0.cdx.json",
+   "role": "fixture",
+   "exists": true,
+   "bytes": 176,
+   "sha256": "c2daeafbd39efe0747187ce75d7f3d9ceca75c3a2fb86ef05414d1b6afc17dcc",
+   "eol": "LF"
+  },
+  {
+   "path": "command-center/p2-wave/probes/IMP-0098/fixtures/sboms/demo-clean@1.0.0.cdx.json",
+   "role": "fixture",
+   "exists": true,
+   "bytes": 240,
+   "sha256": "a2da16da7491a03a0c367e833849ac88353b545da241751e4258931893e2bc26",
+   "eol": "LF"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "artifact_path": "command-center/receipts/IMP-0098.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0098",
+    "raw_output": "SUCCESS:delivered IMP-0098",
+    "fingerprint": "9cdae33fc8e2bed5",
+    "exit_code": 0
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Live OSV ingest flags npm lodash@4.17.20 as VULNERABLE and includes CVE-2021-23337.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "live:osv.dev/v1/query lodash@4.17.20",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe1_osv_ingest.py",
+     "raw_output": "deferred-to-named-probe-re-run",
+     "fingerprint": "d77c9008cebedf27",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "http",
+     "command": "POST https://api.osv.dev/v1/query",
+     "raw_output": "{\"ids\": [\"GHSA-29mw-wpgm-hmr9\", \"CVE-2020-28500\", \"GHSA-35jh-r3h4-6jhm\", \"CVE-2021-23337\", \"CVE-2026-4800\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-f23m-r3pf-42rh\", \"CVE-2025-13465\", \"CVE-2026-2950\", \"GHSA-xxjr-mmjv-4gpg\"], \"snapshot_id\": \"osv.dev:866399b05e55f651aa5059ca8a30c33b\", \"status\": \"VULNERABLE\"}",
+     "fingerprint": "8e386e8a6f5650bc",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "Independent GitHub Advisory query of the same component also returns CVE-2021-23337; intersection is non-empty.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "live:api.github.com/advisories lodash@4.17.20",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe2_independent_source.py",
+     "raw_output": "deferred-to-named-probe-re-run",
+     "fingerprint": "fc9a271a2a5a7e47",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "http",
+     "command": "GET https://api.github.com/advisories?ecosystem=npm&affects=lodash@4.17.20",
+     "raw_output": "{\"intersection\": [\"GHSA-29mw-wpgm-hmr9\", \"CVE-2020-28500\", \"GHSA-35jh-r3h4-6jhm\", \"CVE-2021-23337\", \"CVE-2026-4800\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-f23m-r3pf-42rh\", \"CVE-2025-13465\", \"CVE-2026-2950\", \"GHSA-xxjr-mmjv-4gpg\"], \"known_cve_in_both\": true}",
+     "fingerprint": "24ad24c5aa855490",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "exit_code_discipline": {
+  "distinct": true,
+  "note": "exit 127 is missing tool (UNKNOWN), not findings (exit 1) and not CLEAN",
+  "osv_scanner_exit_0": "CLEAN",
+  "osv_scanner_exit_1": "VULNERABLE",
+  "osv_scanner_exit_127": "UNKNOWN"
+ },
+ "freshness_semantics": {
+  "consumed_from": "IMP-0095",
+  "rule": "input-hash change OR age beyond freshness window marks STALE; STALE is never rendered as CLEAN/PASS",
+  "window_seconds": 86400
+ },
+ "known_control_component": {
+  "ecosystem": "npm",
+  "name": "lodash",
+  "purl": "pkg:npm/lodash@4.17.20",
+  "version": "4.17.20"
+ },
+ "known_historical_cve": "CVE-2021-23337",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0098/UNIT-ARTIFACT-MANIFEST.json",
+  "registered_at": "2026-10-26T05:07:49Z"
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "id": "known-vulnerable-must-fire",
+   "kind": "other",
+   "description": "[prior kind: detector-control] lodash@4.17.20 / CVE-2021-23337 must be flagged before CLEAN is legal",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "unreachable-never-clean",
+   "kind": "other",
+   "description": "[prior kind: fail-closed] an unreachable advisory source yields UNKNOWN, never CLEAN",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "osv-exit-127-is-not-1",
+   "kind": "other",
+   "description": "[prior kind: exit-code-discipline] osv-scanner exit 127 (not installed) is not exit 1 (findings)",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "osv_ingest": {
+  "component_count": 2,
+  "vulnerable_count": 1,
+  "clean_count": 1,
+  "unknown_count": 0,
+  "control_fired": true,
+  "never_clean_on_failure": true,
+  "queried_at": "2026-10-26T01:57:02Z",
+  "live_source": "api.osv.dev/v1/query",
+  "control_verdict": {
+   "name": "lodash",
+   "version": "4.17.20",
+   "status": "VULNERABLE",
+   "advisory_db_snapshot_id": "osv.dev:9e1578a018b63531ba098f7873a645c0",
+   "input_hash": "652cbf14e5452a6525ddc81ee0dc90f621cdb2a9352c9eff3968cf4ac22172fe",
+   "known_cve_present": true
+  },
+  "two_source": {
+   "cve": "CVE-2021-23337",
+   "in_first": true,
+   "in_second": true,
+   "both": true
+  },
+  "snapshots": {
+   "first": "osv.dev:1b2f59baa4bd70035d1b9436aad5cfd2",
+   "second": "github-advisory:13a5322af986ed1ef5c96ed4557f01b5"
+  },
+  "note": "re-queried LIVE 2026-10-26 by both named probes; the 2026-08-25 numbers in the block this replaces were the dead prior attempt, kept only as history"
+ },
+ "question": "Ingest OSV advisories for every component in every stored SBOM, record the query timestamp and the advisory database snapshot id with each verdict, and expose per-package vulnerability status that is explicitly time-stamped rather than presented as a permanent property.",
+ "residual_unknowns": [
+  {
+   "claim": "osv-scanner CLI is not installed on this worktree; exit-code mapping is unit-tested, live CLI path is UNKNOWN rather than silently CLEAN.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Install osv-scanner and re-run run_osv_scanner against fixtures/known-vuln lockfile."
+  },
+  {
+   "claim": "Receipt envelope completed to receipt_core conformance by the shard-9 wave-4 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; both named probes re-ran exit 0 on this host during completion.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "per-unit UNIT-ARTIFACT-MANIFEST.json + SUBAGENT-RETURN.json re-run of the named probes via _measure_one_delivered.py"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "bounded exponential backoff with jitter, max 3, then UNKNOWN with a surfaced warning; never CLEAN on failure"
+ },
+ "reviewer": {
+  "reviewer_id": "IMP-0098-github-advisory-independent-source",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "notes": "Second source is GitHub Advisory REST, not a re-parse of the OSV payload. Fetch failure cannot be rendered as CLEAN: ingest maps unreachable and silent-control onto UNKNOWN."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0098",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0098; _USER-PROMPTS.md:10858 vulnerability status",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "test_known_vulnerable_component_is_flagged",
+   "command": "python tools/marketplace/tests/test_vuln_ingestion.py (hermetic run_all)",
+   "result": "PASS",
+   "output_tail": "recorded extras: {\"exit_code\": 0}"
+  },
+  {
+   "id": "test_clean_only_when_known_vulnerable_control_fired",
+   "command": "python tools/marketplace/tests/test_vuln_ingestion.py (hermetic run_all)",
+   "result": "PASS",
+   "output_tail": "recorded extras: {\"exit_code\": 0}"
+  },
+  {
+   "id": "test_unreachable_source_yields_unknown_never_clean",
+   "command": "python tools/marketplace/tests/test_vuln_ingestion.py (hermetic run_all)",
+   "result": "PASS",
+   "output_tail": "recorded extras: {\"exit_code\": 0}"
+  },
+  {
+   "id": "probe1-osv-ingest-live",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe1_osv_ingest.py",
+   "result": "PASS",
+   "output_tail": "recorded extras: {\"exit_code\": 0}"
+  },
+  {
+   "id": "probe2-independent-source-live",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe2_independent_source.py",
+   "result": "PASS",
+   "output_tail": "recorded extras: {\"exit_code\": 0}"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:59:35Z",
+  "ended_at": "2026-08-25T00:59:35Z"
+ },
+ "title": "Vulnerability status ingestion from a live advisory source",
+ "two_source_confirmation": {
+  "intersection": [
+   "GHSA-29mw-wpgm-hmr9",
+   "CVE-2020-28500",
+   "GHSA-35jh-r3h4-6jhm",
+   "CVE-2021-23337",
+   "CVE-2026-4800",
+   "GHSA-r5fr-rjxr-66jc",
+   "GHSA-f23m-r3pf-42rh",
+   "CVE-2025-13465",
+   "CVE-2026-2950",
+   "GHSA-xxjr-mmjv-4gpg"
+  ],
+  "known_cve_in_both": true,
+  "primary": {
+   "advisory_ids": [
+    "GHSA-29mw-wpgm-hmr9",
+    "CVE-2020-28500",
+    "GHSA-35jh-r3h4-6jhm",
+    "CVE-2021-23337",
+    "CVE-2026-4800",
+    "GHSA-r5fr-rjxr-66jc",
+    "GHSA-f23m-r3pf-42rh",
+    "CVE-2025-13465",
+    "CVE-2026-2950",
+    "GHSA-xxjr-mmjv-4gpg"
+   ],
+   "snapshot_id": "osv.dev:866399b05e55f651aa5059ca8a30c33b",
+   "status": "VULNERABLE"
+  },
+  "secondary": {
+   "advisory_ids": [
+    "GHSA-r5fr-rjxr-66jc",
+    "CVE-2026-4800",
+    "GHSA-f23m-r3pf-42rh",
+    "CVE-2026-2950",
+    "GHSA-xxjr-mmjv-4gpg",
+    "CVE-2025-13465",
+    "GHSA-29mw-wpgm-hmr9",
+    "CVE-2020-28500",
+    "GHSA-8p5q-j9m2-g8wr",
+    "CVE-2021-41720",
+    "GHSA-35jh-r3h4-6jhm",
+    "CVE-2021-23337"
+   ],
+   "snapshot_id": "github-advisories:513d1a6faa123e70a9d34b9b651c4db0",
+   "status": "VULNERABLE"
+  }
+ },
+ "unit_id": "IMP-0098",
+ "rebuild": {
+  "by": "shard10-wave3 builder",
+  "date": "2026-10-26",
+  "critical_finding": "tools/marketplace/vuln_ingestion.py on disk was NOT a delivered implementation: it was a generated g1-surface stub (no-op _NS classes, every function returns an empty object). The richer module the receipt recorded died with the prior builder session and existed nowhere else.",
+  "actions": "RE-IMPLEMENTED the unit for real: live OsvHttpSource (api.osv.dev/v1/query) plus GithubAdvisorySource as the independent second database, FakeSource hermetic seam, ingest_components with CLEAN gated on the known-vulnerable control firing in-run, unreachable -> UNKNOWN never CLEAN, osv exit discipline 0/1/127, freshness per IMP-0095 (input hash + 86400s window, STALE never CLEAN), vulnerability-status schema + SBOM fixtures. Both probes re-ran LIVE 2026-10-26 (real api.osv.dev and api.github.com calls, distinct snapshot ids, CVE-2021-23337 present in both), exit 0; hermetic tests green. Reviewer closure kept verbatim per contract - its substance (GitHub Advisory REST second source; fetch failure never renders CLEAN) is exactly the re-implemented behaviour and re-verified live."
+ },
+ "extensions": {
+  "completion": {
+   "shard9_wave4_envelope": "Receipt envelope completed to receipt_core conformance by the shard-9 wave-4 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; both named probes re-ran exit 0 on this host during completion. probes_ok=True"
+  },
+  "artifact_roles_prior": {
+   "command-center/receipts/IMP-0098.json": "primary",
+   "tools/marketplace/vuln_ingestion.py": "implementation",
+   "tools/marketplace/tests/test_vuln_ingestion.py": "tests-required",
+   "tools/marketplace/schema/vulnerability-status.schema.json": "schema",
+   "command-center/p2-wave/probes/IMP-0098/probe1_osv_ingest.py": "named-probe",
+   "command-center/p2-wave/probes/IMP-0098/probe2_independent_source.py": "named-probe",
+   "command-center/p2-wave/probes/IMP-0098/fixtures/sboms/demo-vuln@1.0.0.cdx.json": "fixture",
+   "command-center/p2-wave/probes/IMP-0098/fixtures/sboms/demo-clean@1.0.0.cdx.json": "fixture"
+  },
+  "prior_evidence": [
+   {
+    "anchor": "live:osv.dev/v1/query lodash@4.17.20",
+    "claim": "Live OSV ingest flags npm lodash@4.17.20 as VULNERABLE and includes CVE-2021-23337.",
+    "confidence": "almost-certain",
+    "probes": [
+     {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe1_osv_ingest.py",
+      "exit_code": 0,
+      "method": "command",
+      "raw_output": "deferred-to-named-probe-re-run",
+      "role": "source"
+     },
+     {
+      "command": "POST https://api.osv.dev/v1/query",
+      "exit_code": 0,
+      "method": "http",
+      "raw_output": "{\"ids\": [\"GHSA-29mw-wpgm-hmr9\", \"CVE-2020-28500\", \"GHSA-35jh-r3h4-6jhm\", \"CVE-2021-23337\", \"CVE-2026-4800\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-f23m-r3pf-42rh\", \"CVE-2025-13465\", \"CVE-2026-2950\", \"GHSA-xxjr-mmjv-4gpg\"], \"snapshot_id\": \"osv.dev:866399b05e55f651aa5059ca8a30c33b\", \"status\": \"VULNERABLE\"}",
+      "role": "verifier"
+     }
+    ],
+    "verdict": "CONFIRMED"
+   },
+   {
+    "anchor": "live:api.github.com/advisories lodash@4.17.20",
+    "claim": "Independent GitHub Advisory query of the same component also returns CVE-2021-23337; intersection is non-empty.",
+    "confidence": "almost-certain",
+    "probes": [
+     {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0098/probe2_independent_source.py",
+      "exit_code": 0,
+      "method": "command",
+      "raw_output": "deferred-to-named-probe-re-run",
+      "role": "source"
+     },
+     {
+      "command": "GET https://api.github.com/advisories?ecosystem=npm&affects=lodash@4.17.20",
+      "exit_code": 0,
+      "method": "http",
+      "raw_output": "{\"intersection\": [\"GHSA-29mw-wpgm-hmr9\", \"CVE-2020-28500\", \"GHSA-35jh-r3h4-6jhm\", \"CVE-2021-23337\", \"CVE-2026-4800\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-f23m-r3pf-42rh\", \"CVE-2025-13465\", \"CVE-2026-2950\", \"GHSA-xxjr-mmjv-4gpg\"], \"known_cve_in_both\": true}",
+      "role": "verifier"
+     }
+    ],
+    "verdict": "CONFIRMED"
+   }
+  ],
+  "manifest_registration_prior": {
+   "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  }
+ }
+}

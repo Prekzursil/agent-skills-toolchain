@@ -1,0 +1,1142 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0063.json",
+   "bytes": 28285,
+   "sha256": "362979a5708e8f46a0cc831042c5355d671e373074b9c63fddc491655f014da8",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:RES-0063 in the receipt AND four cited task-identity definitions each tested against one real work unit from this slice",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0063.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "RES-0063",
+ "extensions": {
+  "legacy_root": {
+   "catalog_fit_tests": [
+    {
+     "encoding": {
+      "dag_id": "RES-1",
+      "map_index": null,
+      "run_id": null,
+      "task_id": "RES-0063"
+     },
+     "engine": "airflow",
+     "fit_class": "DOES_NOT_FIT",
+     "fits": false,
+     "invented_fields": [
+      "run_id",
+      "map_index"
+     ],
+     "reason": "Airflow identity is a per-run TaskInstance (dag_id, task_id, run_id, map_index) for a data interval. Catalog unit RES-0063 has no run_id or map_index; inventing map_index=-1 would hide that the native identity is a partitioned/run instance, not the research artifact command-center/research/RES-0063.json.",
+     "subject_unit_id": "RES-0063"
+    },
+    {
+     "encoding": {
+      "cache_key_default_includes_flow_run_id": true,
+      "code_hash": null,
+      "function_qualname": null,
+      "task_key": null
+     },
+     "engine": "prefect",
+     "fit_class": "PARTIAL",
+     "fits": false,
+     "invented_fields": [
+      "task_key",
+      "function_qualname",
+      "code_hash",
+      "flow_run_id"
+     ],
+     "reason": "Prefect task_key is derived from a Python function's last qualname component plus a bytecode hash. The catalog record for RES-0063 is a research question and output path, not a function, so task_key cannot be constructed from catalog fields. DEFAULT cache further binds identity to a flow-run ID the catalog does not have. Wrapping the unit in a @task would identify the wrapper, not command-center/research/RES-0063.json.",
+     "subject_unit_id": "RES-0063"
+    },
+    {
+     "encoding": {
+      "AssetKey.path": [
+       "command-center",
+       "research",
+       "RES-0063.json"
+      ]
+     },
+     "engine": "dagster",
+     "fit_class": "FITS",
+     "fits": true,
+     "invented_fields": [],
+     "reason": "Dagster AssetKey is a handle for the asset. Mapping output_path command-center/research/RES-0063.json onto AssetKey(['command-center', 'research', 'RES-0063.json']) uses only catalog fields, invents no partition key, and names the research artifact rather than a data interval. FROM_FAILURE skip of successful materializations matches 'do not redo a delivered unit'.",
+     "subject_unit_id": "RES-0063"
+    },
+    {
+     "encoding": {
+      "domain": "cloud-batch",
+      "name": "RES-0063",
+      "project": "command-center",
+      "resource_type": "TASK",
+      "version": "17dba9c02abb"
+     },
+     "engine": "flyte",
+     "fit_class": "PARTIAL",
+     "fits": false,
+     "invented_fields": [
+      "resource_type"
+     ],
+     "reason": "Flyte Identifier(project, domain, name, version) can be filled from output_path prefix, execution_substrate, id=RES-0063, and sha256(question_or_target). resource_type=TASK is an engine constant. That names a versioned task entity, not the artifact path command-center/research/RES-0063.json; cache keys further include typed inputs. Closer than Airflow's run/map_index, farther than Dagster AssetKey.",
+     "subject_unit_id": "RES-0063"
+    }
+   ],
+   "claims": [
+    {
+     "canonical_mechanism": "Airflow TaskInstance composite key",
+     "claim": "A TaskInstance is uniquely constrained as (dag_id, task_id, run_id, map_index); TaskInstance.key also carries try_number. map_index=-1 means unmapped. Docs: a Task Instance is a specific run of that task for a given Dag (and thus for a given data interval).",
+     "confidence_band": "high",
+     "engine": "airflow",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-24T18:45:12Z",
+     "id": "identity-airflow",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+     "snapshot_sha256": [
+      "e6b94f890d4dcaa362c210c85f22f684c43fe7f177ac32a6eb25d47cfa6ab40a",
+      "1e4516b563e5f9bd6827b331be8b097d65dc1d64140d9c9c54c759133b73f56e"
+     ],
+     "source_lineage": [
+      "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+      "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html"
+     ],
+     "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "Prefect task_key plus cache key",
+     "claim": "prefect: two-rail disagreement on task-key formula (docs vs _generate_task_key). Docs formula is not a measured fact. Source _generate_task_key is the engine's actual identity function.",
+     "confidence_band": "high",
+     "engine": "prefect",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-24T18:45:13Z",
+     "id": "identity-prefect",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+     "snapshot_sha256": [
+      "0908c89f0586d6e614bf28bf72a5eb1ab3167e3ddcbcf4d6a11445f3e9827543",
+      "5822994032aa08223a7209cfe1906fa8437f252725f67ef68b9f3162649c221f"
+     ],
+     "source_lineage": [
+      "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+      "https://docs.prefect.io/v3/concepts/tasks"
+     ],
+     "strongest_caveat": "task-key formula (docs vs _generate_task_key)",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "Dagster AssetKey (asset handle) plus FROM_FAILURE skip",
+     "claim": "An AssetKey is a handle for referring to the asset: a sanitized string or hierarchical list/tuple of strings. That is artifact identity, not a run-scoped task instance. Op/step retries are a separate axis (RetryPolicy on the computing op).",
+     "confidence_band": "high",
+     "engine": "dagster",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-24T18:45:15Z",
+     "id": "identity-dagster",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+     "snapshot_sha256": [
+      "f107418116ef0cf1e488be36e4da47d6df09d6177ba8ec639a2257be2f5a3c67",
+      "41a6ca983766192da3f5fb6de76f0c1351a37f6f5647c42a7f2bbc67adf7029b"
+     ],
+     "source_lineage": [
+      "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+      "https://docs.dagster.io/guides/build/assets/defining-assets"
+     ],
+     "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "Flyte Identifier (project, domain, name, version)",
+     "claim": "Registered tasks are Identifier(resource_type, project, domain, name, version), stringified as '{resource_type_name}:{project}:{domain}:{name}:{version}'. Remote cache keys add Cache Version, Task Signature, and Inputs, isolated by project and domain.",
+     "confidence_band": "high",
+     "engine": "flyte",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-24T18:45:17Z",
+     "id": "identity-flyte",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+     "snapshot_sha256": [
+      "09c3c254921ada868583f927b4a29e69b9a4363fdd4dce8c959a7849c51071a4",
+      "b9468d30f2211e44aa3b67516c3a862fdb0dd23d06f89283a4bc3a7f0dcc69b6"
+     ],
+     "source_lineage": [
+      "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+      "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md"
+     ],
+     "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "catalog-field encoding of engine identity",
+     "claim": "Applied airflow identity to catalog unit RES-0063: fit_class=DOES_NOT_FIT fits=False. Airflow identity is a per-run TaskInstance (dag_id, task_id, run_id, map_index) for a data interval. Catalog unit RES-0063 has no run_id or map_index; inventing map_index=-1 would hide that the native identity is a partitioned/run instance, not the research artifact command-center/research/RES-0063.json.",
+     "confidence_band": "high",
+     "engine": "airflow",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-25T00:57:02Z",
+     "id": "fit-airflow",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+     "snapshot_sha256": [
+      "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+     ],
+     "source_lineage": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "unit_id=RES-0063"
+     ],
+     "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "catalog-field encoding of engine identity",
+     "claim": "Applied prefect identity to catalog unit RES-0063: fit_class=PARTIAL fits=False. Prefect task_key is derived from a Python function's last qualname component plus a bytecode hash. The catalog record for RES-0063 is a research question and output path, not a function, so task_key cannot be constructed from catalog fields. DEFAULT cache further binds identity to a flow-run ID the catalog does not have. Wrapping the unit in a @task would identify the wrapper, not command-center/research/RES-0063.json.",
+     "confidence_band": "high",
+     "engine": "prefect",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-25T00:57:02Z",
+     "id": "fit-prefect",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+     "snapshot_sha256": [
+      "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+     ],
+     "source_lineage": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "unit_id=RES-0063"
+     ],
+     "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "catalog-field encoding of engine identity",
+     "claim": "Applied dagster identity to catalog unit RES-0063: fit_class=FITS fits=True. Dagster AssetKey is a handle for the asset. Mapping output_path command-center/research/RES-0063.json onto AssetKey(['command-center', 'research', 'RES-0063.json']) uses only catalog fields, invents no partition key, and names the research artifact rather than a data interval. FROM_FAILURE skip of successful materializations matches 'do not redo a delivered unit'.",
+     "confidence_band": "high",
+     "engine": "dagster",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-25T00:57:02Z",
+     "id": "fit-dagster",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+     "snapshot_sha256": [
+      "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+     ],
+     "source_lineage": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "unit_id=RES-0063"
+     ],
+     "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+     "verdict": "CONFIRMED"
+    },
+    {
+     "canonical_mechanism": "catalog-field encoding of engine identity",
+     "claim": "Applied flyte identity to catalog unit RES-0063: fit_class=PARTIAL fits=False. Flyte Identifier(project, domain, name, version) can be filled from output_path prefix, execution_substrate, id=RES-0063, and sha256(question_or_target). resource_type=TASK is an engine constant. That names a versioned task entity, not the artifact path command-center/research/RES-0063.json; cache keys further include typed inputs. Closer than Airflow's run/map_index, farther than Dagster AssetKey.",
+     "confidence_band": "high",
+     "engine": "flyte",
+     "evidence_tier": "E2",
+     "freshness_stamp": "2026-08-25T00:57:02Z",
+     "id": "fit-flyte",
+     "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+     "snapshot_sha256": [
+      "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+     ],
+     "source_lineage": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "unit_id=RES-0063"
+     ],
+     "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+     "verdict": "CONFIRMED"
+    }
+   ],
+   "freshness_stamp": "2026-08-25T00:57:02Z",
+   "negative_control": {
+    "airflow_fits_real_unit": false,
+    "dagster_fits_real_unit": true,
+    "description": "Same catalog id with a fabricated partition_key/map_index and a parquet output. Airflow's native identity is built for this shape; the real RES-0063 record is not.",
+    "engine": "_control",
+    "fired": true,
+    "id": "control-data-partition-mutant",
+    "mutant_has_partition_key": true,
+    "mutant_is_research_artifact": false,
+    "real_unit_is_research_artifact": true
+   },
+   "question": "How do Airflow, Prefect, Dagster and Flyte define a task's identity, decide what to re-run after a partial failure, and enforce idempotency - and which definition of task identity fits work units whose output is a research artifact rather than a data partition?",
+   "receipt": "SUCCESS:RES-0063 in the receipt AND four cited task-identity definitions each tested against one real work unit from this slice",
+   "schema": "command-center/schema/research-claim-record.schema.json",
+   "strongest_caveat": "No claim here is a measurement of a running scheduler cluster; identity is taken from captured source/docs bytes plus a live catalog encoding.",
+   "subject_unit": {
+    "execution_substrate": "cloud-batch",
+    "has_partition_key": false,
+    "id": "RES-0063",
+    "is_research_artifact": true,
+    "output_path": "command-center/research/RES-0063.json",
+    "question_or_target": "How do Airflow, Prefect, Dagster and Flyte define a task's identity, decide what to re-run after a partial failure, and enforce idempotency - and which definition of task identity fits work units whose output is a research artifact rather than a data partition?",
+    "source_slice_file": "RES-1.json",
+    "title": "Extract resume, backfill and idempotency semantics from mature DAG schedulers"
+   },
+   "task_identity_definitions": [
+    {
+     "decoded_source_sha256_live": "ba601d05bf1f0097ce897a0dc70a2e3b1f2b0da46c2f477f08f0d94d7aa06cae",
+     "engine": "airflow",
+     "evidence_tier": "E2",
+     "extra_rails": [],
+     "idempotency": "The engine does not wrap side effects. Idempotency is a task author obligation. Mapped tasks distinguish instances by map_index (a partition of the mapped input), not by output artifact.",
+     "identity_components": [
+      "dag_id",
+      "task_id",
+      "run_id",
+      "map_index"
+     ],
+     "identity_statement": "A TaskInstance is uniquely constrained as (dag_id, task_id, run_id, map_index); TaskInstance.key also carries try_number. map_index=-1 means unmapped. Docs: a Task Instance is a specific run of that task for a given Dag (and thus for a given data interval).",
+     "r1": {
+      "bytes": 149838,
+      "decoded_source_sha256": "ba601d05bf1f0097ce897a0dc70a2e3b1f2b0da46c2f477f08f0d94d7aa06cae",
+      "fetch_timestamp": "2026-08-24T18:45:12Z",
+      "final_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/models/taskinstance.py",
+      "github_blob_sha": "ff610f2146588ec80d23b70162bb00710c6fd335",
+      "github_html_url": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+      "http_status": 200,
+      "id": "airflow-r1-taskinstance-api",
+      "kind": "structured-api",
+      "permalink": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+      "rail": "R1",
+      "sha256": "e6b94f890d4dcaa362c210c85f22f684c43fe7f177ac32a6eb25d47cfa6ab40a"
+     },
+     "r1_missing": [],
+     "r1_needles_found": true,
+     "r2": {
+      "bytes": 156580,
+      "decoded_source_sha256": null,
+      "fetch_timestamp": "2026-08-24T18:45:13Z",
+      "final_url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html",
+      "github_blob_sha": null,
+      "github_html_url": null,
+      "http_status": 200,
+      "id": "airflow-r2-tasks-docs",
+      "kind": "prose",
+      "permalink": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html",
+      "rail": "R2",
+      "sha256": "1e4516b563e5f9bd6827b331be8b097d65dc1d64140d9c9c54c759133b73f56e"
+     },
+     "r2_missing": [],
+     "r2_needles_found": true,
+     "rails_disagree_on": null,
+     "resume_semantics": "Failed TIs enter up_for_retry and are rescheduled; the unique constraint does not include try_number, so a retry is the same identity with an incremented try_number. Succeeded TIs of the same run are not re-created.",
+     "title": "Airflow TaskInstance composite key"
+    },
+    {
+     "decoded_source_sha256_live": "06dc97b6e570153b7b9dc0b77d463c8b5fc5c61cf07d6e97147e2012ccbd5ebd",
+     "engine": "prefect",
+     "evidence_tier": "E2-disagreement",
+     "extra_rails": [
+      {
+       "bytes": 352222,
+       "decoded_source_sha256": null,
+       "fetch_timestamp": "2026-08-24T18:45:15Z",
+       "final_url": "https://docs.prefect.io/v3/concepts/caching",
+       "github_blob_sha": null,
+       "github_html_url": null,
+       "http_status": 200,
+       "id": "prefect-r2-caching-docs",
+       "kind": "prose",
+       "permalink": "https://docs.prefect.io/v3/concepts/caching",
+       "rail": "R2",
+       "sha256": "55ab2ba9bd13afbbf42f5b4abdb3f92664d67fa8f15aacf368f07d7851b9c7af"
+      }
+     ],
+     "idempotency": "Idempotency is opt-in via cache_policy / cache_key_fn and result persistence. DEFAULT cache includes flow-run ID, so the same inputs in a new flow run do not hit cache unless the policy is changed (e.g. INPUTS).",
+     "identity_components": [
+      "task_key",
+      "cache_key"
+     ],
+     "identity_statement": "Source: task_key is '{qualname.split('.')[-1]}-{hash(code_obj)}' from _generate_task_key. Docs claim a hash of task name plus the fully qualified name of the function. Those formulas disagree. A task run is a single invocation; DEFAULT cache hashes inputs, code definition, and the prevailing flow-run (or autonomous task-run) ID.",
+     "r1": {
+      "bytes": 117537,
+      "decoded_source_sha256": "06dc97b6e570153b7b9dc0b77d463c8b5fc5c61cf07d6e97147e2012ccbd5ebd",
+      "fetch_timestamp": "2026-08-24T18:45:13Z",
+      "final_url": "https://api.github.com/repos/PrefectHQ/prefect/contents/src/prefect/tasks.py",
+      "github_blob_sha": "d7463b54a4366153ab1c9e9448c3d6695e2f13db",
+      "github_html_url": "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+      "http_status": 200,
+      "id": "prefect-r1-tasks-api",
+      "kind": "structured-api",
+      "permalink": "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+      "rail": "R1",
+      "sha256": "0908c89f0586d6e614bf28bf72a5eb1ab3167e3ddcbcf4d6a11445f3e9827543"
+     },
+     "r1_missing": [],
+     "r1_needles_found": true,
+     "r2": {
+      "bytes": 527753,
+      "decoded_source_sha256": null,
+      "fetch_timestamp": "2026-08-24T18:45:14Z",
+      "final_url": "https://docs.prefect.io/v3/concepts/tasks",
+      "github_blob_sha": null,
+      "github_html_url": null,
+      "http_status": 200,
+      "id": "prefect-r2-tasks-docs",
+      "kind": "prose",
+      "permalink": "https://docs.prefect.io/v3/concepts/tasks",
+      "rail": "R2",
+      "sha256": "5822994032aa08223a7209cfe1906fa8437f252725f67ef68b9f3162649c221f"
+     },
+     "r2_missing": [],
+     "r2_needles_found": true,
+     "rails_disagree_on": "task-key formula (docs vs _generate_task_key)",
+     "resume_semantics": "Retries re-enter Running from Retrying/AwaitingRetry on the same task run. Caching can skip re-execution when a cache key hits.",
+     "title": "Prefect task_key plus cache key"
+    },
+    {
+     "decoded_source_sha256_live": "64f5061a5f70946ea944ee979f24b3083b46959478bf81d87ae217a86d322079",
+     "engine": "dagster",
+     "evidence_tier": "E2",
+     "extra_rails": [
+      {
+       "bytes": 56451,
+       "decoded_source_sha256": null,
+       "fetch_timestamp": "2026-08-24T18:45:16Z",
+       "final_url": "https://docs.dagster.io/deployment/execution/run-retries",
+       "github_blob_sha": null,
+       "github_html_url": null,
+       "http_status": 200,
+       "id": "dagster-r2-run-retries",
+       "kind": "prose",
+       "permalink": "https://docs.dagster.io/deployment/execution/run-retries",
+       "rail": "R2",
+       "sha256": "72c747733194aa44c5bd0fa534a6a12e75738e4240827118ec74e977082f4b2c"
+      }
+     ],
+     "idempotency": "Re-materializing the same unpartitioned AssetKey is the same asset; partitions (when used) are an extra identity axis this program's work units do not carry.",
+     "identity_components": [
+      "AssetKey.path"
+     ],
+     "identity_statement": "An AssetKey is a handle for referring to the asset: a sanitized string or hierarchical list/tuple of strings. That is artifact identity, not a run-scoped task instance. Op/step retries are a separate axis (RetryPolicy on the computing op).",
+     "r1": {
+      "bytes": 16674,
+      "decoded_source_sha256": "64f5061a5f70946ea944ee979f24b3083b46959478bf81d87ae217a86d322079",
+      "fetch_timestamp": "2026-08-24T18:45:15Z",
+      "final_url": "https://api.github.com/repos/dagster-io/dagster/contents/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+      "github_blob_sha": "a0a7a05590aaf82b9b14a101cf023dce5a6d3f19",
+      "github_html_url": "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+      "http_status": 200,
+      "id": "dagster-r1-assetkey-api",
+      "kind": "structured-api",
+      "permalink": "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+      "rail": "R1",
+      "sha256": "f107418116ef0cf1e488be36e4da47d6df09d6177ba8ec639a2257be2f5a3c67"
+     },
+     "r1_missing": [],
+     "r1_needles_found": true,
+     "r2": {
+      "bytes": 100174,
+      "decoded_source_sha256": null,
+      "fetch_timestamp": "2026-08-24T18:45:16Z",
+      "final_url": "https://docs.dagster.io/guides/build/assets/defining-assets",
+      "github_blob_sha": null,
+      "github_html_url": null,
+      "http_status": 200,
+      "id": "dagster-r2-defining-assets",
+      "kind": "prose",
+      "permalink": "https://docs.dagster.io/guides/build/assets/defining-assets",
+      "rail": "R2",
+      "sha256": "41a6ca983766192da3f5fb6de76f0c1351a37f6f5647c42a7f2bbc67adf7029b"
+     },
+     "r2_missing": [],
+     "r2_needles_found": true,
+     "rails_disagree_on": null,
+     "resume_semantics": "Default run retry strategy FROM_FAILURE re-executes from failure: successful ops are skipped and their outputs are reused. FROM_ASSET_FAILURE uses persisted materialization records to exclude already-materialized assets.",
+     "title": "Dagster AssetKey (asset handle) plus FROM_FAILURE skip"
+    },
+    {
+     "decoded_source_sha256_live": "69209edab2b84cfd2835cd415ea1020c944a118bc0d01e654584a821411ee461",
+     "engine": "flyte",
+     "evidence_tier": "E2",
+     "extra_rails": [],
+     "idempotency": "Memoization is opt-in (cache=True). Cache identity is the versioned task entity plus typed inputs, not the output artifact path.",
+     "identity_components": [
+      "resource_type",
+      "project",
+      "domain",
+      "name",
+      "version"
+     ],
+     "identity_statement": "Registered tasks are Identifier(resource_type, project, domain, name, version), stringified as '{resource_type_name}:{project}:{domain}:{name}:{version}'. Remote cache keys add Cache Version, Task Signature, and Inputs, isolated by project and domain.",
+     "r1": {
+      "bytes": 11329,
+      "decoded_source_sha256": "69209edab2b84cfd2835cd415ea1020c944a118bc0d01e654584a821411ee461",
+      "fetch_timestamp": "2026-08-24T18:45:17Z",
+      "final_url": "https://api.github.com/repos/flyteorg/flytekit/contents/flytekit/models/core/identifier.py",
+      "github_blob_sha": "8a45232e384a0702625fa6e69adfa5bc6fb42bb8",
+      "github_html_url": "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+      "http_status": 200,
+      "id": "flyte-r1-identifier-api",
+      "kind": "structured-api",
+      "permalink": "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+      "rail": "R1",
+      "sha256": "09c3c254921ada868583f927b4a29e69b9a4363fdd4dce8c959a7849c51071a4"
+     },
+     "r1_missing": [],
+     "r1_needles_found": true,
+     "r2": {
+      "bytes": 10474,
+      "decoded_source_sha256": null,
+      "fetch_timestamp": "2026-08-24T18:45:18Z",
+      "final_url": "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md",
+      "github_blob_sha": null,
+      "github_html_url": null,
+      "http_status": 200,
+      "id": "flyte-r2-caching-docs",
+      "kind": "prose",
+      "permalink": "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md",
+      "rail": "R2",
+      "sha256": "b9468d30f2211e44aa3b67516c3a862fdb0dd23d06f89283a4bc3a7f0dcc69b6"
+     },
+     "r2_missing": [],
+     "r2_needles_found": true,
+     "rails_disagree_on": null,
+     "resume_semantics": "A cache hit returns the stored result instead of re-running the task. Changing cache_version invalidates prior entries.",
+     "title": "Flyte Identifier (project, domain, name, version)"
+    }
+   ],
+   "title": "Extract resume, backfill and idempotency semantics from mature DAG schedulers",
+   "which_definition_fits_research_artifact": {
+    "best_fit": "dagster",
+    "does_not_fit": [
+     "airflow"
+    ],
+    "partial": [
+     "prefect",
+     "flyte"
+    ],
+    "rationale": "Dagster AssetKey names the artifact from output_path with no invented partition. Flyte Identifier can be filled from catalog fields but names a versioned task entity, not the file. Prefect identifies a function/cache key the catalog does not have. Airflow identifies a (run, map_index) instance of a data interval.",
+    "runner_up": "flyte"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0063",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "RES-0063 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0063.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0063.json",
+     "raw_output": "bytes=28285 sha256=362979a5708e8f46a0cc831042c5355d671e373074b9c63fddc491655f014da8",
+     "fingerprint": "ef5feadd88c01c4f3ed474ed48e0ddd2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0063",
+     "raw_output": "schema-check",
+     "fingerprint": "00dd1177674a6ac7162e3e6c3eb9bd7c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0063 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0063",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0063",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "95b5abe8718b17e4c9d7b747c62f880d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0063",
+     "raw_output": "schema-valid",
+     "fingerprint": "de21c63553a01ab8fccfd11ba9530543",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0063/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0063"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0063.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0063.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "7c6c2b2145a73fa9fcb4a787eee497c2",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 28285,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0063.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "catalog_fit_tests": [
+  {
+   "encoding": {
+    "dag_id": "RES-1",
+    "map_index": null,
+    "run_id": null,
+    "task_id": "RES-0063"
+   },
+   "engine": "airflow",
+   "fit_class": "DOES_NOT_FIT",
+   "fits": false,
+   "invented_fields": [
+    "run_id",
+    "map_index"
+   ],
+   "reason": "Airflow identity is a per-run TaskInstance (dag_id, task_id, run_id, map_index) for a data interval. Catalog unit RES-0063 has no run_id or map_index; inventing map_index=-1 would hide that the native identity is a partitioned/run instance, not the research artifact command-center/research/RES-0063.json.",
+   "subject_unit_id": "RES-0063"
+  },
+  {
+   "encoding": {
+    "cache_key_default_includes_flow_run_id": true,
+    "code_hash": null,
+    "function_qualname": null,
+    "task_key": null
+   },
+   "engine": "prefect",
+   "fit_class": "PARTIAL",
+   "fits": false,
+   "invented_fields": [
+    "task_key",
+    "function_qualname",
+    "code_hash",
+    "flow_run_id"
+   ],
+   "reason": "Prefect task_key is derived from a Python function's last qualname component plus a bytecode hash. The catalog record for RES-0063 is a research question and output path, not a function, so task_key cannot be constructed from catalog fields. DEFAULT cache further binds identity to a flow-run ID the catalog does not have. Wrapping the unit in a @task would identify the wrapper, not command-center/research/RES-0063.json.",
+   "subject_unit_id": "RES-0063"
+  },
+  {
+   "encoding": {
+    "AssetKey.path": [
+     "command-center",
+     "research",
+     "RES-0063.json"
+    ]
+   },
+   "engine": "dagster",
+   "fit_class": "FITS",
+   "fits": true,
+   "invented_fields": [],
+   "reason": "Dagster AssetKey is a handle for the asset. Mapping output_path command-center/research/RES-0063.json onto AssetKey(['command-center', 'research', 'RES-0063.json']) uses only catalog fields, invents no partition key, and names the research artifact rather than a data interval. FROM_FAILURE skip of successful materializations matches 'do not redo a delivered unit'.",
+   "subject_unit_id": "RES-0063"
+  },
+  {
+   "encoding": {
+    "domain": "cloud-batch",
+    "name": "RES-0063",
+    "project": "command-center",
+    "resource_type": "TASK",
+    "version": "17dba9c02abb"
+   },
+   "engine": "flyte",
+   "fit_class": "PARTIAL",
+   "fits": false,
+   "invented_fields": [
+    "resource_type"
+   ],
+   "reason": "Flyte Identifier(project, domain, name, version) can be filled from output_path prefix, execution_substrate, id=RES-0063, and sha256(question_or_target). resource_type=TASK is an engine constant. That names a versioned task entity, not the artifact path command-center/research/RES-0063.json; cache keys further include typed inputs. Closer than Airflow's run/map_index, farther than Dagster AssetKey.",
+   "subject_unit_id": "RES-0063"
+  }
+ ],
+ "claims": [
+  {
+   "canonical_mechanism": "Airflow TaskInstance composite key",
+   "claim": "A TaskInstance is uniquely constrained as (dag_id, task_id, run_id, map_index); TaskInstance.key also carries try_number. map_index=-1 means unmapped. Docs: a Task Instance is a specific run of that task for a given Dag (and thus for a given data interval).",
+   "confidence_band": "high",
+   "engine": "airflow",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-24T18:45:12Z",
+   "id": "identity-airflow",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+   "snapshot_sha256": [
+    "e6b94f890d4dcaa362c210c85f22f684c43fe7f177ac32a6eb25d47cfa6ab40a",
+    "1e4516b563e5f9bd6827b331be8b097d65dc1d64140d9c9c54c759133b73f56e"
+   ],
+   "source_lineage": [
+    "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+    "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html"
+   ],
+   "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "Prefect task_key plus cache key",
+   "claim": "prefect: two-rail disagreement on task-key formula (docs vs _generate_task_key). Docs formula is not a measured fact. Source _generate_task_key is the engine's actual identity function.",
+   "confidence_band": "high",
+   "engine": "prefect",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-24T18:45:13Z",
+   "id": "identity-prefect",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+   "snapshot_sha256": [
+    "0908c89f0586d6e614bf28bf72a5eb1ab3167e3ddcbcf4d6a11445f3e9827543",
+    "5822994032aa08223a7209cfe1906fa8437f252725f67ef68b9f3162649c221f"
+   ],
+   "source_lineage": [
+    "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+    "https://docs.prefect.io/v3/concepts/tasks"
+   ],
+   "strongest_caveat": "task-key formula (docs vs _generate_task_key)",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "Dagster AssetKey (asset handle) plus FROM_FAILURE skip",
+   "claim": "An AssetKey is a handle for referring to the asset: a sanitized string or hierarchical list/tuple of strings. That is artifact identity, not a run-scoped task instance. Op/step retries are a separate axis (RetryPolicy on the computing op).",
+   "confidence_band": "high",
+   "engine": "dagster",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-24T18:45:15Z",
+   "id": "identity-dagster",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+   "snapshot_sha256": [
+    "f107418116ef0cf1e488be36e4da47d6df09d6177ba8ec639a2257be2f5a3c67",
+    "41a6ca983766192da3f5fb6de76f0c1351a37f6f5647c42a7f2bbc67adf7029b"
+   ],
+   "source_lineage": [
+    "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+    "https://docs.dagster.io/guides/build/assets/defining-assets"
+   ],
+   "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "Flyte Identifier (project, domain, name, version)",
+   "claim": "Registered tasks are Identifier(resource_type, project, domain, name, version), stringified as '{resource_type_name}:{project}:{domain}:{name}:{version}'. Remote cache keys add Cache Version, Task Signature, and Inputs, isolated by project and domain.",
+   "confidence_band": "high",
+   "engine": "flyte",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-24T18:45:17Z",
+   "id": "identity-flyte",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe1_identity_citations.py",
+   "snapshot_sha256": [
+    "09c3c254921ada868583f927b4a29e69b9a4363fdd4dce8c959a7849c51071a4",
+    "b9468d30f2211e44aa3b67516c3a862fdb0dd23d06f89283a4bc3a7f0dcc69b6"
+   ],
+   "source_lineage": [
+    "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+    "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md"
+   ],
+   "strongest_caveat": "Pinned to captured snapshot bytes; github blob/main URLs can move.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "catalog-field encoding of engine identity",
+   "claim": "Applied airflow identity to catalog unit RES-0063: fit_class=DOES_NOT_FIT fits=False. Airflow identity is a per-run TaskInstance (dag_id, task_id, run_id, map_index) for a data interval. Catalog unit RES-0063 has no run_id or map_index; inventing map_index=-1 would hide that the native identity is a partitioned/run instance, not the research artifact command-center/research/RES-0063.json.",
+   "confidence_band": "high",
+   "engine": "airflow",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-25T00:57:02Z",
+   "id": "fit-airflow",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+   "snapshot_sha256": [
+    "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+   ],
+   "source_lineage": [
+    "command-center/WORK-UNIT-CATALOG.json",
+    "unit_id=RES-0063"
+   ],
+   "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "catalog-field encoding of engine identity",
+   "claim": "Applied prefect identity to catalog unit RES-0063: fit_class=PARTIAL fits=False. Prefect task_key is derived from a Python function's last qualname component plus a bytecode hash. The catalog record for RES-0063 is a research question and output path, not a function, so task_key cannot be constructed from catalog fields. DEFAULT cache further binds identity to a flow-run ID the catalog does not have. Wrapping the unit in a @task would identify the wrapper, not command-center/research/RES-0063.json.",
+   "confidence_band": "high",
+   "engine": "prefect",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-25T00:57:02Z",
+   "id": "fit-prefect",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+   "snapshot_sha256": [
+    "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+   ],
+   "source_lineage": [
+    "command-center/WORK-UNIT-CATALOG.json",
+    "unit_id=RES-0063"
+   ],
+   "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "catalog-field encoding of engine identity",
+   "claim": "Applied dagster identity to catalog unit RES-0063: fit_class=FITS fits=True. Dagster AssetKey is a handle for the asset. Mapping output_path command-center/research/RES-0063.json onto AssetKey(['command-center', 'research', 'RES-0063.json']) uses only catalog fields, invents no partition key, and names the research artifact rather than a data interval. FROM_FAILURE skip of successful materializations matches 'do not redo a delivered unit'.",
+   "confidence_band": "high",
+   "engine": "dagster",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-25T00:57:02Z",
+   "id": "fit-dagster",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+   "snapshot_sha256": [
+    "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+   ],
+   "source_lineage": [
+    "command-center/WORK-UNIT-CATALOG.json",
+    "unit_id=RES-0063"
+   ],
+   "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "canonical_mechanism": "catalog-field encoding of engine identity",
+   "claim": "Applied flyte identity to catalog unit RES-0063: fit_class=PARTIAL fits=False. Flyte Identifier(project, domain, name, version) can be filled from output_path prefix, execution_substrate, id=RES-0063, and sha256(question_or_target). resource_type=TASK is an engine constant. That names a versioned task entity, not the artifact path command-center/research/RES-0063.json; cache keys further include typed inputs. Closer than Airflow's run/map_index, farther than Dagster AssetKey.",
+   "confidence_band": "high",
+   "engine": "flyte",
+   "evidence_tier": "E2",
+   "freshness_stamp": "2026-08-25T00:57:02Z",
+   "id": "fit-flyte",
+   "named_settling_probe": "command-center/p2-wave/probes/RES-0063/probe2_catalog_fit.py",
+   "snapshot_sha256": [
+    "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+   ],
+   "source_lineage": [
+    "command-center/WORK-UNIT-CATALOG.json",
+    "unit_id=RES-0063"
+   ],
+   "strongest_caveat": "Fit is against THIS catalog record, not against a live Airflow/Prefect/Dagster/Flyte cluster.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "freshness_stamp": "2026-08-25T00:57:02Z",
+ "negative_control": {
+  "airflow_fits_real_unit": false,
+  "dagster_fits_real_unit": true,
+  "description": "Same catalog id with a fabricated partition_key/map_index and a parquet output. Airflow's native identity is built for this shape; the real RES-0063 record is not.",
+  "engine": "_control",
+  "fired": true,
+  "id": "control-data-partition-mutant",
+  "mutant_has_partition_key": true,
+  "mutant_is_research_artifact": false,
+  "real_unit_is_research_artifact": true
+ },
+ "question": "How do Airflow, Prefect, Dagster and Flyte define a task's identity, decide what to re-run after a partial failure, and enforce idempotency - and which definition of task identity fits work units whose output is a research artifact rather than a data partition?",
+ "receipt": "SUCCESS:RES-0063 in the receipt AND four cited task-identity definitions each tested against one real work unit from this slice",
+ "schema": "command-center/schema/research-claim-record.schema.json",
+ "strongest_caveat": "No claim here is a measurement of a running scheduler cluster; identity is taken from captured source/docs bytes plus a live catalog encoding.",
+ "subject_unit": {
+  "execution_substrate": "cloud-batch",
+  "has_partition_key": false,
+  "id": "RES-0063",
+  "is_research_artifact": true,
+  "output_path": "command-center/research/RES-0063.json",
+  "question_or_target": "How do Airflow, Prefect, Dagster and Flyte define a task's identity, decide what to re-run after a partial failure, and enforce idempotency - and which definition of task identity fits work units whose output is a research artifact rather than a data partition?",
+  "source_slice_file": "RES-1.json",
+  "title": "Extract resume, backfill and idempotency semantics from mature DAG schedulers"
+ },
+ "task_identity_definitions": [
+  {
+   "decoded_source_sha256_live": "ba601d05bf1f0097ce897a0dc70a2e3b1f2b0da46c2f477f08f0d94d7aa06cae",
+   "engine": "airflow",
+   "evidence_tier": "E2",
+   "extra_rails": [],
+   "idempotency": "The engine does not wrap side effects. Idempotency is a task author obligation. Mapped tasks distinguish instances by map_index (a partition of the mapped input), not by output artifact.",
+   "identity_components": [
+    "dag_id",
+    "task_id",
+    "run_id",
+    "map_index"
+   ],
+   "identity_statement": "A TaskInstance is uniquely constrained as (dag_id, task_id, run_id, map_index); TaskInstance.key also carries try_number. map_index=-1 means unmapped. Docs: a Task Instance is a specific run of that task for a given Dag (and thus for a given data interval).",
+   "r1": {
+    "bytes": 149838,
+    "decoded_source_sha256": "ba601d05bf1f0097ce897a0dc70a2e3b1f2b0da46c2f477f08f0d94d7aa06cae",
+    "fetch_timestamp": "2026-08-24T18:45:12Z",
+    "final_url": "https://api.github.com/repos/apache/airflow/contents/airflow-core/src/airflow/models/taskinstance.py",
+    "github_blob_sha": "ff610f2146588ec80d23b70162bb00710c6fd335",
+    "github_html_url": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+    "http_status": 200,
+    "id": "airflow-r1-taskinstance-api",
+    "kind": "structured-api",
+    "permalink": "https://github.com/apache/airflow/blob/main/airflow-core/src/airflow/models/taskinstance.py",
+    "rail": "R1",
+    "sha256": "e6b94f890d4dcaa362c210c85f22f684c43fe7f177ac32a6eb25d47cfa6ab40a"
+   },
+   "r1_missing": [],
+   "r1_needles_found": true,
+   "r2": {
+    "bytes": 156580,
+    "decoded_source_sha256": null,
+    "fetch_timestamp": "2026-08-24T18:45:13Z",
+    "final_url": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html",
+    "github_blob_sha": null,
+    "github_html_url": null,
+    "http_status": 200,
+    "id": "airflow-r2-tasks-docs",
+    "kind": "prose",
+    "permalink": "https://airflow.apache.org/docs/apache-airflow/stable/core-concepts/tasks.html",
+    "rail": "R2",
+    "sha256": "1e4516b563e5f9bd6827b331be8b097d65dc1d64140d9c9c54c759133b73f56e"
+   },
+   "r2_missing": [],
+   "r2_needles_found": true,
+   "rails_disagree_on": null,
+   "resume_semantics": "Failed TIs enter up_for_retry and are rescheduled; the unique constraint does not include try_number, so a retry is the same identity with an incremented try_number. Succeeded TIs of the same run are not re-created.",
+   "title": "Airflow TaskInstance composite key"
+  },
+  {
+   "decoded_source_sha256_live": "06dc97b6e570153b7b9dc0b77d463c8b5fc5c61cf07d6e97147e2012ccbd5ebd",
+   "engine": "prefect",
+   "evidence_tier": "E2-disagreement",
+   "extra_rails": [
+    {
+     "bytes": 352222,
+     "decoded_source_sha256": null,
+     "fetch_timestamp": "2026-08-24T18:45:15Z",
+     "final_url": "https://docs.prefect.io/v3/concepts/caching",
+     "github_blob_sha": null,
+     "github_html_url": null,
+     "http_status": 200,
+     "id": "prefect-r2-caching-docs",
+     "kind": "prose",
+     "permalink": "https://docs.prefect.io/v3/concepts/caching",
+     "rail": "R2",
+     "sha256": "55ab2ba9bd13afbbf42f5b4abdb3f92664d67fa8f15aacf368f07d7851b9c7af"
+    }
+   ],
+   "idempotency": "Idempotency is opt-in via cache_policy / cache_key_fn and result persistence. DEFAULT cache includes flow-run ID, so the same inputs in a new flow run do not hit cache unless the policy is changed (e.g. INPUTS).",
+   "identity_components": [
+    "task_key",
+    "cache_key"
+   ],
+   "identity_statement": "Source: task_key is '{qualname.split('.')[-1]}-{hash(code_obj)}' from _generate_task_key. Docs claim a hash of task name plus the fully qualified name of the function. Those formulas disagree. A task run is a single invocation; DEFAULT cache hashes inputs, code definition, and the prevailing flow-run (or autonomous task-run) ID.",
+   "r1": {
+    "bytes": 117537,
+    "decoded_source_sha256": "06dc97b6e570153b7b9dc0b77d463c8b5fc5c61cf07d6e97147e2012ccbd5ebd",
+    "fetch_timestamp": "2026-08-24T18:45:13Z",
+    "final_url": "https://api.github.com/repos/PrefectHQ/prefect/contents/src/prefect/tasks.py",
+    "github_blob_sha": "d7463b54a4366153ab1c9e9448c3d6695e2f13db",
+    "github_html_url": "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+    "http_status": 200,
+    "id": "prefect-r1-tasks-api",
+    "kind": "structured-api",
+    "permalink": "https://github.com/PrefectHQ/prefect/blob/main/src/prefect/tasks.py",
+    "rail": "R1",
+    "sha256": "0908c89f0586d6e614bf28bf72a5eb1ab3167e3ddcbcf4d6a11445f3e9827543"
+   },
+   "r1_missing": [],
+   "r1_needles_found": true,
+   "r2": {
+    "bytes": 527753,
+    "decoded_source_sha256": null,
+    "fetch_timestamp": "2026-08-24T18:45:14Z",
+    "final_url": "https://docs.prefect.io/v3/concepts/tasks",
+    "github_blob_sha": null,
+    "github_html_url": null,
+    "http_status": 200,
+    "id": "prefect-r2-tasks-docs",
+    "kind": "prose",
+    "permalink": "https://docs.prefect.io/v3/concepts/tasks",
+    "rail": "R2",
+    "sha256": "5822994032aa08223a7209cfe1906fa8437f252725f67ef68b9f3162649c221f"
+   },
+   "r2_missing": [],
+   "r2_needles_found": true,
+   "rails_disagree_on": "task-key formula (docs vs _generate_task_key)",
+   "resume_semantics": "Retries re-enter Running from Retrying/AwaitingRetry on the same task run. Caching can skip re-execution when a cache key hits.",
+   "title": "Prefect task_key plus cache key"
+  },
+  {
+   "decoded_source_sha256_live": "64f5061a5f70946ea944ee979f24b3083b46959478bf81d87ae217a86d322079",
+   "engine": "dagster",
+   "evidence_tier": "E2",
+   "extra_rails": [
+    {
+     "bytes": 56451,
+     "decoded_source_sha256": null,
+     "fetch_timestamp": "2026-08-24T18:45:16Z",
+     "final_url": "https://docs.dagster.io/deployment/execution/run-retries",
+     "github_blob_sha": null,
+     "github_html_url": null,
+     "http_status": 200,
+     "id": "dagster-r2-run-retries",
+     "kind": "prose",
+     "permalink": "https://docs.dagster.io/deployment/execution/run-retries",
+     "rail": "R2",
+     "sha256": "72c747733194aa44c5bd0fa534a6a12e75738e4240827118ec74e977082f4b2c"
+    }
+   ],
+   "idempotency": "Re-materializing the same unpartitioned AssetKey is the same asset; partitions (when used) are an extra identity axis this program's work units do not carry.",
+   "identity_components": [
+    "AssetKey.path"
+   ],
+   "identity_statement": "An AssetKey is a handle for referring to the asset: a sanitized string or hierarchical list/tuple of strings. That is artifact identity, not a run-scoped task instance. Op/step retries are a separate axis (RetryPolicy on the computing op).",
+   "r1": {
+    "bytes": 16674,
+    "decoded_source_sha256": "64f5061a5f70946ea944ee979f24b3083b46959478bf81d87ae217a86d322079",
+    "fetch_timestamp": "2026-08-24T18:45:15Z",
+    "final_url": "https://api.github.com/repos/dagster-io/dagster/contents/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+    "github_blob_sha": "a0a7a05590aaf82b9b14a101cf023dce5a6d3f19",
+    "github_html_url": "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+    "http_status": 200,
+    "id": "dagster-r1-assetkey-api",
+    "kind": "structured-api",
+    "permalink": "https://github.com/dagster-io/dagster/blob/master/python_modules/dagster/dagster/_core/definitions/asset_key.py",
+    "rail": "R1",
+    "sha256": "f107418116ef0cf1e488be36e4da47d6df09d6177ba8ec639a2257be2f5a3c67"
+   },
+   "r1_missing": [],
+   "r1_needles_found": true,
+   "r2": {
+    "bytes": 100174,
+    "decoded_source_sha256": null,
+    "fetch_timestamp": "2026-08-24T18:45:16Z",
+    "final_url": "https://docs.dagster.io/guides/build/assets/defining-assets",
+    "github_blob_sha": null,
+    "github_html_url": null,
+    "http_status": 200,
+    "id": "dagster-r2-defining-assets",
+    "kind": "prose",
+    "permalink": "https://docs.dagster.io/guides/build/assets/defining-assets",
+    "rail": "R2",
+    "sha256": "41a6ca983766192da3f5fb6de76f0c1351a37f6f5647c42a7f2bbc67adf7029b"
+   },
+   "r2_missing": [],
+   "r2_needles_found": true,
+   "rails_disagree_on": null,
+   "resume_semantics": "Default run retry strategy FROM_FAILURE re-executes from failure: successful ops are skipped and their outputs are reused. FROM_ASSET_FAILURE uses persisted materialization records to exclude already-materialized assets.",
+   "title": "Dagster AssetKey (asset handle) plus FROM_FAILURE skip"
+  },
+  {
+   "decoded_source_sha256_live": "69209edab2b84cfd2835cd415ea1020c944a118bc0d01e654584a821411ee461",
+   "engine": "flyte",
+   "evidence_tier": "E2",
+   "extra_rails": [],
+   "idempotency": "Memoization is opt-in (cache=True). Cache identity is the versioned task entity plus typed inputs, not the output artifact path.",
+   "identity_components": [
+    "resource_type",
+    "project",
+    "domain",
+    "name",
+    "version"
+   ],
+   "identity_statement": "Registered tasks are Identifier(resource_type, project, domain, name, version), stringified as '{resource_type_name}:{project}:{domain}:{name}:{version}'. Remote cache keys add Cache Version, Task Signature, and Inputs, isolated by project and domain.",
+   "r1": {
+    "bytes": 11329,
+    "decoded_source_sha256": "69209edab2b84cfd2835cd415ea1020c944a118bc0d01e654584a821411ee461",
+    "fetch_timestamp": "2026-08-24T18:45:17Z",
+    "final_url": "https://api.github.com/repos/flyteorg/flytekit/contents/flytekit/models/core/identifier.py",
+    "github_blob_sha": "8a45232e384a0702625fa6e69adfa5bc6fb42bb8",
+    "github_html_url": "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+    "http_status": 200,
+    "id": "flyte-r1-identifier-api",
+    "kind": "structured-api",
+    "permalink": "https://github.com/flyteorg/flytekit/blob/master/flytekit/models/core/identifier.py",
+    "rail": "R1",
+    "sha256": "09c3c254921ada868583f927b4a29e69b9a4363fdd4dce8c959a7849c51071a4"
+   },
+   "r1_missing": [],
+   "r1_needles_found": true,
+   "r2": {
+    "bytes": 10474,
+    "decoded_source_sha256": null,
+    "fetch_timestamp": "2026-08-24T18:45:18Z",
+    "final_url": "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md",
+    "github_blob_sha": null,
+    "github_html_url": null,
+    "http_status": 200,
+    "id": "flyte-r2-caching-docs",
+    "kind": "prose",
+    "permalink": "https://raw.githubusercontent.com/flyteorg/flyte/master/docs/user_guide/development_lifecycle/caching.md",
+    "rail": "R2",
+    "sha256": "b9468d30f2211e44aa3b67516c3a862fdb0dd23d06f89283a4bc3a7f0dcc69b6"
+   },
+   "r2_missing": [],
+   "r2_needles_found": true,
+   "rails_disagree_on": null,
+   "resume_semantics": "A cache hit returns the stored result instead of re-running the task. Changing cache_version invalidates prior entries.",
+   "title": "Flyte Identifier (project, domain, name, version)"
+  }
+ ],
+ "title": "Extract resume, backfill and idempotency semantics from mature DAG schedulers",
+ "which_definition_fits_research_artifact": {
+  "best_fit": "dagster",
+  "does_not_fit": [
+   "airflow"
+  ],
+  "partial": [
+   "prefect",
+   "flyte"
+  ],
+  "rationale": "Dagster AssetKey names the artifact from output_path with no invented partition. Flyte Identifier can be filled from catalog fields but names a versioned task entity, not the file. Prefect identifies a function/cache key the catalog does not have. Airflow identifies a (run, map_index) instance of a data interval.",
+  "runner_up": "flyte"
+ }
+}

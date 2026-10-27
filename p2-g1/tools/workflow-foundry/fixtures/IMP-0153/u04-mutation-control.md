@@ -1,0 +1,1 @@
+Calibrate every detector with a planted mutant. Build the mutant by mutating one field, run the detector on the mutant, then re-run it on the clean twin. Record both outputs so the reviewer can recompute the band.

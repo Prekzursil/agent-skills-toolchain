@@ -1,0 +1,37 @@
+{
+  "shard": "wave-3 shard 20",
+  "reviewer": "independent-reviewer-wave3-shard20",
+  "date": "2026-10-26",
+  "units_total": 12,
+  "verdict_tally": {"PASS": 0, "FAIL": 12},
+  "receipts_modified": 0,
+  "per_unit": {
+    "TST-0129": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 5},
+    "TST-0130": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 5},
+    "TST-0136": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 24},
+    "TST-0137": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 2},
+    "TST-0138": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 10},
+    "TST-0139": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 13},
+    "TST-0141": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 6},
+    "TST-0142": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 6},
+    "TST-0143": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 2},
+    "TST-0144": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 4},
+    "TST-0145": {"verdict": "FAIL", "failing_check": "output_schema-invalid", "live_probes_exit0": true, "manifest_primary_sha_match": true, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 27},
+    "TST-0150": {"verdict": "FAIL", "failing_check": "output_schema-invalid + manifest-supporting-row-drift", "live_probes_exit0": true, "manifest_primary_sha_match": true, "manifest_supporting_rows_match": false, "receipt_state": "SUCCESS", "reviewer_closure": "PASS+independent (prior wave)", "c2_errors": 2}
+  },
+  "instruments": [
+    "program-canonical: python -B command-center/receipt_validate.py (C2 layer-1 admission via platform/lib/receipt_schema_gate.py, in-repo platform schema)",
+    "reviewer-independent: jsonschema Draft2020-12 against catalog output_schema target command-center/schema/receipt.schema.json#/$defs/<class> (repo schema -> its declared absolute $refs)",
+    "direct receipt key inspection (TST-0136 required-field absence)"
+  ],
+  "instrument_control": "canonical C2 admits 626/1153 receipts corpus-wide -> gate is discriminating, not globally broken; shard-20 rejections are content-real",
+  "what_holds": [
+    "all 12 receipts exist, parse, state=SUCCESS, unit_id matches, reviewer.verdict=PASS + independent=true (receipt_core closure bit satisfied)",
+    "all 24 named probes re-run live by this reviewer: exit 0 with SUCCESS:<unit>-probe markers",
+    "all 12 UNIT-ARTIFACT-MANIFEST.json primary rows match the live receipt sha256 (CRLF->LF normalized) and byte counts",
+    "all 12 catalog entries present and agree with the shard slice output_path/output_schema"
+  ],
+  "why_FAIL": "output_schema validation fails for every unit under both instruments. Classes: (a) missing receipt_core required fields (schema_version, spec_anchor, timestamps, retry, manifest_registration{registered:true}, downstream_consumers, min_bytes_threshold, report) in the prompt-two-era receipts; (b) honesty-conditional violations: SUCCESS receipts carrying FAILED: sentinels (TST-0129/0130/0141/0142), OPEN P1 defects attached to SUCCESS receipts (TST-0141-D1, TST-0142-D1) - receipt_core condition-10 forbids this, manifest_registration.registered != true; (c) enum violations (negative_controls.kind, evidence probes.role/method, artifacts.role, residual_unknowns bare strings / verdict ACKNOWLEDGED); (d) TST-0150 supporting-row drift: probe raw jsons regenerated after the manifest write (raw 03:38 > manifest 02:58).",
+  "remediation_shape": "re-emit the 12 receipts to receipt_core conformance via the program's own emitters (add required fields; resolve FAILED sentinels and open P1 defects or set state accordingly; conform evidence/negative_controls/tests/produced_by shapes to the class profile; conform residual_unknowns to objects), then re-run probes, refresh per-unit manifest rows (incl. TST-0150 supporting rows), and re-submit for independent review.",
+  "artifacts": "C:\\Users\\Prekzursil\\p2-g1\\_p2shard20-w3-review\\ (verify_unit.py, c2_census.py, results/<unit>.json, VERDICTS.json)"
+}

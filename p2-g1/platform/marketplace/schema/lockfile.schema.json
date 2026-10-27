@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/lockfile.schema.json",
+  "title": "Install lockfile",
+  "description": "Lockfile support (spec 10859). The lockfile pins the EXACT bytes that were certified: name, version, manifest digest and payload digest. Marketplace-first FM-2 measured 233 generated shims with no drift detector; a lockfile turns that drift into a hard install failure instead of a silent divergence. Frozen mode (`mkt install --frozen`) resolves ONLY from this file and refuses any package or digest the lockfile does not already contain.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "lockfile_version", "registry_id", "generated_at", "packages"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "lockfile_version": { "type": "integer", "minimum": 1 },
+    "registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "generated_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "index_digest": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "Digest of the index the lock was resolved against. A changed index with an unchanged lock is legal (that is the POINT of a lock) but it is recorded so a diverging registry is visible rather than inferred."
+    },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "version", "manifest_digest", "payload_digest", "publisher", "permissions", "requested_by"],
+        "properties": {
+          "name": { "$ref": "common.schema.json#/$defs/package_name" },
+          "version": { "$ref": "common.schema.json#/$defs/semver" },
+          "manifest_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+          "payload_digest": { "$ref": "common.schema.json#/$defs/sha256" },
+          "publisher": { "$ref": "common.schema.json#/$defs/publisher_id" },
+          "permissions": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/permission" }, "uniqueItems": true },
+          "requested_by": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "maxLength": 80 },
+            "description": "`direct` or the name of the depending package. Makes a transitive dependency traceable to the root that pulled it in -- a lock whose entries have no provenance cannot be pruned safely."
+          }
+        }
+      }
+    },
+    "signature": { "$ref": "signature.schema.json" }
+  }
+}

@@ -1,0 +1,2202 @@
+{
+  "initialize": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {
+      "tools": {
+        "listChanged": true
+      }
+    },
+    "serverInfo": {
+      "name": "Runpod API Server",
+      "version": "2.0.0",
+      "capabilities": {
+        "resources": {},
+        "tools": {}
+      }
+    }
+  },
+  "tools": {
+    "tools": [
+      {
+        "name": "list-gpu-types",
+        "description": "List available GPU types with stock/pricing and capability filters (minimum VRAM, secure/community cloud, name search). Use this to discover valid gpuTypeIds before creating a pod or endpoint. On v2 the realtime stock filter is a no-op.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "minMemoryGb": {
+              "type": "number",
+              "description": "Filter to GPUs with at least this much VRAM in GB"
+            },
+            "secureCloudOnly": {
+              "type": "boolean",
+              "description": "Filter to only GPUs available in secure cloud"
+            },
+            "communityCloudOnly": {
+              "type": "boolean",
+              "description": "Filter to only GPUs available in community cloud"
+            },
+            "searchTerm": {
+              "type": "string",
+              "description": "Search term to filter GPUs by name (e.g., 'A100', 'RTX 4090')"
+            },
+            "includeUnavailable": {
+              "type": "boolean",
+              "description": "Include GPUs that are currently out of stock. Default is false"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List GPU types",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-data-centers",
+        "description": "List Runpod data centers (id, name, region/location). Use this to discover valid dataCenterIds for placing pods, endpoints, or network volumes.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "region": {
+              "type": "string",
+              "description": "Filter by region/location (e.g., 'United States', 'Europe', 'Canada')"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List data centers",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-cpu-types",
+        "description": "List available CPU flavor types for CPU pods/endpoints. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List CPU types",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-gpu-type",
+        "description": "Get details for a single GPU type by id. v2-only — returns a 501 notice on the v1 API (use list-gpu-types there).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "gpuTypeId": {
+              "type": "string",
+              "description": "ID of the GPU type to retrieve"
+            }
+          },
+          "required": [
+            "gpuTypeId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get GPU type",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-cpu-type",
+        "description": "Get details for a single CPU flavor type by id. v2-only — returns a 501 notice on the v1 API (use list-cpu-types there).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "cpuTypeId": {
+              "type": "string",
+              "description": "ID of the CPU type to retrieve"
+            }
+          },
+          "required": [
+            "cpuTypeId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get CPU type",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-data-center",
+        "description": "Get details for a single data center by id. v2-only — returns a 501 notice on the v1 API (use list-data-centers there).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "dataCenterId": {
+              "type": "string",
+              "description": "ID of the data center to retrieve"
+            }
+          },
+          "required": [
+            "dataCenterId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get data center",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-pods",
+        "description": "List your pods (running and stopped) with optional filters — compute type, GPU type, data center, name — plus machine/network-volume expansion. Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "computeType": {
+              "type": "string",
+              "enum": [
+                "GPU",
+                "CPU"
+              ],
+              "description": "Filter to only GPU or only CPU Pods"
+            },
+            "gpuTypeId": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Filter to Pods with any of the listed GPU types"
+            },
+            "dataCenterId": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Filter to Pods in any of the provided data centers"
+            },
+            "name": {
+              "type": "string",
+              "description": "Filter to Pods with the provided name"
+            },
+            "includeMachine": {
+              "type": "boolean",
+              "description": "Include information about the machine"
+            },
+            "includeNetworkVolume": {
+              "type": "boolean",
+              "description": "Include information about attached network volumes"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List pods",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-pod",
+        "description": "Get full details for one pod by id, optionally expanding machine and attached network-volume info.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to retrieve"
+            },
+            "includeMachine": {
+              "type": "boolean",
+              "description": "Include information about the machine"
+            },
+            "includeNetworkVolume": {
+              "type": "boolean",
+              "description": "Include information about attached network volumes"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get pod",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-pod",
+        "description": "Create a new GPU/CPU pod on Runpod. Pass gpuTypeIds for a GPU pod, or computeType:\"CPU\" for a CPU pod (CPU pods are served by the v1 API for now). If the user does not specify an image, recommend the \"Runpod Pytorch 2.8.0\" image (runpod/pytorch:1.0.2-cu1281-torch280-ubuntu2404) as the default — it has the most up-to-date CUDA and PyTorch versions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the pod"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "Docker image to use"
+            },
+            "computeType": {
+              "type": "string",
+              "enum": [
+                "GPU",
+                "CPU"
+              ],
+              "description": "Pod type. On v2, required when not passing gpuTypeIds. 'CPU' is served by the v1 API for now (v2 has no CPU pods yet)."
+            },
+            "cloudType": {
+              "type": "string",
+              "enum": [
+                "SECURE",
+                "COMMUNITY"
+              ],
+              "description": "SECURE or COMMUNITY cloud"
+            },
+            "gpuTypeIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of acceptable GPU types"
+            },
+            "gpuCount": {
+              "type": "number",
+              "description": "Number of GPUs"
+            },
+            "containerDiskInGb": {
+              "type": "number",
+              "description": "Container disk size in GB"
+            },
+            "volumeInGb": {
+              "type": "number",
+              "description": "Volume size in GB"
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "description": "Path to mount the volume"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ports to expose (e.g., '8888/http', '22/tcp')"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Environment variables"
+            },
+            "dataCenterIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of data centers"
+            }
+          },
+          "required": [
+            "imageName"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create pod",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "update-pod",
+        "description": "Update a pod's mutable fields (name, image, container disk, volume, ports, env). Only the fields you provide change.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New name for the pod"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "New Docker image"
+            },
+            "containerDiskInGb": {
+              "type": "number",
+              "description": "New container disk size in GB"
+            },
+            "volumeInGb": {
+              "type": "number",
+              "description": "New volume size in GB"
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "description": "New path to mount the volume"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "New ports to expose"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "New environment variables"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Update pod",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "start-pod",
+        "description": "Start a stopped pod (resumes the same pod and its billing).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to start"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Start pod",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "stop-pod",
+        "description": "Stop a running pod. The pod and its disk persist; GPU billing stops.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to stop"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Stop pod",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "restart-pod",
+        "description": "Restart a running pod (single PodAction call). v2-only — on the v1 API returns a 501 notice (stop then start the pod instead).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to restart"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Restart pod",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-pod",
+        "description": "Permanently delete a pod and its data. This cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "podId": {
+              "type": "string",
+              "description": "ID of the pod to delete"
+            }
+          },
+          "required": [
+            "podId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete pod",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-endpoints",
+        "description": "List your Serverless endpoints, optionally expanding template and worker details (v1 only). Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "includeTemplate": {
+              "type": "boolean",
+              "description": "Include template information (v1 only)"
+            },
+            "includeWorkers": {
+              "type": "boolean",
+              "description": "Include information about workers (v1 only)"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List endpoints",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-endpoint",
+        "description": "Get one Serverless endpoint by id, optionally expanding template and worker details (v1 only).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "description": "ID of the endpoint to retrieve"
+            },
+            "includeTemplate": {
+              "type": "boolean",
+              "description": "Include template information (v1 only)"
+            },
+            "includeWorkers": {
+              "type": "boolean",
+              "description": "Include information about workers (v1 only)"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get endpoint",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-endpoint",
+        "description": "Create a Serverless endpoint. On v2 (default), pass an inline config: imageName + gpuPoolIds (GPU pool names from list-gpu-types — the `pool` field, e.g. AMPERE_80/ADA_24) plus optional workers/scaling/disk/env. On v1, pass a templateId instead. Worker min/max set autoscaling bounds (min 0 = scale to zero).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the endpoint"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "Docker image (v2). Required on v2 instead of a templateId."
+            },
+            "gpuPoolIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "GPU pool names (v2, required). The `pool` field from list-gpu-types, e.g. [\"AMPERE_80\"]. NOT GPU type ids."
+            },
+            "gpuCount": {
+              "type": "number",
+              "description": "GPUs per worker (v2)"
+            },
+            "args": {
+              "type": "string",
+              "description": "Container start command/args (v2)"
+            },
+            "containerDiskInGb": {
+              "type": "number",
+              "description": "Container disk size in GB (v2)"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ports to expose (v2), e.g. ['8000/http']"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Environment variables (v2)"
+            },
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "Container registry auth id for a private image (v2)"
+            },
+            "networkVolumeIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Network volume ids to attach (v2)"
+            },
+            "executionTimeoutMs": {
+              "type": "number",
+              "description": "Per-job execution timeout in ms (v2)"
+            },
+            "flashboot": {
+              "type": "string",
+              "enum": [
+                "OFF",
+                "FLASHBOOT",
+                "PRIORITY_FLASHBOOT"
+              ],
+              "description": "FlashBoot mode (v2)"
+            },
+            "templateId": {
+              "type": "string",
+              "description": "Template ID (v1). Required on v1."
+            },
+            "computeType": {
+              "type": "string",
+              "enum": [
+                "GPU",
+                "CPU"
+              ],
+              "description": "GPU or CPU endpoint (v1)"
+            },
+            "gpuTypeIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of acceptable GPU types (v1)"
+            },
+            "workersMin": {
+              "type": "number",
+              "description": "Minimum number of workers"
+            },
+            "workersMax": {
+              "type": "number",
+              "description": "Maximum number of workers"
+            },
+            "scalerType": {
+              "type": "string",
+              "enum": [
+                "QUEUE_DELAY",
+                "REQUEST_COUNT"
+              ],
+              "description": "Autoscaler type"
+            },
+            "scalerValue": {
+              "type": "number",
+              "description": "Autoscaler target value"
+            },
+            "idleTimeout": {
+              "type": "number",
+              "description": "Idle timeout in seconds before scaling a worker down"
+            },
+            "dataCenterIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of preferred data centers"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create endpoint",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "update-endpoint",
+        "description": "Update a Serverless endpoint's config. On v2 you can change image/disk/env/ports/registry/workers/scaling/networkVolumes/timeout/flashboot; on v1, scaling fields (worker min/max, idle timeout, scaler type/value, name). Only provided fields change.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "description": "ID of the endpoint to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New name for the endpoint"
+            },
+            "workersMin": {
+              "type": "number",
+              "description": "New minimum number of workers"
+            },
+            "workersMax": {
+              "type": "number",
+              "description": "New maximum number of workers"
+            },
+            "idleTimeout": {
+              "type": "number",
+              "description": "New idle timeout in seconds"
+            },
+            "scalerType": {
+              "type": "string",
+              "enum": [
+                "QUEUE_DELAY",
+                "REQUEST_COUNT"
+              ],
+              "description": "Scaler type"
+            },
+            "scalerValue": {
+              "type": "number",
+              "description": "Scaler value"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "New Docker image (v2)"
+            },
+            "gpuPoolIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "New GPU pool names (v2), e.g. [\"AMPERE_80\"]"
+            },
+            "gpuCount": {
+              "type": "number",
+              "description": "New GPUs per worker (v2)"
+            },
+            "args": {
+              "type": "string",
+              "description": "New container args (v2)"
+            },
+            "containerDiskInGb": {
+              "type": "number",
+              "description": "New container disk size in GB (v2)"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "New ports (v2)"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "New environment variables (v2)"
+            },
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "New container registry auth id (v2)"
+            },
+            "networkVolumeIds": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "New network volume ids (v2)"
+            },
+            "executionTimeoutMs": {
+              "type": "number",
+              "description": "New per-job execution timeout in ms (v2)"
+            },
+            "flashboot": {
+              "type": "string",
+              "enum": [
+                "OFF",
+                "FLASHBOOT",
+                "PRIORITY_FLASHBOOT"
+              ],
+              "description": "New FlashBoot mode (v2)"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Update endpoint",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-endpoint",
+        "description": "Permanently delete a Serverless endpoint. This cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "description": "ID of the endpoint to delete"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete endpoint",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-endpoint-workers",
+        "description": "List the workers backing a Serverless endpoint, with their status and an aggregate summary. v2-only — returns a 501 notice on the v1 API. Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "endpointId": {
+              "type": "string",
+              "description": "ID of the Serverless endpoint whose workers to list"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List endpoint workers",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "run-endpoint",
+        "description": "Submit an asynchronous job to a Serverless endpoint. Returns a job ID immediately — use get-job-status to poll for results. Async results are available for 30 minutes after completion.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint to run"
+            },
+            "input": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Input payload for the worker handler. The expected fields depend on the deployed model or worker."
+            },
+            "webhook": {
+              "type": "string",
+              "format": "uri",
+              "description": "Webhook URL to receive job completion notifications instead of polling"
+            },
+            "policy": {
+              "type": "object",
+              "properties": {
+                "executionTimeout": {
+                  "type": "number",
+                  "description": "Maximum execution time in milliseconds"
+                },
+                "lowPriority": {
+                  "type": "boolean",
+                  "description": "Submit as a low-priority job"
+                },
+                "ttl": {
+                  "type": "number",
+                  "description": "Time-to-live for the job result in milliseconds"
+                }
+              },
+              "additionalProperties": false,
+              "description": "Execution policy options"
+            },
+            "s3Config": {
+              "type": "object",
+              "properties": {
+                "accessId": {
+                  "type": "string",
+                  "description": "S3 access key ID"
+                },
+                "accessSecret": {
+                  "type": "string",
+                  "description": "S3 secret access key"
+                },
+                "bucketName": {
+                  "type": "string",
+                  "description": "S3 bucket name"
+                },
+                "endpointUrl": {
+                  "type": "string",
+                  "description": "S3 endpoint URL"
+                }
+              },
+              "required": [
+                "accessId",
+                "accessSecret",
+                "bucketName",
+                "endpointUrl"
+              ],
+              "additionalProperties": false,
+              "description": "S3-compatible storage config for large outputs"
+            }
+          },
+          "required": [
+            "endpointId",
+            "input"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Run endpoint (async)",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "runsync-endpoint",
+        "description": "Submit a synchronous job to a Serverless endpoint and wait for the result. Best for tasks completing within 90 seconds. If processing exceeds 90 seconds, the response returns a job ID to poll with get-job-status. Max payload: 20 MB. Results expire after 1 minute. Use the wait parameter to extend the server-side wait up to 5 minutes (300000 ms).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint to run synchronously"
+            },
+            "input": {
+              "type": "object",
+              "additionalProperties": {},
+              "description": "Input payload for the worker handler. The expected fields depend on the deployed model or worker."
+            },
+            "wait": {
+              "type": "number",
+              "minimum": 1000,
+              "maximum": 300000,
+              "description": "How long in milliseconds the server should wait for a result before returning a job ID to poll (1000–300000). Defaults to 90000 (90 seconds)."
+            },
+            "webhook": {
+              "type": "string",
+              "format": "uri",
+              "description": "Webhook URL to receive job completion notifications instead of polling"
+            },
+            "policy": {
+              "type": "object",
+              "properties": {
+                "executionTimeout": {
+                  "type": "number",
+                  "description": "Maximum execution time in milliseconds"
+                },
+                "lowPriority": {
+                  "type": "boolean",
+                  "description": "Submit as a low-priority job"
+                },
+                "ttl": {
+                  "type": "number",
+                  "description": "Time-to-live for the job result in milliseconds"
+                }
+              },
+              "additionalProperties": false,
+              "description": "Execution policy options"
+            },
+            "s3Config": {
+              "type": "object",
+              "properties": {
+                "accessId": {
+                  "type": "string",
+                  "description": "S3 access key ID"
+                },
+                "accessSecret": {
+                  "type": "string",
+                  "description": "S3 secret access key"
+                },
+                "bucketName": {
+                  "type": "string",
+                  "description": "S3 bucket name"
+                },
+                "endpointUrl": {
+                  "type": "string",
+                  "description": "S3 endpoint URL"
+                }
+              },
+              "required": [
+                "accessId",
+                "accessSecret",
+                "bucketName",
+                "endpointUrl"
+              ],
+              "additionalProperties": false,
+              "description": "S3-compatible storage config for large outputs"
+            }
+          },
+          "required": [
+            "endpointId",
+            "input"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Run endpoint (sync)",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-job-status",
+        "description": "Check the status of an asynchronous Serverless job. Returns the current status and output when complete. Job statuses: IN_QUEUE, IN_PROGRESS, COMPLETED, FAILED, CANCELLED, TIMED_OUT.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint the job belongs to"
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the job to check"
+            }
+          },
+          "required": [
+            "endpointId",
+            "jobId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get job status",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "stream-job",
+        "description": "Retrieve all streaming output from a Serverless job by polling until the job reaches a terminal state. The worker must support streaming output. Polls /stream/{jobId} repeatedly and collects every chunk until status is COMPLETED, FAILED, CANCELLED, or TIMED_OUT.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint the job belongs to"
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the job to stream results from"
+            }
+          },
+          "required": [
+            "endpointId",
+            "jobId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Stream job",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "cancel-job",
+        "description": "Cancel a Serverless job that is queued or in progress.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint the job belongs to"
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the job to cancel"
+            }
+          },
+          "required": [
+            "endpointId",
+            "jobId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Cancel job",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "retry-job",
+        "description": "Retry a failed or timed-out Serverless job. Only works for jobs with FAILED or TIMED_OUT status. The previous output is removed and the job is requeued.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint the job belongs to"
+            },
+            "jobId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the job to retry"
+            }
+          },
+          "required": [
+            "endpointId",
+            "jobId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Retry job",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "endpoint-health",
+        "description": "Get the health and operational status of a Serverless endpoint, including worker counts and job statistics.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint to check health for"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Endpoint health",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "purge-endpoint-queue",
+        "description": "Remove all pending jobs from a Serverless endpoint queue. Only affects queued jobs — in-progress jobs continue running. Use this for error recovery or clearing outdated requests.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "endpointId": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "description": "ID of the Serverless endpoint to purge the queue for"
+            }
+          },
+          "required": [
+            "endpointId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Purge endpoint queue",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-templates",
+        "description": "List available templates. By default returns only the user's own templates. Use includeRunpodTemplates to also include official Runpod templates. The recommended default template for new pods is \"Runpod Pytorch 2.8.0\" (ID: runpod-torch-v280) — it has the latest CUDA and PyTorch versions.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "includeRunpodTemplates": {
+              "type": "boolean",
+              "description": "Include official Runpod templates in the response"
+            },
+            "includePublicTemplates": {
+              "type": "boolean",
+              "description": "Include community-made public templates in the response"
+            },
+            "includeEndpointBoundTemplates": {
+              "type": "boolean",
+              "description": "Include templates bound to Serverless endpoints in the response"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List templates",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-template",
+        "description": "Get one template by id (image, env, ports, disk/volume config).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "templateId": {
+              "type": "string",
+              "description": "ID of the template to retrieve"
+            }
+          },
+          "required": [
+            "templateId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get template",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-template",
+        "description": "Create a reusable pod/endpoint template (image, ports, env, disk/volume). On v2 a category is required and defaults to NVIDIA.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the template"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "Docker image to use"
+            },
+            "isServerless": {
+              "type": "boolean",
+              "description": "Is this a serverless template"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Ports to expose"
+            },
+            "dockerEntrypoint": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Docker entrypoint commands"
+            },
+            "dockerStartCmd": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Docker start commands"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Environment variables"
+            },
+            "containerDiskInGb": {
+              "type": "number",
+              "description": "Container disk size in GB"
+            },
+            "volumeInGb": {
+              "type": "number",
+              "description": "Volume size in GB"
+            },
+            "volumeMountPath": {
+              "type": "string",
+              "description": "Path to mount the volume"
+            },
+            "readme": {
+              "type": "string",
+              "description": "README content in markdown format"
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "CPU",
+                "NVIDIA",
+                "AMD"
+              ],
+              "description": "Hardware category for the template. On v2 a category is required and defaults to NVIDIA when omitted — set CPU or AMD for non-NVIDIA templates so they are not mis-categorized."
+            },
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "ID of a container registry credential (from create-container-registry-auth / list-container-registry-auths) used to pull a private image. Required when imageName points at a private registry; without it serverless workers fail the image pull."
+            }
+          },
+          "required": [
+            "name",
+            "imageName"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create template",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "update-template",
+        "description": "Update a template's mutable fields (name, image, ports, env, readme). Only provided fields change.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "templateId": {
+              "type": "string",
+              "description": "ID of the template to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New name for the template"
+            },
+            "imageName": {
+              "type": "string",
+              "description": "New Docker image"
+            },
+            "ports": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "New ports to expose"
+            },
+            "env": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "New environment variables"
+            },
+            "readme": {
+              "type": "string",
+              "description": "New README content in markdown format"
+            },
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "ID of a container registry credential (from create-container-registry-auth / list-container-registry-auths) used to pull a private image. Set this to attach a credential to a template referencing a private registry."
+            }
+          },
+          "required": [
+            "templateId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Update template",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-template",
+        "description": "Permanently delete a template. This cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "templateId": {
+              "type": "string",
+              "description": "ID of the template to delete"
+            }
+          },
+          "required": [
+            "templateId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete template",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-network-volumes",
+        "description": "List your network volumes (persistent storage attachable to pods). Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List network volumes",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-network-volume",
+        "description": "Get one network volume by id (name, size, data center).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "networkVolumeId": {
+              "type": "string",
+              "description": "ID of the network volume to retrieve"
+            }
+          },
+          "required": [
+            "networkVolumeId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get network volume",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-network-volume",
+        "description": "Create a persistent network volume in a data center (size 1–4000 GB) that pods can mount.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the network volume"
+            },
+            "size": {
+              "type": "number",
+              "description": "Size in GB (1-4000)"
+            },
+            "dataCenterId": {
+              "type": "string",
+              "description": "Data center ID (see list-data-centers)"
+            }
+          },
+          "required": [
+            "name",
+            "size",
+            "dataCenterId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create network volume",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "update-network-volume",
+        "description": "Update a network volume (rename, or grow size — the new size must exceed the current size). Only provided fields change.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "networkVolumeId": {
+              "type": "string",
+              "description": "ID of the network volume to update"
+            },
+            "name": {
+              "type": "string",
+              "description": "New name for the network volume"
+            },
+            "size": {
+              "type": "number",
+              "description": "New size in GB (must be larger than current)"
+            }
+          },
+          "required": [
+            "networkVolumeId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Update network volume",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-network-volume",
+        "description": "Permanently delete a network volume and its data. This cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "networkVolumeId": {
+              "type": "string",
+              "description": "ID of the network volume to delete"
+            }
+          },
+          "required": [
+            "networkVolumeId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete network volume",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-container-registry-auths",
+        "description": "List your saved container-registry credentials (private image-pull auth). Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List container registry auths",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-container-registry-auth",
+        "description": "Get one saved container-registry credential by id (the secret/password is not returned).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "ID of the container registry auth to retrieve"
+            }
+          },
+          "required": [
+            "containerRegistryAuthId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get container registry auth",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-container-registry-auth",
+        "description": "Save container-registry credentials (username + password/token) so pods and endpoints can pull private images.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Name for the container registry auth"
+            },
+            "username": {
+              "type": "string",
+              "description": "Registry username"
+            },
+            "password": {
+              "type": "string",
+              "description": "Registry password or access token (stored as a secret)"
+            }
+          },
+          "required": [
+            "name",
+            "username",
+            "password"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create container registry auth",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-container-registry-auth",
+        "description": "Permanently delete a saved container-registry credential. This cannot be undone.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "containerRegistryAuthId": {
+              "type": "string",
+              "description": "ID of the container registry auth to delete"
+            }
+          },
+          "required": [
+            "containerRegistryAuthId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete container registry auth",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "list-tags",
+        "description": "List your tags (key/value labels on pods, volumes, clusters, and endpoints). v2-only — returns a 501 notice on the v1 API. Paginated via limit/cursor.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "includeResources": {
+              "type": "boolean",
+              "description": "Include the resources attached to each tag in the response"
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "List tags",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-tag",
+        "description": "Get one tag by id, optionally including its attached resources. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tagId": {
+              "type": "string",
+              "description": "ID of the tag to retrieve"
+            },
+            "includeResources": {
+              "type": "boolean",
+              "description": "Include the resources attached to this tag"
+            }
+          },
+          "required": [
+            "tagId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get tag",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "create-tag",
+        "description": "Create a key/value tag, optionally attaching resources at creation. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Tag key (e.g. \"project\")"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Tag value (e.g. \"gpt-training\")"
+            },
+            "resources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Resource identifier (e.g. a pod or endpoint id)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "POD",
+                      "NETWORK_VOLUME",
+                      "CLUSTER",
+                      "SERVERLESS_ENDPOINT"
+                    ],
+                    "description": "Type of resource to associate with the tag"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Resources to attach to the tag at creation time"
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Create tag",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "update-tag",
+        "description": "Update a tag (rename its key/value, or replace its resource associations). Provide at least one of key, value, or resources. Sending resources:[] removes all associations; omitting resources leaves them unchanged. Replacing resources is NOT atomic — a failed update can leave a partially-applied set, so for small association changes prefer attach-tag/detach-tag. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tagId": {
+              "type": "string",
+              "description": "ID of the tag to update"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "description": "New tag key"
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "description": "New tag value"
+            },
+            "resources": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Resource identifier (e.g. a pod or endpoint id)"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "POD",
+                      "NETWORK_VOLUME",
+                      "CLUSTER",
+                      "SERVERLESS_ENDPOINT"
+                    ],
+                    "description": "Type of resource to associate with the tag"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type"
+                ],
+                "additionalProperties": false
+              },
+              "description": "Replace the tag's resource associations with exactly these. Omit to leave unchanged; pass [] to detach all."
+            }
+          },
+          "required": [
+            "tagId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Update tag",
+          "readOnlyHint": false,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "delete-tag",
+        "description": "Permanently delete a tag (removes it from all resources it is attached to). This cannot be undone. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tagId": {
+              "type": "string",
+              "description": "ID of the tag to delete"
+            }
+          },
+          "required": [
+            "tagId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Delete tag",
+          "readOnlyHint": false,
+          "destructiveHint": true,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "attach-tag",
+        "description": "Attach a tag to a resource (pod, network volume, cluster, or serverless endpoint). Idempotent — attaching an already-associated resource is a no-op. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tagId": {
+              "type": "string",
+              "description": "ID of the tag"
+            },
+            "resourceType": {
+              "type": "string",
+              "enum": [
+                "POD",
+                "NETWORK_VOLUME",
+                "CLUSTER",
+                "SERVERLESS_ENDPOINT"
+              ],
+              "description": "Type of resource to attach the tag to"
+            },
+            "resourceId": {
+              "type": "string",
+              "description": "ID of the resource to attach the tag to"
+            }
+          },
+          "required": [
+            "tagId",
+            "resourceType",
+            "resourceId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Attach tag to resource",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "detach-tag",
+        "description": "Detach a tag from a resource (removes the association only — the resource and tag are not deleted). Idempotent — detaching a resource that is not associated is a no-op. v2-only — returns a 501 notice on the v1 API.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "tagId": {
+              "type": "string",
+              "description": "ID of the tag"
+            },
+            "resourceType": {
+              "type": "string",
+              "enum": [
+                "POD",
+                "NETWORK_VOLUME",
+                "CLUSTER",
+                "SERVERLESS_ENDPOINT"
+              ],
+              "description": "Type of resource to detach the tag from"
+            },
+            "resourceId": {
+              "type": "string",
+              "description": "ID of the resource to detach the tag from"
+            }
+          },
+          "required": [
+            "tagId",
+            "resourceType",
+            "resourceId"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Detach tag from resource",
+          "readOnlyHint": false,
+          "openWorldHint": true,
+          "idempotentHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      },
+      {
+        "name": "get-billing",
+        "description": "Get time-bucketed Runpod spend history, either aggregated across all resources or broken down by resource type (pods, serverless, endpoints, network volumes, clusters). v2-only — returns a 501 notice on the v1 API. Records are capped via limit/cursor; narrow the window with startTime/endTime or lastN.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "description": "Maximum number of items to return (default 20, max 100). Use the returned nextCursor to fetch the next page."
+            },
+            "cursor": {
+              "type": "string",
+              "description": "Opaque pagination cursor from a previous response (nextCursor). Omit to start from the beginning."
+            },
+            "scope": {
+              "type": "string",
+              "enum": [
+                "all",
+                "pods",
+                "serverless",
+                "endpoints",
+                "networkvolumes",
+                "clusters"
+              ],
+              "description": "Which billing breakdown to fetch. \"all\" (default) is the aggregate across every resource."
+            },
+            "startTime": {
+              "type": "string",
+              "description": "Start of the period (RFC 3339, e.g. 2026-05-01T00:00:00Z). Defaults to 30 days ago. Mutually exclusive with lastN."
+            },
+            "endTime": {
+              "type": "string",
+              "description": "End of the period (RFC 3339), exclusive. Defaults to now. Mutually exclusive with lastN."
+            },
+            "bucketSize": {
+              "type": "string",
+              "enum": [
+                "hour",
+                "day",
+                "week",
+                "month",
+                "year"
+              ],
+              "description": "Length of each time bucket. Defaults to day."
+            },
+            "lastN": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "description": "Return the last N buckets of bucketSize, ending with the current one. Mutually exclusive with startTime/endTime."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "annotations": {
+          "title": "Get billing history",
+          "readOnlyHint": true,
+          "openWorldHint": true
+        },
+        "execution": {
+          "taskSupport": "forbidden"
+        }
+      }
+    ]
+  }
+}

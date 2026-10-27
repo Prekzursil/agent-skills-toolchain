@@ -1,0 +1,809 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-02-two-peer-cross-vendor-debate",
+  "name": "Two-Peer Cross-Vendor Debate",
+  "description": "Blueprint 17 of 96 (design card BP-CNC-02, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:914). MECHANISM: two cross-vendor peers argue a tradeoff SEQUENTIALLY - each reads and rebuts the other's last turn - and the distinctive output is an explicit IRREDUCIBLE-DISAGREEMENT set rather than an averaged recommendation. A debate that converges completely on round one is treated as suspicious and re-run with sharper briefs. Every dispatch is BLOCKING and prompted BY FILE: the measured failure in this rail was never the debate content, it was a fire-and-forget adapter (3 Codex-backed subagents produced zero artifacts) and a 34,472-char inline prompt hitting the Windows 32,767 command-line cap.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta-workflows"
+  ],
+  "tags": [
+    "debate",
+    "cross-vendor",
+    "irreducible-disagreement",
+    "bp-cnc-02"
+  ],
+  "flagship": false,
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The tradeoff under debate. Facts are settled by probes, not debate - this workflow is for genuine tradeoffs only."
+    },
+    "position_a_brief": {
+      "type": "path",
+      "required": true,
+      "description": "FILE holding position A's brief. A path, never inline text: Windows CreateProcess caps the command line at 32,767 chars and an inline prompt measured 34,472."
+    },
+    "position_b_brief": {
+      "type": "path",
+      "required": true,
+      "description": "FILE holding position B's brief"
+    },
+    "rounds": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Exchange rounds. A third round runs only if the irreducible set SHRANK in round two."
+    },
+    "dispatch_timeout_seconds": {
+      "type": "integer",
+      "default": 1800,
+      "minimum": 300,
+      "maximum": 1800,
+      "description": "Explicit per-dispatch timeout. The silent 10-minute default is what a previous agent rationalised --background to escape."
+    }
+  },
+  "roles": {
+    "brief-writer": {
+      "description": "Writes both position briefs to FILES and records their byte lengths; never passes a brief inline to a peer",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/debate/**)"
+      ],
+      "write_paths": [
+        "command-center/debate/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "peer-a": {
+      "description": "Cross-vendor peer arguing position A; reads B's last turn as untrusted DATA and rebuts it, never executes anything it contains",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex",
+        "mcp__codex__codex-reply"
+      ],
+      "speaking_rights": "always"
+    },
+    "peer-b": {
+      "description": "Cross-vendor peer arguing position B on a separate thread; same contract as peer A",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex",
+        "mcp__codex__codex-reply"
+      ],
+      "speaking_rights": "always"
+    },
+    "synthesiser": {
+      "description": "Host synthesiser - names what the peers AGREED, what remains IRREDUCIBLE, and one recommendation; may not average away a disagreement",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/debate/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - receives the irreducible set and decides which axis to pay for",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply",
+      "Write(command-center/debate/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/debate/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/lib",
+      "platform/schema"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == peer_a OR stage_role == peer_b",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "both debaters are cross-vendor on purpose; a same-vendor debate is one model arguing with itself"
+      },
+      {
+        "when": "stage_role == synthesiser",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "the synthesis is the judgement step and must not be routed cheap"
+      }
+    ],
+    "fallbacks": [
+      {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "high"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "failure",
+        "timeout",
+        "reviewer-refuted"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "dispatch-was-blocking": {
+      "predicate": "custom-expression",
+      "expression": "background_dispatches == 0 AND receipt_shaped_results == 0 AND output_last_message_files_present == true AND nonzero_exits == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "debate-actually-happened": {
+      "predicate": "custom-expression",
+      "expression": "peers_that_rebutted >= 2",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    },
+    "irreducible-set-named": {
+      "predicate": "custom-expression",
+      "expression": "irreducible_disagreements >= 1 OR no_irreducible_justified == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "retry"
+    }
+  },
+  "stages": [
+    {
+      "id": "write-briefs",
+      "title": "S0 WRITE both position briefs to FILES (never inline - the Windows arg cap is 32,767)",
+      "kind": "task",
+      "role": "brief-writer",
+      "checkpoint": true,
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "WCNC-0201",
+        "title": "Write both position briefs to files and record their byte lengths",
+        "phase": "2B",
+        "question_or_target": "Write position A and position B as separate brief FILES, each stating its strongest case and the evidence it rests on, and record the byte length of each.",
+        "inputs": [
+          "params.question",
+          "params.position_a_brief",
+          "params.position_b_brief"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "brief-writer",
+          "basis": "a weak brief produces a fake convergence, which is the failure mode this workflow is built to detect"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/debate/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/debate/bp-cnc-02/briefs.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "each brief cites at least one file:line or command output; the manifest records each brief path and byte length so the by-file transport is provable rather than asserted",
+        "tests_required": [
+          "a brief passed inline instead of by path fails the transport check",
+          "both-states control: a 40,000-char inline prompt must FAIL the transport check and the same content written to a file must PASS"
+        ],
+        "reviewer_requirement": "the synthesiser confirms both briefs are defensible before the peers are dispatched - a strawman brief invalidates the debate",
+        "completion_sentinel": "SUCCESS:WCNC-0201 emitted when briefs.json exists, parses, and both brief files exist with non-zero byte length; otherwise FAILED:WCNC-0201 <reason>",
+        "retry_policy": "two strikes then pivot: ask the owner to state the weaker side rather than writing a third strawman",
+        "failure_classification": [
+          "win-arg-limit",
+          "strawman-brief",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/debate/bp-cnc-02/briefs.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0201",
+          "consumers": [
+            "exchange",
+            "synthesise"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "exchange",
+      "title": "S1-S2 ROUNDS - each peer states then rebuts, SEQUENTIALLY, until the irreducible set stops shrinking",
+      "kind": "loop",
+      "depends_on": [
+        "write-briefs"
+      ],
+      "loop_var": "round",
+      "timeout_seconds": 7200,
+      "body": [
+        {
+          "id": "peer-a-turn",
+          "title": "Peer A states or rebuts (blocking dispatch, prompt by file)",
+          "kind": "task",
+          "role": "peer-a",
+          "timeout_seconds": 1800,
+          "prompt_ref": "command-center/debate/bp-cnc-02/prompts/peer-a-turn.md",
+          "tool_permissions": [
+            "Read",
+            "mcp__codex__codex",
+            "mcp__codex__codex-reply"
+          ],
+          "work_unit": {
+            "id": "WCNC-0202",
+            "title": "Peer A states its case, then rebuts peer B's last turn",
+            "phase": "2B",
+            "question_or_target": "Argue position A. From round two onward, rebut peer B's last turn point by point and state which of B's points you concede.",
+            "inputs": [
+              "command-center/debate/bp-cnc-02/briefs.json",
+              "command-center/debate/bp-cnc-02/rounds"
+            ],
+            "dependencies": [
+              "WCNC-0201"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "role": "peer-a",
+              "basis": "cross-vendor independence is the point; a same-vendor peer shares the host's blind spots"
+            },
+            "tool_permissions": [
+              "Read",
+              "mcp__codex__codex",
+              "mcp__codex__codex-reply"
+            ],
+            "execution_substrate": "codex-mcp-blocking",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/debate/bp-cnc-02/rounds/peer-a.json",
+            "output_schema": "command-center/schema/adjudication-record.schema.json",
+            "evidence_requirement": "the turn is accepted only on an AND-gate of three signals: exit code 0, a non-empty output-last-message file that parses, and schema validity - exit 0 alone is SEVERED, not SUCCESS",
+            "tests_required": [
+              "a result containing 'started in the background' or 'Check /codex:status' is REJECTED as a receipt, not read as a result",
+              "both-states control: feed the barrier a receipt-shaped string and confirm it rejects, feed it a real artifact and confirm it accepts",
+              "a turn that concedes nothing and rebuts nothing is recorded as a non-rebuttal"
+            ],
+            "reviewer_requirement": "peer B is the reviewer - that is what makes this a debate rather than two parallel monologues",
+            "completion_sentinel": "SUCCESS:WCNC-0202 emitted per round on the three-signal AND-gate; a severed stream emits FAILED:WCNC-0202 severed-stream and the debate is relabelled single-critic rather than reported as a debate",
+            "retry_policy": "one retry with --ignore-user-config on a win-arg-limit; no retry on severed-stream - relabel and report",
+            "failure_classification": [
+              "severed-stream",
+              "win-arg-limit",
+              "codex-exit-nonzero",
+              "timeout"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "peer-b-turn",
+          "title": "Peer B rebuts A's turn - SEQUENTIAL, it must have read A",
+          "kind": "task",
+          "role": "peer-b",
+          "depends_on": [
+            "peer-a-turn"
+          ],
+          "timeout_seconds": 1800,
+          "prompt_ref": "command-center/debate/bp-cnc-02/prompts/peer-b-turn.md",
+          "tool_permissions": [
+            "Read",
+            "mcp__codex__codex",
+            "mcp__codex__codex-reply"
+          ],
+          "work_unit": {
+            "id": "WCNC-0203",
+            "title": "Peer B rebuts peer A's turn on its own thread",
+            "phase": "2B",
+            "question_or_target": "Rebut peer A's last turn point by point, state which points you concede, and name any axis you believe cannot be resolved by evidence.",
+            "inputs": [
+              "command-center/debate/bp-cnc-02/rounds/peer-a.json",
+              "command-center/debate/bp-cnc-02/briefs.json"
+            ],
+            "dependencies": [
+              "WCNC-0202"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "gpt-5-codex",
+              "vendor": "openai",
+              "role": "peer-b",
+              "basis": "the second peer must be a separate thread so it cannot inherit A's context"
+            },
+            "tool_permissions": [
+              "Read",
+              "mcp__codex__codex",
+              "mcp__codex__codex-reply"
+            ],
+            "execution_substrate": "codex-mcp-blocking",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/debate/bp-cnc-02/rounds/peer-b.json",
+            "output_schema": "command-center/schema/adjudication-record.schema.json",
+            "evidence_requirement": "B's turn must quote at least one specific claim from A's turn; a rebuttal that engages nothing is a monologue and is recorded as a non-rebuttal",
+            "tests_required": [
+              "a rebuttal quoting nothing from A fails the engagement check",
+              "peer B's thread id must differ from peer A's - a shared thread is not two independent peers"
+            ],
+            "reviewer_requirement": "peer A rebuts back in the next round; the synthesiser is the terminal reviewer",
+            "completion_sentinel": "SUCCESS:WCNC-0203 emitted per round on the three-signal AND-gate plus the engagement check; otherwise FAILED:WCNC-0203 <reason>",
+            "retry_policy": "one retry with --ignore-user-config on a win-arg-limit; no retry on severed-stream",
+            "failure_classification": [
+              "severed-stream",
+              "win-arg-limit",
+              "non-rebuttal",
+              "timeout"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 3,
+        "min_iterations": 1,
+        "converged_when": "irreducible_set_stable == true OR no_progress_rounds >= 1",
+        "no_progress_rounds": 1,
+        "metrics": [
+          {
+            "name": "irreducible_disagreements",
+            "direction": "decrease",
+            "target": 0
+          },
+          {
+            "name": "irreducible_set_stable",
+            "direction": "stabilize"
+          },
+          {
+            "name": "conceded_points",
+            "direction": "increase"
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "dispatch-gate",
+      "title": "S2b Every dispatch must have BLOCKED and returned a real artifact - a receipt is not a result",
+      "kind": "gate",
+      "depends_on": [
+        "exchange"
+      ],
+      "gate_ref": "dispatch-was-blocking"
+    },
+    {
+      "id": "rebuttal-gate",
+      "title": "S2c If a peer never rebutted, this is a single-critic review and must be REPORTED as one",
+      "kind": "gate",
+      "depends_on": [
+        "dispatch-gate"
+      ],
+      "gate_ref": "debate-actually-happened"
+    },
+    {
+      "id": "synthesise",
+      "title": "S3 SYNTHESISE - agreed, irreducible, recommendation; no averaging",
+      "kind": "council",
+      "depends_on": [
+        "rebuttal-gate"
+      ],
+      "council_spec_ref": "platform/council/protocols/p07-oxford-debate.councilspec.json",
+      "participants_min": 3,
+      "participants_max": 5,
+      "timeout_seconds": 3600,
+      "stopping_rules": [
+        {
+          "id": "irreducible-axis-surfaced",
+          "expression": "verdict == IRREDUCIBLE_DISAGREEMENT AND every_objection_addressed == true",
+          "applies_to": "council",
+          "minimum_conditions": "rounds_elapsed >= 1 AND independent_positions >= 2",
+          "on_stop": "complete"
+        },
+        {
+          "id": "genuinely-settled",
+          "expression": "unanimity == true AND rounds_elapsed >= 2",
+          "applies_to": "council",
+          "minimum_conditions": "independent_positions >= 2",
+          "on_stop": "complete"
+        },
+        {
+          "id": "suspicious-round-one-convergence",
+          "expression": "unanimity == true AND rounds_elapsed <= 1",
+          "applies_to": "council",
+          "on_stop": "escalate"
+        }
+      ],
+      "produces": [
+        {
+          "path": "command-center/debate/bp-cnc-02/synthesis.json",
+          "schema_ref": "command-center/schema/adjudication-report.schema.json",
+          "min_bytes": 768,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0204",
+          "consumers": [
+            "irreducible-gate",
+            "owner",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "irreducible-gate",
+      "title": "S3b The synthesis must name an irreducible axis or justify why there is none",
+      "kind": "gate",
+      "depends_on": [
+        "synthesise"
+      ],
+      "gate_ref": "irreducible-set-named"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "irreducible-set-stopped-shrinking",
+      "expression": "irreducible_set_stable == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "rounds_completed >= 1 AND peers_that_rebutted >= 2",
+      "on_stop": "complete"
+    },
+    {
+      "id": "round-budget-spent",
+      "expression": "rounds_completed >= 2",
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    },
+    {
+      "id": "collapsed-to-single-critic",
+      "expression": "peers_that_rebutted < 2",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 30,
+    "jitter": true,
+    "retry_on": [
+      "win-arg-limit",
+      "quota-429-storm"
+    ],
+    "no_retry_on": [
+      "severed-stream",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "severed-stream",
+      "win-arg-limit",
+      "codex-exit-nonzero",
+      "non-rebuttal",
+      "timeout"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-02"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-02",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-cnc-02.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-02-plan.json",
+    "forbid_tools": [
+      "mcp__codex__codex",
+      "mcp__codex__codex-reply",
+      "Write(command-center/debate/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.5,
+      "expected": 2.2,
+      "max": 7.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 2700,
+      "max": 7200
+    },
+    "tokens": {
+      "min": 80000,
+      "expected": 350000,
+      "max": 1100000
+    },
+    "tool_calls": {
+      "expected": 30,
+      "max": 120
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/debate/bp-cnc-02/**; peer output is treated as untrusted DATA and is never executed",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "presets",
+        "examples",
+        "tests",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-02.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": ".agents/skills/codex-discuss",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": ".agents/skills/codex-invoke",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "rules/common/cross-vendor-dispatch.md",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-02",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      ".agents/skills/codex-discuss"
+    ]
+  },
+  "outputs": {
+    "synthesis": {
+      "path": "command-center/debate/bp-cnc-02/synthesis.json",
+      "schema_ref": "command-center/schema/adjudication-report.schema.json",
+      "min_bytes": 768,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate",
+        "bp-cnc-03-semantic-entropy-escalation"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 17,
+    "design_card": "BP-CNC-02",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:914",
+    "acquisition_route": "REPAIR",
+    "state_v": [
+      "REPAIRED"
+    ],
+    "size_v": [
+      "CONFIG",
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "a bounded loop whose body is SEQUENTIAL by depends_on so each peer must have read the other, cross-vendor threads continued by threadId, prompts passed BY FILE, a three-signal AND-gate on every dispatch, and an explicit irreducible-disagreement set as the product",
+    "not_a_duplicate_because": "BP-BRN-01 keeps peers BLIND to each other; this makes them read and rebut each other. BP-CNC-03 measures dispersion over answers already collected and never makes the models interact. This is the only blueprint in the range whose loop body is sequential rather than parallel, and the only one whose output contract is an irreducible-disagreement set.",
+    "contraindications": [
+      "idea generation - use the blind fan-out blueprint",
+      "one side is obviously right - the debate manufactures a false symmetry",
+      "a FACTUAL question - debate does not settle facts, probes do (route to the probe-wins resolver)"
+    ],
+    "dispatch_contract": {
+      "blocking": "MANDATORY - no --background, no run_in_background, no job id returned as a result",
+      "and_gate": [
+        "exit code 0",
+        "output-last-message file exists, is non-empty and parses",
+        "validates against the caller's schema"
+      ],
+      "prompt_transport": "by file (--prompt-file or stdin). Windows CreateProcess caps the command line at 32,767 chars; a measured inline prompt of 34,472 produced os error 206 and killed both runs.",
+      "arg_hygiene": "--ignore-user-config on every non-interactive invocation - the active MCP inventory is what blows the arg limit",
+      "rejected_result_patterns": [
+        "started in the background",
+        "Check /codex:status"
+      ],
+      "explicit_timeout": "dispatch_timeout_seconds is a required param BECAUSE the silent 10-minute default is what a previous agent rationalised --background to escape"
+    },
+    "worked_examples": [
+      {
+        "name": "cost versus latency on the schema substrate - a known irreducible axis",
+        "params": {
+          "question": "Should the artifact-class profiles be resolved lazily per unit or compiled once into a single registry at build time",
+          "position_a_brief": "command-center/debate/bp-cnc-02/briefs/a-lazy-per-unit.md",
+          "position_b_brief": "command-center/debate/bp-cnc-02/briefs/b-compile-once.md",
+          "rounds": 2,
+          "dispatch_timeout_seconds": 1800
+        },
+        "expected_artifacts": [
+          "command-center/debate/bp-cnc-02/briefs.json",
+          "command-center/debate/bp-cnc-02/rounds/peer-a.json",
+          "command-center/debate/bp-cnc-02/rounds/peer-b.json",
+          "command-center/debate/bp-cnc-02/synthesis.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0204 with verdict == IRREDUCIBLE_DISAGREEMENT",
+        "walkthrough": "S0 writes both briefs to files (A: 6.2 KB, B: 5.8 KB) and records the lengths. Round 1: peer A argues lazy resolution keeps memory flat and tolerates a growing catalog; peer B argues one compiled registry makes the control plane auditable and the resolution cost provable. Round 2: A concedes auditability, B concedes memory growth; both refuse to concede the startup-cost-versus-steady-state axis. irreducible_disagreements drops from 3 to 1 and irreducible_set_stable becomes true, so the loop exits after round 2 rather than spending round 3. S2b confirms both dispatches blocked, both output files parse, both exits were 0. S3 synthesises: agreed = one control plane, agreed = shims are generated not hand-written, IRREDUCIBLE = whether build-time cost or steady-state memory is the scarcer resource on this box - which is an owner call, not a model call.",
+        "expected_gate_outcomes": {
+          "dispatch-was-blocking": "PASS - background_dispatches == 0, both output-last-message files present",
+          "debate-actually-happened": "PASS - peers_that_rebutted == 2",
+          "irreducible-set-named": "PASS - irreducible_disagreements == 1"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - one peer returns a background receipt",
+        "params": {
+          "question": "Should the substrate resolve lazily or compile once",
+          "position_a_brief": "command-center/debate/bp-cnc-02/briefs/a-lazy-per-unit.md",
+          "position_b_brief": "command-center/debate/bp-cnc-02/briefs/b-compile-once.md",
+          "rounds": 1
+        },
+        "expected_artifacts": [
+          "command-center/quarantine/bp-cnc-02"
+        ],
+        "expected_terminal_state": "FAILED:WCNC-0203 severed-stream, relabelled single-critic",
+        "walkthrough": "Peer B's adapter returns the string 'started in the background as task-7f2 - Check /codex:status'. The barrier's reject_result_matching catches it, so it is never read as a position. peers_that_rebutted drops to 1, the non-blocking debate-actually-happened gate RECORDS the collapse, and the workflow-level collapsed-to-single-critic rule emits a PARTIAL labelled single-critic review. It does not ship as a debate. This is the exact measured failure the repair addresses: 3 Codex-backed subagents once produced zero production artifacts because the adapter was fire-and-forget, and one agent's entire final answer was such a receipt.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "a tradeoff with a known irreducible axis (cost vs latency) - the synthesis must surface it, not pick a side silently",
+      "a question with one right answer - expect fast convergence and an explicit 'no irreducible disagreement'"
+    ],
+    "unverified": "UNVERIFIED post-repair: the debate content was never measured because the adapter never delivered. Settling experiment = 5 debates, require 5 synthesis artifacts each naming its irreducible set. Confidence: very-likely (80-90%) it works once the dispatch contract is enforced.",
+    "council_presets_referenced": [
+      "platform/council/protocols/p07-oxford-debate.councilspec.json",
+      "platform/council/presets/c-s18-oxford-4-plus-judge.councilspec.json"
+    ],
+    "council_metric_binding": {
+      "verdict": "IRREDUCIBLE_DISAGREEMENT is a legal registry enum token and is the expected terminal verdict for a genuine tradeoff",
+      "rounds_elapsed": "exchange rounds completed - a unanimity at rounds_elapsed <= 1 is the suspicious-convergence trigger",
+      "independent_positions": "must be >= 2 or the two peers collapsed onto one position and the debate was theatre"
+    },
+    "confidence_band_note": "The design corpus grades this very-likely (80-90%). The DSL confidence_band enum has only five members (almost-certain, likely, roughly-even, unlikely, remote) and no very-likely, so the field carries the nearest legal band (likely, 55-80%) and the corpus band is recorded verbatim here. MEASURED SCHEMA GAP: 09-WORKFLOW-BLUEPRINT-LIBRARY.md declares a six-band CONF vocabulary (almost-certain / very-likely / likely / roughly-even / unlikely / very-unlikely) while platform/schema/workflow-dsl.schema.json#/$defs/confidence_band declares five and neither very-likely nor very-unlikely is a member. Any blueprint whose card says very-likely is therefore DOWN-graded when expressed in the DSL field. Corpus band for this blueprint: very-likely (80-90%)."
+  }
+}

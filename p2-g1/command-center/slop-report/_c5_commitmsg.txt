@@ -1,0 +1,25 @@
+docs(slop): post-commit gate reading -- this lane added 0 failures, the 8 red files are not mine
+
+Closing verification, run in a fresh LF clone AFTER both of this lane's commits landed
+(f5b596e6, fa87d1a2). Recorded because "I did not break it" is a claim, and a claim needs the
+before/after pair rather than an assertion.
+
+  at 86dde6c1 (pre-lane) : ruff check rc 0 | ruff format rc 0, 2028 files clean
+  at fa87d1a2 (post-lane): ruff check rc 0 | ruff format rc 1, 2086 files clean, 8 fail
+
+The 8 failing files are byte-identically the SAME filenames in both readings -- all
+`command-center/grounding/_s2_*.py`, from sibling commit 1e9cfe81. Clean-file count rose by 58
+with no new entry in the failure list, so the 91 files this lane committed contributed nothing
+to the red. Controls PASS in the closing run too: 0 CRLF in the clone, the nested
+`tools/mcp/patent-search-mcp/pyproject.toml` present (the omission that caused my own false red
+earlier), and a mangled control file correctly firing.
+
+Also confirms both commits are ancestors of HEAD via `git merge-base --is-ancestor`. HEAD moved
+six times during this lane while sibling lanes committed; neither commit was swept away or
+rewritten.
+
+gate-lint-format is still RED on main and still blocks every sibling PR. Deliberately left to
+the owning lane, with both candidate fixes and their measured blast radius in SLOP-BUILD-R1.md:
+format the 8 files (8 files change bytes, 144 stay linted) or widen the ruff exclusion to
+`command-center/**/_*.py` (144 tracked files leave the gate). The owning lane is live in that
+directory right now, so reformatting its files mid-audit is not mine to do.

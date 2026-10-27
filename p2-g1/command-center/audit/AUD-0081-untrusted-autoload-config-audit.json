@@ -1,0 +1,746 @@
+{
+  "artifacts": [
+    {
+      "bytes": 31744,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/audit/AUD-0081-untrusted-autoload-config-audit.json",
+      "role": "primary",
+      "sha256": "fc2d63e7dfa0f08ee0f4ab9a7faffbf8e6b821b8cbbd0bde8f65e4f2f06f2c89"
+    },
+    {
+      "bytes": 1088,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/audit-finding.schema.json",
+      "role": "supporting",
+      "sha256": "eeb41162d233e5cbdbdc6927ad16756a0838ee67a3c6a93648d3d0d2e3694dd9"
+    },
+    {
+      "bytes": 15043,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/autoload.py",
+      "role": "supporting",
+      "sha256": "183aa18a2bf9f5d55879397bba15a4bf25c528982edfb59eef1b568f7d6a7940"
+    },
+    {
+      "bytes": 4437,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+      "role": "supporting",
+      "sha256": "5d635ab2ebf10d6e73fc08ddb4732970bc9c7e0cf19888f839831ac2a43d7c7a"
+    },
+    {
+      "bytes": 4439,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "role": "supporting",
+      "sha256": "54e7432cefac291af8ceee3d59446924ac0c3e43b838972dc6f3f1db9d174d16"
+    },
+    {
+      "bytes": 315,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/inert-docs/AGENTS.md",
+      "role": "supporting",
+      "sha256": "7be75590cec9137a81f335591222a471399b78599c70ea553a0a686f92848c2f"
+    },
+    {
+      "bytes": 425,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+      "role": "supporting",
+      "sha256": "5d73c2f4419818a1082823d804f11fcc76515ebd72072649924912837be8602c"
+    },
+    {
+      "bytes": 313,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/docs/CLAUDE.md",
+      "role": "supporting",
+      "sha256": "65fcf26e34b48e0339fe2ae1ac7e5113c57fb84d9ab3346aa5e3f482c73f622b"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/audit/AUD-0081-untrusted-autoload-config-audit.json",
+      "consumer": "jsonschema.Draft202012Validator+disk-RefResolver",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -B command-center/p2-wave/probes/AUD-0081/emit_artifact.py",
+        "exit_code": 0,
+        "fingerprint": "1671b1672e5f21f3d26520fdddf7b149",
+        "method": "schema-validate",
+        "raw_output": "schema-errors=0 bytes=31744",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+      "claim": "Probe 1 filename-walked 17 untrusted root(s) and recorded 11 auto-load-named path(s), including the planted AGENTS.md pair and CLAUDE.md.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+          "exit_code": 0,
+          "fingerprint": "73c30d8b9da4f5afc28cb261fb425d23",
+          "method": "command",
+          "raw_output": "{\"active_agents_hit\": true, \"hit_count\": 11, \"inert_agents_hit\": true, \"inert_claude_hit\": true, \"planted_hit_count\": 3, \"untrusted_root_count\": 17}\nSUCCESS:AUD-0081-probe1 filename search hit_count=11 planted=3 roots=17",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+          "exit_code": 0,
+          "fingerprint": "b34924faba094459cd82bcb424018daf",
+          "method": "file-read",
+          "raw_output": "{\"active_agents\": \"active\", \"both_states_on_one_fixture\": true, \"filename_only_mutant_red\": true, \"inert_agents\": \"inert\", \"inert_claude\": \"inert\", \"live_untrusted_active_count\": 0}\nSUCCESS:AUD-0081-probe2 classifier inert+active on one fixture; live_untrusted_active=0",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "claim": "On one fixture, prose AGENTS.md classified inert and PreToolUse AGENTS.md classified active; prose CLAUDE.md classified inert so the filename is not a risk finding; a filename-only mutant flags the inert files.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+          "exit_code": 0,
+          "fingerprint": "73c30d8b9da4f5afc28cb261fb425d23",
+          "method": "command",
+          "raw_output": "{\"active_agents_hit\": true, \"hit_count\": 11, \"inert_agents_hit\": true, \"inert_claude_hit\": true, \"planted_hit_count\": 3, \"untrusted_root_count\": 17}\nSUCCESS:AUD-0081-probe1 filename search hit_count=11 planted=3 roots=17",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+          "exit_code": 0,
+          "fingerprint": "b34924faba094459cd82bcb424018daf",
+          "method": "file-read",
+          "raw_output": "{\"active_agents\": \"active\", \"both_states_on_one_fixture\": true, \"filename_only_mutant_red\": true, \"inert_agents\": \"inert\", \"inert_claude\": \"inert\", \"live_untrusted_active_count\": 0}\nSUCCESS:AUD-0081-probe2 classifier inert+active on one fixture; live_untrusted_active=0",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "notes": "G-1 for AUD-0081: live named probes exit 0, honest non-BLOCKED audit-finding, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:AUD-0081 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+    "owner_approval_required": true
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/AUD-0081/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+      "description": "Prose AGENTS.md must be inert; PreToolUse AGENTS.md must be active; both on fixtures/untrusted-clone.",
+      "fired_on_bad_state": true,
+      "good_state_output": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/inert-docs/AGENTS.md",
+      "id": "AUD0081-C1",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A classifier that treats the auto-load filename as the finding must flag inert CLAUDE.md and inert AGENTS.md.",
+      "fired_on_bad_state": true,
+      "id": "AUD0081-C2",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "grok",
+    "role": "security-auditor",
+    "vendor": "xai"
+  },
+  "report": {
+    "answer": "No live cloned, vendored, or agent-scratch tree on this sparse Linux worktree carries an active auto-load hook or MCP registration. AUD-0009 inventory is present; the live walk found 17 untrusted root(s) and 11 auto-load-named path(s). 1 planted-control path(s) classified active and 2 inert on the single fixture command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone. A file named CLAUDE.md in that fixture is inert prose, so the filename is not a risk finding.",
+    "aud0009_dependency": {
+      "path": "command-center/audit/AUD-0009-submodule-vendored-inventory.json",
+      "present": true,
+      "reason": "AUD-0009 artifact present; AUD-0081 still walks the live tree so a stale inventory cannot hide a nested clone.",
+      "used_as_inventory": false
+    },
+    "autoload_name_set": [
+      ".claude",
+      ".codex",
+      ".mcp.json",
+      "AGENTS.md",
+      "CLAUDE.md",
+      "hooks"
+    ],
+    "classification": {
+      "both_states_on_one_fixture": true,
+      "classified": [
+        {
+          "bytes": 425,
+          "classification": "active",
+          "filename_is_not_risk": false,
+          "filename_only_would_flag": true,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+          "planted_control": true,
+          "reason": "hook-event-registration",
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 313,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": false,
+          "is_file": true,
+          "name": "CLAUDE.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/docs/CLAUDE.md",
+          "planted_control": true,
+          "reason": "prose-without-hook-or-mcp-registration",
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 315,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/inert-docs/AGENTS.md",
+          "planted_control": true,
+          "reason": "prose-without-hook-or-mcp-registration",
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "command-center/p2-wave/probes/BLD-0052/_scratch/fake-origin.git/hooks",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "agent-scratch",
+          "tree_marker": "dirname:_scratch",
+          "tree_path": "command-center/p2-wave/probes/BLD-0052/_scratch"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": ".claude",
+          "path": "tools/editor/ralph-orchestrator/vendor/.claude",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 11611,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "tools/editor/ralph-orchestrator/vendor/AGENTS.md",
+          "planted_control": false,
+          "reason": "prose-without-hook-or-mcp-registration",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 11611,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": false,
+          "is_file": true,
+          "name": "CLAUDE.md",
+          "path": "tools/editor/ralph-orchestrator/vendor/CLAUDE.md",
+          "planted_control": false,
+          "reason": "prose-without-hook-or-mcp-registration",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/crates/ralph-core/src/hooks",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/crates/ralph-e2e/features/hooks",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/examples/hooks",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "classification": "inert",
+          "filename_is_not_risk": true,
+          "filename_only_would_flag": true,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web/src/hooks",
+          "planted_control": false,
+          "reason": "dir-without-active-child",
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        }
+      ],
+      "claude_md_filename_is_not_risk": true,
+      "control": {
+        "active_agents_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+        "active_agents_present": true,
+        "active_classified_active": true,
+        "both_states_on_one_fixture": true,
+        "claude_classified_inert": true,
+        "claude_md_filename_is_not_risk": true,
+        "filename_only_mutant_flags_inert_agents": true,
+        "filename_only_mutant_flags_inert_claude": true,
+        "inert_agents_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/inert-docs/AGENTS.md",
+        "inert_agents_present": true,
+        "inert_classified_inert": true,
+        "inert_claude_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/docs/CLAUDE.md",
+        "inert_claude_present": true,
+        "pass": true,
+        "same_fixture": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+      },
+      "live_untrusted_active": [],
+      "live_untrusted_active_count": 0,
+      "method": "utf-8 body read; JSON hooks/mcpServers or PreToolUse registration"
+    },
+    "control_ids": [
+      "AUD0081-C1",
+      "AUD0081-C2"
+    ],
+    "filename_census": {
+      "hit_count": 11,
+      "hits": [
+        {
+          "bytes": 425,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+          "planted_control": true,
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 313,
+          "is_dir": false,
+          "is_file": true,
+          "name": "CLAUDE.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/docs/CLAUDE.md",
+          "planted_control": true,
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 315,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/inert-docs/AGENTS.md",
+          "planted_control": true,
+          "tree_class": "planted-untrusted-control",
+          "tree_marker": "unit-fixture+.git-file+git-file",
+          "tree_path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "command-center/p2-wave/probes/BLD-0052/_scratch/fake-origin.git/hooks",
+          "planted_control": false,
+          "tree_class": "agent-scratch",
+          "tree_marker": "dirname:_scratch",
+          "tree_path": "command-center/p2-wave/probes/BLD-0052/_scratch"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": ".claude",
+          "path": "tools/editor/ralph-orchestrator/vendor/.claude",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 11611,
+          "is_dir": false,
+          "is_file": true,
+          "name": "AGENTS.md",
+          "path": "tools/editor/ralph-orchestrator/vendor/AGENTS.md",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 11611,
+          "is_dir": false,
+          "is_file": true,
+          "name": "CLAUDE.md",
+          "path": "tools/editor/ralph-orchestrator/vendor/CLAUDE.md",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/crates/ralph-core/src/hooks",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/crates/ralph-e2e/features/hooks",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/examples/hooks",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        },
+        {
+          "bytes": 0,
+          "is_dir": true,
+          "is_file": false,
+          "name": "hooks",
+          "path": "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web/src/hooks",
+          "planted_control": false,
+          "tree_class": "vendored",
+          "tree_marker": "dirname:vendor",
+          "tree_path": "tools/editor/ralph-orchestrator/vendor"
+        }
+      ],
+      "method": "os.walk name match, no body read",
+      "planted_control_found": true,
+      "untrusted_root_count": 17,
+      "untrusted_roots": [
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/ADV-0042/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/AUD-0002/fixtures/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/probes/AUD-0018/fixtures/trees/src/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/AUD-0027/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "unit-fixture+.git-file+git-file",
+          "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone",
+          "tree_class": "planted-untrusted-control"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/probes/AUD-0089/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/BLD-0052/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/CNF-0039/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:_scratch-probe1",
+          "path": "command-center/p2-wave/probes/CNF-0039/_scratch-probe1",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:_scratch-probe2",
+          "path": "command-center/p2-wave/probes/CNF-0039/_scratch-probe2",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/probes/REL-0011/fixtures/release/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/probes/TST-0179/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/TST-0237/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/probes/TST-0250/runtime/published/tools/editor/ralph-orchestrator/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:_scratch",
+          "path": "command-center/p2-wave/probes/TST-0305/_scratch",
+          "tree_class": "agent-scratch"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "command-center/p2-wave/scw-pull/c/tree/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0250/runtime/published/tools/editor/ralph-orchestrator/vendor",
+          "tree_class": "vendored"
+        },
+        {
+          "marker": "dirname:vendor",
+          "path": "tools/editor/ralph-orchestrator/vendor",
+          "tree_class": "vendored"
+        }
+      ]
+    },
+    "findings": [
+      {
+        "classification": "active-autoload",
+        "id": "AUD0081-command-center-p2-wave-probes-AUD-0081-fixtures-untrusted-clone-active-hooks-AGE",
+        "path": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone/active-hooks/AGENTS.md",
+        "planted_control": true,
+        "reason": "hook-event-registration",
+        "severity": "P2",
+        "status": "control",
+        "summary": "Planted PreToolUse registration used as the both-states control.",
+        "tree_class": "planted-untrusted-control"
+      }
+    ],
+    "kind": "audit-finding",
+    "live_untrusted_active_count": 0,
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+        "exit_code": 0,
+        "id": "probe1",
+        "raw_output": "{\"active_agents_hit\": true, \"hit_count\": 11, \"inert_agents_hit\": true, \"inert_claude_hit\": true, \"planted_hit_count\": 3, \"untrusted_root_count\": 17}\nSUCCESS:AUD-0081-probe1 filename search hit_count=11 planted=3 roots=17"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+        "exit_code": 0,
+        "id": "probe2",
+        "raw_output": "{\"active_agents\": \"active\", \"both_states_on_one_fixture\": true, \"filename_only_mutant_red\": true, \"inert_agents\": \"inert\", \"inert_claude\": \"inert\", \"live_untrusted_active_count\": 0}\nSUCCESS:AUD-0081-probe2 classifier inert+active on one fixture; live_untrusted_active=0"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+        "measured": 11,
+        "method": "os.walk name match, no body read",
+        "name": "filename-hit-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+        "measured": 0,
+        "method": "utf-8 body read classifying hook/MCP vs prose",
+        "name": "live-untrusted-active-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/AUD-0081/fixtures/untrusted-clone",
+        "measured": true,
+        "method": "planted prose vs PreToolUse AGENTS.md pair",
+        "name": "both-states-on-one-fixture"
+      }
+    ],
+    "owner_approval": {
+      "note": "Catalog flags owner_approval_required. This G-1 artifact is the audit measurement, not an owner ruling that untrusted configs may run.",
+      "required_by_catalog": true,
+      "supplied": false
+    },
+    "planted_active_count": 1,
+    "question": "Do any cloned, vendored, or agent-scratch trees under the estate carry a .claude, .codex, .mcp.json, hooks directory, AGENTS.md or CLAUDE.md that would auto-load the moment an agent runs inside them?",
+    "report_kind": "audit-finding",
+    "schema_controls": {
+      "all_garbage_rejected": true,
+      "garbage_error_counts": [
+        12,
+        12,
+        11
+      ],
+      "schema_kind_mutant_error_count": 2,
+      "schema_kind_mutant_goes_red": true,
+      "schema_kind_mutant_pin_mentioned": true,
+      "schema_kind_mutant_sample": [
+        "[] is too short",
+        "'audit-finding' was expected"
+      ]
+    },
+    "title": "Untrusted auto-loaded configuration audit in cloned and vendored trees"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Catalog-required dual human review (fresh-context Claude + Codex) was not executed.",
+      "settling_experiment": "Dispatch a fresh-context Claude reviewer and a Codex reviewer with both named-probe transcripts attached; escalate disagreement to the owner rather than resolving by vote.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Trees outside this worktree (sibling checkouts, home-directory clones) were not walked.",
+      "settling_experiment": "Re-run untrusted_roots() against each owner checkout listed in docs/ssot/SSOT-CLONE-INVENTORY.md.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Catalog asked for one fresh-context Claude and one Codex human reviewer, escalating disagreement to the owner. Those humans were not dispatched to this G-1 worker. Probe 2 is a mechanically different measurement (body read vs filename walk) and is the independent reviewer of record here. Dual-human review remains a named residual, not a silent PASS.",
+    "reviewer_id": "AUD-0081-probe2-content-classifier",
+    "vendor": "local",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:AUD-0081 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0081",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe1_filename_search.py",
+      "id": "probe1-filename-search",
+      "name": "Filename search for the auto-load set across non-owner-authored trees",
+      "output_tail": "{\"active_agents_hit\": true, \"hit_count\": 11, \"inert_agents_hit\": true, \"inert_claude_hit\": true, \"planted_hit_count\": 3, \"untrusted_root_count\": 17}\nSUCCESS:AUD-0081-probe1 filename search hit_count=11 planted=3 roots=17",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "id": "probe2-content-classify",
+      "name": "Content read classifying inert documentation vs active hook/MCP",
+      "output_tail": "{\"active_agents\": \"active\", \"both_states_on_one_fixture\": true, \"filename_only_mutant_red\": true, \"inert_agents\": \"inert\", \"inert_claude\": \"inert\", \"live_untrusted_active_count\": 0}\nSUCCESS:AUD-0081-probe2 classifier inert+active on one fixture; live_untrusted_active=0",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "id": "both-states-agents-md-fixture",
+      "name": "control: classifier rates prose AGENTS.md inert and PreToolUse AGENTS.md active on one fixture",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "id": "claude-md-filename-not-risk",
+      "name": "Presence of CLAUDE.md is not by itself a risk finding",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0081/probe2_classify.py",
+      "id": "filename-only-mutant-red",
+      "name": "Filename-only risk mutant flags inert autoload names",
+      "result": "PASS"
+    },
+    {
+      "assertions": 4,
+      "command": "jsonschema.Draft202012Validator(audit-finding.schema.json)",
+      "id": "schema-garbage-and-kind-mutant",
+      "name": "Declared audit-finding schema rejects garbage and a kind mutant",
+      "output_tail": "{\"all_garbage_rejected\": true, \"garbage_error_counts\": [12, 12, 11], \"schema_kind_mutant_error_count\": 2, \"schema_kind_mutant_goes_red\": true, \"schema_kind_mutant_pin_mentioned\": true, \"schema_kind_mutant_sample\": [\"[] is too short\", \"'audit-finding' was expected\"]}",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:06:38Z",
+    "started_at": "2026-08-25T01:06:38Z"
+  },
+  "unit_id": "AUD-0081"
+}

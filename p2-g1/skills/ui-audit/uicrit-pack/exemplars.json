@@ -1,0 +1,302 @@
+{
+  "$schema": "https://claude.skills/ui-audit/uicrit-pack/exemplars.schema.json",
+  "id": "uicrit-fewshot-pack",
+  "version": "1.0.0",
+  "rubric": "DESIGN-EVAL v1",
+  "rubricRef": "../critique_rubric.md",
+  "consumedBy": "critique.mjs (opt-in; anchors the per-dimension reasoning pass, §2.5)",
+  "purpose": "Expert-authored few-shot anchors (score 0 / 2 / 4) per scoring dimension. Calibrate the critic's DESIGN-EVAL score against real critique language before it grades a new screen — the UICrit few-shot pattern (a labelled critique corpus raised GPT-4o critique quality ~55% over zero-shot in Duan et al. 2024).",
+  "provenance": {
+    "method": "UICrit few-shot exemplar pattern (Duan, Wu, Li et al., 'UICrit: Enhancing Automated Design Evaluation with a UI Critique Dataset', UIST 2024, arXiv:2407.08850) — a corpus of expert design critiques used as in-context few-shot anchors.",
+    "grounding": "Anchor prose is written to the DESIGN-EVAL v1 rubric (../critique_rubric.md), itself grounded in Refactoring UI (Wathan & Schoger), Material Design 3, Apple HIG, Nielsen's 10 heuristics, and WCAG 2.2 AA. These are synthetic-but-representative exemplars in the UICrit style, NOT verbatim rows from the UICrit dataset (that dataset targets mobile screens and carries its own licence).",
+    "reliabilityBaselines": "UIClip inter-rater alpha 0.37; UICrit critique agreement kappa ~= 0.30 — perceptual dimensions are honestly low-agreement; anchors reduce variance but do not eliminate it."
+  },
+  "usage": {
+    "how": "During a Track-B critique, before scoring dimension D, read exemplars.dimensions[D].anchors. Match the observed screen to the closest anchor band (0/2/4) and interpolate (1 = between 0 and 2; 3 = between 2 and 4). Cite the anchor id you matched in the finding evidence for traceability.",
+    "onePassPerDimension": "Honours §2.5 reliability protocol — one dimension per reasoning pass; use only that dimension's anchors to avoid halo bleed.",
+    "shadow": "This pack is advisory data only. It changes NO scoring math and adds NO gate — critique.mjs computes the same weighted composite with or without it. It only sharpens the human/critic's per-dimension judgement.",
+    "criticalError": "Where an anchor's score is 0 AND its band is a critical-error condition, it also carries \"critical\": true — mirrors §2.3 (a tripped critical forces the dimension score to 0 and caps the verdict)."
+  },
+  "scoreScale": { "0": "critical/fail", "1": "poor", "2": "needs-work", "3": "good", "4": "excellent" },
+  "dimensions": {
+    "visual-hierarchy": {
+      "weight": 1.5,
+      "question": "Does the eye land on the right thing first?",
+      "anchors": [
+        {
+          "id": "vh-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: no focal point AND the primary CTA is visually indistinguishable from secondary controls",
+          "critique": "Every control shares the same size, weight and colour, so nothing reads as the primary action — the eye has no entry point and bounces around a flat wall of equal-weight buttons.",
+          "evidence": "axe heading-order/landmark/region missing (document structure flattened); primary CTA renders at the same visual weight as three secondary controls.",
+          "recommendation": "Elevate ONE primary action with size + weight + colour (not size alone); demote the rest to secondary/ghost styling; add landmark regions and a correct heading order."
+        },
+        {
+          "id": "vh-2",
+          "score": 2,
+          "band": "a focal point exists but secondary actions compete for attention",
+          "critique": "There is a discernible primary action, but two secondary buttons carry nearly the same emphasis, splitting attention and slowing the first fixation.",
+          "evidence": "Primary CTA is distinguishable but secondary controls use a saturated fill that competes; heading order present but one level skipped.",
+          "recommendation": "Reduce secondary controls to outline/text style so the primary clearly wins; reserve saturated fill for the single primary action."
+        },
+        {
+          "id": "vh-4",
+          "score": 4,
+          "band": "unmistakable primary action, calm de-emphasised supporting content",
+          "critique": "One primary action is instantly obvious; supporting text and secondary actions are deliberately quieter, so the eye lands exactly where intended and the screen reads in a clear sequence.",
+          "evidence": "Single high-emphasis CTA; secondary actions low-emphasis; correct landmark + heading hierarchy; supporting copy de-emphasised in weight and colour.",
+          "recommendation": "None material — maintain the emphasis ratio as content grows."
+        }
+      ]
+    },
+    "spacing-rhythm": {
+      "weight": 1.0,
+      "question": "Consistent spacing scale and breathing room?",
+      "anchors": [
+        {
+          "id": "sr-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: content blocks overlap or collide",
+          "critique": "Blocks physically overlap and text collides with adjacent elements — the layout has broken, not merely tightened.",
+          "evidence": "off-scale-spacing high-confidence negative/zero gaps; overlapping bounding boxes visible in the screenshot.",
+          "recommendation": "Fix the broken layout constraints first; then re-space everything onto a single 4-8px scale with clear grouping by proximity."
+        },
+        {
+          "id": "sr-2",
+          "score": 2,
+          "band": "several high-confidence off-grid values, uneven rhythm",
+          "critique": "Spacing is functional but arbitrary — authored values like 13px and 30px break the scale, so gutters and gaps feel uneven and slightly cramped.",
+          "evidence": "off-scale-spacing high-confidence on multiple authored integers (e.g. 13, 30); inconsistent inter-card gaps.",
+          "recommendation": "Snap all margins/padding/gaps to a 4-8px token scale; increase the base whitespace unit; group related items with tighter proximity than unrelated ones."
+        },
+        {
+          "id": "sr-4",
+          "score": 4,
+          "band": "everything on one scale, deliberate whitespace",
+          "critique": "Spacing sits on a single consistent scale with generous, even whitespace; proximity groups related items so the structure is legible before you read a word.",
+          "evidence": "No high-confidence off-scale-spacing findings; only sub-pixel info-level noise; even gutters throughout.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "alignment": {
+      "weight": 0.75,
+      "question": "Shared edges and baselines; tidy gutters?",
+      "screenshotJudged": true,
+      "anchors": [
+        {
+          "id": "al-0",
+          "score": 0,
+          "band": "content visibly random — nothing shares an edge",
+          "critique": "Elements float with no shared edges or baselines; labels, values and controls each start at a different x, so the screen looks assembled by accident.",
+          "evidence": "Perceptual (no deterministic Track-A signal): ragged left edges, mismatched gutters, labels not baseline-aligned to their values.",
+          "recommendation": "Introduce a column grid; align all block left-edges and label/value baselines; equalise gutters. Judge twice; keep the lower score."
+        },
+        {
+          "id": "al-2",
+          "score": 2,
+          "band": "mostly aligned, one or two items drift off the grid",
+          "critique": "The layout mostly holds to a grid, but one or two elements drift — a heading indented a few px, or a control that doesn't share its neighbour's baseline.",
+          "evidence": "Perceptual: predominant shared left-edge with 1-2 visible exceptions.",
+          "recommendation": "Pull the stray elements back onto the shared edge/baseline; verify against a column overlay."
+        },
+        {
+          "id": "al-4",
+          "score": 4,
+          "band": "crisp shared edges and even gutters throughout",
+          "critique": "Every block shares clean left/right edges and baselines; gutters are even and the eye tracks down a calm, ordered column.",
+          "evidence": "Perceptual: consistent shared edges and baselines across cards, labels and controls.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "type-scale": {
+      "weight": 1.0,
+      "question": "A limited, deliberate type ramp?",
+      "anchors": [
+        {
+          "id": "ty-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: body text illegibly small / over-set, or no heading-body distinction",
+          "critique": "Body copy is set too small to read comfortably (or line length is unmanageable), and headings are indistinguishable from body — the type provides no reading structure.",
+          "evidence": "type-scale-sprawl with body sizes below a legible floor; no size/weight gap between heading and body.",
+          "recommendation": "Set a legible body size (>=16px web) with 1.4-1.6 line-height; establish a clear heading step; cap the ramp at ~6 distinct styles."
+        },
+        {
+          "id": "ty-2",
+          "score": 2,
+          "band": "ramp sprawls (9+ distinct triples) but stays readable",
+          "critique": "Text is readable, but the type ramp sprawls into nine or more distinct size/weight/line-height combinations, so the hierarchy feels undisciplined and slightly noisy.",
+          "evidence": "type-scale-sprawl > 6 distinct (size, weight, line-height) triples.",
+          "recommendation": "Consolidate to a modular scale of <=6 styles; map each style to a semantic role (display/heading/body/caption)."
+        },
+        {
+          "id": "ty-4",
+          "score": 4,
+          "band": "tight modular ramp, clear heading/body/caption",
+          "critique": "A small, deliberate type ramp gives an obvious heading/body/caption split; body line-height sits in the comfortable 1.4-1.6 band.",
+          "evidence": "<=6 distinct type triples; clear heading-to-body contrast.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "color-contrast": {
+      "weight": 2.0,
+      "question": "Palette harmony and legibility (highest weight)?",
+      "anchors": [
+        {
+          "id": "cc-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: any body text below 4.5:1 (WCAG AA fail)",
+          "critique": "Body text fails WCAG AA contrast — light-grey copy on a white card drops below 4.5:1 and is hard to read; this is a hard-standard failure, not a taste call.",
+          "evidence": "wcag-contrast / axe color-contrast: body text measured below 4.5:1.",
+          "recommendation": "Darken body text (or lighten the background) until every text run clears 4.5:1 (>=3:1 for large text); verify with the contrast checker, not by eye."
+        },
+        {
+          "id": "cc-2",
+          "score": 2,
+          "band": "large text passes but the grey palette is fragmented",
+          "critique": "All text technically passes contrast, but the greys are fragmented into many near-duplicate values, so surfaces and borders feel muddy and inconsistent.",
+          "evidence": "color-inventory-sprawl: multiple near-duplicate greys; no contrast failures.",
+          "recommendation": "Consolidate greys to a small token ramp (e.g. 5-7 steps); tint them with a hint of the brand hue; use one accent sparingly."
+        },
+        {
+          "id": "cc-4",
+          "score": 4,
+          "band": "all text clears AA, small consistent token palette",
+          "critique": "Every text run clears WCAG AA, the palette is small and tokenised, and the accent colour is used sparingly for genuine emphasis — legible and harmonious.",
+          "evidence": "No wcag-contrast findings; consolidated grey ramp; single restrained accent.",
+          "recommendation": "None material; consider an AAA pass for body text if the audience needs it."
+        }
+      ]
+    },
+    "consistency": {
+      "weight": 1.0,
+      "question": "Same components, spacing and type across screens?",
+      "anchors": [
+        {
+          "id": "co-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: a shared component renders differently across core screens",
+          "critique": "The same component — a button or card — renders with different padding, radius or type on different core screens, so the product feels stitched from unrelated parts.",
+          "evidence": "visual-regression > 5% baseline drift on a shared component; per-screen rule-count and type-triple-set diffs.",
+          "recommendation": "Extract the divergent component to a single shared implementation with shared spacing/type/colour tokens; re-baseline."
+        },
+        {
+          "id": "co-2",
+          "score": 2,
+          "band": "minor drift in spacing/type between screens",
+          "critique": "Patterns are recognisably the same across screens, but spacing or type drifts subtly between them, so the rhythm wobbles as you navigate.",
+          "evidence": "visual-regression in the 5-15% band; small per-screen type-triple diffs.",
+          "recommendation": "Unify the drifting spacing/type onto shared tokens; add a visual-regression baseline to hold it."
+        },
+        {
+          "id": "co-4",
+          "score": 4,
+          "band": "pixel-stable repeated patterns",
+          "critique": "Repeated patterns are pixel-stable across screens; the same component looks identical everywhere, so navigation feels like one coherent product.",
+          "evidence": "No visual regressions above threshold; matching rule-counts and type-triple sets across screens.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "empty-error-states": {
+      "weight": 1.5,
+      "question": "Quality of empty / loading / error / blank-render states?",
+      "anchors": [
+        {
+          "id": "ee-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: render crash or a blank screen where content is expected",
+          "critique": "The screen rendered blank (or threw an uncaught error) where content was expected — the user hits a dead end with no explanation and no way forward.",
+          "evidence": "pageError (uncaught exception) OR a near-blank screenshot where content was expected.",
+          "recommendation": "Fix the render crash; then design an empty/error state that names what's missing and offers a next action."
+        },
+        {
+          "id": "ee-2",
+          "score": 2,
+          "band": "functional but bare empty/error states (no guidance)",
+          "critique": "Empty and error states render without crashing, but they are bare — a lone icon or a terse 'No data', with no explanation of what's missing or what to do next.",
+          "evidence": "Screenshot shows an empty state with no supporting copy or recovery action; no pageError.",
+          "recommendation": "Add a one-line explanation plus a primary next action (create/import/retry); make error messages human and recoverable."
+        },
+        {
+          "id": "ee-4",
+          "score": 4,
+          "band": "informative, recoverable, on-brand empty/error states",
+          "critique": "Empty and error states explain what's missing, offer a clear next action, and stay on-brand — the user always knows where they are and how to proceed.",
+          "evidence": "No pageError; empty state carries explanatory copy + a primary action; errors are human and recoverable.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "affordance": {
+      "weight": 1.5,
+      "question": "Do controls signal that they act, and give feedback?",
+      "anchors": [
+        {
+          "id": "af-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: the primary action is dead (no feedback on click)",
+          "critique": "The primary action produces no observable effect when clicked — no navigation, DOM change, network call or feedback. It looks live but is dead, the worst affordance failure.",
+          "evidence": "dead-control (effect:none) on the primary button; or click-error / non-actionable primary control.",
+          "recommendation": "Wire the primary action and give immediate feedback (state change, spinner, toast); never ship a control that looks interactive but does nothing."
+        },
+        {
+          "id": "af-2",
+          "score": 2,
+          "band": "secondary controls are sub-target or lack focus signifiers",
+          "critique": "The primary action works, but secondary controls fall below the 44px/48dp tap-target minimum or suppress the focus outline with no :focus-visible replacement, hurting touch and keyboard use.",
+          "evidence": "tap-target < 44px on secondary controls; missing-focus-visible (outline suppressed, no :focus-visible rule); axe target-size/focus.",
+          "recommendation": "Raise tap targets to >=44px/48dp; restore a visible focus ring via :focus-visible; ensure every interactive element signals interactivity (cursor/hover)."
+        },
+        {
+          "id": "af-4",
+          "score": 4,
+          "band": "every control is affordant, >=44px, with a visible focus ring and feedback",
+          "critique": "Every interactive element looks interactive, meets the tap-target minimum, shows a clear keyboard focus ring, and gives feedback on action — affordance is complete for mouse, touch and keyboard.",
+          "evidence": "No dead-control/tap-target/missing-focus-visible findings; axe focus/target-size clean.",
+          "recommendation": "None material."
+        }
+      ]
+    },
+    "motion": {
+      "weight": 0.75,
+      "question": "Is motion purposeful, smooth, and respectful?",
+      "anchors": [
+        {
+          "id": "mo-0",
+          "score": 0,
+          "critical": true,
+          "band": "critical-error: janky/blocking motion, or motion with no reduced-motion escape",
+          "critique": "Animation blocks interaction or drops frames, and the page animates with no prefers-reduced-motion escape — actively harmful to users who need calm or are motion-sensitive.",
+          "evidence": "reduced-motion: page animates but ships no prefers-reduced-motion rule; motion-duration far out of band / visibly janky.",
+          "recommendation": "Add a prefers-reduced-motion:reduce rule that disables or shortens non-essential motion; remove blocking/janky animation from the interaction path."
+        },
+        {
+          "id": "mo-2",
+          "score": 2,
+          "band": "durations out of band, or motion that doesn't aid comprehension",
+          "critique": "Transitions fire but sit outside the ~200-500ms band (too slow or too abrupt) or decorate rather than clarify cause and effect, so motion adds latency without meaning.",
+          "evidence": "motion-duration outside the 200-500ms band; transitions that don't map to a state change.",
+          "recommendation": "Retune durations into the 200-500ms band; tie each transition to a real state change so motion explains cause and effect."
+        },
+        {
+          "id": "mo-4",
+          "score": 4,
+          "band": "snappy in-band motion that clarifies state and respects reduced-motion",
+          "critique": "Transitions are snappy and in-band, clarify what changed and why, and honour prefers-reduced-motion — motion is purposeful and respectful.",
+          "evidence": "motion-duration within 200-500ms; prefers-reduced-motion rule present; no jank.",
+          "recommendation": "None material."
+        }
+      ]
+    }
+  }
+}

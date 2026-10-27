@@ -1,0 +1,62 @@
+fix(slop): commit the 14 one-disk platform probes, and delete $null
+
+BUCKET (b) -- the dangerous one. Three COMMITTED reports tell a reader to run
+`python platform/architecture/_mkt_measure.py` and thirteen siblings of it. Those
+files existed on exactly one disk. A clone could not run a single one.
+
+They are committed BYTE-UNCHANGED. Measured at the CI pin ruff@0.15.17 with the
+project's ruff.toml:
+
+  ruff format --check   rc 0   14/14 already formatted
+  ruff check  BEFORE    rc 1   one F841, platform/lib/_p12_refute_predicate.py:107
+  ruff check  AFTER     rc 0
+
+The grounding round left this stuck between three bad options: commit only the
+clean ones and leave a citation dangling; format the evidence, which this lane
+has twice declined and been vindicated on; or baseline the dangling row, which
+records the problem instead of fixing it.
+
+The fourth option is what shipped -- a per-file ignore in ruff.toml:
+
+  [lint.per-file-ignores]
+  "platform/lib/_p12_refute_predicate.py" = ["F841"]
+
+It edits no evidence byte, and it is NARROWER than the `extend-exclude` entry the
+repo already uses for `command-center/_*.py`. An exclusion would also drop the
+file out of `ruff format --check`, and the file is currently formatted, so an
+exclusion would silently license future drift in a file the repo now depends on.
+Every other rule stays live on it. published-commands-baseline.json had already
+recorded this exact F841 as the reason the file stayed uncommitted; this removes
+the reason rather than re-recording it.
+
+"The ignore is narrow" is a claim, so it has a control: the SAME F841 shape at a
+different path must still be flagged. It is -- rc 1, F841. And the same rule on
+the ignored file is silent now (rc 0) against rc 1 before the edit. Both states
+of one pair, not one reading.
+
+BUCKET (d) -- `$null`, 0 bytes, untracked, `git check-ignore` rc 1, created 06:29
+today by a PowerShell `2>$null` redirect run under a shell that does not expand
+it. Deleted. `_r3_apply.py` refuses unless the file is BOTH 0 bytes and
+untracked, then asserts absence and proves it disturbed nothing else: the
+tracked-dirty set is byte-identical before and after (delta []). `NUL` is a
+different file, still live, writer still unidentified -- NOT deleted.
+
+Also in here, a detector failure of mine caught before it shipped a number. The
+first `_r3_bucketnow.py` read `_g2_census.out.json` off disk. That file is a
+stale shell redirect -- `_g2_census.py` writes to stdout ONLY and never creates
+it -- so the probe reported __pycache__ at 1,676 files / 47.5 MB while the tree
+held 2,666 / 60.0 MB, and nothing in the probe could tell. Fixed by EXECUTING
+the census, and shipped with the control that would have caught it:
+c6_census_rev_is_current compares the artifact's own recorded head against
+`git rev-parse HEAD` and fails closed. The same control now flags
+_g2_classify.out.json as rev dfea977d, not current, instead of letting its
+bucket numbers read as today's.
+
+Cache sweep DECLINED, with the reason rather than silently. The regenerating
+command is demonstrated (_r2_bucket_c.py: existed -> absent -> regenerated, rc 0,
+no tracked file dirtied). But HEAD moved four times during this lane, all from
+sibling lanes committing to main in this same worktree, and deleting 2,666
+__pycache__ files while another lane executes Python risks a transient import
+failure in someone else's run for 60 MB of disk that is not the constraint.
+
+Frozen evidence untouched: casualty/probes and p2-wave/probes both 0 dirty lines.

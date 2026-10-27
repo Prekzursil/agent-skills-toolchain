@@ -1,0 +1,527 @@
+{
+  "answer": "Every candidate carries a provenance record of source, ref, retrieval_time, hash (sha256:<hex>), and retrieval_method. A second agent given only that record re-fetched identical bytes for 10/10 sampled candidates by executing posix-read and tar-member against the recorded source+ref. A record with a mutated ref that still has all five fields fails re-fetch with HashMismatch (detector fires on the decoy bytes). Field presence is not acceptance. SUCCESS:IMP-0155",
+  "artifacts": [
+    {
+      "path": "tools/workflow-foundry/wf_provenance.py",
+      "bytes": 3080,
+      "sha256": "dffd67ac71d09c8bd3682973b42fa5bc50729715a222460c11a59c42d5b71836",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0155/provenance-records.json",
+      "bytes": 3151,
+      "sha256": "2391630fa072789c156f4974134a2c760f4f4e9a40372f8a949a42e1ee99a90a",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+      "bytes": 1634,
+      "sha256": "ef0610037180b1c4270e279e8280abe0536a8e194a70f317ddc5435cf50d143a",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+      "bytes": 2082,
+      "sha256": "13856784dd108fa42c22a68c8bced4d02acccf788d0febdf575866df37282f4a",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0155",
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0155.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0155",
+        "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py\n  RESULT:{\"sampled\": 10, \"reproduced\": 10, \"all_reproduced\": true}\n  PASS\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py\n  RESULT:{\"clean_ok\": true, \"mutated_ref_failed\": true, \"absent_path_failed\": true}\n  PASS\nartifact command-center/receipts/IMP-0155.json bytes=8674 sha256=c188ea994d36480e83cb8859249a15a77dd0c6e15acf589102ef3075ca487233\nSUCCESS:delivered IMP-0155",
+        "fingerprint": "d25fb9538d6d498e",
+        "exit_code": 0
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Re-fetch from the provenance record reproduced the recorded hash for 10/10 sampled candidates (methods ['posix-read', 'tar-member']). Computed, not asserted.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0155/probe1-refetch.raw.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+          "raw_output": "RESULT:{\"sampled\": 10, \"reproduced\": 10, \"all_reproduced\": true}\nPASS",
+          "fingerprint": "a7db8cd07667d89eb6b6ff74d54e5267",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+          "raw_output": "RESULT:{\"clean_ok\": true, \"mutated_ref_failed\": true, \"absent_path_failed\": true}\nPASS",
+          "fingerprint": "86a07445dfbffb565ac097b93790fd7a",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A mutated-ref record fails re-fetch (HashMismatch on an existing decoy) while the intact record passes. Both-states fired_on_bad=True silent_on_good=True.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0155/probe2-mutated-ref.raw.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+          "raw_output": "both-states method=posix-read good_ok=True mutated_ref=wf-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nboth-states method=tar-member good_ok=True mutated_ref=wf-tar-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nSUCCESS:IMP-0155-probe2 mutated-ref fails re-fetch; intact record passes",
+          "fingerprint": "c162710f1ff5f071",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+          "raw_output": "fired_on_bad_state=True silent_on_good_state=True",
+          "fingerprint": "a8032ead515f7114",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "evidence_requirement": {
+    "mutated_ref_both_states": {
+      "controls": [
+        {
+          "detector": "HashMismatch",
+          "fields_present_on_mutated": true,
+          "fired_on_bad_state": true,
+          "good_bytes": 153,
+          "good_ok": true,
+          "good_ref": "wf-00.json",
+          "method": "posix-read",
+          "mutated_ref": "wf-DECOY.json",
+          "report_error": "hash-mismatch",
+          "silent_on_good_state": true
+        },
+        {
+          "detector": "HashMismatch",
+          "fields_present_on_mutated": true,
+          "fired_on_bad_state": true,
+          "good_bytes": 161,
+          "good_ok": true,
+          "good_ref": "wf-08.json",
+          "method": "tar-member",
+          "mutated_ref": "wf-tar-DECOY.json",
+          "report_error": "hash-mismatch",
+          "silent_on_good_state": true
+        }
+      ],
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    "refetch_10_of_10": {
+      "computed": true,
+      "matched": 10,
+      "sampled": 10
+    }
+  },
+  "id": "IMP-0155",
+  "implementation": {
+    "hash_algorithm": "sha256",
+    "module": "tools/foundry/provenance.py",
+    "note": "ref is the fetch key; hash is verified after fetch. A mutated ref cannot succeed by consulting the hash as a locator.",
+    "record_fields": [
+      "source",
+      "ref",
+      "retrieval_time",
+      "hash",
+      "retrieval_method"
+    ],
+    "retrieval_methods_executed": [
+      "posix-read",
+      "tar-member"
+    ]
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0155/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-10-26T17:51:11Z"
+  },
+  "min_bytes_threshold": 128,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "role": "refetch-10-of-10"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "role": "mutated-ref-both-states"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "mutated-ref-posix-read",
+      "kind": "known-broken-fixture",
+      "description": "posix-read ref mutated to wf-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "mutated-ref-tar-member",
+      "kind": "known-broken-fixture",
+      "description": "tar-member ref mutated to wf-tar-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "output_path": "command-center/receipts/IMP-0155.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0154 append-only candidate registry is not delivered on this worktree; provenance attaches to a candidate wrapper and does not invent that registry.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Bind capture() to IMP-0154 import observations once that unit is live."
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "reviewer_id": "IMP-0155-probe2-mutated-ref",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0155",
+  "spec_anchor": "_USER-PROMPTS.md:11152-11170 (Workflow Foundry required production behavior)",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "id": "t1-refetch-10-of-10",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+      "result": "PASS"
+    },
+    {
+      "id": "t2-mutated-ref-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:27Z",
+    "started_at": "2026-08-25T00:57:27Z"
+  },
+  "title": "Implement the provenance record: source, ref, retrieval time, hash, retrieval method",
+  "unit_id": "IMP-0155",
+  "extensions": {
+    "w4s8_prior_shapes": {
+      "prior_extensions": {
+        "w4s8_prior_shapes": {
+          "prior_extensions": {
+            "shard8_reconstruction": {
+              "date": "2026-10-24T12:36:49Z",
+              "note": "probe kit rebuilt 2026-10-24 from the receipt's own recorded specs after the g1 tree reset; artifacts[] and evidence probes carry freshly measured values from the live runs",
+              "laid_out_from": "receipt evidence + tests_required + negative_controls"
+            }
+          },
+          "prior_artifacts": [
+            {
+              "path": "tools/workflow-foundry/wf_provenance.py",
+              "bytes": 3080,
+              "sha256": "dffd67ac71d09c8bd3682973b42fa5bc50729715a222460c11a59c42d5b71836",
+              "exists": true,
+              "eol": "LF",
+              "role": "primary"
+            },
+            {
+              "path": "command-center/p2-wave/probes/IMP-0155/provenance-records.json",
+              "bytes": 3151,
+              "sha256": "2391630fa072789c156f4974134a2c760f4f4e9a40372f8a949a42e1ee99a90a",
+              "exists": true,
+              "eol": "LF",
+              "role": "fixture"
+            },
+            {
+              "path": "command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+              "bytes": 1634,
+              "sha256": "ef0610037180b1c4270e279e8280abe0536a8e194a70f317ddc5435cf50d143a",
+              "exists": true,
+              "eol": "LF",
+              "role": "control"
+            },
+            {
+              "path": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "bytes": 2082,
+              "sha256": "13856784dd108fa42c22a68c8bced4d02acccf788d0febdf575866df37282f4a",
+              "exists": true,
+              "eol": "LF",
+              "role": "control"
+            }
+          ],
+          "artifact_roles_prior": {
+            "tools/workflow-foundry/wf_provenance.py": "implementation",
+            "command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py": "named-probe",
+            "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py": "named-probe"
+          },
+          "prior_evidence": [
+            {
+              "anchor": "command-center/p2-wave/probes/IMP-0155/probe1-refetch.raw.json",
+              "claim": "Re-fetch from the provenance record reproduced the recorded hash for 10/10 sampled candidates (methods ['posix-read', 'tar-member']). Computed, not asserted.",
+              "confidence": "almost-certain",
+              "probes": [
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+                  "exit_code": 0,
+                  "fingerprint": "a7db8cd07667d89eb6b6ff74d54e5267",
+                  "method": "command",
+                  "raw_output": "RESULT:{\"sampled\": 10, \"reproduced\": 10, \"all_reproduced\": true}\nPASS",
+                  "role": "refetch-ten-reproduces-hash"
+                },
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+                  "exit_code": 0,
+                  "fingerprint": "86a07445dfbffb565ac097b93790fd7a",
+                  "method": "command",
+                  "raw_output": "RESULT:{\"clean_ok\": true, \"mutated_ref_failed\": true, \"absent_path_failed\": true}\nPASS",
+                  "role": "mutated-ref-detector-both-states"
+                }
+              ],
+              "verdict": "CONFIRMED"
+            },
+            {
+              "anchor": "command-center/p2-wave/probes/IMP-0155/probe2-mutated-ref.raw.json",
+              "claim": "A mutated-ref record fails re-fetch (HashMismatch on an existing decoy) while the intact record passes. Both-states fired_on_bad=True silent_on_good=True.",
+              "confidence": "almost-certain",
+              "probes": [
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+                  "exit_code": 0,
+                  "method": "command",
+                  "raw_output": "both-states method=posix-read good_ok=True mutated_ref=wf-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nboth-states method=tar-member good_ok=True mutated_ref=wf-tar-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nSUCCESS:IMP-0155-probe2 mutated-ref fails re-fetch; intact record passes",
+                  "role": "source"
+                },
+                {
+                  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+                  "exit_code": 0,
+                  "method": "command",
+                  "raw_output": "fired_on_bad_state=True silent_on_good_state=True",
+                  "role": "verifier"
+                }
+              ],
+              "verdict": "CONFIRMED"
+            }
+          ],
+          "prior_tests": [
+            {
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+              "id": "t1-refetch-10-of-10",
+              "result": "PASS"
+            },
+            {
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "id": "t2-mutated-ref-both-states",
+              "result": "PASS"
+            }
+          ],
+          "prior_negative_controls": [
+            {
+              "description": "posix-read ref mutated to wf-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+              "fired_on_bad_state": true,
+              "id": "mutated-ref-posix-read",
+              "kind": "known-broken-fixture",
+              "silent_on_good_state": true
+            },
+            {
+              "description": "tar-member ref mutated to wf-tar-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+              "fired_on_bad_state": true,
+              "id": "mutated-ref-tar-member",
+              "kind": "known-broken-fixture",
+              "silent_on_good_state": true
+            }
+          ],
+          "reviewer_extra_keys": {
+            "method": "Named probe2 is mechanically independent of probe1: it mutates only ref on an otherwise complete record and requires HashMismatch, while probe1 samples 10 intact re-fetches."
+          },
+          "manifest_registration_extra": {
+            "global_catalog_write": false
+          },
+          "prior_downstream_consumers": [
+            {
+              "artifact_path": "tools/foundry/provenance.py",
+              "consumer": "command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+              "executed": true,
+              "exit_code": 0,
+              "read_ok": true
+            },
+            {
+              "artifact_path": "tools/foundry/provenance.py",
+              "consumer": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "executed": true,
+              "exit_code": 0,
+              "read_ok": true
+            }
+          ]
+        },
+        "completion": {
+          "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+        }
+      },
+      "prior_artifacts": [
+        {
+          "path": "tools/workflow-foundry/wf_provenance.py",
+          "bytes": 3080,
+          "sha256": "dffd67ac71d09c8bd3682973b42fa5bc50729715a222460c11a59c42d5b71836",
+          "exists": true,
+          "eol": "LF",
+          "role": "primary"
+        },
+        {
+          "path": "command-center/p2-wave/probes/IMP-0155/provenance-records.json",
+          "bytes": 3151,
+          "sha256": "2391630fa072789c156f4974134a2c760f4f4e9a40372f8a949a42e1ee99a90a",
+          "exists": true,
+          "eol": "LF",
+          "role": "fixture"
+        },
+        {
+          "path": "command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+          "bytes": 1634,
+          "sha256": "ef0610037180b1c4270e279e8280abe0536a8e194a70f317ddc5435cf50d143a",
+          "exists": true,
+          "eol": "LF",
+          "role": "control"
+        },
+        {
+          "path": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+          "bytes": 2082,
+          "sha256": "13856784dd108fa42c22a68c8bced4d02acccf788d0febdf575866df37282f4a",
+          "exists": true,
+          "eol": "LF",
+          "role": "control"
+        }
+      ],
+      "prior_evidence": [
+        {
+          "claim": "Re-fetch from the provenance record reproduced the recorded hash for 10/10 sampled candidates (methods ['posix-read', 'tar-member']). Computed, not asserted.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "command-center/p2-wave/probes/IMP-0155/probe1-refetch.raw.json",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py",
+              "raw_output": "RESULT:{\"sampled\": 10, \"reproduced\": 10, \"all_reproduced\": true}\nPASS",
+              "fingerprint": "a7db8cd07667d89eb6b6ff74d54e5267",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "raw_output": "RESULT:{\"clean_ok\": true, \"mutated_ref_failed\": true, \"absent_path_failed\": true}\nPASS",
+              "fingerprint": "86a07445dfbffb565ac097b93790fd7a",
+              "exit_code": 0
+            }
+          ]
+        },
+        {
+          "claim": "A mutated-ref record fails re-fetch (HashMismatch on an existing decoy) while the intact record passes. Both-states fired_on_bad=True silent_on_good=True.",
+          "verdict": "CONFIRMED",
+          "confidence": "almost-certain",
+          "anchor": "command-center/p2-wave/probes/IMP-0155/probe2-mutated-ref.raw.json",
+          "probes": [
+            {
+              "role": "source",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "raw_output": "both-states method=posix-read good_ok=True mutated_ref=wf-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nboth-states method=tar-member good_ok=True mutated_ref=wf-tar-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nSUCCESS:IMP-0155-probe2 mutated-ref fails re-fetch; intact record passes",
+              "fingerprint": "c162710f1ff5f071",
+              "exit_code": 0
+            },
+            {
+              "role": "verifier",
+              "method": "command",
+              "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+              "raw_output": "fired_on_bad_state=True silent_on_good_state=True",
+              "fingerprint": "a8032ead515f7114",
+              "exit_code": 0
+            }
+          ]
+        }
+      ],
+      "prior_tests": [
+        {
+          "id": "t1-refetch-10-of-10",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+          "result": "PASS"
+        },
+        {
+          "id": "t2-mutated-ref-both-states",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+          "result": "PASS"
+        }
+      ],
+      "prior_negative_controls": [
+        {
+          "id": "mutated-ref-posix-read",
+          "kind": "known-broken-fixture",
+          "description": "posix-read ref mutated to wf-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        },
+        {
+          "id": "mutated-ref-tar-member",
+          "kind": "known-broken-fixture",
+          "description": "tar-member ref mutated to wf-tar-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+          "fired_on_bad_state": true,
+          "silent_on_good_state": true
+        }
+      ],
+      "prior_downstream_consumers": [
+        {
+          "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+          "artifact_path": "command-center/receipts/IMP-0155.json",
+          "executed": true,
+          "read_ok": true,
+          "exit_code": 0,
+          "probe": {
+            "role": "verifier",
+            "method": "command",
+            "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0155",
+            "raw_output": "probe[1] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe1_refetch_ten.py\n  RESULT:{\"sampled\": 10, \"reproduced\": 10, \"all_reproduced\": true}\n  PASS\nprobe[2] rc=0 cmd=PYTHONDONTWRITEBYTECODE=1 python -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py\n  RESULT:{\"clean_ok\": true, \"mutated_ref_failed\": true, \"absent_path_failed\": true}\n  PASS\nartifact command-center/receipts/IMP-0155.json bytes=8674 sha256=c188ea994d36480e83cb8859249a15a77dd0c6e15acf589102ef3075ca487233\nSUCCESS:delivered IMP-0155",
+            "fingerprint": "d25fb9538d6d498e",
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "completion": {
+      "w4s8_resume_envelope": "Receipt envelope completed to receipt_core conformance by the builder w4s8 resume session (2026-10-26); prior builder measurements and the recorded reviewer closure were left untouched; the unit's named probes re-ran exit 0 on this host during completion. Nonconforming original shapes are preserved verbatim under extensions.w4s8_prior_shapes."
+    }
+  },
+  "produced_by": {
+    "vendor": "other",
+    "model": "unrecorded"
+  }
+}

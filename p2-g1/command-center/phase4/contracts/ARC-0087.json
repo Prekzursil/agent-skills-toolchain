@@ -1,0 +1,1540 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/phase4/contracts/ARC-0087.json",
+  "title": "ARC-0087 shared completion-predicate verdict",
+  "description": "SUCCESS:ARC-0087. Formal contract for the shared 12-condition completion predicate: typed per-condition results, per-unit-class applicability, UNKNOWN distinct from FALSE, NOT-APPLICABLE never counted as a pass, and exit code 0 structurally incapable of COMPLETE. A unit is complete only when all applicable conditions hold:\n1. process/task reached a valid terminal state;\n2. expected artifact exists;\n3. artifact is non-empty and exceeds a meaningful minimum size;\n4. artifact parses against its schema;\n5. required sentinel is present;\n6. required evidence anchors exist;\n7. required tests ran and passed;\n8. negative controls or mutations fail as expected;\n9. independent reviewer status is PASS;\n10. no unresolved P0/P1 defect is attached;\n11. output was registered in the artifact manifest;\n12. downstream consumers can read it.\nExit code zero alone is never success. A plausible digest is not a receipt. A file path in text is not proof the file exists.",
+  "$comment": "SUCCESS:ARC-0087 predicate_id=shared-completion-predicate-12 min_artifact_bytes=32. Callers MUST emit the per-condition array, never a lone boolean. applicable_pass_count counts only result=TRUE on applicable conditions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "predicate_id",
+    "schema_id",
+    "unit_id",
+    "unit_class",
+    "verdict",
+    "exit_code",
+    "evaluated_from_exit_code_alone",
+    "min_artifact_bytes",
+    "applicable_pass_count",
+    "applicable_fail_count",
+    "applicable_unknown_count",
+    "not_applicable_count",
+    "anti_patterns",
+    "conditions"
+  ],
+  "properties": {
+    "predicate_id": {
+      "type": "string",
+      "const": "shared-completion-predicate-12"
+    },
+    "schema_id": {
+      "type": "string",
+      "const": "command-center/phase4/contracts/ARC-0087.json"
+    },
+    "unit_id": {
+      "type": "string",
+      "minLength": 6,
+      "pattern": "^[A-Z]{2,5}-[0-9]{4}$"
+    },
+    "unit_class": {
+      "type": "string",
+      "enum": [
+        "architecture",
+        "phase4-contract",
+        "implementation",
+        "test",
+        "audit",
+        "council",
+        "workflow",
+        "command-center",
+        "adversarial",
+        "research",
+        "synthesis",
+        "release",
+        "build",
+        "conformance",
+        "generic"
+      ]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "COMPLETE",
+        "INCOMPLETE",
+        "UNKNOWN"
+      ],
+      "description": "COMPLETE iff every applicable condition is TRUE. INCOMPLETE if any applicable condition is FALSE. UNKNOWN if no applicable FALSE and at least one applicable UNKNOWN. NOT-APPLICABLE rows never decide the aggregate."
+    },
+    "exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "evaluated_from_exit_code_alone": {
+      "type": "boolean",
+      "description": "Must be false. Exit 0 is never a completion proof."
+    },
+    "min_artifact_bytes": {
+      "type": "integer",
+      "const": 32
+    },
+    "applicable_pass_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "applicable_fail_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "applicable_unknown_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "not_applicable_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 12
+    },
+    "anti_patterns": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exit_code_zero_is_not_success",
+        "plausible_digest_is_not_receipt",
+        "path_in_text_is_not_existence"
+      ],
+      "properties": {
+        "exit_code_zero_is_not_success": {
+          "type": "boolean",
+          "const": true
+        },
+        "plausible_digest_is_not_receipt": {
+          "type": "boolean",
+          "const": true
+        },
+        "path_in_text_is_not_existence": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "prefixItems": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C01"
+            },
+            "number": {
+              "type": "integer",
+              "const": 1
+            },
+            "name": {
+              "type": "string",
+              "const": "process/task reached a valid terminal state"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C02"
+            },
+            "number": {
+              "type": "integer",
+              "const": 2
+            },
+            "name": {
+              "type": "string",
+              "const": "expected artifact exists"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C03"
+            },
+            "number": {
+              "type": "integer",
+              "const": 3
+            },
+            "name": {
+              "type": "string",
+              "const": "artifact is non-empty and exceeds a meaningful minimum size"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C04"
+            },
+            "number": {
+              "type": "integer",
+              "const": 4
+            },
+            "name": {
+              "type": "string",
+              "const": "artifact parses against its schema"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C05"
+            },
+            "number": {
+              "type": "integer",
+              "const": 5
+            },
+            "name": {
+              "type": "string",
+              "const": "required sentinel is present"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C06"
+            },
+            "number": {
+              "type": "integer",
+              "const": 6
+            },
+            "name": {
+              "type": "string",
+              "const": "required evidence anchors exist"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C07"
+            },
+            "number": {
+              "type": "integer",
+              "const": 7
+            },
+            "name": {
+              "type": "string",
+              "const": "required tests ran and passed"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C08"
+            },
+            "number": {
+              "type": "integer",
+              "const": 8
+            },
+            "name": {
+              "type": "string",
+              "const": "negative controls or mutations fail as expected"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C09"
+            },
+            "number": {
+              "type": "integer",
+              "const": 9
+            },
+            "name": {
+              "type": "string",
+              "const": "independent reviewer status is PASS"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C10"
+            },
+            "number": {
+              "type": "integer",
+              "const": 10
+            },
+            "name": {
+              "type": "string",
+              "const": "no unresolved P0/P1 defect is attached"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C11"
+            },
+            "number": {
+              "type": "integer",
+              "const": 11
+            },
+            "name": {
+              "type": "string",
+              "const": "output was registered in the artifact manifest"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "number",
+            "name",
+            "applicable",
+            "result",
+            "evidence_pointer",
+            "reason"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "const": "C12"
+            },
+            "number": {
+              "type": "integer",
+              "const": 12
+            },
+            "name": {
+              "type": "string",
+              "const": "downstream consumers can read it"
+            },
+            "applicable": {
+              "type": "boolean"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "TRUE",
+                "FALSE",
+                "UNKNOWN",
+                "NOT-APPLICABLE"
+              ]
+            },
+            "evidence_pointer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "applicable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "applicable"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "result": {
+                    "const": "NOT-APPLICABLE"
+                  }
+                }
+              },
+              "else": {
+                "properties": {
+                  "result": {
+                    "type": "string",
+                    "enum": [
+                      "TRUE",
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "COMPLETE"
+          }
+        },
+        "required": [
+          "verdict"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evaluated_from_exit_code_alone": {
+            "const": false
+          },
+          "applicable_fail_count": {
+            "const": 0
+          },
+          "applicable_unknown_count": {
+            "const": 0
+          },
+          "conditions": {
+            "type": "array",
+            "items": {
+              "not": {
+                "type": "object",
+                "properties": {
+                  "applicable": {
+                    "const": true
+                  },
+                  "result": {
+                    "enum": [
+                      "FALSE",
+                      "UNKNOWN"
+                    ]
+                  }
+                },
+                "required": [
+                  "applicable",
+                  "result"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "conditions": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "applicable": {
+                  "const": true
+                },
+                "result": {
+                  "const": "FALSE"
+                }
+              },
+              "required": [
+                "applicable",
+                "result"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "INCOMPLETE"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          {
+            "properties": {
+              "exit_code": {
+                "const": 0
+              }
+            }
+          },
+          {
+            "properties": {
+              "conditions": {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "const": "C02"
+                    },
+                    "result": {
+                      "const": "FALSE"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "result"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "enum": [
+              "INCOMPLETE",
+              "UNKNOWN"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "x-spec-source": "_USER-PROMPTS.md:10631-10646",
+  "x-sentinel": "SUCCESS:ARC-0087",
+  "x-state": "SUCCESS",
+  "x-unit-id": "ARC-0087",
+  "x-min-artifact-bytes": 32,
+  "x-applicability-matrix": {
+    "architecture": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "phase4-contract": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "implementation": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "test": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "audit": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "council": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "workflow": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "command-center": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "adversarial": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "research": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": false,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "synthesis": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "release": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "build": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "conformance": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    },
+    "generic": {
+      "C01": true,
+      "C02": true,
+      "C03": true,
+      "C04": true,
+      "C05": true,
+      "C06": true,
+      "C07": true,
+      "C08": true,
+      "C09": true,
+      "C10": true,
+      "C11": true,
+      "C12": true
+    }
+  },
+  "x-unit-classes": [
+    "architecture",
+    "phase4-contract",
+    "implementation",
+    "test",
+    "audit",
+    "council",
+    "workflow",
+    "command-center",
+    "adversarial",
+    "research",
+    "synthesis",
+    "release",
+    "build",
+    "conformance",
+    "generic"
+  ],
+  "x-condition-catalog": [
+    {
+      "id": "C01",
+      "number": 1,
+      "name": "process/task reached a valid terminal state",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C02",
+      "number": 2,
+      "name": "expected artifact exists",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C03",
+      "number": 3,
+      "name": "artifact is non-empty and exceeds a meaningful minimum size",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C04",
+      "number": 4,
+      "name": "artifact parses against its schema",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C05",
+      "number": 5,
+      "name": "required sentinel is present",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C06",
+      "number": 6,
+      "name": "required evidence anchors exist",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C07",
+      "number": 7,
+      "name": "required tests ran and passed",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C08",
+      "number": 8,
+      "name": "negative controls or mutations fail as expected",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C09",
+      "number": 9,
+      "name": "independent reviewer status is PASS",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C10",
+      "number": 10,
+      "name": "no unresolved P0/P1 defect is attached",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C11",
+      "number": 11,
+      "name": "output was registered in the artifact manifest",
+      "unknown_distinct_from_false": true
+    },
+    {
+      "id": "C12",
+      "number": 12,
+      "name": "downstream consumers can read it",
+      "unknown_distinct_from_false": true
+    }
+  ],
+  "x-evaluation-rules": {
+    "aggregate": "COMPLETE only when every applicable condition is TRUE; INCOMPLETE when any applicable condition is FALSE; UNKNOWN when no applicable FALSE remains and at least one applicable UNKNOWN remains.",
+    "not_applicable_never_counts_as_pass": true,
+    "unknown_never_collapses_to_false": true,
+    "unknown_never_collapses_to_true": true,
+    "exit_code_zero_alone_never_complete": true
+  },
+  "x-anti-patterns": [
+    "Exit code zero alone is never success.",
+    "A plausible digest is not a receipt.",
+    "A file path in text is not proof the file exists."
+  ],
+  "x-consumer-call-site": "command-center/p2-wave/probes/ARC-0087/probe2_vacuity_and_applicability.py Draft202012Validator(contract).validate(verdict)",
+  "x-independent-reviewer": "command-center/p2-wave/probes/ARC-0087/probe1_six_unit_breakdown.py structurally reviews 12 ids, UNKNOWN token, applicability matrix, and anti-pattern encoding before executing six live units."
+}

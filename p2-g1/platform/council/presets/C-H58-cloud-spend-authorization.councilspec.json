@@ -1,0 +1,197 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h58-cloud-spend-authorization",
+  "preset": "risk_committee",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Authorise or deny cloud spend, on a cost estimate anchored to a reference class and a named, executable teardown path.",
+    "charter": "MANDATE. Read before destroy, and never provision what you cannot tear down. Two artifacts gate the authorisation. (1) A cost estimate with a REFERENCE CLASS - a comparable prior run whose actual cost is known - because an estimate derived from first principles alone systematically under-reads idle time, egress and the cost of the run you have to repeat. (2) A named teardown path that exists BEFORE provisioning, as a command someone can run, not an intention. The owner decides; the other three seats brief. That asymmetry is deliberate: spend is the owner's money and the council's role is to make the number and the exit honest, not to vote the owner's wallet.",
+    "risk_tier": "high",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "the cost estimate names a reference class with a known actual cost",
+      "the teardown command exists and is stated before provisioning",
+      "a ceiling is declared and the estimate sits under it",
+      "the owner explicitly approves; silence is not approval"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "provision before a teardown command is named",
+        "estimate cost without a reference class",
+        "exceed the declared ceiling without a fresh authorisation"
+      ],
+      "deadline_minutes": 20
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "stakeholder_balanced"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 4, "min": 4, "max": 4 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative - decides, and chairs",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["budget authority", "estate policy"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      },
+      {
+        "participant_id": "cost-analyst",
+        "display_name": "Cost analyst - builds the reference-class estimate",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["cloud pricing", "reference-class forecasting"],
+        "role": "custom:cost_analyst",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "Anchor the estimate on a comparable prior run whose ACTUAL cost is known, then adjust. Include idle time, egress, and the probability you have to repeat the run - that last term is the one first-principles estimates always drop."
+        }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Implementer - names the teardown command",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["provisioning", "teardown automation"],
+        "role": "custom:implementer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "context": {
+          "briefing": "State the teardown as a runnable command against the specific resource identifiers, and say what it does NOT remove - orphaned volumes and network resources are how a torn-down job keeps billing."
+        }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE - orphan and runaway risk",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["runaway detection", "quota exhaustion"],
+        "role": "risk_officer",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "context": {
+          "briefing": "Name the runaway scenario and how it is detected. A shared quota consumed by an off-peak batch silently starves interactive work later; say who notices and how."
+        }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": false }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": false,
+    "min_sources": 1,
+    "required_artifacts": ["benchmark_baseline", "risk_list"]
+  },
+  "topology": { "kind": "chair_led", "chair": "owner-rep" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "reference-class-estimate", "custom_name": "cost estimate anchored on a comparable prior run", "rounds": 1, "participants": ["cost-analyst"] },
+      { "kind": "custom", "stage_id": "teardown-path", "custom_name": "name the runnable teardown command before provisioning", "rounds": 1, "participants": ["implementer", "sre"] },
+      { "kind": "premortem", "stage_id": "runaway-premortem", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "authorise-or-deny", "rounds": 1, "participants": ["owner-rep"] }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 1, "max": 1 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 2, "runner": "owner" }
+  },
+  "budgets": { "effort": "medium", "time_minutes": 20, "turns": 10 },
+  "targets": { "evidence_items": 3, "objections": 1 },
+  "voting": {
+    "method": "judge",
+    "veto": {
+      "holders": ["owner-rep"],
+      "scope": "final_decision",
+      "must_justify": false,
+      "overridable_by_owner": false
+    },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:cost_estimate_has_reference_class == true AND custom:teardown_path_named == true AND owner_approved == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:cost_estimate_has_reference_class", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:teardown_path_named", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "owner_approved", "op": "==", "value": true }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "every_participant_spoke": true, "min_evidence_items": 2 },
+    "hard_caps": { "max_rounds": 1, "max_minutes": 20, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "spend is capped at the declared ceiling and the teardown runs automatically on breach"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1 },
+    "resolution": ["narrow_scope", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["sycophancy", "evidence_free_majority", "weak_synthesis", "missing_expertise"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "evidence_map",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": ["provisioning any billable resource", "raising the declared ceiling"]
+    },
+    "persistence": { "store": "ledger", "path": "platform/council/runs/c-h58", "checkpoint_every_round": false },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Cloud spend authorization (binding)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H58", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P18,P35"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1999", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H58 `cloud-spend-authorization`, global ordinal 58, tier standard, protocols P18/P35, 4 seats, 1 round, default binding BINDING, OWNER-DECISION YES. || EDITABLE DIALS: (1) ceiling -> objective.owner_constraints (declare the spend ceiling) and outcomes.conditional_decision_requires, which ties an automatic teardown to a breach. (2) teardown -> the teardown-path stage and custom:teardown_path_named. Secondary dials: budgets.time_minutes (20), protocol.experiments.runner (owner - a spend probe is the owner's to run), audit.calibration.score (brier, so estimate quality is scored against actuals over time). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `owner_decides` -> voting.method `judge` with the owner seat holding authority `owner`, an unconditional non-overridable veto, tie_break `owner`, and topology.kind `chair_led` with chair `owner-rep`. There is no `owner_decides` ballot enum; the owner's authority is expressed through the chair, the veto and the tie-break together, and the veto.must_justify is deliberately FALSE because an owner is not obliged to argue for their own budget. roles `cost_analyst` -> custom:cost_analyst, `implementer` -> custom:implementer, `owner_rep` -> custom:owner_rep (kind human, vendor human), `sre` -> risk_officer (enum) because the seat's actual job here is runaway and orphan risk. Outcome names map AUTHORISE -> decision, DENY -> no_decision, CONDITIONAL_DECISION -> conditional_decision. `evidence standard: assertion_with_pointer` -> anchor_style `any` with citation_required true and min_independent_sources 1 - a pointer suffices, an unsourced assertion does not; this is the weakest evidence standard in the lane and is correct for a 20-minute spend call. || CUSTOM METRICS AND THEIR PRODUCERS: custom:cost_estimate_has_reference_class (boolean; produced by the cost-analyst seat, true only when a comparable prior run with a KNOWN actual cost is cited) and custom:teardown_path_named (boolean; produced by the teardown-path stage as a runnable command against specific resource identifiers). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY owner_approved IS A REGISTRY METRIC AND NOT A CUSTOM ONE: owner_approved is in the schema's boolean metric registry, so the approval gate is expressible without an extension - and because it is a registry metric the runtime is expected to supply it, which is exactly the property you want on the clause that authorises money. Silence evaluates as absent, and an absent metric raises rather than reading false."
+  }
+}

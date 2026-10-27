@@ -1,0 +1,53 @@
+docs(rule-audit): adversarial round -- two probes neither lane ran, one overclaim confirmed
+
+Attacks BOTH the BUILD artifact and the VERIFY lane that reviewed it. Adds the two
+mechanical checks that were still missing, each with a control proven to fire.
+
+NEW (docs/rule-audit/)
+- _adv_indep_classify.py: re-classifies all 254 files across the three trees with a
+  hand-rolled line-based frontmatter reader that does NOT import rule_audit, then
+  cross-checks every file against the builder JSON. compared=254 mismatches=0.
+  The cross-check fails closed when the compared count is short of the file count --
+  an early run of this probe read the wrong JSON key, reported 254 mismatches, and
+  would otherwise have reported a vacuous "0 mismatches" over 0 comparisons.
+- _adv_readme_block.py: mechanically diffs the rules/README.md structure block against
+  the tree. Neither lane asserted this -- BUILD said "the accuracy evidence is the
+  measured directory listing", VERIFY re-derived only the two COUNTS, and a block can
+  carry the right counts with the wrong names. Result: 20/20 common filenames named,
+  13/13 language dirs, zero invented entries. Control: a synthetic block with one name
+  removed and one invented is reported as exactly one missing + one extra.
+
+CONFIRMED against the build
+- Classification 88/78/88, always-on 8/4/8, third bucket empty -- reproduced by an
+  independent parser, and the 8 live always-on files are exactly the 8 rule files in
+  THIS agent's turn-0 system prompt (fourth independent reproduction).
+  common/owner-ops-authorization.md carries paths:["**/*"] and was ABSENT at turn 0,
+  arriving only after a .py read -- the discriminating control for the demotion claim.
+- Token arithmetic: live always-on 15,141; floor 23,050 = 15,141+2,422+2,707+2,780;
+  windows-shell 4,560 + single-signal 3,634 = 8,194 = 54.1% of 15,141.
+- sync-from-live.ps1:477 omits $Report; bootstrap.ps1:45 is the Copy-Item (:44 is its
+  comment header, as VERIFY noted); agent-self/config/AGENTS.md is missing the live
+  credential bullet and its 9b says "rotate, don't just delete".
+- 167 passed on the 8 rule CI modules; ruff check + ruff format --check clean on the
+  whole of docs/rule-audit/ at pinned 0.15.17.
+- No CI test reads ~/.claude/rules -- the two hits are prose in a docstring and a
+  comment (use-vs-mention). Control: the same grep finds .claude in 10 other modules.
+
+CONFIRMED against the audit
+- The self-test control count is 17, not 20: AST walk of self_test() finds 17 check()
+  call sites and the runtime prints 17 PASS lines. The tool prints
+  "SUCCESS:rule_audit-self-test all controls passed" and no count anywhere, so the
+  build report's quoted "SUCCESS: all controls passed (20)" is not a tool output.
+  VERIFY located the claim at RULE-AUDIT.md:26 and :502 and missed the third and most
+  consequential occurrence, the section heading at :401.
+
+CAVEAT on the audit's own probe, disclosed
+- _verify_pathrefs.py resolve() falls back to REPO.rglob(basename), so it cannot see a
+  reference whose PATH is wrong while its basename exists somewhere. Its known-bad
+  control uses a filename absent everywhere, so it never exercises that weakness. The
+  "no tenth contradiction on the path axis" silence is weaker than it reads -- which
+  is consistent with the LIKELY band the audit attached to it.
+
+Third independent instance of the ruff-format trap: both probes here passed
+ruff check and failed ruff format --check on first write. Formatted, then proved
+semantics-preserving by re-running both and comparing stdout.

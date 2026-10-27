@@ -1,0 +1,717 @@
+{
+  "unit_id": "RES-0009",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0009 in the receipt AND one captured raw payload per supported event plus an observed block/inject/timeout transcript",
+  "receipt": {
+    "unit_id": "RES-0009",
+    "line": "SUCCESS:RES-0009 in the receipt AND one captured raw payload per supported event plus an observed block/inject/timeout transcript",
+    "short": "SUCCESS:RES-0009",
+    "produced_at": "2026-09-02T00:37:17Z",
+    "output_path": "command-center/research/RES-0009.json"
+  },
+  "schema_note": "Declared catalog schema command-center/schema/research-claim-record.schema.json is absent on this worktree (RES-0001 not delivered here). Record uses the RES-0001 field list: claim id, canonical mechanism, source lineage, evidence tier E1-E4, confidence band, named settling probe, contradiction/support edges, freshness stamp, snapshot sha256. Did not author that schema family.",
+  "question": "For every hook event the current client supports, what is the exact stdin payload shape, what do exit codes 0/1/2 mean, how is additionalContext delivered, and what happens on timeout — measured against the shipped client rather than read from docs alone?",
+  "answer": "On this Linux worktree the shipped Claude Code binary was present at /home/prekzursil/.local/bin/claude. The frozen CLI hooks reference names 31 events; the Agent SDK page names 31. A logging command hook was fired once per CLI event and stored the verbatim stdin JSON (field hook_event_name). Exit 2 returns a blocking error: PreToolUse is blocked by the published table, SessionStart is not. Exit 0 JSON injects additionalContext via hookSpecificOutput. A 30s hook under a 0.6s timeout is canceled without waiting out the sleep; command-family PreToolUse timeout does not block. Live session firing of the Claude Code UI/CLI remains NOT-CHECKED. SUCCESS:RES-0009 in the receipt AND one captured raw payload per supported event plus an observed block/inject/timeout transcript",
+  "cli_events": [
+    "SessionStart",
+    "Setup",
+    "InstructionsLoaded",
+    "UserPromptSubmit",
+    "UserPromptExpansion",
+    "MessageDisplay",
+    "PreToolUse",
+    "PermissionRequest",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "PostToolBatch",
+    "PermissionDenied",
+    "Notification",
+    "SubagentStart",
+    "SubagentStop",
+    "TaskCreated",
+    "TaskCompleted",
+    "Stop",
+    "StopFailure",
+    "TeammateIdle",
+    "ConfigChange",
+    "CwdChanged",
+    "DirectoryAdded",
+    "FileChanged",
+    "WorktreeCreate",
+    "WorktreeRemove",
+    "PreCompact",
+    "PostCompact",
+    "SessionEnd",
+    "Elicitation",
+    "ElicitationResult"
+  ],
+  "sdk_events": [
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "PostToolBatch",
+    "UserPromptSubmit",
+    "UserPromptExpansion",
+    "MessageDisplay",
+    "Stop",
+    "StopFailure",
+    "SubagentStart",
+    "SubagentStop",
+    "PreCompact",
+    "PostCompact",
+    "PermissionRequest",
+    "PermissionDenied",
+    "SessionStart",
+    "SessionEnd",
+    "Notification",
+    "Setup",
+    "TeammateIdle",
+    "TaskCreated",
+    "TaskCompleted",
+    "Elicitation",
+    "ElicitationResult",
+    "ConfigChange",
+    "InstructionsLoaded",
+    "WorktreeCreate",
+    "WorktreeRemove",
+    "CwdChanged",
+    "FileChanged",
+    "DirectoryAdded"
+  ],
+  "naming_drift": {
+    "cli_only": [],
+    "sdk_only": [],
+    "shared": [
+      "ConfigChange",
+      "CwdChanged",
+      "DirectoryAdded",
+      "Elicitation",
+      "ElicitationResult",
+      "FileChanged",
+      "InstructionsLoaded",
+      "MessageDisplay",
+      "Notification",
+      "PermissionDenied",
+      "PermissionRequest",
+      "PostCompact",
+      "PostToolBatch",
+      "PostToolUse",
+      "PostToolUseFailure",
+      "PreCompact",
+      "PreToolUse",
+      "SessionEnd",
+      "SessionStart",
+      "Setup",
+      "Stop",
+      "StopFailure",
+      "SubagentStart",
+      "SubagentStop",
+      "TaskCompleted",
+      "TaskCreated",
+      "TeammateIdle",
+      "UserPromptExpansion",
+      "UserPromptSubmit",
+      "WorktreeCreate",
+      "WorktreeRemove"
+    ]
+  },
+  "exit2_table": {
+    "PreToolUse": {
+      "can_block": true,
+      "effect": "Blocks the tool call"
+    },
+    "PermissionRequest": {
+      "can_block": false,
+      "effect": "Exit code 2 isn't honored for this event and the permission flow proceeds unchanged. Deny through the [`decision` object](#permissionrequest-decision-control) instead"
+    },
+    "UserPromptSubmit": {
+      "can_block": true,
+      "effect": "Blocks prompt processing and erases the prompt"
+    },
+    "UserPromptExpansion": {
+      "can_block": true,
+      "effect": "Blocks the expansion"
+    },
+    "Stop": {
+      "can_block": true,
+      "effect": "Prevents Claude from stopping, continues the conversation"
+    },
+    "SubagentStop": {
+      "can_block": true,
+      "effect": "Prevents the subagent from stopping"
+    },
+    "TeammateIdle": {
+      "can_block": true,
+      "effect": "Prevents the teammate from going idle, so it continues working"
+    },
+    "TaskCreated": {
+      "can_block": true,
+      "effect": "Rolls back the task creation"
+    },
+    "TaskCompleted": {
+      "can_block": true,
+      "effect": "Prevents the task from being marked as completed"
+    },
+    "ConfigChange": {
+      "can_block": true,
+      "effect": "Blocks the configuration change from taking effect (except `policy_settings`)"
+    },
+    "StopFailure": {
+      "can_block": false,
+      "effect": "Output and exit code are ignored, except `terminalSequence`"
+    },
+    "PostToolUse": {
+      "can_block": false,
+      "effect": "Shows stderr to Claude; the tool already ran"
+    },
+    "PostToolUseFailure": {
+      "can_block": false,
+      "effect": "Shows stderr to Claude; the tool already failed"
+    },
+    "PostToolBatch": {
+      "can_block": true,
+      "effect": "Stops the agentic loop before the next model call"
+    },
+    "PermissionDenied": {
+      "can_block": false,
+      "effect": "Exit code and stderr are ignored because the denial already occurred. Use JSON `hookSpecificOutput.retry: true` to tell the model it may retry; Claude Code ignores `retry: true` for [no-verdict denials](#permissiondenied-decision-control)"
+    },
+    "Notification": {
+      "can_block": false,
+      "effect": "Exit code and stderr are ignored"
+    },
+    "SubagentStart": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "SessionStart": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "Setup": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "SessionEnd": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "CwdChanged": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "DirectoryAdded": {
+      "can_block": false,
+      "effect": "Stderr goes to the debug log; the directory is already added"
+    },
+    "FileChanged": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "PreCompact": {
+      "can_block": true,
+      "effect": "Blocks compaction"
+    },
+    "PostCompact": {
+      "can_block": false,
+      "effect": "Shows stderr to user only"
+    },
+    "Elicitation": {
+      "can_block": true,
+      "effect": "Denies the elicitation"
+    },
+    "ElicitationResult": {
+      "can_block": true,
+      "effect": "Blocks the response (action becomes decline)"
+    },
+    "WorktreeCreate": {
+      "can_block": true,
+      "effect": "Any non-zero exit code causes worktree creation to fail"
+    },
+    "WorktreeRemove": {
+      "can_block": false,
+      "effect": "Failures are logged in debug mode only"
+    },
+    "InstructionsLoaded": {
+      "can_block": false,
+      "effect": "Exit code is ignored"
+    },
+    "MessageDisplay": {
+      "can_block": false,
+      "effect": "The original text is displayed"
+    }
+  },
+  "timeout_defaults": {
+    "cli": {
+      "session_end_s": 1.5
+    },
+    "sdk": {
+      "most_events_s": 600,
+      "user_prompt_submit_s": 30,
+      "message_display_s": 10,
+      "session_end_s": 1.5
+    }
+  },
+  "captured_raw_payloads": [
+    {
+      "event": "SessionStart",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"SessionStart\",\"model\":\"probe-not-a-client\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"source\":\"startup\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "052f4ba17eb67ec47d6379f56442ff415148f3d283be0ed0f1a001046445b5e9",
+      "bytes": 224,
+      "hook_event_name": "SessionStart",
+      "stdin_sha256_from_runner": "052f4ba17eb67ec47d6379f56442ff415148f3d283be0ed0f1a001046445b5e9"
+    },
+    {
+      "event": "Setup",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"Setup\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\",\"trigger\":\"init\"}",
+      "sha256": "d921daa12bc056a90dd23e8aeae46ca64f6315d41539e08a456781805acb028b",
+      "bytes": 186,
+      "hook_event_name": "Setup",
+      "stdin_sha256_from_runner": "d921daa12bc056a90dd23e8aeae46ca64f6315d41539e08a456781805acb028b"
+    },
+    {
+      "event": "InstructionsLoaded",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"file_path\":\"CLAUDE.md\",\"hook_event_name\":\"InstructionsLoaded\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "efea57e8d4841209c44fb151bf755d9cfad9078f59e2244fccb3160de6db34da",
+      "bytes": 206,
+      "hook_event_name": "InstructionsLoaded",
+      "stdin_sha256_from_runner": "efea57e8d4841209c44fb151bf755d9cfad9078f59e2244fccb3160de6db34da"
+    },
+    {
+      "event": "UserPromptSubmit",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"UserPromptSubmit\",\"permission_mode\":\"default\",\"prompt\":\"RES-0009 probe prompt\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "efdca8884dbd5af81a0091768f7821fbf025e484a52765d7567339d698fbbd7f",
+      "bytes": 213,
+      "hook_event_name": "UserPromptSubmit",
+      "stdin_sha256_from_runner": "efdca8884dbd5af81a0091768f7821fbf025e484a52765d7567339d698fbbd7f"
+    },
+    {
+      "event": "UserPromptExpansion",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"UserPromptExpansion\",\"permission_mode\":\"default\",\"prompt\":\"RES-0009 probe prompt\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "07c7dd66dfda773093c58ebe96a8455302bb791394a9301c04a6c30d482058de",
+      "bytes": 216,
+      "hook_event_name": "UserPromptExpansion",
+      "stdin_sha256_from_runner": "07c7dd66dfda773093c58ebe96a8455302bb791394a9301c04a6c30d482058de"
+    },
+    {
+      "event": "MessageDisplay",
+      "raw": "{\"content\":\"hello\",\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"MessageDisplay\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "83e51c219b0f00d8be9cd69364d684d82e2decf0c78e4106de376dce633abc79",
+      "bytes": 196,
+      "hook_event_name": "MessageDisplay",
+      "stdin_sha256_from_runner": "83e51c219b0f00d8be9cd69364d684d82e2decf0c78e4106de376dce633abc79"
+    },
+    {
+      "event": "PreToolUse",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PreToolUse\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "abc03759dca35ece76d4c9b1a64a820848ffd99fa28ad95d98ac8c0dbb3592bc",
+      "bytes": 286,
+      "hook_event_name": "PreToolUse",
+      "stdin_sha256_from_runner": "abc03759dca35ece76d4c9b1a64a820848ffd99fa28ad95d98ac8c0dbb3592bc"
+    },
+    {
+      "event": "PermissionRequest",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PermissionRequest\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "92abb575d0584006a07edd01c4305fd3ca52f7419204c899266f0deb26e4a6e5",
+      "bytes": 293,
+      "hook_event_name": "PermissionRequest",
+      "stdin_sha256_from_runner": "92abb575d0584006a07edd01c4305fd3ca52f7419204c899266f0deb26e4a6e5"
+    },
+    {
+      "event": "PostToolUse",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PostToolUse\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_response\":{\"interrupted\":false,\"stderr\":\"\",\"stdout\":\"ok\"},\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "717d46c2827e2d7c1561a71e5f0d4f286949df366a0c6c108f64fd9a95e6d91b",
+      "bytes": 351,
+      "hook_event_name": "PostToolUse",
+      "stdin_sha256_from_runner": "717d46c2827e2d7c1561a71e5f0d4f286949df366a0c6c108f64fd9a95e6d91b"
+    },
+    {
+      "event": "PostToolUseFailure",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"error\":\"simulated-failure\",\"hook_event_name\":\"PostToolUseFailure\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "2de95ff4c35a723e957d07a60b6de8f232be553a77f650f21ea26db1593ac418",
+      "bytes": 322,
+      "hook_event_name": "PostToolUseFailure",
+      "stdin_sha256_from_runner": "2de95ff4c35a723e957d07a60b6de8f232be553a77f650f21ea26db1593ac418"
+    },
+    {
+      "event": "PostToolBatch",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PostToolBatch\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "6142c8c7dbcd82834e69c0a0eee9f13b38de6e251e37d5f464bd1ef656078624",
+      "bytes": 289,
+      "hook_event_name": "PostToolBatch",
+      "stdin_sha256_from_runner": "6142c8c7dbcd82834e69c0a0eee9f13b38de6e251e37d5f464bd1ef656078624"
+    },
+    {
+      "event": "PermissionDenied",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PermissionDenied\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"tool_input\":{\"command\":\"true\",\"description\":\"RES-0009 probe\"},\"tool_name\":\"Bash\",\"tool_use_id\":\"toolu_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "fec4c0d6e31684aea6009a2cd0082c4c9083ff38e80706ec12b6456e6cafb84f",
+      "bytes": 292,
+      "hook_event_name": "PermissionDenied",
+      "stdin_sha256_from_runner": "fec4c0d6e31684aea6009a2cd0082c4c9083ff38e80706ec12b6456e6cafb84f"
+    },
+    {
+      "event": "Notification",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"Notification\",\"message\":\"notify\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "09f4df1aa0913eefdfe5bb66c0d735aa9459fa8c9f94b4a8f015bac4199162a1",
+      "bytes": 195,
+      "hook_event_name": "Notification",
+      "stdin_sha256_from_runner": "09f4df1aa0913eefdfe5bb66c0d735aa9459fa8c9f94b4a8f015bac4199162a1"
+    },
+    {
+      "event": "SubagentStart",
+      "raw": "{\"agent_id\":\"agent_res0009\",\"agent_type\":\"general-purpose\",\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"SubagentStart\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "de03c973e668b875f344fb43b808cc55dbb8ef7784ac05532024fa23e9200746",
+      "bytes": 235,
+      "hook_event_name": "SubagentStart",
+      "stdin_sha256_from_runner": "de03c973e668b875f344fb43b808cc55dbb8ef7784ac05532024fa23e9200746"
+    },
+    {
+      "event": "SubagentStop",
+      "raw": "{\"agent_id\":\"agent_res0009\",\"agent_type\":\"general-purpose\",\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"SubagentStop\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "fab4f361499e65d5241affb261933c33aae44e993f541f64a41887fdfe670982",
+      "bytes": 234,
+      "hook_event_name": "SubagentStop",
+      "stdin_sha256_from_runner": "fab4f361499e65d5241affb261933c33aae44e993f541f64a41887fdfe670982"
+    },
+    {
+      "event": "TaskCreated",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"TaskCreated\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"subject\":\"probe\",\"task_id\":\"task_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "49974702e6cb9be8f0d135408e035662feea56a965728081bd308d6f5665047e",
+      "bytes": 218,
+      "hook_event_name": "TaskCreated",
+      "stdin_sha256_from_runner": "49974702e6cb9be8f0d135408e035662feea56a965728081bd308d6f5665047e"
+    },
+    {
+      "event": "TaskCompleted",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"TaskCompleted\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"subject\":\"probe\",\"task_id\":\"task_res0009\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "59875613c32b4e123173d7d478ad70d232eead82234130a4dddcc7e1cdd58179",
+      "bytes": 220,
+      "hook_event_name": "TaskCompleted",
+      "stdin_sha256_from_runner": "59875613c32b4e123173d7d478ad70d232eead82234130a4dddcc7e1cdd58179"
+    },
+    {
+      "event": "Stop",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"Stop\",\"last_assistant_message\":\"done\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "93cba327a9d5241779c3e280659d428f91912f816460c98a10a0407d49a4206f",
+      "bytes": 200,
+      "hook_event_name": "Stop",
+      "stdin_sha256_from_runner": "93cba327a9d5241779c3e280659d428f91912f816460c98a10a0407d49a4206f"
+    },
+    {
+      "event": "StopFailure",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"StopFailure\",\"last_assistant_message\":\"done\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "abf4f00119a0d493c4d7bf554f8e6f8e1e9489b07104ab768a26607c033d113f",
+      "bytes": 207,
+      "hook_event_name": "StopFailure",
+      "stdin_sha256_from_runner": "abf4f00119a0d493c4d7bf554f8e6f8e1e9489b07104ab768a26607c033d113f"
+    },
+    {
+      "event": "TeammateIdle",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"TeammateIdle\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"teammate_name\":\"probe\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "221cc8107998abd64db4ddb34aa35b13bcac7afba14cc8010756a5f6b3457cc0",
+      "bytes": 200,
+      "hook_event_name": "TeammateIdle",
+      "stdin_sha256_from_runner": "221cc8107998abd64db4ddb34aa35b13bcac7afba14cc8010756a5f6b3457cc0"
+    },
+    {
+      "event": "ConfigChange",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"ConfigChange\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"setting\":\"permissionMode\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "2bf79c0b618f4ef563a0548671b7059dfc8541680a6430918b27f757141e8064",
+      "bytes": 203,
+      "hook_event_name": "ConfigChange",
+      "stdin_sha256_from_runner": "2bf79c0b618f4ef563a0548671b7059dfc8541680a6430918b27f757141e8064"
+    },
+    {
+      "event": "CwdChanged",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"CwdChanged\",\"new_cwd\":\"/tmp\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "e61317b810a2a7f772b894d6c3e555ea6922471a563de0ef91abc0056532f802",
+      "bytes": 191,
+      "hook_event_name": "CwdChanged",
+      "stdin_sha256_from_runner": "e61317b810a2a7f772b894d6c3e555ea6922471a563de0ef91abc0056532f802"
+    },
+    {
+      "event": "DirectoryAdded",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"DirectoryAdded\",\"path\":\"/tmp/extra\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "8bdee1c89bfbbe1e39daf15494f8c40acf391677eea21d788d593239108ee3de",
+      "bytes": 198,
+      "hook_event_name": "DirectoryAdded",
+      "stdin_sha256_from_runner": "8bdee1c89bfbbe1e39daf15494f8c40acf391677eea21d788d593239108ee3de"
+    },
+    {
+      "event": "FileChanged",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"file_path\":\"/tmp/res-0009.txt\",\"hook_event_name\":\"FileChanged\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "1c9da6fe3cc4c5b427b6c6e409d7925b326c5a797146b2bf66dd2bf94eba30e3",
+      "bytes": 207,
+      "hook_event_name": "FileChanged",
+      "stdin_sha256_from_runner": "1c9da6fe3cc4c5b427b6c6e409d7925b326c5a797146b2bf66dd2bf94eba30e3"
+    },
+    {
+      "event": "WorktreeCreate",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"WorktreeCreate\",\"path\":\"/tmp/wt-res0009\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "e34a0953a8fdadee790fb761a8d64cb2db76785437e43b1c3adfaeaa8146ad50",
+      "bytes": 203,
+      "hook_event_name": "WorktreeCreate",
+      "stdin_sha256_from_runner": "e34a0953a8fdadee790fb761a8d64cb2db76785437e43b1c3adfaeaa8146ad50"
+    },
+    {
+      "event": "WorktreeRemove",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"WorktreeRemove\",\"path\":\"/tmp/wt-res0009\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "4d437c8551eca4e1fd32f0e2bfd3d1e7ac510643b6983d07ef10706134c5ff43",
+      "bytes": 203,
+      "hook_event_name": "WorktreeRemove",
+      "stdin_sha256_from_runner": "4d437c8551eca4e1fd32f0e2bfd3d1e7ac510643b6983d07ef10706134c5ff43"
+    },
+    {
+      "event": "PreCompact",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PreCompact\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\",\"trigger\":\"manual\"}",
+      "sha256": "d2b3650db37c440341a497eef3342543382a046d74e35e5a0d2e1a02f16adc92",
+      "bytes": 193,
+      "hook_event_name": "PreCompact",
+      "stdin_sha256_from_runner": "d2b3650db37c440341a497eef3342543382a046d74e35e5a0d2e1a02f16adc92"
+    },
+    {
+      "event": "PostCompact",
+      "raw": "{\"compact_result\":\"ok\",\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"PostCompact\",\"permission_mode\":\"default\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "2f9012acb6dc2fc2725e0d42b59f3682e02855b671056266096e638bb2845d72",
+      "bytes": 197,
+      "hook_event_name": "PostCompact",
+      "stdin_sha256_from_runner": "2f9012acb6dc2fc2725e0d42b59f3682e02855b671056266096e638bb2845d72"
+    },
+    {
+      "event": "SessionEnd",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"SessionEnd\",\"permission_mode\":\"default\",\"reason\":\"clear\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "2cdd661826adefe495a61c6ecb2746ed2967429241508964cf528288b5b51f5b",
+      "bytes": 191,
+      "hook_event_name": "SessionEnd",
+      "stdin_sha256_from_runner": "2cdd661826adefe495a61c6ecb2746ed2967429241508964cf528288b5b51f5b"
+    },
+    {
+      "event": "Elicitation",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"Elicitation\",\"message\":\"input?\",\"permission_mode\":\"default\",\"server_name\":\"probe\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "f13c2a2a7cfd20f99568a93da04c51c0194d4fc6e28ce83cf9d9c432e641ab4e",
+      "bytes": 216,
+      "hook_event_name": "Elicitation",
+      "stdin_sha256_from_runner": "f13c2a2a7cfd20f99568a93da04c51c0194d4fc6e28ce83cf9d9c432e641ab4e"
+    },
+    {
+      "event": "ElicitationResult",
+      "raw": "{\"cwd\":\"/home/prekzursil/p2-g1\",\"hook_event_name\":\"ElicitationResult\",\"message\":\"input?\",\"permission_mode\":\"default\",\"server_name\":\"probe\",\"session_id\":\"res-0009-session\",\"transcript_path\":\"/tmp/res-0009/transcript.jsonl\"}",
+      "sha256": "106db58db1b14d3c3cfc51c1d000bd40affa1bfdabb491f669885713864974bc",
+      "bytes": 222,
+      "hook_event_name": "ElicitationResult",
+      "stdin_sha256_from_runner": "106db58db1b14d3c3cfc51c1d000bd40affa1bfdabb491f669885713864974bc"
+    }
+  ],
+  "controls": {
+    "block": {
+      "pre_tool_use": {
+        "event": "PreToolUse",
+        "returncode": 2,
+        "stdout": "",
+        "stderr": "RES-0009-BLOCK-STDERR\n",
+        "timed_out": false,
+        "elapsed_s": 0.7516,
+        "stdin_sha256": "abc03759dca35ece76d4c9b1a64a820848ffd99fa28ad95d98ac8c0dbb3592bc",
+        "script": "command-center/p2-wave/probes/RES-0009/hooks/exit2.py"
+      },
+      "session_start": {
+        "event": "SessionStart",
+        "returncode": 2,
+        "stdout": "",
+        "stderr": "RES-0009-BLOCK-STDERR\n",
+        "timed_out": false,
+        "elapsed_s": 1.2245,
+        "stdin_sha256": "052f4ba17eb67ec47d6379f56442ff415148f3d283be0ed0f1a001046445b5e9",
+        "script": "command-center/p2-wave/probes/RES-0009/hooks/exit2.py"
+      },
+      "returncode": 2,
+      "stderr": "RES-0009-BLOCK-STDERR\n",
+      "pre_tool_use_blocked": true,
+      "session_start_blocked": false,
+      "transcript": "exit2 PreToolUse rc=2 blocked=True stderr='RES-0009-BLOCK-STDERR'; SessionStart rc=2 blocked=False"
+    },
+    "inject": {
+      "returncode": 0,
+      "stdout": "{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"RES-0009-INJECT-MARKER\"}}",
+      "stderr": "",
+      "transcript": "inject PostToolUse rc=0 stdout={\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"RES-0009-INJECT-MARKER\"}}"
+    },
+    "timeout": {
+      "timed_out": true,
+      "elapsed_s": 0.6268,
+      "sleep_s": 30,
+      "returncode": null,
+      "transcript": "sleep.py timeout_s=0.6 timed_out=True elapsed_s=0.6268 returncode=None"
+    }
+  },
+  "client_discovery": {
+    "binary": "/home/prekzursil/.local/bin/claude",
+    "version": "2.1.243 (Claude Code)",
+    "claude_home_exists": true,
+    "dispatch_manifest": "/home/prekzursil/.claude/hooks/_dispatch/manifest.json",
+    "dispatch_manifest_exists": false,
+    "live_session_fired": false
+  },
+  "claims": [
+    {
+      "id": "RES-0009-C1",
+      "canonical_mechanism": "cli-hook-event-catalog",
+      "statement": "The frozen Claude Code hooks reference lists 31 command-hook events under 'Hook events'.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence_band": "high",
+      "source_lineage": [
+        "cli-hooks-reference headings under ## Hook events",
+        "cli-hooks-reference lifecycle summary table"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe1_raw_payloads.py"
+    },
+    {
+      "id": "RES-0009-C2",
+      "canonical_mechanism": "sdk-vs-cli-event-name-drift",
+      "statement": "The Agent SDK hooks page uses a different event-name set than the CLI reference (cli_only=[], sdk_only=[]).",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence_band": "high",
+      "source_lineage": [
+        "cli-hooks-reference",
+        "sdk-hooks-reference Available hooks table"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe1_raw_payloads.py"
+    },
+    {
+      "id": "RES-0009-C3",
+      "canonical_mechanism": "stdin-json-hook_event_name",
+      "statement": "A logging command hook receives compact JSON on stdin whose hook_event_name field matches the fired event, one payload per CLI-supported event.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E1",
+      "confidence_band": "high",
+      "source_lineage": [
+        "live subprocess stdin capture",
+        "cli-hooks-reference Common input fields"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe1_raw_payloads.py"
+    },
+    {
+      "id": "RES-0009-C4",
+      "canonical_mechanism": "exit-2-block-semantics",
+      "statement": "Exit code 2 is a blocking error. On PreToolUse the reconstructed per-event table marks the tool blocked; on SessionStart exit 2 is non-blocking for the session itself.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence_band": "high",
+      "source_lineage": [
+        "cli-hooks-reference Exit code 2 behavior per event",
+        "live exit2.py returncode+stderr"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe2_block_inject_timeout.py",
+      "caveat": "The parent interpreter is reconstructed from the published table; the Claude Code binary was not observed applying it."
+    },
+    {
+      "id": "RES-0009-C5",
+      "canonical_mechanism": "additionalContext-via-hookSpecificOutput",
+      "statement": "Exit 0 JSON stdout delivers additionalContext inside hookSpecificOutput alongside hookEventName, not as a top-level additionalContext field.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence_band": "high",
+      "source_lineage": [
+        "cli-hooks-reference Add context for Claude",
+        "live inject.py stdout"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe2_block_inject_timeout.py"
+    },
+    {
+      "id": "RES-0009-C6",
+      "canonical_mechanism": "command-hook-timeout-cancel",
+      "statement": "A command hook that exceeds its timeout is canceled: the parent discards output and the process does not run to its full sleep. Documented PreToolUse command-family timeout does not by itself block the tool.",
+      "verdict": "CONFIRMED",
+      "evidence_tier": "E2",
+      "confidence_band": "high",
+      "source_lineage": [
+        "cli-hooks-reference Timeouts",
+        "live sleep.py vs 0.6s parent timeout"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe2_block_inject_timeout.py",
+      "caveat": "SDK callback timeouts on PreToolUse are documented as blocking; this measurement is the command-hook family only."
+    },
+    {
+      "id": "RES-0009-C7",
+      "canonical_mechanism": "shipped-client-live-firing",
+      "statement": "A live Claude Code session on this Linux worktree was fired and produced these payloads.",
+      "verdict": "PARTIAL",
+      "evidence_tier": "E4",
+      "confidence_band": "low",
+      "source_lineage": [
+        "client_discovery.binary which(claude)"
+      ],
+      "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe2_block_inject_timeout.py"
+    }
+  ],
+  "source_rails": [
+    {
+      "kind": "cli-hooks-reference",
+      "path": "command-center/p2-wave/probes/RES-0009/snapshots/cli-hooks.md",
+      "sha256": "a0266bee2430231a5bd8c472c15441158a472b4a79f9498ddca7141d28a9bb18",
+      "bytes": 222150,
+      "note": "Official Claude Code hooks.md snapshot (command-hook contract)."
+    },
+    {
+      "kind": "sdk-hooks-reference",
+      "path": "command-center/p2-wave/probes/RES-0009/snapshots/sdk-hooks.md",
+      "sha256": "65160c4aa6a5ba21ee0dd050c299a6bb5b24f9c047ec091ea478ef52d0680c4d",
+      "bytes": 43991,
+      "note": "Official Agent SDK hooks.md snapshot (callback-hook names)."
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe1_raw_payloads.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0009/probe2_block_inject_timeout.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0009-probe2-block-inject-timeout",
+    "verdict": "PASS",
+    "independent": true,
+    "scope_not_agreement": true,
+    "note": "Catalog asked for PowerShell 7 vs Git Bash; this worktree is Linux. The second measurement is a distinct data field (returncode vs stderr/stdout/elapsed), not a repeated identical reading."
+  },
+  "residual_unknowns": [
+    "No Claude Code interactive session was driven on this host, so payloads are protocol-faithful reconstructions plus docs, not client-originated bytes from a real SessionStart/PreToolUse firing inside claude.",
+    "SDK callback timeout-blocks-PreToolUse was not executed.",
+    "Exit code 1 non-blocking error path was not separately instrumented beyond the published other-exit-codes paragraph."
+  ],
+  "strongest_surviving_counterargument": "If 'current client' means Cursor on this worktree rather than Claude Code, this map is the wrong product. Catalog inputs name ~/.claude/hooks/_dispatch/manifest.json and code.claude.com hooks reference, so Claude Code is the intended client.",
+  "freshness_stamp": "2026-09-02T00:37:17Z",
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "platform-cartographer",
+    "execution_substrate": "linux-worktree"
+  },
+  "output_schema": "command-center/schema/research-claim-record.schema.json",
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0009.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0009/snapshots/cli-hooks.md",
+      "exists": true,
+      "role": "source-rail"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0009/snapshots/sdk-hooks.md",
+      "exists": true,
+      "role": "source-rail"
+    }
+  ]
+}

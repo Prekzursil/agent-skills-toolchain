@@ -1,0 +1,200 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "tools/plugin/jsonl_log.py writes one JSON object per line. Each record requires error_code, unit_id, and ts. Values (not keys) are control-stripped then secret-redacted before write, so a planted synthetic ghp_ canary is grepped absent while the record (unit_id, error_code, ts, correlation id) remains. Rotation is bounded by max_bytes and max_files; OS file count and sizes stay inside those caps. Control-character injection cannot forge a JSONL boundary. SUCCESS:IMP-0056",
+ "artifacts": [
+  {
+   "bytes": 7170,
+   "exists": true,
+   "path": "tools/plugin/jsonl_log.py",
+   "role": "implementation",
+   "sha256": "e3bbc6f22b638e58f90dfb7368fbe5cb779b16df9a5e9b3c676411c87a190e3e"
+  },
+  {
+   "bytes": 784,
+   "exists": true,
+   "path": "tools/plugin/schema/log-record.schema.json",
+   "role": "supporting",
+   "sha256": "2243454ae0b0501aabca34eedbaf082bdc76687ffe0e8318c99207cd4198da35"
+  },
+  {
+   "bytes": 2886,
+   "exists": true,
+   "path": "tools/plugin/tests/test_log_redaction.py",
+   "role": "supporting",
+   "sha256": "8506409600c21a8fdce4891c9a9632ad28dfa2fad89a632faa93e651b9e9291a"
+  },
+  {
+   "bytes": 2386,
+   "exists": true,
+   "path": "tools/plugin/tests/test_log_rotation.py",
+   "role": "supporting",
+   "sha256": "964463d54e39f405e0b76d521ad422e23b5abec7fce7bc3984f9eeb0b718aad6"
+  },
+  {
+   "bytes": 3955,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0056/probe1_secret_body.py",
+   "role": "supporting",
+   "sha256": "605dcbf19b51dd8c16e24abba5f01639d8d0c1f1c54f0ffaedd10daa35a7e5f7"
+  },
+  {
+   "bytes": 4738,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0056/probe2_rotation_boundary.py",
+   "role": "supporting",
+   "sha256": "ec66300727c09aa4ab54df1040fa0ab30f298f31fca49f16e0b366b2e7a58fe3"
+  }
+ ],
+ "cloud_ok": false,
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0056.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0056",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "deferred-until-after-receipt-and-probes",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/tests/test_log_redaction.py::test_secret_body_never_written",
+   "claim": "A planted synthetic credential is grepped absent from the JSONL sink while the same file still contains the record that referenced it (correlation id, unit_id, error_code, ts).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B tools/plugin/tests/test_log_redaction.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "SUCCESS:test_log_redaction secret body grepped absent; record kept",
+     "role": "source"
+    },
+    {
+     "command": "grep -F <planted-body> <jsonl> ; grep -F <corr-id> <jsonl>",
+     "exit_code": 0,
+     "method": "grep-and-parse",
+     "raw_output": "signal1: grep secret body exit 1 (no match); signal2: record kept",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/tests/test_log_rotation.py::test_size_and_count_bounds_hold",
+   "claim": "After many writes, OS file count is <= max_files and every file size is <= max_bytes. A generation past max_files does not exist.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B tools/plugin/tests/test_log_rotation.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "SUCCESS:test_log_rotation size and count bounds hold",
+     "role": "source"
+    },
+    {
+     "command": "stat file count and sizes vs declared caps",
+     "exit_code": 0,
+     "method": "os.stat",
+     "raw_output": "independent of logger.sink_stats booleans",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_class": "secret-in-artifact",
+ "implementation": {
+  "default_max_bytes": 262144,
+  "default_max_files": 8,
+  "keys_untouched": true,
+  "module": "tools/plugin/jsonl_log.py",
+  "negative_control_path": "JsonlLogger(redact=False)",
+  "record_required_fields": [
+   "ts",
+   "unit_id",
+   "error_code"
+  ],
+  "redact_order": "strip_controls then secret match (load-bearing)",
+  "schema": "tools/plugin/schema/log-record.schema.json",
+  "value_side_only": true
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0056/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "grep -F planted-body exit 0 when redact=False",
+   "description": "Disable the redaction filter and assert GNU grep -F DOES find the planted body, proving the grep detector is not a no-op.",
+   "fired_on_bad_state": true,
+   "good_state_output": "grep -F planted-body exit 1 when redact=True",
+   "id": "filter-off-secret-appears",
+   "kind": "detector-liveness",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "would be record_count>1 or error_code=FORGED",
+   "description": "Inject LF, CR, NEL (U+0085), LS (U+2028), PS (U+2029) and a forged JSON object into a field. The sink must remain one json.loads-able line; error_code FORGED must not appear as a sibling record.",
+   "fired_on_bad_state": true,
+   "good_state_output": "record_count=1 error_code=PLUGIN.LOG.INFO",
+   "id": "control-char-injection-cannot-forge-boundary",
+   "kind": "reviewer-injection",
+   "silent_on_good_state": true
+  }
+ ],
+ "question": "Implement JSON-lines logging where every record carries the error code, unit id and timestamp, where a redaction filter runs on the value side of every field before write, and where files rotate by size and count so logs cannot consume the disk.",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0051 taxonomy codes are not on this worktree; the logger accepts caller-supplied error_code strings rather than importing a missing taxonomy module.",
+   "settling_experiment": "Join logger.error_code against IMP-0051 once that unit is delivered.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 injects record-boundary controls and a forged JSON object, then counts json.loads lines on the bytes (not the logger return value). One record. FORGED not accepted. Rotation caps checked via os.stat. Negative-control grep fires with redact=False.",
+  "reviewer_id": "IMP-0056-probe2-control-char-injection",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "secret_policy": "No real credential was read, printed, rotated, or written. Tests plant a synthetic ghp_ canary; receipts and this document do not contain that body.",
+ "sentinel": "SUCCESS:IMP-0056",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0056",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "python3 -B tools/plugin/tests/test_log_redaction.py",
+   "id": "test_secret_body_never_written",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 -B tools/plugin/tests/test_log_rotation.py",
+   "id": "test_size_and_count_bounds_hold",
+   "result": "PASS"
+  },
+  {
+   "command": "python3 -B tools/plugin/tests/test_log_redaction.py",
+   "id": "negative-control-filter-off",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:18Z",
+  "started_at": "2026-08-25T00:59:18Z"
+ },
+ "title": "Structured logging with mandatory redaction and bounded rotation",
+ "unit_id": "IMP-0056"
+}

@@ -1,0 +1,1 @@
+"""Commit-charge headroom guard."""
