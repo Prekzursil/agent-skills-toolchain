@@ -10,6 +10,19 @@ import pytest
 
 from harness.ledger import EventLedger, _FileLock
 
+# Bounds how long a CHILD PROCESS may take to START and SIGNAL -- not how fast the
+# code under test must be. The self-hosted runner shares a 6 GB WSL VM with ~27
+# containers, where a bare `python -c` can need far more than 5 s to reach its
+# first statement. Both measured failures hit that wall before any assertion ran:
+# `subprocess.TimeoutExpired` after 5 s on the orphan-lock fixture, and a SIGKILL
+# (returncode=-9) from the ready-wait. Raising this changes only how long we are
+# willing to wait for a child to exist.
+#
+# The deadlines that ARE the measurement are deliberately NOT touched: the 2 s
+# recovery bound (a stale lock must not block the next append), the 0.05 s
+# exclusion probe, and the 0.5 s re-acquire after release.
+_CHILD_START_TIMEOUT_S = 30.0
+
 
 _ORPHAN_LOCK = r"""
 import os
@@ -53,7 +66,7 @@ ready = Path(os.environ["HARNESS_TEST_READY_PATH"])
 release = Path(os.environ["HARNESS_TEST_RELEASE_PATH"])
 with _FileLock(Path(os.environ["HARNESS_TEST_LOCK_PATH"]), timeout=5.0):
     ready.write_text("ready", encoding="ascii")
-    deadline = time.monotonic() + 5.0
+    deadline = time.monotonic() + float(os.environ["HARNESS_TEST_HOLD_DEADLINE_S"])
     while not release.exists():
         if time.monotonic() >= deadline:
             raise TimeoutError("parent did not release held-lock fixture")
@@ -74,6 +87,7 @@ def _child_env(tmp_path: Path, project: Path, lock_path: Path) -> dict[str, str]
     env["HARNESS_TEST_LOCK_PATH"] = str(lock_path)
     env["HARNESS_TEST_READY_PATH"] = str(tmp_path / "successor-ready")
     env["HARNESS_TEST_RELEASE_PATH"] = str(tmp_path / "release-owner")
+    env["HARNESS_TEST_HOLD_DEADLINE_S"] = str(_CHILD_START_TIMEOUT_S)
     return env
 
 
@@ -110,7 +124,7 @@ def test_append_recovers_after_worker_exits_while_os_lock_exists(tmp_path):
         env=env,
         capture_output=True,
         text=True,
-        timeout=5,
+        timeout=_CHILD_START_TIMEOUT_S,
         check=False,
     )
 
@@ -125,7 +139,7 @@ def test_append_recovers_after_worker_exits_while_os_lock_exists(tmp_path):
         stderr=subprocess.PIPE,
         text=True,
     )
-    _wait_for_ready(successor, ready_path, timeout=5)
+    _wait_for_ready(successor, ready_path, timeout=_CHILD_START_TIMEOUT_S)
     try:
         _stdout, stderr = successor.communicate(timeout=2)
     except subprocess.TimeoutExpired:
@@ -167,7 +181,7 @@ def test_os_lock_excludes_a_live_process_then_releases_on_exit(tmp_path):
         text=True,
     )
     try:
-        _wait_for_ready(owner, ready_path, timeout=5)
+        _wait_for_ready(owner, ready_path, timeout=_CHILD_START_TIMEOUT_S)
         with pytest.raises(TimeoutError):
             _FileLock(lock_path, timeout=0.05).__enter__()
         release_path.write_text("release", encoding="ascii")
