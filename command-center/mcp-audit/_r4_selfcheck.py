@@ -67,14 +67,18 @@ def main(argv: list[str]) -> int:
         # A clean sweep must stay a PROVEN sweep: the positive control still has to
         # fire below, and a missing control still fails closed.
         if not (REPO / CTRL).exists():
-            print(f"FAILED:r4-selfcheck positive control missing at {CTRL} (fail closed)")
+            print(
+                f"FAILED:r4-selfcheck positive control missing at {CTRL} (fail closed)"
+            )
             return 1
         fired = blob("HEAD", CTRL).count(b"\r\n") > 0
         print(f"  positive control fires: {fired}")
         if fired is False:
             print("FAILED:r4-selfcheck control did not fire on empty introduced set")
             return 1
-        print(f"SUCCESS:r4-selfcheck 0 introduced blobs in {rev} (no-op merge), control fired")
+        print(
+            f"SUCCESS:r4-selfcheck 0 introduced blobs in {rev} (no-op merge), control fired"
+        )
         return 0
 
     print(f"== every blob in {rev}, by extension ==")
