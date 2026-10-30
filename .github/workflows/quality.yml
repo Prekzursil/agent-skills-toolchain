@@ -90,6 +90,8 @@ jobs:
   lint:
     name: gate-lint-format (ruff)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -143,6 +145,8 @@ jobs:
   types:
     name: gate-types (basedpyright)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -255,6 +259,8 @@ jobs:
   test-node:
     name: gate-tests-coverage (node workspaces)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -299,11 +305,21 @@ jobs:
   test-python:
     name: gate-tests-coverage (python packages)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
+      # setup-node is LOAD-BEARING for the fanout-schema step below (npm test +
+      # npm run lint): npm is preinstalled on GitHub-hosted images but ABSENT on
+      # the self-hosted runner — measured 2026-10-22 as 'npm: command not found'
+      # (exit 127) the first time this job ever survived past the pytest suites to
+      # reach that step. Same SHA as the pin in the (node workspaces) job above.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
       - name: gate-tests-coverage mcp-manager
         working-directory: tools/mcp-manager
         run: |
@@ -662,9 +678,20 @@ jobs:
       # fleet-supervisor suite. Stdlib-only (pytest already installed above); the tests
       # load the scripts by path and read .agents/agents.json in place. Reuses the
       # existing `gate-tests-coverage` charter slug on purpose -- it is not a new gate,
-      # so .quality/charter_check.sh stays consistent with no charter.yml edit. The
-      # bm_cursor_http_session bridge suite is deliberately NOT listed: it drives a fake
-      # streamable-HTTP daemon over loopback and is gated with tools/mcp/mcp-http-host.
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # 2026-10-24: wire two more .agents/tests suites that NO workflow named and NO
+      # directory selector swept (grep across .github/ ci/ scripts/ agent-self/ returns
+      # zero references for either filename). Completes the test-wiring residual of PR
+      # #379 (its honest-verdict/SHA-pin/timeout core landed in #393 @ b95f913a6). Both
+      # are green stdlib+loopback suites, re-measured 2026-10-24: test_stale_codex_threads
+      # 1 passed, test_bm_cursor_http_session 26 passed in ~1.7s. The earlier note that
+      # bm_cursor was "gated with tools/mcp/mcp-http-host" was REFUTED by #379: that step
+      # runs the PACKAGE's tests, not this .agents file, which nothing invoked.
+      # Still NOT wired, deliberately -- owner-debt, not reliably green across
+      # interpreters, so keep the gap visible rather than silently tolerated:
+      # test_mcp_control_plane_live_lineage.py (re-run here 2026-10-24: 6 failed /
+      # 41 passed) and test_skills_and_agents_contract.py (env-skipped here; RED on
+      # PR #379's audit interpreter).
       - name: gate-tests-coverage mcp control plane (.agents/scripts; main + live lineage suites)
         run: |
           python -m pytest \
@@ -672,6 +699,8 @@ jobs:
             .agents/tests/test_mcp_control_plane_live.py \
             .agents/tests/test_cursor_remote_transport_policy.py \
             .agents/tests/test_mcp_fleet_supervisor.py \
+            .agents/tests/test_stale_codex_threads.py \
+            .agents/tests/test_bm_cursor_http_session.py \
             -q -p no:cacheprovider
       # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
       # Naming the script here turns its existing tests and production-wiring checks
@@ -679,6 +708,33 @@ jobs:
       - name: triage-router standalone regression
         working-directory: tools/triage-router
         run: python test_triage_router.py
+      # tools/account-hopper -- per-account budget ledger and account hopper over
+      # Modal accounts the user funds. Stdlib-only custom __main__ runner like
+      # triage-router above, so pytest discovery would not execute it; naming it here is
+      # what makes it gate. What it gates: the global ceiling bounding each account's
+      # spendable room (select once handed out an account the ceiling had already
+      # clipped), explicit enrolment with `funded` required, the AST import
+      # allowlist that keeps the module network-free, and the `hop` rotation step.
+      # Measured when it landed: 33 passed, a 5-mutant harness killed 4 (the survivor
+      # is a tie-break-only equivalent), and the runner fails below its MIN_TESTS
+      # floor so 0/0 is not green. Extended 2026-10-24 (renamed account-hopper, hop
+      # rotation step, coverage-gap tests): 61 passed, 100% line+branch coverage of
+      # the module measured under coverage.py.
+      - name: account-hopper standalone regression
+        working-directory: tools/account-hopper
+        run: python test_account_hopper.py
+      # skills/run-taskwatch_monitor -- the `mon taskwatch` bridge. taskwatch_monitor was
+      # complete, tested and reachable by NOTHING (no monitors.toml stanza, no hook
+      # reference); this shim is the missing half. Stdlib-only custom __main__ runner, so
+      # pytest discovery would not execute it; naming it here is what makes it gate. What it
+      # gates: the resolution ladder (TASKWATCH_CMD > PATH > TASKWATCH_HOME > a checkout
+      # beside the skill), that a WRONG TASKWATCH_HOME is named rather than silently skipped,
+      # that a missing install exits 3 with the fixing command and launches nothing, and an
+      # AST check that the shim imports neither taskwatch nor monitorcore -- the guard that
+      # keeps "two tools, one front door" from quietly becoming a fusion.
+      - name: taskwatch bridge standalone regression
+        working-directory: skills/run-taskwatch_monitor
+        run: python test_taskwatch_board.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are
@@ -1703,6 +1759,8 @@ jobs:
   sast:
     name: gate-sast (opengrep)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 4 — static security analysis with the CURATED in-repo ruleset under
@@ -1753,6 +1811,8 @@ jobs:
   secrets:
     name: gate-secrets (gitleaks)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 20
     permissions:
       contents: read
       pull-requests: read
@@ -1816,6 +1876,8 @@ jobs:
   deps:
     name: gate-deps (osv-scanner)
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Gate 6 — known-CVE scan of the committed npm lockfiles. Reasoned, dated per-CVE

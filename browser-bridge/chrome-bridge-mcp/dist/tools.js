@@ -781,7 +781,7 @@ export function registerTools(server, hub, options = { pageBadge: true }) {
             "Prefer the higher-level tools.",
         inputSchema: {
             method: z.string().describe("Allowlisted CDP method name, e.g. 'Page.getLayoutMetrics'."),
-            params: z.record(z.unknown()).optional().describe("CDP parameter object."),
+            params: z.record(z.string(), z.unknown()).optional().describe("CDP parameter object."),
         },
     }, guard(async ({ method, params }) => {
         assertCdpAllowed(method, params ?? {});

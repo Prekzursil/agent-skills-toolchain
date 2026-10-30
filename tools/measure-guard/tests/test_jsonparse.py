@@ -151,6 +151,14 @@ def test_the_live_walk_did_not_collapse() -> None:
     assert report["parsed"] >= jp.MIN_FILES, (
         f"parsed only {report['parsed']}, below floor {jp.MIN_FILES}"
     )
-    assert report["encrypted_skipped"] >= 2, (
-        "the two git-crypt accounts.json files must be counted as skipped, not silently absent"
+    # 2026-10-22: the git-crypt accounts.json pair (tools/mcp/cloud-hub,
+    # tools/mcp/search-hub) was left plaintext by #376 (b898382e4) and now
+    # PARSES like any other tracked JSON. The old `>= 2` floor pinned the
+    # pre-#376 state; this pins the post-#376 state instead: the walk must
+    # hand every tracked JSON to the parser (0 encrypted skips). If this
+    # ever goes > 0 again, git-crypt content returned to the tree -- a state
+    # change worth a loud failure, not a silent skip.
+    assert report["encrypted_skipped"] == 0, (
+        f"git-crypt-skip count changed: {report['encrypted_skipped']} tracked JSON "
+        "file(s) are encrypted again; the tree state moved -- update this pin deliberately"
     )

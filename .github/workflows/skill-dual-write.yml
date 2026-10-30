@@ -32,6 +32,10 @@ name: skill-dual-write
 # semantics as untested and the pull-request gate as advisory on that one axis.
 
 on:
+  push:
+    branches: [main]
+  # 2026-10-30 main-parity: was PR-only, so merges landing on main were never
+  # parity-tested (the gap that hid main-tip rot during the 2026-10-30 fleet jam).
   pull_request:
     branches: [main]
 permissions:
@@ -45,6 +49,8 @@ jobs:
   skill-dual-write:
     name: gate-skill-dual-write
     runs-on: ${{ (github.event.inputs.runner-type || vars.QUALITY_RUNNER) == 'self-hosted' && fromJson('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    # CI-hardening (re-applied from PR #379): job-level timeout (GitHub default is 360 min).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -174,7 +180,17 @@ jobs:
         run: python ci/gen_skills_manifest.py --check
       # `actions/checkout` does not create refs/remotes/origin/main; the three-dot
       # merge-base range needs it to exist.
+      # `actions/checkout` does not create refs/remotes/origin/main; the PR path
+      # needs it for the merge-base range. On push there is no meaningful base
+      # ref of "main vs main" -- that was the null-range defect this gate was
+      # named for -- so the push path diffs the merge commit against its own
+      # first parent (exactly what the squash-merge on main introduces).
       - name: gate-skill-dual-write fetch base
+        if: github.event_name == 'pull_request'
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-      - name: gate-skill-dual-write D-001 gate
+      - name: gate-skill-dual-write D-001 gate (PR diff vs base)
+        if: github.event_name == 'pull_request'
         run: python ci/check_skill_dual_write.py --base origin/main --head HEAD --strict-parity
+      - name: gate-skill-dual-write D-001 gate (push delta vs first parent)
+        if: github.event_name != 'pull_request'
+        run: python ci/check_skill_dual_write.py --base HEAD^1 --head HEAD --strict-parity
