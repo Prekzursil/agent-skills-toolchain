@@ -15,6 +15,7 @@ Examples:
   python telemetry.py statusline --dry
   python telemetry.py statusline --format json
 """
+
 from __future__ import annotations
 
 import argparse
@@ -28,7 +29,9 @@ import _common as C  # noqa: E402
 LEDGER = C.STATE_DIR / "ledger.json"
 ALERTS = C.STATE_DIR / "alerts.json"
 SEGMENT_FILE = C.STATE_DIR / "statusline-segment.txt"
-HUB_USAGE = C.STATE_DIR / "hub-usage.json"  # optional fusion source (documented contract)
+HUB_USAGE = (
+    C.STATE_DIR / "hub-usage.json"
+)  # optional fusion source (documented contract)
 
 
 def collect() -> dict:
@@ -76,7 +79,10 @@ def cmd_statusline(args) -> int:
         return 0
     print(segment)
     if stats["hub_usage_present"]:
-        print("hub-usage fused (keys: %s)" % ",".join(stats["hub_usage_keys"][:4]), file=sys.stderr)
+        print(
+            "hub-usage fused (keys: %s)" % ",".join(stats["hub_usage_keys"][:4]),
+            file=sys.stderr,
+        )
     if args.dry:
         print("DRY: segment file NOT written", file=sys.stderr)
         return 0
@@ -92,7 +98,9 @@ def main(argv=None) -> int:
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("statusline", help="print the forge statusline segment")
-    p.add_argument("--dry", action="store_true", help="print only; do not persist the segment file")
+    p.add_argument(
+        "--dry", action="store_true", help="print only; do not persist the segment file"
+    )
     p.add_argument("--format", choices=["segment", "json"], default="segment")
     args = ap.parse_args(argv)
     if args.cmd == "statusline":

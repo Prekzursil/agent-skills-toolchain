@@ -19,6 +19,7 @@ Examples:
   python harvest.py --store gemini --sink env --dry-run
   python harvest.py --store grok  --sink bridge --apply
 """
+
 from __future__ import annotations
 
 import argparse
@@ -61,6 +62,7 @@ def sanitize_tag(text: str) -> str:
 # ---------------------------------------------------------------------------
 # parsers -- return (meta_entries, raw_entries); raw values NEVER printed
 
+
 def _grok_entries(data):
     meta, raw = [], []
     for issuer, d in data.items():
@@ -71,14 +73,36 @@ def _grok_entries(data):
         exp = None
         if isinstance(d.get("expires_at"), str):
             iso = C.parse_iso(d["expires_at"])
-            exp = iso.astimezone(C._dt.timezone.utc).isoformat(timespec="seconds") if iso else None
-        account = d.get("email") or (issuer.rsplit("/", 1)[-1] if isinstance(issuer, str) else "issuer")
-        meta.append({"provider": "grok", "account": account,
-                     "kind": "oauth-pair" if refresh else "api-key",
-                     "access_len": len(access), "refresh_len": len(refresh),
-                     "expires_at": exp, "issuer": issuer if isinstance(issuer, str) else None})
-        raw.append({"account": account, "access": access, "refresh": refresh,
-                    "extra": {k: d.get(k) for k in ("user_id", "team_id", "expires_at", "oidc_client_id")}})
+            exp = (
+                iso.astimezone(C._dt.timezone.utc).isoformat(timespec="seconds")
+                if iso
+                else None
+            )
+        account = d.get("email") or (
+            issuer.rsplit("/", 1)[-1] if isinstance(issuer, str) else "issuer"
+        )
+        meta.append(
+            {
+                "provider": "grok",
+                "account": account,
+                "kind": "oauth-pair" if refresh else "api-key",
+                "access_len": len(access),
+                "refresh_len": len(refresh),
+                "expires_at": exp,
+                "issuer": issuer if isinstance(issuer, str) else None,
+            }
+        )
+        raw.append(
+            {
+                "account": account,
+                "access": access,
+                "refresh": refresh,
+                "extra": {
+                    k: d.get(k)
+                    for k in ("user_id", "team_id", "expires_at", "oidc_client_id")
+                },
+            }
+        )
     return meta, raw
 
 
@@ -103,12 +127,20 @@ def _gemini_entries(data, sibling: pathlib.Path | None):
             email = ""
         if email:
             account = email.split("@", 1)[0]
-    meta = [{"provider": "gemini", "account": account,
-             "kind": "oauth-pair" if refresh else "jwt-access",
-             "access_len": len(access), "refresh_len": len(refresh),
-             "expires_at": exp or jwt_exp,
-             "issuer": C.jwt_issuer(id_token) or C.jwt_issuer(access)}]
-    raw = [{"account": account, "access": access, "refresh": refresh, "id_token": id_token}]
+    meta = [
+        {
+            "provider": "gemini",
+            "account": account,
+            "kind": "oauth-pair" if refresh else "jwt-access",
+            "access_len": len(access),
+            "refresh_len": len(refresh),
+            "expires_at": exp or jwt_exp,
+            "issuer": C.jwt_issuer(id_token) or C.jwt_issuer(access),
+        }
+    ]
+    raw = [
+        {"account": account, "access": access, "refresh": refresh, "id_token": id_token}
+    ]
     return meta, raw
 
 
@@ -117,8 +149,13 @@ def _generic_entries(provider: str, data):
     for trail, d in C.find_token_dicts(data):
         m = C.normalize_token_dict(trail, d)
         m["provider"] = provider
-        access = next((d[k] for k in C._ACCESS_KEYS if isinstance(d.get(k), str) and d.get(k)), "")
-        refresh = next((d[k] for k in C._REFRESH_KEYS if isinstance(d.get(k), str) and d.get(k)), "")
+        access = next(
+            (d[k] for k in C._ACCESS_KEYS if isinstance(d.get(k), str) and d.get(k)), ""
+        )
+        refresh = next(
+            (d[k] for k in C._REFRESH_KEYS if isinstance(d.get(k), str) and d.get(k)),
+            "",
+        )
         raw.append({"account": m["account"], "access": access, "refresh": refresh})
         meta.append(m)
     return meta, raw
@@ -130,10 +167,17 @@ def _flat_kv_entries(provider: str, data):
         if not isinstance(value, str) or not value:
             continue
         exp = C.jwt_exp_iso(value)
-        meta.append({"provider": provider, "account": key,
-                     "kind": "jwt-access" if exp else "api-key",
-                     "access_len": len(value), "refresh_len": 0,
-                     "expires_at": exp, "issuer": C.jwt_issuer(value)})
+        meta.append(
+            {
+                "provider": provider,
+                "account": key,
+                "kind": "jwt-access" if exp else "api-key",
+                "access_len": len(value),
+                "refresh_len": 0,
+                "expires_at": exp,
+                "issuer": C.jwt_issuer(value),
+            }
+        )
         raw.append({"account": key, "access": value, "refresh": ""})
     return meta, raw
 
@@ -150,13 +194,27 @@ def _aws_sso_entries(paths):
         exp = None
         if isinstance(data.get("expiresAt"), str):
             iso = C.parse_iso(data["expiresAt"])
-            exp = iso.astimezone(C._dt.timezone.utc).isoformat(timespec="seconds") if iso else None
+            exp = (
+                iso.astimezone(C._dt.timezone.utc).isoformat(timespec="seconds")
+                if iso
+                else None
+            )
         tag = "%s/%s" % (data.get("region", "?"), p.name[:4])
         has_token = bool(data.get("accessToken"))
-        meta.append({"provider": "aws-sso", "account": tag,
-                     "kind": "sso-cache", "access_len": len(data.get("accessToken") or ""),
-                     "refresh_len": 0, "expires_at": exp, "issuer": "aws-sso-oidc"})
-        raw.append({"account": tag, "access": data.get("accessToken") or "", "refresh": ""})
+        meta.append(
+            {
+                "provider": "aws-sso",
+                "account": tag,
+                "kind": "sso-cache",
+                "access_len": len(data.get("accessToken") or ""),
+                "refresh_len": 0,
+                "expires_at": exp,
+                "issuer": "aws-sso-oidc",
+            }
+        )
+        raw.append(
+            {"account": tag, "access": data.get("accessToken") or "", "refresh": ""}
+        )
         if not has_token:
             meta[-1]["access_len"] = 0
     return meta, raw
@@ -165,20 +223,30 @@ def _aws_sso_entries(paths):
 # ---------------------------------------------------------------------------
 # sqlite names-only probe (cursor-desktop / gcloud dbs)
 
+
 def sqlite_auth_names(path: pathlib.Path, limit: int = 40):
     """Open read-only, list tables, and select ONLY key NAMES that look
     auth-related. Values are never selected."""
     out = {"tables": [], "auth_key_names": []}
     try:
-        uri = "file:%s?mode=ro&immutable=1" % str(path).replace("\\", "/").replace("?", "%3f")
+        uri = "file:%s?mode=ro&immutable=1" % str(path).replace("\\", "/").replace(
+            "?", "%3f"
+        )
         con = sqlite3.connect(uri, uri=True, timeout=10)
         try:
-            tables = [r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+            tables = [
+                r[0]
+                for r in con.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            ]
             out["tables"] = tables[:20]
             pattern = re.compile(r"(?i)auth|token|credential|session|login")
             for table in tables:
                 try:
-                    cols = [r[1] for r in con.execute('PRAGMA table_info("%s")' % table)]
+                    cols = [
+                        r[1] for r in con.execute('PRAGMA table_info("%s")' % table)
+                    ]
                 except sqlite3.Error:
                     continue
                 if "key" not in [c.lower() for c in cols]:
@@ -201,6 +269,7 @@ def sqlite_auth_names(path: pathlib.Path, limit: int = 40):
 
 # ---------------------------------------------------------------------------
 # gh hosts / yaml names-only
+
 
 def gh_hosts_flags(path: pathlib.Path):
     hosts, current = {}, None
@@ -234,11 +303,13 @@ def yaml_top_names(path: pathlib.Path):
 # ---------------------------------------------------------------------------
 # store iteration
 
+
 def resolved_paths(store_id: str):
     cfg = C.STORES[store_id]
     paths = []
     if cfg.get("glob"):
         import glob as _glob
+
         paths.extend(sorted(pathlib.Path(g) for g in _glob.glob(str(cfg["glob"]))))
     paths.extend([p for p in cfg.get("paths", []) if p])
     return cfg, paths
@@ -262,9 +333,17 @@ def collect(store_id: str):
         for p in paths:
             hosts = gh_hosts_flags(p)
             for host, fields in hosts.items():
-                meta.append({"provider": "gh", "account": host, "kind": "env-token",
-                             "access_len": 0, "refresh_len": 0, "expires_at": None,
-                             "issuer": "github.com"})
+                meta.append(
+                    {
+                        "provider": "gh",
+                        "account": host,
+                        "kind": "env-token",
+                        "access_len": 0,
+                        "refresh_len": 0,
+                        "expires_at": None,
+                        "issuer": "github.com",
+                    }
+                )
                 raw.append({"account": host, "access": "", "refresh": ""})
                 notes.append("gh host %s fields: %s" % (host, ",".join(fields)))
         return meta, raw, notes
@@ -272,10 +351,25 @@ def collect(store_id: str):
         for p in paths:
             if not p.exists():
                 continue
-            names = yaml_top_names(p) if parser == "yaml-names" else sorted(json.loads(p.read_text(encoding="utf-8")).keys()) if p.suffix == ".json" else []
+            names = (
+                yaml_top_names(p)
+                if parser == "yaml-names"
+                else sorted(json.loads(p.read_text(encoding="utf-8")).keys())
+                if p.suffix == ".json"
+                else []
+            )
             notes.append("%s top-level names: %s" % (p.name, ",".join(names[:20])))
-            meta.append({"provider": store_id, "account": p.name, "kind": "config-names",
-                         "access_len": 0, "refresh_len": 0, "expires_at": None, "issuer": None})
+            meta.append(
+                {
+                    "provider": store_id,
+                    "account": p.name,
+                    "kind": "config-names",
+                    "access_len": 0,
+                    "refresh_len": 0,
+                    "expires_at": None,
+                    "issuer": None,
+                }
+            )
             raw.append({"account": p.name, "access": "", "refresh": ""})
         return meta, raw, notes
     if parser == "flat-kv":
@@ -295,24 +389,55 @@ def collect(store_id: str):
             if not p.exists():
                 continue
             if p.stat().st_size > C.MAX_PARSE_BYTES:
-                notes.append("oversize (>200MB) -- probe only, names probe skipped: %s" % p)
-                meta.append({"provider": store_id, "account": p.name, "kind": "sqlite-oversize-probe",
-                             "access_len": 0, "refresh_len": 0, "expires_at": None, "issuer": None})
+                notes.append(
+                    "oversize (>200MB) -- probe only, names probe skipped: %s" % p
+                )
+                meta.append(
+                    {
+                        "provider": store_id,
+                        "account": p.name,
+                        "kind": "sqlite-oversize-probe",
+                        "access_len": 0,
+                        "refresh_len": 0,
+                        "expires_at": None,
+                        "issuer": None,
+                    }
+                )
                 raw.append({"account": p.name, "access": "", "refresh": ""})
                 continue
             probe_res = sqlite_auth_names(p)
-            notes.append("sqlite %s tables=%s auth_key_names=%d" %
-                         (p.name, ",".join(probe_res["tables"][:6]), len(probe_res["auth_key_names"])))
+            notes.append(
+                "sqlite %s tables=%s auth_key_names=%d"
+                % (
+                    p.name,
+                    ",".join(probe_res["tables"][:6]),
+                    len(probe_res["auth_key_names"]),
+                )
+            )
             for name in probe_res["auth_key_names"][:10]:
-                meta.append({"provider": store_id, "account": name, "kind": "sqlite-key-name",
-                             "access_len": 0, "refresh_len": 0, "expires_at": None, "issuer": None})
+                meta.append(
+                    {
+                        "provider": store_id,
+                        "account": name,
+                        "kind": "sqlite-key-name",
+                        "access_len": 0,
+                        "refresh_len": 0,
+                        "expires_at": None,
+                        "issuer": None,
+                    }
+                )
                 raw.append({"account": name, "access": "", "refresh": ""})
         for db in cfg.get("dbs", []):
             if db.exists():
                 probe_res = sqlite_auth_names(db)
-                notes.append("sqlite %s auth_key_names=%d sample=%s" %
-                             (db.name, len(probe_res["auth_key_names"]),
-                              ";".join(probe_res["auth_key_names"][:5]) or "-"))
+                notes.append(
+                    "sqlite %s auth_key_names=%d sample=%s"
+                    % (
+                        db.name,
+                        len(probe_res["auth_key_names"]),
+                        ";".join(probe_res["auth_key_names"][:5]) or "-",
+                    )
+                )
         return meta, raw, notes
     # token-dict-walk (+ optional sqlite part)
     for p in paths:
@@ -332,11 +457,16 @@ def collect(store_id: str):
     for db in cfg.get("dbs", []):
         if db.exists():
             probe_res = sqlite_auth_names(db)
-            notes.append("sqlite %s auth_key_names=%d" % (db.name, len(probe_res["auth_key_names"])))
+            notes.append(
+                "sqlite %s auth_key_names=%d"
+                % (db.name, len(probe_res["auth_key_names"]))
+            )
     legacy = cfg.get("legacy_dir")
     if legacy and legacy.exists():
         accounts = sorted(p.name for p in legacy.iterdir() if p.is_dir())
-        notes.append("legacy_credentials account dirs: %s" % (", ".join(accounts) or "-"))
+        notes.append(
+            "legacy_credentials account dirs: %s" % (", ".join(accounts) or "-")
+        )
     return meta, raw, notes
 
 
@@ -350,6 +480,7 @@ def load_json_safe(path: pathlib.Path):
 # ---------------------------------------------------------------------------
 # sinks
 
+
 def sink_env(store_id, meta, raw, args):
     base = PROVIDER_ENV_BASE.get(store_id, store_id.upper().replace("-", "_") + "_KEY")
     plans = []
@@ -362,13 +493,25 @@ def sink_env(store_id, meta, raw, args):
     scopes = ["User"] + (["Machine"] if args.machine else [])
     if args.dry_run or not args.apply:
         for name, _value in plans:
-            print("env-sink dry-run: would set %s (scope=%s)" % (name, "+".join(scopes)))
-        print("env-sink dry-run: %d value(s) held in memory only, nothing written" % len(plans))
+            print(
+                "env-sink dry-run: would set %s (scope=%s)" % (name, "+".join(scopes))
+            )
+        print(
+            "env-sink dry-run: %d value(s) held in memory only, nothing written"
+            % len(plans)
+        )
         return 0
     written = 0
     for name, value in plans:
-        ok = all(C.env_set_value(name, value, machine=m) for m in (False, True) if (m and args.machine) or not m)
-        print("env-sink: %s -> %s (%s)" % (name, "set" if ok else "FAILED", "+".join(scopes)))
+        ok = all(
+            C.env_set_value(name, value, machine=m)
+            for m in (False, True)
+            if (m and args.machine) or not m
+        )
+        print(
+            "env-sink: %s -> %s (%s)"
+            % (name, "set" if ok else "FAILED", "+".join(scopes))
+        )
         written += 1 if ok else 0
     return 0 if written == len(plans) else 1
 
@@ -391,12 +534,18 @@ def bridge_admin_auth(base_url):
             user = user or vals.get("username", "")
             pw = pw or vals.get("password", "")
     if not (user and pw):
-        print("FAIL: bridge admin credentials not available (env names FORGE_BRIDGE_ADMIN_USER/PASS or %s)" % BRIDGE_CFG)
+        print(
+            "FAIL: bridge admin credentials not available (env names FORGE_BRIDGE_ADMIN_USER/PASS or %s)"
+            % BRIDGE_CFG
+        )
         return None, None
     body = json.dumps({"username": user, "password": pw}).encode()
-    req = urllib.request.Request(base_url + "/api/admin/v1/auth/login", data=body,
-                                 headers={"Content-Type": "application/json", "Accept": "application/json"},
-                                 method="POST")
+    req = urllib.request.Request(
+        base_url + "/api/admin/v1/auth/login",
+        data=body,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
     try:
         with urllib.request.urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8", "replace"))
@@ -417,22 +566,38 @@ def sink_bridge(store_id, meta, raw, args):
     for entry in raw:
         if not (entry.get("access") or entry.get("refresh")):
             continue
-        docs.append({"provider": provider_name,
-                     "access_token": entry.get("access", ""),
-                     "refresh_token": entry.get("refresh", ""),
-                     "user_id": (entry.get("extra") or {}).get("user_id", ""),
-                     "email": entry.get("account", ""),
-                     "team_id": (entry.get("extra") or {}).get("team_id", ""),
-                     "expires_at": (entry.get("extra") or {}).get("expires_at", ""),
-                     "client_id": (entry.get("extra") or {}).get("oidc_client_id", "")})
+        docs.append(
+            {
+                "provider": provider_name,
+                "access_token": entry.get("access", ""),
+                "refresh_token": entry.get("refresh", ""),
+                "user_id": (entry.get("extra") or {}).get("user_id", ""),
+                "email": entry.get("account", ""),
+                "team_id": (entry.get("extra") or {}).get("team_id", ""),
+                "expires_at": (entry.get("extra") or {}).get("expires_at", ""),
+                "client_id": (entry.get("extra") or {}).get("oidc_client_id", ""),
+            }
+        )
     if not docs:
-        print("bridge-sink: nothing importable (no access/refresh material) for store=%s" % store_id)
+        print(
+            "bridge-sink: nothing importable (no access/refresh material) for store=%s"
+            % store_id
+        )
         return 0
-    print("bridge-sink: %d single-entry doc(s) built (provider=%s)" % (len(docs), provider_name))
+    print(
+        "bridge-sink: %d single-entry doc(s) built (provider=%s)"
+        % (len(docs), provider_name)
+    )
     for i, d in enumerate(docs):
-        print("  doc[%d]: access_len=%d refresh_len=%d" % (i, len(d["access_token"]), len(d["refresh_token"])))
+        print(
+            "  doc[%d]: access_len=%d refresh_len=%d"
+            % (i, len(d["access_token"]), len(d["refresh_token"]))
+        )
     if args.dry_run or not args.apply:
-        print("bridge-sink dry-run: would POST multipart to %s/api/admin/v1/accounts/import" % base)
+        print(
+            "bridge-sink dry-run: would POST multipart to %s/api/admin/v1/accounts/import"
+            % base
+        )
         return 0
     tok, auth = bridge_admin_auth(base)
     if tok is None:
@@ -440,14 +605,24 @@ def sink_bridge(store_id, meta, raw, args):
     for i, d in enumerate(docs):
         cred = json.dumps(d).encode()
         boundary = uuid.uuid4().hex
-        part = (("--%s\r\n" % boundary).encode() +
-                b'Content-Disposition: form-data; name="files"; filename="auth.json"\r\n' +
-                b"Content-Type: application/json\r\n\r\n" + cred + b"\r\n" +
-                ("--%s--\r\n" % boundary).encode())
-        req = urllib.request.Request(base + "/api/admin/v1/accounts/import", data=part,
-                                     headers={**auth, "Content-Type": "multipart/form-data; boundary=" + boundary,
-                                              "Accept": "text/event-stream, application/json"},
-                                     method="POST")
+        part = (
+            ("--%s\r\n" % boundary).encode()
+            + b'Content-Disposition: form-data; name="files"; filename="auth.json"\r\n'
+            + b"Content-Type: application/json\r\n\r\n"
+            + cred
+            + b"\r\n"
+            + ("--%s--\r\n" % boundary).encode()
+        )
+        req = urllib.request.Request(
+            base + "/api/admin/v1/accounts/import",
+            data=part,
+            headers={
+                **auth,
+                "Content-Type": "multipart/form-data; boundary=" + boundary,
+                "Accept": "text/event-stream, application/json",
+            },
+            method="POST",
+        )
         try:
             with urllib.request.urlopen(req, timeout=120) as resp:
                 print("bridge-sink: doc[%d] import HTTP %d" % (i, resp.status))
@@ -462,44 +637,64 @@ def sink_bridge(store_id, meta, raw, args):
 
 def sink_vault(store_id, meta, raw, args):
     import subprocess
+
     op = C.find_op()
     if op is None:
-        print("vault-sink: op CLI not found on this box -- vault lane degraded "
-              "(see 1password-ops; op-personal wrapper cannot be exec'd from python)")
+        print(
+            "vault-sink: op CLI not found on this box -- vault lane degraded "
+            "(see 1password-ops; op-personal wrapper cannot be exec'd from python)"
+        )
         return 1
     items = []
     for entry in raw:
         if not entry.get("access"):
             continue
         tag = sanitize_tag(entry["account"])
-        items.append(("%s__%s" % (PROVIDER_ENV_BASE.get(store_id, store_id.upper()), tag),
-                      entry["access"], entry.get("refresh", "")))
+        items.append(
+            (
+                "%s__%s" % (PROVIDER_ENV_BASE.get(store_id, store_id.upper()), tag),
+                entry["access"],
+                entry.get("refresh", ""),
+            )
+        )
     print("vault-sink: %d item(s) prepared" % len(items))
     for name, _a, _r in items:
         print("  candidate item: %s" % name)
     if args.dry_run or not args.apply:
-        print("vault-sink dry-run: nothing written; password-shaped vars are never force-migrated (naming-spec.md)")
+        print(
+            "vault-sink dry-run: nothing written; password-shaped vars are never force-migrated (naming-spec.md)"
+        )
         return 0
     env = C.op_base_env()
     ok = 0
     for name, access, refresh in items:
-        exists = subprocess.run([str(op), "item", "get", name], env=env, capture_output=True, timeout=60).returncode == 0
+        exists = (
+            subprocess.run(
+                [str(op), "item", "get", name], env=env, capture_output=True, timeout=60
+            ).returncode
+            == 0
+        )
         cmd = [str(op), "item", "create", "--category=Password", "--title", name]
         if not exists:
             # NOTE (honest limit): the op CLI takes field values via argv; the
             # value is process-visible for the duration of the call on this
             # owner's own box. Documented in references/hygiene.md.
-            proc = subprocess.run(cmd + ["password=%s" % access], env=env, capture_output=True, timeout=60)
+            proc = subprocess.run(
+                cmd + ["password=%s" % access], env=env, capture_output=True, timeout=60
+            )
             print("vault-sink: %s create rc=%d" % (name, proc.returncode))
             ok += 1 if proc.returncode == 0 else 0
         else:
-            print("vault-sink: %s already present (idempotent reveal, no re-mint)" % name)
+            print(
+                "vault-sink: %s already present (idempotent reveal, no re-mint)" % name
+            )
             ok += 1
     return 0 if ok == len(items) else 1
 
 
 # ---------------------------------------------------------------------------
 # commands
+
 
 def cmd_list(_args):
     print("store-id | status | size | mtime_age_days | refresh_owner | design_status")
@@ -508,12 +703,23 @@ def cmd_list(_args):
         found = [C.probe(p) for p in paths]
         found = [f for f in found if f]
         if not found:
-            print("%s | absent | - | - | %s | %s" % (store_id, cfg.get("refresh_owner"), cfg.get("design_status")))
+            print(
+                "%s | absent | - | - | %s | %s"
+                % (store_id, cfg.get("refresh_owner"), cfg.get("design_status"))
+            )
             continue
         for f in found:
-            print("%s | %s | %d | %s | %s | %s" % (store_id, C.mtime_verdict(f), f["size"],
-                                                   f["mtime_age_days"], cfg.get("refresh_owner"),
-                                                   cfg.get("design_status")))
+            print(
+                "%s | %s | %d | %s | %s | %s"
+                % (
+                    store_id,
+                    C.mtime_verdict(f),
+                    f["size"],
+                    f["mtime_age_days"],
+                    cfg.get("refresh_owner"),
+                    cfg.get("design_status"),
+                )
+            )
     return 0
 
 
@@ -535,16 +741,27 @@ def _one(store_id, args):
     found = [C.probe(p) for p in paths]
     found = [f for f in found if f]
     if not found:
-        print("store %s: absent (design status: %s)" % (store_id, cfg.get("design_status")))
+        print(
+            "store %s: absent (design status: %s)"
+            % (store_id, cfg.get("design_status"))
+        )
         return 0
     if args.sink == "none":  # --dry-shape
         for f in found:
-            print("=== %s (mtime=%s, size=%d, %s)" % (f["path"], f["mtime"], f["size"], C.mtime_verdict(f)))
-        if args.store in ("cursor",) or any(f["size"] > C.MAX_PARSE_BYTES for f in found):
+            print(
+                "=== %s (mtime=%s, size=%d, %s)"
+                % (f["path"], f["mtime"], f["size"], C.mtime_verdict(f))
+            )
+        if args.store in ("cursor",) or any(
+            f["size"] > C.MAX_PARSE_BYTES for f in found
+        ):
             # oversize or sqlite: probe-only shape
             for f in found:
                 if f["size"] > C.MAX_PARSE_BYTES:
-                    print("shape: <oversize probe-only: %d bytes, names probe skipped by default>" % f["size"])
+                    print(
+                        "shape: <oversize probe-only: %d bytes, names probe skipped by default>"
+                        % f["size"]
+                    )
             try:
                 meta, raw, notes = collect(store_id)
             except Exception as exc:  # noqa: BLE001
@@ -595,19 +812,38 @@ def main(argv=None):
         prog="harvest.py",
         description="credential-forge store harvester (values in memory only; prints names/lengths)",
         epilog="Store registry: references/store-map.md. Sinks require --apply for live writes; "
-               "--dry-run prints the plan only.",
+        "--dry-run prints the plan only.",
     )
-    ap.add_argument("--list", action="store_true", help="list mapped stores with probe status")
+    ap.add_argument(
+        "--list", action="store_true", help="list mapped stores with probe status"
+    )
     ap.add_argument("--store", help="store id from store-map (or 'all')")
     mode = ap.add_mutually_exclusive_group()
-    mode.add_argument("--dry-shape", dest="sink", action="store_const", const="none",
-                      help="shape-dump names/types/lengths + offline expiry decode (default)")
-    mode.add_argument("--sink", choices=["env", "bridge", "vault"], help="sink for normalized entries")
-    ap.add_argument("--dry-run", action="store_true", help="print the sink plan, write nothing")
-    ap.add_argument("--apply", action="store_true", help="REQUIRED for any live sink write")
-    ap.add_argument("--machine", action="store_true",
-                    help="also persist to Machine scope (reserved for named client keys; GROK_LANE_KEY precedent)")
-    ap.add_argument("--bridge-url", help="bridge admin base URL (default %s or FORGE_BRIDGE_URL)" % DEFAULT_BRIDGE)
+    mode.add_argument(
+        "--dry-shape",
+        dest="sink",
+        action="store_const",
+        const="none",
+        help="shape-dump names/types/lengths + offline expiry decode (default)",
+    )
+    mode.add_argument(
+        "--sink", choices=["env", "bridge", "vault"], help="sink for normalized entries"
+    )
+    ap.add_argument(
+        "--dry-run", action="store_true", help="print the sink plan, write nothing"
+    )
+    ap.add_argument(
+        "--apply", action="store_true", help="REQUIRED for any live sink write"
+    )
+    ap.add_argument(
+        "--machine",
+        action="store_true",
+        help="also persist to Machine scope (reserved for named client keys; GROK_LANE_KEY precedent)",
+    )
+    ap.add_argument(
+        "--bridge-url",
+        help="bridge admin base URL (default %s or FORGE_BRIDGE_URL)" % DEFAULT_BRIDGE,
+    )
     ap.add_argument("--dry", action="store_true", help="alias for --dry-run")
     args = ap.parse_args(argv)
     if args.dry:

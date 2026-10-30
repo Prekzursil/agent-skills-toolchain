@@ -23,6 +23,7 @@ Examples:
   python materialize.py forge-run --env API=op://Vault/Item/field --dry -- cmd
   python materialize.py vault-sync
 """
+
 from __future__ import annotations
 
 import argparse
@@ -49,8 +50,12 @@ def op_read(uri: str) -> str | None:
         print("FAIL: op CLI not found (vault lane degraded on this box)")
         return None
     try:
-        proc = subprocess.run([str(op), "read", "--no-newline", uri],
-                              env=C.op_base_env(), capture_output=True, timeout=60)
+        proc = subprocess.run(
+            [str(op), "read", "--no-newline", uri],
+            env=C.op_base_env(),
+            capture_output=True,
+            timeout=60,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0:
@@ -75,7 +80,9 @@ def cmd_forge_run(args) -> int:
     if cmd and cmd[0] == "--":
         cmd = cmd[1:]
     if not cmd:
-        print("FAIL: no command after -- (usage: forge-run [--env NAME]... -- <cmd...>)")
+        print(
+            "FAIL: no command after -- (usage: forge-run [--env NAME]... -- <cmd...>)"
+        )
         return 2
     child_env = dict(os.environ)
     resolved = 0
@@ -97,7 +104,9 @@ def cmd_forge_run(args) -> int:
         resolved += 1
     # strip Connect-mode vars from the child only if it is not op itself
     if args.strip_connect:
-        child_env = {k: v for k, v in child_env.items() if not k.startswith("OP_CONNECT_")}
+        child_env = {
+            k: v for k, v in child_env.items() if not k.startswith("OP_CONNECT_")
+        }
     if args.dry:
         print("DRY: would exec %d resolved var(s); command not spawned" % resolved)
         return 0
@@ -108,8 +117,12 @@ def cmd_forge_run(args) -> int:
 
 def op_item_exists(op: pathlib.Path, title: str) -> bool:
     try:
-        proc = subprocess.run([str(op), "item", "get", title],
-                              env=C.op_base_env(), capture_output=True, timeout=60)
+        proc = subprocess.run(
+            [str(op), "item", "get", title],
+            env=C.op_base_env(),
+            capture_output=True,
+            timeout=60,
+        )
     except (OSError, subprocess.TimeoutExpired):
         return False
     return proc.returncode == 0
@@ -130,11 +143,15 @@ def cmd_vault_sync(args) -> int:
     print("vault-sync candidates (non-password-shaped): %d" % len(migratable))
     for key in migratable[:12]:
         print("  candidate: %s (provider=%s)" % (key["env_name"], key["provider"]))
-    print("password-shaped vars held back (documented exception, NEVER force-migrated): %d" %
-          len(manual_exception))
+    print(
+        "password-shaped vars held back (documented exception, NEVER force-migrated): %d"
+        % len(manual_exception)
+    )
     for name in manual_exception[:4]:
         print("  manual-exception: %s" % name)
-    print("vault visibility limit: only CLI-enabled vaults are writable; fleet Login items are NOT CLI-visible")
+    print(
+        "vault visibility limit: only CLI-enabled vaults are writable; fleet Login items are NOT CLI-visible"
+    )
     if args.dry or not args.apply:
         print("DRY: nothing written (pass --apply to create items)")
         return 0
@@ -159,9 +176,19 @@ def cmd_vault_sync(args) -> int:
         # own box. See references/hygiene.md before changing this.
         try:
             proc = subprocess.run(
-                [str(op), "item", "create", "--category=Password",
-                 "--title", key["env_name"], "password=%s" % value],
-                env=C.op_base_env(), capture_output=True, timeout=60)
+                [
+                    str(op),
+                    "item",
+                    "create",
+                    "--category=Password",
+                    "--title",
+                    key["env_name"],
+                    "password=%s" % value,
+                ],
+                env=C.op_base_env(),
+                capture_output=True,
+                timeout=60,
+            )
         except (OSError, subprocess.TimeoutExpired):
             proc = None
         if proc is not None and proc.returncode == 0:
@@ -184,15 +211,32 @@ def main(argv=None) -> int:
     )
     sub = ap.add_subparsers(dest="cmd", required=True)
     p_run = sub.add_parser("forge-run", help="resolve refs into child env and exec")
-    p_run.add_argument("--env", action="append", default=[],
-                       help="NAME or NAME=op://vault/item/field (repeatable)")
-    p_run.add_argument("--strip-connect", action="store_true",
-                       help="strip OP_CONNECT_* from the child env")
-    p_run.add_argument("--dry", action="store_true", help="resolve and print names/lengths; do not spawn")
+    p_run.add_argument(
+        "--env",
+        action="append",
+        default=[],
+        help="NAME or NAME=op://vault/item/field (repeatable)",
+    )
+    p_run.add_argument(
+        "--strip-connect",
+        action="store_true",
+        help="strip OP_CONNECT_* from the child env",
+    )
+    p_run.add_argument(
+        "--dry",
+        action="store_true",
+        help="resolve and print names/lengths; do not spawn",
+    )
     p_run.add_argument("command", nargs=argparse.REMAINDER, help="command after --")
     p_vs = sub.add_parser("vault-sync", help="push roster env lanes into the 1P vault")
-    p_vs.add_argument("--dry", action="store_true", help="list candidates; write nothing (default behavior)")
-    p_vs.add_argument("--apply", action="store_true", help="required for any live vault write")
+    p_vs.add_argument(
+        "--dry",
+        action="store_true",
+        help="list candidates; write nothing (default behavior)",
+    )
+    p_vs.add_argument(
+        "--apply", action="store_true", help="required for any live vault write"
+    )
     args = ap.parse_args(argv)
     if args.cmd == "forge-run":
         return cmd_forge_run(args)
