@@ -16,6 +16,8 @@ Why this exists, not `sed`:
 
 Safety:
   - Detect-only by default. Pass --apply to write.
+  - --apply is DESTRUCTIVE: it edits session files in place; the only undo is
+    the backup it writes first. Backups are collision-proof (timestamp-pid-seq).
   - --apply makes one tar.gz backup of every file it will modify, first.
   - After writing, it self-verifies that the count of dangling parentUuids did
     NOT increase vs the in-memory original (the scrub must not add breakage).
@@ -103,15 +105,19 @@ def refusal_explanation(obj):
 
 
 def is_structural_refusal(obj):
-    """Reword-proof + all-edges: an assistant API-error turn the client marked as a
-    refusal, via EITHER message.stop_reason=='refusal' OR stop_details.type=='refusal'
-    (both are set by the client from the server response, independent of wording or
-    category). Catches cyber, weapons, and any future category on day zero."""
-    if not (
-        isinstance(obj, dict)
-        and obj.get("isApiErrorMessage")
-        and obj.get("type") in (None, "assistant")
-    ):
+    """Reword-proof + all-edges: an assistant turn marked as a refusal via EITHER
+    message.stop_reason=='refusal' OR stop_details.type=='refusal' (both are set by
+    the client from the server response, independent of wording or category).
+    Catches cyber, weapons, and any future category on day zero.
+
+    2026-10-30: the former `isApiErrorMessage` precondition is GONE. Real HTTP-200
+    refusal responses are stored as plain assistant turns with NO error flag —
+    measured live: 6 of 8 refusal turns in one session lacked the flag, and the
+    flag-gated detector left all 6 behind after a "successful" scrub. The structural
+    marker alone is unambiguous (quoted prose cannot set a JSON field), so it gates
+    safely on its own; only the TEXT signature path still requires the error flag
+    (to avoid false-positives on quoted error text)."""
+    if not (isinstance(obj, dict) and obj.get("type") in (None, "assistant")):
         return False
     return (
         _stop_reason(obj) == STRUCTURAL_STOP_REASON
@@ -151,9 +157,18 @@ def observe_novel_wording(obj, path=""):
 
 def _has_marker(blob):
     """Cheap file-level prefilter. Must NOT skip structurally-detectable refusals, so
-    it triggers on the durable field name too (any wording), not just known strings."""
+    it triggers on the durable field name AND the serialized structural marker (a file
+    can carry HTTP-200 refusals with no isApiErrorMessage anywhere), not just known
+    strings."""
     low = blob.lower()
-    return "isapierrormessage" in low or any(m.lower() in low for m in _ALL_MARKERS)
+    return (
+        "isapierrormessage" in low
+        or '"stop_reason": "refusal"' in low
+        or '"stop_reason":"refusal"' in low
+        or '"type": "refusal"' in low
+        or '"type":"refusal"' in low
+        or any(m.lower() in low for m in _ALL_MARKERS)
+    )
 
 
 def _text(obj):
@@ -191,11 +206,25 @@ def dangling_count(lines):
     return sum(1 for p in parents if p not in uuids)
 
 
+_BACKUP_SEQ = 0
+
+
+def _backup_path(prefix):
+    """Collision-proof backup name: epoch + pid + per-process sequence. Two shards
+    scrubbed within the same second used to overwrite each other's backup (measured
+    finding, 2026-10-30 Codex/Sentry review wave)."""
+    global _BACKUP_SEQ
+    _BACKUP_SEQ += 1
+    return os.path.expanduser(
+        f"~/.claude/{prefix}-{int(time.time())}-{os.getpid()}-{_BACKUP_SEQ}.tar.gz"
+    )
+
+
 def scrub_file(path):
     """Return (new_lines, removed_count, restitched_count, malformed_kept,
     delta_dangling) without writing. delta_dangling>0 means the scrub would
     ADD chain breakage and must be rejected."""
-    raw = open(path, encoding="utf-8", errors="surrogatepass").read().splitlines()
+    raw = open(path, encoding="utf-8", errors="surrogatepass").read().split("\n")
 
     # pass 1 — map each refusal uuid -> its parentUuid (tolerate malformed lines)
     ref_parent = {}
@@ -244,7 +273,7 @@ def scrub_file(path):
     return out, removed, restitched, malformed, delta
 
 
-def find_targets(root):
+def find_targets(root, log_novel=True):
     hits = []
     for path in glob.glob(os.path.join(root, "**", "*.jsonl"), recursive=True):
         try:
@@ -256,7 +285,7 @@ def find_targets(root):
         # confirm at least one true refusal before full parse; also learn any
         # NEW wording caught structurally (so upstream rewords surface, not hide).
         found = False
-        for line in data.splitlines():
+        for line in data.split("\n"):
             if not _has_marker(line):
                 continue
             try:
@@ -267,7 +296,7 @@ def find_targets(root):
                 if not found:
                     hits.append(path)
                     found = True
-                if is_novel_wording(o):
+                if log_novel and is_novel_wording(o):
                     observe_novel_wording(o, path)
     return hits
 
@@ -314,12 +343,27 @@ def latest_refusal_project(root):
     return project_path, newest
 
 
+def _is_tool_result_turn(o):
+    """A user turn carrying only tool_result blocks. The fix_active trigger-walk
+    must SKIP these when locating the triggering user message: removing one
+    orphans its tool_use sibling (2026-10-30 review finding)."""
+    m = o.get("message")
+    if not isinstance(m, dict) or m.get("role") != "user":
+        return False
+    c = m.get("content")
+    return (
+        isinstance(c, list)
+        and bool(c)
+        and all(isinstance(b, dict) and b.get("type") == "tool_result" for b in c)
+    )
+
+
 def fix_active(path, apply=False):
     """Remove ONLY the triggering user turn + the refusal turn from a single
     session file. Everything else — all subsequent turns — is preserved.
     The trigger user turn is the user-role turn whose content exactly caused
     the block (short message immediately before the refusal in the chain)."""
-    raw = open(path, encoding="utf-8", errors="surrogatepass").read().splitlines()
+    raw = open(path, encoding="utf-8", errors="surrogatepass").read().split("\n")
 
     # collect: all refusal uuids, and the user turn(s) that are their ancestors
     ref_uuids = {}  # refusal_uuid -> parentUuid
@@ -362,7 +406,7 @@ def fix_active(path, apply=False):
                 break
             m = o.get("message", {})
             role = m.get("role", "") if isinstance(m, dict) else o.get("type", "")
-            if role == "user":
+            if role == "user" and not _is_tool_result_turn(o):
                 remove_parent[cur] = o.get("parentUuid")
                 break
             cur = o.get("parentUuid")
@@ -410,8 +454,7 @@ def fix_active(path, apply=False):
         else:
             out.append(line)
 
-    stamp = int(time.time())
-    backup = os.path.expanduser(f"~/.claude/refusal-scrub-backup-{stamp}.tar.gz")
+    backup = _backup_path("refusal-scrub-backup")
     with tarfile.open(backup, "w:gz") as tar:
         tar.add(path)
     print(f"  backup: {backup}")
@@ -606,7 +649,8 @@ def desaturate_lines(raw, keep_recent=6, min_score=4, terms=None):
     start = _window_start([o for _, o in real])
     # translate window start (index into `real`) back to positions; simpler: work on real list
     win = real[start:]
-    protect = {n for n, _ in win[-keep_recent:]}  # keep the last few turns readable
+    _keep = max(0, int(keep_recent))
+    protect = {n for n, _ in win[-_keep:]} if _keep > 0 else set()  # 0 protects nothing
 
     targets = {}
     for n, o in win:
@@ -617,8 +661,8 @@ def desaturate_lines(raw, keep_recent=6, min_score=4, terms=None):
         if is_refusal(o) or o.get("isMeta"):
             continue
         sc = _turn_score(o, terms)
-        if sc >= min_score:
-            targets[n] = sc
+        if sc >= min_score or len(raw[n]) >= DESAT_SIZE_BYTES:
+            targets[n] = max(sc, 1)
 
     out, stubbed, saved, manifest = [], 0, 0, []
     for n, line in enumerate(raw):
@@ -684,7 +728,8 @@ def surgical_lines(raw, keep_recent=6, min_score=4, terms=None):
     start = _window_start([o for _, o in real])
     win = real[start:]
     win_idx = {i for i, _ in win}
-    protect = {i for i, _ in win[-keep_recent:]}
+    _keep = max(0, int(keep_recent))
+    protect = {i for i, _ in win[-_keep:]} if _keep > 0 else set()
 
     id2use, id2res = {}, {}
     for i, o in real:
@@ -699,7 +744,7 @@ def surgical_lines(raw, keep_recent=6, min_score=4, terms=None):
             continue
         if is_refusal(o) or o.get("isMeta"):
             continue
-        if _turn_score(o, terms) >= min_score:
+        if _turn_score(o, terms) >= min_score or len(raw[i]) >= DESAT_SIZE_BYTES:
             seeds.append(i)
 
     drop = set()
@@ -766,7 +811,7 @@ def desaturate_and_write(
     """Default = SURGICAL: drop whole offending turns, keep the rest word-for-word.
     stub=True falls back to the older in-place neutralization (kept for callers that
     need the transcript to stay the same length)."""
-    raw = open(path, encoding="utf-8", errors="surrogatepass").read().splitlines()
+    raw = open(path, encoding="utf-8", errors="surrogatepass").read().split(chr(10))
     if stub:
         out, n, saved, manifest = desaturate_lines(raw, keep_recent, min_score)
         verb, unit = "neutralized", saved
@@ -792,8 +837,7 @@ def desaturate_and_write(
         return 0
     if not apply:
         return n
-    stamp = int(time.time())
-    backup = os.path.expanduser(f"~/.claude/{backup_tag}-{stamp}.tar.gz")
+    backup = _backup_path(backup_tag)
     with tarfile.open(backup, "w:gz") as tar:
         tar.add(path)
     print(f"  backup: {backup}")
@@ -809,8 +853,11 @@ def refusal_count(path):
     try:
         for line in open(path, encoding="utf-8", errors="surrogatepass"):
             line = line.strip()
-            if not line or "isApiErrorMessage" not in line:
+            if not line:
                 continue
+            # 2026-10-30: no isApiErrorMessage prefilter here — HTTP-200 refusal
+            # turns carry no flag and gating the scan on it undercounted saturation
+            # (6 of 8 refusals in a real session were unflagged). is_refusal gates.
             try:
                 if is_refusal(json.loads(line)):
                     n += 1
@@ -964,7 +1011,7 @@ def selfcheck(root):
     """Prove the detector still matches reality, so upstream drift surfaces LOUDLY
     instead of as a false 'clean'. Reports structural vs signature vs novel counts
     and flags any isApiErrorMessage turn we can't account for."""
-    total_err = struct = sigmatch = novel = other = 0
+    scanned = total_err = struct = sigmatch = novel = other = unflagged_ref = 0
     novels = []
     from collections import Counter
 
@@ -975,15 +1022,20 @@ def selfcheck(root):
         except Exception:
             continue
         for line in data:
-            if "isApiErrorMessage" not in line:
+            if "isApiErrorMessage" not in line and '"refusal"' not in line:
                 continue
             try:
                 o = json.loads(line)
             except Exception:
                 continue
-            if not (isinstance(o, dict) and o.get("isApiErrorMessage")):
+            if not isinstance(o, dict):
                 continue
-            total_err += 1
+            scanned += 1
+            flagged = bool(o.get("isApiErrorMessage"))
+            if not flagged and not is_structural_refusal(o):
+                continue
+            if o.get("isApiErrorMessage"):
+                total_err += 1
             s = is_structural_refusal(o)
             g = is_signature_refusal(o)
             if s and g:
@@ -991,6 +1043,8 @@ def selfcheck(root):
                 sigmatch += 1
             elif s:
                 struct += 1
+                if not flagged:
+                    unflagged_ref += 1
             elif g:
                 sigmatch += 1
             else:
@@ -1004,14 +1058,16 @@ def selfcheck(root):
                     novels.append(snip)
 
     print("── recover-from-false-positive self-check ──")
-    print("detection contract: isApiErrorMessage:true AND (")
+    print("detection contract: STRUCTURAL marker, error flag NOT required:")
     print(
         "   message.stop_reason=='refusal' OR stop_details.type=='refusal'  [structural, reword+category-proof]"
     )
     print(
-        f"   OR known SIGNATURES text [{len(SIGNATURES)} known])  — category read from stop_details.category"
+        f"   OR [isApiErrorMessage + known SIGNATURES text [{len(SIGNATURES)} known]]  — category read from stop_details.category"
     )
-    print(f"isApiErrorMessage turns scanned : {total_err}")
+    print(f"turns scanned (prefiltered)     : {scanned}")
+    print(f"  flagged API-error turns       : {total_err}")
+    print(f"  UNFLAGGED HTTP-200 refusals   : {unflagged_ref}")
     print(f"  classified as refusal (structural) : {struct}")
     print(f"  classified as refusal (signature)  : {sigmatch}")
     print(f"  NEW wording caught structurally    : {novel}")
@@ -1145,7 +1201,7 @@ def main():
                 print(f"No such file: {newest}")
                 sys.exit(1)
         else:
-            targets = find_targets(args.root)
+            targets = find_targets(args.root, log_novel=bool(args.apply))
             if not targets:
                 print(
                     "No refusal files found. A saturated session whose refusals were "
@@ -1186,7 +1242,7 @@ def main():
         return
 
     if args.fix_active:
-        targets = find_targets(args.root)
+        targets = find_targets(args.root, log_novel=bool(args.apply))
         if not targets:
             print("No refusal files found.")
             return
@@ -1228,10 +1284,7 @@ def main():
                     f"  subagent shard: {removed} refusal(s), delta={delta:+d} {os.path.basename(s)}"
                 )
         if args.apply and shard_plans:
-            stamp = int(time.time())
-            backup = os.path.expanduser(
-                f"~/.claude/refusal-scrub-shards-{stamp}.tar.gz"
-            )
+            backup = _backup_path("refusal-scrub-shards")
             with tarfile.open(backup, "w:gz") as tar:
                 for s, *_ in shard_plans:
                     tar.add(s)
@@ -1261,7 +1314,7 @@ def main():
             print("\nDry run. Re-run with --fix-active --apply to write.")
         return
 
-    targets = find_targets(args.root)
+    targets = find_targets(args.root, log_novel=bool(args.apply))
     plans = []
     for f in targets:
         out, removed, restitched, malformed, delta = scrub_file(f)

@@ -338,20 +338,20 @@ def test_control_fires_when_the_step_moves_below_the_py312_pivot() -> None:
 
 
 def test_control_fires_on_a_workflow_with_no_push_trigger() -> None:
-    """Two-hypothesis control on two REAL files, not a self-mutation.
-
-    H1 (the arm reads the trigger): quality.yml -- which has `push:` -- stays
-    silent on that arm, while skill-dual-write.yml -- which does not -- fires.
-    H2 (the arm merely notices that a workflow was parsed): both look the same.
-    Only H1 produces the asymmetry below, and skill-dual-write.yml's missing
-    `push:` IS the defect that made the docs gate unreachable.
-    """
-    dual = dual_write_text()
-    assert "push" not in _event_keys(strip_comments(dual)), (
-        "precondition: skill-dual-write.yml gained a `push:` trigger, so it is "
-        "no longer a known-broken example. Re-point this control."
+    # Two-hypothesis control, re-pointed 2026-10-30 to a SYNTHESIZED specimen:
+    # the main-parity change legitimately gave skill-dual-write.yml a push
+    # trigger (with an event-gated D-001 step so push is not a null range), so
+    # the old real known-broken example no longer exists. The known-broken half
+    # is now derived by stripping the push block from the same file; quality.yml
+    # (push-triggered) is the must-stay-silent half. H1/H2 asymmetry preserved,
+    # no dependence on any real workflow staying broken.
+    quiet = dual_write_text()
+    assert "push" in _event_keys(strip_comments(quiet)), (
+        "precondition: skill-dual-write.yml lost its push trigger; re-point"
     )
-    found = wiring_violations(dual)
+    broken = quiet.replace("  push:\n    branches: [main]\n", "", 1)
+    assert broken != quiet, "precondition: push block not found to strip"
+    found = wiring_violations(broken)
     assert any(v.startswith("not-push-triggered") for v in found), found
     assert not any(
         v.startswith("not-push-triggered") for v in wiring_violations(quality_text())

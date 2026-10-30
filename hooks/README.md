@@ -11,10 +11,16 @@ can be revisited, diffed, and restored.
   `-WhatIf`. See [`../scripts/sync-hooks.ps1`](../scripts/sync-hooks.ps1).
 - **Program writeup / changelog:** [`../docs/agentic-perfection/`](../docs/agentic-perfection/)
   (CHANGELOG + plan + proactive-partner program + open-threads snapshot).
-- **Related, separately-versioned hooks:** the pre-existing event-ledger lives in
-  [`../tools/event-ledger/`](../tools/event-ledger/); a curated workspace-hooks
-  subset (anti-degen, goal-reinject, inquisitiveness) lives in
-  [`../tools/workspace-hooks/`](../tools/workspace-hooks/). Those are intentionally
+- **event-ledger lives HERE**, in [`event-ledger/`](event-ledger/). This line used
+  to point at `../tools/event-ledger/` and call it "intentionally not duplicated
+  here", which had become doubly false: the ledger *is* in this tree, and it *was*
+  duplicated. `tools/event-ledger` was deleted on 2026-10-24 as a stale copy whose
+  own README claimed to be "the versioned copy — keep in sync" while sitting two
+  generations behind (233-line `ledger.py` against this tree's 441, and missing
+  `oats.py`, `prune-report.py` and three test modules entirely).
+- **Related, separately-versioned hooks:** a curated workspace-hooks subset
+  (anti-degen, goal-reinject, inquisitiveness) lives in
+  [`../tools/workspace-hooks/`](../tools/workspace-hooks/), and is intentionally
   not duplicated here.
 
 ## Design law

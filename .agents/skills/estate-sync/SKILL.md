@@ -208,6 +208,106 @@ finding — and on this estate that hypothesis has already been wrong once.
 
 ---
 
+## VM-side link restoration (runbook, executed and verified 2026-09-30)
+
+When the VM half of the bilateral link is down, restore per this order (all
+elevated; every step verified by its output):
+
+1. **Deploy the home key** `home_to_vm@desktop-a60s9gp` into BOTH
+   `$env:USERPROFILE\.sshuthorized_keys` AND
+   `C:\ProgramData\sshdministrators_authorized_keys` — the admin file is the
+   one Windows OpenSSH actually reads for admin users; deploying to the user
+   file alone silently fails. Then `icacls <adminfile> /inheritance:r /grant
+   Administrators:F /grant SYSTEM:F` and `Restart-Service sshd`.
+2. **Start the VM serve**: `C:\ProgramDatam-link\serve.cmd` exists by design
+   (rclone sftp, C: on :2022 / D: on :2023, bound to the Tailscale IP only —
+   never 0.0.0.0). Run it; verify listeners on `100.117.115.55:2022/2023`.
+3. **Persist**: scheduled tasks `vm-link-serve` (boot) + `vm-link-serve-logon`
+   (logon), SYSTEM/highest, ExecutionTimeLimit zero, 3x auto-restart;
+   sshd + WinRM StartupType Automatic.
+4. **Anti-reap**: `rclone` MUST be in `reap_orphan_mcp.ps1`'s `$whitelist` —
+   the serve is detached-by-design (dead parent) and the reaper kills that
+   shape. Verify with a `-WhatIfOnly` run showing would-kill 0.
+
+## Diagnosing "link down": standby vs misconfiguration
+
+Two rules learned the hard way (2026-09-30):
+
+- **A local self-test to your own Tailscale IP is not evidence.** Hairpin
+  connects time out on Windows+Tailscale even when serving is perfectly healthy.
+  Only a cross-machine test decides.
+- **`tailscale status` showing the peer `active; relay` with
+  `tailscale ping` timing out and all TCP closed = the peer machine is in
+  Windows standby**, not misconfigured. Its tailscaled keeps the session alive
+  via relay heartbeat while the network stack sleeps. Wait for wake; do not
+  touch config. (Distinguishing signal vs a config fault: standby kills ICMP
+  *and* every port including previously-verified ones like 22/3389.)
+
+## Third surface: the ovido4 mirror
+
+The estate has TWO mirror surfaces — a **VM-level 1:1 mirror** (GCP machine image,
+executed 2026-10-01) and a **repo-level git mirror** (staged, awaiting token).
+
+### VM-level 1:1 mirror (GCP machine image — the Macrium equivalent)
+
+`offload-mirror` in ovido4's project (`project-90b4a09f-be6f-4040-a6c`) is a
+byte-identical clone of `offload-w2025` created via GCP machine image. Full
+runbook: `estates/offload-w2025/2026-09-30-link-and-mirror/MIRROR-RUNBOOK.md`.
+
+**The three blockers and their fixes** (so nobody rediscovers them):
+
+1. **Billing write-block is account-specific**: `BILLING_DISABLED` on GCP
+   writes affects ovido4@gmail.com but NOT prekzursil1993 (roles/owner), even
+   on the same project. Switch account to do writes.
+2. **Global CPU quota**: `CPUS_ALL_REGIONS` limit=12 per project; a 12-vCPU
+   VM consumes it all. Cannot co-locate a second instance in the same project.
+   Deploy to the other project instead.
+3. **Cross-project service account**: machine image inherits the SOURCE
+   project's SA; target account lacks `iam.serviceAccountUser` on it. Fix:
+   pass `--service-account=<target-project-number>-compute@developer.gserviceaccount.com`
+   explicitly on `instances create`.
+
+**What NOT to use**: wbadmin/Windows Server Backup (requires feature install
+reboot); GCP metadata SSH key deploy (no compute-accounts-daemon on custom
+images). Use `reset-windows-password` + paramiko for initial access instead.
+
+**The working sequence**:
+```bash
+# 1. snapshot + image (as prekzursil1993, source project)
+gcloud compute machine-images create mirror-full-YYYYMMDD \
+  --source-instance=offload-w2025 --source-instance-zone=europe-central2-a \
+  --project=webcoder-462916 --storage-location=europe-central2
+
+# 2. deploy (as ovido4, target project)
+gcloud compute instances create offload-mirror \
+  --source-machine-image=projects/webcoder-462916/global/machineImages/mirror-full-YYYYMMDD \
+  --zone=europe-central2-a --project=project-90b4a09f-be6f-4040-a6c \
+  --machine-type=n2-custom-12-98304 \
+  --service-account=<target-SA> --scopes=default
+
+# 3. access
+gcloud compute reset-windows-password offload-mirror --user=prekzursil ...
+# then paramiko password-login → deploy SSH key → key auth
+```
+
+### Repo-level git mirror (staged)
+
+A git `push --mirror` snapshot of the vault repo. Staged at
+`D:\opt\vault\mirror-push\agent-skills-toolchain.git` (bare clone, all refs)
+with `push-mirror-to-ovido4.sh` — one command once an ovido4 GitHub token is
+provided. No ovido4 GitHub credential exists on the VM or in the vault env
+backups (all three stored tokens are Prekzursil) — the token must come from
+home or be minted.
+
+### Mirror-pending convention
+
+When the primary link is down, session deltas accumulate as
+`D:\opt\vault\mirror-pending\<date>.tar.gz` and drain via
+`D:\opt\scripts\push-home-mirror.ps1` (which self-reports the exact wake-side
+fix if home is unreachable).
+
+---
+
 ## Related
 
 - `knowledge/OPEN-LOOPS.md` — the live register; nothing closes without evidence

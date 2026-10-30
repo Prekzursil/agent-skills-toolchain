@@ -1035,6 +1035,12 @@ def main(argv: list[str] | None = None) -> int:
         help="seconds between recovery probes while degraded (0 = only heal on traffic)",
     )
     parser.add_argument(
+        "--cooldown",
+        type=float,
+        default=DEFAULT_COOLDOWN,
+        help="seconds to serve cacheable calls locally after the daemon drops, before re-probing the port",
+    )
+    parser.add_argument(
         "--no-stream",
         action="store_true",
         help="do not hold the GET server->client stream",
