@@ -695,21 +695,26 @@ jobs:
       - name: triage-router standalone regression
         working-directory: tools/triage-router
         run: python test_triage_router.py
-      # tools/account-hopper -- per-account budget ledger and account hopper over
-      # Modal accounts the user funds. Stdlib-only custom __main__ runner like
-      # triage-router above, so pytest discovery would not execute it; naming it here is
-      # what makes it gate. What it gates: the global ceiling bounding each account's
-      # spendable room (select once handed out an account the ceiling had already
-      # clipped), explicit enrolment with `funded` required, the AST import
-      # allowlist that keeps the module network-free, and the `hop` rotation step.
-      # Measured when it landed: 33 passed, a 5-mutant harness killed 4 (the survivor
-      # is a tie-break-only equivalent), and the runner fails below its MIN_TESTS
-      # floor so 0/0 is not green. Extended 2026-10-24 (renamed account-hopper, hop
-      # rotation step, coverage-gap tests): 61 passed, 100% line+branch coverage of
-      # the module measured under coverage.py.
-      - name: account-hopper standalone regression
-        working-directory: tools/account-hopper
-        run: python test_account_hopper.py
+      # tools/longhaul -- long cloud jobs on accounts the user funds: per-account pause
+      # lines plus a global ceiling over measured (high-water) or recorded spend, a
+      # preemption-safe watchdog that pauses before the cap and never moves work to
+      # another account, and generation checkpoints with verify-on-read. It replaced
+      # tools/account-hopper on 2026-10-30 (see tools/longhaul/MIGRATION.md), so this
+      # step replaced that tool's. Stdlib-only custom __main__ runners like
+      # triage-router above, so pytest discovery would not execute them; naming them
+      # here is what makes them gate. Each runner fails below its MIN_TESTS floor, so
+      # 0/0 is not green. spec_longhaul_checkpoint.py is the acceptance spec from the
+      # durable-checkpoint review (closed PR #398): it exits non-zero unless all 7
+      # rows pass on longhaul AND rows 1-5 and 7 still fail on the frozen pre-fix
+      # module in tools/longhaul/fixtures, so the spec cannot silently go vacuous.
+      # Measured when it landed: 43 + 51 tests and 7/7 spec rows on Python 3.11 and
+      # 3.14, and 10 of 10 hand-made mutants killed.
+      - name: longhaul standalone regression
+        working-directory: tools/longhaul
+        run: |
+          python test_longhaul.py
+          python test_longhaul_checkpoint.py
+          python spec_longhaul_checkpoint.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are
