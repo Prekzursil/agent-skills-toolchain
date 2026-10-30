@@ -1,6 +1,6 @@
 ---
 name: deep-research
-description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports. Use when the user wants thorough, evidence-backed research.
+description: Multi-source deep research with a routing + caching + grading harness over firecrawl, exa, tavily, perplexity, scholarly-access, tooluniverse, huggingface, and context7 MCPs. Fixes scope first via AskUserQuestion (purpose, depth, recency, output form) before any fan-out, then routes each sub-question to the best live provider, caches provider calls by query hash, grades every source by confidence, and delivers cited reports. Use when the user wants thorough, evidence-backed research.
 ---
 
 # Deep Research
@@ -74,13 +74,43 @@ completion). `web` / `deep_read` stay on MCP providers. Do not use `:online`
 
 ## Workflow
 
-### Step 1: Understand the Goal
+### Step 1: Fix the scope BEFORE any fan-out
 
-Ask 1-2 quick clarifying questions:
-- "What's your goal — learning, making a decision, or writing something?"
-- "Any specific angle or depth you want?"
+Every sub-question costs provider calls and context. Scope is decided up front,
+not discovered halfway through a fan-out that is already too wide or too narrow.
+**Ask with `AskUserQuestion`** — a structured question the user answers by
+selecting, not a sentence buried in prose they can scroll past.
 
-If the user says "just research it" — skip ahead with reasonable defaults.
+Read the request and mark each of the four scope dimensions DETERMINED or OPEN:
+
+| dimension | DETERMINED when the request already states… |
+|---|---|
+| **purpose** | what the output is *for* — learning, deciding, or drafting |
+| **depth** | a sub-question count, or a time / token / provider budget |
+| **recency** | a timeframe, or "latest" versus "established consensus" |
+| **output** | the form — brief, comparison table, annotated bibliography, memo |
+
+Then ask **one** `AskUserQuestion` covering **only the OPEN dimensions**, at most
+four options each. Asking about a dimension the request already settled wastes a
+turn; fanning out with one still open wastes far more than a turn.
+
+**Skip this step only when all four are DETERMINED.** That is the single
+permitted condition, and it is checkable against the request text — not a
+judgement about how impatient the user sounded.
+
+> **Why this is written as a gate.** Until 2026-10-24 this step asked for "1-2
+> quick clarifying questions" and then immediately granted permission to skip
+> them whenever the user sounded like they just wanted the research done. An
+> instruction followed by permission to ignore it is not an instruction, and the
+> measured result was that scope went unasked — the owner reported exactly that.
+> That clause is deleted, and it is described here rather than quoted, because a
+> sentence granting permission to skip reads as permission to skip even inside a
+> note explaining why it was removed.
+>
+> Do not reintroduce a "they sounded in a hurry" branch in any form. If the four
+> dimensions are determined you already skip, by the rule above. If they are not,
+> guessing is what produced fan-outs that were too wide, too narrow, or aimed at
+> the wrong output form.
 
 ### Step 2: Plan the Research
 

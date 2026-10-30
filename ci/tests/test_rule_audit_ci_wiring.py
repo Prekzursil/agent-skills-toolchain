@@ -433,27 +433,29 @@ def test_a_commented_out_command_does_not_satisfy_the_gate() -> None:
 
 
 def test_control_fires_on_a_workflow_with_no_push_trigger() -> None:
-    """Two-hypothesis control on two REAL files, not a self-mutation.
+    """Two-hypothesis control, re-pointed 2026-10-30 to a SYNTHESIZED specimen.
 
-    H1 (the arm reads the trigger): rule-audit.yml -- which has ``push:`` --
-    stays silent on that arm while skill-dual-write.yml -- which does not --
-    fires. H2 (the arm merely notices a document was parsed): both look the
-    same. Only H1 produces the asymmetry below, and skill-dual-write.yml's
-    missing ``push:`` is a real, load-bearing property of this repo.
-    """
-    dual = dual_write_text()
-    assert "push" not in _event_keys(strip_comments(dual)), (
-        "precondition: skill-dual-write.yml gained a `push:` trigger, so it is no "
-        "longer a known-broken example. Re-point this control."
+    The original pointed at skill-dual-write.yml as its real known-broken
+    example; the main-parity change (this branch) legitimately gave that file a
+    push trigger, firing the old precondition exactly as its message demanded
+    ("Re-point this control"). The control now derives its known-broken half by
+    stripping the push block from rule-audit.yml itself: same H1/H2 asymmetry
+    (file WITH push stays silent, same file WITHOUT push fires), no dependence
+    on any real workflow staying broken."""
+    quiet = rule_audit_text()
+    assert "push" in _event_keys(strip_comments(quiet)), (
+        "precondition: rule-audit.yml lost its push trigger; re-point this control"
     )
+    broken = quiet.replace("  push:\n    branches: [main]\n", "", 1)
+    assert broken != quiet, "precondition: push block not found to strip"
     assert any(
         v.startswith("not-push-triggered")
-        for v in wiring_violations(dual, quality_text())
+        for v in wiring_violations(broken, quality_text())
     )
     assert not any(
         v.startswith("not-push-triggered")
-        for v in wiring_violations(rule_audit_text(), quality_text())
-    ), "control: the arm fired on rule-audit.yml, which does have a push trigger"
+        for v in wiring_violations(quiet, quality_text())
+    ), "control: the arm fired on a file that does have a push trigger"
 
 
 def test_control_fires_when_push_stops_targeting_main() -> None:

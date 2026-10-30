@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import importlib
 import importlib.util
-import json
 import os
 import sys
 import tempfile
@@ -106,7 +105,17 @@ def main() -> int:
     check("full report says no INSUFFICIENT DATA", "INSUFFICIENT DATA" not in r_full)
     check("full report has LEAST-FIRED section", "LEAST-FIRED" in r_full)
     check("full report has MOST-FIRED section", "MOST-FIRED" in r_full)
-    check("full report has FULL RANKING section", "FULL RANKING" in r_full)
+    # No --installed inventory was passed here, so the universe is observation-only and
+    # the ranking must NOT claim to be "FULL" — a never-fired capability cannot appear
+    # in it (D-n01). The inventory-aware behaviour is covered by test_prune_zero_blind.py.
+    check(
+        "no-inventory report has OBSERVED-ONLY RANKING section",
+        "OBSERVED-ONLY RANKING" in r_full,
+    )
+    check(
+        "no-inventory report does NOT claim a FULL RANKING",
+        "FULL RANKING" not in r_full,
+    )
     # tool_alpha (60) is most fired
     check("most-fired section contains tool_alpha", "tool_alpha" in r_full)
     # tool_delta (1) is least fired — should be the top prune candidate
@@ -119,7 +128,7 @@ def main() -> int:
 
     # Verify ranking order in the FULL RANKING section:
     # alpha(60) > gamma(30) > beta_new(7) > beta(2) > delta(1)
-    full_start = r_full.find("FULL RANKING")
+    full_start = r_full.find("OBSERVED-ONLY RANKING")
     full_section = r_full[full_start:] if full_start >= 0 else ""
     pos_alpha = full_section.find("tool_alpha")
     pos_gamma = full_section.find("tool_gamma")
@@ -152,57 +161,6 @@ def main() -> int:
         "empty root gives advisory message (no crash)",
         any(kw in r_empty for kw in ("empty", "does not exist", "INSUFFICIENT DATA")),
     )
-
-    # ------------------------------------------------------------------ #
-    # Section 5b — prune-report: OUTCOME, not attempt frequency (D-wu-25) #
-    # ------------------------------------------------------------------ #
-    print("== prune-report: failed attempts are not proven value ==")
-    # 99 FAILED loop_tool selections + 1 SUCCESSFUL rare_rescue selection.
-    # Ranking on raw fires calls loop_tool "proven value (keep)" and offers
-    # rare_rescue — the only thing that ever worked — as the prune candidate.
-    # Written as raw JSONL because "selection" is NOT in ledger.KINDS -- the
-    # producer (hooks/selection-events/emitter.py:551-576) detects that and
-    # falls back to writing the kind:"selection" line itself, so this IS the
-    # real on-disk schema the consumer must read.
-    out_tmp = tempfile.mkdtemp(prefix="prune-outcome-")
-    out_proj = Path(out_tmp) / "proj_outcome"
-    out_proj.mkdir(parents=True, exist_ok=True)
-    rows = [{"kind": "selection", "chosen_tool": "loop_tool", "success": False}] * 99
-    rows.append({"kind": "selection", "chosen_tool": "rare_rescue", "success": True})
-    (out_proj / "events.jsonl").write_text(
-        "".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8"
-    )
-    old_root = os.environ.get("EVENT_LEDGER_ROOT")
-    os.environ["EVENT_LEDGER_ROOT"] = out_tmp
-    prune_out = _load_module("prune_report_outcome", HERE / "prune-report.py")
-    importlib.reload(prune_out.ledger)
-    r_out = prune_out.report(min_events=100, top=1)
-    if old_root is not None:
-        os.environ["EVENT_LEDGER_ROOT"] = old_root
-    # `ledger` is a SHARED sys.modules entry: the reload above repointed
-    # ledger.ROOT globally, so restoring the env var alone would leak this
-    # section's selection events into the oats assertions below.
-    importlib.reload(prune_out.ledger)
-
-    def _section(text: str, start: str, end: str) -> str:
-        i = text.find(start)
-        j = text.find(end, i + 1) if i >= 0 else -1
-        return text[i:j] if i >= 0 and j > i else ""
-
-    keep = _section(r_out, "MOST-FIRED", "FULL RANKING")
-    prune = _section(r_out, "LEAST-FIRED", "MOST-FIRED")
-    check("outcome ranking produced (100 events clears the bar)", "MOST-FIRED" in r_out)
-    check(
-        "99x-failed loop_tool is NOT listed as proven value",
-        "loop_tool" not in keep,
-    )
-    check("the one tool that succeeded is kept", "rare_rescue" in keep)
-    check(
-        "the only successful tool is NOT the prune candidate",
-        "rare_rescue" not in prune,
-    )
-    check("99x-failed loop_tool IS the prune candidate", "loop_tool" in prune)
-    check("report still shows raw attempt counts alongside wins", "Fires" in r_out)
 
     # ------------------------------------------------------------------ #
     # Section 6 — oats: nudge vector math                                #
