@@ -1356,6 +1356,25 @@ def test_subagent_lifecycle_injects_handoff_and_warns_on_hollow_output(tmp_path)
     assert terminal.action == "allow"
 
 
+def test_subagent_stop_absent_message_does_not_block(tmp_path):
+    # 2026-10-21 grok regression: Stop/SubagentStop payloads carry NO
+    # last_assistant_message on any supported provider; the gate must treat
+    # absent as unverifiable (allow), not hollow (inject). Blocking on absent
+    # evidence looped "output too brief" on every grok subagent stop.
+    ledger = EventLedger(tmp_path / "state")
+    module = SubagentLifecycleModule(ledger)
+    result = module.run(
+        event(
+            tmp_path,
+            "SubagentStop",
+            agent_type="reviewer",
+            last_assistant_message="",
+        )
+    )
+    assert result.action == "allow"
+    assert getattr(result, "reason_code", "") != "hollow_subagent_output"
+
+
 def test_goal_module_does_not_reinject_into_subagents(tmp_path):
     # A subagent (agent envelope populated) carries the PARENT session id, so a naive
     # goal look-up would return the parent's interactive goal. The periodic re-injection
