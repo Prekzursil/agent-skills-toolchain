@@ -142,6 +142,7 @@
 | evidence-ledger-synthesis | unclassified | Use when the user needs a claim-by-claim evidence ledger before writing a review, memo, paper section, or recommendation. |
 | executing-plans | marketplace:superpowers | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | execution-grounded-bon | unclassified | Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Claude+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion... |
+| fable-safe-prompt | unclassified | Rewrite allowed prompts to reduce false-positive safety triggers without bypassing policy or changing intent. |
 | faculty-course-design-evidence | unclassified | Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment. |
 | fal-ai-media | unclassified | Unified media generation via fal.ai MCP — image, video, and audio. Covers text-to-image (Nano Banana), text/image-to-video (Seedance, Kling, Veo 3), text-to-speech (CSM-1B), and video-to-audio (ThinkSound). Use when the user wants to... |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
@@ -262,6 +263,7 @@
 | reboot-safe-ops-continuation | custom | Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture |
 | recall-workflow-agent | unclassified | Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run - reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or... |
 | receiving-code-review | marketplace:superpowers | Use when receiving code review feedback, before implementing suggestions |
+| recover-from-false-positive | unclassified | Recover a Claude Code session after a safety-classifier false positive: scrub refusal turns from the session log chain-safely, de-saturate the resume window, and stop recurrence via prevention config. Invoke on classifier-refusal... |
 | recursive-decision-ledger | unclassified | Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail. |
 | refactor-equivalence | unclassified | Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an... |
 | reframe | unclassified | Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert, reframe, or crop a landscape video to vertical, follow a moving subject in... |
