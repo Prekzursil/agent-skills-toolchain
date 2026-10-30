@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import concurrent.futures
+import os
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -36,6 +37,8 @@ from harness.modules import (
     SubagentLifecycleModule,
     _canonical_tree,
     _flush_spool_to_vault,
+    _spool_flush_error,
+    _write_session_spool,
     resolve_mode,
     stage,
 )
@@ -2160,6 +2163,65 @@ def test_metered_mcp_does_not_fire_for_ordinary_tools(iso, tmp_path, monkeypatch
 
 
 # =============================================================================
+# GoalModule · host-feedback stripping (live drift port 2026-10-22)
+# =============================================================================
+
+
+def test_goal_module_strip_host_feedback_removes_stop_and_autocaptured_prefixes():
+    strip = GoalModule._strip_host_feedback
+    # Stop-hook feedback: prefix line + indented continuation + truncation marker.
+    assert (
+        strip(
+            "Stop (completed) says: AUTO-CAPTURED: note text\n"
+            "  detail line\n"
+            "[TRUNCATED]\n"
+            "Build the parity harness."
+        )
+        == "Build the parity harness."
+    )
+    # Bullet/space variants of the prefix; the blank line ends a consumed block.
+    assert (
+        strip("- Stop (completed) says: heads up\n  why\n\nDo the real task")
+        == "Do the real task"
+    )
+    # A bare AUTO-CAPTURED block (e.g. SubagentStop feedback without the header).
+    assert strip("AUTO-CAPTURED: spooled\n  body\n\nDo the work") == "Do the work"
+    # Real prompts pass through untouched.
+    assert strip("  User asks: rebuild the widget.") == "User asks: rebuild the widget."
+    # Feedback-only prompts strip to the empty string.
+    assert strip("Stop (completed) says: AUTO-CAPTURED: done") == ""
+
+
+def test_goal_module_pure_host_feedback_prompt_never_poisons_the_goal(
+    iso, tmp_path
+):
+    # Host-injected feedback ("Stop (completed) says:" / "AUTO-CAPTURED:") used
+    # to arrive as a UserPromptSubmit and OVERWRITE the session's active goal
+    # in the ledger. After the 2026-10-22 port _on_prompt strips it first and
+    # returns early, so the recorded goal stays the user's real task.
+    ledger = EventLedger(tmp_path / "state")
+    module = GoalModule(ledger, interval=1)
+    module.run(
+        event(
+            tmp_path,
+            "UserPromptSubmit",
+            prompt="Alpha task: rebuild the alpha parity harness.",
+        )
+    )
+    out = module.run(
+        event(
+            tmp_path,
+            "UserPromptSubmit",
+            prompt="Stop (completed) says: AUTO-CAPTURED: session note spooled",
+        )
+    )
+    assert out.action == "allow"
+    goal = ledger.goal(str(tmp_path), "session-1")
+    assert "Alpha task" in goal
+    assert "AUTO-CAPTURED" not in goal and "Stop (completed)" not in goal
+
+
+# =============================================================================
 # GoalModule · PostCompact re-anchor + budget pacing
 # =============================================================================
 def test_postcompact_reanchor_enforced(iso, tmp_path, monkeypatch):
@@ -3031,15 +3093,25 @@ def test_ledger_stamps_canonical_tree_on_deployed_edit(iso, tmp_path, monkeypatc
     assert any("canonical_tree" not in e for e in muts)
 
 
-def test_basic_memory_nudge_fires_when_canonical_edit_no_bm_write(
+def test_basic_memory_nudge_spools_canonical_edit_without_model_feedback(
     iso, tmp_path, monkeypatch
 ):
+    """Live drift port (2026-10-22): the nudge NEVER injects. A canonical edit
+    with no vault write spools one session note and shadow-logs the would-be
+    payload; even an ENFORCED gate returns plain success — model-visible
+    feedback is gone by design (GATE_CONTRACTS["basic_memory_nudge"]
+    ["fire_rate"])."""
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert list((iso / "bm-spool").glob("*.json")), "the capture carrier is the spool"
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "basic_memory_nudge" in sink[0].read_text(encoding="utf-8")
 
 
 def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypatch):
@@ -3061,20 +3133,21 @@ def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypa
     assert out.action == "allow"
 
 
-def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
+def test_basic_memory_nudge_spools_on_any_mutation_and_never_injects(
     iso, tmp_path, monkeypatch
 ):
-    """Live SOTA WRITE gate (ported 2026-09-02): ANY file mutation with no vault
-    write -> Stop injects AND spools a session note for the hook-owned flush.
-
-    This inverted the previous `silent_without_canonical_edit` expectation on
-    purpose: the capture discipline covers every edited file, not only the
-    canonical config trees (GATE_CONTRACTS["basic_memory_nudge"]["fire_rate"])."""
+    """Live SOTA WRITE gate (ported 2026-09-02, de-injected 2026-10-22): ANY
+    file mutation with no vault write -> Stop spools a session note for the
+    hook-owned flush and shadow-logs the would-be notice. The capture
+    discipline covers every edited file, not only the canonical config trees
+    (GATE_CONTRACTS["basic_memory_nudge"]["fire_rate"])."""
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert out.reason_code != "basic_memory_nudge" and not out.additional_context
     spools = list((iso / "bm-spool").glob("*.json"))
     assert spools, "Stop must spool a session note when a mutation had no vault write"
     payload = json.loads(spools[0].read_text(encoding="utf-8"))
@@ -3085,6 +3158,10 @@ def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
     # beyond what redact_text allows, and it is idempotent per session.
     ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
     assert len(list((iso / "bm-spool").glob("*.json"))) == 1
+    # The removed once-per-session cooldown marker machinery stays gone: the
+    # de-injection removed the nag, so nothing may write basic-memory-nudge
+    # markers anymore.
+    assert not (iso / "basic-memory-nudge").exists()
 
 
 def test_basic_memory_nudge_silent_when_no_mutation_at_all(iso, tmp_path, monkeypatch):
@@ -3147,7 +3224,9 @@ def test_flush_spool_to_vault_is_inert_under_pytest_unless_opted_in(monkeypatch)
     assert spawned == []
 
 
-def test_flush_spool_to_vault_runs_the_cli_and_reports_its_exit(tmp_path, monkeypatch):
+def test_flush_spool_to_vault_runs_the_cli_and_reports_its_exit(
+    iso, tmp_path, monkeypatch
+):
     # A real child process stands in for the basic-memory CLI: BASIC_MEMORY_CLI
     # names a script that records its argv and exits with the code the test
     # chooses, and the module's subprocess.run call is routed through
@@ -3182,15 +3261,40 @@ def test_flush_spool_to_vault_runs_the_cli_and_reports_its_exit(tmp_path, monkey
     assert argv[0] == str(fake_cli)
     assert argv[1:3] == ["tool", "write-note"]
     assert "--title" in argv and "--content" in argv
+    # 2026-10-22 port: the vault CLI takes the note's folder explicitly. The
+    # default is "sessions"; HARNESS_BM_SPOOL_FOLDER overrides it.
+    assert argv[argv.index("--folder") + 1] == "sessions"
     recorded = json.loads((tmp_path / "recorded.json").read_text(encoding="utf-8"))
     assert "Session capture" in recorded and "why" in recorded
-    # A non-zero CLI exit is reported as "not flushed", never raised.
-    exit_code["value"] = 3
+    monkeypatch.setenv("HARNESS_BM_SPOOL_FOLDER", "custom-folder")
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is True
+    assert calls[-1][calls[-1].index("--folder") + 1] == "custom-folder"
+    monkeypatch.delenv("HARNESS_BM_SPOOL_FOLDER", raising=False)
+
+    def _completed(returncode: int, out: str = "", err: str = ""):
+        return subprocess.CompletedProcess(calls[-1], returncode, stdout=out, stderr=err)
+
+    # ALREADY_EXISTS: the same-title note is already in the vault (two sessions
+    # same day/workspace) -- the capture IS delivered, so it counts as success
+    # and leaves no failure trace.
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *a, **k: _completed(2, err="note basic memory: ALREADY_EXISTS"),
+    )
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is True
+
+    # A non-zero CLI exit is reported as "not flushed", never raised, and the
+    # 2026-10-22 port appends the failure to the capped flush-errors sidecar so
+    # a CLI contract change cannot rot the pipeline invisibly.
+    monkeypatch.setattr("subprocess.run", lambda *a, **k: _completed(3))
     assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is False
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    lines = sidecar.read_text(encoding="utf-8").splitlines()
+    assert any("CLI exit 3" in line and "Session capture" in line for line in lines)
 
 
 def test_flush_spool_to_vault_refuses_secrets_empties_and_missing_cli(
-    tmp_path, monkeypatch
+    iso, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
     spawned: list[list[str]] = []
@@ -3208,11 +3312,69 @@ def test_flush_spool_to_vault_refuses_secrets_empties_and_missing_cli(
         )
         is False
     )
-    # No resolvable CLI on PATH: fail-open False, no spawn.
+    # No resolvable CLI on PATH: fail-open False, no spawn -- and the 2026-10-22
+    # port records the reason in the flush-errors sidecar so a missing CLI is
+    # visible instead of silently flipping every flush to flushed=false.
     monkeypatch.delenv("BASIC_MEMORY_CLI", raising=False)
     monkeypatch.setattr("shutil.which", lambda _name: None)
     assert _flush_spool_to_vault({"title": "t", "body": "b"}) is False
     assert spawned == []
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    assert any(
+        "CLI not found on PATH" in line for line in sidecar.read_text(encoding="utf-8").splitlines()
+    )
+
+
+def test_flush_spool_to_vault_records_exceptions_in_sidecar(
+    iso, tmp_path, monkeypatch
+):
+    # The flush must never raise into the hook; its exception escape hatch now
+    # leaves a trace (exception class + title) in the sidecar.
+    monkeypatch.setenv("HARNESS_BM_FLUSH_IN_TEST", "1")
+    # A concrete CLI path skips PATH resolution so the stub's exception is the
+    # failure under test, not "CLI not found on PATH".
+    monkeypatch.setenv("BASIC_MEMORY_CLI", str(tmp_path / "fake-basic-memory.py"))
+
+    def _boom(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="basic-memory", timeout=20)
+
+    monkeypatch.setattr("subprocess.run", _boom)
+    assert _flush_spool_to_vault({"title": "Session capture", "body": "why"}) is False
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    assert any(
+        "exception: TimeoutExpired" in line
+        for line in sidecar.read_text(encoding="utf-8").splitlines()
+    )
+
+
+def test_spool_flush_error_sidecar_is_capped_and_never_raises(iso):
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    sidecar.write_bytes(b"x" * 200_001)  # over the cap -> next write rotates it
+    _spool_flush_error("CLI exit 1: rotated", {"title": "t"})
+    content = sidecar.read_text(encoding="utf-8")
+    assert "CLI exit 1: rotated" in content and "xxxx" not in content
+    # A hostile environment (unwritable sidecar) must not raise into callers.
+    (iso / "bm-spool").chmod(0o500)
+    try:
+        _spool_flush_error("must not raise", {"title": "t"})
+    finally:
+        (iso / "bm-spool").chmod(0o700)
+
+
+def test_write_session_spool_records_oserror_in_sidecar(iso, tmp_path, monkeypatch):
+    # The spool write's own OSError path leaves a trace too (2026-10-22 port):
+    # silent decay of the capture carrier is what the sidecar exists to expose.
+    def _boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("harness.modules.atomic_write_json", _boom)
+    assert _write_session_spool(event(tmp_path, "Stop")) is None
+    sidecar = iso / "bm-spool" / "flush-errors.log"
+    assert any(
+        "spool-write OSError" in line
+        for line in sidecar.read_text(encoding="utf-8").splitlines()
+    )
 
 
 def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch):
@@ -3226,7 +3388,12 @@ def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch)
     assert out.action == "allow" and not out.additional_context
 
 
-def test_basic_memory_nudge_cooldown_once_per_session(iso, tmp_path, monkeypatch):
+def test_basic_memory_nudge_is_quiescent_on_repeated_stops(iso, tmp_path, monkeypatch):
+    """The once-per-session cooldown marker machinery was removed WITH the
+    de-injection (2026-10-22): there is no nag left to cool down. The contract
+    is (a) the FIRST Stop already returns plain success — no model feedback at
+    any point — and (b) the spool stays one file per session because the spool
+    itself is the once-per-session capture."""
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
@@ -3234,13 +3401,19 @@ def test_basic_memory_nudge_cooldown_once_per_session(iso, tmp_path, monkeypatch
     module = ClaimWarningModule(ledger)
     first = module.run(event(tmp_path, "Stop"))
     second = module.run(event(tmp_path, "Stop"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    for out in (first, second):
+        assert out.action == "allow"
+        assert out.reason_code != "basic_memory_nudge" and not out.additional_context
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1
 
 
-def test_basic_memory_nudge_shadow_is_silent_and_does_not_burn_cooldown(
+def test_basic_memory_nudge_never_injects_in_shadow_or_enforce(
     iso, tmp_path, monkeypatch
 ):
+    """Promotion cannot re-introduce model feedback (2026-10-22 port): the
+    default (shadow) gate and an explicitly enforced gate BOTH return plain
+    success; both record the would-be inject payload in the shadow log. There
+    is no "burn the one-shot" state left to reason about."""
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
     monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
     ledger = EventLedger(tmp_path / "state")
@@ -3250,10 +3423,13 @@ def test_basic_memory_nudge_shadow_is_silent_and_does_not_burn_cooldown(
     assert shadow_out.action == "allow"
     sink = list((iso / "shadow").glob("shadow-*.jsonl"))
     assert sink and "basic_memory_nudge" in sink[0].read_text(encoding="utf-8")
-    # The one-shot cooldown was NOT consumed in shadow -> a promoted enforce still injects.
+    before = sink[0].read_text(encoding="utf-8").count("basic_memory_nudge")
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     enforced = module.run(event(tmp_path, "Stop"))
-    assert enforced.action == "inject" and enforced.reason_code == "basic_memory_nudge"
+    assert enforced.action == "allow"
+    assert enforced.reason_code != "basic_memory_nudge" and not enforced.additional_context
+    after = sink[0].read_text(encoding="utf-8").count("basic_memory_nudge")
+    assert after > before, "an enforced gate still shadow-logs the capture"
 
 
 def test_basic_memory_nudge_failopen_on_ledger_error(iso, tmp_path, monkeypatch):
@@ -3279,43 +3455,59 @@ def _transcript(tmp_path: Path, body: str) -> Path:
     return target
 
 
-def test_sensitive_artifact_reports_a_credential_bearing_transcript(tmp_path):
+def test_sensitive_artifact_records_transcript_finding_out_of_band(iso, tmp_path):
+    """Live drift port (2026-10-22): a transcript finding on Stop is AUDIT-ONLY.
+    It never re-enters the model's context; it is durably recorded as a marker
+    under the state root, keyed by the FULL sha256 of the normalized path."""
     target = _transcript(tmp_path, f'{{"role":"user","text":"my key is {FAKE_KEY}"}}\n')
-    result = SensitiveArtifactModule().run(
-        event(tmp_path, "Stop", transcript_path=str(target))
-    )
-    assert result.action == "inject"
-    assert result.reason_code == "sensitive_artifact"
-    joined = " ".join(result.additional_context)
-    assert "POTENTIAL-CREDENTIAL" in joined
-    # The whole point of a report-only sweep: it must not echo what it found.
-    assert FAKE_KEY not in joined
-    assert str(target) not in joined
-
-
-def test_sensitive_artifact_is_silent_on_a_clean_transcript(tmp_path):
-    # The both-states pair for the test above. Without this, "it fires" proves nothing.
-    target = _transcript(
-        tmp_path, '{"role":"user","text":"nothing of interest here"}\n'
-    )
-    result = SensitiveArtifactModule().run(
+    result = SensitiveArtifactModule(state_root=iso).run(
         event(tmp_path, "Stop", transcript_path=str(target))
     )
     assert result.action == "allow"
     assert not result.additional_context
+    assert result.reason_code != "sensitive_artifact"
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker = json.loads(
+        (iso / "sensitive-artifact" / f"{path_id}.json").read_text(encoding="utf-8")
+    )
+    assert marker == {
+        "schema_version": 1,
+        "classification": "POTENTIAL-CREDENTIAL",
+        "kind": "transcript",
+        "id": f"sha256:{path_id}",
+    }
+    # The whole point of a report-only sweep: it must not echo what it found.
+    assert FAKE_KEY not in json.dumps(marker)
+    assert str(target) not in json.dumps(marker)
 
 
-def test_sensitive_artifact_ignores_a_reentrant_stop(tmp_path):
+def test_sensitive_artifact_is_silent_on_a_clean_transcript(iso, tmp_path):
+    # The both-states pair for the test above. Without this, "it fires" proves nothing.
+    target = _transcript(
+        tmp_path, '{"role":"user","text":"nothing of interest here"}\n'
+    )
+    result = SensitiveArtifactModule(state_root=iso).run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+    assert result.action == "allow"
+    assert not result.additional_context
+    # Clean means clean: a clear classification writes NO audit marker.
+    assert not list((iso / "sensitive-artifact").glob("*.json"))
+
+
+def test_sensitive_artifact_ignores_a_reentrant_stop(iso, tmp_path):
     # Same sensitive file as the firing case; only the re-entrancy flag differs, so a failure
     # here is specifically a re-entrancy failure and not a detection failure.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
-    result = SensitiveArtifactModule().run(
+    result = SensitiveArtifactModule(state_root=iso).run(
         event(tmp_path, "Stop", transcript_path=str(target), stop_hook_active="true")
     )
     assert result.action == "allow"
 
 
-def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
+def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(iso, tmp_path):
     # REGRESSION (2026-08-08). _candidate() routes Stop and SubagentStop down two separate
     # branches, and only the Stop branch honoured stop_hook_active. The sibling above existed
     # and passed the whole time, which is precisely how a two-branch router shipped with one
@@ -3327,7 +3519,7 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     # re-entrancy failure, never a detection failure. The pair is the point -- assert both
     # events, or the next refactor silently reopens the gap.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
-    result = SensitiveArtifactModule().run(
+    result = SensitiveArtifactModule(state_root=iso).run(
         event(
             tmp_path,
             "SubagentStop",
@@ -3339,48 +3531,43 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     assert not result.additional_context
 
 
-def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
-    # The negative control for the test above: without the re-entrancy flag SubagentStop must
-    # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
-    # while destroying the detection it exists for -- silent in both states measures nothing.
+def test_sensitive_artifact_records_fresh_subagent_stop_out_of_band(iso, tmp_path):
+    # The negative control for the re-entrancy tests: without the re-entrancy
+    # flag SubagentStop must STILL record the finding — as an out-of-band audit
+    # marker now, never as model context. A guard that silenced the branch
+    # outright would pass the re-entrancy test while destroying the detection
+    # it exists for -- silent in both states measures nothing. Idempotent too:
+    # a second sweep leaves the identical marker.
     target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
-    result = SensitiveArtifactModule().run(
-        event(tmp_path, "SubagentStop", transcript_path=str(target))
-    )
-    assert result.action == "inject"
-    assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
+    module = SensitiveArtifactModule(state_root=iso)
+    result = module.run(event(tmp_path, "SubagentStop", transcript_path=str(target)))
+    assert result.action == "allow"
+    assert not result.additional_context
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker_path = iso / "sensitive-artifact" / f"{path_id}.json"
+    marker = json.loads(marker_path.read_text(encoding="utf-8"))
+    assert marker["classification"] == "POTENTIAL-CREDENTIAL"
+    assert marker["id"] == f"sha256:{path_id}"
+    again = module.run(event(tmp_path, "SubagentStop", transcript_path=str(target)))
+    assert again.action == "allow"
+    assert json.loads(marker_path.read_text(encoding="utf-8")) == marker
 
 
-def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
+def test_sensitive_artifact_write_notice_never_demands_a_forbidden_action(
+    iso, tmp_path
+):
     # The other half of the 2026-08-08 deadlock. The injected text used to end "Review the local
     # file and rotate any live credential." AGENTS.md Sec.9 forbids an agent rotating any
     # credential, so the only satisfying action was the one action the reader must refuse --
     # leaving no compliant response and stalling a policy-abiding agent even on a single firing.
-    # An advisory must always leave a LEGAL next move.
-    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
-    result = SensitiveArtifactModule().run(
-        event(tmp_path, "Stop", transcript_path=str(target))
-    )
-    joined = " ".join(result.additional_context)
-    assert "rotate any live credential" not in joined
-    assert "NOTICE, NOT A TASK" in joined
-    assert "no agent action clears this notice" in joined
-
-
-def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):
-    # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
-    missing = tmp_path / "does-not-exist.jsonl"
-    result = SensitiveArtifactModule().run(
-        event(tmp_path, "Stop", transcript_path=str(missing))
-    )
-    assert result.action == "inject"
-    assert "UNKNOWN" in " ".join(result.additional_context)
-
-
-def test_sensitive_artifact_reports_an_explicit_write_target(tmp_path):
+    # An advisory must always leave a LEGAL next move. Since the 2026-10-22 port the advisory
+    # notice exists ONLY on explicit credential-bearing WRITE targets (transcript findings are
+    # audit-only), so the pair under test is the write target.
     target = tmp_path / "creds.env"
     target.write_text(f"AWS_ACCESS_KEY_ID={FAKE_KEY}\n", encoding="utf-8")
-    result = SensitiveArtifactModule().run(
+    result = SensitiveArtifactModule(state_root=iso).run(
         event(
             tmp_path,
             "PostToolUse",
@@ -3389,12 +3576,124 @@ def test_sensitive_artifact_reports_an_explicit_write_target(tmp_path):
         )
     )
     assert result.action == "inject"
-    assert "kind=artifact" in " ".join(result.additional_context)
+    joined = " ".join(result.additional_context)
+    assert "rotate any live credential" not in joined
+    assert "NOTICE, NOT A TASK" in joined
+    assert "no agent action clears this notice" in joined
 
 
-def test_sensitive_artifact_never_raises_on_a_malformed_event(tmp_path):
+def test_sensitive_artifact_records_unknown_out_of_band_when_target_unreadable(
+    iso, tmp_path
+):
+    # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
+    missing = tmp_path / "does-not-exist.jsonl"
+    result = SensitiveArtifactModule(state_root=iso).run(
+        event(tmp_path, "Stop", transcript_path=str(missing))
+    )
+    assert result.action == "allow"
+    assert not result.additional_context
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(missing))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker = json.loads(
+        (iso / "sensitive-artifact" / f"{path_id}.json").read_text(encoding="utf-8")
+    )
+    assert marker["classification"] == "UNKNOWN"
+
+
+def test_sensitive_artifact_reports_an_explicit_write_target(iso, tmp_path):
+    # The one surface that STILL injects after the 2026-10-22 audit-only port:
+    # an explicit credential-bearing write target keeps its in-context advisory,
+    # and the in-message id stays the 12-char digest (the full sha256 lives in
+    # the out-of-band transcript markers).
+    target = tmp_path / "creds.env"
+    target.write_text(f"AWS_ACCESS_KEY_ID={FAKE_KEY}\n", encoding="utf-8")
+    result = SensitiveArtifactModule(state_root=iso).run(
+        event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Write",
+            tool_input={"file_path": str(target)},
+        )
+    )
+    assert result.action == "inject"
+    joined = " ".join(result.additional_context)
+    assert "kind=artifact" in joined
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    assert f"id=sha256:{path_id[:12]};" in joined
+
+
+def test_sensitive_artifact_never_raises_on_a_malformed_event(iso, tmp_path):
     # Fails open by contract: a reporting module must never be able to break the hook pipeline.
-    result = SensitiveArtifactModule().run(
+    result = SensitiveArtifactModule(state_root=iso).run(
         event(tmp_path, "Stop", transcript_path="\x00bad")
     )
     assert result.action in {"allow", "inject"}
+
+
+def test_sensitive_artifact_marker_never_downgrades_classification(iso, tmp_path):
+    # Rank monotonicity (2026-10-22 port): a later UNKNOWN re-sweep of the same
+    # path (the file became unreadable after a POTENTIAL-CREDENTIAL report)
+    # must not weaken the durable audit record.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule(state_root=iso)
+    module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker_path = iso / "sensitive-artifact" / f"{path_id}.json"
+    assert json.loads(marker_path.read_text(encoding="utf-8"))[
+        "classification"
+    ] == "POTENTIAL-CREDENTIAL"
+    target.unlink()  # now unreadable -> this sweep classifies UNKNOWN
+    module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert json.loads(marker_path.read_text(encoding="utf-8"))[
+        "classification"
+    ] == "POTENTIAL-CREDENTIAL"
+
+
+def test_sensitive_artifact_fails_open_when_marker_is_damaged(iso, tmp_path):
+    # A damaged marker cannot be silently overwritten: recording fails and the
+    # run surfaces failed_open so the state damage stays visible instead of
+    # being swallowed as a plain allow.
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule(state_root=iso)
+    result = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert result.action == "allow"
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker_path = iso / "sensitive-artifact" / f"{path_id}.json"
+    marker_path.write_text("{not-json", encoding="utf-8")
+    again = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert again.status == "FAILED:hook-stop"
+    assert again.reason_code == "internal_error"
+    assert again.action == "allow"
+
+
+def test_sensitive_artifact_transcript_shadow_logs_and_off_mode_still_records(
+    iso, tmp_path, monkeypatch
+):
+    # The audit-only path shadow-logs the would-be advisory (unless the gate is
+    # fully off), and the out-of-band marker is written REGARDLESS of mode —
+    # muting the gate must not mute the capture.
+    monkeypatch.setenv("HARNESS_SHADOW_SAMPLE", "1")
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule(state_root=iso)
+    out = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert out.action == "allow" and not out.additional_context
+    sink = list((iso / "shadow").glob("shadow-*.jsonl"))
+    assert sink and "sensitive_artifact" in sink[0].read_text(encoding="utf-8")
+
+    monkeypatch.setenv("HARNESS_GATE_MODE__sensitive_artifact", "off")
+    muted = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert muted.action == "allow" and not muted.additional_context
+    path_id = hashlib.sha256(
+        os.path.normcase(os.path.abspath(str(target))).encode("utf-8", "surrogatepass")
+    ).hexdigest()
+    marker = json.loads(
+        (iso / "sensitive-artifact" / f"{path_id}.json").read_text(encoding="utf-8")
+    )
+    assert marker["classification"] == "POTENTIAL-CREDENTIAL"
