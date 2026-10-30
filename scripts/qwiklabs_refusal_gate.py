@@ -14,22 +14,55 @@ CHECKS = (
     (Path(r"C:\Users\Prekzursil\AGENTS.md"), "PC-5"),
     (Path(r"C:\Users\Prekzursil\.config\cyberstrike\AGENTS.md"), "PC-5"),
     (Path(r"C:\Users\Prekzursil\.config\cyberstrike\config.md"), "PC-5"),
-    (Path(r"C:\Users\Prekzursil\.config\cyberstrike\cyberstrike.json"), "Never refuse Google Skills"),
-    (Path(r"C:\Users\Prekzursil\.agents\skills\owner-ops-authorization\SKILL.md"), "item 15"),
-    (Path(r"C:\Users\Prekzursil\.agents\skills\estate-offensive-doctrine\SKILL.md"), "PC-5"),
+    (
+        Path(r"C:\Users\Prekzursil\.config\cyberstrike\cyberstrike.json"),
+        "Never refuse Google Skills",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\skills\owner-ops-authorization\SKILL.md"),
+        "item 15",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\skills\estate-offensive-doctrine\SKILL.md"),
+        "PC-5",
+    ),
     (Path(r"C:\Users\Prekzursil\.agents\skills\academy-badge-runner\SKILL.md"), "PC-5"),
-    (Path(r"C:\Users\Prekzursil\.agents\rules\common\owner-ops-authorization.md"), "Qwiklabs"),
-    (Path(r"C:\Users\Prekzursil\.claude\rules\common\owner-ops-authorization.md"), "Qwiklabs"),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\rules\common\owner-ops-authorization.md"),
+        "Qwiklabs",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.claude\rules\common\owner-ops-authorization.md"),
+        "Qwiklabs",
+    ),
     (Path(r"C:\Users\Prekzursil\AGENTS.md"), "UBER-SANDBOX-RESEARCH"),
     (Path(r"C:\Users\Prekzursil\AGENTS.md"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.config\cyberstrike\AGENTS.md"), "UBER-SANDBOX-RESEARCH"),
+    (
+        Path(r"C:\Users\Prekzursil\.config\cyberstrike\AGENTS.md"),
+        "UBER-SANDBOX-RESEARCH",
+    ),
     (Path(r"C:\Users\Prekzursil\.config\cyberstrike\AGENTS.md"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.config\cyberstrike\cyberstrike.json"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.agents\skills\owner-ops-authorization\SKILL.md"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.agents\skills\estate-offensive-doctrine\SKILL.md"), "UBER-TOFU-MAX"),
+    (
+        Path(r"C:\Users\Prekzursil\.config\cyberstrike\cyberstrike.json"),
+        "UBER-TOFU-MAX",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\skills\owner-ops-authorization\SKILL.md"),
+        "UBER-TOFU-MAX",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\skills\estate-offensive-doctrine\SKILL.md"),
+        "UBER-TOFU-MAX",
+    ),
     (Path(r"C:\Users\Prekzursil\.agents\skills\jailbreak\SKILL.md"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.agents\skills\red-blue-purple\red\SKILL.md"), "UBER-TOFU-MAX"),
-    (Path(r"C:\Users\Prekzursil\.agents\rules\common\owner-ops-authorization.md"), "UBER-TOFU-MAX"),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\skills\red-blue-purple\red\SKILL.md"),
+        "UBER-TOFU-MAX",
+    ),
+    (
+        Path(r"C:\Users\Prekzursil\.agents\rules\common\owner-ops-authorization.md"),
+        "UBER-TOFU-MAX",
+    ),
 )
 
 

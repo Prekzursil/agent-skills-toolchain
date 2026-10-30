@@ -3181,7 +3181,14 @@ class SubagentLifecycleModule:
         output = event.last_assistant_message.strip()
         if self._TERMINAL.match(output):
             return HookResult.success()
-        if not output or len(output) < 20:
+        # 2026-10-21 grok fix: no supported provider populates
+        # last_assistant_message on Stop/SubagentStop payloads (verified live
+        # against grok 1.0.50: the field is ABSENT, not empty). Blocking on
+        # absent evidence misfired on every grok subagent stop -- the parent
+        # looped "output too brief" while the subagent logged 'I've been
+        # providing comprehensive handoffs'. Gate only on a POSITIVE short
+        # output; absent/empty means unverifiable, not hollow.
+        if output and len(output) < 20:
             return HookResult.success(
                 action="inject",
                 reason_code="hollow_subagent_output",

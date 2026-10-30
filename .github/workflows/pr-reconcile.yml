@@ -78,6 +78,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.CODEX_RUNNER_PAT }}
         run: |
-          gh issue create --repo Prekzursil/agent-skills-toolchain \
+          # CI-hardening (PR #379): a failed issue-file must fail the run, not read green.
+          if ! gh issue create --repo Prekzursil/agent-skills-toolchain \
             --title "pr-reconcile sweep report $(date -u +%Y-%m-%dT%H:%M)" \
-            --body-file /tmp/recon/report.md || echo "issue step failed (report retained in run log)"
+            --body-file /tmp/recon/report.md; then
+            echo "::error::failed to file the summary issue; the report is retained in this run log."
+            exit 1
+          fi
