@@ -24,6 +24,17 @@ replacement, says what was dropped on purpose, and covers moving existing state.
 2. Optionally add `"pause_margin_usd"` to the config.
 3. Point `LONGHAUL_CONFIG` at the config. Nothing else changes.
 
+## 1b. The hop loop, restored caller-side (`modal_hopper_launch.ps1`)
+
+Owner directive 2026-10-30: the phenibut-grade automatic hop comes back as a
+THIN wrapper over `run`, not as core behavior. `tools/longhaul/modal_hopper_launch.ps1`
+loops the config's funded accounts through `longhaul run --profile P`, so
+budgeting/pausing/recording still flows through the core; exit 0 stops the
+loop, exit 3 hops to the next funded account. It is Modal-specific (hence
+the name, per the same directive): it pre-flights every enrolled profile
+against `~/.modal.toml` and refuses to hop blind on a name mismatch. The
+core budget/checkpoint/config layer stays provider-general.
+
 ## 2. modal-budget-ledger PR 2, the measured layer (never merged)
 
 The patch is `pr2-measured-layer.patch`, with `modal_spend.py` beside it, in the
