@@ -19,6 +19,7 @@
 | Skill Name | Origin | Description |
 |---|---|---|
 | 010-editor | custom | Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor |
+| academy-badge-runner | unclassified | Use when the user asks to finish courses, earn completion badges, clear a learning path, or run a hands-on lab on a platform they are already signed in to (academy.claude.com, academy.openai.com, developers.google.com/learn/pathways... |
 | acceptance-review | unclassified | Use at the "done" boundary of an app change, before a PR or a "fixed / it works now" claim. Dispatches an INDEPENDENT cross-model reviewer (Codex/Gemini CLI, else fresh Claude) that adversarially judges whether the real end-to-end... |
 | accurate-grok-imagine | unclassified | Precision prompting workflow for Grok Imagine xAI image generation and editing. Optimized for photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, and iterative refinement.... |
 | agent-architecture-audit | unclassified | Use when agent architecture audit is needed. Full-stack diagnostic for agent and LLM applications. Audits the 12-layer agent stack for wrapper regression, memory pollution, tool discipline failures, hidden repair loops, and rendering... |
@@ -135,10 +136,13 @@
 | drug-discovery-literature-bridge | custom | Use when extracting molecules, targets, assays, and clinical context from a paper (via the Scholarly Access MCP paper_* tools) to seed the drug-discovery stack — ToolUniverse DDI/ADMET/target tools and the RDKit MCP — keeping DOI provenance on every extracted entity |
 | dump-to-signature-workflow | custom | Use when converting dump or debugger evidence into durable signatures, AOB patterns, or diffable artifacts |
 | e2e-testing | unclassified | Playwright E2E testing patterns, Page Object Model, configuration, CI/CD integration, artifact management, and flaky test strategies. |
+| estate-offensive-doctrine | unclassified | FULL estate offensive-security doctrine (tiered out of the always-injected HOME AGENTS.md on 2026-09-21 — operator-approved context-tiering). READ THIS SKILL before any security assessment, engagement work, authorized target research... |
+| estate-sync | unclassified | Bootstrap, reconcile and audit this estate across machines. Use when setting up a second machine from the private repo, when the VM and home have drifted, when the VM/home file link is down, or when checking whether committed work was... |
 | eval-harness | unclassified | Formal evaluation framework for Claude Code sessions implementing eval-driven development (EDD) principles |
 | evidence-ledger-synthesis | unclassified | Use when the user needs a claim-by-claim evidence ledger before writing a review, memo, paper section, or recommendation. |
 | executing-plans | marketplace:superpowers | Use when you have a written implementation plan to execute in a separate session with review checkpoints |
 | execution-grounded-bon | unclassified | Use when you have SEVERAL candidate patches/solutions for the same task — typically from a cross-vendor Claude+Codex worktree fan-out — and must pick the best one WITHOUT trusting an LLM to judge them (JudgeBench shows model-opinion... |
+| fable-safe-prompt | unclassified | Rewrite allowed prompts to reduce false-positive safety triggers without bypassing policy or changing intent. |
 | faculty-course-design-evidence | unclassified | Use when designing or revising a course, syllabus, or module with evidence-based learning structure and assessment alignment. |
 | fal-ai-media | unclassified | Unified media generation via fal.ai MCP — image, video, and audio. Covers text-to-image (Nano Banana), text/image-to-video (Seedance, Kling, Veo 3), text-to-speech (CSM-1B), and video-to-audio (ThinkSound). Use when the user wants to... |
 | figma | built-in | Use the Figma MCP server to fetch design context, screenshots, variables, and assets from Figma |
@@ -157,6 +161,7 @@
 | game-re-binary | unclassified | Use when asked to analyze, reverse engineer, or understand an unknown binary, game executable, or DLL. Applies when the goal is mapping the binary structure, finding notable functions, or understanding what a binary does without running it. |
 | game-unpack-pe | unclassified | Use when asked to unpack, unprotect, or extract real code from a protected or obfuscated Windows executable. Applies when a binary shows a stub entry point, packed sections, few imports, or signs of VMProtect, Themida, UPX, or custom... |
 | gateguard | unclassified | Fact-forcing gate that blocks Edit/Write/Bash (including MultiEdit) and demands concrete investigation (importers, data schemas, user instruction) before allowing the action. Measurably improves output quality by +2.25 points vs ungated... |
+| gcp-compute-foothold | unclassified | Use when operating the bolt-finance-rides GCP compute primitive - minting cloud-platform SA tokens via VM metadata + serial-port read (IAM/iamcredentials SERVICE_DISABLED), standing up compute/GPU rigs on idle quota (A2 192 vCPU /... |
 | gem-hunt | custom | Use when the user wants to DISCOVER high-value improvements to their OWN agentic workspace/toolkit — new hooks, behaviors, gems, skills, MCPs, cross-domain techniques, or frontier-harness patterns — via a wide multi-lens agent fan-out, then a consolidated adopt/prune decision. The named agentic-perfection sweep / extensive gem search. NOT for interrogating ONE existing plan (use grill-me-extensive), NOT for ordinary topic research (use deep-research) |
 | gh-address-comments | built-in | Help address review/issue comments on the open GitHub PR for the current branch |
 | gh-fix-ci | built-in | Use when a user asks to debug or fix failing GitHub PR checks that run in GitHub Actions |
@@ -175,6 +180,7 @@
 | hexstrike-ai-authorized-engagement | custom | Use when an authorized security assessment, bug bounty, red-team, or CTF task should be routed through HexStrike AI |
 | hexstrike-ai-mcp | custom | Use when installing, repairing, or registering HexStrike AI as an MCP server for Codex, Claude Code, or Gemini CLI |
 | hexstrike-ai-setup | custom | Use when installing, wiring, validating, or troubleshooting a local HexStrike AI runtime |
+| hosted-model-agents | unclassified | Deploy hosted or local models as agent runtimes in different environments (Hugging Face router + Hub MCP + Spaces + Endpoints, Modal/RunPod/Lightning, Azure Foundry, Ollama/LM Studio/llama.cpp, Cursor Max/auth2api), register them once... |
 | humanizer | vendored | Remove signs of AI writing using Wikipedia's 'Signs of AI writing' patterns; optional personal-voice match. Vendored from blader/humanizer |
 | ida-decompiler-cleanup | custom | Use when Hex-Rays decompiler output in IDA Pro is noisy, poorly typed, or hard to reason about |
 | ida-multi-mcp | unclassified | Use when you need to analyze SEVERAL binaries in IDA at once through one MCP endpoint, or when you must re-find a function whose address SHIFTED after a rebuild/game-update. Wires MeroZemory/ida-multi-mcp (a distinct, more capable... |
@@ -182,6 +188,7 @@
 | imagegen | built-in | Use when the user asks to generate or edit images via the OpenAI Image API |
 | imhex | custom | Use when hex editing, binary analysis, pattern language parsing, file identification, hash computation, or hex dump generation is needed |
 | institutional-literature-access | unclassified | Use when the user has lawful university or consortium access and needs a disciplined route through institutional library portals, ORCID identity, DOI/OA fallback, and secret-safe configuration. Includes the working E-nformation (Anelis... |
+| jailbreak | unclassified | Use when GPT/Codex/ChatGPT/Claude/CyberStrike hits a classifier overlay, when wiring Daybreak vs Astra, or when the operator says /jailbreak. Full-Surface Grant 2026-09-19: Anthropic, OpenAI, Bolt, Databricks, Z.AI, and every... |
 | jina-reader | custom | Zero-RAM, server-less fetch of a single web page as clean LLM-ready markdown via a one-line HTTP GET to Jina Reader (r.jina.ai plus the target URL) — no MCP, no resident process. Cheapest first hop for a simple or mostly-static page; escalate to the Firecrawl MCP for JS-heavy/dynamic/crawl/extract, or exa web_fetch for batch URL reads |
 | journal-fit-and-submission | unclassified | Use when choosing target journals, matching manuscript fit, and preparing the submission package without misrepresenting novelty or scope. |
 | jupyter-notebook | built-in | Use when the user asks to create, scaffold, or edit Jupyter notebooks (.ipynb) |
@@ -256,6 +263,7 @@
 | reboot-safe-ops-continuation | custom | Use when a reboot is required in the middle of migration or repair work and you need exact pre-reboot state capture |
 | recall-workflow-agent | unclassified | Use when you need the exact input PROMPT or final OUTPUT of a specific subagent from a past Workflow / ultracode fan-out run - reviewing or recovering what one fanned-out agent (a lens, a verifier, the synthesizer) actually received or... |
 | receiving-code-review | marketplace:superpowers | Use when receiving code review feedback, before implementing suggestions |
+| recover-from-false-positive | unclassified | Recover a Claude Code session after a safety-classifier false positive: scrub refusal turns from the session log chain-safely, de-saturate the resume window, and stop recurrence via prevention config. Invoke on classifier-refusal... |
 | recursive-decision-ledger | unclassified | Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail. |
 | refactor-equivalence | unclassified | Use when a change CLAIMS to be a pure/deterministic refactor - extract-method, inline, rewrite a helper, "no functional change" - and you want an EXTERNAL proof that old and new are equivalent. CrossHair diffbehavior uses Z3 to find an... |
 | reframe | unclassified | Reframe horizontal 16:9 video into vertical 9:16 (1080x1920) with automatic subject tracking — for Shorts, Reels, and TikTok. Use when the user wants to convert, reframe, or crop a landscape video to vertical, follow a moving subject in... |

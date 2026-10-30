@@ -298,14 +298,32 @@ def _check_label(chk: dict) -> str:
     return str(chk.get("name") or chk.get("script") or "?")
 
 
-def _select(checks: list, tool_name: str) -> list:
-    """Keep checks whose matcher (regex on tool_name; absent/None = always) matches."""
+def _select(checks: list, tool_name: str, event: str = "") -> list:
+    """Keep checks whose matcher (regex on tool_name) matches.
+
+    matcher absent / None / "" / "*" = match-all. An INVALID-regex matcher drops
+    ONLY that check and attests a ``bad-matcher`` receipt, instead of raising
+    ``re.error`` up into ``run()``'s blanket ``except BaseException`` -- which
+    silently disarmed EVERY OTHER check selected for the same event (the same
+    indistinguishable-silence class the flight receipts above close, one layer up).
+    ``"*"`` is the settings-style wildcard (used as a matcher convention in the
+    deployed ``settings.json``): a literal ``re.search("*", ...)`` is a
+    ``nothing to repeat`` error, so it is treated as match-all rather than allowed
+    to crash selection for the whole event.
+    """
     sel = []
     for chk in checks or []:
         mt = chk.get("matcher")
-        if mt and not re.search(mt, tool_name or ""):
+        if mt is None or mt == "" or mt == "*":
+            sel.append(chk)
             continue
-        sel.append(chk)
+        try:
+            hit = re.search(mt, tool_name or "")
+        except re.error:
+            _receipt(event, _check_label(chk), "bad-matcher")
+            continue
+        if hit:
+            sel.append(chk)
     return sel
 
 
@@ -319,7 +337,7 @@ def run(event: str, raw_payload: str, manifest: dict) -> str | None:
     except Exception:
         payload = {}
     tool = str((payload or {}).get("tool_name") or "")
-    matched = _select(ev.get("checks") or [], tool)
+    matched = _select(ev.get("checks") or [], tool, event)
     if not matched:
         return None
 
