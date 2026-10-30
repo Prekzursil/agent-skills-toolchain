@@ -723,6 +723,18 @@ jobs:
       - name: account-hopper standalone regression
         working-directory: tools/account-hopper
         run: python test_account_hopper.py
+      # skills/run-taskwatch_monitor -- the `mon taskwatch` bridge. taskwatch_monitor was
+      # complete, tested and reachable by NOTHING (no monitors.toml stanza, no hook
+      # reference); this shim is the missing half. Stdlib-only custom __main__ runner, so
+      # pytest discovery would not execute it; naming it here is what makes it gate. What it
+      # gates: the resolution ladder (TASKWATCH_CMD > PATH > TASKWATCH_HOME > a checkout
+      # beside the skill), that a WRONG TASKWATCH_HOME is named rather than silently skipped,
+      # that a missing install exits 3 with the fixing command and launches nothing, and an
+      # AST check that the shim imports neither taskwatch nor monitorcore -- the guard that
+      # keeps "two tools, one front door" from quietly becoming a fusion.
+      - name: taskwatch bridge standalone regression
+        working-directory: skills/run-taskwatch_monitor
+        run: python test_taskwatch_board.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are
