@@ -19,6 +19,7 @@
 | Skill Name | Origin | Description |
 |---|---|---|
 | 010-editor | custom | Use when applying binary templates (.bt), running 010 Editor scripts (.1sc), or performing hex editing with SweetScape 010 Editor |
+| 1password-ops | unclassified | 1Password access for agents on Windows — official MCP (secretless, Environments-only), op-personal wrapper (full vault reads via desktop-app integration + one Windows Hello approval), Connect-mode bypass, per-runtime wiring map, fleet... |
 | academy-badge-runner | unclassified | Use when the user asks to finish courses, earn completion badges, clear a learning path, or run a hands-on lab on a platform they are already signed in to (academy.claude.com, academy.openai.com, developers.google.com/learn/pathways... |
 | acceptance-review | unclassified | Use at the "done" boundary of an app change, before a PR or a "fixed / it works now" claim. Dispatches an INDEPENDENT cross-model reviewer (Codex/Gemini CLI, else fresh Claude) that adversarially judges whether the real end-to-end... |
 | accurate-grok-imagine | unclassified | Precision prompting workflow for Grok Imagine xAI image generation and editing. Optimized for photorealistic composites, identity-preserving edits, reference-based compositing, anatomy and lighting repairs, and iterative refinement.... |
