@@ -158,3 +158,82 @@ def test_receipt_never_raises_when_stderr_is_broken(tmp_path):
         mod._receipt("Stop", "x", "load-failed")  # must not raise
     finally:
         sys.stderr = old_err
+
+
+# --------------------------------------------------------------------------- #
+# 2. matcher robustness (an invalid/"*" matcher must not disarm the event)
+# --------------------------------------------------------------------------- #
+def _emitter(root: Path, rel: str, tag: str) -> None:
+    """Write a check script that delivers ``tag`` as additionalContext and exits 0."""
+    p = root / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        "import json\n\n\ndef main():\n"
+        '    print(json.dumps({"hookSpecificOutput": '
+        '{"hookEventName": "Stop", "additionalContext": '
+        f'"{tag}"}}}}))\n'
+        "    return 0\n",
+        encoding="utf-8",
+    )
+
+
+def test_invalid_matcher_drops_only_that_check_and_attests(tmp_path):
+    """RED before the _select guard: ``re.search("[", ...)`` raised re.error, which
+    propagated into run()'s blanket handler and returned None -- the VALID sibling's
+    context was lost with no signal. GREEN after: the bad check is dropped with a
+    ``bad-matcher`` receipt and the sibling still delivers."""
+    mod = load_dispatch()
+    _emitter(tmp_path, "good/check.py", "SIBLING-DELIVERED")
+    _emitter(tmp_path, "bad/check.py", "SHOULD-NOT-RUN")
+    manifest = _manifest(
+        [
+            {"name": "bad", "script": "bad/check.py", "timeout": 5, "matcher": "["},
+            {"name": "good", "script": "good/check.py", "timeout": 5},  # matcher absent
+        ],
+        str(tmp_path),
+    )
+    out, err = _run_capturing_stderr(mod, "Stop", {"tool_name": "Read"}, manifest)
+    assert out is not None and "SIBLING-DELIVERED" in out, (
+        "a broken-matcher sibling must not take down the whole event"
+    )
+    assert "SHOULD-NOT-RUN" not in out, "the invalid-matcher check must be dropped"
+    assert mod.RECEIPT_PREFIX in err and "status=bad-matcher" in err
+    assert "check=bad" in err
+
+
+def test_star_matcher_is_treated_as_match_all(tmp_path):
+    """A literal ``"*"`` matcher (the settings wildcard convention) is not a valid
+    regex (``re.search("*", "")`` -> ``nothing to repeat``). It must be read as
+    match-all and run, not crash selection."""
+    mod = load_dispatch()
+    _emitter(tmp_path, "star/check.py", "STAR-DELIVERED")
+    manifest = _manifest(
+        [{"name": "star", "script": "star/check.py", "timeout": 5, "matcher": "*"}],
+        str(tmp_path),
+    )
+    out, err = _run_capturing_stderr(mod, "Stop", {"tool_name": "Read"}, manifest)
+    assert out is not None and "STAR-DELIVERED" in out
+    assert "status=bad-matcher" not in err, "'*' is match-all, not a bad matcher"
+
+
+def test_valid_matcher_behaviour_is_unchanged(tmp_path):
+    """CONTROL: a normal regex matcher selects on hit and skips on miss exactly as
+    before (so the guard did not change the common path)."""
+    mod = load_dispatch()
+    _emitter(tmp_path, "edit/check.py", "EDIT-DELIVERED")
+    manifest = _manifest(
+        [
+            {
+                "name": "edit",
+                "script": "edit/check.py",
+                "timeout": 5,
+                "matcher": "Edit|Write",
+            }
+        ],
+        str(tmp_path),
+    )
+    hit, _ = _run_capturing_stderr(mod, "Stop", {"tool_name": "Edit"}, manifest)
+    miss, err = _run_capturing_stderr(mod, "Stop", {"tool_name": "Read"}, manifest)
+    assert hit is not None and "EDIT-DELIVERED" in hit, "matcher hit must select"
+    assert miss is None, "matcher miss must skip (no selected check -> None)"
+    assert err == "", "a clean miss emits no receipt"

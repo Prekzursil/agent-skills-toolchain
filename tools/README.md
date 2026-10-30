@@ -16,6 +16,7 @@ boundaries understandable.
 ## Standalone utilities
 
 - [`tools/triage-router`](triage-router/README.md) — stdlib model-tier routing CLI used by `/model-route` and `/start-task`
+- [`tools/account-hopper`](account-hopper/README.md) — stdlib per-account budget ledger and account hopper over Modal accounts you fund; records spend, names the next account to hop to, no network, never switches accounts itself; ships `hopper_launch.ps1`, the PowerShell auto-rotation launcher that acts on its answers
 
 ## Current live projects
 
