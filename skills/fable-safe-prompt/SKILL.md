@@ -1,7 +1,6 @@
 ---
 name: fable-safe-prompt
-description: Rewrite allowed prompts to reduce false-positive safety triggers without
-  bypassing policy or changing intent.
+description: Rewrite allowed prompts to reduce false-positive safety triggers without bypassing policy or changing intent.
 category: agent-behavior
 risk: safe
 source: community
