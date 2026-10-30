@@ -180,7 +180,17 @@ jobs:
         run: python ci/gen_skills_manifest.py --check
       # `actions/checkout` does not create refs/remotes/origin/main; the three-dot
       # merge-base range needs it to exist.
+      # `actions/checkout` does not create refs/remotes/origin/main; the PR path
+      # needs it for the merge-base range. On push there is no meaningful base
+      # ref of "main vs main" -- that was the null-range defect this gate was
+      # named for -- so the push path diffs the merge commit against its own
+      # first parent (exactly what the squash-merge on main introduces).
       - name: gate-skill-dual-write fetch base
+        if: github.event_name == 'pull_request'
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-      - name: gate-skill-dual-write D-001 gate
+      - name: gate-skill-dual-write D-001 gate (PR diff vs base)
+        if: github.event_name == 'pull_request'
         run: python ci/check_skill_dual_write.py --base origin/main --head HEAD --strict-parity
+      - name: gate-skill-dual-write D-001 gate (push delta vs first parent)
+        if: github.event_name != 'pull_request'
+        run: python ci/check_skill_dual_write.py --base HEAD^1 --head HEAD --strict-parity
