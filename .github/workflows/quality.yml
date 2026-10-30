@@ -678,9 +678,20 @@ jobs:
       # fleet-supervisor suite. Stdlib-only (pytest already installed above); the tests
       # load the scripts by path and read .agents/agents.json in place. Reuses the
       # existing `gate-tests-coverage` charter slug on purpose -- it is not a new gate,
-      # so .quality/charter_check.sh stays consistent with no charter.yml edit. The
-      # bm_cursor_http_session bridge suite is deliberately NOT listed: it drives a fake
-      # streamable-HTTP daemon over loopback and is gated with tools/mcp/mcp-http-host.
+      # so .quality/charter_check.sh stays consistent with no charter.yml edit.
+      # 2026-10-24: wire two more .agents/tests suites that NO workflow named and NO
+      # directory selector swept (grep across .github/ ci/ scripts/ agent-self/ returns
+      # zero references for either filename). Completes the test-wiring residual of PR
+      # #379 (its honest-verdict/SHA-pin/timeout core landed in #393 @ b95f913a6). Both
+      # are green stdlib+loopback suites, re-measured 2026-10-24: test_stale_codex_threads
+      # 1 passed, test_bm_cursor_http_session 26 passed in ~1.7s. The earlier note that
+      # bm_cursor was "gated with tools/mcp/mcp-http-host" was REFUTED by #379: that step
+      # runs the PACKAGE's tests, not this .agents file, which nothing invoked.
+      # Still NOT wired, deliberately -- owner-debt, not reliably green across
+      # interpreters, so keep the gap visible rather than silently tolerated:
+      # test_mcp_control_plane_live_lineage.py (re-run here 2026-10-24: 6 failed /
+      # 41 passed) and test_skills_and_agents_contract.py (env-skipped here; RED on
+      # PR #379's audit interpreter).
       - name: gate-tests-coverage mcp control plane (.agents/scripts; main + live lineage suites)
         run: |
           python -m pytest \
@@ -688,6 +699,8 @@ jobs:
             .agents/tests/test_mcp_control_plane_live.py \
             .agents/tests/test_cursor_remote_transport_policy.py \
             .agents/tests/test_mcp_fleet_supervisor.py \
+            .agents/tests/test_stale_codex_threads.py \
+            .agents/tests/test_bm_cursor_http_session.py \
             -q -p no:cacheprovider
       # tools/triage-router uses a stdlib-only custom runner, not pytest discovery.
       # Naming the script here turns its existing tests and production-wiring checks
@@ -715,6 +728,19 @@ jobs:
           python test_longhaul.py
           python test_longhaul_checkpoint.py
           python spec_longhaul_checkpoint.py
+
+      # skills/run-taskwatch_monitor -- the `mon taskwatch` bridge. taskwatch_monitor was
+      # complete, tested and reachable by NOTHING (no monitors.toml stanza, no hook
+      # reference); this shim is the missing half. Stdlib-only custom __main__ runner, so
+      # pytest discovery would not execute it; naming it here is what makes it gate. What it
+      # gates: the resolution ladder (TASKWATCH_CMD > PATH > TASKWATCH_HOME > a checkout
+      # beside the skill), that a WRONG TASKWATCH_HOME is named rather than silently skipped,
+      # that a missing install exits 3 with the fixing command and launches nothing, and an
+      # AST check that the shim imports neither taskwatch nor monitorcore -- the guard that
+      # keeps "two tools, one front door" from quietly becoming a fusion.
+      - name: taskwatch bridge standalone regression
+        working-directory: skills/run-taskwatch_monitor
+        run: python test_taskwatch_board.py
       # hooks/cmd-rewrite — the SOLE PreToolUse rewriter for the Bash tool. There is no
       # repo-wide test autodiscovery here, so these suites run only because this step names
       # them; without it they are dead weight that cannot catch a regression. Both are

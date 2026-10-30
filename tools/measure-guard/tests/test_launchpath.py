@@ -649,7 +649,20 @@ def test_shipped_policy_covers_committed_registry_stanzas() -> None:
     registries = lp.registry_paths(oids)
     assert registries, "detector control: the real repo must have registry mirrors"
     blobs = lp.read_blobs(lp.REPO, {oids[path] for path in registries})
-    expected = {"wfmon", "agentmon", "codexmon", "crcp", "csmon", "cockpit", "p2r2e"}
+    # taskwatch added 2026-10-24 with the `[taskwatch]` registry stanza. It is
+    # EXEMPT (NOT-CHECKED), not probed: see the reason in launchpath.EXEMPT --
+    # requiring the shim's own resolution line would reproduce the csmon
+    # false-pass this gate already guards against.
+    expected = {
+        "wfmon",
+        "agentmon",
+        "codexmon",
+        "crcp",
+        "csmon",
+        "cockpit",
+        "p2r2e",
+        "taskwatch",
+    }
     accounted = {probe.monitor for probe in lp.all_probes()} | set(lp.EXEMPT)
     assert accounted == expected
     for registry in registries:
@@ -659,7 +672,7 @@ def test_shipped_policy_covers_committed_registry_stanzas() -> None:
     hermetic_names = {probe.monitor for probe in lp.HERMETIC}
     assert exec_names.isdisjoint({"wfmon", "agentmon", "crcp"})
     assert hermetic_names == {"agentmon", "csmon"}
-    assert set(lp.EXEMPT) == {"wfmon", "crcp", "p2r2e"}
+    assert set(lp.EXEMPT) == {"wfmon", "crcp", "p2r2e", "taskwatch"}
     assert exec_names.isdisjoint(hermetic_names)
     assert hermetic_names.isdisjoint(set(lp.EXEMPT))
     assert all(probe.mode == "import_render" for probe in lp.HERMETIC)

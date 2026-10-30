@@ -69,6 +69,40 @@ PINNED_TWINS: tuple[tuple[str, str], ...] = (
         "hooks/event-ledger/sessionstart-replay.py",
         "agent-self/config/hooks/event-ledger/sessionstart-replay.py",
     ),
+    # PROMOTED 2026-10-24 from KNOWN_DIVERGENT, where these five were RECORDED as
+    # drifting rather than fixed. The mirror had taken the newer stop-hook.py and
+    # sessionstart-replay.py while keeping a two-generations-old ledger.py and
+    # note.py (233 L against the root's 441), so it ran a current stop-hook against
+    # a stale ledger module -- a combination that existed nowhere real, and which
+    # quality.yml:1055 and :1492 were gating green. Re-projected wholesale from the
+    # root, so these are now ENFORCED identical instead of merely described.
+    #
+    # Nothing was lost. The mirror's test_ledger.py asserted `"ship the ledger" in
+    # ctx`, i.e. that the goal WAS injected into replay context -- the root's own
+    # comment records that as the leak it removed ("this check used to assert the
+    # goal WAS injected -- it pinned the leak"). Its 10 assertion labels were a
+    # strict subset of the root's 16. The divergence was a stale copy pinning a
+    # fixed bug, not a variant worth keeping.
+    (
+        "hooks/event-ledger/ledger.py",
+        "agent-self/config/hooks/event-ledger/ledger.py",
+    ),
+    (
+        "hooks/event-ledger/note.py",
+        "agent-self/config/hooks/event-ledger/note.py",
+    ),
+    (
+        "hooks/event-ledger/prune-report.py",
+        "agent-self/config/hooks/event-ledger/prune-report.py",
+    ),
+    (
+        "hooks/event-ledger/test_ledger.py",
+        "agent-self/config/hooks/event-ledger/test_ledger.py",
+    ),
+    (
+        "hooks/event-ledger/test_prune_oats.py",
+        "agent-self/config/hooks/event-ledger/test_prune_oats.py",
+    ),
     (
         "hooks/claim-guard/ledger-write.py",
         "agent-self/config/hooks/claim-guard/ledger-write.py",
@@ -161,15 +195,6 @@ KNOWN_DIVERGENT: tuple[tuple[str, str, str], ...] = (
         "still deployed by agent-self/bootstrap.ps1",
     ),
     (
-        "hooks/event-ledger/test_prune_oats.py",
-        "agent-self/config/hooks/event-ledger/test_prune_oats.py",
-        "DRIFT, two-directional: the mirror keeps a 51-line 'Section 5b / "
-        "D-wu-25' outcome-vs-attempt-frequency test the repo root does not "
-        "have; the root replaced the ranking assertions with the D-n01 "
-        "OBSERVED-ONLY set the mirror does not have. Reconciling either "
-        "direction deletes real test coverage",
-    ),
-    (
         "hooks/memory-guard/scan.py",
         "agent-self/config/hooks/memory-guard/scan.py",
         "DRIFT: repo-root's allowlist includes 'deepscan', the mirror's does "
@@ -186,27 +211,6 @@ KNOWN_DIVERGENT: tuple[tuple[str, str, str], ...] = (
         "DRIFT: the mirror carries a '# nosemgrep: ...bidi...' suppression on "
         "the RIGHT-TO-LEFT-OVERRIDE test fixture; the repo root does not. The "
         "root is a strict subset, so root <- mirror would lose nothing",
-    ),
-    (
-        "hooks/event-ledger/ledger.py",
-        "agent-self/config/hooks/event-ledger/ledger.py",
-        "DRIFT: 6 repo-root-only runs (165 lines) plus 7 replaced blocks",
-    ),
-    (
-        "hooks/event-ledger/note.py",
-        "agent-self/config/hooks/event-ledger/note.py",
-        "DRIFT: 2 repo-root-only runs (9 lines) plus 3 replaced blocks",
-    ),
-    (
-        "hooks/event-ledger/prune-report.py",
-        "agent-self/config/hooks/event-ledger/prune-report.py",
-        "DRIFT: 8 repo-root-only runs (48 lines) plus 15 replaced blocks",
-    ),
-    (
-        "hooks/event-ledger/test_ledger.py",
-        "agent-self/config/hooks/event-ledger/test_ledger.py",
-        "DRIFT: 6 repo-root-only runs (268 lines) plus 1 replaced block -- the "
-        "mirror's ledger test suite is far behind the root's",
     ),
     (
         "hooks/_golden/test_hooks.py",

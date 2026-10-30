@@ -4,9 +4,25 @@ Claude Code persists every Task subagent as an append-only JSONL at
 ``~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl`` with a small
 sidecar ``agent-<id>.meta.json`` (``{agentType, description, name, toolUseId}``).
 
-This module renders that transcript as clean, coloured, one-line-per-event feed lines
-(thinking / text / tool call / tool result). It only ever READS the file, so it is safe
-to run against an agent the live Claude Code instance is still writing.
+This module renders that transcript two ways, and the difference matters:
+
+* :func:`render` — one coloured line per event (thinking / text / tool call / tool
+  result), every field collapsed to a single line and truncated to the terminal
+  width. Dense, scannable, and what the boards use.
+* :func:`render_detail` — the same events in full: reasoning wrapped and intact,
+  every tool argument rather than the one guessed to be most informative, and
+  tool output resolved from its spill file via
+  :func:`resolve_persisted_output` when the transcript holds only a ~2 KB
+  preview. For reading a subagent's work rather than watching its pulse.
+
+The second exists because the first is not a substitute for it. Watching an agent
+through a width-truncated feed shows commands without their reasoning and results
+without their output, which leaves opening the transcript by hand as the only way
+to see what actually happened. Where a cap still applies, it says how much it
+withheld and where the rest is, rather than cutting silently.
+
+It only ever READS the file, so it is safe to run against an agent the live
+Claude Code instance is still writing.
 
 Vendored into ``monitorcore`` (from the personal ``agent-monitor`` tool) so consumers
 import it as ``monitorcore.agent_tail`` instead of a hardcoded personal-directory
@@ -23,6 +39,7 @@ import json
 import os
 import shutil
 import sys
+import textwrap
 import time
 
 
@@ -148,12 +165,189 @@ def render(entry: dict, width: int) -> list[str]:
     return out
 
 
-def read_tail_entries(path: str, n: int) -> list[dict]:
-    """Last n complete JSON entries (for opening backfill)."""
+#: Default bytes of tail read by :func:`read_tail_entries`. Kept as the historical
+#: value so existing callers see no change; the detail view asks for more, because
+#: "I cannot see earlier output" is partly this window.
+TAIL_WINDOW_BYTES = 200_000
+
+
+def resolve_persisted_output(entry: dict) -> tuple[str | None, str | None]:
+    """Full tool output for a spilled result: ``(text, path)``.
+
+    Claude Code spills a large tool result to a sidecar file and leaves only a
+    ~2 KB preview in the transcript, wrapped in a ``persisted-output`` notice.
+    Every monitor in this repo renders that preview and stops, which is half of
+    "I cannot see the previous output". The structured pointer is
+    ``toolUseResult.persistedOutputPath`` — read that, rather than regexing the
+    human-facing prose, which is not an interface.
+
+    Returns ``(None, None)`` when the entry has no spill, and ``(None, path)``
+    when it claims one that cannot be read — a caller should say the output is
+    unavailable and name the path, never silently show the preview as if whole.
+    """
+    tur = entry.get("toolUseResult")
+    if not isinstance(tur, dict):
+        return None, None
+    path = tur.get("persistedOutputPath")
+    if not isinstance(path, str) or not path:
+        return None, None
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            return fh.read(), path
+    except OSError:
+        return None, path
+
+
+def _wrap(text: str, width: int, gutter: str) -> list[str]:
+    """Wrap text to width, preserving its own line breaks, prefixed by gutter.
+
+    Deliberately keeps blank lines and paragraph structure: reasoning is prose,
+    and collapsing it to one line is the bug this exists to fix.
+    """
+    width = max(20, width)
+    out: list[str] = []
+    for raw in str(text).splitlines() or [""]:
+        if not raw.strip():
+            out.append(gutter)
+            continue
+        # textwrap.wrap only returns [] for blank input, which the branch above
+        # already took, so no empty-result fallback is needed here.
+        out.extend(gutter + seg for seg in textwrap.wrap(raw, width=width))
+    return out
+
+
+def _capped(lines: list[str], max_lines: int | None, note: str) -> list[str]:
+    """Apply a line cap, SAYING so when it bites.
+
+    The point of this module's rewrite is that nothing is silently cut. A cap is
+    still needed — a single tool result can be megabytes — so when it applies it
+    announces how much was withheld and where the rest lives.
+    """
+    if max_lines is None or len(lines) <= max_lines:
+        return lines
+    kept = lines[:max_lines]
+    kept.append(f"{DIM}… {len(lines) - max_lines} more line(s){note}{R}")
+    return kept
+
+
+def render_detail(
+    entry: dict,
+    width: int,
+    *,
+    max_lines: int | None = 400,
+    resolve_persisted: bool = True,
+) -> list[str]:
+    """Full, wrapped, untruncated rendering of one transcript entry.
+
+    The counterpart to :func:`render`, which is a one-line-per-event feed and
+    stays as it is for the boards that want density. This one is for reading:
+    reasoning in full, every tool argument rather than the single most
+    informative one, and tool output resolved from its spill file when the
+    transcript only holds a preview.
+
+    ``signature`` on a thinking block is never rendered: it is opaque ciphertext,
+    not text. When a block carries a signature but no thinking (older
+    transcripts, where the prose was not retained) that is stated, so an empty
+    reasoning pane is never mistaken for an agent that did not think.
+    """
+    raw_msg = entry.get("message")
+    msg = raw_msg if isinstance(raw_msg, dict) else {}
+    ts = fmt_ts(entry.get("timestamp"))
+    content = msg.get("content")
+    blocks = (
+        content
+        if isinstance(content, list)
+        else ([{"type": "text", "text": content}] if isinstance(content, str) else [])
+    )
+    body = max(20, width - 4)
+    out: list[str] = []
+    for b in blocks:
+        if not isinstance(b, dict):
+            out.extend(_wrap(b, body, f"{GREY}  {R}"))
+            continue
+        t = b.get("type")
+        if t == "thinking":
+            think = b.get("thinking") or ""
+            if think:
+                out.append(f"{GREY}{ts}  * reasoning{R}")
+                out.extend(_capped(_wrap(think, body, f"{GREY}  {R}"), max_lines, ""))
+            elif b.get("signature"):
+                out.append(
+                    f"{GREY}{ts}  * reasoning not retained in this transcript{R}"
+                )
+        elif t == "text":
+            txt = b.get("text") or ""
+            if txt:
+                out.append(f"{GREY}{ts}{R}  {GREEN}> message{R}")
+                out.extend(_capped(_wrap(txt, body, f"{GREEN}  {R}"), max_lines, ""))
+        elif t == "tool_use":
+            name = b.get("name", "?")
+            out.append(f"{GREY}{ts}{R}  {CYAN}+ {BOLD}{name}{R}")
+            inp = b.get("input")
+            if isinstance(inp, dict):
+                for key in sorted(inp):
+                    val = inp[key]
+                    shown = (
+                        val
+                        if isinstance(val, str)
+                        else json.dumps(val, ensure_ascii=False, indent=2)
+                    )
+                    out.append(f"{DIM}    {key}:{R}")
+                    out.extend(
+                        _capped(
+                            _wrap(shown, body - 4, f"{DIM}      {R}"), max_lines, ""
+                        )
+                    )
+            elif inp is not None:
+                out.extend(_wrap(inp, body, f"{DIM}    {R}"))
+        elif t == "tool_result":
+            out.extend(
+                _render_result_detail(b, entry, ts, body, max_lines, resolve_persisted)
+            )
+    return out
+
+
+def _render_result_detail(
+    block: dict,
+    entry: dict,
+    ts: str,
+    body: int,
+    max_lines: int | None,
+    resolve_persisted: bool,
+) -> list[str]:
+    """One ``tool_result`` block, with its spilled output pulled in if there is one."""
+    err = bool(block.get("is_error"))
+    col = RED if err else YEL
+    glyph = "✗" if err else "↳"
+    rc = block.get("content")
+    inline = rc if isinstance(rc, str) else json.dumps(rc, ensure_ascii=False, indent=2)
+    out = [f"{GREY}{ts}{R}  {col}{glyph} result{R}"]
+    note = ""
+    if resolve_persisted:
+        full, path = resolve_persisted_output(entry)
+        if full is not None:
+            inline = full
+            note = f", full output at {path}"
+            out.append(f"{DIM}    (resolved {len(full)} bytes from {path}){R}")
+        elif path is not None:
+            # Claimed a spill we could not read: say so rather than presenting
+            # the truncated preview as though it were the whole result.
+            out.append(f"{RED}    (persisted output unreadable: {path}){R}")
+    out.extend(_capped(_wrap(inline, body, f"{DIM}    {R}"), max_lines, note))
+    return out
+
+
+def read_tail_entries(path: str, n: int, window: int = TAIL_WINDOW_BYTES) -> list[dict]:
+    """Last n complete JSON entries (for opening backfill).
+
+    ``window`` is how far back to read. A transcript can be hundreds of MB, so
+    this stays a bounded tail rather than a full parse; pass a larger window to
+    reach further back.
+    """
     try:
         sz = os.path.getsize(path)
         with open(path, "rb") as fh:
-            fh.seek(max(0, sz - 200_000))
+            fh.seek(max(0, sz - max(1, window)))
             data = fh.read().decode("utf-8", "ignore")
     except OSError:
         return []
@@ -214,14 +408,18 @@ def _wait_for_file(
     return True
 
 
-def _follow_step(path, state, width, idle, *, now, out=print):
+def _follow_step(path, state, width, idle, *, now, out=print, renderer=None):
     """One poll iteration: emit newly-appended events; return the updated follow state.
 
     ``state`` is ``(pos, buf, last_event, idle_announced)``. New complete lines past ``pos``
     are parsed + rendered; a truncated/rotated file restarts from the top; a quiet stretch
     past ``idle`` seconds prints a single idle notice. A transient ``OSError`` (share lock)
     leaves the state unchanged for the next poll.
+
+    ``renderer`` defaults to :func:`render`; pass :func:`render_detail` (or a
+    partial of it) to follow with full reasoning and output.
     """
+    draw = render if renderer is None else renderer
     pos, buf, last_event, idle_announced = state
     try:
         sz = os.path.getsize(path)
@@ -242,7 +440,7 @@ def _follow_step(path, state, width, idle, *, now, out=print):
                     entry = json.loads(raw.decode("utf-8", "ignore"))
                 except Exception:
                     continue
-                for ln in render(entry, width):
+                for ln in draw(entry, width):
                     out(ln)
                     last_event = now()
                     idle_announced = False
@@ -256,12 +454,12 @@ def _follow_step(path, state, width, idle, *, now, out=print):
 
 
 def _follow_forever(  # pragma: no cover -- interactive live poll loop (no real terminal state in tests)
-    path, width, poll, idle, *, sleep, now=time.time
+    path, width, poll, idle, *, sleep, now=time.time, renderer=None
 ) -> int:
     state = (os.path.getsize(path), b"", now(), False)
     while True:
         try:
-            state = _follow_step(path, state, width, idle, now=now)
+            state = _follow_step(path, state, width, idle, now=now, renderer=renderer)
         except KeyboardInterrupt:
             print(f"\n{DIM}stopped watching{R}")
             return 0
@@ -286,20 +484,51 @@ def main(argv=None, *, sleep=time.sleep) -> int:
         help="seconds of silence before an idle notice",
     )
     ap.add_argument("--width", type=int, default=_default_width())
+    ap.add_argument(
+        "--detail",
+        action="store_true",
+        help="full reasoning and full tool output instead of one truncated line each",
+    )
+    ap.add_argument(
+        "--max-lines",
+        type=int,
+        default=400,
+        help="per-block line cap in --detail mode; 0 for no cap",
+    )
+    ap.add_argument(
+        "--window",
+        type=int,
+        default=TAIL_WINDOW_BYTES,
+        help="bytes of transcript tail to read for the backfill",
+    )
     a = ap.parse_args(argv)
 
     if not _wait_for_file(a.jsonl, sleep=sleep):
         return 1
 
+    cap = None if a.max_lines == 0 else a.max_lines
+
+    def show(entry: dict) -> list[str]:
+        if a.detail:
+            return render_detail(entry, a.width, max_lines=cap)
+        return render(entry, a.width)
+
     header(a.jsonl, a.width)
     if a.backfill:
         print(f"{DIM}── last {a.backfill} events ──{R}")
-        for e in read_tail_entries(a.jsonl, a.backfill):
-            for ln in render(e, a.width):
+        for e in read_tail_entries(a.jsonl, a.backfill, a.window):
+            for ln in show(e):
                 print(ln)
         print(f"{DIM}── live ──{R}")
 
-    return _follow_forever(a.jsonl, a.width, a.poll, a.idle, sleep=sleep)
+    return _follow_forever(
+        a.jsonl,
+        a.width,
+        a.poll,
+        a.idle,
+        sleep=sleep,
+        renderer=(lambda e, w: show(e)) if a.detail else None,
+    )
 
 
 if __name__ == "__main__":  # pragma: no cover -- module CLI entrypoint
