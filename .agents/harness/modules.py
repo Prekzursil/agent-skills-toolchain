@@ -3670,7 +3670,9 @@ def _cc_active_profile() -> str:
     try:
         prof = os.environ.get("CC_ACTIVE_PROFILE", "").strip().lower()
         if not prof:
-            sentinel = Path.home() / ".claude" / "profiles" / "state" / "cc-active-profile"
+            sentinel = (
+                Path.home() / ".claude" / "profiles" / "state" / "cc-active-profile"
+            )
             prof = sentinel.read_text(encoding="utf-8", errors="ignore").strip().lower()
         return prof
     except Exception:
