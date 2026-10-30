@@ -109,10 +109,11 @@ def _command_group(
 
 
 def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
-    """Fold the four ADDED Claude-only groups into an already-built hook block.
+    """Fold the ADDED Claude-only groups into an already-built hook block.
 
     The PreToolUse matcher narrowing (edit a) is applied inline in build_hooks;
-    this adds edits (b)-(e). Mutates ``result`` in place."""
+    this adds edits (b), (d) and (e). Edit (c) was removed on 2026-10-24 — see the
+    comment at its former position. Mutates ``result`` in place."""
     hooks_root = (Path.home() / ".claude" / "hooks").as_posix()
     # (b) 2nd SessionStart group: the local-TUI reminder.
     result["SessionStart"].append(
@@ -123,15 +124,36 @@ def _apply_claude_hand_edits(result: dict[str, list[dict[str, Any]]]) -> None:
             matcher=".*",
         )
     )
-    # (c) 2nd PreToolUse group: workflow-monitor auto-launch (matcher "Workflow").
-    result["PreToolUse"].append(
-        _command_group(
-            f'python "{hooks_root}/workflow-monitor-autolaunch/check.py"',
-            timeout=8,
-            status="wfmon auto-launch",
-            matcher="Workflow",
-        )
-    )
+    # (c) REMOVED 2026-10-24: the standalone ``workflow-monitor-autolaunch`` group
+    # (matcher "Workflow", 8s, "wfmon auto-launch").
+    #
+    # The dispatcher now owns that route: ``hooks/_dispatch/manifest.json`` admits
+    # ``Workflow`` in its PreToolUse ``settings_matcher`` and runs the generalized
+    # ``monitor-autolaunch`` check on ``Task|Workflow|mcp__codex__codex`` — a superset
+    # of this group's single matcher, so removing it loses no coverage.
+    #
+    # It had to go rather than merely being left unmanifested, because generating it
+    # here put back what the migration tool removes. ``deploy_dispatch_wiring.py``
+    # strips this group from already-deployed settings via its
+    # ``SUPERSEDED_STANDALONE`` map (bug WF-2) — and this function kept regenerating
+    # it on every ``install.py`` run, so the repair could not stay repaired.
+    #
+    # The mechanism is recorded: the two groups' per-session locks have DIFFERENT
+    # names, so neither suppresses the other, and neither probes for an existing
+    # window before ``Popen``. On the CONSEQUENCE, use the repo's own corrected
+    # figure rather than the WF-2 docstring's: ``CLOSE-PROPOSALS-M1.md:25`` measured
+    # that "double-open a SECOND window" OVERCLAIMS, because both launch
+    # ``wt -w <name> new-tab`` — the harm is two TABS and two poller processes in one
+    # reusable window. That note also records the runtime double-fire as UNVERIFIED.
+    # Removing a duplicate launcher is still right; overstating its blast radius is
+    # not, and this repo already caught that once.
+    #
+    # The successor additionally honours the per-monitor ``MONITOR_AUTOLAUNCH_WFMON``
+    # opt-out that the legacy hook ignored.
+    #
+    # ``deploy_dispatch_wiring.py`` and its tests still reference the old name on
+    # purpose: that is the state they migrate FROM, and they must keep recognising it.
+    #
     # (d)/(e) WorktreeCreate + WorktreeRemove: the PowerShell worktree lifecycle
     # (no matcher — a lifecycle event, like UserPromptSubmit/Stop).
     result["WorktreeCreate"] = [
