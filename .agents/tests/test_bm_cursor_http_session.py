@@ -793,3 +793,22 @@ def test_main_health_and_call_modes(fake_daemon, capsys) -> None:
     )
     report = json.loads(capsys.readouterr().out)
     assert report["ok"] is False and "refused" in report["error"].lower()
+
+
+def test_main_default_stdio_path_wires_cooldown() -> None:
+    """Regression: main()'s default (stdio) path passed ``cooldown=args.cooldown`` to
+    stdio_loop, but no ``--cooldown`` flag was ever registered on the parser, so a bare
+    invocation died with ``AttributeError: 'Namespace' object has no attribute
+    'cooldown'`` before the loop started. The --health/--call tests above never reach
+    this branch (both return first), so it went unguarded. Assert the flag exists,
+    defaults to DEFAULT_COOLDOWN, and that an explicit value flows through -- stdio_loop
+    is stubbed so no daemon or real loop is needed. A fake unreachable URL is used; the
+    session is only constructed, never driven."""
+    bm = load_bm()
+    unreachable = "http://127.0.0.1:65535/mcp"
+    with patch.object(bm, "stdio_loop", return_value=0) as loop:
+        assert bm.main(["--no-cache", "--url", unreachable]) == 0
+    assert loop.call_args.kwargs["cooldown"] == bm.DEFAULT_COOLDOWN
+    with patch.object(bm, "stdio_loop", return_value=0) as loop_explicit:
+        assert bm.main(["--no-cache", "--cooldown", "12.5", "--url", unreachable]) == 0
+    assert loop_explicit.call_args.kwargs["cooldown"] == 12.5

@@ -82,3 +82,30 @@ trigger_tool = "Workflow"
 [p2r2e]
 dir = "workflow-monitor"
 entry = "p2r2e_board.py"
+
+# General-purpose long-task monitor (build, download, CI run, FEP/BPMD driver, LLM
+# generation, rclone transfer). Manual: mon taskwatch
+#
+# NO trigger_tool, deliberately. The monitors above auto-open off a Claude tool call
+# because that call IS the thing to watch; a long EXTERNAL job has no such Claude-side
+# trigger, and auto-opening a board with an empty registry on some unrelated tool use
+# would be noise. Register a task first (`taskwatch register <template> <id>`), then
+# open the board by hand.
+#
+# RECONCILED, NOT MERGED (2026-10-24). taskwatch_monitor was complete and tested and
+# reachable by nothing: no stanza here, no hook reference. It stays its own tool —
+# monitorcore watches agent-harness artifacts (transcripts, manifests, MCP configs),
+# taskwatch watches arbitrary external jobs (logfile growth, process liveness, GPU,
+# p50/p90 ETA from sqlite priors). Two domains, two tools, one front door. This is
+# compatible with the ratified non-goals in
+# docs/axis-c-design-2026-07-13/ingest-diagnose-and-optimize.md:187-188 ("no
+# meta-cockpit/merged pane", "no unified INPUT data model"); a merged pane is not, and
+# is not being built.
+#
+# `entry` is a stdlib-only SHIM, not taskwatch itself: taskwatch declares rich/tomlkit/mcp
+# and runs from the venv install.ps1 creates, so it cannot be vendored into a skill dir
+# the way monitorcore is (dependencies = []). The shim locates the install and delegates;
+# if it is missing it names the one command that fixes it and exits 3.
+[taskwatch]
+dir = "run-taskwatch_monitor"
+entry = "taskwatch_board.py"

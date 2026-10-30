@@ -179,6 +179,16 @@ EXEMPT: Mapping[str, str] = {
         "(uncommitted scratch, absent from any checkout) into a --watch poll loop; "
         "nothing renderable from committed blobs"
     ),
+    "taskwatch": (
+        "committed entry is a locator shim that delegates to an EXTERNAL venv install "
+        "(taskwatch_monitor declares rich/tomlkit/mcp, absent from the stdlib-only CI "
+        "step); with taskwatch absent it exits 3 and writes its guidance to stderr, so "
+        "there is no stdout render to require, and with it present it would open a live "
+        "`status --watch` TUI this gate must not launch. An exec probe requiring the "
+        "shim's own `[taskwatch]` resolution line would PASS on a shim that resolved "
+        "and then launched nothing -- the exact false-pass this file already documents "
+        'for csmon\'s `require="csmon"`. NOT-CHECKED is the honest verdict'
+    ),
 }
 
 
