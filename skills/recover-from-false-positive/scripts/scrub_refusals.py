@@ -103,15 +103,19 @@ def refusal_explanation(obj):
 
 
 def is_structural_refusal(obj):
-    """Reword-proof + all-edges: an assistant API-error turn the client marked as a
-    refusal, via EITHER message.stop_reason=='refusal' OR stop_details.type=='refusal'
-    (both are set by the client from the server response, independent of wording or
-    category). Catches cyber, weapons, and any future category on day zero."""
-    if not (
-        isinstance(obj, dict)
-        and obj.get("isApiErrorMessage")
-        and obj.get("type") in (None, "assistant")
-    ):
+    """Reword-proof + all-edges: an assistant turn marked as a refusal via EITHER
+    message.stop_reason=='refusal' OR stop_details.type=='refusal' (both are set by
+    the client from the server response, independent of wording or category).
+    Catches cyber, weapons, and any future category on day zero.
+
+    2026-10-30: the former `isApiErrorMessage` precondition is GONE. Real HTTP-200
+    refusal responses are stored as plain assistant turns with NO error flag —
+    measured live: 6 of 8 refusal turns in one session lacked the flag, and the
+    flag-gated detector left all 6 behind after a "successful" scrub. The structural
+    marker alone is unambiguous (quoted prose cannot set a JSON field), so it gates
+    safely on its own; only the TEXT signature path still requires the error flag
+    (to avoid false-positives on quoted error text)."""
+    if not (isinstance(obj, dict) and obj.get("type") in (None, "assistant")):
         return False
     return (
         _stop_reason(obj) == STRUCTURAL_STOP_REASON
@@ -151,9 +155,16 @@ def observe_novel_wording(obj, path=""):
 
 def _has_marker(blob):
     """Cheap file-level prefilter. Must NOT skip structurally-detectable refusals, so
-    it triggers on the durable field name too (any wording), not just known strings."""
+    it triggers on the durable field name AND the serialized structural marker (a file
+    can carry HTTP-200 refusals with no isApiErrorMessage anywhere), not just known
+    strings."""
     low = blob.lower()
-    return "isapierrormessage" in low or any(m.lower() in low for m in _ALL_MARKERS)
+    return (
+        "isapierrormessage" in low
+        or '"stop_reason": "refusal"' in low
+        or '"stop_reason":"refusal"' in low
+        or any(m.lower() in low for m in _ALL_MARKERS)
+    )
 
 
 def _text(obj):
@@ -809,8 +820,11 @@ def refusal_count(path):
     try:
         for line in open(path, encoding="utf-8", errors="surrogatepass"):
             line = line.strip()
-            if not line or "isApiErrorMessage" not in line:
+            if not line:
                 continue
+            # 2026-10-30: no isApiErrorMessage prefilter here — HTTP-200 refusal
+            # turns carry no flag and gating the scan on it undercounted saturation
+            # (6 of 8 refusals in a real session were unflagged). is_refusal gates.
             try:
                 if is_refusal(json.loads(line)):
                     n += 1
@@ -1004,12 +1018,12 @@ def selfcheck(root):
                     novels.append(snip)
 
     print("── recover-from-false-positive self-check ──")
-    print("detection contract: isApiErrorMessage:true AND (")
+    print("detection contract: STRUCTURAL marker, error flag NOT required:")
     print(
         "   message.stop_reason=='refusal' OR stop_details.type=='refusal'  [structural, reword+category-proof]"
     )
     print(
-        f"   OR known SIGNATURES text [{len(SIGNATURES)} known])  — category read from stop_details.category"
+        f"   OR [isApiErrorMessage + known SIGNATURES text [{len(SIGNATURES)} known]]  — category read from stop_details.category"
     )
     print(f"isApiErrorMessage turns scanned : {total_err}")
     print(f"  classified as refusal (structural) : {struct}")

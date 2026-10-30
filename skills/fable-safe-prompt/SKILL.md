@@ -1,18 +1,25 @@
 ---
 name: fable-safe-prompt
-description: "Rewrite allowed prompts to reduce false-positive safety triggers without bypassing policy or changing intent."
+description: Rewrite allowed prompts to reduce false-positive safety triggers without
+  bypassing policy or changing intent.
 category: agent-behavior
 risk: safe
 source: community
 source_repo: davidondrej/skills
 source_type: community
-date_added: "2026-07-07"
+date_added: '2026-07-07'
 author: davidondrej
-tags: [prompting, safety, guardrails]
-tools: [claude, codex]
-license: "MIT"
-license_source: "https://github.com/davidondrej/skills/blob/main/LICENSE"
+tags:
+- prompting
+- safety
+- guardrails
+tools:
+- claude
+- codex
+license: MIT
+license_source: https://github.com/davidondrej/skills/blob/main/LICENSE
 disable-model-invocation: true
+permalink: dqverify-agents-20261013/skills/fable-safe-prompt/skill
 ---
 
 # Fable-Safe Prompt
@@ -24,7 +31,9 @@ disable-model-invocation: true
 
 Return the user's prompt back **in full, verbatim**, changing ONLY the specific sentences/phrases most likely to trip Fable 5's cyber/bio classifiers. Do not rewrite the whole thing, do not summarize, do not restructure — minimal surgical edits. Keep the actual goal and all benign text exactly as written. This lowers false positives for benign work. It must not be used to bypass safety policy or enable harmful requests.
 
-Fable 5 runs 3 input classifiers: **cyber**, **bio/chem**, **reasoning_extraction**. Triggers are keyword/surface-based, largely intent-independent ("hello" and "cancer" got flagged). The fix is to abstract away the sensitive domain, not just restate intent.
+Fable 5/5.1 runs 3 input classifiers: **cyber**, **bio/chem**, **reasoning_extraction**; Opus 5.5 and Sonnet 5.5 carry the same cyber classifiers (Sonnet 5.5 was the first Sonnet with cyber fallbacks, Sep 2026). Triggers are keyword/surface-based, largely intent-independent ("hello" and "cancer" got flagged). The fix is to abstract away the sensitive domain, not just restate intent.
+
+**Rewording is not enough (official, Sep 2026): the classifiers review everything the model READS — files, tool results, web fetches, connector content, memory — so a block can be triggered by content the user never typed.** For dense-domain work, pair this skill with digest-not-echo (read by path + summary, never paste bodies into prompts) and context tiering; a reworded prompt over a dense file read still trips.
 
 Apply when the prompt touches: cyber/auth/exploits/malware/pentesting/credentials; bio/chem/medical/disease/lab topics; or any "show your reasoning" instruction.
 
@@ -61,11 +70,12 @@ If no benign defensive equivalent exists for a sentence (it's purely offensive),
 ## Output
 
 1. Print the full safe prompt back to the user in text (a code block, ready to paste).
-2. **Copy it to the clipboard** so the user can paste immediately:
+2. **Copy it to the clipboard** so the user can paste immediately (platform-appropriate — this estate is Windows):
    ```bash
-   pbcopy <<'EOF'
-   <the full safe prompt>
-   EOF
+   # Windows (primary here): write the prompt to a temp file, then:
+   clip.exe < /tmp/safe-prompt.txt        # Git Bash
+   # macOS:  pbcopy < /tmp/safe-prompt.txt
+   # Linux:  xclip -selection clipboard < /tmp/safe-prompt.txt
    ```
    Confirm in one line that it's on the clipboard.
 3. A short list of exactly which sentences you changed and what they became.
@@ -83,3 +93,4 @@ If no benign defensive equivalent exists for a sentence (it's purely offensive),
 
 - Adapted from `davidondrej/skills`; verify local paths, tools, credentials, and agent features before acting.
 - For commands, remote access, scheduling, browser automation, or file-changing workflows, get explicit user approval and confirm the target environment first.
+- For a SINGLE tripped turn in a live session, the official in-session moves are Esc twice (or `/rewind`) to step back before the flagged turn, then reworded retry; `/feedback` with the request ID reports a false positive. Full session recovery is the `recover-from-false-positive` skill's job.
