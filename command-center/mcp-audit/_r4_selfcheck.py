@@ -59,8 +59,27 @@ def main(argv: list[str]) -> int:
     rev = argv[0] if argv else "HEAD"
     paths = introduced_paths(rev)
     if not paths:
-        print(f"FAILED:r4-selfcheck no paths in {rev} (fail closed)")
-        return 1
+        # The enumeration is fail-loud (subprocess check=True): reaching this branch
+        # means git genuinely reports NO introduced paths -- a no-op merge (tree
+        # identical to its first parent) or an empty root tree. Both are clean.
+        # The old unconditional fail-closed punished exactly that legitimate class
+        # (measured live 2026-10-30: PR #406's clean merge tip was red-flagged).
+        # A clean sweep must stay a PROVEN sweep: the positive control still has to
+        # fire below, and a missing control still fails closed.
+        if not (REPO / CTRL).exists():
+            print(
+                f"FAILED:r4-selfcheck positive control missing at {CTRL} (fail closed)"
+            )
+            return 1
+        fired = blob("HEAD", CTRL).count(b"\r\n") > 0
+        print(f"  positive control fires: {fired}")
+        if fired is False:
+            print("FAILED:r4-selfcheck control did not fire on empty introduced set")
+            return 1
+        print(
+            f"SUCCESS:r4-selfcheck 0 introduced blobs in {rev} (no-op merge), control fired"
+        )
+        return 0
 
     print(f"== every blob in {rev}, by extension ==")
     bad = []

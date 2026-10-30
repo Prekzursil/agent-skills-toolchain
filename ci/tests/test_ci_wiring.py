@@ -160,7 +160,19 @@ def test_workflow_adopts_final_tree_strict_parity() -> None:
 
 
 def test_workflow_does_not_advertise_null_range_events() -> None:
-    """KNOWN-BROKEN: push/dispatch fetched main then diffed main against itself."""
+    # The original defect: push/dispatch ran the D-001 step as
+    # --base origin/main --head HEAD, which on a push event diffs main against
+    # itself (a null range, silently green). Since the 2026-10-30 main-parity
+    # change the workflow HAS push triggers, so this guard enforces the FIX
+    # instead of the trigger ban: the origin/main form must be event-gated to
+    # pull_request only, and the push path must diff the merge delta (HEAD^1).
     text = workflow_text()
-    assert "\n  push:\n" not in text
-    assert "\n  workflow_dispatch:\n" not in text
+    for chunk in text.split("- name: ")[1:]:
+        chunk = "- name: " + chunk
+        if "--base origin/main --head HEAD" in chunk:
+            assert "github.event_name" in chunk, (
+                "unconditional null-range D-001 step is back"
+            )
+        if "--base HEAD^1" in chunk:
+            assert "github.event_name" in chunk, "push-mode D-001 lost its gate"
+    assert "--base HEAD^1" in text, "push-mode D-001 missing - main parity regressed"
