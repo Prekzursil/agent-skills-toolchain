@@ -109,3 +109,23 @@ Auto-connector + pre-configured .rdp files at `D:\opt\scripts\`:
   image confirmed)
 - SSH keypair: `~/.ssh/vm_to_mirror(.pub)` on source VM, deployed to mirror
 - RDP: `D:\opt\scripts\{offload-mirror,offload-w2025}.rdp` + `connect-rdp.ps1`
+
+
+## FIRST-BOOT HAZARD - tailscale identity theft (measured 2026-10-01)
+
+The image contains the SOURCE machine's tailscaled state. A previous mirror instance booted
+with it and **stole offload-w2025's tailnet identity**, knocking the real VM offline until it
+was force-stopped. Before/at first boot on any mirror instance:
+
+```
+tailscale logout
+tailscale up --hostname=offload-mirror
+```
+
+Then check the tailnet admin console for stale duplicate nodes.
+
+## .rdp alternate-address bug (found 2026-10-01)
+
+`offload-mirror.rdp` sets `alternate full address:s:100.117.115.55` - that is the MAIN VM's
+tailnet IP, so the fallback connects to the wrong machine. Remove the line or set the mirror's
+own tailnet IP once it has one.
