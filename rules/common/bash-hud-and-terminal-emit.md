@@ -1,9 +1,3 @@
----
-title: bash-hud-and-terminal-emit
-type: note
-permalink: dqverify-repo-20261013/rules/common/bash-hud-and-terminal-emit
----
-
 # Bash HUD / terminal-emit gotchas
 
 Hard-won building a Claude Code **statusline** (a bash script that runs on every render and emits

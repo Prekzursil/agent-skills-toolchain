@@ -1,9 +1,3 @@
----
-title: cross-vendor-dispatch
-type: note
-permalink: dqverify-repo-20261013/rules/common/cross-vendor-dispatch
----
-
 # Cross-Vendor Dispatch (Claude → Codex, and any agent that shells to another agent runtime)
 
 Ledger-proven 2026-07-18 (`wf_82c5b350-9ba`): 3 Codex-backed subagents produced **0 production
