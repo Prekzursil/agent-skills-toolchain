@@ -1,7 +1,3 @@
----
-permalink: dqverify-repo-20261013/rules/common/harness-vcs-hygiene
----
-
 # Harness version-control hygiene (non-negotiable)
 
 Cross-tool rule read by Claude Code · Codex CLI · Antigravity (agy). Harness work that

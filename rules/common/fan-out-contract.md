@@ -1,7 +1,3 @@
----
-permalink: dqverify-repo-20261013/rules/common/fan-out-contract
----
-
 # Fan-Out Contract (spawn prompts and fan-in gates)
 
 Measured over 50 agents / 6 workflows, 2026-07-18. Element presence in the prompt predicts

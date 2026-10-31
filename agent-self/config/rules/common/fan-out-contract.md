@@ -1,4 +1,6 @@
 ---
+title: fan-out-contract
+type: note
 permalink: dqverify-repo-20261013/agent-self/config/rules/common/fan-out-contract
 ---
 

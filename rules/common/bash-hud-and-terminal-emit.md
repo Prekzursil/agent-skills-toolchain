@@ -1,4 +1,6 @@
 ---
+title: bash-hud-and-terminal-emit
+type: note
 permalink: dqverify-repo-20261013/rules/common/bash-hud-and-terminal-emit
 ---
 

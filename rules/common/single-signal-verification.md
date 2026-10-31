@@ -1,7 +1,3 @@
----
-permalink: dqverify-repo-20261013/rules/common/single-signal-verification
----
-
 # Single-Signal Verification (two independent signals before a load-bearing claim)
 
 **A single tool's silence or single reading is NOT evidence.** Before asserting something is

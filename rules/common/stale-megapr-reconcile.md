@@ -1,7 +1,3 @@
----
-permalink: dqverify-repo-20261013/rules/common/stale-megapr-reconcile
----
-
 # Stale mega-PR reconcile — measure the conflict surface before you rebase
 
 Cross-tool rule (Claude Code · Codex CLI · Antigravity). Applies to any git PR/branch

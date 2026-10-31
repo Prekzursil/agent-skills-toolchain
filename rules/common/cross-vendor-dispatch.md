@@ -1,4 +1,6 @@
 ---
+title: cross-vendor-dispatch
+type: note
 permalink: dqverify-repo-20261013/rules/common/cross-vendor-dispatch
 ---
 

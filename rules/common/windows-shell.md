@@ -1,7 +1,3 @@
----
-permalink: dqverify-repo-20261013/rules/common/windows-shell
----
-
 # Windows-Shell Footguns (non-negotiables)
 
 Windows 11 · **PowerShell 7** (primary) + **Git Bash / MSYS** (POSIX). Every item is

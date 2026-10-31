@@ -1,4 +1,6 @@
 ---
+title: agents
+type: note
 permalink: dqverify-repo-20261013/rules/common/agents
 ---
 
