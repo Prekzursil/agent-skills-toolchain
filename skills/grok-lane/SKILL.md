@@ -1,10 +1,6 @@
 ---
 name: grok-lane
-description: Local Grok OpenAI-compatible lane — chenyme/grok2api bridge at D:\opt\grok-lane
-  serving http://127.0.0.1:8182/v1 with the owner's grok CLI credential (grok-4.5/4.6/4.7
-  + fast variant + composer), reasoning_effort knob, g2a client keys via GROK_LANE_KEY,
-  native provider wiring in ZCode/Codex/OpenCode, GrokLaneKeepalive persistence. Use for
-  any task needing Grok models without hosted links.
+description: Local Grok OpenAI-compatible lane (chenyme/grok2api bridge) - launch, keepalive, model catalog, client wiring and budget caps for grok-4.x models on this estate.
 permalink: dqverify-agents-20261013/skills/grok-lane/skill
 ---
 
